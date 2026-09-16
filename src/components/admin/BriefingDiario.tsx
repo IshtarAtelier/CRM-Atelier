@@ -15,7 +15,7 @@
 // esto lo va a ver todos los días. Texto de 15-16 px en vez de los 11-13 px
 // habituales del panel, contraste medido ≥ 7:1 en casi todo (piso 4,5:1),
 // targets de 44 px, foco visible con anillo + separación, y ningún estado
-// comunicado solo por color: "Cumplido" / "Te faltaron 7" van escritos.
+// comunicado solo por color: "Cumplido" / "Te quedaron 7" van escritos.
 // ────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from 'react';
@@ -88,7 +88,7 @@ function Fila({ icono: Icono, titulo, children }: {
     );
 }
 
-/** "Cumplido" / "Te faltaron 7". Ícono + palabra, nunca solo el color. */
+/** "Cumplido" / "Te quedaron 7". Ícono + palabra, nunca solo el color. */
 function Marca({ ok, texto }: { ok: boolean; texto: string }) {
     const Icono = ok ? CheckCircle2 : AlertTriangle;
     const estilo = ok
@@ -185,7 +185,7 @@ export default function BriefingDiario() {
     const terminar = async () => {
         const limpio = texto.trim();
         if (limpio.length < BRIEFING_MINIMO_TEXTO) {
-            setError('Escribí un poquito más: con eso no alcanza para saber que quedó claro.');
+            setError('Contame un poquito más, así sé que quedó claro.');
             campo.current?.focus();
             return;
         }
@@ -194,7 +194,7 @@ export default function BriefingDiario() {
         // de ayer" sí (pedido de Ishtar, 16/9/2026).
         const objetivo = objetivoDelDia.trim();
         if (objetivo.length < BRIEFING_MINIMO_TEXTO) {
-            setError('Escribí tu objetivo de hoy con palabras: qué te proponés lograr.');
+            setError('Contame tu objetivo de hoy con palabras: qué te proponés lograr.');
             campoObjetivo.current?.focus();
             return;
         }
@@ -233,14 +233,14 @@ export default function BriefingDiario() {
                     <ul className="space-y-3">
                         <Fila icono={Wallet} titulo="Hacé el arqueo de caja">
                             <p>
-                                Las dos cajas: la tuya y la de Matías. El arqueo se hace igual
-                                todos los días, haya sido un día flojo o cargado.
+                                Las dos cajas: la tuya y la de Matías. Todos los días, aunque
+                                haya sido un día tranquilo.
                             </p>
                         </Fila>
                         <Fila icono={Camera} titulo="Mandá las dos capturas al grupo de lotes">
                             <p>
-                                Una captura de la caja de Matías y otra de la tuya, las dos al
-                                <strong> grupo de lotes</strong>. Si falta una, el día queda sin cerrar.
+                                Una de la caja de Matías y otra de la tuya, las dos al
+                                <strong> grupo de lotes</strong>. Con esas dos, el día queda cerrado.
                             </p>
                         </Fila>
                     </ul>
@@ -266,13 +266,13 @@ export default function BriefingDiario() {
                             className="w-6 h-6 shrink-0 mt-0.5 accent-emerald-700 dark:accent-emerald-400"
                         />
                         <span className="text-[15px] font-bold text-stone-900 dark:text-white leading-relaxed">
-                            Ya hice el arqueo de las dos cajas y mandé las dos capturas al grupo de lotes.
+                            Listo: hice el arqueo de las dos cajas y mandé las capturas al grupo de lotes.
                         </span>
                     </label>
                     {!arqueoHecho && (
                         <p className={`${TARJETA} ${TEXTO} mt-3 flex items-start gap-2`}>
                             <Lock className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
-                            <span>Hasta que lo tildes, esta ficha no te deja seguir.</span>
+                            <span>Cuando lo tengas hecho, tildalo y seguimos.</span>
                         </p>
                     )}
                 </>
@@ -289,14 +289,14 @@ export default function BriefingDiario() {
                     <ul className="space-y-3">
                         <Fila icono={Tag} titulo="Etiquetá TODO">
                             <p>
-                                Cada conversación, etiquetada. Sin la etiqueta no hay forma de saber
-                                después de dónde vino ese cliente ni en qué quedó.
+                                Cada conversación, etiquetada. Es lo que después nos deja saber de dónde
+                                vino ese cliente y en qué quedaron.
                             </p>
                         </Fila>
                         <Fila icono={Mic} titulo="Mandá audios">
                             <p>
-                                No te quedes solo en el texto. Escuchar tu voz no es lo mismo que leer:
-                                se nota que hay alguien atendiendo del otro lado.
+                                Sumale audios al texto. Escuchar tu voz no es lo mismo que leer: se nota
+                                que hay alguien atendiendo del otro lado.
                             </p>
                         </Fila>
                     </ul>
@@ -312,7 +312,7 @@ export default function BriefingDiario() {
             cuerpo: (
                 <>
                     <p className={TEXTO}>
-                        Buen día, {nombre}. Arrancamos por lo tuyo: estos son los mínimos del día y cómo venís.
+                        Estos son los mínimos del día y cómo venís.
                     </p>
                     <ul className="mt-4 space-y-3">
                         <Fila icono={ClipboardList} titulo="Presupuestos">
@@ -324,7 +324,7 @@ export default function BriefingDiario() {
                                         ok={a.presupuestos >= objetivos.presupuestos}
                                         texto={a.presupuestos >= objetivos.presupuestos
                                             ? 'Cumplido'
-                                            : `Te faltaron ${objetivos.presupuestos - a.presupuestos}`}
+                                            : `Te quedaron ${objetivos.presupuestos - a.presupuestos}`}
                                     />
                                 </p>
                             )}
@@ -341,7 +341,7 @@ export default function BriefingDiario() {
                                         ok={a.tareasCerradas >= objetivos.tareasMin}
                                         texto={a.tareasCerradas >= objetivos.tareasMin
                                             ? 'Cumplido'
-                                            : `Te faltaron ${objetivos.tareasMin - a.tareasCerradas}`}
+                                            : `Te quedaron ${objetivos.tareasMin - a.tareasCerradas}`}
                                     />
                                 </p>
                             )}
@@ -360,13 +360,13 @@ export default function BriefingDiario() {
 
                     {sinActividad && (
                         <p className={`${TARJETA} ${TEXTO} mt-3`}>
-                            {dia} no quedó actividad tuya registrada. Si fue tu franco, ignorá los números de arriba.
+                            {dia} no quedó actividad tuya registrada. Si fue tu franco, ni mires los números de arriba.
                         </p>
                     )}
 
                     <p className={`${TARJETA} ${TEXTO} mt-3 flex items-start gap-2`}>
                         <Lock className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
-                        <span>Este briefing no se puede saltear: son 3 fichas cortas y al final te vamos a pedir que escribas qué se te pidió.</span>
+                        <span>Son un par de fichas cortas y al final te pedimos que escribas qué te llevás. Un minuto y seguimos.</span>
                     </p>
                 </>
             ),
@@ -432,10 +432,10 @@ export default function BriefingDiario() {
             <>
                     <div className="mt-5">
                         <label htmlFor="briefing-texto" className="block text-base font-black text-stone-900 dark:text-white">
-                            Ahora escribime con tus palabras qué se te pidió hoy.
+                            Contame con tus palabras qué se te pidió hoy.
                         </label>
                         <p id="briefing-ayuda" className={`${TEXTO} mt-1`}>
-                            No es un examen: con que escribas lo que te quedó, alcanza. Lo lee Ishtar.
+                            No es un examen: con lo que te haya quedado, alcanza. Lo lee Ishtar.
                         </p>
                         <textarea
                             id="briefing-texto"
@@ -460,7 +460,7 @@ export default function BriefingDiario() {
                             ¿Y cuál es tu objetivo para hoy?
                         </label>
                         <p id="briefing-objetivo-ayuda" className={`${TEXTO} mt-1`}>
-                            Escribilo con palabras, no con un número: qué te proponés lograr hoy.
+                            Con palabras, no con un número: qué te gustaría lograr hoy.
                         </p>
                         <textarea
                             id="briefing-objetivo"
@@ -491,6 +491,9 @@ export default function BriefingDiario() {
                                 <span>{error}</span>
                             </p>
                         )}
+                        <p className="mt-5 p-4 rounded-2xl bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 text-base font-bold leading-relaxed">
+                            ¡Que tengas un muy buen día y buenas ventas, {nombre}! Gracias por el minuto.
+                        </p>
                     </div>
             </>
         ),
@@ -540,6 +543,15 @@ export default function BriefingDiario() {
                     Briefing del día · Ficha {ficha + 1} de {orden.length}
                 </p>
 
+                {/* El saludo va en la PRIMERA ficha, sea cual sea: el orden
+                    cambia con el día y con lo que le toca a cada uno, así que
+                    atado a una ficha en particular aparecería por la mitad. */}
+                {ficha === 0 && (
+                    <p className="text-lg font-black text-stone-900 dark:text-white mt-3">
+                        ¡Buen día, {nombre}! 👋
+                    </p>
+                )}
+
                 <h2
                     id="briefing-titulo"
                     ref={encabezado}
@@ -585,7 +597,7 @@ export default function BriefingDiario() {
                                 {guardando
                                     ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                                     : <CheckCircle2 className="w-4 h-4" aria-hidden="true" />}
-                                {guardando ? 'Guardando…' : 'Listo, a trabajar'}
+                                {guardando ? 'Guardando…' : '¡Listo, a vender!'}
                             </button>
                         ) : (
                             <button
