@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { Loader2, Sparkles, UserPlus, X } from 'lucide-react';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
+import { PreguntaDeOrigen } from '@/components/contacts/PreguntaDeOrigen';
 import { ModalShell } from './ModalShell';
 import type { ClienteExtraido } from '../types';
 
@@ -9,7 +11,9 @@ export interface CreateClientModalProps {
     datos: ClienteExtraido;
     onDatos: (d: ClienteExtraido) => void;
     creando: boolean;
-    onConfirmar: () => void;
+    /** Recibe los datos por parámetro: el popup de origen elige y confirma en el
+     *  mismo gesto, cuando el estado del padre todavía no se actualizó. */
+    onConfirmar: (datos?: ClienteExtraido) => void;
     onCerrar: () => void;
 }
 
@@ -26,10 +30,30 @@ const rotulo = 'text-[11px] font-black uppercase tracking-widest text-stone-700 
  * la haya creado solo.
  */
 export function CreateClientModal({ datos, onDatos, creando, onConfirmar, onCerrar }: CreateClientModalProps) {
-    const incompleto = !datos.name.trim() || !datos.contactSource?.trim() || !datos.phone?.trim();
+    const [preguntandoOrigen, setPreguntandoOrigen] = useState(false);
+    // Falta origen NO deshabilita el botón: deshabilitado no enseña nada, solo
+    // deja a la persona tocando un botón muerto. Se aprieta, se pregunta acá
+    // mismo y el toque crea la ficha.
+    const faltaOrigen = !datos.contactSource?.trim();
+    const incompleto = !datos.name.trim() || !datos.phone?.trim();
+
+    const confirmar = () => {
+        if (faltaOrigen) { setPreguntandoOrigen(true); return; }
+        onConfirmar();
+    };
+
+    const elegirOrigen = (origen: string) => {
+        const conOrigen = { ...datos, contactSource: origen };
+        onDatos(conOrigen);
+        setPreguntandoOrigen(false);
+        onConfirmar(conOrigen);
+    };
 
     return (
         <ModalShell etiqueta="la ficha del cliente" onCerrar={onCerrar} ancho="max-w-md">
+            {preguntandoOrigen && (
+                <PreguntaDeOrigen nombre={datos.name} onElegir={elegirOrigen} onCerrar={() => setPreguntandoOrigen(false)} />
+            )}
             <div className="overflow-y-auto">
                 <div className="px-6 py-4 bg-violet-700 flex items-center justify-between">
                     <h3 className="text-base font-black text-white flex items-center gap-2">
@@ -99,7 +123,7 @@ export function CreateClientModal({ datos, onDatos, creando, onConfirmar, onCerr
                     </button>
                     <button
                         type="button"
-                        onClick={onConfirmar}
+                        onClick={confirmar}
                         disabled={creando || incompleto}
                         className="flex-1 px-4 min-h-10 bg-violet-700 hover:bg-violet-800 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-700"
                     >

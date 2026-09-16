@@ -20,7 +20,7 @@
  * lleva su copia CommonJS de estas mismas reglas en tools.js — si tocás una,
  * tocá la otra.
  */
-import { parseAdTag } from "@/lib/ads/ad-tag-core";
+import { parseAdTag, platformFromStoredTag } from "@/lib/ads/ad-tag-core";
 import type { ContactSource } from "@/lib/contact-source";
 
 export interface OrigenDetectado {
@@ -55,5 +55,39 @@ export function origenDeterministico(primerMensaje: string | null | undefined): 
     // 3) Frases del propio sitio: llegó a la web y tocó el botón de WhatsApp.
     //    Sin etiqueta de pauta adelante, es tráfico propio (orgánico/directo).
     if (FRASES_DEL_SITIO.test(texto)) return { origen: "Tienda online", motivo: "el mensaje es el texto del botón de WhatsApp de la web" };
+    return null;
+}
+
+/**
+ * Lo mismo, pero mirando TODO lo que dejó el chat: la etiqueta guardada y los
+ * mensajes del cliente, no solo el primero.
+ *
+ * Por qué (medido en producción el 16/9/2026, 90 días): 47 fichas de Meta
+ * quedaron sin origen TENIENDO la etiqueta del anuncio guardada en el chat.
+ * Dos motivos, los dos arreglados acá:
+ *   · `WhatsAppChat.adTag` no se miraba, y es la prueba más dura que existe: la
+ *     escribe el portero con el referral del clic (sin prefijo = Meta).
+ *   · Meta manda primero un entrante VACÍO con ese referral, así que "el primer
+ *     mensaje" era "" y la detección se rendía antes de leer nada.
+ *
+ * El orden es primer toque: la etiqueta primero, después el primer mensaje que
+ * pruebe algo. Así, si alguien llegó por un anuncio y más tarde manda el link
+ * de la tienda, sigue contando como el anuncio que lo trajo.
+ */
+export function origenDeChat(
+    { adTag, mensajesEntrantes }: { adTag?: string | null; mensajesEntrantes: (string | null | undefined)[] }
+): OrigenDetectado | null {
+    const guardada = (adTag || "").trim();
+    if (guardada) {
+        const plataforma = platformFromStoredTag(guardada);
+        const campana = guardada.replace(/^google:/, "");
+        return plataforma === "GOOGLE"
+            ? { origen: "Google Ads", motivo: `el chat entró por un anuncio de Google (${campana})` }
+            : { origen: "Meta", motivo: `el chat entró por un anuncio de Meta (${campana})` };
+    }
+    for (const mensaje of mensajesEntrantes) {
+        const detectado = origenDeterministico(mensaje);
+        if (detectado) return detectado;
+    }
     return null;
 }

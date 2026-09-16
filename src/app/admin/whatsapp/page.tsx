@@ -266,9 +266,13 @@ function WhatsAppPageContent() {
         setExtracting(false);
     };
 
-    const confirmarFicha = async () => {
-        if (!extractedClient || !chatSeleccionado) return;
-        if (!extractedClient.name?.trim() || !extractedClient.contactSource?.trim()) {
+    const confirmarFicha = async (override?: typeof extractedClient) => {
+        // El origen puede llegar por parámetro: el popup de "¿Dónde nos
+        // conocieron?" elige y confirma en el mismo gesto, antes de que React
+        // haya propagado el estado.
+        const datosFicha = override || extractedClient;
+        if (!datosFicha || !chatSeleccionado) return;
+        if (!datosFicha.name?.trim() || !datosFicha.contactSource?.trim()) {
             alert('El nombre y el origen de contacto son obligatorios.');
             return;
         }
@@ -279,11 +283,11 @@ function WhatsAppPageContent() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: extractedClient.name,
-                    phone: extractedClient.phone || null,
-                    interest: extractedClient.interest || null,
-                    insurance: extractedClient.insurance || null,
-                    contactSource: extractedClient.contactSource || null,
+                    name: datosFicha.name,
+                    phone: datosFicha.phone || null,
+                    interest: datosFicha.interest || null,
+                    insurance: datosFicha.insurance || null,
+                    contactSource: datosFicha.contactSource || null,
                     status: 'CONTACT',
                     // Quién la crea es la persona logueada (lo resuelve el servidor
                     // con la sesión). Esto solo declara CÓMO: apretó el botón del
@@ -312,10 +316,10 @@ function WhatsAppPageContent() {
             }
 
             await vincularFicha(chatId, { id: nuevo.id, name: nuevo.name, phone: nuevo.phone, status: nuevo.status });
-            if (extractedClient.notes) {
+            if (datosFicha.notes) {
                 await fetch(`/api/contacts/${nuevo.id}/interactions`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'NOTE', content: `[HITO] ${extractedClient.notes}` }),
+                    body: JSON.stringify({ type: 'NOTE', content: `[HITO] ${datosFicha.notes}` }),
                 });
             }
             setExtractedClient(null);

@@ -97,13 +97,35 @@ async function detectContactSourceFromChat(chatId) {
     // Ahora se decide SOLO por lo que dice el mensaje. Sin señal explícita se
     // devuelve null y el vendedor elige: un origen inventado es peor que vacío.
     
-    // Find the earliest inbound message
-    const firstMessage = await prisma.whatsAppMessage.findFirst({
-        where: { chatId, direction: 'INBOUND' },
-        orderBy: { createdAt: 'asc' }
+    // ── La etiqueta YA GUARDADA manda, antes que cualquier texto ──
+    // Cuando entra un clic de un anuncio, el portero guarda la campaña en
+    // WhatsAppChat.adTag. Sin prefijo `google:` es de Meta — así la leen los
+    // reportes (platformFromStoredTag en src/lib/ads/ad-tag-core.ts).
+    //
+    // Hasta el 16/9/2026 esta función ni la miraba, y encima Meta manda primero
+    // un entrante VACÍO con el referral del anuncio: el `!firstMessage.content`
+    // de abajo cortaba ahí y devolvía null. Medido en producción sobre 90 días:
+    // 47 fichas de Meta quedaron sin origen teniendo la etiqueta guardada
+    // (`clip`, `ishvarilux`, `flor`, `agos`) — plata de Meta que no aparecía en
+    // ningún reporte por canal.
+    const chat = await prisma.whatsAppChat.findUnique({
+        where: { id: chatId },
+        select: { adTag: true }
     });
+    if (chat?.adTag) {
+        return chat.adTag.startsWith('google:') ? 'Google Ads' : 'Meta';
+    }
 
-    if (!firstMessage || !firstMessage.content) {
+    // Primer entrante CON TEXTO. Los vacíos son los referrals de Meta y los
+    // adjuntos sin epígrafe: saltearlos, no rendirse en el primero.
+    const primeros = await prisma.whatsAppMessage.findMany({
+        where: { chatId, direction: 'INBOUND' },
+        orderBy: { createdAt: 'asc' },
+        take: 5
+    });
+    const firstMessage = primeros.find(m => (m.content || '').trim());
+
+    if (!firstMessage) {
         return null;
     }
 

@@ -9,7 +9,7 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve } from 'node:path';
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const { origenDeterministico } = await import(pathToFileURL(resolve(raiz, 'src/lib/origen-deterministico.ts')).href);
+const { origenDeterministico, origenDeChat } = await import(pathToFileURL(resolve(raiz, 'src/lib/origen-deterministico.ts')).href);
 let fallos = 0;
 const check = (n, ok, det='') => { console.log(`  ${ok?'✓':'✖'} ${n}${ok||!det?'':' — '+det}`); if(!ok) fallos++; };
 const o = (t) => origenDeterministico(t)?.origen ?? null;
@@ -32,6 +32,14 @@ check('"Hola"', o('Hola') === null);
 check('consulta genérica', o('Hola buen dia! Tenes lentes de sol para niños?') === null);
 check('menciona google sin anuncio (orgánico, lo decide la persona)', o('los encontré buscando en google') === null);
 check('vacío', o('') === null && o(null) === null);
+console.log('El chat entero, no solo el primer mensaje (casos reales del 16/9/26)');
+const c = (chat) => origenDeChat(chat)?.origen ?? null;
+check('etiqueta guardada sin prefijo → Meta', c({ adTag: 'clip', mensajesEntrantes: ['', '¡Hola! Quiero más información'] }) === 'Meta');
+check('etiqueta guardada google: → Google Ads', c({ adTag: 'google:search-recetados', mensajesEntrantes: ['Hola'] }) === 'Google Ads');
+check('primer entrante VACÍO (referral de Meta): sigue leyendo', c({ adTag: null, mensajesEntrantes: ['', '', 'Estoy interesado en lentes Multifocales [metaishvarilux]'] }) === 'Meta');
+check('la etiqueta gana al texto posterior (primer toque)', c({ adTag: 'ishvarilux', mensajesEntrantes: ['Los vi en la nueva web de Atelier, quisiera que me asesoren.'] }) === 'Meta');
+check('sin etiqueta y sin prueba → null', c({ adTag: null, mensajesEntrantes: ['Hola', 'buenas tardes', '¿precio de multifocales?'] }) === null);
+check('chat vacío → null', c({ adTag: null, mensajesEntrantes: [] }) === null);
 console.log('');
 if (fallos) { console.error(`${fallos} chequeo(s) fallaron`); process.exit(1); }
 console.log('Todos los chequeos pasaron');

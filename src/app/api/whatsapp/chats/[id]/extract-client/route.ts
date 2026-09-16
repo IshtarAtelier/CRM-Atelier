@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { GoogleGenAI, Type } from '@google/genai';
 import { decrypt } from '@/lib/auth';
 import { CONTACT_SOURCES, matchContactSource } from '@/lib/contact-source';
-import { origenDeterministico } from '@/lib/origen-deterministico';
+import { origenDeChat } from '@/lib/origen-deterministico';
 
 // POST /api/whatsapp/chats/[id]/extract-client
 // Lee los mensajes del chat y usa IA para extraer datos del cliente
@@ -171,11 +171,13 @@ INSTRUCCIONES:
         }
 
         // Deterministic template pre-extraction
-        const firstInbound = sortedMessages.find(m => m.direction === 'INBOUND');
+        const entrantes = sortedMessages.filter(m => m.direction === 'INBOUND');
+        const firstInbound = entrantes.find(m => (m.content || '').trim());
         // Las reglas viven en src/lib/origen-deterministico.ts (compartidas con
-        // el check y espejadas en el bot). Si el primer mensaje prueba el origen,
-        // se devuelve BLOQUEADO: el formulario lo muestra y no deja cambiarlo.
-        const detectado = origenDeterministico(firstInbound?.content);
+        // el check y espejadas en el bot). Si el chat prueba el origen —la
+        // etiqueta guardada del anuncio, o un mensaje del cliente— se devuelve
+        // BLOQUEADO: el formulario lo muestra y no deja cambiarlo.
+        const detectado = origenDeChat({ adTag: chat.adTag, mensajesEntrantes: entrantes.map(m => m.content) });
         const deterministicSource: string | null = detectado?.origen ?? null;
 
         // Normalizar contactSource con el vocabulario único (src/lib/contact-source.ts)
