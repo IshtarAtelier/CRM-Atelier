@@ -27,9 +27,19 @@
     "misma oferta y duplicarla en la semana satura. Por eso 6-cuotas se queda",
     "sin viernes: sus campañas caen 15/11, 6/12 y 27/12 y lo tapan.",
     "",
-    "Viernes 20/11 y 27/11 quedan VACÍOS a propósito: no hay ningún reel con",
-    "6 semanas de descanso para esas fechas. Para llenarlos hacen falta DOS",
-    "reels nuevos — no es un olvido, es que el contenido no alcanza.",
+    "Viernes 20/11 y 27/11: van con \"desfile-modelos\" LAS DOS veces, y a",
+    "propósito. Es el único reel que no es un archivo fijo (Ishtar, 28/8:",
+    "un video con muchos anteojos cambiando, uno atrás del otro): se arma",
+    "sobre las stories de producto YA renderizadas de esa semana, con los",
+    "precios de ese momento quemados en la imagen. Por eso no le aplica la",
+    "regla de 6 semanas — no es repetir el mismo contenido, es la MISMA idea",
+    "con otro catálogo y otros precios cada vez.",
+    "OJO, tarea manual (no hay cron para esto): antes del 20/11 y de nuevo",
+    "antes del 27/11 hay que correr",
+    "  node scripts/social/reel-desfile-modelos.mjs",
+    "y copiar el .mp4 y el -cover.jpg a public/social/reels/desfile-modelos.*",
+    "(mismo nombre fijo, sin fecha — así lo busca el cron). Si no se hace,",
+    "check:social lo va a marcar como \"no existe el .mp4\" esa semana.",
     "",
     "El 25/12 (viernes) el feed descansa.",
     "",
@@ -391,6 +401,10 @@
       "pieza": "crizal-cual-es-para-vos"
     },
     {
+      "fecha": "2026-11-20",
+      "reel": "desfile-modelos"
+    },
+    {
       "fecha": "2026-11-21",
       "pieza": "como-comprar-online"
     },
@@ -409,6 +423,10 @@
     {
       "fecha": "2026-11-26",
       "pieza": "obras-sociales"
+    },
+    {
+      "fecha": "2026-11-27",
+      "reel": "desfile-modelos"
     },
     {
       "fecha": "2026-11-28",

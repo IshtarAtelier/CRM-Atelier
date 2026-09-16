@@ -84,9 +84,21 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        {/* Solo `dns-prefetch`, y solo para lo que el sitio pide de verdad.
+            Medido con Lighthouse sobre una ficha: los terceros son 711 KB en
+            27 pedidos (píxel de Meta, gtag, Analytics) y no tenían ninguna
+            pista de conexión. Pero desde TrackingScripts esos loaders se
+            descargan recién cuando el navegador está ocioso o a los 2 s, así
+            que un `preconnect` a los 0 ms abre una conexión que queda parada
+            compitiendo con la foto del LCP. Resolver el DNS de antemano es
+            gratis y ahorra el primer salto cuando por fin se piden.
+            Firebase Storage casi no se usa: las fotos salen de /images y
+            /assets, del propio dominio. */}
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://connect.facebook.net" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net" />
         <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
-        <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://storage.googleapis.com" />
       </head>
       <body
         className={`${geistSans.variable} antialiased selection:bg-primary/30`}
