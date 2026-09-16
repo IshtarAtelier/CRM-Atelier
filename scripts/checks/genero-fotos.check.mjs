@@ -56,14 +56,28 @@ console.log('\nAl cliente no se le nombra el género, y se le manda el catálogo
     check('el bot tiene prohibido decir "unisex" / "de hombre" / "de mujer"', tools.includes('PROHIBIDO decirle al cliente que un armazón es "unisex"'));
     check('después de las fotos manda el link del catálogo', tools.includes('MANDALE TAMBIÉN el catálogo'));
     // El link, armado como lo arma el bot.
-    const linkDelCatalogo = new Function('genero', 'category', 'search', tools.slice(tools.indexOf('function linkDelCatalogo'), tools.indexOf('/**\n * Tool: mandarle al cliente')).replace(/^function linkDelCatalogo\([^)]*\) \{/, '').replace(/\}\s*$/, ''));
-    check('a un hombre le manda /catalogo/hombre', linkDelCatalogo('HOMBRE', 'ARMAZON', null) === 'https://atelieroptica.com.ar/catalogo/hombre');
-    check('a una mujer, /catalogo/mujer', linkDelCatalogo('MUJER', 'ARMAZON', null) === 'https://atelieroptica.com.ar/catalogo/mujer');
-    check('si no se sabe el género, la tienda entera', linkDelCatalogo(null, 'ARMAZON', null) === 'https://atelieroptica.com.ar/tienda');
-    check('si hablaban de lentes de sol, el catálogo abre en Sol', linkDelCatalogo('HOMBRE', 'SOL', null) === 'https://atelieroptica.com.ar/catalogo/hombre?categoria=Sol');
-    const { generoDeSlug, etiquetaDeGenero } = await import('../../src/lib/constants/genero-catalogo.ts');
+    const trozo = tools.slice(tools.indexOf('const CATEGORIA_A_SLUG'), tools.indexOf('/**\n * Tool: mandarle al cliente hasta 3 fotos'));
+    const linkDelCatalogo = new Function(`${trozo}; return linkDelCatalogo;`)();
+    const B = 'https://atelieroptica.com.ar';
+    for (const [genero, categoria, esperado] of [
+        ['HOMBRE', 'ARMAZON', `${B}/catalogo/hombre`],
+        ['MUJER', 'ARMAZON', `${B}/catalogo/mujer`],
+        ['MUJER', 'SOL', `${B}/catalogo/mujer/sol`],
+        ['HOMBRE', 'CLIPON', `${B}/catalogo/hombre/clip-on`],
+        [null, 'SOL', `${B}/catalogo/sol`],
+        [null, 'CLIPON', `${B}/catalogo/clip-on`],
+        [null, 'ARMAZON', `${B}/tienda`],
+        ['MUJER', 'RECETA', `${B}/catalogo/mujer`],
+    ]) {
+        const r = linkDelCatalogo(genero, categoria, null);
+        check(`${genero || 'sin género'} + ${categoria} → ${esperado.replace(B, '')}`, r === esperado, `(dio ${r})`);
+    }
+
+    const { generoDeSlug, tipoDeSlug, rutaDeCatalogo, etiquetaDeGenero, TIPOS_DE_CATALOGO } = await import('../../src/lib/constants/genero-catalogo.ts');
     check('/catalogo/hombre lleva al filtro homme', generoDeSlug('hombre')?.id === 'homme' && generoDeSlug('mujer')?.id === 'femme');
-    check('una dirección inventada no existe', generoDeSlug('cualquiera') === null);
+    check('los tres tipos tienen dirección propia', TIPOS_DE_CATALOGO.length === 3 && tipoDeSlug('clip-on')?.categoria === 'Clip-On' && tipoDeSlug('sol')?.categoria === 'Sol');
+    check('una dirección inventada no existe', generoDeSlug('cualquiera') === null && tipoDeSlug('cualquiera') === null);
+    check('el bot y la web arman la MISMA dirección', rutaDeCatalogo('mujer', 'sol') === '/catalogo/mujer/sol' && linkDelCatalogo('MUJER', 'SOL', null).endsWith(rutaDeCatalogo('mujer', 'sol')));
     check('el chip del filtro ya no muestra "homme" crudo', etiquetaDeGenero('homme') === 'Homme');
 }
 

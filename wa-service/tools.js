@@ -737,22 +737,32 @@ function pieDeFoto(p) {
 /**
  * El link del catálogo para mandar por WhatsApp, filtrado por lo que se habló.
  *
- * `/catalogo/hombre` y `/catalogo/mujer` son direcciones lindas que llevan a la
- * tienda ya filtrada (src/app/catalogo/[genero]/page.tsx). No es un catálogo
- * aparte ni un PDF: es la misma tienda, con la foto grande, el precio de hoy,
- * la oferta, el stock y el botón de comprar. Un PDF mandado hace un mes muestra
- * precios que ya no son.
+ * Las direcciones lindas viven en src/app/catalogo/[[...partes]]/page.tsx y
+ * llevan a la tienda ya filtrada — la misma tienda, con la foto grande, el
+ * precio de hoy, la oferta, el stock y el botón de comprar. Un PDF mandado
+ * hace un mes muestra precios que ya no son.
+ *
+ *   ARMAZON + HOMBRE → /catalogo/hombre
+ *   SOL + MUJER      → /catalogo/mujer/sol
+ *   CLIPON, sin saber de quién → /catalogo/clip-on
+ *
+ * Espejo de `rutaDeCatalogo` (src/lib/constants/genero-catalogo.ts): el
+ * wa-service es CommonJS y no puede importar el .ts. `check:genero-fotos` los
+ * cruza para que no se separen.
  */
+const CATEGORIA_A_SLUG = { SOL: 'sol', CLIPON: 'clip-on', 'CLIP-ON': 'clip-on', RECETA: 'receta' };
+
 function linkDelCatalogo(genero, category, search) {
     const base = 'https://atelieroptica.com.ar';
-    const slug = genero === 'HOMBRE' ? 'hombre' : genero === 'MUJER' ? 'mujer' : null;
-    const extra = [];
-    const cat = String(category || '').toUpperCase();
-    if (cat === 'SOL') extra.push('categoria=Sol');
-    else if (cat === 'CLIPON') extra.push('categoria=Clip-On');
-    if (search) extra.push(`search=${encodeURIComponent(String(search).trim())}`);
-    if (slug) return `${base}/catalogo/${slug}${extra.length ? `?${extra.join('&')}` : ''}`;
-    return `${base}/tienda${extra.length ? `?${extra.join('&')}` : ''}`;
+    const partes = [];
+    if (genero === 'HOMBRE') partes.push('hombre');
+    else if (genero === 'MUJER') partes.push('mujer');
+    // ARMAZON es el catálogo entero de esa persona: no lleva tipo.
+    const tipo = CATEGORIA_A_SLUG[String(category || '').toUpperCase()];
+    if (tipo && tipo !== 'receta') partes.push(tipo);
+    const ruta = partes.length ? `/catalogo/${partes.join('/')}` : '/tienda';
+    const query = search ? `?search=${encodeURIComponent(String(search).trim())}` : '';
+    return `${base}${ruta}${query}`;
 }
 
 /**
