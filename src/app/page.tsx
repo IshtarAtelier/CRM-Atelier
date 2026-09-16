@@ -88,14 +88,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     !p.img.startsWith("/") || existsSync(join(process.cwd(), "public", p.img)));
   const carpetas: Carpeta[] = varianteCarpetas ? [
     { key: "sol", titulo: "Sol", bajada: "Acetato italiano y cristales polarizados. Para mirar de frente.", href: "/lentes-de-sol",
-      portada: "/images/home/carpetas/sol-adhara-frente.webp", portadaAlt: "/images/home/carpetas/sol-nashira-perfil.webp", foco: "center 18%",
+      portada: "/images/home/carpetas/sol-adhara-frente.webp", portadaAlt: "/images/home/carpetas/sol-nashira-perfil.webp", foco: "center top",
       cantidad: conteos?.sol ?? carouselData.sol.length, productos: conFoto(carouselData.sol) },
     { key: "receta", titulo: "Receta", bajada: "Armazones de autor para tus cristales. Medidos con el armazón puesto.", href: "/receta",
-      portada: "/images/home/carpetas/receta-victoria-perfil.webp", portadaAlt: "/images/home/carpetas/receta-dionisio-frente.webp", foco: "center 15%",
+      portada: "/images/home/carpetas/receta-victoria-perfil.webp", portadaAlt: "/images/home/carpetas/receta-dionisio-frente.webp", foco: "center top",
       cantidad: conteos?.receta ?? carouselData.receta.length, productos: conFoto(carouselData.receta) },
     { key: "clipon", titulo: "Clip-on", bajada: "Un armazón, dos anteojos: receta de día y sol con el clip imantado.", href: "/clip-on",
-      portada: "/images/products/clipon-g5919-c1-front.webp", foco: "center",
-      cantidad: conteos?.clipon || CLIPON_FALLBACK.length, productos: carouselData.clipon.length ? conFoto(carouselData.clipon) : CLIPON_FALLBACK, claro: true },
+      portada: "/images/home/carpetas/clipon-verona-frente.webp", portadaAlt: "/images/home/carpetas/clipon-monaco-manos.webp", foco: "center top",
+      cantidad: conteos?.clipon || CLIPON_FALLBACK.length, productos: carouselData.clipon.length ? conFoto(carouselData.clipon) : CLIPON_FALLBACK },
   ] : [];
 
   const organizationSchema = {
@@ -201,9 +201,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         </div>
       </div>
 
-      {/* PROTOTIPO — carpetas Sol / Receta / Clip-on (solo con ?carpetas=) */}
-      {varianteCarpetas && <HomeCarpetas carpetas={carpetas} variante={varianteCarpetas} totalCatalogo={catalogCount} />}
-
       {/* ═══════════════════════════════════════════════ */}
       {/* LATEST — Título + Catálogo horizontal scroll    */}
       {/* ═══════════════════════════════════════════════ */}
@@ -220,6 +217,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
       {/* PRODUCT GRID — Scroll horizontal infinito en Cliente */}
       <HomeProductCarousel collections={carouselData} totalCount={catalogCount} conteos={homeData.conteos} />
+
+      {/* PROTOTIPO — carpetas Sol / Receta / Clip-on, después del carrusel (solo con ?carpetas=) */}
+      {varianteCarpetas && <HomeCarpetas carpetas={carpetas} variante={varianteCarpetas} totalCatalogo={catalogCount} />}
 
       {/* ═══════════════════════════════════════════════ */}
       {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}

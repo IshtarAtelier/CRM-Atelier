@@ -87,7 +87,7 @@ function VariantePuertas({ carpetas }: { carpetas: Carpeta[] }) {
               fill
               sizes="(max-width: 768px) 100vw, 34vw"
               className={`transition-transform duration-[1400ms] ease-out group-hover:scale-105 ${c.claro ? "object-contain p-10 pb-64 bg-white" : "object-cover"}`}
-              style={{ objectPosition: c.foco ?? "center 20%" }}
+              style={{ objectPosition: c.foco ?? "center top" }}
             />
             {/* Las fotos de la sesión son claras: el velo tiene que ser firme
                 abajo para que el texto blanco se lea, y desaparecer arriba. */}
@@ -133,12 +133,12 @@ function VarianteEditorial({ carpetas }: { carpetas: Carpeta[] }) {
           <div key={c.key} className={`grid md:grid-cols-2 border-t border-stone-200 ${fotoDerecha ? "md:[&>*:first-child]:order-2" : ""}`}>
             <Link href={c.href} className="group relative block aspect-[4/5] md:aspect-auto md:min-h-[88svh] overflow-hidden bg-black">
               <Image
-                src={c.portada}
+                src={c.key === "clipon" && c.portadaAlt ? c.portadaAlt : c.portada}
                 alt={`${c.titulo} — Atelier Óptica`}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className={`transition-transform duration-[1400ms] ease-out group-hover:scale-105 ${c.claro ? "object-contain p-12 bg-stone-100" : "object-cover"}`}
-                style={{ objectPosition: c.foco ?? "center 20%" }}
+                style={{ objectPosition: c.foco ?? "center top" }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent md:hidden" />
               <div className="absolute bottom-6 left-6 text-white md:hidden">
@@ -184,7 +184,7 @@ function VarianteMosaico({ carpetas, totalCatalogo }: { carpetas: Carpeta[]; tot
         fill
         sizes={sizes}
         className={`transition-transform duration-[1400ms] ease-out group-hover:scale-105 ${c.claro ? "object-contain p-6 pb-28" : "object-cover"}`}
-        style={{ objectPosition: foco ?? c.foco ?? "center 20%" }}
+        style={{ objectPosition: foco ?? c.foco ?? "center top" }}
       />
       <div className={`absolute inset-0 ${c.claro ? "bg-gradient-to-t from-white via-white/50 via-22% to-transparent" : "bg-gradient-to-t from-black/85 via-black/40 via-35% to-transparent"}`} />
       <div className={`absolute left-6 bottom-6 lg:left-8 lg:bottom-8 ${c.claro ? "text-black" : "text-white"}`}>
@@ -205,8 +205,8 @@ function VarianteMosaico({ carpetas, totalCatalogo }: { carpetas: Carpeta[]; tot
   return (
     <section className="w-full bg-black" aria-label="Colecciones">
       <div className="grid md:grid-cols-2 md:grid-rows-2 md:h-[96svh] gap-px bg-white/10">
-        <Baldosa c={sol} sizes="(max-width: 768px) 100vw, 50vw" alta className="md:row-span-2" foco="center 25%" />
-        <Baldosa c={receta} sizes="(max-width: 768px) 100vw, 50vw" foco="center 44%" />
+        <Baldosa c={sol} sizes="(max-width: 768px) 100vw, 50vw" alta className="md:row-span-2" />
+        <Baldosa c={receta} sizes="(max-width: 768px) 100vw, 50vw" foco="center 22%" />
         <div className="grid grid-cols-2 gap-px bg-white/10">
           <Baldosa c={clipon} sizes="(max-width: 768px) 50vw, 25vw" />
           <Link href="/tienda" className="group relative block bg-white min-h-[48svh] md:min-h-0 overflow-hidden">
