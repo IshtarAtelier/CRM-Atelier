@@ -247,6 +247,33 @@ export async function register() {
             }
         };
 
+        // ---- EL BOT VUELVE SOLO AL CERRAR EL LOCAL, una vez por día ----
+        // Un reloj a la hora de cierre (20 de lunes a viernes, 17 el sábado;
+        // el domingo no abre, así que no hay cierre que mirar), NO una
+        // vigilancia cada diez minutos: lo que hay que garantizar es que
+        // ningún apagado del día se quede pasada la persiana.
+        const CIERRE_BOT_KEY = 'bot_horario_last_run';
+        let cierreBotRunning = false;
+        const maybeRunCierreBot = async () => {
+            const { hour, dateKey } = argNow();
+            if (cierreBotRunning) return;
+            const { horaDeCierreDeHoy } = await import('@/lib/whatsapp/horario-comercial');
+            const cierre = horaDeCierreDeHoy();
+            if (cierre === null || hour < cierre) return;
+            cierreBotRunning = true;
+            try {
+                // Una sola corrida por día entre las dos instancias (mismo
+                // reclamo atómico que el resto de los robots).
+                const previo = await reclamarCorrida(CIERRE_BOT_KEY, dateKey);
+                if (previo === null) return;
+                const { vigilarBotFueraDeHorario } = await import('@/lib/whatsapp/vigilar-horario-bot');
+                const r = await vigilarBotFueraDeHorario();
+                console.log(`[Vigilante bot] Cierre del local (${cierre}:00): ${r.accion === 'encendido' ? 'el bot estaba apagado y se prendió' : `sin cambios (${r.motivo})`}.`);
+            } finally {
+                cierreBotRunning = false;
+            }
+        };
+
         // ---- SALUD DEL EMBUDO, una vez por día a las 19:30 (después del último tick del motor) ----
         const EMBUDO_SALUD_KEY = 'embudo_salud_last_run';
         let embudoSaludRunning = false;
@@ -683,11 +710,7 @@ export async function register() {
             maybeRunSeguimientos().catch(err => console.error('[CRON seguimientos] maybeRunSeguimientos:', err));
             maybeRunEmbudoSalud().catch(err => console.error('[CRON embudo-salud] maybeRunEmbudoSalud:', err));
             maybeRunSaldo().catch(err => console.error('[CRON recordatorio-saldo] maybeRunSaldo:', err));
-            (async () => {
-                const { vigilarBotFueraDeHorario } = await import('@/lib/whatsapp/vigilar-horario-bot');
-                const r = await vigilarBotFueraDeHorario();
-                if (r.accion === 'encendido') console.log('[Vigilante bot] El bot se prendió solo: estaba apagado y es fuera de horario.');
-            })().catch(err => console.error('[Vigilante bot] vigilarBotFueraDeHorario:', err));
+            maybeRunCierreBot().catch(err => console.error('[Vigilante bot] maybeRunCierreBot:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');

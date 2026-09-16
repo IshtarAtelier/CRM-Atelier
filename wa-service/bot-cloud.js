@@ -38,7 +38,7 @@ const { TAGS_SIN_BOT } = require('./utils');
 const { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas } = require('./shared/limpiar-salida-bot');
 const { esConsulta } = require('./shared/tipos-entrantes');
 const { mediaDescargable } = require('./shared/media');
-const { esRemitenteHumano } = require('./shared/remitentes');
+const { esRemitenteHumano, NOMBRES_NO_HUMANOS } = require('./shared/remitentes');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
 const { leerReceta, MAX_FOTOS_POR_LECTURA } = require('./shared/leer-receta');
@@ -534,6 +534,10 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
     }
 
     async function processBotTurn(chat, waId, profileName, realPhone) {
+        // Momento en que arranca el turno: todo saliente humano posterior a
+        // esto es una intervención que tiene que callar al bot (ver el control
+        // de más abajo, antes de enviar).
+        const comienzoDelTurno = Date.now();
         try {
             const freshChat = await prisma.whatsAppChat.findUnique({
                 where: { id: chat.id },
@@ -705,6 +709,30 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                     console.log('  ⏳ [BotCloud] Llegaron mensajes nuevos: se descarta esta respuesta.');
                     return; // botReplyingTo todavía no se marcó: no hay que limpiar nada
                 }
+            }
+
+            // ── ¿CONTESTÓ UNA PERSONA mientras pensábamos? ──────────────────
+            // El traspaso humano (routes/api.js y el eco del celular en
+            // cloud.js) apaga el bot del chat y cancela el turno agendado, pero
+            // no puede cancelar uno que YA está corriendo: entre que arranca
+            // este turno y termina el modelo pasan 10-30 s, y en ese hueco una
+            // vendedora puede contestar desde el teléfono. Medido el 16/9/2026
+            // sobre 45 días: 2 casos así (7/9 y 9/9), los dos con el bot
+            // hablando "0 minutos después" de la persona. Es el último control
+            // antes de mandar, y es el único lugar donde se puede ver.
+            const humanoMientrasTanto = await prisma.whatsAppMessage.findFirst({
+                where: {
+                    chatId: chat.id,
+                    direction: 'OUTBOUND',
+                    senderName: { notIn: NOMBRES_NO_HUMANOS },
+                    createdAt: { gt: new Date(comienzoDelTurno) },
+                },
+                select: { senderName: true },
+            }).catch(() => null);
+            if (humanoMientrasTanto) {
+                console.log(`  🙋 [BotCloud] ${humanoMientrasTanto.senderName} contestó mientras el bot pensaba: se descarta la respuesta y el bot se calla en este chat.`);
+                await disableBotForChatById(chat.id, 'Intervención humana durante el turno del bot');
+                return;
             }
 
             botReplyingTo.add(waId);

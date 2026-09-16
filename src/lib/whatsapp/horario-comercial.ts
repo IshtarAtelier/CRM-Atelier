@@ -15,6 +15,19 @@ function minutosDesdeMedianoche(hhmm: string): number {
     return h * 60 + (m || 0);
 }
 
+/**
+ * A qué hora cierra el local HOY (20 de lunes a viernes, 17 el sábado), o
+ * `null` si hoy no abre (domingo). Es el reloj del vigilante del bot: se
+ * revisa una vez por día, al cierre, en vez de estar mirando todo el tiempo.
+ */
+export function horaDeCierreDeHoy(now: Date = new Date()): number | null {
+    const art = new Date(now.getTime() - 3 * HORA_MS);
+    const hoy = DIAS_SEMANA[art.getUTCDay()];
+    const franja = BUSINESS_INFO.openingHoursSpecification.find(f => (f.dayOfWeek as readonly string[]).includes(hoy));
+    if (!franja) return null;
+    return Math.floor(minutosDesdeMedianoche(franja.closes) / 60);
+}
+
 export function dentroDelHorarioComercial(now: Date = new Date()): boolean {
     const art = new Date(now.getTime() - 3 * HORA_MS);
     const hoy = DIAS_SEMANA[art.getUTCDay()];

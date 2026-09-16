@@ -11,12 +11,18 @@ import { dentroDelHorarioComercial } from './horario-comercial';
  * respondidos—, buena parte de noches y fin de semana. `bot_enabled` es un
  * interruptor manual sin memoria: nada lo recordaba encendido.
  *
- * Este vigilante corre en cada tick del reloj interno (cada 10 min,
- * `instrumentation.ts`) y, si el local está CERRADO (`horario-comercial.ts`)
- * y el bot está apagado, lo prende solo — salvo que alguien haya tildado
- * "mantener apagado fuera de horario también"
- * (`SystemSetting.bot_mantener_apagado_fuera_horario`), el escape para un
- * apagado real y deliberado.
+ * Este vigilante corre UNA VEZ POR DÍA, a la hora de cierre del local
+ * (`instrumentation.ts` → `maybeRunCierreBot`; 20 de lunes a viernes, 17 el
+ * sábado, el domingo no abre). Decisión de Ishtar: no hace falta mirarlo cada
+ * diez minutos, alcanza con un reloj a la hora de cerrar — lo que hay que
+ * garantizar es que ningún apagado del día se quede pasada la persiana.
+ *
+ * Si a esa hora el bot está apagado, lo prende — salvo que alguien haya
+ * tildado "mantener apagado fuera de horario"
+ * (`SystemSetting.bot_mantener_apagado_fuera_horario`). Ese tilde manda
+ * SIEMPRE y no vence solo: si alguien lo puso, es porque de verdad se
+ * necesita frenar al bot por algo puntual (Ishtar, 16/9/2026). Lo saca una
+ * persona, nadie más.
  *
  * Durante el horario comercial NO toca nada: apagarlo para atender a mano
  * sigue siendo decisión del equipo, como siempre.
