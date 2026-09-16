@@ -219,7 +219,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <HomeProductCarousel collections={carouselData} totalCount={catalogCount} conteos={homeData.conteos} />
 
       {/* PROTOTIPO — carpetas Sol / Receta / Clip-on, después del carrusel (solo con ?carpetas=) */}
-      {varianteCarpetas && <HomeCarpetas carpetas={carpetas} variante={varianteCarpetas} totalCatalogo={catalogCount} />}
+      {varianteCarpetas && <HomeCarpetas carpetas={carpetas} variante={varianteCarpetas} totalCatalogo={catalogCount} portadaTienda="/images/home/carpetas/tienda-victoria-manos.webp" />}
 
       {/* ═══════════════════════════════════════════════ */}
       {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}

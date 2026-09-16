@@ -45,6 +45,8 @@ interface Props {
   carpetas: Carpeta[];
   variante: VarianteCarpetas;
   totalCatalogo: number;
+  /** Foto de la baldosa "Toda la tienda" del mosaico. */
+  portadaTienda: string;
 }
 
 const Etiqueta = ({ children }: { children: React.ReactNode }) => (
@@ -61,9 +63,9 @@ const Mini = ({ p, oscuro = false }: { p: CarpetaProducto; oscuro?: boolean }) =
   </Link>
 );
 
-export function HomeCarpetas({ carpetas, variante, totalCatalogo }: Props) {
+export function HomeCarpetas({ carpetas, variante, totalCatalogo, portadaTienda }: Props) {
   if (variante === "b") return <VarianteEditorial carpetas={carpetas} />;
-  if (variante === "c") return <VarianteMosaico carpetas={carpetas} totalCatalogo={totalCatalogo} />;
+  if (variante === "c") return <VarianteMosaico carpetas={carpetas} totalCatalogo={totalCatalogo} portadaTienda={portadaTienda} />;
   return <VariantePuertas carpetas={carpetas} />;
 }
 
@@ -169,35 +171,31 @@ function VarianteEditorial({ carpetas }: { carpetas: Carpeta[] }) {
 }
 
 /* ───────────────────────── C · MOSAICO ─────────────────────────
-   Un solo bloque a pantalla: Sol grande a la izquierda (dos filas), Receta
-   arriba a la derecha, y abajo Clip-on junto a una baldosa "todo el catálogo"
-   con un collage de armazones. Compacto: no agrega scroll casi. */
-function VarianteMosaico({ carpetas, totalCatalogo }: { carpetas: Carpeta[]; totalCatalogo: number }) {
+   Un solo bloque a pantalla, cuatro fotos de Agostina y nada más: Receta
+   grande a la izquierda (dos filas); a la derecha, arriba "Toda la tienda"
+   y abajo Clip-on y Sol. Sin miniaturas de armazones: las cuatro baldosas
+   son iguales entre sí (pedido de Ishtar, 16/9/2026). */
+function VarianteMosaico({ carpetas, totalCatalogo, portadaTienda }: { carpetas: Carpeta[]; totalCatalogo: number; portadaTienda: string }) {
   const [sol, receta, clipon] = carpetas;
-  const collage = carpetas.flatMap((c) => c.productos.slice(0, 3)).slice(0, 9);
+  const tienda: Carpeta = {
+    key: "receta", titulo: "Toda la tienda", bajada: "", href: "/tienda",
+    portada: portadaTienda, foco: "center 40%", cantidad: totalCatalogo, productos: [],
+  };
 
   const Baldosa = ({ c, sizes, alta = false, foco, className = "" }: { c: Carpeta; sizes: string; alta?: boolean; foco?: string; className?: string }) => (
-    <Link href={c.href} className={`group relative block overflow-hidden ${c.claro ? "bg-stone-100" : "bg-black"} ${alta ? "min-h-[80svh] md:min-h-0" : "min-h-[48svh] md:min-h-0"} ${className}`}>
+    <Link href={c.href} className={`group relative block overflow-hidden bg-black ${alta ? "min-h-[80svh] md:min-h-0" : "min-h-[48svh] md:min-h-0"} ${className}`}>
       <Image
         src={c.portada}
         alt={`${c.titulo} — Atelier Óptica`}
         fill
         sizes={sizes}
-        className={`transition-transform duration-[1400ms] ease-out group-hover:scale-105 ${c.claro ? "object-contain p-6 pb-28" : "object-cover"}`}
+        className="object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105"
         style={{ objectPosition: foco ?? c.foco ?? "center top" }}
       />
-      <div className={`absolute inset-0 ${c.claro ? "bg-gradient-to-t from-white via-white/50 via-22% to-transparent" : "bg-gradient-to-t from-black/85 via-black/40 via-35% to-transparent"}`} />
-      <div className={`absolute left-6 bottom-6 lg:left-8 lg:bottom-8 ${c.claro ? "text-black" : "text-white"}`}>
-        <Etiqueta><span className={c.claro ? "text-[color:var(--dorado-texto)]" : "text-[color:var(--dorado)]"}>{c.cantidad} modelos</span></Etiqueta>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 via-35% to-transparent" />
+      <div className="absolute left-6 bottom-6 lg:left-8 lg:bottom-8 text-white">
+        <Etiqueta><span className="text-[color:var(--dorado)]">{c.cantidad} modelos</span></Etiqueta>
         <h3 className={`mt-1 font-light tracking-tight leading-none ${alta ? "text-6xl lg:text-8xl" : "text-4xl lg:text-5xl"}`}>{c.titulo}</h3>
-      </div>
-      {/* Tres armazones de la familia, arriba a la derecha para no pisar el título */}
-      <div className="absolute right-5 top-5 lg:right-6 lg:top-6 flex gap-1.5">
-        {c.productos.slice(0, 3).map((p) => (
-          <div key={p.id} className="relative w-12 h-12 lg:w-16 lg:h-16 bg-white/95 overflow-hidden shadow-sm">
-            <Image src={p.img} alt={p.name} fill sizes="64px" className="object-contain p-1" />
-          </div>
-        ))}
       </div>
     </Link>
   );
@@ -205,24 +203,11 @@ function VarianteMosaico({ carpetas, totalCatalogo }: { carpetas: Carpeta[]; tot
   return (
     <section className="w-full bg-black" aria-label="Colecciones">
       <div className="grid md:grid-cols-2 md:grid-rows-2 md:h-[96svh] gap-px bg-white/10">
-        <Baldosa c={sol} sizes="(max-width: 768px) 100vw, 50vw" alta className="md:row-span-2" />
-        <Baldosa c={receta} sizes="(max-width: 768px) 100vw, 50vw" foco="center 22%" />
+        <Baldosa c={receta} sizes="(max-width: 768px) 100vw, 50vw" alta className="md:row-span-2" />
+        <Baldosa c={tienda} sizes="(max-width: 768px) 100vw, 50vw" />
         <div className="grid grid-cols-2 gap-px bg-white/10">
           <Baldosa c={clipon} sizes="(max-width: 768px) 50vw, 25vw" />
-          <Link href="/tienda" className="group relative block bg-white min-h-[48svh] md:min-h-0 overflow-hidden">
-            <div className="absolute inset-0 grid grid-cols-3 gap-px p-3">
-              {collage.map((p) => (
-                <div key={p.id} className="relative bg-stone-50">
-                  <Image src={p.img} alt={p.name} fill sizes="100px" className="object-contain p-1.5 opacity-90 group-hover:opacity-100 transition-opacity" />
-                </div>
-              ))}
-            </div>
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-14 pb-5 px-5">
-              <Etiqueta><span className="text-[color:var(--dorado-texto)]">Toda la tienda</span></Etiqueta>
-              <p className="mt-1 text-2xl lg:text-3xl font-light leading-none">{totalCatalogo} modelos</p>
-              <span className="mt-2 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.25em]">Ver todo <ArrowRight className="w-3.5 h-3.5" /></span>
-            </div>
-          </Link>
+          <Baldosa c={sol} sizes="(max-width: 768px) 50vw, 25vw" />
         </div>
       </div>
     </section>
