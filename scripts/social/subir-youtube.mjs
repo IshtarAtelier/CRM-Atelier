@@ -35,6 +35,7 @@ const TITULOS = {
   'garantia-30-dias': 'Garantía de adaptación: 30 días para probar tus multifocales',
   'indices-de-refraccion': 'Índices de refracción: cuál te conviene según tu graduación',
   'lente-bifocal': 'Bifocal vs. progresivo: la diferencia se siente',
+  'lente-eyezen': 'Eyezen: el lente para los que viven frente a pantallas',
   'lente-monofocal': '¿Qué es un lente monofocal?',
   'lente-myofix': 'MyoFix: control de la miopía infantil',
   'lente-progresiva': 'Cómo funciona un lente progresivo',

@@ -1,7 +1,7 @@
 /**
  * Plantilla de reel educativo: la LENTE de frente, con sus zonas animadas. v2
  *
- * Cinco tipos:
+ * Seis tipos:
  *   monofocal    toda la superficie con una graduación
  *   bifocal      la LUPITA incorporada: la ventana de cerca con su línea — y
  *                el salto de imagen al cruzarla, que es el defecto que la jubiló
@@ -10,6 +10,10 @@
  *                miopía infantil, Essilor)
  *   myofix       centro que corrige + PANAL de micro-segmentos (control de
  *                miopía infantil)
+ *   eyezen       monofocal con APOYO de enfoque abajo (Essilor, fatiga digital).
+ *                La gracia visual es lo que NO tiene: el apoyo se funde sin
+ *                línea ni salto — es justo lo contrario del bifocal, y es el
+ *                malentendido que el reel viene a romper ("no son dos focos")
  *
  * Level up de diseño (v2, a pedido):
  * - la lente ya no es un óvalo: es la forma real de un cristal de anteojo
@@ -83,6 +87,18 @@ const TIPOS = {
         cierre: 'Pediatría visual *en serio*',
         cierre2: 'Atelier Óptica · Cerro de las Rosas. Sin turno previo.',
     },
+    eyezen: {
+        titulo: '¿Ves bien de lejos y *a la tarde te arden*?',
+        bajada: 'Ocho horas de pantalla son ocho horas enfocando de cerca.',
+        explica: 'Tu graduación, con un *apoyo abajo*',
+        explica2: 'Eyezen de Essilor: un refuerzo suave justo donde mirás el celular.',
+        remate: 'No son dos focos: es *uno solo*',
+        remate2: 'El apoyo se funde sin línea y sin salto. El ojo deja de forzar.',
+        cierre: 'Incluso *sin graduación*',
+        cierre2: 'Contanos tus horas de pantalla. Atelier Óptica · Cerro de las Rosas.',
+        etq1: 'TU GRADUACIÓN',
+        etq3: 'APOYO DE ENFOQUE',
+    },
 };
 
 export function htmlDeReelLente(reel, id, logoUri) {
@@ -151,6 +167,13 @@ export function htmlDeReelLente(reel, id, logoUri) {
         <stop offset=".5" stop-color="${bronce}" stop-opacity=".26"/>
         <stop offset="1" stop-color="${bronce}" stop-opacity=".48"/>
       </linearGradient>
+      <linearGradient id="gradBoost" x1="0" y1="95" x2="0" y2="735" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="${bronce}" stop-opacity="0"/>
+        <stop offset=".42" stop-color="${bronce}" stop-opacity="0"/>
+        <stop offset=".66" stop-color="${bronce}" stop-opacity=".34"/>
+        <stop offset=".85" stop-color="${bronce}" stop-opacity=".72"/>
+        <stop offset="1" stop-color="${bronce}" stop-opacity=".95"/>
+      </linearGradient>
       <linearGradient id="gradDestello" x1="0" y1="0" x2="1" y2="0">
         <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
         <stop offset=".5" stop-color="#ffffff" stop-opacity=".16"/>
@@ -169,6 +192,9 @@ export function htmlDeReelLente(reel, id, logoUri) {
     <g clip-path="url(#clipLente)">
       <rect id="zonaUniforme" x="180" y="95" width="640" height="640" fill="${bronce}" opacity="0"/>
       <rect id="zonaGradiente" x="180" y="95" width="640" height="640" fill="url(#gradProgresivo)" opacity="0"/>
+      <!-- eyezen: el apoyo de abajo. Sin linea y sin borde a proposito: que NO
+           se vea el corte es el argumento del reel, no un descuido de diseño. -->
+      <rect id="zonaBoost" x="180" y="95" width="640" height="640" fill="url(#gradBoost)" opacity="0"/>
 
       <!-- bifocal: la lupita — ventana con borde propio y la letra agrandada -->
       <g id="grupoBifocal" opacity="0">
@@ -190,9 +216,9 @@ export function htmlDeReelLente(reel, id, logoUri) {
     </g>
 
     <g id="etiquetas" font-family="sans-serif" font-size="26" fill="#ffffff">
-      <text id="etq1" x="46" y="205" opacity="0">LEJOS</text>
-      <text id="etq2" x="46" y="430" opacity="0">INTERMEDIO</text>
-      <text id="etq3" x="46" y="655" opacity="0">CERCA</text>
+      <text id="etq1" x="46" y="205" opacity="0">${esc(tipo.etq1 || 'LEJOS')}</text>
+      <text id="etq2" x="46" y="430" opacity="0">${esc(tipo.etq2 || 'INTERMEDIO')}</text>
+      <text id="etq3" x="46" y="655" opacity="0">${esc(tipo.etq3 || 'CERCA')}</text>
     </g>
 
     <line id="mirada" x1="245" x2="755" y1="240" y2="240" stroke="${bronce}" stroke-width="4" opacity="0"/>
@@ -306,6 +332,13 @@ export function htmlDeReelLente(reel, id, logoUri) {
         $('#letraGrande').setAttribute('transform', 'scale(' + respiro + ')');
         $('#letraGrande').setAttribute('transform-origin', '500 640');
     }
+    if (TIPO === 'eyezen') {
+        // El apoyo entra despacio y late apenas durante el remate: es la unica
+        // forma de mostrar en video algo cuya gracia es que no se note.
+        const respiro = t > 6600 && t < 9600 ? 1 + 0.12 * Math.sin((t - 6600) / 420) : 1;
+        $('#zonaUniforme').setAttribute('opacity', String(zona * 0.07));
+        $('#zonaBoost').setAttribute('opacity', String(zona * respiro));
+    }
     if (esControl) {
         $('#zonaCentral').setAttribute('opacity', String(zona * 0.85));
         micro.forEach(({ el, orden }) => {
@@ -333,6 +366,9 @@ export function htmlDeReelLente(reel, id, logoUri) {
         etq('#etq3', suave(clamp01((t - 3500) / 400)));
     } else if (TIPO === 'monofocal') {
         etq('#etq1', suave(clamp01((t - 3100) / 400)));
+    } else if (TIPO === 'eyezen') {
+        etq('#etq1', suave(clamp01((t - 3100) / 400)));
+        etq('#etq3', suave(clamp01((t - 3600) / 400)));
     }
 
     // La mirada que baja (solo mono/bi/progresivo): fluida o con salto
