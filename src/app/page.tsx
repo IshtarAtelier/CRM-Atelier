@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { Metadata } from "next";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
+import { HomeCarpetas, type Carpeta, type VarianteCarpetas } from "@/components/Storefront/HomeCarpetas";
 import { FilmmakerReel } from "@/components/Storefront/FilmmakerReel";
 import dynamic from "next/dynamic";
 const StorefrontFooter = dynamic(() => import("@/components/Storefront/StorefrontFooter").then(mod => mod.StorefrontFooter));
@@ -45,7 +48,13 @@ export const metadata: Metadata = {
 // + Horizontal product scroll + Footer simple
 // ==========================================
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  // PROTOTIPO carpetas del home (16/9/2026): `?carpetas=a|b|c`, solo fuera de
+  // producción. Sin el parámetro el home queda exactamente como está.
+  const sp = await searchParams;
+  const varianteCarpetas = (process.env.NODE_ENV !== "production" && typeof sp.carpetas === "string" && ["a", "b", "c"].includes(sp.carpetas))
+    ? (sp.carpetas as VarianteCarpetas)
+    : null;
   // Reseñas de Google y settings web en paralelo con las consultas de productos (antes bloqueaban en serie)
   const reviewsPromise = getGoogleReviews();
   const webSettingsPromise = getWebSettings().catch(() => defaultWebSettings);
@@ -66,6 +75,28 @@ export default async function Home() {
   };
 
   const catalogCount = homeData.count;
+
+  // Datos del prototipo de carpetas. Los clip-on no están en la base local ni
+  // tienen foto con modelo: van con las fotos de producto que ya existen.
+  const CLIPON_FALLBACK = ["g5919-c1-front", "7018-c5", "8125s-c3", "a12183-c2", "7103-c2", "g5921-c2"].map((k, i) => ({
+    id: `clipon-${i}`, name: `Clip-on ${k.split("-")[0].toUpperCase()}`, img: `/images/products/clipon-${k}.webp`, slug: "clip-on",
+  }));
+  const conteos = (homeData as { conteos?: { sol?: number; receta?: number; clipon?: number } }).conteos;
+  // Solo para el prototipo en local: la base de docker tiene productos cuya foto
+  // no está en este disco; se saltean para que no aparezcan cuadros rotos.
+  const conFoto = <T extends { img: string }>(lista: T[]) => lista.filter((p) =>
+    !p.img.startsWith("/") || existsSync(join(process.cwd(), "public", p.img)));
+  const carpetas: Carpeta[] = varianteCarpetas ? [
+    { key: "sol", titulo: "Sol", bajada: "Acetato italiano y cristales polarizados. Para mirar de frente.", href: "/lentes-de-sol",
+      portada: "/images/home/carpetas/sol-adhara-frente.webp", portadaAlt: "/images/home/carpetas/sol-nashira-perfil.webp", foco: "center 18%",
+      cantidad: conteos?.sol ?? carouselData.sol.length, productos: conFoto(carouselData.sol) },
+    { key: "receta", titulo: "Receta", bajada: "Armazones de autor para tus cristales. Medidos con el armazón puesto.", href: "/receta",
+      portada: "/images/home/carpetas/receta-victoria-perfil.webp", portadaAlt: "/images/home/carpetas/receta-dionisio-frente.webp", foco: "center 15%",
+      cantidad: conteos?.receta ?? carouselData.receta.length, productos: conFoto(carouselData.receta) },
+    { key: "clipon", titulo: "Clip-on", bajada: "Un armazón, dos anteojos: receta de día y sol con el clip imantado.", href: "/clip-on",
+      portada: "/images/products/clipon-g5919-c1-front.webp", foco: "center",
+      cantidad: conteos?.clipon || CLIPON_FALLBACK.length, productos: carouselData.clipon.length ? conFoto(carouselData.clipon) : CLIPON_FALLBACK, claro: true },
+  ] : [];
 
   const organizationSchema = {
     "@context": "https://schema.org",
@@ -169,6 +200,9 @@ export default async function Home() {
           ))}
         </div>
       </div>
+
+      {/* PROTOTIPO — carpetas Sol / Receta / Clip-on (solo con ?carpetas=) */}
+      {varianteCarpetas && <HomeCarpetas carpetas={carpetas} variante={varianteCarpetas} totalCatalogo={catalogCount} />}
 
       {/* ═══════════════════════════════════════════════ */}
       {/* LATEST — Título + Catálogo horizontal scroll    */}
