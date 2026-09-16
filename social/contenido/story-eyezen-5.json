@@ -1,0 +1,19 @@
+{
+  "id": "story-eyezen-5",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "cristales"
+  ],
+  "caption": "Contanos cuántas horas de pantalla hacés y a qué distancia trabajás. Con eso y tu edad se define la potencia. Cerro de las Rosas, sin turno previo.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Contanos cómo trabajás",
+      "body": "Te decimos qué potencia te corresponde. Cerro de las Rosas, sin turno previo. También por WhatsApp."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "story-eyezen-2",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "cristales"
+  ],
+  "caption": "¿Te pasa alguna de estas a la tarde? No es tu vista que empeoró: es el músculo del enfoque que no descansó en todo el día.",
+  "slides": [
+    {
+      "type": "list",
+      "title": "Te pasa si *a la tarde*",
+      "items": [
+        "Te arden los ojos o te los frotás sin darte cuenta",
+        "Te duele la cabeza al terminar la jornada",
+        "Te acercás a la pantalla de a poco, sin querer",
+        "Ves borroso de lejos un rato: es fatiga, no miopía"
+      ],
+      "image": "blog/blog2_homeoffice.webp"
+    }
+  ]
+}
