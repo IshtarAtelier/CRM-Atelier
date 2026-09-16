@@ -21,7 +21,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
     AlertTriangle, ArrowLeft, ArrowRight, Calculator, Camera, CheckCircle2,
-    ClipboardList, Coffee, Gift, Headphones, Loader2, Lock, Mic, Send, Star, Tag,
+    ClipboardList, Coffee, Gift, Headphones, Loader2, Lock, Mic, Send, Star, Tag, Wallet,
 } from 'lucide-react';
 import {
     BRIEFING_MINIMO_TEXTO, objetivosDe, type ObjetivosBriefing,
@@ -106,6 +106,7 @@ export default function BriefingDiario() {
     const [estado, setEstado] = useState<Pendiente | null>(null);
     const [ficha, setFicha] = useState(0);
     const [texto, setTexto] = useState('');
+    const [objetivoDelDia, setObjetivoDelDia] = useState('');
     const [vueltasAtras, setVueltasAtras] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [guardando, setGuardando] = useState(false);
@@ -113,6 +114,7 @@ export default function BriefingDiario() {
     const caja = useRef<HTMLDivElement>(null);
     const encabezado = useRef<HTMLHeadingElement>(null);
     const campo = useRef<HTMLTextAreaElement>(null);
+    const campoObjetivo = useRef<HTMLTextAreaElement>(null);
 
     const abierto = !!estado?.pendiente;
 
@@ -184,13 +186,22 @@ export default function BriefingDiario() {
             campo.current?.focus();
             return;
         }
+        // El objetivo del día va CON PALABRAS y no con un número: "10" no dice
+        // nada que el mínimo no diga ya; "cerrar los dos multifocales que quedaron
+        // de ayer" sí (pedido de Ishtar, 16/9/2026).
+        const objetivo = objetivoDelDia.trim();
+        if (objetivo.length < BRIEFING_MINIMO_TEXTO) {
+            setError('Escribí tu objetivo de hoy con palabras: qué te proponés lograr.');
+            campoObjetivo.current?.focus();
+            return;
+        }
         setError(null);
         setGuardando(true);
         try {
             const res = await fetch('/api/briefing-diario', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ texto: limpio, vueltasAtras }),
+                body: JSON.stringify({ texto: limpio, objetivo, vueltasAtras }),
             });
             // Solo se cierra si el server lo registró: si falló, mañana no tiene
             // que "haberse hecho solo" ni perderse lo que escribió.
@@ -210,6 +221,30 @@ export default function BriefingDiario() {
     // Quien no tenga ficha propia sigue viendo las 3 de siempre.
     const n = (nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const propias = [];
+
+    if (n.includes('milena')) {
+        propias.push({
+            titulo: 'Arqueo de caja y las capturas',
+            cuerpo: (
+                <>
+                    <ul className="space-y-3">
+                        <Fila icono={Wallet} titulo="Hacé el arqueo de caja">
+                            <p>
+                                Las dos cajas: la tuya y la de Matías. El arqueo se hace igual
+                                todos los días, haya sido un día flojo o cargado.
+                            </p>
+                        </Fila>
+                        <Fila icono={Camera} titulo="Mandá las dos capturas al grupo de lotes">
+                            <p>
+                                Una captura de la caja de Matías y otra de la tuya, las dos al
+                                <strong> grupo de lotes</strong>. Si falta una, el día queda sin cerrar.
+                            </p>
+                        </Fila>
+                    </ul>
+                </>
+            ),
+        });
+    }
 
     if (n.includes('matias')) {
         propias.push({
@@ -377,6 +412,31 @@ export default function BriefingDiario() {
                             aria-describedby={error ? 'briefing-ayuda briefing-error' : 'briefing-ayuda'}
                             aria-invalid={!!error}
                             placeholder={`Ej.: ${objetivos.presupuestos} presupuestos, ${objetivos.tareasMax ? `entre ${objetivos.tareasMin} y ${objetivos.tareasMax}` : objetivos.tareasMin} tareas, pedirle el comentario a todos los que entregué, atender con audios y fotos y el presupuesto del sistema, y ofrecer café y caramelos.`}
+                            className={'mt-2 w-full rounded-2xl border-2 p-3 text-[15px] leading-relaxed resize-y'
+                                + ' bg-white text-stone-900 placeholder:text-stone-500'
+                                + ' dark:bg-stone-800 dark:text-white dark:placeholder:text-stone-400'
+                                + ' focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-stone-900'
+                                + ' focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300 '
+                                + (error
+                                    ? 'border-rose-800 dark:border-rose-300'
+                                    : 'border-stone-400 dark:border-stone-500')}
+                        />
+                        <label htmlFor="briefing-objetivo" className="block text-base font-black text-stone-900 dark:text-white mt-5">
+                            ¿Y cuál es tu objetivo para hoy?
+                        </label>
+                        <p id="briefing-objetivo-ayuda" className={`${TEXTO} mt-1`}>
+                            Escribilo con palabras, no con un número: qué te proponés lograr hoy.
+                        </p>
+                        <textarea
+                            id="briefing-objetivo"
+                            ref={campoObjetivo}
+                            value={objetivoDelDia}
+                            onChange={e => { setObjetivoDelDia(e.target.value); if (error) setError(null); }}
+                            rows={3}
+                            maxLength={2000}
+                            aria-describedby={error ? 'briefing-objetivo-ayuda briefing-error' : 'briefing-objetivo-ayuda'}
+                            aria-invalid={!!error}
+                            placeholder="Ej.: cerrar los dos multifocales que quedaron de ayer y llamar a los que no contestaron."
                             className={'mt-2 w-full rounded-2xl border-2 p-3 text-[15px] leading-relaxed resize-y'
                                 + ' bg-white text-stone-900 placeholder:text-stone-500'
                                 + ' dark:bg-stone-800 dark:text-white dark:placeholder:text-stone-400'

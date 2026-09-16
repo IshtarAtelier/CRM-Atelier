@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST `{ texto, vueltasAtras }` → le manda lo escrito a los ADMIN y marca el
+ * POST `{ texto, objetivo, vueltasAtras }` → le manda lo escrito a los ADMIN y marca el
  * día como hecho.
  *
  * El orden importa: primero se avisa, después se marca. Si el marcado falla, el
@@ -116,6 +116,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Escribí un poco más de lo que te pedimos hoy.' }, { status: 400 });
         }
 
+        // El objetivo del día, con palabras. Se valida igual que el texto: el
+        // modal es del cliente y no se le cree.
+        const objetivo = String(body?.objetivo ?? '').trim().slice(0, MAXIMO_TEXTO);
+        if (objetivo.length < BRIEFING_MINIMO_TEXTO) {
+            return NextResponse.json({ error: 'Escribí tu objetivo de hoy con palabras.' }, { status: 400 });
+        }
+
         const crudo = Number(body?.vueltasAtras);
         const vueltas = Number.isFinite(crudo) ? Math.min(99, Math.max(0, Math.trunc(crudo))) : 0;
 
@@ -128,6 +135,9 @@ export async function POST(request: NextRequest) {
             ``,
             `Escribió lo que se le pidió hoy:`,
             `“${texto}”`,
+            ``,
+            `Su objetivo para hoy:`,
+            `“${objetivo}”`,
             ``,
             // Siempre presente, también cuando es cero: un renglón que aparece
             // solo a veces no se puede distinguir de uno que faltó por un error.
@@ -164,7 +174,7 @@ export async function POST(request: NextRequest) {
             action: 'OTHER',
             entityType: 'SETTING',
             entityId: `${CLAVE_HECHO}:${hoy.iso}`,
-            details: { evento: 'briefing_diario_completado', dia: hoy.iso, texto, vueltasAtras: vueltas, avisados },
+            details: { evento: 'briefing_diario_completado', dia: hoy.iso, texto, objetivo, vueltasAtras: vueltas, avisados },
         }).catch(console.error);
 
         return NextResponse.json({ ok: true, avisados });
