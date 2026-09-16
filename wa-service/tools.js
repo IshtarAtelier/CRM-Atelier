@@ -846,12 +846,28 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
     // ganando siempre los mismos tres. Un armazón marcado "Femenino" para una
     // mujer vale más que uno sin dato.
     const generoEfectivo = (genero === 'HOMBRE' || genero === 'MUJER') ? genero : null;
+    /**
+     * Cuánto le corresponde este armazón a esta persona.
+     *
+     * Regla de Ishtar (16/9/2026): "que sea fem o mas". Un armazón marcado SOLO
+     * "Masculino" es más de él que uno marcado "Unisex, Femenino, Masculino",
+     * que en el catálogo quiere decir "sirve para cualquiera". Antes los dos
+     * valían igual (3) y, como los mixtos son 37 contra 12, a un hombre casi
+     * nunca le llegaba uno pensado para él.
+     *
+     *   4 = solo lo suyo ("Masculino")
+     *   3 = lo suyo y lo otro ("Unisex, Femenino, Masculino")
+     *   2 = unisex
+     *   0 = sin dato (va último; del género contrario ya no llega ninguno:
+     *       eso lo saca la ruta antes)
+     */
     const puntajeDeGenero = p => {
         const g = (p.genero || '').toLowerCase();
-        if (!g.trim()) return 0;                                  // sin dato: puede ser cualquier cosa
+        if (!g.trim()) return 0;
         if (!generoEfectivo) return g.includes('unisex') ? 1 : 0;  // sin saber de quién es, unisex primero
         const propio = generoEfectivo === 'HOMBRE' ? 'masculino' : 'femenino';
-        if (g.includes(propio)) return 3;
+        const otro = generoEfectivo === 'HOMBRE' ? 'femenino' : 'masculino';
+        if (g.includes(propio)) return g.includes(otro) ? 3 : 4;
         if (g.includes('unisex')) return 2;
         return 0;
     };

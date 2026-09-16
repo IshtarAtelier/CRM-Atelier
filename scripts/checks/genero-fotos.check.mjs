@@ -121,7 +121,8 @@ console.log('\nOrden de las fotos: primero lo que corresponde');
         if (!g.trim()) return 0;
         if (!generoEfectivo) return g.includes('unisex') ? 1 : 0;
         const propio = generoEfectivo === 'HOMBRE' ? 'masculino' : 'femenino';
-        if (g.includes(propio)) return 3;
+        const otro = generoEfectivo === 'HOMBRE' ? 'femenino' : 'masculino';
+        if (g.includes(propio)) return g.includes(otro) ? 3 : 4;
         if (g.includes('unisex')) return 2;
         return 0;
     };
@@ -131,12 +132,14 @@ console.log('\nOrden de las fotos: primero lo que corresponde');
         { name: 'Bravo (Femenino)', genero: 'Femenino', publishToWeb: true },
         { name: 'Cosmos (Masculino)', genero: 'Masculino', publishToWeb: true },
         { name: 'Duna (Unisex)', genero: 'Unisex', publishToWeb: true },
+        { name: 'Eco (para los dos)', genero: 'Unisex, Femenino, Masculino', publishToWeb: true },
     ];
     const ordenar = ge => [...catalogo].sort((a, b) => puntaje(b, ge) - puntaje(a, ge)).map(p => p.name);
     const paraHombre = ordenar('HOMBRE');
     const paraMujer = ordenar('MUJER');
     check('a un hombre le sale PRIMERO el masculino', paraHombre[0].includes('Masculino'), paraHombre.join(' > '));
-    check('a un hombre el unisex va segundo, el sin dato después', paraHombre[1].includes('Unisex'), paraHombre.join(' > '));
+    check('16/9 · el marcado SOLO masculino le gana al "para los dos"', paraHombre[0].includes('Masculino') && paraHombre[1].includes('para los dos'), paraHombre.join(' > '));
+    check('16/9 · a una mujer, el SOLO femenino primero y el "para los dos" después', paraMujer[0].includes('Femenino') && paraMujer[1].includes('para los dos'), paraMujer.join(' > '));
     check('a una mujer le sale PRIMERO el femenino', paraMujer[0].includes('Femenino'), paraMujer.join(' > '));
     check('sin saber el género, el unisex va primero', ordenar(null)[0].includes('Unisex'), ordenar(null).join(' > '));
     check('el "sin dato" nunca le gana a uno que sí corresponde', !paraHombre[0].includes('sin dato') && !paraMujer[0].includes('sin dato'));
