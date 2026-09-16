@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { familiaColorPorId } from "@/lib/catalog/color-normalizado";
+import { etiquetaDeGenero } from "@/lib/constants/genero-catalogo";
 import { formaFemenina } from "@/lib/catalog/forma-armazon";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
@@ -203,7 +204,7 @@ export function TiendaClient({
     { param: 'marca', valor: filterBrand, etiqueta: filterBrand },
     { param: 'forma', valor: filterShape, etiqueta: filterShape },
     { param: 'material', valor: filterMaterial, etiqueta: filterMaterial },
-    { param: 'genero', valor: filterGender, etiqueta: filterGender },
+    { param: 'genero', valor: filterGender, etiqueta: etiquetaDeGenero(filterGender) },
     { param: 'color', valor: filterColor, etiqueta: familiaColorPorId(filterColor)?.etiqueta || filterColor },
     // A-08: el rango de precio son dos parámetros pero UN chip, con la
     // etiqueta escrita como la lee una persona. Al quitarlo se van los dos.

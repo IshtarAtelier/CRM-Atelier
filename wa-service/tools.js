@@ -735,6 +735,27 @@ function pieDeFoto(p) {
 }
 
 /**
+ * El link del catálogo para mandar por WhatsApp, filtrado por lo que se habló.
+ *
+ * `/catalogo/hombre` y `/catalogo/mujer` son direcciones lindas que llevan a la
+ * tienda ya filtrada (src/app/catalogo/[genero]/page.tsx). No es un catálogo
+ * aparte ni un PDF: es la misma tienda, con la foto grande, el precio de hoy,
+ * la oferta, el stock y el botón de comprar. Un PDF mandado hace un mes muestra
+ * precios que ya no son.
+ */
+function linkDelCatalogo(genero, category, search) {
+    const base = 'https://atelieroptica.com.ar';
+    const slug = genero === 'HOMBRE' ? 'hombre' : genero === 'MUJER' ? 'mujer' : null;
+    const extra = [];
+    const cat = String(category || '').toUpperCase();
+    if (cat === 'SOL') extra.push('categoria=Sol');
+    else if (cat === 'CLIPON') extra.push('categoria=Clip-On');
+    if (search) extra.push(`search=${encodeURIComponent(String(search).trim())}`);
+    if (slug) return `${base}/catalogo/${slug}${extra.length ? `?${extra.join('&')}` : ''}`;
+    return `${base}/tienda${extra.length ? `?${extra.join('&')}` : ''}`;
+}
+
+/**
  * Tool: mandarle al cliente hasta 3 fotos de armazones/clip-ons/lentes de sol.
  * Reusa /api/bot/pricing (misma fuente y mismo filtro por categoría que las
  * cotizaciones: no hay una segunda copia de esa lógica que pueda divergir).
@@ -899,7 +920,16 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
     }
 
     const omitidos = conFoto.slice(MAX_FOTOS_POR_TURNO).map(p => p.name).filter(Boolean);
-    let nota = `[INSTRUCCIÓN INTERNA] Ya se enviaron ${enviadas.length} foto(s) al cliente, cada una con su nombre y su precio de contado al pie: ${enviadas.join(', ')}. NO las describas de nuevo, NO repitas esos precios y NO anuncies que "ahí van": ya llegaron. Escribí UNA sola burbuja corta preguntándole cuál le gustó más. PROHIBIDO volver a llamar esta herramienta en este mismo turno.`;
+    let nota = `[INSTRUCCIÓN INTERNA] Ya se enviaron ${enviadas.length} foto(s) al cliente, cada una con su nombre y su precio de contado al pie: ${enviadas.join(', ')}. NO las describas de nuevo, NO repitas esos precios y NO anuncies que "ahí van": ya llegaron. Escribí UNA sola burbuja corta con el link del catálogo de acá abajo y preguntándole cuál le gustó más. PROHIBIDO volver a llamar esta herramienta en este mismo turno.`;
+    // El catálogo entero, en la misma burbuja: tres fotos son una muestra, y el
+    // link deja que siga mirando el resto con precio al día y foto grande (pedido
+    // de Ishtar, 16/9/2026: "que la persona pueda ver varias opciones en un mismo
+    // lugar"). Va filtrado por lo que se habló, así abre en lo suyo.
+    nota += ` MANDALE TAMBIÉN el catálogo, en la MISMA burbuja y tal cual: "${linkDelCatalogo(generoEfectivo, category, search)}". Presentalo como "acá los podés ver todos" — NUNCA digas de quién son ni por qué elegiste esos.`;
+    // Regla de Ishtar (16/9/2026): al cliente no se le clasifica el armazón por
+    // género. Un armazón unisex mandado a un hombre es, para él, un armazón: si
+    // se le aclara "este es unisex" se le está diciendo que no es para él.
+    nota += ` PROHIBIDO decirle al cliente que un armazón es "unisex", "de hombre", "de mujer" o "para los dos", y prohibido explicarle que los elegiste por su género: le mandás los modelos y listo.`;
     if (omitidos.length > 0) {
         nota += ` Quedaron sin enviar (tope de ${MAX_FOTOS_POR_TURNO} fotos por vez): ${omitidos.slice(0, 8).join(', ')}. Si el cliente pide ver más, recién ahí volvé a llamarla con 'search' del modelo que nombre.`;
     }

@@ -50,6 +50,23 @@ const tools = readFileSync(new URL('../../wa-service/tools.js', import.meta.url)
 check('el que manda fotos pasa SIEMPRE el clientId', tools.includes('if (fichaDelChat?.clientId) params.clientId = fichaDelChat.clientId;'));
 check('el género pesa más que "recomendado" y "publicado"', tools.includes('puntajeDeGenero(p) * 10'));
 
+console.log('\nAl cliente no se le nombra el género, y se le manda el catálogo');
+{
+    const tools = readFileSync(new URL('../../wa-service/tools.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('el bot tiene prohibido decir "unisex" / "de hombre" / "de mujer"', tools.includes('PROHIBIDO decirle al cliente que un armazón es "unisex"'));
+    check('después de las fotos manda el link del catálogo', tools.includes('MANDALE TAMBIÉN el catálogo'));
+    // El link, armado como lo arma el bot.
+    const linkDelCatalogo = new Function('genero', 'category', 'search', tools.slice(tools.indexOf('function linkDelCatalogo'), tools.indexOf('/**\n * Tool: mandarle al cliente')).replace(/^function linkDelCatalogo\([^)]*\) \{/, '').replace(/\}\s*$/, ''));
+    check('a un hombre le manda /catalogo/hombre', linkDelCatalogo('HOMBRE', 'ARMAZON', null) === 'https://atelieroptica.com.ar/catalogo/hombre');
+    check('a una mujer, /catalogo/mujer', linkDelCatalogo('MUJER', 'ARMAZON', null) === 'https://atelieroptica.com.ar/catalogo/mujer');
+    check('si no se sabe el género, la tienda entera', linkDelCatalogo(null, 'ARMAZON', null) === 'https://atelieroptica.com.ar/tienda');
+    check('si hablaban de lentes de sol, el catálogo abre en Sol', linkDelCatalogo('HOMBRE', 'SOL', null) === 'https://atelieroptica.com.ar/catalogo/hombre?categoria=Sol');
+    const { generoDeSlug, etiquetaDeGenero } = await import('../../src/lib/constants/genero-catalogo.ts');
+    check('/catalogo/hombre lleva al filtro homme', generoDeSlug('hombre')?.id === 'homme' && generoDeSlug('mujer')?.id === 'femme');
+    check('una dirección inventada no existe', generoDeSlug('cualquiera') === null);
+    check('el chip del filtro ya no muestra "homme" crudo', etiquetaDeGenero('homme') === 'Homme');
+}
+
 console.log('\nOrden de las fotos: primero lo que corresponde');
 {
     // Reproduce el puntaje de sendProductPhotos sobre un catálogo de mentira.

@@ -52,6 +52,11 @@ const PROHIBIDO: { re: RegExp; regla: string; salvo?: RegExp }[] = [
         salvo: /(nunca|jam[aá]s|prohibido|no existe|no des)[^.]{0,40}(para que tengas una idea|igual se le cotiza)/i,
     },
     {
+        re: /(est[eé]|es) (armaz[oó]n )?(un[ií]sex|de (hombre|mujer|var[oó]n|dama))|te mando (los )?(de hombre|de mujer)|(son|estos son) (los )?un[ií]sex/i,
+        regla: 'le hace clasificar el armazón por género delante del cliente ("este es unisex", "te mando los de hombre"). Regla del 16/9: se le mandan los modelos y listo; aclararlo es decirle que no son para él.',
+        salvo: /(nunca|jam[aá]s|prohibido|no) (le )?(digas|decir|aclar|menciones)/i,
+    },
+    {
         re: /pendiente de lectura/i,
         regla: 'contiene "pendiente de lectura": el bot se lo dijo a una clienta como excusa para cotizar sin receta. Nada de trámite interno hacia el cliente.',
         salvo: /(nunca|jam[aá]s|prohibido|no) (le )?(digas|decir)[^.]{0,40}pendiente de lectura/i,
