@@ -111,3 +111,8 @@ scripts/maintenance/etiquetas-limpieza/respaldo-*.json
 # El script escribe en el directorio actual, así que aparece en la raíz — que es
 # solo configuración. El PDF no se versiona; el generador sí.
 /plantillas-whatsapp-atelier.pdf
+
+# Respaldos que deja encuadrar-fotos-look.mjs antes de pisar una foto.
+# El historial de git ya guarda el original: esto es solo para revertir rápido
+# en local sin tocar git.
+*.original

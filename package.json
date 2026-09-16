@@ -17,7 +17,7 @@
     "check:humo": "node scripts/checks/humo-tienda.check.mjs",
     "check:catalog": "node --experimental-strip-types scripts/checks/catalog-resilience.check.mjs",
     "check:comprobantes": "node --experimental-strip-types scripts/checks/receipt-references.check.mjs",
-    "check:landing": "node --experimental-strip-types scripts/checks/landing-atribucion.check.mjs",
+    "check:landing": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/landing-atribucion.check.mjs",
     "check:adtag": "node --experimental-strip-types scripts/checks/ad-tag-paridad.check.mjs",
     "check:capi": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/capi-payload.check.mjs",
     "check:businessinfo": "node --experimental-strip-types scripts/checks/business-info-paridad.check.mjs",
