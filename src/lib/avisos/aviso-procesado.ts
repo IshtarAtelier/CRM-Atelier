@@ -14,6 +14,7 @@ import { PricingService } from '@/services/PricingService';
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { normalizeArgentinePhone } from '@/services/contact.service';
+import { logAudit } from '@/lib/audit';
 
 /**
  * Frase por la que se reconoce este aviso en la conversación. Es el ancla del
@@ -48,8 +49,27 @@ export async function enviarAvisoProcesado(
     const estimatedDays = calculateEstimatedDays(order?.items || []);
     const estimatedDate = format(addBusinessDays(new Date(), estimatedDays), 'dd/MM/yyyy');
 
+    // Cada intento queda auditado, salga o no. La auditoría del 16/9/2026 midió
+    // que 39 de 88 pedidos que pasaron a "Procesado" en 30 días no tienen el
+    // mensaje en la conversación, y que solo 5 de esos fallos avisaron al equipo:
+    // los otros 34 se perdieron en silencio y no quedó UN registro de qué había
+    // contestado el envío. Sin esa fila no se puede diagnosticar nada después.
+    const auditar = (ok: boolean, motivo?: string) =>
+        logAudit({
+            userId: null,
+            userName: 'Sistema',
+            action: 'NOTIFY',
+            entityType: 'ORDER',
+            entityId: String(order?.id || ''),
+            details: { tipo: 'aviso_procesado', ok, motivo: motivo || null, estimatedDate },
+        }).catch(err => console.error('[Aviso procesado] audit:', err));
+
     const phone = (order?.client?.phone || '').replace(/\D/g, '');
-    if (phone.length < 10) return { ok: false, motivo: 'el cliente no tiene teléfono válido', estimatedDate };
+    if (phone.length < 10) {
+        const motivo = 'el cliente no tiene teléfono válido';
+        auditar(false, motivo);
+        return { ok: false, motivo, estimatedDate };
+    }
 
     const msg = textoAvisoProcesado(order, estimatedDate, opts.labOrderNumber);
 
@@ -75,9 +95,18 @@ export async function enviarAvisoProcesado(
         ]),
     });
 
-    if (!res.ok) return { ok: false, motivo: explainSendFailure(res), estimatedDate };
+    if (!res.ok) {
+        const motivo = explainSendFailure(res);
+        auditar(false, `${motivo} [via:${res.via || '—'} code:${res.code || '—'} http:${res.status || '—'}]`);
+        return { ok: false, motivo, estimatedDate };
+    }
     // Salió pero no quedó en la conversación: para el auditor es lo mismo que no
     // haber salido, porque nadie lo puede verificar (ver sale-confirmation.ts).
-    if (res.guardado === false) return { ok: true, motivo: 'salió pero NO quedó registrado en la conversación', estimatedDate };
+    if (res.guardado === false) {
+        const motivo = 'salió pero NO quedó registrado en la conversación';
+        auditar(true, motivo);
+        return { ok: true, motivo, estimatedDate };
+    }
+    auditar(true);
     return { ok: true, estimatedDate };
 }
