@@ -357,7 +357,14 @@ export function ProductClient({
                     fill
                     priority={activeImageIndex === 0}
                     sizes="(max-width: 1024px) 100vw, 45vw"
-                    style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover", transform: "translateZ(0)" }}
+                    // `contain` SIEMPRE, no solo en la foto del armazón. El
+                    // recuadro es cuadrado y las fotos de la modelo son
+                    // verticales: con `cover` el navegador recortaba el 33% de
+                    // cada una centrándose en el ARCHIVO y no en la cara, y
+                    // dejaba primerísimos planos con la cabeza cortada (Vega C2,
+                    // Deneb C2). Con `contain` entra la foto entera y lo que
+                    // sobra queda del color del recuadro.
+                    style={{ objectFit: "contain", transform: "translateZ(0)" }}
                     className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-8 lg:p-12")) : ""}
                   />
                 </motion.div>
