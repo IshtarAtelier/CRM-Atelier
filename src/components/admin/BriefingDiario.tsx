@@ -21,7 +21,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
     AlertTriangle, ArrowLeft, ArrowRight, Calculator, Camera, CheckCircle2,
-    ClipboardList, Coffee, Gift, Headphones, Loader2, Lock, Mic, Send, Star, Tag, Wallet,
+    ClipboardList, Coffee, ExternalLink, Gift, Headphones, Loader2, Lock, Mic, Send, Star, Tag, Wallet,
 } from 'lucide-react';
 import {
     BRIEFING_MINIMO_TEXTO, objetivosDe, type ObjetivosBriefing,
@@ -107,6 +107,9 @@ export default function BriefingDiario() {
     const [ficha, setFicha] = useState(0);
     const [texto, setTexto] = useState('');
     const [objetivoDelDia, setObjetivoDelDia] = useState('');
+    // El tilde del arqueo: sin él la ficha no deja avanzar. Es la única de todo
+    // el briefing que pide un acto y no una lectura, así que se responde ahí.
+    const [arqueoHecho, setArqueoHecho] = useState(false);
     const [vueltasAtras, setVueltasAtras] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [guardando, setGuardando] = useState(false);
@@ -220,7 +223,7 @@ export default function BriefingDiario() {
     // copiado le muestra a alguien el pedido de otro sin error a la vista.
     // Quien no tenga ficha propia sigue viendo las 3 de siempre.
     const n = (nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const propias = [];
+    const propias: { titulo: string; cuerpo: React.ReactNode; trabada?: boolean }[] = [];
 
     if (n.includes('milena')) {
         propias.push({
@@ -241,8 +244,40 @@ export default function BriefingDiario() {
                             </p>
                         </Fila>
                     </ul>
+
+                    {/* El acceso directo: el arqueo se hace acá al lado, no
+                        buscando la pantalla en el menú con el modal abierto. */}
+                    <a
+                        href="/admin/caja/cierres"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`${BOTON_SECUNDARIO} mt-4`}
+                    >
+                        <Wallet className="w-4 h-4" aria-hidden="true" />
+                        Abrir la caja para hacer el arqueo
+                        <ExternalLink className="w-4 h-4" aria-hidden="true" />
+                    </a>
+
+                    <label className="mt-4 flex items-start gap-3 p-4 rounded-2xl border-2 border-stone-400 dark:border-stone-500 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={arqueoHecho}
+                            onChange={e => setArqueoHecho(e.target.checked)}
+                            className="w-6 h-6 shrink-0 mt-0.5 accent-emerald-700 dark:accent-emerald-400"
+                        />
+                        <span className="text-[15px] font-bold text-stone-900 dark:text-white leading-relaxed">
+                            Ya hice el arqueo de las dos cajas y mandé las dos capturas al grupo de lotes.
+                        </span>
+                    </label>
+                    {!arqueoHecho && (
+                        <p className={`${TARJETA} ${TEXTO} mt-3 flex items-start gap-2`}>
+                            <Lock className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+                            <span>Hasta que lo tildes, esta ficha no te deja seguir.</span>
+                        </p>
+                    )}
                 </>
             ),
+            trabada: !arqueoHecho,
         });
     }
 
@@ -466,7 +501,11 @@ export default function BriefingDiario() {
     // briefing largo que no le habla a ella se lee sin leerse (Ishtar,
     // 16/9/2026). Le quedan dos: la suya y su reporte, más el cierre, que no es
     // salteable porque es donde escribe.
-    const cuantasDeSiempre = n.includes('milena') ? 0 : 2;
+    //
+    // Al resto le toca UNA por día, no las dos: cuatro fichas iguales todas las
+    // mañanas son un montón y se pasan de largo. Como rotan, en dos días ve las
+    // mismas dos de siempre, pero nunca las dos juntas.
+    const cuantasDeSiempre = n.includes('milena') ? 0 : 1;
 
     // El orden de las de siempre rota con el día: son las mismas de memoria, y
     // leídas siempre en la misma posición se vuelven paisaje. Su reporte queda
@@ -478,7 +517,8 @@ export default function BriefingDiario() {
     // Las propias van PRIMERO (pedido de Ishtar, 16/9/2026): lo que se le pide a
     // esa persona en particular es lo que tiene que leer con la cabeza fresca,
     // no después de tres fichas que ya vio ayer.
-    const orden = [...propias, reporte, ...rotadas, cierre];
+    const orden: { titulo: string; cuerpo: React.ReactNode; trabada?: boolean }[] =
+        [...propias, reporte, ...rotadas, cierre];
 
     const esUltima = ficha === orden.length - 1;
 
@@ -548,7 +588,12 @@ export default function BriefingDiario() {
                                 {guardando ? 'Guardando…' : 'Listo, a trabajar'}
                             </button>
                         ) : (
-                            <button type="button" onClick={() => setFicha(f => f + 1)} className={BOTON_PRIMARIO}>
+                            <button
+                                type="button"
+                                onClick={() => setFicha(f => f + 1)}
+                                disabled={!!orden[ficha].trabada}
+                                className={BOTON_PRIMARIO}
+                            >
                                 Siguiente
                                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
                             </button>
