@@ -395,14 +395,14 @@ export default async function QuienesSomosPage() {
           </div>
           <div className="grid grid-cols-2">
             <div className="relative aspect-[3/4]">
-              {/* La paleta queda en COLOR: es lo único de la página donde el
-                  color es el contenido (los tonos de cristal). */}
+              {/* En blanco y negro como todas las demás (Ishtar, 16/9/2026):
+                  estuvo a color por la paleta de cristales y desentonaba. */}
               <Image
                 src="/images/equipo/paleta-cristales-entrega.jpg"
                 alt="Entrega de un pedido sobre el mostrador, con la paleta de colores de cristales a la vista"
                 fill
                 sizes="50vw"
-                className="object-cover"
+                className="object-cover grayscale"
               />
             </div>
             <div className="relative aspect-[3/4]">
