@@ -40,6 +40,8 @@ interface Pendiente {
     dia?: string;
     /** Los mínimos de ESTA persona: no son los mismos para todos. */
     objetivos?: ObjetivosBriefing;
+    /** Número de día argentino: con él rota el orden de las fichas de siempre. */
+    rotacion?: number;
     actividad?: Actividad | null;
 }
 
@@ -346,6 +348,18 @@ export default function BriefingDiario() {
                         </Fila>
                     </ul>
 
+                </>
+            ),
+        },
+    ];
+
+
+    // El cierre va SIEMPRE último, pase lo que pase con el orden de arriba: es
+    // donde escribe qué se le pidió, y sin eso el modal no se cierra.
+    const cierre = {
+        titulo: 'Contame qué te llevás de hoy',
+        cuerpo: (
+            <>
                     <div className="mt-5">
                         <label htmlFor="briefing-texto" className="block text-base font-black text-stone-900 dark:text-white">
                             Ahora escribime con tus palabras qué se te pidió hoy.
@@ -383,16 +397,23 @@ export default function BriefingDiario() {
                             </p>
                         )}
                     </div>
-                </>
-            ),
-        },
-    ];
+            </>
+        ),
+    };
 
-    // Las propias entran ANTES de la última: la última es la que lleva el campo
-    // donde escribe qué se le pidió, y tiene que quedar al final.
-    fichas.splice(fichas.length - 1, 0, ...propias);
+    // El orden de las de siempre rota con el día: son las mismas tres de
+    // memoria, y leídas siempre en la misma posición se vuelven paisaje. Su
+    // reporte queda fijo primero — son SUS números, no una cartelera.
+    const [reporte, ...resto] = fichas;
+    const giro = (estado?.rotacion ?? 0) % (resto.length || 1);
+    const rotadas = [...resto.slice(giro), ...resto.slice(0, giro)];
 
-    const esUltima = ficha === fichas.length - 1;
+    // Las propias van PRIMERO (pedido de Ishtar, 16/9/2026): lo que se le pide a
+    // esa persona en particular es lo que tiene que leer con la cabeza fresca,
+    // no después de tres fichas que ya vio ayer.
+    const orden = [...propias, reporte, ...rotadas, cierre];
+
+    const esUltima = ficha === orden.length - 1;
 
     return (
         // Sin onClick en el fondo y sin listener de Escape: no hay forma de
@@ -409,7 +430,7 @@ export default function BriefingDiario() {
             >
                 <p className="text-sm font-black uppercase tracking-widest text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                     <Send className="w-4 h-4" aria-hidden="true" />
-                    Briefing del día · Ficha {ficha + 1} de {fichas.length}
+                    Briefing del día · Ficha {ficha + 1} de {orden.length}
                 </p>
 
                 <h2
@@ -418,16 +439,16 @@ export default function BriefingDiario() {
                     tabIndex={-1}
                     className="text-2xl font-black text-stone-900 dark:text-white mt-3 mb-4 tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300 rounded-lg"
                 >
-                    {fichas[ficha].titulo}
+                    {orden[ficha].titulo}
                 </h2>
 
-                <div>{fichas[ficha].cuerpo}</div>
+                <div>{orden[ficha].cuerpo}</div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 mt-7">
                     {/* Decorativo: el "Ficha 1 de 3" de arriba es lo que informa.
                         Aun así la actual es más ancha y no solo de otro color. */}
                     <div className="flex gap-1.5" aria-hidden="true">
-                        {fichas.map((_, i) => (
+                        {orden.map((_, i) => (
                             <span
                                 key={i}
                                 className={`h-2.5 rounded-full ${i === ficha

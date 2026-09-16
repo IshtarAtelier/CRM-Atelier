@@ -83,6 +83,10 @@ export async function GET(request: NextRequest) {
             nombre: primerNombre(actor.name),
             dia: ayer.etiqueta,
             objetivos: objetivosDe(actor.name || ''),
+            // Con qué día rotar el orden de las fichas de siempre. Se calcula
+            // del día ARGENTINO y no en el navegador: una máquina con el reloj
+            // corrido no puede hacerle ver a una persona otro orden que al resto.
+            rotacion: Math.floor(Date.parse(`${hoyArgentino()}T00:00:00Z`) / 86400000),
             actividad,
         });
     } catch (error: any) {
