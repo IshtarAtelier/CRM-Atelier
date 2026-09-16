@@ -461,12 +461,19 @@ export default function BriefingDiario() {
         ),
     };
 
-    // El orden de las de siempre rota con el día: son las mismas tres de
-    // memoria, y leídas siempre en la misma posición se vuelven paisaje. Su
-    // reporte queda fijo primero — son SUS números, no una cartelera.
+    // Cuántas de las fichas de siempre ve cada uno. Milena hace el arqueo y
+    // procesa los pedidos: su día no es el de un vendedor de mostrador, y un
+    // briefing largo que no le habla a ella se lee sin leerse (Ishtar,
+    // 16/9/2026). Le quedan dos: la suya y su reporte, más el cierre, que no es
+    // salteable porque es donde escribe.
+    const cuantasDeSiempre = n.includes('milena') ? 0 : 2;
+
+    // El orden de las de siempre rota con el día: son las mismas de memoria, y
+    // leídas siempre en la misma posición se vuelven paisaje. Su reporte queda
+    // fijo primero — son SUS números, no una cartelera.
     const [reporte, ...resto] = fichas;
     const giro = (estado?.rotacion ?? 0) % (resto.length || 1);
-    const rotadas = [...resto.slice(giro), ...resto.slice(0, giro)];
+    const rotadas = [...resto.slice(giro), ...resto.slice(0, giro)].slice(0, cuantasDeSiempre);
 
     // Las propias van PRIMERO (pedido de Ishtar, 16/9/2026): lo que se le pide a
     // esa persona en particular es lo que tiene que leer con la cabeza fresca,
