@@ -179,36 +179,44 @@ export const GARANTIA_FAQ = {
 /**
  * ¿Este pedido lleva algún cristal CON garantía de adaptación?
  *
- * La garantía no es de todos los cristales: cubre los multifocales (Varilux) y
- * los monofocales Super Blue, y nada más — es lo que dice `ALCANCE` y lo que
- * está publicado en /politicas-de-cambio. Hasta el 16/9/2026 el pie del
- * presupuesto, del PDF y de la confirmación decía "todos los cristales
- * incluyen garantía" en CUALQUIER pedido, así que una venta de monofocales
- * comunes se llevaba por escrito una promesa que la política no cubre.
+ * La garantía no es de todos los cristales: cubre los MULTIFOCALES y los
+ * SUPER BLUE, y nada más (Ishtar, 16/9/2026). Hasta esa fecha el pie del
+ * presupuesto, del PDF y de la confirmación decía "todos los cristales incluyen
+ * garantía" en CUALQUIER pedido, así que una venta de monofocales comunes se
+ * llevaba por escrito una promesa que la política no cubre.
  *
- * Decisión de Ishtar (16/9/2026): la garantía NO va en el presupuesto —ahí
- * todavía no se compró nada— y en la confirmación de compra va SOLO si el
- * pedido tiene multifocales o Super Blue.
+ * Quién decide que un cristal es multifocal: el campo `type` del catálogo
+ * ('Cristal Multifocal', 283 productos en producción). Es un dato cargado a
+ * mano por la óptica, no una deducción del nombre — antes esto miraba solo
+ * nombre y marca, y así un "KODAK UNIQUE DRO" o un "ESSILOR NEW EDITIONS", que
+ * son multifocales de punta a punta, dependían de que la palabra apareciera
+ * escrita. El nombre queda como respaldo para los ítems viejos que solo tienen
+ * el snapshot del producto borrado.
  *
- * Se reconoce por el nombre/marca del producto, que es como se reconocen los
- * multifocales en todo el sistema (`isMultifocal2x1` hace lo mismo): no hay un
- * flag en la base que diga "tiene garantía".
+ * Los BIFOCALES, OCUPACIONALES y de CONTROL MIÓPICO son tipos aparte en el
+ * catálogo y NO entran: si alguna vez tienen garantía, se agregan acá a mano.
+ *
+ * Un Super Blue entra por el nombre en cualquier tipo, porque "Super Blue" es el
+ * cristal, no una categoría del catálogo.
  */
 export function pedidoTieneGarantiaDeAdaptacion(order: any): boolean {
     const norm = (t: string) =>
-        (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
     return (order?.items || []).some((it: any) => {
+        // El campo del catálogo manda.
+        const tipo = norm(it?.product?.type);
+        if (tipo.includes('multifocal')) return true;
+
         const texto = norm([
             it?.product?.name, it?.productNameSnapshot,
             it?.product?.brand, it?.productBrandSnapshot,
-            it?.product?.model, it?.product?.type,
+            it?.product?.model,
         ].filter(Boolean).join(' '));
 
-        const esMultifocal =
-            texto.includes('multifocal') || texto.includes('progresiv') || texto.includes('varilux');
-        const esSuperBlue = /super\s*blue/.test(texto);
+        // Respaldo por nombre, para ítems sin producto vivo.
+        if (texto.includes('multifocal') || texto.includes('progresiv') || texto.includes('varilux')) return true;
 
-        return esMultifocal || esSuperBlue;
+        return /super\s*blue/.test(texto);
     });
 }

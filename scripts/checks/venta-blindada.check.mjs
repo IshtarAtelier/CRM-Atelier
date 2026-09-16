@@ -40,6 +40,8 @@ async function limpiar() {
     for (const c of cs) {
         await prisma.orderFrame.deleteMany({ where: { order: { clientId: c.id } } });
         await prisma.orderItem.deleteMany({ where: { order: { clientId: c.id } } });
+        // Los pagos de la seña primero: la orden no se borra mientras los tenga.
+        await prisma.payment.deleteMany({ where: { order: { clientId: c.id } } });
         await prisma.order.deleteMany({ where: { clientId: c.id } });
         await prisma.interaction.deleteMany({ where: { clientId: c.id } });
         await prisma.clientTask.deleteMany({ where: { clientId: c.id } });
@@ -181,7 +183,13 @@ const base = {
 
 const sinTenido = buildSaleConfirmation(base);
 check('confirmación: dice explícitamente que NO lleva teñido', sinTenido.waText.includes('NO lleva teñido'));
-check('confirmación: muestra el saldo pendiente', sinTenido.waText.includes('Saldo pendiente: $60.000'));
+// El texto pasó de "Saldo pendiente: $X" a los tres saldos por forma de pago
+// (24/8/2026, `sale-confirmation.ts`), y esta línea se quedó con la redacción
+// vieja: el check estuvo en rojo tres semanas sin que nadie mirara. Ahora
+// verifica lo que importa —que el saldo esté y con importe— sin atarse a una
+// frase exacta que va a volver a cambiar.
+check('confirmación: muestra el saldo pendiente',
+    sinTenido.waText.includes('Te queda al retirar') && /efectivo \$\s?[\d.]+/.test(sinTenido.waText));
 check('confirmación: muestra lo abonado', sinTenido.waText.includes('Abonado: $40.000'));
 check('confirmación: pide el OK', /Respondenos \*OK\*/.test(sinTenido.waText));
 check('confirmación: pide corroborar el armazón', /es el que elegiste/.test(sinTenido.waText));
@@ -304,18 +312,47 @@ async function presupuestoParaConvertir({ dosPares = false, foto1 = null, foto2 
             prescriptionId: receta.id,
             frameSource: 'OPTICA',
             frameImageUrl: foto1, frameImageUrl2: foto2,
+            labFrameShape: 'CATEYE', frameA: '52', frameB: '32', frameDbl: '18', frameEdc: '54',
             ...(dosPares ? { appliedPromoName: 'Promo 2x1' } : {}),
-            items: { create: [
-                { productId: armazonProd.id, quantity: 1, price: 500 },
-                { productId: cristalProd.id, quantity: 1, price: 500 },
-            ] },
+            items: { create: dosPares
+                // En un 2x1 cada armazón tiene que decir a qué par pertenece
+                // (`framePosition`): es un requisito posterior a este check, y
+                // sin él la conversión moría reclamando esa marca antes de
+                // llegar a mirar las fotos.
+                ? [
+                    { productId: armazonProd.id, quantity: 1, price: 500, framePosition: 1 },
+                    { productId: armazonProd.id, quantity: 1, price: 500, framePosition: 2 },
+                    { productId: cristalProd.id, quantity: 1, price: 500 },
+                    { productId: cristalProd.id, quantity: 1, price: 500 },
+                ]
+                : [
+                    { productId: armazonProd.id, quantity: 1, price: 500 },
+                    { productId: cristalProd.id, quantity: 1, price: 500 },
+                ] },
         },
     });
+    // La SEÑA, como fila de Payment. `Order.paid` no alcanza: el candado del 50%
+    // se mide por pagos reales (regla del proyecto: `paid` no prueba que se haya
+    // cobrado). Sin esta fila la conversión moría en "se requiere un pago mínimo
+    // del 50%" y los tres checks de la foto del armazón nunca llegaban a
+    // ejecutarse — pasaban en verde sin probar nada.
+    await prisma.payment.create({
+        data: { orderId: orden.id, amount: 1000, method: 'EFECTIVO', createdByName: 'Check' },
+    });
+
     // La foto vive en la tabla de armazones (las columnas del pedido son solo
     // el espejo para lo que todavía las lee).
+    // Con la forma y las medidas cargadas: son el OTRO requisito de la
+    // conversión, y sin ellas el caso "CON la foto, la venta pasa" nunca podía
+    // pasar — la fixture probaba un camino imposible.
     const fotos = dosPares ? [foto1, foto2] : [foto1];
     for (let i = 0; i < fotos.length; i++) {
-        await prisma.orderFrame.create({ data: { orderId: orden.id, position: i + 1, imageUrl: fotos[i] } });
+        await prisma.orderFrame.create({
+            data: {
+                orderId: orden.id, position: i + 1, imageUrl: fotos[i],
+                shape: 'CATEYE', a: '52', b: '32', dbl: '18', edc: '54',
+            },
+        });
     }
     return orden;
 }
@@ -531,11 +568,15 @@ if (armazonProd && cristalProd) {
         // check quiere ver faltar.
         const dosAnteojosConTenido = async (asignado, grado = '3') => {
             await prisma.product.updateMany({ where: { id: { in: [armazonProd.id, cristalProd.id, tenidoProdBD.id] } }, data: { stock: 99 } });
-            return prisma.order.create({ data: {
+            const creada = await prisma.order.create({ data: {
                 clientId: cliente.id, userId: vendedor.id, orderType: 'QUOTE', status: 'PENDING',
                 total: 1000, subtotalWithMarkup: 1000, paid: 1000,
                 prescriptionId: receta.id, frameSource: 'OPTICA',
-                frames: { create: [{ position: 1, imageUrl: '/u/1.jpg' }, { position: 2, imageUrl: '/u/2.jpg' }] },
+                labFrameShape: 'CATEYE', frameA: '52', frameB: '32', frameDbl: '18', frameEdc: '54',
+                frames: { create: [
+                    { position: 1, imageUrl: '/u/1.jpg', shape: 'CATEYE', a: '52', b: '32', dbl: '18', edc: '54' },
+                    { position: 2, imageUrl: '/u/2.jpg', shape: 'CATEYE', a: '52', b: '32', dbl: '18', edc: '54' },
+                ] },
                 items: { create: [
                     { productId: cristalProd.id, quantity: 1, price: 250, eye: 'RIGHT' },
                     { productId: cristalProd.id, quantity: 1, price: 250, eye: 'LEFT' },
@@ -544,6 +585,13 @@ if (armazonProd && cristalProd) {
                     { productId: tenidoProdBD.id, quantity: 1, price: 0, crystalColor: 'Gris', crystalColorNote: grado, framePosition: asignado ? 2 : null },
                 ] },
             } });
+            // La seña, como fila de Payment: igual que la otra fixture, sin esto
+            // la conversión moría en el candado del 50% y nunca se probaba el
+            // teñido (ver `presupuestoParaConvertir`).
+            await prisma.payment.create({
+                data: { orderId: creada.id, amount: 1000, method: 'EFECTIVO', createdByName: 'Check' },
+            });
+            return creada;
         };
 
         const sinAsignar = await dosAnteojosConTenido(false);
@@ -583,16 +631,22 @@ if (armazonProd) {
 
         const conFotocromatico = async (color) => {
             await prisma.product.updateMany({ where: { id: { in: [armazonProd.id, fotoProd.id] } }, data: { stock: 99 } });
-            return prisma.order.create({ data: {
+            const creada = await prisma.order.create({ data: {
                 clientId: cliente.id, userId: vendedor.id, orderType: 'QUOTE', status: 'PENDING',
                 total: 1000, subtotalWithMarkup: 1000, paid: 1000,
                 prescriptionId: receta.id, frameSource: 'OPTICA',
-                frames: { create: [{ position: 1, imageUrl: '/u/1.jpg' }] },
+                labFrameShape: 'CATEYE', frameA: '52', frameB: '32', frameDbl: '18', frameEdc: '54',
+                frames: { create: [{ position: 1, imageUrl: '/u/1.jpg', shape: 'CATEYE', a: '52', b: '32', dbl: '18', edc: '54' }] },
                 items: { create: [
                     { productId: fotoProd.id, quantity: 1, price: 250, eye: 'RIGHT', crystalColor: color },
                     { productId: fotoProd.id, quantity: 1, price: 250, eye: 'LEFT', crystalColor: color },
                 ] },
             } });
+            // La seña: sin ella se cae en el candado del 50% (ver arriba).
+            await prisma.payment.create({
+                data: { orderId: creada.id, amount: 1000, method: 'EFECTIVO', createdByName: 'Check' },
+            });
+            return creada;
         };
 
         const sinTono = await conFotocromatico(null);
