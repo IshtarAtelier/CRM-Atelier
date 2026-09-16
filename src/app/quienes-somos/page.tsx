@@ -252,10 +252,10 @@ export default async function QuienesSomosPage() {
           <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-8">Ishtar y Yani</h2>
           <div className="space-y-6 text-white/70 text-[15px] lg:text-base leading-relaxed">
             <p>
-              <span className="text-white">Ishtar</span> es socia fundadora y está a cargo de la dirección artística de Atelier. Elige cada uno de los armazones que hay en la óptica. También programa todo el sistema y las páginas web, se ocupa de los proveedores y la facturación, y acompaña a cada colaborador del equipo.
+              <span className="text-white">Ishtar</span> es socia fundadora y está a cargo de la dirección artística de Atelier. Elige cada uno de los armazones que hay en la óptica, y cuando el local cierra sigue del otro lado de la pantalla: el sistema con el que trabajamos lo escribió ella, igual que estas páginas. Es también la que habla con los proveedores, la que factura, y la que está cuando alguien del equipo necesita una mano.
             </p>
             <p>
-              <span className="text-white">Yani</span> es su hermana. Metódica, apasionada, amante de la salud en todas sus formas. Sostuvo el primer año de Atelier —el más difícil— mientras terminaba su carrera y viajaba una hora todos los días para llegar. Hoy, desde Australia y con 12 horas de diferencia, gestiona todos los pagos, revisa cada proceso y se ocupa de que nunca falte nada. La <span className="text-white">Cápsula Escarlata</span>, nuestra nueva cápsula 2026, está inspirada en ella.
+              <span className="text-white">Yani</span> es su hermana. Metódica, apasionada, amante de la salud en todas sus formas. Sostuvo el primer año de Atelier —el más difícil— mientras terminaba su carrera y viajaba una hora todos los días para llegar. Hoy vive en Australia, a doce horas de acá, y eso no la sacó de la óptica: mientras el local duerme, ella revisa que cada pago haya salido, que cada proceso se haya cumplido y que al día siguiente no falte nada. La <span className="text-white">Cápsula Escarlata</span>, nuestra nueva cápsula 2026, está inspirada en ella.
             </p>
             <p>
               Empezaron en un rinconcito de la Galería Gitana. Un día Ishtar la llamó y le dijo{' '}
@@ -308,10 +308,7 @@ export default async function QuienesSomosPage() {
                 Están en el local todos los días. Los dos tienen <span className="text-white">una trayectoria muy amplia en óptica</span>, la certificación Essilor Expert y algo que no se enseña: <span className="text-white">aman lo que hacen</span>.
               </p>
               <p>
-                Son pacientes, saben muchísimo y analizan cada detalle antes de que haga falta preguntar. Se aseguran de que te vayas con todo entendido, y cada compra sale con una confirmación ultra detallada de todo lo que llevás.
-              </p>
-              <p>
-                <span className="text-white">Milena</span>, además, procesa cada pedido en el laboratorio uno por uno, y se asegura de que no pase ningún error.
+                Son pacientes, saben muchísimo y analizan cada detalle antes de que haga falta preguntar. Se aseguran de que te vayas con todo entendido, y cada compra sale con una confirmación ultra detallada de todo lo que llevás. Y cuando tu pedido viaja al laboratorio, es <span className="text-white">Milena</span> la que lo sigue uno por uno, para que vuelva exactamente como se pidió.
               </p>
             </div>
           </div>
