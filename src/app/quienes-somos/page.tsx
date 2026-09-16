@@ -237,10 +237,10 @@ export default async function QuienesSomosPage() {
           <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-8">Ishtar y Yani</h2>
           <div className="space-y-6 text-white/70 text-[15px] lg:text-base leading-relaxed">
             <p>
-              <span className="text-white">Ishtar</span> es socia fundadora y está a cargo de la dirección artística de Atelier. Elige cada uno de los armazones que hay en la óptica.
+              <span className="text-white">Ishtar</span> es socia fundadora y está a cargo de la dirección artística de Atelier. Elige cada uno de los armazones que hay en la óptica. También programa todo el sistema y las páginas web, se ocupa de los proveedores y la facturación, y acompaña a cada colaborador del equipo.
             </p>
             <p>
-              <span className="text-white">Yani</span> es su hermana. Metódica, apasionada, amante de la salud en todas sus formas. Sostuvo el primer año de Atelier —el más difícil— mientras terminaba su carrera y viajaba una hora todos los días para llegar. La <span className="text-white">Cápsula Escarlata</span>, nuestra nueva cápsula 2026, está inspirada en ella.
+              <span className="text-white">Yani</span> es su hermana. Metódica, apasionada, amante de la salud en todas sus formas. Sostuvo el primer año de Atelier —el más difícil— mientras terminaba su carrera y viajaba una hora todos los días para llegar. Hoy, desde Australia y con 12 horas de diferencia, gestiona todos los pagos, revisa cada proceso y se ocupa de que nunca falte nada. La <span className="text-white">Cápsula Escarlata</span>, nuestra nueva cápsula 2026, está inspirada en ella.
             </p>
             <p>
               Empezaron en un rinconcito de la Galería Gitana. Un día Ishtar la llamó y le dijo{' '}
@@ -294,6 +294,9 @@ export default async function QuienesSomosPage() {
               </p>
               <p>
                 Son pacientes, saben muchísimo y analizan cada detalle antes de que haga falta preguntar. Se aseguran de que te vayas con todo entendido, y cada compra sale con una confirmación ultra detallada de todo lo que llevás.
+              </p>
+              <p>
+                <span className="text-white">Milena</span>, además, procesa cada pedido en el laboratorio uno por uno, y se asegura de que no pase ningún error.
               </p>
             </div>
           </div>
