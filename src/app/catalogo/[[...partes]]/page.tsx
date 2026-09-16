@@ -1,4 +1,4 @@
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { GENEROS_DE_CATALOGO, TIPOS_DE_CATALOGO, generoDeSlug, tipoDeSlug } from '@/lib/constants/genero-catalogo';
 
 /**
@@ -15,11 +15,14 @@ import { GENEROS_DE_CATALOGO, TIPOS_DE_CATALOGO, generoDeSlug, tipoDeSlug } from
  * día que cambia un precio una de las dos miente — que es justo lo que le pasa
  * a un PDF mandado hace un mes.
  *
- * El orden de las partes no importa (`/catalogo/sol/hombre` vale igual), y una
- * dirección que no existe da 404 y no una tienda vacía.
+ * NINGUNA DIRECCIÓN TERMINA EN ERROR (decisión de Ishtar, 16/9/2026). Esto lo
+ * recibe un cliente por WhatsApp y lo puede reenviar, escribir a mano o cortar
+ * a la mitad: una parte que no se entiende se ignora y se abre lo que sí se
+ * entendió; si no se entendió nada, la tienda entera. Un 404 acá es una venta
+ * perdida por un link mal copiado.
+ *
+ * El orden de las partes no importa (`/catalogo/sol/hombre` vale igual).
  */
-export const dynamicParams = false;
-
 export function generateStaticParams() {
     const generos = GENEROS_DE_CATALOGO.filter(g => g.slug).map(g => g.slug as string);
     const tipos = TIPOS_DE_CATALOGO.map(t => t.slug);
@@ -34,16 +37,15 @@ export function generateStaticParams() {
 
 export default async function CatalogoPage({ params }: { params: Promise<{ partes?: string[] }> }) {
     const { partes = [] } = await params;
-    if (partes.length > 2) notFound();
 
     let genero: string | null = null;
     let categoria: string | null = null;
     for (const parte of partes) {
         const g = generoDeSlug(parte);
+        if (g && !genero) { genero = g.id; continue; }
         const t = tipoDeSlug(parte);
-        if (g && !genero) genero = g.id;
-        else if (t && !categoria) categoria = t.categoria;
-        else notFound(); // una parte que no es ni género ni tipo, o repetida
+        if (t && !categoria) { categoria = t.categoria; continue; }
+        // Ni género ni tipo, o repetida: se ignora y se sigue.
     }
 
     const query = new URLSearchParams();

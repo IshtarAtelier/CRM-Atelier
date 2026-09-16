@@ -76,7 +76,11 @@ console.log('\nAl cliente no se le nombra el género, y se le manda el catálogo
     const { generoDeSlug, tipoDeSlug, rutaDeCatalogo, etiquetaDeGenero, TIPOS_DE_CATALOGO } = await import('../../src/lib/constants/genero-catalogo.ts');
     check('/catalogo/hombre lleva al filtro homme', generoDeSlug('hombre')?.id === 'homme' && generoDeSlug('mujer')?.id === 'femme');
     check('los tres tipos tienen dirección propia', TIPOS_DE_CATALOGO.length === 3 && tipoDeSlug('clip-on')?.categoria === 'Clip-On' && tipoDeSlug('sol')?.categoria === 'Sol');
-    check('una dirección inventada no existe', generoDeSlug('cualquiera') === null && tipoDeSlug('cualquiera') === null);
+    check('una palabra que no es ni género ni tipo no se interpreta', generoDeSlug('cualquiera') === null && tipoDeSlug('cualquiera') === null);
+    // Ningún link del catálogo puede terminar en error: lo reenvían y lo copian mal.
+    const pagina = readFileSync(new URL('../../src/app/catalogo/[[...partes]]/page.tsx', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('un link mal copiado abre la tienda, no un 404', !pagina.includes('notFound') && pagina.includes("redirect(query.size ? `/tienda?${query}` : '/tienda')"));
+    check('una parte que no se entiende se ignora y se abre el resto', pagina.includes('// Ni género ni tipo, o repetida: se ignora y se sigue.'));
     check('el bot y la web arman la MISMA dirección', rutaDeCatalogo('mujer', 'sol') === '/catalogo/mujer/sol' && linkDelCatalogo('MUJER', 'SOL', null).endsWith(rutaDeCatalogo('mujer', 'sol')));
     check('el chip del filtro ya no muestra "homme" crudo', etiquetaDeGenero('homme') === 'Homme');
 }
