@@ -43,6 +43,12 @@ check('lee BUSINESS_INFO.openingHoursSpecification', fuente.includes('BUSINESS_I
 check('no tiene horarios escritos a mano', !/['"]\d{2}:\d{2}['"]/.test(fuente));
 check('el cartel sigue teniendo las dos franjas', BUSINESS_INFO.openingHoursSpecification.length === 2);
 
+console.log('\nEl reloj: una vez por día, a la hora de cierre');
+import { horaDeCierreDeHoy } from '../../src/lib/whatsapp/horario-comercial.ts';
+check('miércoles cierra a las 20', horaDeCierreDeHoy(art('2026-09-16T11:00')) === 20);
+check('sábado cierra a las 17', horaDeCierreDeHoy(art('2026-09-19T11:00')) === 17);
+check('domingo no tiene cierre (no abre)', horaDeCierreDeHoy(art('2026-09-20T11:00')) === null);
+
 console.log('\nEl vigilante: qué mira antes de prender');
 const vig = readFileSync(new URL('../../src/lib/whatsapp/vigilar-horario-bot.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 check('en horario comercial NO toca nada', vig.includes("if (dentroDelHorarioComercial(now)) return { accion: 'nada'"));
@@ -52,10 +58,34 @@ check('prende de forma atómica (una sola instancia avisa)', vig.includes('updat
 check('deja rastro en el audit y le avisa al equipo', vig.includes('logAudit(') && vig.includes('avisarAlEquipo('));
 
 const inst = readFileSync(new URL('../../src/instrumentation.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-check('corre en cada tick del reloj (cada 10 min, también de madrugada)', inst.includes('vigilarBotFueraDeHorario()') && inst.indexOf('vigilarBotFueraDeHorario()') < inst.indexOf('if (!isBusinessHours()) {'));
+check('el reloj espera a la hora de cierre, no vigila todo el día', inst.includes('horaDeCierreDeHoy()') && inst.includes('if (cierre === null || hour < cierre) return;'));
+check('corre UNA sola vez por día entre las dos instancias', inst.includes("reclamarCorrida(CIERRE_BOT_KEY, dateKey)"));
+check('el domingo (sin cierre) no hace nada', inst.includes('cierre === null'));
 
 const ruta = readFileSync(new URL('../../src/app/api/whatsapp/bot-horario/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 check('el tilde queda firmado con quién lo tocó', ruta.includes('getActor(request)') && ruta.includes('logAudit('));
+
+console.log('\nEl bot se calla cuando interviene una persona');
+{
+    const { createRequire } = await import('node:module');
+    const require = createRequire(import.meta.url);
+    const { esRemitenteHumano, NOMBRES_NO_HUMANOS } = require('../../wa-service/shared/remitentes.js');
+    check('"Teléfono" (escribieron desde el celular del local) ES una persona', esRemitenteHumano('Teléfono'));
+    check('"Matias Turchi" es una persona', esRemitenteHumano('Matias Turchi'));
+    check('"Bot" y "Sistema" no lo son', !esRemitenteHumano('Bot') && !esRemitenteHumano('Sistema'));
+    check('la lista para consultar la base coincide con el Set', NOMBRES_NO_HUMANOS.length === 3 && NOMBRES_NO_HUMANOS.includes('Bot'));
+
+    const api = readFileSync(new URL('../../wa-service/routes/api.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('escribir desde el CRM apaga el bot de ese chat', api.includes('marcarTraspasoHumano') && api.includes('esRemitenteHumano(senderName'));
+    const cloud = readFileSync(new URL('../../wa-service/cloud.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('escribir desde el CELULAR (eco) también lo apaga', cloud.includes('async function onEcho') && cloud.includes('marcarTraspasoHumano'));
+
+    const bc = readFileSync(new URL('../../wa-service/bot-cloud.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('si una persona contesta MIENTRAS el bot piensa, la respuesta se descarta', bc.includes('humanoMientrasTanto') && bc.includes('comienzoDelTurno'));
+    check('ese control va ANTES de enviar', bc.indexOf('humanoMientrasTanto') < bc.indexOf('botReplyingTo.add(waId)'));
+    check('y además apaga el bot en ese chat', /if \(humanoMientrasTanto\)[\s\S]{0,400}disableBotForChatById/.test(bc));
+    check('un turno con el bot apagado en el chat no llega a hablar', bc.includes('if (!freshChat || !freshChat.botEnabled)'));
+}
 
 console.log(`\n${ok} ok, ${fallas.length} fallas`);
 if (fallas.length) { console.log('FALLAS:', fallas.join(' · ')); process.exit(1); }

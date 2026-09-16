@@ -28,4 +28,11 @@ function esRemitenteHumano(senderName) {
     return !REMITENTES_NO_HUMANOS.has(senderName);
 }
 
-module.exports = { SENDER_NAME_AUTORESPONDEDOR, REMITENTES_NO_HUMANOS, esRemitenteHumano };
+/**
+ * Los mismos nombres, como lista, para preguntarle a la base "¿escribió una
+ * PERSONA?" (`senderName: { notIn: [...] }`). Sin esto había que repetir la
+ * lista a mano en cada consulta y se desincronizaba.
+ */
+const NOMBRES_NO_HUMANOS = [...REMITENTES_NO_HUMANOS];
+
+module.exports = { SENDER_NAME_AUTORESPONDEDOR, REMITENTES_NO_HUMANOS, NOMBRES_NO_HUMANOS, esRemitenteHumano };
