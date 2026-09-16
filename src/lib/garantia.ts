@@ -145,13 +145,19 @@ export const TERMINOS_CAMBIO = [
 ] as const;
 
 /**
- * La garantía en una línea, para el pie del presupuesto y de la confirmación.
- * Es lo que el cliente tiene que leer sí o sí antes de decidir; el detalle
- * completo está a un clic, en /politicas-de-cambio.
+ * La garantía en una línea, para el pie de la CONFIRMACIÓN DE COMPRA.
+ *
+ * Solo se imprime cuando el pedido tiene cristales cubiertos —multifocales o
+ * Super Blue—; quién decide eso es `pedidoTieneGarantiaDeAdaptacion()`. Por eso
+ * la frase nombra los cristales en vez de decir "todos": decía "todos los
+ * cristales" y salía igual en una venta de monofocales comunes, que no tienen
+ * garantía de adaptación (corregido el 16/9/2026).
+ *
+ * En el PRESUPUESTO no va: ahí todavía no se compró nada.
  */
 export const GARANTIA_UNA_LINEA =
-    `Todos los cristales incluyen garantía de UN cambio por cambio de receta ` +
-    `(hasta ${GARANTIA_DIAS_ENTRE_RECETAS} días entre una receta y la otra).`;
+    `Tus cristales multifocales y Super Blue incluyen garantía de UN cambio por ` +
+    `cambio de receta (hasta ${GARANTIA_DIAS_ENTRE_RECETAS} días entre una receta y la otra).`;
 
 /** Los mismos términos en texto plano, para WhatsApp y PDFs. */
 export const TERMINOS_CAMBIO_TEXTO = TERMINOS_CAMBIO
@@ -169,3 +175,40 @@ export const GARANTIA_FAQ = {
     `pasar más de ${GARANTIA_DIAS_ENTRE_RECETAS} días. Los demás cristales monofocales no ` +
     `tienen garantía de adaptación.`,
 } as const;
+
+/**
+ * ¿Este pedido lleva algún cristal CON garantía de adaptación?
+ *
+ * La garantía no es de todos los cristales: cubre los multifocales (Varilux) y
+ * los monofocales Super Blue, y nada más — es lo que dice `ALCANCE` y lo que
+ * está publicado en /politicas-de-cambio. Hasta el 16/9/2026 el pie del
+ * presupuesto, del PDF y de la confirmación decía "todos los cristales
+ * incluyen garantía" en CUALQUIER pedido, así que una venta de monofocales
+ * comunes se llevaba por escrito una promesa que la política no cubre.
+ *
+ * Decisión de Ishtar (16/9/2026): la garantía NO va en el presupuesto —ahí
+ * todavía no se compró nada— y en la confirmación de compra va SOLO si el
+ * pedido tiene multifocales o Super Blue.
+ *
+ * Se reconoce por el nombre/marca del producto, que es como se reconocen los
+ * multifocales en todo el sistema (`isMultifocal2x1` hace lo mismo): no hay un
+ * flag en la base que diga "tiene garantía".
+ */
+export function pedidoTieneGarantiaDeAdaptacion(order: any): boolean {
+    const norm = (t: string) =>
+        (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+    return (order?.items || []).some((it: any) => {
+        const texto = norm([
+            it?.product?.name, it?.productNameSnapshot,
+            it?.product?.brand, it?.productBrandSnapshot,
+            it?.product?.model, it?.product?.type,
+        ].filter(Boolean).join(' '));
+
+        const esMultifocal =
+            texto.includes('multifocal') || texto.includes('progresiv') || texto.includes('varilux');
+        const esSuperBlue = /super\s*blue/.test(texto);
+
+        return esMultifocal || esSuperBlue;
+    });
+}

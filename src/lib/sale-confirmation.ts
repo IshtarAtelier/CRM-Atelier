@@ -23,7 +23,7 @@ import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { uploadFile, getFileBuffer } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
-import { GARANTIA_UNA_LINEA } from '@/lib/garantia';
+import { GARANTIA_UNA_LINEA, pedidoTieneGarantiaDeAdaptacion } from '@/lib/garantia';
 import { PricingService } from '@/services/PricingService';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
@@ -250,6 +250,12 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // eso — no las cadenas vacías, que son los espacios a propósito.
     const L = (...lineas: (string | null)[]) => lineas.filter(l => l !== null) as string[];
 
+    // La garantía solo se promete si el pedido lleva cristales cubiertos
+    // (multifocales o Super Blue). Antes salía en toda confirmación, así que una
+    // venta de monofocales comunes se llevaba por escrito una garantía que la
+    // política publicada no le da (Ishtar, 16/9/2026).
+    const tieneGarantia = pedidoTieneGarantiaDeAdaptacion(order);
+
     const waText = L(
         `*Confirmación de compra — Pedido #${nro}*`,
         esActualizacion ? `⚠️ *PEDIDO ACTUALIZADO* — este repaso reemplaza al anterior.` : null,
@@ -306,13 +312,13 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos.`,
         ``,
         `Respondenos *OK* si está todo bien, o contanos qué corregir. Es el momento: una vez fabricado no se puede cambiar.`,
-        ``,
+        tieneGarantia ? `` : null,
         // Las condiciones del cambio viajan CON el pedido a confirmar, no
         // después: es el último momento en que el cliente puede decidir sabiendo
         // que el cambio es solo por receta nueva, sobre el mismo cristal y el
         // mismo armazón, y que la seña no se devuelve (Ishtar, 31/8/2026).
-        `✅ ${GARANTIA_UNA_LINEA}`,
-        `📄 Condiciones de cambio y garantía: ${STORE_ORIGIN}/politicas-de-cambio#terminos-del-cambio`,
+        tieneGarantia ? `✅ ${GARANTIA_UNA_LINEA}` : null,
+        tieneGarantia ? `📄 Condiciones de cambio y garantía: ${STORE_ORIGIN}/politicas-de-cambio#terminos-del-cambio` : null,
     ).join('\n');
 
     // ── Email ────────────────────────────────────────────────────────────────
