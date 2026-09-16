@@ -756,7 +756,7 @@ function CotizadorPageContent() {
 
     const handleCreateAndSave = async () => {
         if (!newContactName.trim() || !newContactPhone.trim() || !newContactSource || !newContactInterest) {
-            alert('Por favor completá los campos obligatorios: Nombre, Teléfono, Etiqueta y Tipo de Producto.');
+            alert('Falta completar: Nombre, Teléfono, ¿Dónde nos conocieron? y Tipo de Producto.');
             return;
         }
         if (savingQuote) return;
@@ -1762,14 +1762,15 @@ function CotizadorPageContent() {
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-foreground/55 uppercase tracking-widest ml-2 flex items-center gap-1">Origen / Canal <span className="text-primary">*</span></label>
+                                    <label className="text-[10px] font-black text-foreground/55 uppercase tracking-widest ml-2 flex items-center gap-1">¿Dónde nos conocieron? <span className="text-primary">*</span></label>
                                     <div className="relative group">
                                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-foreground/55 pointer-events-none" />
                                         <select value={newContactSource} onChange={e => setNewContactSource(e.target.value)} className="w-full px-5 py-4 bg-sidebar border-2 border-sidebar-border rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
-                                            <option value="">Seleccionar origen...</option>
+                                            <option value="">Elegí una opción…</option>
                                             {CONTACT_SOURCES_SELECCIONABLES.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </div>
+                                    {!newContactSource && <p role="alert" className="text-xs font-bold text-red-700 dark:text-red-300 ml-2">Preguntale dónde nos conoció y elegí la opción: sin eso no se crea la ficha.</p>}
                                 </div>
                             </div>
 

@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
 import { getActor } from '@/lib/actor';
+import { matchContactSource, CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,22 @@ export async function PATCH(
     try {
         const { id } = await params;
         const body = await request.json();
+        // Editar no puede dejar el origen vacío ni con un valor fuera del
+        // vocabulario. La alta ya lo exige (POST /api/contacts); acá se cierra la
+        // otra puerta: una ficha que el bot creó sin origen y alguien edita sin
+        // completarlo. Solo se valida si el pedido TRAE el campo — los updates
+        // parciales (etiquetas, notas) no lo mandan y siguen igual.
+        if ('contactSource' in body) {
+            const origen = matchContactSource(body.contactSource);
+            if (!origen) {
+                return NextResponse.json({
+                    error: '¿Dónde nos conocieron? Falta el origen del contacto',
+                    details: `Elegí una opción: ${CONTACT_SOURCES_SELECCIONABLES.join(', ')}.`,
+                    field: 'contactSource',
+                }, { status: 400 });
+            }
+            body.contactSource = origen;
+        }
 
         // Foto previa para auditar solo los campos que cambian — select liviano
         // (no ContactService.getById: trae todo el dossier del cliente —

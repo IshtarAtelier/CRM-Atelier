@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Star, Save, Loader2, Calculator } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { X, Star, Save, Loader2, Calculator, AlertCircle } from 'lucide-react';
 import { PersonalDataSection, InterestSection } from './ContactFormSections';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 
@@ -35,7 +35,12 @@ interface ContactFormProps {
 
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
+/** La pregunta tal como se le hace al cliente: es el nombre del campo en todo el CRM. */
+const ORIGEN_LABEL = '¿Dónde nos conocieron?';
+
 export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal, initialData }: ContactFormProps) {
+    const [faltantes, setFaltantes] = useState<string[]>([]);
+    const formRef = useRef<HTMLFormElement>(null);
     const [formData, setFormData] = useState<ContactFormData>({
         name: initialData?.name || '',
         email: initialData?.email || '',
@@ -78,8 +83,10 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
         const faltantes: string[] = [];
         if (!formData.name?.trim()) faltantes.push('Nombre');
         if (!formData.phone?.trim()) faltantes.push('Teléfono');
+        // El origen se exige SIEMPRE, no solo al crear: las fichas que nacen del
+        // bot vienen sin él, y editar era la única oportunidad de completarlo.
+        if (!formData.contactSource) faltantes.push(ORIGEN_LABEL);
         if (!isEdit) {
-            if (!formData.contactSource) faltantes.push('Origen / Canal');
             if (!formData.interest) faltantes.push('Tipo de producto');
             if (!formData.email?.trim()) faltantes.push('Email');
             if (!formData.birthDate) faltantes.push('Fecha de nacimiento');
@@ -87,9 +94,16 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
             if (!formData.address?.trim()) faltantes.push('Dirección');
         }
         if (faltantes.length > 0) {
-            alert(`Faltan datos obligatorios (*):\n\n• ${faltantes.join('\n• ')}`);
+            // Cartel en el formulario, no alert(): se ve qué falta y el campo
+            // queda marcado. El alert se cerraba y no quedaba rastro.
+            setFaltantes(faltantes);
+            formRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+            if (faltantes.includes(ORIGEN_LABEL)) {
+                setTimeout(() => document.getElementById('input-origen')?.focus(), 350);
+            }
             return;
         }
+        setFaltantes([]);
         if (!isEdit && isHighTicket && !followUpTask.trim()) {
             alert('Para clientes Multifocal es obligatorio registrar una tarea de seguimiento.');
             return;
@@ -129,8 +143,19 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                     <button onClick={onClose} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-2xl"><X className="w-6 h-6 text-stone-400" /></button>
                 </header>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    <PersonalDataSection formData={formData} setFormData={setFormData} doctors={doctors} sources={CONTACT_SOURCES_SELECCIONABLES} hasOrdersInFactory={hasOrdersInFactory} requireFull={!isEdit} />
+                <form ref={formRef} onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    {faltantes.length > 0 && (
+                        <div role="alert" className="flex gap-3 p-4 rounded-2xl border-2 border-red-500 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200">
+                            <AlertCircle className="w-6 h-6 shrink-0" />
+                            <div className="text-sm font-bold">
+                                {faltantes.includes(ORIGEN_LABEL)
+                                    ? <p className="text-base font-black mb-1">¿Dónde nos conocieron? — falta elegirlo</p>
+                                    : <p className="text-base font-black mb-1">Faltan datos obligatorios</p>}
+                                <p>No se puede guardar hasta completar: {faltantes.join(' · ')}.</p>
+                            </div>
+                        </div>
+                    )}
+                    <PersonalDataSection formData={formData} setFormData={setFormData} doctors={doctors} sources={CONTACT_SOURCES_SELECCIONABLES} hasOrdersInFactory={hasOrdersInFactory} requireFull={!isEdit} faltaOrigen={faltantes.includes(ORIGEN_LABEL)} />
                     
                     <InterestSection formData={formData} setFormData={setFormData} productTypes={PRODUCT_TYPES} />
 

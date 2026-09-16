@@ -63,11 +63,16 @@ export function CreateClientModal({ datos, onDatos, creando, onConfirmar, onCerr
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="ficha-origen" className={rotulo}>Origen *</label>
-                        <select id="ficha-origen" value={datos.contactSource || ''} onChange={e => onDatos({ ...datos, contactSource: e.target.value })} className={`${campo} cursor-pointer`}>
-                            <option value="">Seleccionar origen...</option>
+                        <label htmlFor="ficha-origen" className={rotulo}>¿Dónde nos conocieron? *</label>
+                        <select id="ficha-origen" aria-invalid={!datos.contactSource} value={datos.contactSource || ''} onChange={e => onDatos({ ...datos, contactSource: e.target.value })} className={`${campo} cursor-pointer ${!datos.contactSource ? 'border-red-400 dark:border-red-500' : ''}`}>
+                            <option value="">Elegí una opción…</option>
                             {CONTACT_SOURCES_SELECCIONABLES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
+                        {!datos.contactSource && (
+                            <p role="alert" className="mt-1 text-xs font-bold text-red-700 dark:text-red-300">
+                                Falta elegir dónde nos conoció: sin eso no se puede crear la ficha.
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label htmlFor="ficha-notas" className={rotulo}>Notas</label>
