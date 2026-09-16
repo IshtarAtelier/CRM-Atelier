@@ -520,6 +520,10 @@ export default function BriefingDiario() {
     // Las propias van PRIMERO (pedido de Ishtar, 16/9/2026): lo que se le pide a
     // esa persona en particular es lo que tiene que leer con la cabeza fresca,
     // no después de tres fichas que ya vio ayer.
+    //
+    // Las propias NUNCA rotan ni se recortan: la del arqueo tiene que estar
+    // todos los días (Ishtar, 16/9/2026). Lo que se saltea o se da vuelta son
+    // las de siempre, que son recordatorios; el arqueo es trabajo del día.
     const orden: { titulo: string; cuerpo: React.ReactNode; trabada?: boolean }[] =
         [...propias, reporte, ...rotadas, cierre];
 
