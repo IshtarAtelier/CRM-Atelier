@@ -701,6 +701,7 @@ export async function sendSaleConfirmation(
         });
 
         // ── WhatsApp ─────────────────────────────────────────────────────────
+        let sinRegistro = false;
         const tel = (order.client.phone || '').replace(/\D/g, '');
         if (tel.length >= 10) {
             try {
@@ -728,7 +729,12 @@ export async function sendSaleConfirmation(
                     })() : null,
                 });
                 resultado.whatsapp = res.ok;
+                // El wa-service contestó OK pero el mensaje no quedó en la
+                // conversación: el vendedor no lo puede verificar y el ✅ de la
+                // ficha no prueba nada. Se anota como lo que es.
+                sinRegistro = res.ok && res.guardado === false;
                 if (!res.ok) console.warn('[Confirmación de compra] WhatsApp no salió:', explainSendFailure(res));
+                if (sinRegistro) console.warn('[Confirmación de compra] WhatsApp salió SIN quedar registrado en la conversación:', order.id);
 
                 // Y las FOTOS del armazón, una por mensaje.
                 //
@@ -768,7 +774,11 @@ export async function sendSaleConfirmation(
         const detalle = [
             sello,
             `Email: ${resultado.email ? `✅ enviado a ${order.client.email}` : (order.client.email ? '❌ NO se pudo enviar' : '— sin email cargado')}`,
-            `WhatsApp: ${resultado.whatsapp ? `✅ enviado al ${order.client.phone}` : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
+            `WhatsApp: ${resultado.whatsapp
+                ? (sinRegistro
+                    ? `⚠️ salió al ${order.client.phone} pero NO quedó en la conversación — revisá el chat con tus ojos`
+                    : `✅ enviado al ${order.client.phone}`)
+                : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
             pdfUrl ? `PDF del pedido: ${resolveStorageUrl(pdfUrl)}` : `PDF del pedido: ❌ no se pudo generar`,
         ].join('\n') + DETALLE_MARK + conf.waText;
 

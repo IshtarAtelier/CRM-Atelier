@@ -77,6 +77,13 @@ export default function QuoteSummary({
     const [showCheckout, setShowCheckout] = React.useState(false);
     const [showPayment, setShowPayment] = React.useState(false);
     const [showIshAlert, setShowIshAlert] = React.useState(false);
+    // Cartel obligatorio después de mandar a fábrica: que el vendedor verifique
+    // con sus ojos que la confirmación de compra salió, y que se lo explique al
+    // cliente por audio. Nació de la auditoría del 16/9/2026: 5 ventas de
+    // septiembre figuraban como "✅ enviado" en la ficha y no había un solo
+    // mensaje en la conversación. El ✅ no es prueba; el ojo del vendedor sí.
+    const [showAvisoRevisar, setShowAvisoRevisar] = React.useState(false);
+    const [avisoAudioHecho, setAvisoAudioHecho] = React.useState(false);
     const [showPaymentsList, setShowPaymentsList] = React.useState(false);
     const [isDeletingPayment, setIsDeletingPayment] = React.useState<string | null>(null);
     const [isSendingWhatsApp, setIsSendingWhatsApp] = React.useState(false);
@@ -1390,6 +1397,8 @@ export default function QuoteSummary({
                                 clientData: data.clientData,
                             });
                             setShowCheckout(false);
+                            setAvisoAudioHecho(false);
+                            setShowAvisoRevisar(true);
                         }
                     }}
                     onRefreshContact={onRefreshContact || (async () => {})}
@@ -1414,6 +1423,57 @@ export default function QuoteSummary({
                             className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95"
                         >
                             ENTENDIDO
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Después de mandar a fábrica: revisar que la confirmación salió ──
+                No se cierra con la X ni tocando afuera, y el botón no se habilita
+                hasta que el vendedor marca que le explicó al cliente por audio.
+                Es a propósito: el cartel que se puede saltear no se lee. */}
+            {showAvisoRevisar && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-amber-950/90 backdrop-blur-xl animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-stone-900 w-full max-w-lg rounded-[3rem] p-8 text-center border-4 border-amber-500 shadow-[0_0_50px_rgba(245,158,11,0.45)] animate-in zoom-in duration-300">
+                        <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                            <AlertCircle className="w-12 h-12 text-amber-600" />
+                        </div>
+                        <h3 className="text-2xl font-black text-stone-900 dark:text-white mb-4 uppercase italic tracking-tighter leading-tight">
+                            Revisá si salió la parte más importante de la compra
+                        </h3>
+                        <p className="text-stone-600 dark:text-stone-300 font-bold mb-6 leading-relaxed text-sm">
+                            Abrí el WhatsApp del cliente y fijate con tus ojos que le llegó la
+                            <span className="text-amber-700 dark:text-amber-400"> confirmación de compra</span> con el PDF.
+                            Que la ficha diga “enviado” no alcanza.
+                        </p>
+                        <p className="text-stone-500 dark:text-stone-400 text-xs font-semibold mb-6 leading-relaxed">
+                            Es el último momento en que se puede corregir la receta, el armazón o el teñido.
+                            Una vez fabricado, no se cambia.
+                            <br />
+                            <span className="uppercase tracking-widest text-[10px] text-amber-700 dark:text-amber-400">
+                                Acordate de las enseñanzas de Guillermo Cels
+                            </span>
+                        </p>
+
+                        <label className="flex items-start gap-3 text-left bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-2xl p-4 mb-6 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={avisoAudioHecho}
+                                onChange={(e) => setAvisoAudioHecho(e.target.checked)}
+                                className="mt-1 w-5 h-5 accent-amber-600 shrink-0"
+                            />
+                            <span className="text-xs font-bold text-stone-700 dark:text-stone-200 leading-relaxed">
+                                Le mandé un AUDIO al cliente explicándole por qué es tan importante que
+                                revise la confirmación y nos conteste.
+                            </span>
+                        </label>
+
+                        <button
+                            onClick={() => setShowAvisoRevisar(false)}
+                            disabled={!avisoAudioHecho}
+                            className="w-full py-4 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-300 dark:disabled:bg-stone-700 disabled:cursor-not-allowed text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all enabled:hover:scale-105 enabled:active:scale-95"
+                        >
+                            {avisoAudioHecho ? 'Sí, ya lo hice' : 'Primero mandale el audio'}
                         </button>
                     </div>
                 </div>

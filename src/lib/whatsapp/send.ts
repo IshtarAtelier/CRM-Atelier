@@ -57,6 +57,15 @@ export interface SendWhatsAppResult {
     needsTemplate?: boolean;
     /** Garantía de que NADA salió (para reintentar sin miedo a duplicar). */
     notSent?: boolean;
+    /**
+     * ¿El mensaje quedó guardado en la conversación?
+     *
+     * Un envío que no se guarda no se puede verificar después: no está en el
+     * buzón ni en la ficha, y el "✅ enviado" que firma el CRM no lo puede
+     * probar nadie. Pasó con 5 confirmaciones de compra de septiembre de 2026.
+     * `undefined` = wa-service viejo que todavía no lo informa.
+     */
+    guardado?: boolean;
     status?: number;
     code?: string;
     error?: string;
@@ -122,7 +131,7 @@ export async function sendWhatsApp(input: SendWhatsAppInput): Promise<SendWhatsA
             : `[Plantilla ${tpl.name}]`;
         const { res, json, networkError } = await post({ ...base, message: preview, media: input.templateMedia ?? base.media, template: tpl });
         if (!res) return resultadoAmbiguo('template', networkError || 'sin detalle');
-        if (res.ok) return { ok: true, via: 'template', status: res.status };
+        if (res.ok) return { ok: true, via: 'template', status: res.status, guardado: json?.guardado !== false };
         return { ok: false, via: 'template', status: res.status, code: String(json?.code ?? ''), error: String(json?.error ?? `HTTP ${res.status}`), notSent: json?.notSent === true };
     };
 
@@ -130,7 +139,7 @@ export async function sendWhatsApp(input: SendWhatsAppInput): Promise<SendWhatsA
 
     const { res, json, networkError } = await post(base);
     if (!res) return resultadoAmbiguo('text', networkError || 'sin detalle');
-    if (res.ok) return { ok: true, via: 'text', status: res.status };
+    if (res.ok) return { ok: true, via: 'text', status: res.status, guardado: json?.guardado !== false };
 
     const needsTemplate = res.status === 409 && json?.needsTemplate === true;
     if (needsTemplate && input.template) return asTemplate();
