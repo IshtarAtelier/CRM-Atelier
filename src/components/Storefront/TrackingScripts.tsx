@@ -98,6 +98,18 @@ export function TrackingScripts({
   // El estado por defecto va ANTES de cualquier `config`: dataLayer es una cola
   // y gtag.js la procesa en orden, así que si el config saliera primero se
   // mandaría un evento con consentimiento sin declarar.
+  // Descarga diferida de un script de terceros: se inserta cuando el navegador
+  // está ocioso o a los 2 s, lo que ocurra primero. Lighthouse (15/9/26, landing
+  // en celular): gtag.js ×3 + fbevents.js = ~670 KB, 312 KB sin usar, ~700 ms de
+  // FCP/LCP. Los stubs (gtag() y fbq()) quedan inmediatos y ENCOLAN, así que
+  // PageView, Contact, Lead y la conversión de WhatsApp salen igual — solo un
+  // poco más tarde. Sigue siendo afterInteractive (lazyOnload no sirve en SPA,
+  // ver arriba). El tope de 2 s existe para que un celular lento no postergue
+  // la medición indefinidamente.
+  const cargaDiferida = (src: string) =>
+    `(function(){var go=function(){var s=document.createElement('script');s.async=true;s.src='${src}';document.head.appendChild(s)};` +
+    `if('requestIdleCallback' in window){requestIdleCallback(go,{timeout:2000})}else{setTimeout(go,1200)}})();`;
+
   const gtagInit = [
     "window.dataLayer = window.dataLayer || [];",
     "function gtag(){window.dataLayer.push(arguments);}",
@@ -158,12 +170,11 @@ export function TrackingScripts({
       {/* Google tag (gtag.js) — GA4 + Google Ads en una sola carga */}
       {primaryGtagId && (
         <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${primaryGtagId}`}
-            strategy="afterInteractive"
-          />
+          {/* La descarga de gtag.js se POSTERGA (ver cargaDiferida): el stub
+              `gtag()` y los `config` quedan inmediatos y encolan en dataLayer,
+              así ninguna conversión se pierde — se manda cuando llega el loader. */}
           <Script id="google-gtag" strategy="afterInteractive">
-            {gtagInit}
+            {gtagInit + "\n" + cargaDiferida(`https://www.googletagmanager.com/gtag/js?id=${primaryGtagId}`)}
           </Script>
         </>
       )}
@@ -179,14 +190,12 @@ export function TrackingScripts({
       {META_PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`
-            !function(f,b,e,v,n,t,s)
+            !function(f,n)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
             n.callMethod.apply(n,arguments):n.queue.push(arguments)};
             if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
+            n.queue=[]}(window);
+            ${cargaDiferida('https://connect.facebook.net/en_US/fbevents.js')}
             fbq('init', '${META_PIXEL_ID}');
             /* Solo la vista en la que se monta el Pixel. Las navegaciones
                siguientes las manda el useEffect de arriba. */
