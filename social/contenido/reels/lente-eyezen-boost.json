@@ -1,0 +1,24 @@
+{
+  "tema": "lente-eyezen-boost",
+  "plantilla": "lente",
+  "tipoLente": "eyezen",
+  "duracionMs": 22000,
+  "temas": [
+    "cristales"
+  ],
+  "coverMs": 8200,
+  "textos": {
+    "titulo": "¿Terminás el día *con dolor de cabeza*?",
+    "bajada": "De 18 a 39 años. Eyezen Boost, de Essilor.",
+    "explica": "Tu graduación, con un *refuerzo abajo*",
+    "explica2": "Un empujón de enfoque justo en la zona por donde mirás el celular.",
+    "remate": "No son dos focos: es *uno solo*",
+    "remate2": "El refuerzo se funde sin línea y sin salto. El ojo deja de forzar.",
+    "cierre": "Tecnología *Light Scan*",
+    "cierre2": "Contanos cómo trabajás. Atelier Óptica · Cerro de las Rosas.",
+    "etq1": "TU GRADUACIÓN",
+    "etq3": "REFUERZO DE ENFOQUE"
+  },
+  "guion": "Si tenés entre 18 y 39 años y terminás el día con dolor de cabeza, Eyezen Boost, de Essilor. Abajo tiene un refuerzo de enfoque, justo donde mirás la pantalla: el ojo deja de forzar. Trae tecnología Light Scan.",
+  "copy": "Cuando la fatiga ya está instalada —dolor de cabeza, ardor, agotamiento al terminar— el escalón es Eyezen Boost.\nEs un monofocal de Essilor con un refuerzo de enfoque en la zona de abajo, justo donde mirás el celular. No son dos focos: es uno solo, sin línea y sin salto. Trae tecnología Light Scan contra la luz azul nociva.\nDe 18 a 39 años. Contanos cómo trabajás y te decimos qué potencia te corresponde, Cerro de las Rosas."
+}

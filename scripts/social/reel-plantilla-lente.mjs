@@ -117,7 +117,11 @@ const TIPOS = {
 };
 
 export function htmlDeReelLente(reel, id, logoUri) {
-    const tipo = TIPOS[reel.tipoLente];
+    // Un reel puede pisar textos sueltos del tipo con `textos` en su JSON: es
+    // lo que permite tener un Eyezen por franja de edad sin declarar un tipo de
+    // lente nuevo por cada uno (la animación es la misma; cambia a quién le
+    // habla). Lo que no declara, lo hereda.
+    const tipo = TIPOS[reel.tipoLente] && { ...TIPOS[reel.tipoLente], ...(reel.textos || {}) };
     if (!tipo) {
         throw new Error(`Tipo de lente desconocido: "${reel.tipoLente}". Hay: ${Object.keys(TIPOS).join(', ')}.`);
     }

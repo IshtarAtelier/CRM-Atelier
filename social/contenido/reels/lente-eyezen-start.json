@@ -1,0 +1,24 @@
+{
+  "tema": "lente-eyezen-start",
+  "plantilla": "lente",
+  "tipoLente": "eyezen",
+  "duracionMs": 22000,
+  "temas": [
+    "cristales"
+  ],
+  "coverMs": 8200,
+  "textos": {
+    "titulo": "¿La pantalla te cansa, *pero todavía no te duele*?",
+    "bajada": "De 12 a 39 años. Eyezen Start, de Essilor.",
+    "explica": "Más nítido *en los bordes*",
+    "explica2": "Diseño asférico digital: mejora el contraste donde un monofocal común se ablanda.",
+    "remate": "Filtro *Blue UV* incluido",
+    "remate2": "Contra el ultravioleta y la luz azul nociva. El cristal queda transparente.",
+    "cierre": "Incluso *sin graduación*",
+    "cierre2": "Contanos tus horas de pantalla. Atelier Óptica · Cerro de las Rosas.",
+    "etq1": "TU GRADUACIÓN",
+    "etq3": "NITIDEZ EN EL BORDE"
+  },
+  "guion": "De los 12 a los 39, si la pantalla te cansa pero todavía no te duele, está Eyezen Start, de Essilor. Es un monofocal más nítido en los bordes, con filtro Blue UV. Y se puede hacer aunque no tengas graduación.",
+  "copy": "Si la pantalla te cansa pero todavía no llegás con dolor de cabeza, el escalón es Eyezen Start.\nMonofocal de Essilor con diseño asférico digital —más contraste y nitidez en los bordes, donde un cristal común se ablanda— y filtro Blue UV contra el ultravioleta y la luz azul nociva. De 12 a 39 años.\nSe puede hacer aunque no tengas graduación. Cerro de las Rosas, sin turno previo."
+}
