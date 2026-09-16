@@ -24,8 +24,7 @@ import {
     ClipboardList, Coffee, Gift, Headphones, Loader2, Lock, Mic, Send, Star,
 } from 'lucide-react';
 import {
-    BRIEFING_MINIMO_PRESUPUESTOS, BRIEFING_MINIMO_TEXTO,
-    BRIEFING_TAREAS_MAX, BRIEFING_TAREAS_MIN,
+    BRIEFING_MINIMO_TEXTO, objetivosDe, type ObjetivosBriefing,
 } from '@/lib/constants/briefing';
 
 interface Actividad {
@@ -39,6 +38,8 @@ interface Pendiente {
     nombre?: string;
     /** "viernes, 29/08" — el día del que hablan los números. */
     dia?: string;
+    /** Los mínimos de ESTA persona: no son los mismos para todos. */
+    objetivos?: ObjetivosBriefing;
     actividad?: Actividad | null;
 }
 
@@ -163,6 +164,9 @@ export default function BriefingDiario() {
     // domingo, y un cero de domingo no es lo mismo que un cero de martes.
     const dia = estado?.dia ? `Ayer (${estado.dia})` : 'Ayer';
     const a = estado?.actividad ?? null;
+    // Si el server no los mandó (respuesta vieja cacheada), se recalculan acá
+    // con el mismo nombre: nunca se muestran los mínimos de otra persona.
+    const objetivos = estado?.objetivos ?? objetivosDe(nombre);
     const sinActividad = !!a && a.presupuestos + a.tareasCerradas + a.resenasPedidas === 0;
 
     const volverAEmpezar = () => {
@@ -208,30 +212,30 @@ export default function BriefingDiario() {
                     </p>
                     <ul className="mt-4 space-y-3">
                         <Fila icono={ClipboardList} titulo="Presupuestos">
-                            <p>Mínimo <strong>{BRIEFING_MINIMO_PRESUPUESTOS} por día</strong>.</p>
+                            <p>Mínimo <strong>{objetivos.presupuestos} por día</strong>.</p>
                             {a && (
                                 <p className="flex flex-wrap items-center gap-2">
                                     <span>{dia}: hiciste <strong>{a.presupuestos}</strong>.</span>
                                     <Marca
-                                        ok={a.presupuestos >= BRIEFING_MINIMO_PRESUPUESTOS}
-                                        texto={a.presupuestos >= BRIEFING_MINIMO_PRESUPUESTOS
+                                        ok={a.presupuestos >= objetivos.presupuestos}
+                                        texto={a.presupuestos >= objetivos.presupuestos
                                             ? 'Cumplido'
-                                            : `Te faltaron ${BRIEFING_MINIMO_PRESUPUESTOS - a.presupuestos}`}
+                                            : `Te faltaron ${objetivos.presupuestos - a.presupuestos}`}
                                     />
                                 </p>
                             )}
                         </Fila>
 
                         <Fila icono={CheckCircle2} titulo="Tareas">
-                            <p>Entre <strong>{BRIEFING_TAREAS_MIN} y {BRIEFING_TAREAS_MAX} por día</strong>.</p>
+                            <p>Entre <strong>{objetivos.tareasMin} y {objetivos.tareasMax} por día</strong>.</p>
                             {a && (
                                 <p className="flex flex-wrap items-center gap-2">
                                     <span>{dia}: cerraste <strong>{a.tareasCerradas}</strong>.</span>
                                     <Marca
-                                        ok={a.tareasCerradas >= BRIEFING_TAREAS_MIN}
-                                        texto={a.tareasCerradas >= BRIEFING_TAREAS_MIN
+                                        ok={a.tareasCerradas >= objetivos.tareasMin}
+                                        texto={a.tareasCerradas >= objetivos.tareasMin
                                             ? 'Cumplido'
-                                            : `Te faltaron ${BRIEFING_TAREAS_MIN - a.tareasCerradas}`}
+                                            : `Te faltaron ${objetivos.tareasMin - a.tareasCerradas}`}
                                     />
                                 </p>
                             )}
@@ -324,7 +328,7 @@ export default function BriefingDiario() {
                             maxLength={2000}
                             aria-describedby={error ? 'briefing-ayuda briefing-error' : 'briefing-ayuda'}
                             aria-invalid={!!error}
-                            placeholder="Ej.: 15 presupuestos, entre 5 y 10 tareas, pedirle el comentario a todos los que entregué, atender con audios y fotos y el presupuesto del sistema, y ofrecer café y caramelos."
+                            placeholder={`Ej.: ${objetivos.presupuestos} presupuestos, entre ${objetivos.tareasMin} y ${objetivos.tareasMax} tareas, pedirle el comentario a todos los que entregué, atender con audios y fotos y el presupuesto del sistema, y ofrecer café y caramelos.`}
                             className={'mt-2 w-full rounded-2xl border-2 p-3 text-[15px] leading-relaxed resize-y'
                                 + ' bg-white text-stone-900 placeholder:text-stone-500'
                                 + ' dark:bg-stone-800 dark:text-white dark:placeholder:text-stone-400'

@@ -21,7 +21,7 @@ import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
 import { diaArgentino, hoyArgentino } from '@/lib/dia-argentino';
-import { BRIEFING_MINIMO_TEXTO } from '@/lib/constants/briefing';
+import { BRIEFING_MINIMO_TEXTO, objetivosDe } from '@/lib/constants/briefing';
 
 /** `{ [userId]: 'YYYY-MM-DD' }` — el último día que cada persona lo completó. */
 const CLAVE_HECHO = 'briefing_diario_hecho';
@@ -47,7 +47,8 @@ function primerNombre(nombre: string): string {
 /**
  * GET → `{ pendiente, nombre, dia, actividad }`
  *
- * `actividad` son los números REALES de ayer de esta persona, para poder
+ * `actividad` son los números REALES de ayer de esta persona, y `objetivos`
+ * los mínimos que le tocan a ELLA (no son iguales para todos), para poder
  * poner el mínimo al lado de lo que efectivamente hizo. Si el cálculo falla,
  * viaja en `null` y el modal muestra los mínimos sin números: un briefing que
  * no aparece porque una consulta se cayó es peor que uno sin métricas.
@@ -81,6 +82,7 @@ export async function GET(request: NextRequest) {
             pendiente: true,
             nombre: primerNombre(actor.name),
             dia: ayer.etiqueta,
+            objetivos: objetivosDe(actor.name || ''),
             actividad,
         });
     } catch (error: any) {
