@@ -20,7 +20,8 @@ export interface Carpeta {
   portada: string;
   /** Punto de la foto que no se puede recortar (la cara). */
   foco?: string;
-  cantidad: number;
+  /** Conteo real de la categoría; sin dato no se muestra número. */
+  cantidad?: number;
 }
 
 const Baldosa = ({ c, sizes, alta = false, className = "" }: { c: Carpeta; sizes: string; alta?: boolean; className?: string }) => (
@@ -36,7 +37,7 @@ const Baldosa = ({ c, sizes, alta = false, className = "" }: { c: Carpeta; sizes
     {/* Las fotos son claras: el velo firme abajo es lo que hace legible el texto blanco. */}
     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 via-35% to-transparent" />
     <div className="absolute left-6 bottom-6 lg:left-8 lg:bottom-8 text-white">
-      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[color:var(--dorado)]">{c.cantidad} modelos</span>
+      {c.cantidad ? <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[color:var(--dorado)]">{c.cantidad} modelos</span> : null}
       <h3 className={`mt-1 font-light tracking-tight leading-none ${alta ? "text-6xl lg:text-8xl" : "text-4xl lg:text-5xl"}`}>{c.titulo}</h3>
     </div>
   </Link>

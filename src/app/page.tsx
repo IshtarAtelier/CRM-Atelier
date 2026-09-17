@@ -69,18 +69,17 @@ export default async function Home() {
   const catalogCount = homeData.count;
 
   // Carpetas del home (mosaico después del carrusel). Las cantidades salen del
-  // mismo conteo que usan las pestañas del carrusel; si la base no las trae,
-  // se usa lo que haya en cada colección para no mostrar un cero falso.
+  // conteo real por categoría, el mismo que usan las pestañas del carrusel.
+  // Cuando la home se sirve desde el snapshot (build sin base, o base caída)
+  // ese conteo no existe: en ese caso la baldosa se muestra SIN número. El
+  // largo de las listas del carrusel no sirve de reemplazo: vienen con
+  // `take: 24` y dedup de variantes, y darían un "9 modelos" falso.
   const conteos = homeData.conteos;
   const carpetas: Carpeta[] = [
-    { key: "receta", titulo: "Receta", href: "/receta", portada: "/images/home/carpetas/receta-helena-c4-cerca.webp",
-      cantidad: conteos?.receta || carouselData.receta.length },
-    { key: "tienda", titulo: "Toda la tienda", href: "/tienda", portada: "/images/home/carpetas/tienda-victoria-manos.webp", foco: "center 40%",
-      cantidad: catalogCount },
-    { key: "clipon", titulo: "Clip-on", href: "/clip-on", portada: "/images/home/carpetas/clipon-verona-frente.webp",
-      cantidad: conteos?.clipon || carouselData.clipon.length },
-    { key: "sol", titulo: "Sol", href: "/lentes-de-sol", portada: "/images/home/carpetas/sol-vega-c1-frente.webp",
-      cantidad: conteos?.sol || carouselData.sol.length },
+    { key: "receta", titulo: "Receta", href: "/receta", portada: "/images/home/carpetas/receta-helena-c4-cerca.webp", cantidad: conteos?.receta },
+    { key: "tienda", titulo: "Toda la tienda", href: "/tienda", portada: "/images/home/carpetas/tienda-victoria-manos.webp", foco: "center 40%", cantidad: conteos ? catalogCount : undefined },
+    { key: "clipon", titulo: "Clip-on", href: "/clip-on", portada: "/images/home/carpetas/clipon-verona-frente.webp", cantidad: conteos?.clipon },
+    { key: "sol", titulo: "Sol", href: "/lentes-de-sol", portada: "/images/home/carpetas/sol-vega-c1-frente.webp", cantidad: conteos?.sol },
   ];
 
   const organizationSchema = {
