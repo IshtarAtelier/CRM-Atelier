@@ -12,6 +12,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Palette, Sun, Ruler, Lock, Gift, Check, X as XIcon, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
 import { AVISO_TENIDO_2X1 } from '@/lib/promo-utils';
 
@@ -138,6 +139,7 @@ export default function NovedadesGuiadas() {
     const [guiadoId, setGuiadoId] = useState<string | null>(null);
     const [paso, setPaso] = useState(0);
     const [guardando, setGuardando] = useState(false);
+    const ruta = usePathname();
 
     useEffect(() => {
         let vivo = true;
@@ -148,7 +150,11 @@ export default function NovedadesGuiadas() {
         return () => { vivo = false; };
     }, []);
 
-    if (!guiadoId) return null;
+    // La caja queda EXENTA, por el mismo motivo que el briefing: este modal se
+    // monta en todo /admin y tampoco se puede cerrar, así que tapaba la
+    // pantalla del arqueo y dejaba a quien lo hace sin poder trabajar. Sigue
+    // pendiente en el resto del panel: no se saltea, solo no estorba ahí.
+    if (!guiadoId || ruta?.startsWith('/admin/caja')) return null;
     const pasos = GUIADOS[guiadoId];
     const esUltimo = paso === pasos.length - 1;
 

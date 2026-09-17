@@ -19,6 +19,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import {
     AlertTriangle, ArrowLeft, ArrowRight, Calculator, Camera, CheckCircle2,
     ClipboardList, Coffee, ExternalLink, Gift, Headphones, Loader2, Lock, Mic, Send, Star, Tag, Wallet,
@@ -114,12 +115,20 @@ export default function BriefingDiario() {
     const [error, setError] = useState<string | null>(null);
     const [guardando, setGuardando] = useState(false);
 
+    const ruta = usePathname();
     const caja = useRef<HTMLDivElement>(null);
     const encabezado = useRef<HTMLHeadingElement>(null);
     const campo = useRef<HTMLTextAreaElement>(null);
     const campoObjetivo = useRef<HTMLTextAreaElement>(null);
 
-    const abierto = !!estado?.pendiente;
+    // La caja queda EXENTA del briefing. La ficha del arqueo manda a
+    // /admin/caja/cierres, y como el modal se monta en todo /admin también
+    // tapaba esa pantalla: no se podía hacer el arqueo que la ficha pedía, y la
+    // única salida era tildar "ya lo hice" antes de hacerlo. El briefing sigue
+    // pendiente en el resto del panel, así que no se saltea: solo deja trabajar
+    // ahí donde manda a trabajar.
+    const enLaCaja = !!ruta?.startsWith('/admin/caja');
+    const abierto = !!estado?.pendiente && !enLaCaja;
 
     useEffect(() => {
         let vivo = true;
