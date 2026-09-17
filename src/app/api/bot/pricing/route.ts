@@ -249,12 +249,17 @@ export async function GET(req: NextRequest) {
         });
     }
 
+    // Dónde quedó el filtro de texto, para poder sacar ESE Y SOLO ESE si no
+    // matcheó nada (ver el plan B, más abajo).
+    let indiceDelSearch = -1;
+
     if (search) {
         let sanitizedSearch = search;
         const clean = search.toLowerCase().replace(/[^a-z0-9]/g, '');
         if (clean.includes('clipon') || clean.includes('clip')) {
             sanitizedSearch = 'clip';
         }
+        indiceDelSearch = filtros.length;
         filtros.push({
             OR: [
                 { name: { contains: sanitizedSearch, mode: 'insensitive' } },
@@ -372,11 +377,20 @@ export async function GET(req: NextRequest) {
     // categoría sola. Devolver los multifocales que sí existen es mucho mejor
     // que devolver vacío (el bot entra en bucle preguntando lo mismo) y sigue
     // siendo imposible que salga un precio de otra categoría.
+    //
+    // 🔴 Se saca EL TEXTO BUSCADO Y NADA MÁS. Hasta el 17/9/2026 acá decía
+    // `[filtros[0]]`, que es solo "no archivado": el plan B tiraba también la
+    // CATEGORÍA y el GÉNERO y devolvía el catálogo entero por orden alfabético.
+    // Así, a un cliente que pidió un CLIP-ON le llegó la foto de un armazón de
+    // receta de MUJER. Y no era raro: los clip-on se llaman Torino, Milano,
+    // Génova, así que buscar "clip" dentro de Clip-On vuelve vacío casi siempre
+    // y este plan B se disparaba todo el tiempo. Perder el texto es aceptable
+    // —no sabemos qué modelo quiso—; perder la categoría es mandar otra cosa.
     if (products.length === 0 && category && search) {
         products = await prisma.product.findMany({
             // Sin `botRecommended`: el tool ya ordena poniendo primero los
             // recomendados, así que no hace falta filtrarlos acá.
-            where: { AND: [filtros[0]] },
+            where: { AND: filtros.filter((_, i) => i !== indiceDelSearch) },
             select: {
                 id: true,
                 name: true,

@@ -833,7 +833,19 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
 
     if (conFoto.length === 0) {
         const nombres = sinFoto.map(p => p.name).filter(Boolean).slice(0, 3).join(', ');
-        return `[INSTRUCCIÓN INTERNA] No hay fotos disponibles para esa búsqueda. NUNCA le digas al cliente que no encontraste fotos ni le prometas mandarlas después: seguí en texto${nombres ? ` (podés nombrar estos modelos: ${nombres})` : ''} e invitalo a probárselos en el local.`;
+        // Sin foto, el link a la vitrina de ESA categoría. Pedido de Ishtar
+        // (17/9/2026): "que envíe la tienda online, el link, y no avise que no
+        // está seguro — tiene que parecer fluido". Un "no encontré" corta la
+        // charla; mandar la vitrina la sigue y además deja al cliente mirando
+        // precios reales. La categoría va en el link para no tirarlo al
+        // catálogo entero: el parámetro es `?categoria=`, el mismo que usa la
+        // tienda.
+        const CATEGORIA_EN_TIENDA = { ARMAZON: 'Receta', SOL: 'Sol', CLIPON: 'Clip-On' };
+        const rubro = CATEGORIA_EN_TIENDA[String(params.category || '').toUpperCase()];
+        const link = rubro
+            ? `https://atelieroptica.com.ar/tienda?categoria=${encodeURIComponent(rubro)}`
+            : 'https://atelieroptica.com.ar/tienda';
+        return `[INSTRUCCIÓN INTERNA] No hay fotos para esa búsqueda. NUNCA digas que no encontraste, que no estás seguro, ni prometas mandarlas después: eso corta la charla. Pasale el link de la tienda con naturalidad, como quien le acerca la vitrina — por ejemplo "Mirá, acá los tenés todos con precio: ${link}" — ${nombres ? `podés nombrar estos modelos (${nombres}) y ` : ''}invitalo a probárselos en el local.`;
     }
 
     // Orden: primero lo que de verdad le corresponde a la persona, después lo

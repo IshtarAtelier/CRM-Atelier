@@ -39,6 +39,7 @@ const { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas } 
 const { esConsulta } = require('./shared/tipos-entrantes');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano, NOMBRES_NO_HUMANOS } = require('./shared/remitentes');
+const { marcarTraspasoHumano, ETIQUETA_BOT_APAGADO } = require('./shared/traspaso-humano');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
 const { leerReceta, MAX_FOTOS_POR_LECTURA } = require('./shared/leer-receta');
@@ -235,7 +236,8 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             where: { id: chat.id },
             select: { id: true, waId: true, realPhone: true, profileName: true, botEnabled: true, chatLabels: true, clientId: true },
         });
-        if (!fresh || !fresh.botEnabled) return false;
+        if (!fresh) return false;
+        if (!fresh.botEnabled && !(await puedeVolverSolo(fresh))) return false;
 
         if (await tieneExclusion(fresh, msg)) return false;
 
@@ -279,6 +281,59 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
      * Etiquetas que apagan el bot (de la ficha o del chat). Un mensaje que viene
      * de un anuncio de Meta las pisa: es una consulta nueva, no la vieja.
      */
+    /**
+     * El bot vuelve solo 3 horas después de la última vez que escribió una
+     * PERSONA del equipo en ese chat (decisión de Ishtar, 17/9/2026).
+     *
+     * Antes el traspaso a humano era definitivo: la etiqueta
+     * `[SISTEMA - BOT APAGADO]` bloquea el auto-resume de 24 h a propósito, así
+     * que un chat que una vendedora tocó una vez quedaba mudo para siempre y
+     * había que reactivarlo a mano — nadie lo hacía, y el cliente que volvía
+     * tres días después no recibía nada.
+     *
+     * La cuenta se hace contra el último mensaje HUMANO, no contra el momento
+     * del apagado: mientras la persona siga contestando, la ventana se corre
+     * sola y el bot no se mete. Recién cuando deja de atender 3 horas, vuelve.
+     *
+     * SOLO reactiva lo que apagó un traspaso humano, que es lo que marca la
+     * etiqueta. Un chat apagado por post-venta, reclamo o un tag sin bot no
+     * lleva esa etiqueta y sigue mudo: ahí el silencio es la intención, no un
+     * efecto colateral.
+     */
+    const HORAS_PARA_VOLVER = 3;
+    async function puedeVolverSolo(chat) {
+        const lotomoUnHumano = (chat.chatLabels || []).includes(ETIQUETA_BOT_APAGADO);
+        if (!lotomoUnHumano) return false;
+
+        const ultimoHumano = await prisma.whatsAppMessage.findFirst({
+            where: {
+                chatId: chat.id,
+                direction: 'OUTBOUND',
+                senderName: { notIn: NOMBRES_NO_HUMANOS },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true },
+        }).catch(() => null);
+        if (!ultimoHumano) return false; // se apagó por otra cosa: no es asunto de esta regla
+
+        const horas = (Date.now() - new Date(ultimoHumano.createdAt).getTime()) / 3600000;
+        if (horas < HORAS_PARA_VOLVER) return false;
+
+        // Se va también la etiqueta: si quedara, el auto-resume de 24 h de la
+        // otra vía seguiría viendo un chat "tomado por un humano" que ya no lo
+        // está, y el buzón mostraría BOT APAGADO con el bot encendido.
+        const sinEtiqueta = (chat.chatLabels || []).filter(l => l !== ETIQUETA_BOT_APAGADO);
+        await prisma.whatsAppChat.update({
+            where: { id: chat.id },
+            data: { botEnabled: true, chatLabels: sinEtiqueta },
+        }).catch(e => console.error('  ⚠️ [BotCloud] No se pudo reactivar el bot:', e && e.message));
+        chat.botEnabled = true;
+        chat.chatLabels = sinEtiqueta;
+        console.log(`  🔄 [BotCloud] El bot vuelve en ${chat.profileName || chat.waId}: ${horas.toFixed(1)} h sin que conteste una persona.`);
+        broadcastChatUpdate(chat.id);
+        return true;
+    }
+
     async function tieneExclusion(chat, msg) {
         const esDeAnuncio = /\[meta[^\]]*\]/i.test(msg && msg.text ? msg.text : '') || Boolean(msg && msg.referral);
         let tags = [];
@@ -720,20 +775,37 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // sobre 45 días: 2 casos así (7/9 y 9/9), los dos con el bot
             // hablando "0 minutos después" de la persona. Es el último control
             // antes de mandar, y es el único lugar donde se puede ver.
-            const humanoMientrasTanto = await prisma.whatsAppMessage.findFirst({
-                where: {
-                    chatId: chat.id,
-                    direction: 'OUTBOUND',
-                    senderName: { notIn: NOMBRES_NO_HUMANOS },
-                    createdAt: { gt: new Date(comienzoDelTurno) },
-                },
-                select: { senderName: true },
-            }).catch(() => null);
-            if (humanoMientrasTanto) {
-                console.log(`  🙋 [BotCloud] ${humanoMientrasTanto.senderName} contestó mientras el bot pensaba: se descarta la respuesta y el bot se calla en este chat.`);
-                await disableBotForChatById(chat.id, 'Intervención humana durante el turno del bot');
-                return;
-            }
+            // Se pregunta ANTES DE CADA BURBUJA, no una sola vez. El 17/9/2026
+            // el control existía pero corría solo acá arriba: el turno arrancó
+            // 12:08:21, Milena mandó un audio 12:08:23 —después de este
+            // chequeo— y las dos burbujas salieron igual, 12:08:26 y 12:08:28,
+            // encimadas con ella. Entre burbuja y burbuja hay pausas y bajadas
+            // de media: son segundos en los que una persona puede entrar, y el
+            // único momento en que eso se puede ver es justo antes de mandar.
+            const humanoSeAdelanto = async () => {
+                const humano = await prisma.whatsAppMessage.findFirst({
+                    where: {
+                        chatId: chat.id,
+                        direction: 'OUTBOUND',
+                        senderName: { notIn: NOMBRES_NO_HUMANOS },
+                        createdAt: { gt: new Date(comienzoDelTurno) },
+                    },
+                    select: { senderName: true },
+                }).catch(() => null);
+                if (!humano) return false;
+                console.log(`  🙋 [BotCloud] ${humano.senderName} contestó mientras el bot hablaba: se corta el turno y el bot se calla en este chat.`);
+                // El MISMO helper que los otros dos caminos de traspaso: además
+                // de apagar, deja la etiqueta que marca "acá entró una persona".
+                // Sin ella este apagado no sería un traspaso a los ojos del
+                // resto del sistema y el bot no volvería solo a las 3 horas.
+                await marcarTraspasoHumano({
+                    prisma, chatId: chat.id, disableBotForChatById,
+                    motivo: 'Intervención humana durante el turno del bot',
+                });
+                return true;
+            };
+
+            if (await humanoSeAdelanto()) return;
 
             botReplyingTo.add(waId);
 
@@ -778,6 +850,15 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 while ((m = re.exec(bloque)) !== null) urls.push(m[1]);
                 bloque = bloque.replace(/\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi, '').trim();
                 if (!bloque && urls.length === 0) continue;
+
+                // Lo que ya salió, salió; lo que falta, no. Cortar a mitad de
+                // turno deja al cliente con media respuesta, y eso es mejor que
+                // dos voces hablándole encima: la persona que entró ve lo que
+                // se mandó y sigue desde ahí.
+                if (await humanoSeAdelanto()) {
+                    botReplyingTo.delete(waId);
+                    return;
+                }
 
                 // Meta descarga la foto ELLA. Si la URL está muerta rechaza el
                 // mensaje ENTERO —caption incluido— y el cliente no recibe nada.
