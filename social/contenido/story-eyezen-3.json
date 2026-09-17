@@ -1,0 +1,23 @@
+{
+  "id": "story-eyezen-3",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "cristales"
+  ],
+  "caption": "Un refuerzo suave de enfoque y tecnología Light Scan contra la luz azul nociva. La potencia se elige por tu edad: 0,4 D hasta los 34, 0,6 D de 35 a 39.",
+  "slides": [
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "eyezen/eyezen-dualoptim.jpg",
+      "title": "Qué tiene *adentro*",
+      "items": [
+        "Un refuerzo suave de enfoque en la zona de abajo",
+        "Tecnología Light Scan: filtra la luz azul nociva y el UV",
+        "Dos potencias: 0,4 D hasta los 34 y 0,6 D de 35 a 39"
+      ]
+    }
+  ]
+}

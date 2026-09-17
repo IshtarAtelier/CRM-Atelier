@@ -1,0 +1,19 @@
+{
+  "id": "story-eyezen-1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "cristales"
+  ],
+  "caption": "Ocho horas de pantalla son ocho horas enfocando de cerca. Eyezen, de Essilor: el cristal pensado para eso. Con o sin graduación.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "eyezen/eyezen-pantalla-acostado.jpg",
+      "title": "¿Pantallas todo el día? *Hay un cristal para eso*",
+      "subtitle": "Eyezen de Essilor: relaja el enfoque de cerca. Con o sin graduación."
+    }
+  ]
+}

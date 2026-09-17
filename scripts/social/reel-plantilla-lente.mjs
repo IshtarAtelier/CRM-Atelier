@@ -31,6 +31,21 @@
 
 export const DURACION_LENTE_MS = 14000;
 
+/**
+ * Duración de UN reel de lente. Por defecto los 14 s de siempre; un reel puede
+ * pedir más con `duracionMs` en su JSON.
+ *
+ * Los tiempos de la animación están escritos a mano contra esos 14 s (cuándo
+ * entra cada texto, cuándo barre el destello, cuándo late la zona). Reescribir
+ * los veintipico de números por cada duración nueva es la forma segura de que
+ * uno quede mal y nadie lo note. Así que no se tocan: el reloj se estira y la
+ * escena entera transcurre más despacio, que es exactamente lo que se pide
+ * cuando se pide "un poco más largo" — más aire para leer y para la voz.
+ */
+export function duracionDeReelLente(reel) {
+    return Math.round(Number(reel?.duracionMs) || DURACION_LENTE_MS);
+}
+
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, c => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]
 ));
@@ -102,7 +117,11 @@ const TIPOS = {
 };
 
 export function htmlDeReelLente(reel, id, logoUri) {
-    const tipo = TIPOS[reel.tipoLente];
+    // Un reel puede pisar textos sueltos del tipo con `textos` en su JSON: es
+    // lo que permite tener un Eyezen por franja de edad sin declarar un tipo de
+    // lente nuevo por cada uno (la animación es la misma; cambia a quién le
+    // habla). Lo que no declara, lo hereda.
+    const tipo = TIPOS[reel.tipoLente] && { ...TIPOS[reel.tipoLente], ...(reel.textos || {}) };
     if (!tipo) {
         throw new Error(`Tipo de lente desconocido: "${reel.tipoLente}". Hay: ${Object.keys(TIPOS).join(', ')}.`);
     }
@@ -247,7 +266,11 @@ export function htmlDeReelLente(reel, id, logoUri) {
   </div>
 
 <script>
-  const DUR = ${DURACION_LENTE_MS};
+  const DUR = ${duracionDeReelLente(reel)};
+  // Los tiempos de abajo viven en "espacio de 14 s"; el reloj real se convierte
+  // a ese espacio al entrar. K = 1 para todos los reels que no piden otra cosa.
+  const BASE = ${DURACION_LENTE_MS};
+  const K = DUR / BASE;
   const TIPO = '${reel.tipoLente}';
   const LINEA_Y = 555;
   const CX = 500, CYL = 415;
@@ -295,15 +318,16 @@ export function htmlDeReelLente(reel, id, logoUri) {
   }
   const esControl = TIPO === 'stellest' || TIPO === 'myofix';
 
-  window.__dibujar = function (t) {
-    $('#barra').style.width = ((t % DUR) / DUR * 100) + '%';
+  window.__dibujar = function (tReal) {
+    $('#barra').style.width = ((tReal % DUR) / DUR * 100) + '%';
+    const t = tReal / K;
 
     subir($('#titulo'),  fase(t, 150, 2500));
     subir($('#explica'), fase(t, 2500, 6600));
     subir($('#remate'),  fase(t, 6600, 9600));
     subir($('#cierre'),  fase(t, 9600, 11800));
 
-    const fOutro = suave(clamp01((t - 11750) / 500)) * suave(clamp01((DUR - 120 - t) / 400));
+    const fOutro = suave(clamp01((t - 11750) / 500)) * suave(clamp01((BASE - 120 - t) / 400));
     const o = $('#outro');
     o.style.opacity = fOutro;
     o.style.transform = 'scale(' + (0.94 + 0.06 * suave(clamp01((t - 11750) / 900))) + ')';

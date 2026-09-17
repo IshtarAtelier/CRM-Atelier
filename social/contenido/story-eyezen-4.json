@@ -1,0 +1,23 @@
+{
+  "id": "story-eyezen-4",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "cristales"
+  ],
+  "caption": "Las tres confusiones que hacen que la gente descarte este lente sin preguntar. No es multifocal, no son dos focos, y no es amarillo.",
+  "slides": [
+    {
+      "type": "list",
+      "title": "Lo que *no* es",
+      "items": [
+        "No es multifocal: no es para présbitas",
+        "No son dos focos: es uno solo, sin línea y sin salto",
+        "No es amarillo: el cristal queda transparente",
+        "No hace falta tener graduación para usarlo"
+      ],
+      "image": "blog/muestrario-smart-lens.webp"
+    }
+  ]
+}

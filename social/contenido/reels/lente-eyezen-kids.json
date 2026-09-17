@@ -1,0 +1,24 @@
+{
+  "tema": "lente-eyezen-kids",
+  "plantilla": "lente",
+  "tipoLente": "eyezen",
+  "duracionMs": 22000,
+  "temas": [
+    "cristales"
+  ],
+  "coverMs": 8200,
+  "textos": {
+    "titulo": "¿Tu hijo vive *con la tablet*?",
+    "bajada": "De 6 a 12 años. Eyezen Kids, de Essilor.",
+    "explica": "Hecho para *su* distancia",
+    "explica2": "Los chicos sostienen la pantalla mucho más cerca que un adulto. El cristal está calculado para eso.",
+    "remate": "Filtra el UV y la *luz azul nociva*",
+    "remate2": "Tecnología Blue UV. Se puede combinar con Crizal.",
+    "cierre": "Los años que *más importan*",
+    "cierre2": "Traé la receta del oftalmólogo. Atelier Óptica · Cerro de las Rosas.",
+    "etq1": "SU GRADUACIÓN",
+    "etq3": "DISTANCIA CORTA"
+  },
+  "guion": "Si tu hijo tiene entre 6 y 12 años y vive con la tablet, existe Eyezen Kids, de Essilor. Está hecho para la distancia corta a la que los chicos sostienen la pantalla, y filtra el ultravioleta y la luz azul nociva.",
+  "copy": "Los chicos sostienen la pantalla mucho más cerca que un adulto, y su vista todavía se está formando.\nEyezen Kids, de Essilor, es un monofocal calculado para esa distancia, con tecnología Blue UV contra el ultravioleta y la luz azul nociva. De 6 a 12 años.\nTraé la receta del oftalmólogo. Cerro de las Rosas, sin turno previo."
+}

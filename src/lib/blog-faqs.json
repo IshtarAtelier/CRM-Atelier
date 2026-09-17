@@ -827,12 +827,12 @@
       "answer": "Sí. Existe en versión neutra, sin corrección: funciona como anteojo preventivo, con el apoyo de enfoque y el filtro de luz azul-violeta. Es la opción para quien ve bien pero termina la jornada con los ojos agotados por las pantallas."
     },
     {
-      "question": "¿Qué nivel de Boost me corresponde?",
-      "answer": "El refuerzo viene en cuatro niveles: 0,4 · 0,6 · 0,85 y 1,1 dioptrías. Se define según tu edad, tu receta y cuántas horas de pantalla hacés por día. En Atelier Óptica lo medimos con tu armazón ya elegido y puesto."
+      "question": "¿Qué potencia de Boost me corresponde?",
+      "answer": "El refuerzo viene en dos potencias: 0,4 D para 18 a 34 años y 0,6 D para 35 a 39 años. La edad orienta, pero también entran tu receta, cuántas horas de pantalla hacés y el cuadro clínico que verificó tu profesional de la visión. En Atelier Óptica lo medimos con tu armazón ya elegido y puesto."
     },
     {
       "question": "¿El cristal Eyezen es amarillo?",
-      "answer": "No. El filtrado de luz azul-violeta está incorporado en el material del lente, no como una capa amarilla agregada. El cristal se mantiene prácticamente transparente y los colores de la pantalla se ven reales."
+      "answer": "No. El filtrado de la luz azul-violeta nociva y del ultravioleta viene con la tecnología del cristal —Blue UV en Kids y Start, Light Scan en Boost—, no como una capa amarilla agregada. El lente se mantiene prácticamente transparente y los colores de la pantalla se ven reales."
     },
     {
       "question": "¿Me voy a marear con los Eyezen?",
@@ -840,7 +840,7 @@
     },
     {
       "question": "¿Desde qué edad se puede usar Eyezen?",
-      "answer": "Hay versiones Kids y Teens para chicos y adolescentes, adaptadas a la distancia corta a la que ellos sostienen el celular. La gama cubre desde los 10 años hasta cerca de los 45; a partir de la presbicia declarada, el camino suele ser un multifocal."
+      "answer": "Eyezen Kids va de 6 a 12 años, adaptado a la distancia corta a la que los chicos sostienen el celular. Eyezen Start cubre de 12 a 39, y Eyezen Boost de 18 a 39. A partir de la presbicia declarada, el camino suele ser un multifocal."
     },
     {
       "question": "¿Dónde consigo lentes Eyezen en Córdoba?",
