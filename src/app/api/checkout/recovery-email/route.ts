@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { enforceRateLimit } from '@/lib/api-guard';
 import { sendRecoveryEmailForSession } from '@/lib/checkout/recovery';
 
 export async function POST(req: Request) {
   try {
+    // Con tope, como sus vecinas de /api/checkout. Esta ruta pasa sin sesión
+    // (el bypass del checkout) y manda un mail CON LA MARCA a la dirección
+    // guardada en la sesión: sin límite, alcanza con crear sesiones con el mail
+    // de cualquiera y dispararlas en bucle para spamear desde nuestro dominio y
+    // quemarle la reputación al remitente. No es una fuga de datos; es la
+    // casilla desde la que salen los avisos de las ventas.
+    const limitado = enforceRateLimit(req, 'recovery-email', { limit: 10, windowMs: 10 * 60 * 1000 });
+    if (limitado) return limitado;
+
     const { sessionId } = await req.json();
 
     if (!sessionId) {

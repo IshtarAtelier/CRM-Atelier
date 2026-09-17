@@ -120,6 +120,33 @@ export async function POST(req: Request) {
   }
 }
 
+/**
+ * El aviso de "entró plata y el CRM no la tiene cobrada", para los DOS caminos
+ * por los que eso puede pasar: un pago sin intento asociado, y un pago aprobado
+ * que no se pudo acreditar. Es el mismo problema de negocio y merece el mismo
+ * grito, así que el texto vive en un solo lugar y no en dos copias que
+ * divergen.
+ *
+ * Nunca lanza: un webhook que explota porque falló el mail le devuelve un 500 a
+ * Mercado Pago y dispara reintentos por un problema que no es el del pago.
+ */
+async function avisarCobroSinVenta(pago: MpPayment, porQue: string) {
+  try {
+    const { sendEmail } = await import('@/lib/email');
+    const { ADMIN_ALERT_EMAILS } = await import('@/lib/constants');
+    const { formatearPrecio } = await import('@/lib/format-precio');
+    await sendEmail({
+      to: ADMIN_ALERT_EMAILS,
+      subject: '⚠️ URGENTE: cobro de Mercado Pago sin venta asociada',
+      html: `<p>Mercado Pago aprobó el pago <b>${pago.id}</b> por <b>$${formatearPrecio(pago.amount)}</b>, pero ${porQue}.</p>
+             <p>Pagador: ${pago.payerEmail || 'desconocido'}</p>
+             <p>Hay que buscarlo en el panel de Mercado Pago y registrar o devolver la venta a mano. <b>No reponer stock automáticamente.</b></p>`,
+    });
+  } catch (err) {
+    console.error('Error avisando cobro sin venta:', err);
+  }
+}
+
 async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId?: string }> {
   // Candado de idempotencia: si este pago ya se procesó, cortar sin volver a
   // tocar la venta. MP reintenta el mismo aviso y además lo manda por dos vías.
@@ -156,15 +183,7 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
       `[MP WEBHOOK] ⚠️ Pago ${pago.id} (${pago.status}, $${pago.amount}) sin intento asociado. external_reference=${orderId}`,
     );
     if (pago.status === 'approved') {
-      const { sendEmail } = await import('@/lib/email');
-      const { ADMIN_ALERT_EMAILS } = await import('@/lib/constants');
-      await sendEmail({
-        to: ADMIN_ALERT_EMAILS,
-        subject: '⚠️ URGENTE: cobro de Mercado Pago sin venta asociada',
-        html: `<p>Mercado Pago aprobó el pago <b>${pago.id}</b> por <b>$${pago.amount.toLocaleString('es-AR')}</b>, pero no hay ninguna venta en el CRM esperando ese pago.</p>
-               <p>Referencia externa: <b>${orderId || '(vacía)'}</b> · Pagador: ${pago.payerEmail || 'desconocido'}</p>
-               <p>Hay que buscarlo en el panel de Mercado Pago y registrar o devolver la venta a mano. <b>No reponer stock automáticamente.</b></p>`,
-      }).catch((err) => console.error('Error avisando pago huérfano:', err));
+      await avisarCobroSinVenta(pago, `no hay ninguna venta en el CRM esperando ese pago (referencia externa: ${orderId || '(vacía)'})`);
     }
     return { detalle: 'Sin intento asociado' };
   }
@@ -182,6 +201,16 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
         paymentNote: `Pago aprobado por Mercado Pago${medio}${cuotas}`,
         gatewayInstallments: pago.installments,
       });
+      // Un aprobado que NO se pudo acreditar es exactamente el mismo problema
+      // que un pago sin intento —Mercado Pago tiene la plata y el CRM no tiene
+      // la venta cobrada—, pero hasta el 17/9/2026 este caso solo dejaba un
+      // console.error y devolvía 200. Para Mercado Pago un 200 significa
+      // "recibido, no hace falta reintentar": el aviso no vuelve nunca y el
+      // cobro se pierde en silencio. Avisa igual que su caso hermano.
+      if (!r.ok) {
+        console.error(`[MP WEBHOOK] ⚠️ Pago ${pago.id} aprobado y NO acreditado: ${r.reason}`);
+        await avisarCobroSinVenta(pago, `el sistema no pudo acreditarlo: ${r.reason}`);
+      }
       return {
         detalle: r.ok ? (r.alreadyProcessed ? 'Ya acreditado' : 'Acreditado') : `No acreditado: ${r.reason}`,
         orderId: r.ok ? r.orderId : undefined,

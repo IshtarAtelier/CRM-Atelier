@@ -483,7 +483,14 @@ export async function register() {
                 const data = await res.json().catch(() => ({}));
                 if (data.processed) console.log(`[CRON pickup-reminder] ${data.processed} pendiente(s): ${JSON.stringify(data.results ?? [])}`);
             } catch (err) {
+                // Devolver la hora también acá, no solo en la rama !res.ok. El
+                // comentario decía "se reintenta" y era mentira: la hora ya
+                // figuraba corrida, así que un timeout o un corte de red se
+                // comía en silencio una hora entera de recordatorios de retiro.
+                // Los otros seis crons de este archivo sí la devuelven en su
+                // catch: era un olvido, no un criterio distinto.
                 console.error('[CRON pickup-reminder] Error disparando el recordatorio (se reintenta):', err);
+                await devolverCorrida(PICKUP_KEY, hourKey, previoPickup).catch(() => { });
             } finally {
                 pickupRunning = false;
             }
@@ -542,7 +549,11 @@ export async function register() {
                     console.log(`[CRON abandoned-carts] ${data.processed} carrito(s): ${data.early || 0} recordatorios (1h), ${data.late || 0} con cupón (24h), ${data.sinCanal || 0} sin mail, ${data.failed || 0} fallidos`);
                 }
             } catch (err) {
+                // Mismo olvido que en pickup-reminder: sin esto, un timeout se
+                // come la hora y los carritos de esa franja no reciben ni el
+                // recordatorio ni el cupón. Nadie se entera.
                 console.error('[CRON abandoned-carts] Error disparando el recupero (se reintenta):', err);
+                await devolverCorrida(CARRITOS_KEY, hourKey, previoCarritos).catch(() => { });
             } finally {
                 carritosRunning = false;
             }
