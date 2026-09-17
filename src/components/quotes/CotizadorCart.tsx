@@ -11,6 +11,7 @@ import {
     AVISO_TENIDO_2X1
 } from '@/lib/promo-utils';
 import { asignarParAlArmazon, autoasignarArmazones } from '@/lib/armazon-por-par';
+import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { cantidadDeArmazones } from '@/lib/order-frames';
 import { aplicarCambioDeLinea } from '@/lib/tenido-sync';
 import { calculateQuoteTotals } from '@/services/PricingService';
@@ -228,7 +229,11 @@ export default function CotizadorCart({
                 if (selectedRx.sphereOD != null || selectedRx.cylinderOD != null) checkEye(selectedRx.sphereOD, selectedRx.cylinderOD);
                 if (selectedRx.sphereOI != null || selectedRx.cylinderOI != null) checkEye(selectedRx.sphereOI, selectedRx.cylinderOI);
 
-                if (selectedRx.prescriptionType === 'NEAR') {
+                // Por el helper: la columna es `String` libre y guarda valores
+                // viejos, así que compararla a mano contra 'NEAR' se saltea
+                // recetas de cerca rotuladas de otra forma y no controla sus
+                // rangos.
+                if (tipoDeRecetaConDefault(selectedRx, selectedRx.prescriptionType) === 'NEAR') {
                      if (selectedRx.nearSphereOD != null || selectedRx.nearCylinderOD != null) checkEye(selectedRx.nearSphereOD, selectedRx.nearCylinderOD);
                      if (selectedRx.nearSphereOI != null || selectedRx.nearCylinderOI != null) checkEye(selectedRx.nearSphereOI, selectedRx.nearCylinderOI);
                 }

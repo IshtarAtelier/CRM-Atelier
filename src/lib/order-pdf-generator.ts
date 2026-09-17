@@ -5,6 +5,15 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
 import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
+// El PDF escribe plata por el MISMO helper que la tienda. Tenía 38
+// `toLocaleString()` sin idioma: en la Mac se ven bien, pero el contenedor de
+// producción (node:22-slim) resuelve en en-US, así que al cliente le llegaba
+// "$ 70,500" — con coma, que acá se lee setenta con cinco. Es la regla que ya
+// dejó escrita la auditoría del 2/9 en format-precio.ts y que este archivo se
+// estaba salteando. De paso redondea: una cuota de 23833.333 salía con tres
+// decimales.
+import { formatearPrecio } from '@/lib/format-precio';
+import { formatDateLong } from '@/lib/format-date';
 import { GARANTIA_UNA_LINEA, pedidoTieneGarantiaDeAdaptacion } from '@/lib/garantia';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { colorLineaLabel } from '@/lib/crystal-color';
@@ -45,9 +54,11 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     
     let dateStr = '';
     try {
-        dateStr = format(new Date(order.createdAt), "dd 'de' MMMM, yyyy", { locale: es });
+        // Por el helper, no con el formato repetido acá: `formatDateLong`
+        // existe para esto y ya resuelve el día-primero y el español.
+        dateStr = formatDateLong(order.createdAt);
     } catch (e) {
-        dateStr = new Date().toLocaleDateString('es-AR');
+        dateStr = formatDateLong(new Date());
     }
 
     // Cargar logo local en base64 si existe
@@ -249,8 +260,8 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'Ojo Izquierdo (OI)';
                 else if (it.eye) eyeLabel = it.eye;
 
-                let priceDisplay = `$${itemPrice.toLocaleString()}`;
-                let totalDisplay = `$${(itemPrice * it.quantity).toLocaleString()}`;
+                let priceDisplay = `$${formatearPrecio(itemPrice)}`;
+                let totalDisplay = `$${formatearPrecio((itemPrice * it.quantity))}`;
                 
                 if (itemPrice === 0) {
                     priceDisplay = '<span style="color:#10b981; font-weight:800; font-size:10px;">SIN CARGO</span>';
@@ -264,8 +275,8 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     const descuentoInflado = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
                     const brutoLinea = itemPrice * (it.quantity || 1);
                     const netoLinea = Math.max(0, brutoLinea - descuentoInflado);
-                    totalDisplay = `<span style="text-decoration: line-through; color:#a8a29e; font-size:10px;">$${brutoLinea.toLocaleString()}</span><br/><span style="color:#10b981; font-weight:900;">${netoLinea === 0 ? 'SIN CARGO' : '$' + netoLinea.toLocaleString()}</span>`;
-                    notaBonificacion = `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">🎁 ${etiquetaBonificacion2x1(modoBonif)} — descuento de $${descuentoInflado.toLocaleString()}</div>`;
+                    totalDisplay = `<span style="text-decoration: line-through; color:#a8a29e; font-size:10px;">$${formatearPrecio(brutoLinea)}</span><br/><span style="color:#10b981; font-weight:900;">${netoLinea === 0 ? 'SIN CARGO' : '$' + formatearPrecio(netoLinea)}</span>`;
+                    notaBonificacion = `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">🎁 ${etiquetaBonificacion2x1(modoBonif)} — descuento de $${formatearPrecio(descuentoInflado)}</div>`;
                 }
 
                 const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
@@ -319,23 +330,23 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             <div style="width: 320px; background: #fffcf9; border: 1.5px solid ${brandBeige}; border-radius: 14px; padding: 16px;">
                 <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px;">
                     <span style="color: #78716c; font-weight: 600;">Subtotal Items:</span>
-                    <span style="font-weight: 800;">$${rawSubtotalInflated.toLocaleString()}</span>
+                    <span style="font-weight: 800;">$${formatearPrecio(rawSubtotalInflated)}</span>
                 </div>
                 ${promoFrameInflated > 0 ? `
                 <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #10b981;">
                     <span style="font-weight: 600;">🎁 ${order.appliedPromoName || 'Bonificación Armazón'}:</span>
-                    <span style="font-weight: 800;">-$${promoFrameInflated.toLocaleString()}</span>
+                    <span style="font-weight: 800;">-$${formatearPrecio(promoFrameInflated)}</span>
                 </div>
                 ` : ''}
                 ${specialDiscount > 0 ? `
                 <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #10b981;">
                     <span style="font-weight: 800;">⭐ Descuento excepcional para vos:</span>
-                    <span style="font-weight: 800;">-$${specialDiscount.toLocaleString()}</span>
+                    <span style="font-weight: 800;">-$${formatearPrecio(specialDiscount)}</span>
                 </div>
                 ` : ''}
                 <div style="display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px; border-top: 1.5px solid ${brandBeige}; font-size: 14px; font-weight: 900; color: ${brandSand};">
                     <span>PRECIO DE LISTA FINAL:</span>
-                    <span>$${financials.listPrice.toLocaleString()}</span>
+                    <span>$${formatearPrecio(financials.listPrice)}</span>
                 </div>
             </div>
         </div>
@@ -354,7 +365,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             // Caso real: lista $1.796.600, abonado $1.443.162 — el cliente veía
             // los dos números sueltos y escribía preguntando cuál era el suyo.
             const ahorro = Math.round(financials.listPrice - financials.paidReal);
-            const num = (n: number) => n.toLocaleString('es-AR');
+            const num = formatearPrecio;
             const filaTot = (label: string, valor: string, fuerte = false, color = '#065f46') => `
                 <tr>
                   <td style="padding:5px 0;font-size:14px;color:${color};${fuerte ? 'font-weight:900;' : ''}">${label}</td>
@@ -373,43 +384,43 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     <div class='payment-methods'>
         <div class='payment-card p-efective'>
             <span class='p-title'>💵 Efectivo (-${financials.discountCash}%)</span>
-            <span class='p-amount'>$${financials.totalCash.toLocaleString()}</span>
+            <span class='p-amount'>$${formatearPrecio(financials.totalCash)}</span>
             <div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
-                <span>$${financials.remainingCash.toLocaleString()}</span>
+                <span>$${formatearPrecio(financials.remainingCash)}</span>
             </div>
         </div>
         <div class='payment-card p-transfer'>
             <span class='p-title'>🏦 Transferencia (-${financials.discountTransfer}%)</span>
-            <span class='p-amount'>$${financials.totalTransfer.toLocaleString()}</span>
+            <span class='p-amount'>$${formatearPrecio(financials.totalTransfer)}</span>
             <div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
-                <span>$${financials.remainingTransfer.toLocaleString()}</span>
+                <span>$${formatearPrecio(financials.remainingTransfer)}</span>
             </div>
         </div>
         <div class='payment-card p-card'>
             <span class='p-title'>💳 Tarjetas (Lista)</span>
-            <span class='p-amount'>$${financials.totalCard.toLocaleString()}</span>
+            <span class='p-amount'>$${formatearPrecio(financials.totalCard)}</span>
             <div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Listado</span>
-                <span>$${financials.remainingCard.toLocaleString()}</span>
+                <span>$${formatearPrecio(financials.remainingCard)}</span>
             </div>
             <div class='installments'>
                 <div class='inst-row'>
                     <span style="font-size:10px; font-weight:700;">3 Cuotas sin interés de</span>
-                    <span class='inst-quota'>$${financials.installment3.toLocaleString()}</span>
+                    <span class='inst-quota'>$${formatearPrecio(financials.installment3)}</span>
                 </div>
                 <div class='inst-row' style="margin-top: 8px;">
                     <span style="font-size:10px; font-weight:700;">6 Cuotas sin interés de</span>
-                    <span class='inst-quota'>$${financials.installment6.toLocaleString()}</span>
+                    <span class='inst-quota'>$${formatearPrecio(financials.installment6)}</span>
                 </div>
                 ${financials.paidReal <= 0 ? `
                 <div class='inst-row' style="margin-top: 8px;">
                     <span style="font-size:10px; font-weight:700;">12 Cuotas fijas de</span>
-                    <span class='inst-quota'>$${financials.installment12.toLocaleString()}</span>
+                    <span class='inst-quota'>$${formatearPrecio(financials.installment12)}</span>
                 </div>
                 <div class='inst-row' style="margin-top: 2px;">
-                    <span style="font-size:8px; color:#78716c;">Total en 12 cuotas: $${financials.totalCardFinanced.toLocaleString()}</span>
+                    <span style="font-size:8px; color:#78716c;">Total en 12 cuotas: $${formatearPrecio(financials.totalCardFinanced)}</span>
                 </div>` : ''}
             </div>
         </div>
@@ -418,20 +429,20 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     <div class='totals-summary'>
         <div class='tot-col'>
             <span class='tot-label' style="color: #047857;">💵 Efectivo</span>
-            <span class='tot-val' style="color: #047857;">$${financials.totalCash.toLocaleString()}</span>
+            <span class='tot-val' style="color: #047857;">$${formatearPrecio(financials.totalCash)}</span>
         </div>
         <div class='tot-col'>
             <span class='tot-label' style="color: #6d28d9;">🏦 Transf</span>
-            <span class='tot-val' style="color: #6d28d9;">$${financials.totalTransfer.toLocaleString()}</span>
+            <span class='tot-val' style="color: #6d28d9;">$${formatearPrecio(financials.totalTransfer)}</span>
         </div>
         <div class='tot-col'>
             <span class='tot-label' style="color: #c2410c;">💳 Tarjeta</span>
-            <span class='tot-val' style="color: #c2410c;">$${financials.totalCard.toLocaleString()}</span>
+            <span class='tot-val' style="color: #c2410c;">$${formatearPrecio(financials.totalCard)}</span>
         </div>
         
         <div class='tot-paid'>
             <span class='tot-label' style="color: #78716c;">Abonado Real</span>
-            <span class='paid-value' style="color: #1c1917;">$${financials.paidReal.toLocaleString()}</span>
+            <span class='paid-value' style="color: #1c1917;">$${formatearPrecio(financials.paidReal)}</span>
         </div>
     </div>
     `}
@@ -651,8 +662,8 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         if (origin) itemName += `\n   Origen: ${origin}`;
         if (eyeLabel) itemName += `\n   Lado: ${eyeLabel}`;
         
-        let priceLabel = `$${ip.toLocaleString()}`;
-        let totalLabel = `$${(ip * it.quantity).toLocaleString()}`;
+        let priceLabel = `$${formatearPrecio(ip)}`;
+        let totalLabel = `$${formatearPrecio((ip * it.quantity))}`;
         
         if (ip === 0) {
             itemName += `\n   * Bonificado por Promo`;
@@ -721,15 +732,15 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
                 doc.text(valor, m + cw - 4, y, { align: 'right' });
                 y += 5;
             };
-            filaResumen('Suma de los productos', `$${sumaRenglones.toLocaleString()}`);
+            filaResumen('Suma de los productos', `$${formatearPrecio(sumaRenglones)}`);
             filaResumen(
                 order.appliedPromoName ? `Bonificacion - ${order.appliedPromoName}` : 'Descuento excepcional',
-                `- $${descuento.toLocaleString()}`, true, [26, 127, 75],
+                `- $${formatearPrecio(descuento)}`, true, [26, 127, 75],
             );
             doc.setDrawColor(...brandBeige); doc.setLineWidth(0.3);
             doc.line(m + 4, y - 2, m + cw - 4, y - 2);
             y += 2;
-            filaResumen('TOTAL DEL PEDIDO', `$${financials.listPrice.toLocaleString()}`, true);
+            filaResumen('TOTAL DEL PEDIDO', `$${formatearPrecio(financials.listPrice)}`, true);
             y += 4;
         }
     }
@@ -746,19 +757,19 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
             doc.setFillColor(...topColor); doc.rect(x, cy, cardW, 1.5, 'F');
             doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
             doc.text(title, x + 3, cy + 7);
-            doc.setFontSize(13); doc.text(`$${amount.toLocaleString()}`, x + 3, cy + 15);
+            doc.setFontSize(13); doc.text(`$${formatearPrecio(amount)}`, x + 3, cy + 15);
             doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
-            doc.text(`Saldo: $${saldo.toLocaleString()}`, x + 3, cy + 21);
+            doc.text(`Saldo: $${formatearPrecio(saldo)}`, x + 3, cy + 21);
             if (extra) extra.forEach((l, i) => { doc.setFontSize(6); doc.text(l, x + 3, cy + 25 + i * 4); });
         };
         
         drawCard(m, emerald, `EFECTIVO (-${financials.discountCash}%)`, financials.totalCash, financials.remainingCash);
         drawCard(m + cardW + 4, violet, `TRANSFERENCIA (-${financials.discountTransfer}%)`, financials.totalTransfer, financials.remainingTransfer);
         drawCard(m + (cardW + 4) * 2, orange, 'TARJETAS (LISTA)', financials.totalCard, financials.remainingCard, [
-            `3 cuotas s/int: $${financials.installment3.toLocaleString()}`,
-            `6 cuotas s/int: $${financials.installment6.toLocaleString()}`,
+            `3 cuotas s/int: $${formatearPrecio(financials.installment3)}`,
+            `6 cuotas s/int: $${formatearPrecio(financials.installment6)}`,
             // 12 cuotas solo al cotizar: con pagos, el pedido está en etapa de saldo
-            ...(financials.paidReal <= 0 ? [`12 cuotas: $${financials.installment12.toLocaleString()} (+10%)`] : [])
+            ...(financials.paidReal <= 0 ? [`12 cuotas: $${formatearPrecio(financials.installment12)} (+10%)`] : [])
         ]);
         
         y = cy + ch + 8;
@@ -783,10 +794,10 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         const darkStone: [number,number,number] = [28, 25, 23];
         const darkGray: [number,number,number] = [120, 113, 108]; // #78716c
         
-        drawCol(m + 4, 'EFECTIVO', `$${financials.totalCash.toLocaleString()}`, darkGreen, darkGreen);
-        drawCol(m + colW + 4, 'TRANSFERENCIA', `$${financials.totalTransfer.toLocaleString()}`, darkPurple, darkPurple);
-        drawCol(m + colW * 2 + 4, 'TARJETA', `$${financials.totalCard.toLocaleString()}`, darkOrange, darkOrange);
-        drawCol(m + colW * 3 + 4, 'ABONADO REAL', `$${financials.paidReal.toLocaleString()}`, darkGray, darkStone);
+        drawCol(m + 4, 'EFECTIVO', `$${formatearPrecio(financials.totalCash)}`, darkGreen, darkGreen);
+        drawCol(m + colW + 4, 'TRANSFERENCIA', `$${formatearPrecio(financials.totalTransfer)}`, darkPurple, darkPurple);
+        drawCol(m + colW * 2 + 4, 'TARJETA', `$${formatearPrecio(financials.totalCard)}`, darkOrange, darkOrange);
+        drawCol(m + colW * 3 + 4, 'ABONADO REAL', `$${formatearPrecio(financials.paidReal)}`, darkGray, darkStone);
         y += 26;
     } else {
         doc.setFillColor(240, 253, 244); doc.setDrawColor(...emerald); doc.setLineWidth(0.5);
@@ -794,7 +805,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(6, 95, 70);
         doc.text('ORDEN PAGADA EN SU TOTALIDAD', pw / 2, y + 8, { align: 'center' });
         doc.setFontSize(9);
-        doc.text(`Total abonado: $${financials.paidReal.toLocaleString()}`, pw / 2, y + 14, { align: 'center' });
+        doc.text(`Total abonado: $${formatearPrecio(financials.paidReal)}`, pw / 2, y + 14, { align: 'center' });
         y += 24;
     }
     

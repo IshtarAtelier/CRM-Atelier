@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { tipoDeRecetaSegunNumeros } from '@/lib/receta/tipo-de-lente';
+import { tipoDeRecetaSegunNumeros, tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { 
     FileText, Plus, History, X, AlertCircle
 } from 'lucide-react';
@@ -143,7 +143,10 @@ export default function PrescriptionManager({
             heightOI: rx.heightOI?.toString() || '',
             notes: rx.notes || '',
             imageUrl: rx.imageUrl || '',
-            prescriptionType: rx.prescriptionType || tipoDeRecetaSegunNumeros(rx)
+            // Por el helper, no con un `||` a mano: son el mismo criterio, pero
+            // el `||` dejaba pasar cualquier string viejo guardado en la
+            // columna (que es `String` libre) como si fuera un tipo válido.
+            prescriptionType: tipoDeRecetaConDefault(rx, rx.prescriptionType)
         });
         setAdditionManualOD(false);
         setAdditionManualOI(false);

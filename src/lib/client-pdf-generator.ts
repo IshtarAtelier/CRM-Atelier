@@ -1,4 +1,5 @@
 import { formatDate } from '@/lib/format-date';
+import { etiquetaDeTipoDeReceta, tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { PricingService } from '@/services/PricingService';
 import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
 import { format } from 'date-fns';
@@ -44,7 +45,7 @@ function getClientHtml(client: any): string {
         return `
         <div class="rx-card">
             <div class="rx-header">
-                <span class="rx-title">Receta (${rx.prescriptionType || 'General'})</span>
+                <span class="rx-title">Receta (${etiquetaDeTipoDeReceta(tipoDeRecetaConDefault(rx, rx.prescriptionType))})</span>
                 <span class="rx-date">Fecha: ${rxDate}</span>
             </div>
             <table class="rx-table">

@@ -143,6 +143,23 @@ export function tipoDeRecetaConDefault(
 }
 
 /**
+ * Cómo se ESCRIBE el tipo cuando lo va a leer una persona.
+ *
+ * 'FAR' | 'ADDITION' | 'NEAR' son claves internas y nunca deben salir a la
+ * pantalla: el PDF que recibe el cliente imprimía literalmente
+ * "Receta (ADDITION)". Es la misma clase de fuga que un precio sin formatear
+ * —el dato correcto, escrito en un idioma que no es el del que lo lee—, así
+ * que la traducción vive acá, al lado de la definición del tipo, y no
+ * repetida en cada pantalla.
+ */
+export function etiquetaDeTipoDeReceta(tipo: string | null | undefined): string {
+    if (tipo === 'ADDITION') return 'Multifocal';
+    if (tipo === 'NEAR') return 'Cerca';
+    if (tipo === 'FAR') return 'Lejos';
+    return 'General';
+}
+
+/**
  * Devuelve un aviso cuando la etiqueta contradice a los números, para dejarlo
  * anotado en la ficha en vez de que la contradicción se pierda en silencio.
  * `null` si no hay contradicción.
