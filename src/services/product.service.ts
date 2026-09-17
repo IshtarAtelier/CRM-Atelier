@@ -4,6 +4,18 @@ import { requireValidCost } from '@/lib/product-cost-guard';
 import { computeFinalLensCost, findLabConfig, type LabCostConfig } from '@/lib/lens-cost';
 import { invalidateWebCatalog } from '@/lib/catalog/tienda-map';
 import { puedeEntrarEn2x1 } from '@/lib/promo-utils';
+import { llevaOrigen } from '@/lib/lens-origin';
+
+/**
+ * El origen solo se guarda si el producto es un cristal. Es el candado de la
+ * regla: la pantalla de inventario ya no lo estampa de más, pero el importador
+ * de listas, la API y cualquier script futuro escriben por acá, y un armazón
+ * con origen vuelve a esconderse en los filtros.
+ */
+function origenPermitido(data: any, actual?: { category?: string | null; type?: string | null }) {
+    const clase = { category: data.category ?? actual?.category, type: data.type ?? actual?.type };
+    return llevaOrigen(clase) ? data.origin : null;
+}
 
 // El tilde "entra en el 2x1" mueve plata (decide si un armazón se regala o va
 // al 50%). Solo puede quedar prendido en lo que la promo puede bonificar:
@@ -130,7 +142,7 @@ export const ProductService = {
                 mpn: data.mpn,
                 gender: data.gender,
                 ageGroup: data.ageGroup,
-                origin: data.origin,
+                origin: origenPermitido(data),
             }
         });
         
@@ -142,6 +154,14 @@ export const ProductService = {
         return product;
     },
     async update(id: string, data: any) {
+        // Si viene un origen, se guarda SOLO si el producto final es un cristal.
+        // Se mira el tipo/categoría del payload y, si no vienen, los guardados.
+        if (data.origin !== undefined && data.origin !== null && data.origin !== '') {
+            const actual = await prisma.product.findUnique({ where: { id }, select: { type: true, category: true } });
+            if (!llevaOrigen({ category: data.category ?? actual?.category, type: data.type ?? actual?.type })) {
+                data = { ...data, origin: null };
+            }
+        }
         // Validar el tilde del 2x1 contra el tipo/categoría FINAL del producto:
         // los del payload si vienen, si no los que ya están guardados.
         if (data.eligible2x1 === true && (data.type === undefined || data.category === undefined)) {

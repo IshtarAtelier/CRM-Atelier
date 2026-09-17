@@ -12,7 +12,7 @@ import SettingsModal from '@/components/inventory/SettingsModal';
 import { useProducts } from '@/hooks/useProducts';
 import { autoCorrectLab, getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
 import { PRODUCT_CATEGORIES as SHARED_CATEGORIES } from '@/lib/constants';
-import { normalizeLensOrigin, LENS_ORIGIN } from '@/lib/lens-origin';
+import { normalizeLensOrigin, LENS_ORIGIN, llevaOrigen } from '@/lib/lens-origin';
 import { breakdownLensCost, findLabConfig } from '@/lib/lens-cost';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import { puedeEntrarEn2x1 } from '@/lib/promo-utils';
@@ -221,7 +221,13 @@ export default function InventarioPage() {
         products = products.filter(p => p.publishToWeb === true);
     }
     if (selectedOrigin) {
-        products = products.filter(p => normalizeLensOrigin(p.origin) === selectedOrigin);
+        // El filtro de origen es un filtro DE CRISTALES, así que solo puede
+        // descartar cristales: lo que no lleva origen pasa siempre. Antes
+        // comparaba contra todo el catálogo y, como a los armazones se les
+        // había estampado un origen que no les corresponde, elegir "Stock"
+        // los hacía desaparecer del inventario. Nadie pidió nunca que un
+        // producto se esconda: si no aplica el criterio, se muestra.
+        products = products.filter(p => !llevaOrigen(p) || normalizeLensOrigin(p.origin) === selectedOrigin);
     }
 
     // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
@@ -372,7 +378,15 @@ export default function InventarioPage() {
             mpn: (p as any).mpn || '',
             gender: (p as any).gender || '',
             ageGroup: (p as any).ageGroup || '',
-            origin: normalizeLensOrigin(p.origin) || LENS_ORIGIN.LABORATORIO,
+            // SOLO los cristales tienen origen. Stock / Laboratorio / Rango son
+            // definiciones de cristal: un armazón no se "pide al laboratorio",
+            // se tiene o no se tiene. Acá se le estampaba LABORATORIO a
+            // CUALQUIER producto que se abriera a editar —aunque el selector ni
+            // se muestre para armazones— y al guardar quedaba escrito: así 104
+            // armazones terminaron marcados "Laboratorio" y desaparecían del
+            // filtro de stock. Fue el caso de Altair: estaba en la tienda y no
+            // aparecía en el sistema.
+            origin: checkCristal(p) ? (normalizeLensOrigin(p.origin) || LENS_ORIGIN.LABORATORIO) : '',
         });
         setShowEditRanges(false);
         // Al abrir mostramos el costo tal cual está guardado: nada se recalcula solo

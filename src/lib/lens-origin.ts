@@ -15,6 +15,27 @@ const LABELS: Record<LensOrigin, string> = {
     LABORATORIO: 'Laboratorio',
 };
 
+/**
+ * El origen es UNA DEFINICIÓN DE CRISTAL y de nada más.
+ *
+ * Stock / Laboratorio / Rango describen de dónde sale un cristal: un armazón no
+ * se "pide al laboratorio", se tiene o no se tiene. Regla de Ishtar (17/9/2026),
+ * dicha después de encontrar el armazón Altair publicado en la tienda y ausente
+ * del stock del CRM: estaba marcado "Laboratorio" y el filtro lo escondía. Eran
+ * 104 armazones así, ensuciados por el formulario de inventario, que le
+ * estampaba LABORATORIO a cualquier producto que se abriera a editar aunque el
+ * selector no se mostrara.
+ *
+ * Vive acá, con el resto de la definición de origen, para que el que guarda y
+ * el que muestra usen el mismo criterio.
+ */
+export function llevaOrigen(p: { category?: string | null; type?: string | null }): boolean {
+    const type = (p.type || '').toUpperCase();
+    return p.category === 'Cristal'
+        || type.startsWith('CRISTAL')
+        || ['MONOFOCAL', 'MULTIFOCAL', 'BIFOCAL', 'OCUPACIONAL'].includes(type);
+}
+
 /** Lleva cualquier valor guardado a un origen canónico, o null si no es uno válido. */
 export function normalizeLensOrigin(value?: string | null): LensOrigin | null {
     const v = (value || '').trim().toUpperCase();
