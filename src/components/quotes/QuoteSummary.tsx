@@ -228,10 +228,17 @@ export default function QuoteSummary({
     };
 
     if (compact) {
-        const total = order.total || 0;
-        const paid = order.paid || 0;
-        const pending = Math.max(0, total - paid);
-        const isPaid = paid >= total && total > 0;
+        // El saldo sale del PricingService, NUNCA de `total − paid`: hay que
+        // convertir cada pago a su equivalente de lista (un pago en efectivo
+        // sobre una venta con 20% de descuento vale 1/0,80 de lista). La resta
+        // directa es la que inventó 76 saldos fantasma en producción. Esta misma
+        // pantalla ya lo hacía bien 120 líneas más abajo, en su modo completo:
+        // la rama compacta retornaba antes y se quedó con la cuenta vieja.
+        const compactos = PricingService.calculateOrderFinancials(order);
+        const total = compactos.listPrice;
+        const paid = compactos.paidReal;
+        const pending = compactos.remainingList;
+        const isPaid = total > 0 && !compactos.hasBalance;
 
         return (
             <div className="bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 rounded-2xl p-4 hover:shadow-md transition-all group">

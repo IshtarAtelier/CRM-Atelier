@@ -45,6 +45,7 @@
     "social:render": "node scripts/social/render.mjs",
     "social:publicar": "node scripts/social/publicar.mjs",
     "check:orden": "node scripts/checks/orden-del-repo.check.mjs",
+    "check:plata": "node scripts/checks/plata-en-argentino.check.mjs",
     "check:contraste": "node scripts/checks/contraste-textos.check.mjs",
     "check:velocidad": "node scripts/checks/velocidad-sitio.check.mjs",
     "check:cierres": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres.check.mjs",

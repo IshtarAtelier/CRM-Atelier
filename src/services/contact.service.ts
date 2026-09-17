@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { formatearPrecio } from '@/lib/format-precio';
 import { SOLO_DEL_VENDEDOR, SOLO_DEL_EMBUDO, TIPO_EMBUDO } from '@/lib/tareas/origen';
 import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE, CRM_ORIGIN } from '@/lib/constants';
@@ -3105,7 +3106,7 @@ export const ContactService = {
         if (lastOrder.paid < minRequired && !lastOrder.authorizedByAdmin) {
             return {
                 canClose: false,
-                reason: `El pago ($${lastOrder.paid.toLocaleString()}) es inferior al 50% ($${minRequired.toLocaleString()}) y no está autorizado por el administrador`,
+                reason: `El pago ($${formatearPrecio(lastOrder.paid)}) es inferior al 50% ($${formatearPrecio(minRequired)}) y no está autorizado por el administrador`,
                 isLabWarning: true
             };
         }

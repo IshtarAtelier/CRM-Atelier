@@ -72,6 +72,8 @@ y `wip-otra-sesion` son la cicatriz.
 - `npx prisma generate` — regenera el cliente
 - `npm run lint` / `npm run build` — lint y build de producción
 - `npm run check:orden` — verifica que cada archivo esté en su carpeta (sin base ni red)
+- `npm run check:plata` — falla si alguien escribe plata o fechas sin decir el
+  idioma (`toLocaleString()` a secas). Sin base ni red, y también en CI.
 - `npm run check:contraste` — mide el contraste de TODOS los textos de las 66
   páginas públicas, en modo claro y oscuro, contra localhost:3000 (`--base` para
   apuntar a producción, `--ruta` para una sola). Necesita el dev prendido.
@@ -237,6 +239,17 @@ Reglas para que el proyecto escale sin volverse un mazacote.
   solo usa una página vive junto a esa página.
 - **Constantes con nombre en `src/lib/constants/`** — nada de números mágicos ni
   strings repetidos (teléfonos, cutoffs, orígenes: ya viven ahí).
+- **La plata y las fechas SIEMPRE con idioma**: `formatearPrecio()`
+  (`src/lib/format-precio.ts`) y `formatDate()`/`formatDateLong()`
+  (`src/lib/format-date.ts`). Un `toLocaleString()` a secas se ve bien en una
+  Mac argentina y sale en en-US en el contenedor de producción: el 17/9/2026 los
+  presupuestos le llegaban al cliente con **"$ 745,226"**, el bot le dictaba
+  fechas "9/17/2026" y el precio de los copies de Instagram salía con coma. Lo
+  vigila `npm run check:plata`, que falla ante cualquier caso NUEVO; los 207 que
+  ya estaban (casi todos pantallas internas) están anotados en
+  `scripts/checks/plata-en-argentino.deuda.json` y esa lista **solo puede
+  achicarse**. Excepción legítima: `toLocaleString('en-US', { timeZone })` para
+  convertir zona horaria, que no se muestra.
 - **Toda integración externa (SmartLab, Payway, Meta, Resend, AFIP) se toca a
   través de su service** — nunca `fetch` directo desde una ruta o componente.
 - **Schema Prisma**: todo campo nuevo llega por migración commiteada, nunca

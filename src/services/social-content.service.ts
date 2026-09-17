@@ -2,6 +2,9 @@ import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from '@/lib/db';
 import { staticPosts } from '@/lib/static-blog-posts';
+// El precio que se le pasa a la IA para escribir el copy: si va con coma
+// ("$745,226") y el modelo lo copia, sale publicado así en Instagram.
+import { formatearPrecio } from '@/lib/format-precio';
 
 // ── Types ──────────────────────────────────
 interface GenerateRequest {
@@ -95,7 +98,7 @@ async function getSourceContext(sourceType: string, sourceId?: string, topic?: s
 - Modelo: ${product.model || 'N/A'}
 - Categoría: ${product.category}
 - Tipo: ${product.type || 'N/A'}
-- Precio: $${product.price?.toLocaleString() || 'Consultar'}
+- Precio: ${product.price ? `$${formatearPrecio(product.price)}` : 'Consultar'}
 - Descripción: ${product.seoDescription || product.botLabel || 'Producto premium de óptica'}
 - Tiene fotos: ${product.imagenesCatalogo?.length > 0 ? 'Sí' : 'No'}`;
     }

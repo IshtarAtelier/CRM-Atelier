@@ -10,6 +10,22 @@ const DEFAULT_SALES_PROMPT = require('./prompts/salesPrompt');
 const { interesSegunReceta } = require('./shared/tipo-de-lente');
 
 /**
+ * Las fechas que el modelo recibe como contexto del cliente, en argentino.
+ *
+ * Iban con `toLocaleDateString()` a secas: este proceso corre en node:22-slim,
+ * que resuelve en en-US, así que al modelo le llegaba "9/17/2026" y él se lo
+ * repetía al cliente por WhatsApp tal cual. Es el mismo bug que sacaba los
+ * presupuestos con "$745,226", pero por boca del bot. Zona horaria fija además
+ * del idioma: el servidor está en UTC y sin esto un pedido de las 22 h figura
+ * al día siguiente.
+ */
+function fechaArgentina(valor) {
+    const d = valor instanceof Date ? valor : new Date(valor);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Cordoba' });
+}
+
+/**
  * Tope de adición de "Mi Primer Varilux" y "Mi Primer Kodak" (condición
  * comercial, ver `src/lib/garantia.ts`: "hasta 1,50 de adición"). Por encima de
  * esto la receta no encuadra en la promo: se pierde el 50% y hay que abonar la
@@ -376,7 +392,7 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
         text += `\n- Pedido N°: ${o.id}`;
         text += `\n  Tipo: ${o.orderType}`;
         text += `\n  Estado: ${o.labStatus || o.status}`;
-        text += `\n  Fecha: ${new Date(o.createdAt).toLocaleDateString()}`;
+        text += `\n  Fecha: ${fechaArgentina(o.createdAt)}`;
       });
     }
   } catch (err) {
@@ -386,7 +402,7 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
   if (clientData.interactions && clientData.interactions.length > 0) {
     text += `\n\nÚLTIMAS INTERACCIONES/HITOS:`;
     clientData.interactions.forEach(i => {
-      text += `\n- ${new Date(i.createdAt).toLocaleDateString()}: ${i.content}`;
+      text += `\n- ${fechaArgentina(i.createdAt)}: ${i.content}`;
     });
   }
   

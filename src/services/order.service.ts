@@ -1,4 +1,5 @@
 import { sendEmail } from '@/lib/email';
+import { formatearPrecio } from '@/lib/format-precio';
 import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
@@ -1172,7 +1173,7 @@ export class OrderService {
                     const totalPaid = pagosReales._sum.amount || 0;
                     const minRequired = (orderForValidation.total || 0) * 0.5;
                     if (totalPaid < minRequired && !orderForValidation.authorizedByAdmin) {
-                        errors.push(`El pago ($${Math.round(totalPaid).toLocaleString()}) no cubre el 50% mínimo ($${Math.ceil(minRequired).toLocaleString()}) para enviar a fábrica.`);
+                        errors.push(`El pago ($${formatearPrecio(totalPaid)}) no cubre el 50% mínimo ($${formatearPrecio(Math.ceil(minRequired))}) para enviar a fábrica.`);
                     }
 
                     // 3. All payments must have method specified
@@ -1839,7 +1840,7 @@ export class OrderService {
                 const pagosRealesConv = await prisma.payment.aggregate({ where: { orderId: id }, _sum: { amount: true } });
                 const totalPaid = pagosRealesConv._sum.amount || 0;
                 if (totalPaid < minRequired && !existingOrder.authorizedByAdmin) {
-                    throw new Error(`Se requiere un pago mínimo del 50% ($${Math.ceil(minRequired).toLocaleString()}) para convertir en venta. Pagado: $${totalPaid.toLocaleString()}`);
+                    throw new Error(`Se requiere un pago mínimo del 50% ($${formatearPrecio(Math.ceil(minRequired))}) para convertir en venta. Pagado: $${formatearPrecio(totalPaid)}`);
                 }
 
                 // Check: if order has crystals, frame info must be set

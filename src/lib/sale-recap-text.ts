@@ -11,6 +11,10 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { describeLabFrameDetails, type LabFrameOrder } from './lab-frame-summary';
+import { formatearPrecio } from './format-precio';
+// PricingService es puro (solo promo-utils, constantes y payment-card): no
+// arrastra prisma, así que este módulo sigue siendo usable desde cualquier lado.
+import { PricingService } from '@/services/PricingService';
 
 export interface RecapPrescription {
     sphereOD?: number | string | null; sphereOI?: number | string | null;
@@ -162,13 +166,18 @@ export function prescriptionRecapText(rx: RecapPrescription | null | undefined, 
  * rehacer un par o discutir con el laboratorio.
  */
 export function ventaRecapCompleto(order: any, rx: RecapPrescription | null | undefined): string {
-    const plata = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
-    const total = order?.total || 0;
-    const pagado = order?.paid || 0;
+    const plata = (n: number) => `$${formatearPrecio(n)}`;
+    // El saldo por PricingService, no `total − pagado`: cada pago hay que
+    // convertirlo a su equivalente de lista. Acá pesa el doble que en una
+    // pantalla, porque este recap se ESCRIBE en la ficha del cliente y queda:
+    // un saldo fantasma de hoy sigue diciendo lo mismo dentro de un año, en el
+    // documento al que se recurre cuando hay que discutir una venta.
+    const cuentas = PricingService.calculateOrderFinancials(order || {});
+    const pagado = cuentas.paidReal;
     const bloques: string[] = [];
 
     bloques.push([
-        `Abonado: ${plata(pagado)} · Saldo: ${plata(Math.max(0, total - pagado))}`,
+        `Abonado: ${plata(pagado)} · Saldo: ${plata(cuentas.remainingList)}`,
     ].join('\n'));
 
     // Productos con su precio, y el teñido con su color y a qué armazón va.
