@@ -21,7 +21,7 @@ import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
 import { diaArgentino, hoyArgentino } from '@/lib/dia-argentino';
-import { BRIEFING_MINIMO_TEXTO } from '@/lib/constants/briefing';
+import { BRIEFING_MINIMO_TEXTO, objetivosDe } from '@/lib/constants/briefing';
 
 /** `{ [userId]: 'YYYY-MM-DD' }` — el último día que cada persona lo completó. */
 const CLAVE_HECHO = 'briefing_diario_hecho';
@@ -47,7 +47,8 @@ function primerNombre(nombre: string): string {
 /**
  * GET → `{ pendiente, nombre, dia, actividad }`
  *
- * `actividad` son los números REALES de ayer de esta persona, para poder
+ * `actividad` son los números REALES de ayer de esta persona, y `objetivos`
+ * los mínimos que le tocan a ELLA (no son iguales para todos), para poder
  * poner el mínimo al lado de lo que efectivamente hizo. Si el cálculo falla,
  * viaja en `null` y el modal muestra los mínimos sin números: un briefing que
  * no aparece porque una consulta se cayó es peor que uno sin métricas.
@@ -81,6 +82,11 @@ export async function GET(request: NextRequest) {
             pendiente: true,
             nombre: primerNombre(actor.name),
             dia: ayer.etiqueta,
+            objetivos: objetivosDe(actor.name || ''),
+            // Con qué día rotar el orden de las fichas de siempre. Se calcula
+            // del día ARGENTINO y no en el navegador: una máquina con el reloj
+            // corrido no puede hacerle ver a una persona otro orden que al resto.
+            rotacion: Math.floor(Date.parse(`${hoyArgentino()}T00:00:00Z`) / 86400000),
             actividad,
         });
     } catch (error: any) {
@@ -91,7 +97,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST `{ texto, vueltasAtras }` → le manda lo escrito a los ADMIN y marca el
+ * POST `{ texto, objetivo, vueltasAtras }` → le manda lo escrito a los ADMIN y marca el
  * día como hecho.
  *
  * El orden importa: primero se avisa, después se marca. Si el marcado falla, el
@@ -110,6 +116,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Escribí un poco más de lo que te pedimos hoy.' }, { status: 400 });
         }
 
+        // El objetivo del día, con palabras. Se valida igual que el texto: el
+        // modal es del cliente y no se le cree.
+        const objetivo = String(body?.objetivo ?? '').trim().slice(0, MAXIMO_TEXTO);
+        if (objetivo.length < BRIEFING_MINIMO_TEXTO) {
+            return NextResponse.json({ error: 'Escribí tu objetivo de hoy con palabras.' }, { status: 400 });
+        }
+
         const crudo = Number(body?.vueltasAtras);
         const vueltas = Number.isFinite(crudo) ? Math.min(99, Math.max(0, Math.trunc(crudo))) : 0;
 
@@ -122,6 +135,9 @@ export async function POST(request: NextRequest) {
             ``,
             `Escribió lo que se le pidió hoy:`,
             `“${texto}”`,
+            ``,
+            `Su objetivo para hoy:`,
+            `“${objetivo}”`,
             ``,
             // Siempre presente, también cuando es cero: un renglón que aparece
             // solo a veces no se puede distinguir de uno que faltó por un error.
@@ -158,7 +174,7 @@ export async function POST(request: NextRequest) {
             action: 'OTHER',
             entityType: 'SETTING',
             entityId: `${CLAVE_HECHO}:${hoy.iso}`,
-            details: { evento: 'briefing_diario_completado', dia: hoy.iso, texto, vueltasAtras: vueltas, avisados },
+            details: { evento: 'briefing_diario_completado', dia: hoy.iso, texto, objetivo, vueltasAtras: vueltas, avisados },
         }).catch(console.error);
 
         return NextResponse.json({ ok: true, avisados });

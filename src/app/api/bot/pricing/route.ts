@@ -160,10 +160,14 @@ export async function GET(req: NextRequest) {
     if (!paraFotos && (onlyBotRecommended || !search)) {
         productWhere.botRecommended = true;
     }
-    // Para fotos: solo lo publicado en la tienda. Lo no publicado tiene precios
-    // de carga ($6,36) y fotos que no resuelven en la web.
+    // Para fotos: solo lo publicado en la tienda y CON STOCK. Lo no publicado
+    // tiene precios de carga ($6,36) y fotos que no resuelven en la web; lo que
+    // no está en el local no se le muestra a nadie — mandarle la foto y el
+    // precio de algo que no se le puede vender es la peor forma de contestar.
+    // (16/9/2026: 4 de los 115 publicados están en cero.)
     if (paraFotos) {
         productWhere.publishToWeb = true;
+        productWhere.stock = { gt: 0 };
     }
     // GRADUACIÓN ALTA: las opciones salen de los TALLADOS (digital / CNC), que
     // se calculan para esa receta y vienen en índices altos. Un cristal de
@@ -197,7 +201,27 @@ export async function GET(req: NextRequest) {
     // positivos y el bot lo habría seguido ofreciendo a un hipermétrope.
     filtros.push({ NOT: { name: { startsWith: '[ARCHIVADO]' } } });
 
-    if (category) {
+    // ── Categoría, para FOTOS: la que usa la tienda ─────────────────────────
+    //
+    // La de abajo mira `type` (y, para clip-on, que el nombre diga "clip"), y
+    // con eso el bot NO PODÍA MOSTRAR NI UN LENTE DE SOL NI UN CLIP-ON:
+    // medido el 16/9/2026 contra producción, `category=SOL` devolvía 2 y
+    // `CLIPON` devolvía 1 —y ese 1 era una fila de catálogo que no es un
+    // producto—, porque casi todo el catálogo tiene `type` "Armazón de Receta"
+    // y ningún clip-on se llama "clip": se llaman Torino, Riviera, Milano,
+    // Palermo, Génova. La tienda no tiene ese problema porque separa por
+    // `WebProduct.category` ('Receta' | 'Sol' | 'Clip-On'), que es lo que la
+    // dueña ve y carga. Para fotos se usa ESA, la misma que el cliente ve.
+    const CATEGORIA_DE_TIENDA: Record<string, string> = {
+        ARMAZON: 'Receta',
+        SOL: 'Sol',
+        CLIPON: 'Clip-On',
+    };
+    if (paraFotos && category && CATEGORIA_DE_TIENDA[category]) {
+        filtros.push({ webProducts: { some: { category: CATEGORIA_DE_TIENDA[category], isActive: true } } });
+        // Una fila sin precio no es un producto que se pueda mostrar.
+        filtros.push({ price: { gt: 1 } });
+    } else if (category) {
         if (category === 'CLIPON') {
             filtros.push({
                 OR: [
