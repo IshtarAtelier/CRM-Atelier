@@ -881,7 +881,7 @@ function PedidosPageInner() {
                     <h1 className="text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
                         <Package className="w-9 h-9 text-blue-500" /> Pedidos a Laboratorio
                     </h1>
-                    <p className="text-stone-400 text-sm mt-1 font-medium">
+                    <p className="text-stone-600 dark:text-stone-400 text-sm mt-1 font-medium">
                         Gestión y seguimiento de pedidos enviados a fábrica
                     </p>
                 </div>
@@ -927,7 +927,7 @@ function PedidosPageInner() {
                     </button>
                     <div className="text-right">
                         <p className="text-3xl font-black text-blue-500">{orders.length}</p>
-                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Pedidos activos</p>
+                        <p className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Pedidos activos</p>
                     </div>
                 </div>
             </div>
@@ -939,7 +939,7 @@ function PedidosPageInner() {
                     className={`flex-1 py-2 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                         viewMode === 'LAB_ORDERS'
                             ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-md border border-stone-200/20'
-                            : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                            : 'text-stone-600 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
                     }`}
                 >
                     🔬 Laboratorio
@@ -949,7 +949,7 @@ function PedidosPageInner() {
                     className={`flex-1 py-2 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                         viewMode === 'POST_VENTA'
                             ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
-                            : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                            : 'text-stone-600 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
                     }`}
                 >
                     🛡️ Post Venta ({postSaleOrders.length})
@@ -972,9 +972,9 @@ function PedidosPageInner() {
                                 : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 hover:border-stone-200 dark:hover:border-stone-600'
                                 }`}
                         >
-                            <Icon className={`w-5 h-5 mx-auto mb-2 ${isActive ? '' : 'text-stone-300 dark:text-stone-600 group-hover:text-stone-400'}`} />
+                            <Icon className={`w-5 h-5 mx-auto mb-2 ${isActive ? '' : 'text-stone-300 dark:text-stone-600 group-hover:text-stone-600 dark:text-stone-400'}`} />
                             <p className="text-3xl font-black">{step.count}</p>
-                            <p className={`text-[8px] font-black uppercase tracking-widest mt-1 ${isActive ? 'opacity-80' : 'text-stone-400'}`}>
+                            <p className={`text-[8px] font-black uppercase tracking-widest mt-1 ${isActive ? 'opacity-80' : 'text-stone-600 dark:text-stone-400'}`}>
                                 {step.label}
                             </p>
                             {isActive && (
@@ -995,12 +995,12 @@ function PedidosPageInner() {
                         <h2 className="text-xl lg:text-2xl font-black tracking-tight flex items-center gap-2">
                             <Clock className="w-6 h-6 text-amber-400 animate-pulse" /> Tiempos de Demora en Fábrica
                         </h2>
-                        <p className="text-stone-400 text-xs mt-1 font-semibold">
+                        <p className="text-stone-600 dark:text-stone-400 text-xs mt-1 font-semibold">
                             Estadísticas y parámetros de demora real desde el envío a laboratorio
                         </p>
                     </div>
                     <div className="bg-stone-800/80 backdrop-blur-sm border border-stone-700/50 rounded-2xl px-5 py-3 text-center">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 block">Promedio General</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 block">Promedio General</span>
                         <span className="text-2xl font-black text-amber-400">{crystalStats.generalAvg} <span className="text-xs font-bold text-white">días</span></span>
                     </div>
                 </div>
@@ -1008,7 +1008,7 @@ function PedidosPageInner() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                     {/* Cristal stats */}
                     <div className="bg-stone-850/50 backdrop-blur-md rounded-2xl p-5 border border-stone-700/30">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-stone-400 mb-4 flex items-center gap-2">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 mb-4 flex items-center gap-2">
                             <span>👓 Por Tipo de Cristal</span>
                         </h3>
                         <div className="space-y-3.5 animate-in fade-in duration-500">
@@ -1019,9 +1019,9 @@ function PedidosPageInner() {
                                     <div key={c.name} className="flex justify-between items-center bg-stone-900/30 p-2.5 rounded-xl border border-stone-800/50">
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-black tracking-tight text-stone-200">{c.name}</span>
-                                            <span className="px-1.5 py-0.5 bg-stone-805 text-[8px] font-black text-stone-400 rounded-md">{c.count} pedido{c.count !== 1 ? 's' : ''}</span>
+                                            <span className="px-1.5 py-0.5 bg-stone-805 text-[8px] font-black text-stone-600 dark:text-stone-400 rounded-md">{c.count} pedido{c.count !== 1 ? 's' : ''}</span>
                                         </div>
-                                        <span className="text-sm font-black text-amber-400">{c.avg} <span className="text-[10px] font-bold text-stone-400">días</span></span>
+                                        <span className="text-sm font-black text-amber-400">{c.avg} <span className="text-[10px] font-bold text-stone-600 dark:text-stone-400">días</span></span>
                                     </div>
                                 ))
                             )}
@@ -1030,7 +1030,7 @@ function PedidosPageInner() {
 
                     {/* Laboratory stats */}
                     <div className="bg-stone-850/50 backdrop-blur-md rounded-2xl p-5 border border-stone-700/30">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-stone-400 mb-4 flex items-center gap-2">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 mb-4 flex items-center gap-2">
                             <span>🧪 Por Laboratorio</span>
                         </h3>
                         <div className="space-y-3.5 animate-in fade-in duration-500">
@@ -1041,9 +1041,9 @@ function PedidosPageInner() {
                                     <div key={l.name} className="flex justify-between items-center bg-stone-900/30 p-2.5 rounded-xl border border-stone-800/50">
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-black tracking-tight text-stone-200 truncate max-w-[150px]">{l.name}</span>
-                                            <span className="px-1.5 py-0.5 bg-stone-805 text-[8px] font-black text-stone-400 rounded-md">{l.count} pedido{l.count !== 1 ? 's' : ''}</span>
+                                            <span className="px-1.5 py-0.5 bg-stone-805 text-[8px] font-black text-stone-600 dark:text-stone-400 rounded-md">{l.count} pedido{l.count !== 1 ? 's' : ''}</span>
                                         </div>
-                                        <span className="text-sm font-black text-blue-400">{l.avg} <span className="text-[10px] font-bold text-stone-400">días</span></span>
+                                        <span className="text-sm font-black text-blue-400">{l.avg} <span className="text-[10px] font-bold text-stone-600 dark:text-stone-400">días</span></span>
                                     </div>
                                 ))
                             )}
@@ -1057,7 +1057,7 @@ function PedidosPageInner() {
             {/* Search + Seller Filter */}
             <div className="flex gap-4 mb-6">
                 <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 dark:text-stone-400" />
                     <input
                         type="text"
                         placeholder="Buscar por cliente, N° venta o N° operación lab..."
@@ -1092,7 +1092,7 @@ function PedidosPageInner() {
                             </option>
                         ))}
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-600 dark:text-stone-400 pointer-events-none" />
                 </div>
 
                 {filterStatus !== 'ALL' && (
@@ -1109,7 +1109,7 @@ function PedidosPageInner() {
             {loading ? (
                 <div className="text-center py-20">
                     <Loader2 className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-4" />
-                    <p className="text-sm font-bold text-stone-400">Cargando pedidos...</p>
+                    <p className="text-sm font-bold text-stone-600 dark:text-stone-400">Cargando pedidos...</p>
                 </div>
             ) : viewMode === 'POST_VENTA' ? (
                 <div className="space-y-6">
@@ -1210,7 +1210,7 @@ function PedidosPageInner() {
                                                 {step.label}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                                        <div className="flex items-center gap-3 text-[10px] font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest">
                                             <span className="flex items-center gap-1">
                                                 <Hash className="w-3 h-3" />
                                                 {order.id.slice(-4).toUpperCase()}
@@ -1239,7 +1239,7 @@ function PedidosPageInner() {
                                                 return (
                                                     <>
                                                         <span>·</span>
-                                                        <span className={`flex items-center gap-1 font-black ${isCompleted ? 'text-emerald-500' : 'text-blue-500'}`}>
+                                                        <span className={`flex items-center gap-1 font-black ${isCompleted ? 'text-emerald-700 dark:text-emerald-400' : 'text-blue-500'}`}>
                                                             <Clock className="w-3.5 h-3.5" />
                                                             {isCompleted ? `Demoró ${days} días` : `Lleva ${days} días`}
                                                         </span>
@@ -1258,7 +1258,7 @@ function PedidosPageInner() {
                                         ) : (
                                             <>
                                                 <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-800 text-center min-w-[100px]">
-                                                    <span className="text-[8px] font-black text-emerald-500 uppercase block tracking-tighter">Efectivo</span>
+                                                    <span className="text-[8px] font-black text-emerald-700 dark:text-emerald-400 uppercase block tracking-tighter">Efectivo</span>
                                                     <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
                                                         ${financials.remainingCash.toLocaleString()}
                                                     </span>
@@ -1307,11 +1307,11 @@ function PedidosPageInner() {
                                             >
                                                 {order.labOrderNumber ? (
                                                     <div>
-                                                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">N° Op. Lab</span>
+                                                        <span className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block">N° Op. Lab</span>
                                                         <span className="text-sm font-black text-blue-600 dark:text-blue-400">{order.labOrderNumber}</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-2 text-stone-400 group-hover:text-blue-500 transition-colors">
+                                                    <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400 group-hover:text-blue-500 transition-colors">
                                                         <Hash className="w-3.5 h-3.5" />
                                                         <span className="text-[10px] font-black uppercase tracking-widest">Agregar N° Op.</span>
                                                     </div>
@@ -1326,7 +1326,7 @@ function PedidosPageInner() {
                                             <div className="bg-blue-50/80 dark:bg-blue-950/30 rounded-xl px-3 py-2 border border-blue-100 dark:border-blue-800/50">
                                                 <div className="flex items-center justify-between mb-1.5">
                                                     <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
-                                                    <span className={`text-[10px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                                    <span className={`text-[10px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-700 dark:text-emerald-400' : 'text-blue-600'}`}>
                                                         {order.smartLabProgress}%
                                                     </span>
                                                 </div>
@@ -1461,7 +1461,7 @@ function PedidosPageInner() {
                                     <h3 className="text-lg font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight">
                                         Detalle de Caso: {order.client.name}
                                     </h3>
-                                    <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-0.5">
+                                    <p className="text-[10px] font-bold text-stone-600 dark:text-stone-500 uppercase tracking-widest mt-0.5">
                                         Venta #{order.id.slice(-4).toUpperCase()}
                                     </p>
                                 </div>
@@ -1494,7 +1494,7 @@ function PedidosPageInner() {
                         onClick={() => copyToClipboard(value, field)}
                         className={`p-1.5 rounded-lg transition-all hover:scale-110 flex-shrink-0 ${copiedField === field
                             ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600'
-                            : 'bg-stone-100 dark:bg-stone-700 text-stone-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950'
+                            : 'bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950'
                             }`}
                         title={copiedField === field ? '¡Copiado!' : 'Copiar'}
                     >
@@ -1620,14 +1620,14 @@ function PedidosPageInner() {
                                 {/* Paciente y Vendedor */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Paciente</label>
+                                        <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Paciente</label>
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="text-sm font-bold text-stone-800 dark:text-white">{order.client.name}</span>
                                             <CopyBtn value={order.client.name} field="paciente" />
                                         </div>
                                     </div>
                                     <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Vendedor</label>
+                                        <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Vendedor</label>
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="text-sm font-bold text-stone-800 dark:text-white">{order.user?.name || 'N/A'}</span>
                                             <CopyBtn value={order.user?.name || ''} field="vendedor" />
@@ -1638,17 +1638,17 @@ function PedidosPageInner() {
                                 {/* Correcciones */}
                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                                     <div className="px-5 py-3 bg-stone-50 dark:bg-stone-900 border-b border-stone-100 dark:border-stone-700">
-                                        <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Correcciones</h3>
+                                        <h3 className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Correcciones</h3>
                                     </div>
                                     <table className="w-full">
                                         <thead>
                                             <tr className="border-b border-stone-100 dark:border-stone-700">
-                                                <th className="text-left text-[9px] font-black text-stone-400 uppercase tracking-widest px-5 py-2.5 w-20"></th>
-                                                <th className="text-center text-[9px] font-black text-stone-400 uppercase tracking-widest px-3 py-2.5">Esférico</th>
-                                                <th className="text-center text-[9px] font-black text-stone-400 uppercase tracking-widest px-3 py-2.5">Cilíndrico</th>
-                                                <th className="text-center text-[9px] font-black text-stone-400 uppercase tracking-widest px-3 py-2.5">Eje</th>
+                                                <th className="text-left text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest px-5 py-2.5 w-20"></th>
+                                                <th className="text-center text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest px-3 py-2.5">Esférico</th>
+                                                <th className="text-center text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest px-3 py-2.5">Cilíndrico</th>
+                                                <th className="text-center text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest px-3 py-2.5">Eje</th>
                                                 {(d.lensType === 'MULTIFOCAL' || d.lensType === 'BIFOCAL' || d.lensType === 'OCUPACIONAL') && (
-                                                    <th className="text-center text-[9px] font-black text-stone-400 uppercase tracking-widest px-3 py-2.5">Adición</th>
+                                                    <th className="text-center text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest px-3 py-2.5">Adición</th>
                                                 )}
                                             </tr>
                                         </thead>
@@ -1699,7 +1699,7 @@ function PedidosPageInner() {
                                 {/* Material, Marca, Laboratorio */}
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Material / Índice</label>
+                                        <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Material / Índice</label>
                                         <div className="flex items-center justify-between gap-2">
                                             <span className={`text-sm font-bold ${d.lensIndex ? 'text-stone-800 dark:text-white' : 'text-stone-300 dark:text-stone-600 italic'}`}>
                                                 {d.lensIndex || 'No registrado'}
@@ -1708,7 +1708,7 @@ function PedidosPageInner() {
                                         </div>
                                     </div>
                                     <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Marca</label>
+                                        <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Marca</label>
                                         <div className="flex items-center justify-between gap-2">
                                             <span className={`text-sm font-bold ${d.lensBrand ? 'text-stone-800 dark:text-white' : 'text-stone-300 dark:text-stone-600 italic'}`}>
                                                 {d.lensBrand || 'No registrado'}
@@ -1717,7 +1717,7 @@ function PedidosPageInner() {
                                         </div>
                                     </div>
                                     <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Laboratorio</label>
+                                        <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Laboratorio</label>
                                         <div className="flex items-center justify-between gap-2">
                                             <span className={`text-sm font-bold ${d.laboratory ? 'text-stone-800 dark:text-white' : 'text-stone-300 dark:text-stone-600 italic'}`}>
                                                 {d.laboratory || 'No registrado'}
@@ -1747,7 +1747,7 @@ function PedidosPageInner() {
 
                                 {/* Observaciones */}
                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Observaciones</label>
+                                    <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Observaciones</label>
                                     <div className="flex items-start gap-2">
                                         <textarea
                                             value={labFields[`${order.id}_notes`] ?? order.labNotes ?? ''}
@@ -1777,14 +1777,14 @@ function PedidosPageInner() {
                                             placeholder="Ej: Te dejamos el estuche rígido sin cargo. Cualquier ajuste, pasá y te lo hacemos."
                                             className="flex-1 px-3 py-2 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl text-sm font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none bg-white dark:bg-stone-900 transition-all min-h-[60px] resize-y"
                                         />
-                                        {savingField === `${order.id}_clientNote` && <Loader2 className="w-4 h-4 text-emerald-500 animate-spin mt-2" />}
+                                        {savingField === `${order.id}_clientNote` && <Loader2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 animate-spin mt-2" />}
                                     </div>
                                 </div>
 
                                 {/* Forma de Armazón (Solo Multifocales) */}
                                 {d.lensType === 'MULTIFOCAL' && (
                                     <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Forma de Armazón (SmartLab)</label>
+                                        <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Forma de Armazón (SmartLab)</label>
                                         <div className="grid grid-cols-4 gap-2 mb-1">
                                             {[
                                                 { id: 'redondo', label: 'Redondo', svg: <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/> },
@@ -1816,7 +1816,7 @@ function PedidosPageInner() {
 
                                 {/* Detalles del Armazón */}
                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Detalles del Armazón (SmartLab)</label>
+                                    <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Detalles del Armazón (SmartLab)</label>
                                     <div className="flex items-start gap-2">
                                         <textarea
                                             value={labFields[`${order.id}_frameDetails`] ?? order.labFrameDetails ?? ''}
@@ -1845,7 +1845,7 @@ function PedidosPageInner() {
                                         <div className="space-y-4">
                                             {/* Tipo: Stock vs Lab */}
                                             <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Origen del Lente (SmartLab)</label>
+                                                <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Origen del Lente (SmartLab)</label>
                                                 <div className="flex items-center gap-2">
                                                     {['STOCK', 'LABORATORY'].map(t => (
                                                         <button
@@ -1907,7 +1907,7 @@ function PedidosPageInner() {
 
                                             {/* Color (manual / SmartLab) */}
                                             <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Color (SmartLab)</label>
+                                                <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Color (SmartLab)</label>
                                                 <div className="flex items-center gap-2">
                                                     <input
                                                         type="text"
@@ -1924,7 +1924,7 @@ function PedidosPageInner() {
 
                                             {/* Tratamientos */}
                                             <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Tratamientos</label>
+                                                <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Tratamientos</label>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     {TREATMENTS.map(t => (
                                                         <button
@@ -1946,7 +1946,7 @@ function PedidosPageInner() {
                                             {/* Diámetro + DP OD/OI */}
                                             <div className="grid grid-cols-3 gap-4">
                                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Diámetro</label>
+                                                    <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">Diámetro</label>
                                                     <div className="flex items-center gap-2">
                                                         <input
                                                             type="text"
@@ -1960,7 +1960,7 @@ function PedidosPageInner() {
                                                     </div>
                                                 </div>
                                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">DP Ojo Derecho</label>
+                                                    <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">DP Ojo Derecho</label>
                                                     <div className="flex items-center gap-2">
                                                         <input
                                                             type="text"
@@ -1974,7 +1974,7 @@ function PedidosPageInner() {
                                                     </div>
                                                 </div>
                                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">DP Ojo Izquierdo</label>
+                                                    <label className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-2">DP Ojo Izquierdo</label>
                                                     <div className="flex items-center gap-2">
                                                         <input
                                                             type="text"
@@ -1993,7 +1993,7 @@ function PedidosPageInner() {
                                 })()}
 
                                 {/* Reference */}
-                                <div className="flex items-center justify-between text-[10px] font-bold text-stone-400 uppercase tracking-widest pt-2">
+                                <div className="flex items-center justify-between text-[10px] font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest pt-2">
                                     <span>Venta #{order.id.slice(-4).toUpperCase()} · {format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}</span>
                                     <span>Total: ${(order.subtotalWithMarkup || order.total || 0).toLocaleString()}</span>
                                 </div>

@@ -13,10 +13,10 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import type { CashMovement } from '@/types/orders';
 
 const CATEGORIES = [
-    { key: 'VENTA', label: 'Venta Entrante', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950' },
-    { key: 'GASTO_GENERAL', label: 'Gasto General', icon: Banknote, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950' },
+    { key: 'VENTA', label: 'Venta Entrante', icon: Wallet, color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950' },
+    { key: 'GASTO_GENERAL', label: 'Gasto General', icon: Banknote, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950' },
     { key: 'PAGO_LABORATORIO', label: 'Pago Laboratorio', icon: Building2, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950' },
-    { key: 'APORTE_EFECTIVO', label: 'Aporte de Efectivo', icon: PiggyBank, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950' },
+    { key: 'APORTE_EFECTIVO', label: 'Aporte de Efectivo', icon: PiggyBank, color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950' },
     { key: 'AJUSTE_CAJA', label: 'Ajuste de Caja', icon: Scale, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950' },
     { key: 'OTRO', label: 'Otro', icon: MoreHorizontal, color: 'text-stone-500', bg: 'bg-stone-50 dark:bg-stone-800' },
 ];
@@ -180,7 +180,7 @@ export default function CajaPage() {
             <main className="p-4 lg:p-8 max-w-4xl mx-auto flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
                     <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
-                    <p className="text-sm font-bold text-stone-400">Cargando caja...</p>
+                    <p className="text-sm font-bold text-stone-600 dark:text-stone-400">Cargando caja...</p>
                 </div>
             </main>
         );
@@ -214,7 +214,7 @@ export default function CajaPage() {
                         </div>
                         Movimientos de Caja
                     </h1>
-                    <p className="text-stone-400 text-xs mt-1.5 font-medium">
+                    <p className="text-stone-600 dark:text-stone-400 text-xs mt-1.5 font-medium">
                         Registrá ingresos y egresos de efectivo
                     </p>
                     {viewer && (
@@ -253,7 +253,7 @@ export default function CajaPage() {
                         <ArrowUpRight className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <p className="text-sm sm:text-base font-black text-stone-800 dark:text-white tracking-tight">Ingreso</p>
-                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Entrada de Efectivo</p>
+                    <p className="text-[10px] font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest mt-1">Entrada de Efectivo</p>
                 </button>
 
                 <button
@@ -264,7 +264,7 @@ export default function CajaPage() {
                         <ArrowDownRight className="w-7 h-7 text-red-600 dark:text-red-400" />
                     </div>
                     <p className="text-sm sm:text-base font-black text-stone-800 dark:text-white tracking-tight">Egreso</p>
-                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Salida de Efectivo</p>
+                    <p className="text-[10px] font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest mt-1">Salida de Efectivo</p>
                 </button>
             </div>
             )}
@@ -284,7 +284,7 @@ export default function CajaPage() {
                         }`}>
                             <Wallet className="w-6 h-6" />
                         </div>
-                        <p className="text-[10px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-[0.25em] mb-1">Saldo en Efectivo</p>
+                        <p className="text-[10px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-[0.25em] mb-1">Saldo en Efectivo</p>
                         <p className={`text-4xl font-black tracking-tight ${
                             balances.total >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                         }`}>
@@ -312,7 +312,7 @@ export default function CajaPage() {
                             <div className="mt-3 pt-3 border-t border-stone-200/60 dark:border-stone-700/60 w-full">
                                 <button
                                     onClick={() => setShowCloses(!showCloses)}
-                                    className="w-full text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+                                    className="w-full text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-[0.2em] hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
                                 >
                                     {showCloses ? '▴ Ocultar cierres por día' : '▾ Cierre de caja por día'}
                                 </button>
@@ -322,7 +322,7 @@ export default function CajaPage() {
                                             <div key={c.day} className="flex items-center justify-between text-xs font-bold">
                                                 <span className="text-stone-500 dark:text-stone-400">
                                                     {c.inProgress ? 'Hoy (en curso)' : format(new Date(c.day + 'T12:00:00Z'), 'EEE dd MMM', { locale: es })}
-                                                    <span className={`ml-2 text-[10px] ${c.delta >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                    <span className={`ml-2 text-[10px] ${c.delta >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                         {c.delta >= 0 ? '+' : ''}{Math.round(c.delta).toLocaleString('es-AR')}
                                                     </span>
                                                 </span>
@@ -370,7 +370,7 @@ export default function CajaPage() {
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-3 text-[10px] font-bold text-stone-400">
+                                        <div className="flex items-center gap-3 text-[10px] font-bold text-stone-600 dark:text-stone-400">
                                             <span className="flex items-center gap-1">
                                                 <CatIcon size={10} className={catInfo.color} />
                                                 {catInfo.label}
@@ -393,7 +393,7 @@ export default function CajaPage() {
                                     {m.receiptUrl && (
                                         <button 
                                             onClick={() => setViewingReceipt(resolveStorageUrl(m.receiptUrl || null))}
-                                            className="p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-400 hover:text-stone-900 dark:hover:text-white transition-colors"
+                                            className="p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white transition-colors"
                                             title="Ver comprobante"
                                         >
                                             <ImageIcon size={16} />
@@ -402,11 +402,11 @@ export default function CajaPage() {
 
                                     {/* Amount + saldo corrido (solo ADMIN/encargada) */}
                                     <div className="shrink-0 text-right">
-                                        <p className={`text-lg font-black tracking-tight ${m.type === 'IN' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                        <p className={`text-lg font-black tracking-tight ${m.type === 'IN' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                             {m.type === 'IN' ? '+' : '-'}${(m.amount ?? 0).toLocaleString('es-AR')}
                                         </p>
                                         {typeof m.balanceAfter === 'number' && (
-                                            <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 tabular-nums">
+                                            <p className="text-[10px] font-bold text-stone-600 dark:text-stone-500 tabular-nums">
                                                 Saldo total: ${Math.round(m.balanceAfter).toLocaleString('es-AR')}
                                             </p>
                                         )}
@@ -419,7 +419,7 @@ export default function CajaPage() {
                     <div className="flex flex-col items-center justify-center py-20 text-stone-300 dark:text-stone-700">
                         <Wallet size={40} className="mb-3 opacity-20" />
                         <p className="text-[10px] font-black uppercase tracking-[0.2em]">No hay movimientos registrados</p>
-                        <p className="text-[10px] text-stone-400 mt-1">Usá los botones de arriba para registrar un movimiento</p>
+                        <p className="text-[10px] text-stone-600 dark:text-stone-400 mt-1">Usá los botones de arriba para registrar un movimiento</p>
                     </div>
                 )}
             </div>
@@ -432,7 +432,7 @@ export default function CajaPage() {
                 >
                     <div className="bg-white dark:bg-stone-800 rounded-[2.5rem] shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-stone-100 dark:border-stone-700 flex items-center justify-between">
-                            <span className="text-xs font-black uppercase tracking-widest text-stone-400">Vista de Comprobante</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-stone-600 dark:text-stone-400">Vista de Comprobante</span>
                             <button onClick={() => setViewingReceipt(null)} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full transition-colors">
                                 <X size={20} />
                             </button>
@@ -454,8 +454,8 @@ export default function CajaPage() {
                                 <div className="flex items-center gap-3">
                                     <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
                                         movementType === 'IN'
-                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500'
-                                            : 'bg-red-50 dark:bg-red-900/20 text-red-500'
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
+                                            : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                                     }`}>
                                         {movementType === 'IN' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
                                     </div>
@@ -463,7 +463,7 @@ export default function CajaPage() {
                                         <h3 className="text-lg font-black text-stone-800 dark:text-white tracking-tight">
                                             {movementType === 'IN' ? 'Registrar Ingreso' : 'Registrar Egreso'}
                                         </h3>
-                                        <p className="text-stone-400 text-[10px] font-black uppercase tracking-widest">
+                                        <p className="text-stone-600 dark:text-stone-400 text-[10px] font-black uppercase tracking-widest">
                                             {movementType === 'IN' ? 'Entrada de Efectivo' : 'Salida de Efectivo'}
                                         </p>
                                     </div>
@@ -480,7 +480,7 @@ export default function CajaPage() {
                                     className={`flex-1 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
                                         movementType === 'IN'
                                             ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                            : 'text-stone-400 hover:text-stone-600'
+                                            : 'text-stone-600 dark:text-stone-400 hover:text-stone-600'
                                     }`}
                                 >
                                     <ArrowUpRight size={14} /> Ingreso
@@ -490,7 +490,7 @@ export default function CajaPage() {
                                     className={`flex-1 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
                                         movementType === 'OUT'
                                             ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
-                                            : 'text-stone-400 hover:text-stone-600'
+                                            : 'text-stone-600 dark:text-stone-400 hover:text-stone-600'
                                     }`}
                                 >
                                     <ArrowDownRight size={14} /> Egreso
@@ -500,7 +500,7 @@ export default function CajaPage() {
                             <div className="space-y-5">
                                 {/* Amount */}
                                 <div>
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 block">Monto</label>
+                                    <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-2 block">Monto</label>
                                     <div className="relative">
                                         <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xl font-black text-stone-300">$</span>
                                         <input
@@ -517,7 +517,7 @@ export default function CajaPage() {
 
                                 {/* Category */}
                                 <div>
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 block">Categoría</label>
+                                    <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-2 block">Categoría</label>
                                     <div className="grid grid-cols-2 gap-2">
                                         {CATEGORIES
                                             .filter(c => {
@@ -542,7 +542,7 @@ export default function CajaPage() {
                                                         className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${
                                                             isSelected
                                                                 ? `${c.bg} ${c.color} border-current shadow-sm`
-                                                                : 'bg-white dark:bg-stone-900 text-stone-400 border-stone-100 dark:border-stone-700 hover:border-stone-300'
+                                                                : 'bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-100 dark:border-stone-700 hover:border-stone-300'
                                                         }`}
                                                     >
                                                         <CIcon size={14} />
@@ -556,7 +556,7 @@ export default function CajaPage() {
                                 {/* Laboratory (conditional) */}
                                 {category === 'PAGO_LABORATORIO' && (
                                     <div className="animate-in slide-in-from-top-2 duration-200">
-                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 block">Laboratorio</label>
+                                        <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-2 block">Laboratorio</label>
                                         <select
                                             value={laboratory}
                                             onChange={e => setLaboratory(e.target.value)}
@@ -573,7 +573,7 @@ export default function CajaPage() {
 
                                 {/* Reason */}
                                 <div>
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 block">
+                                    <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-2 block">
                                         Motivo / Descripción
                                     </label>
                                     <textarea
@@ -589,7 +589,7 @@ export default function CajaPage() {
 
                                 {/* Receipt Upload */}
                                 <div>
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 block">
+                                    <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-2 block">
                                         Comprobante (Opcional)
                                     </label>
                                     <div className="relative">
@@ -601,7 +601,7 @@ export default function CajaPage() {
                                             id="caja-receipt"
                                         />
                                         <label htmlFor="caja-receipt" className={`w-full h-20 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                                            receiptFile ? 'border-primary bg-primary/5 text-primary' : 'border-stone-100 dark:border-stone-800 text-stone-400 hover:bg-stone-50'
+                                            receiptFile ? 'border-primary bg-primary/5 text-primary' : 'border-stone-100 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-50'
                                         }`}>
                                             {receiptFile ? (
                                                 <>

@@ -288,7 +288,7 @@ export function OrderDetailPanel({
                         </button>
                         {clientPrescriptions.length > 0 && (
                             <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-[9px] text-stone-400 font-bold uppercase tracking-wider flex-shrink-0">Cargar Receta:</span>
+                                <span className="text-[9px] text-stone-600 dark:text-stone-400 font-bold uppercase tracking-wider flex-shrink-0">Cargar Receta:</span>
                                 <select
                                     onChange={(e) => {
                                         if (e.target.value) {
@@ -314,7 +314,7 @@ export function OrderDetailPanel({
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-[10px]">
                         <thead>
-                            <tr className="border-b border-stone-200/50 dark:border-stone-800 text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest">
+                            <tr className="border-b border-stone-200/50 dark:border-stone-800 text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest">
                                 <th className="pb-1.5">Ojo</th>
                                 <th className="pb-1.5 text-center">Esfera</th>
                                 <th className="pb-1.5 text-center">Cilindro</th>
@@ -446,7 +446,7 @@ export function OrderDetailPanel({
                 {/* Lab Details Fields */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-stone-200/50 dark:border-stone-800">
                     <div>
-                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Material</label>
+                        <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Material</label>
                         <input
                             type="text"
                             value={pairRx.material}
@@ -456,7 +456,7 @@ export function OrderDetailPanel({
                         />
                     </div>
                     <div>
-                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Tratamiento</label>
+                        <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Tratamiento</label>
                         <input
                             type="text"
                             value={pairRx.treatment}
@@ -466,7 +466,7 @@ export function OrderDetailPanel({
                         />
                     </div>
                     <div>
-                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Color / Tinte</label>
+                        <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Color / Tinte</label>
                         <input
                             type="text"
                             value={pairRx.color}
@@ -476,7 +476,7 @@ export function OrderDetailPanel({
                         />
                     </div>
                     <div>
-                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Diámetro</label>
+                        <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Diámetro</label>
                         <input
                             type="text"
                             value={pairRx.diameter}
@@ -498,13 +498,13 @@ export function OrderDetailPanel({
                     const frameComplete = hasFrameMeasures(pairRx);
                     return (
                         <div className={`pt-2 border-t ${frameComplete ? 'border-stone-200/50 dark:border-stone-800' : 'border-red-200 dark:border-red-900/40'}`}>
-                            <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                            <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-1">
                                 Medidas del Armazón <span className="text-red-500">* obligatorio</span>
                             </label>
                             <div className="grid grid-cols-4 gap-2">
                                 {frameFields.map(f => (
                                     <div key={f.key}>
-                                        <label className="text-[7px] font-bold text-stone-400 uppercase block mb-0.5 text-center">{f.label}</label>
+                                        <label className="text-[7px] font-bold text-stone-600 dark:text-stone-400 uppercase block mb-0.5 text-center">{f.label}</label>
                                         <input
                                             type="text"
                                             value={pairRx[f.key] || ''}
@@ -523,7 +523,7 @@ export function OrderDetailPanel({
 
                 {/* Recipe Image Attachment */}
                 <div className="pt-2 border-t border-stone-200/50 dark:border-stone-800">
-                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                    <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-1">
                         Adjuntar Foto de Nueva Receta{rxChange && <span className="text-red-500"> * obligatorio</span>}
                     </label>
                     <div className="flex items-center gap-3">
@@ -752,7 +752,7 @@ export function OrderDetailPanel({
                                 <div className="space-y-4">
                                     <table className="w-full text-xs">
                                         <thead>
-                                            <tr className="text-[8px] font-black text-stone-400 uppercase tracking-widest border-b border-stone-100 dark:border-stone-700/50">
+                                            <tr className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest border-b border-stone-100 dark:border-stone-700/50">
                                                 <th className="text-left py-2">Ojo</th>
                                                 <th className="text-center py-2">Esf</th>
                                                 <th className="text-center py-2">Cil</th>
@@ -785,14 +785,14 @@ export function OrderDetailPanel({
                                     </table>
                                 </div>
                             ) : (
-                                <p className="text-xs text-stone-400 italic text-center py-4">Sin receta cargada</p>
+                                <p className="text-xs text-stone-600 dark:text-stone-400 italic text-center py-4">Sin receta cargada</p>
                             )}
                         </div>
 
                         {/* Imágen de Receta */}
                         {imageUrl && (
                             <div className="border-t border-stone-100 dark:border-stone-700 bg-stone-50/50 dark:bg-stone-900/50 p-4 flex flex-col items-center justify-center">
-                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-3 block w-full text-left">Foto de la Receta Médica</span>
+                                <span className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-3 block w-full text-left">Foto de la Receta Médica</span>
                                 <div 
                                     className="relative group cursor-pointer w-full max-w-sm rounded-xl overflow-hidden border-2 border-stone-200 dark:border-stone-700 shadow-sm transition-all hover:border-indigo-400 hover:shadow-indigo-500/20 hover:shadow-lg"
                                     onClick={() => setFullImageOpen(true)}
@@ -872,7 +872,7 @@ export function OrderDetailPanel({
                     <div className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 p-5 shadow-sm space-y-4">
                         <div className="flex justify-between items-center">
                             <span className="text-[10px] font-black text-stone-500 uppercase tracking-widest block">Cobertura de Seña</span>
-                            <span className="text-[9px] font-bold text-stone-400 italic">Mínimo para enviar: 50%</span>
+                            <span className="text-[9px] font-bold text-stone-600 dark:text-stone-400 italic">Mínimo para enviar: 50%</span>
                         </div>
                         
                         <div className="flex items-center gap-3">
@@ -923,7 +923,7 @@ export function OrderDetailPanel({
                                     </div>
                                 ) : (
                                     !order.authorizedByAdmin && (
-                                        <p className="text-[9px] font-bold text-stone-400 italic text-center">
+                                        <p className="text-[9px] font-bold text-stone-600 dark:text-stone-400 italic text-center">
                                             Solo un administrador puede autorizar este envío.
                                         </p>
                                     )
@@ -947,7 +947,7 @@ export function OrderDetailPanel({
                                     <FlaskConical className="w-3.5 h-3.5" /> Crizal del par
                                     {!crizalSel && <span className="text-red-500 normal-case font-bold">* obligatorio para enviar a fábrica</span>}
                                 </h4>
-                                {guardandoCrizal && <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-400" />}
+                                {guardandoCrizal && <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-600 dark:text-stone-400" />}
                             </div>
                             <div className="p-3 space-y-1.5">
                                 {opcionesCrizal.map(c => (
@@ -967,7 +967,7 @@ export function OrderDetailPanel({
                                     </button>
                                 ))}
                                 {is2x1 && (
-                                    <p className="text-[9px] text-stone-400 pt-1">Venta 2x1: siempre con Crizal — por eso no aparece "sin antirreflejo".</p>
+                                    <p className="text-[9px] text-stone-600 dark:text-stone-400 pt-1">Venta 2x1: siempre con Crizal — por eso no aparece "sin antirreflejo".</p>
                                 )}
                             </div>
                         </div>
@@ -984,7 +984,7 @@ export function OrderDetailPanel({
                             <div className="p-4 grid grid-cols-2 gap-4">
                                 {labFrame.origin && (
                                     <div className="col-span-2">
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Origen del Armazón</p>
+                                        <p className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Origen del Armazón</p>
                                         <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{labFrame.origin}</p>
                                     </div>
                                 )}
@@ -992,19 +992,19 @@ export function OrderDetailPanel({
                                     <React.Fragment key={pair.pair}>
                                         {pair.shape && (
                                             <div className={i === 0 ? '' : 'border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1'}>
-                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-400' : 'text-orange-500'}`}>Forma / Aro {i === 1 ? '(Par 2)' : ''}</p>
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-600 dark:text-stone-400' : 'text-orange-500'}`}>Forma / Aro {i === 1 ? '(Par 2)' : ''}</p>
                                                 <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1 uppercase">{pair.shape}</p>
                                             </div>
                                         )}
                                         {pair.measurements && (
                                             <div className={i === 0 ? '' : 'border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1'}>
-                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-400' : 'text-orange-500'}`}>Medidas {i === 1 ? '(Par 2)' : 'del Armazón'}</p>
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-600 dark:text-stone-400' : 'text-orange-500'}`}>Medidas {i === 1 ? '(Par 2)' : 'del Armazón'}</p>
                                                 <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{pair.measurements}</p>
                                             </div>
                                         )}
                                         {pair.details && (
                                             <div className="col-span-2 border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1">
-                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-400' : 'text-orange-500'}`}>Detalles del Armazón {i === 1 ? '(Par 2)' : ''}</p>
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-600 dark:text-stone-400' : 'text-orange-500'}`}>Detalles del Armazón {i === 1 ? '(Par 2)' : ''}</p>
                                                 <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{pair.details}</p>
                                             </div>
                                         )}
@@ -1013,7 +1013,7 @@ export function OrderDetailPanel({
                                             sola vez abajo no dice de cuál se habla. */}
                                         {(pair.tint || pair.photochromic) && (
                                             <div className="col-span-2 border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1">
-                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-400' : 'text-orange-500'}`}>Cristal {i === 1 ? '(Par 2)' : ''}</p>
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-600 dark:text-stone-400' : 'text-orange-500'}`}>Cristal {i === 1 ? '(Par 2)' : ''}</p>
                                                 {pair.tint && (
                                                     <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">Teñido · {pair.tint}</p>
                                                 )}
@@ -1031,7 +1031,7 @@ export function OrderDetailPanel({
                                     "¿cuál va teñido?". */}
                                 {labFrame.tint && labFrame.pairs.length <= 1 && (
                                     <div className="col-span-2">
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Tratamiento / Teñido</p>
+                                        <p className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Tratamiento / Teñido</p>
                                         <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{labFrame.tint.text}</p>
                                     </div>
                                 )}
@@ -1045,7 +1045,7 @@ export function OrderDetailPanel({
                                 )}
                                 {labFrame.notes && (
                                     <div className="col-span-2">
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones Lab</p>
+                                        <p className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Observaciones Lab</p>
                                         <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{labFrame.notes}</p>
                                     </div>
                                 )}
@@ -1083,7 +1083,7 @@ export function OrderDetailPanel({
                                 </div>
                             </div>
                             <div className="text-right border-l border-stone-800 pl-6">
-                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Abonado Real</span>
+                                <span className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block mb-1">Abonado Real</span>
                                 <span className="text-2xl font-black text-amber-400">${financials.paidReal.toLocaleString()}</span>
                             </div>
                         </div>
@@ -1142,7 +1142,7 @@ export function OrderDetailPanel({
 
                     {/* Progress Pipeline */}
                     <div className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 p-5 shadow-sm">
-                        <h4 className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-4">Línea de Tiempo</h4>
+                        <h4 className="text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-4">Línea de Tiempo</h4>
                         <div className="flex flex-col gap-2">
                             {LAB_STEPS.map((s, i) => {
                                 const currentIdx = LAB_STEPS.findIndex(x => x.key === (order.labStatus || 'NONE'));
@@ -1164,7 +1164,7 @@ export function OrderDetailPanel({
                                                 <div className={`w-0.5 h-4 my-1 ${isPast ? 'bg-indigo-200 dark:bg-indigo-900/50' : 'bg-stone-100 dark:bg-stone-800'}`} />
                                             )}
                                         </div>
-                                        <div className={`flex-1 pb-4 ${isCurrent ? 'font-black' : 'font-bold'} ${isPast ? 'text-stone-800 dark:text-stone-200' : 'text-stone-400'}`}>
+                                        <div className={`flex-1 pb-4 ${isCurrent ? 'font-black' : 'font-bold'} ${isPast ? 'text-stone-800 dark:text-stone-200' : 'text-stone-600 dark:text-stone-400'}`}>
                                             <span className="text-sm">{s.label}</span>
                                             {isCurrent && s.key === 'FINISHED' && (
                                                 <p className="text-[10px] text-fuchsia-500 font-bold mt-1">Esperando recepción física en local.</p>
@@ -1210,14 +1210,14 @@ export function OrderDetailPanel({
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="bg-white/60 dark:bg-black/20 p-3 rounded-xl border border-indigo-50 dark:border-indigo-900/30">
                                             <Layers className="w-4 h-4 text-indigo-400 mb-2" />
-                                            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Sector Actual</p>
+                                            <p className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Sector Actual</p>
                                             <p className="text-xs font-bold text-stone-800 dark:text-stone-200 truncate mt-0.5" title={order.smartLabSector || 'Desconocido'}>
                                                 {order.smartLabSector || '—'}
                                             </p>
                                         </div>
                                         <div className="bg-white/60 dark:bg-black/20 p-3 rounded-xl border border-indigo-50 dark:border-indigo-900/30">
                                             <Calendar className="w-4 h-4 text-indigo-400 mb-2" />
-                                            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Días en Lab</p>
+                                            <p className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Días en Lab</p>
                                             <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-0.5">
                                                 {order.smartLabDays != null ? `${order.smartLabDays} días` : '—'}
                                             </p>
@@ -1235,7 +1235,7 @@ export function OrderDetailPanel({
                                     <div className="w-10 h-10 rounded-full bg-indigo-100/50 dark:bg-indigo-900/30 flex items-center justify-center mb-3">
                                         <Activity className="w-4 h-4 text-indigo-300 dark:text-indigo-700" />
                                     </div>
-                                    <p className="text-xs text-stone-400 max-w-[200px]">Sin datos de fabricación sincronizados todavía.</p>
+                                    <p className="text-xs text-stone-600 dark:text-stone-400 max-w-[200px]">Sin datos de fabricación sincronizados todavía.</p>
                                 </div>
                             )}
                         </div>

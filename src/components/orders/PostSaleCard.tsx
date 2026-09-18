@@ -319,7 +319,7 @@ export function PostSaleCard({
                     <span className="text-[8px] font-black text-stone-500 w-5 flex-shrink-0">OD</span>
                     {odFields.map(f => (
                         <div key={f.key} className="flex-1 min-w-0">
-                            <label className="text-[6px] font-bold text-stone-400 uppercase block text-center">{f.label}</label>
+                            <label className="text-[6px] font-bold text-stone-600 dark:text-stone-400 uppercase block text-center">{f.label}</label>
                             <input type="text" value={pairRx[f.key] || ''} onChange={(e) => updateRxField(pairNum, f.key, e.target.value)}
                                 className="w-full text-center text-[10px] p-1 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 dark:text-stone-200" />
                         </div>
@@ -338,7 +338,7 @@ export function PostSaleCard({
                 {/* Current recipe image link */}
                 {pairRx.imageUrl && (
                     <div className="flex items-center gap-1.5 pt-1">
-                        <FileText className="w-3 h-3 text-stone-400" />
+                        <FileText className="w-3 h-3 text-stone-600 dark:text-stone-400" />
                         <a href={resolveStorageUrl(pairRx.imageUrl)} target="_blank" rel="noopener noreferrer"
                             className="text-[8px] text-blue-500 hover:underline font-bold">Ver receta actual</a>
                     </div>
@@ -360,16 +360,16 @@ export function PostSaleCard({
                         title={collapsed ? 'Abrir la tarjeta completa' : 'Colapsar'}
                     >
                         <h4 className="text-xs font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight truncate flex items-center gap-1">
-                            <ChevronDown className={`w-3 h-3 flex-shrink-0 text-stone-400 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
+                            <ChevronDown className={`w-3 h-3 flex-shrink-0 text-stone-600 dark:text-stone-400 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
                             <span className="truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                                 {order.client?.name || 'Cliente'}
                             </span>
                         </h4>
-                        <span className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mt-0.5 pl-4">
+                        <span className="text-[9px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mt-0.5 pl-4">
                             Venta #{order.id.slice(-4).toUpperCase()}
                         </span>
                     </button>
-                    <button onClick={onExpand} className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-755 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg transition-colors flex-shrink-0" title="Ver Ficha y Medidas">
+                    <button onClick={onExpand} className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-755 text-stone-600 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg transition-colors flex-shrink-0" title="Ver Ficha y Medidas">
                         <Eye className="w-3.5 h-3.5" />
                     </button>
                 </div>
@@ -447,9 +447,9 @@ export function PostSaleCard({
 
                 {/* Notes History */}
                 <div className={`bg-stone-50 dark:bg-stone-900/40 rounded-xl p-2.5 border border-stone-100 dark:border-stone-800 space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar ${collapsed ? 'hidden' : ''}`}>
-                    <p className="text-[7px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">Historial de Incidencia</p>
+                    <p className="text-[7px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">Historial de Incidencia</p>
                     {notesHistory.length === 0 ? (
-                        <p className="text-[9px] text-stone-400 italic">Sin observaciones registradas.</p>
+                        <p className="text-[9px] text-stone-600 dark:text-stone-400 italic">Sin observaciones registradas.</p>
                     ) : (
                         <div className="space-y-1.5 text-[9px] leading-relaxed font-semibold">
                             {notesHistory.map((line: string, i: number) => {
@@ -475,7 +475,7 @@ export function PostSaleCard({
                             <RotateCcw className="w-3 h-3" /> Reproceso
                         </span>
                         <button onClick={() => setShowReprocess(false)} className="p-1 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-md transition-colors">
-                            <X className="w-3 h-3 text-stone-400" />
+                            <X className="w-3 h-3 text-stone-600 dark:text-stone-400" />
                         </button>
                     </div>
 
@@ -509,12 +509,12 @@ export function PostSaleCard({
 
                             {/* New Recipe Image Upload */}
                             <div className="space-y-1.5">
-                                <label className="text-[7px] font-black text-stone-400 uppercase tracking-widest block">
+                                <label className="text-[7px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block">
                                     Adjuntar Nueva Receta{rxChange && <span className="text-red-500"> * obligatorio</span>}
                                 </label>
                                 <div className="flex items-center gap-2">
                                     <label className={`flex-1 flex items-center gap-2 px-3 py-2 bg-stone-50 dark:bg-stone-900 border border-dashed rounded-xl cursor-pointer transition-colors ${rxChangeMissingImage ? 'border-red-400 hover:border-red-500' : 'border-stone-300 dark:border-stone-700 hover:border-amber-400'}`}>
-                                        <Upload className={`w-3.5 h-3.5 ${rxChangeMissingImage ? 'text-red-400' : 'text-stone-400'}`} />
+                                        <Upload className={`w-3.5 h-3.5 ${rxChangeMissingImage ? 'text-red-400' : 'text-stone-600 dark:text-stone-400'}`} />
                                         <span className="text-[9px] text-stone-500 font-semibold truncate">
                                             {newRxImageFile ? newRxImageFile.name : 'Seleccionar imagen...'}
                                         </span>
@@ -581,14 +581,14 @@ export function PostSaleCard({
                     ) : order.postSaleOrderOption === 'SAME' ? (
                         <div className="space-y-3">
                             <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-3 border border-stone-200/50 dark:border-stone-800">
-                                <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-2">Datos del Pedido Original</p>
+                                <p className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-2">Datos del Pedido Original</p>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px]">
-                                    <div className="flex justify-between"><span className="text-stone-400 font-bold">OP:</span><span className="font-black text-stone-700 dark:text-stone-200">#{order.labOrderNumber || '—'}</span></div>
+                                    <div className="flex justify-between"><span className="text-stone-600 dark:text-stone-400 font-bold">OP:</span><span className="font-black text-stone-700 dark:text-stone-200">#{order.labOrderNumber || '—'}</span></div>
                                     {order.prescription && (<>
-                                        <div className="flex justify-between"><span className="text-stone-400 font-bold">Esf OD:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.sphereOD ?? '—'}</span></div>
-                                        <div className="flex justify-between"><span className="text-stone-400 font-bold">Esf OI:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.sphereOI ?? '—'}</span></div>
-                                        <div className="flex justify-between"><span className="text-stone-400 font-bold">Cil OD:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.cylinderOD ?? '—'}</span></div>
-                                        <div className="flex justify-between"><span className="text-stone-400 font-bold">Cil OI:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.cylinderOI ?? '—'}</span></div>
+                                        <div className="flex justify-between"><span className="text-stone-600 dark:text-stone-400 font-bold">Esf OD:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.sphereOD ?? '—'}</span></div>
+                                        <div className="flex justify-between"><span className="text-stone-600 dark:text-stone-400 font-bold">Esf OI:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.sphereOI ?? '—'}</span></div>
+                                        <div className="flex justify-between"><span className="text-stone-600 dark:text-stone-400 font-bold">Cil OD:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.cylinderOD ?? '—'}</span></div>
+                                        <div className="flex justify-between"><span className="text-stone-600 dark:text-stone-400 font-bold">Cil OI:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.cylinderOI ?? '—'}</span></div>
                                     </>)}
                                 </div>
                             </div>

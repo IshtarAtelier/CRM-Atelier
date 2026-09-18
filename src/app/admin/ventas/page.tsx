@@ -1066,9 +1066,9 @@ export default function VentasPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div>
                         <h1 className="text-3xl lg:text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
-                            <ShoppingCart className={`w-8 h-8 lg:w-9 lg:h-9 ${viewMode === 'POST_VENTA' ? 'text-amber-500' : webOnly ? 'text-sky-500' : 'text-emerald-500'}`} /> {viewMode === 'POST_VENTA' ? 'Post Venta' : webOnly ? 'Ventas Web' : 'Ventas'}
+                            <ShoppingCart className={`w-8 h-8 lg:w-9 lg:h-9 ${viewMode === 'POST_VENTA' ? 'text-amber-500' : webOnly ? 'text-sky-500' : 'text-emerald-700 dark:text-emerald-400'}`} /> {viewMode === 'POST_VENTA' ? 'Post Venta' : webOnly ? 'Ventas Web' : 'Ventas'}
                         </h1>
-                        <p className="text-stone-400 text-xs lg:text-sm mt-1">{viewMode === 'POST_VENTA' ? 'Gestión de reclamos, reposiciones y garantías' : webOnly ? 'Ventas de la tienda online pendientes de confirmación humana' : 'Operaciones confirmadas y enviadas a laboratorio'}</p>
+                        <p className="text-stone-600 dark:text-stone-400 text-xs lg:text-sm mt-1">{viewMode === 'POST_VENTA' ? 'Gestión de reclamos, reposiciones y garantías' : webOnly ? 'Ventas de la tienda online pendientes de confirmación humana' : 'Operaciones confirmadas y enviadas a laboratorio'}</p>
                     </div>
 
                     {/* View Switcher Pill */}
@@ -1078,7 +1078,7 @@ export default function VentasPage() {
                             className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                                 viewMode === 'VENTAS'
                                     ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
-                                    : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
                             }`}
                         >
                             🛍️ Ventas
@@ -1088,7 +1088,7 @@ export default function VentasPage() {
                             className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                                 viewMode === 'POST_VENTA'
                                     ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
-                                    : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
                             }`}
                         >
                             🛡️ Post-Venta ({postSaleOrders.length})
@@ -1099,8 +1099,8 @@ export default function VentasPage() {
                 {viewMode === 'VENTAS' ? (
                     isAdmin && (
                         <div className="text-left md:text-right w-full md:w-auto p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl md:bg-transparent md:p-0">
-                            <p className="text-2xl lg:text-3xl font-black text-emerald-500">${stats.revenue.toLocaleString()}</p>
-                            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Facturación total</p>
+                            <p className="text-2xl lg:text-3xl font-black text-emerald-700 dark:text-emerald-400">${stats.revenue.toLocaleString()}</p>
+                            <p className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Facturación total</p>
                         </div>
                     )
                 ) : (
@@ -1146,7 +1146,7 @@ export default function VentasPage() {
                         </button>
                         <div className="text-right">
                             <p className="text-3xl font-black text-amber-500">{postSaleOrders.length}</p>
-                            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Casos activos</p>
+                            <p className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Casos activos</p>
                         </div>
                     </div>
                 )}
@@ -1254,8 +1254,8 @@ export default function VentasPage() {
                 <div className="flex items-center gap-4 flex-wrap">
                     {/* Lab filter dropdown */}
                     <div className="flex items-center gap-3 bg-white dark:bg-stone-900 backdrop-blur-sm px-4 py-2 rounded-full border border-stone-300 dark:border-stone-700">
-                        <FlaskConical className="w-4 h-4 text-stone-400" />
-                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Lab:</span>
+                        <FlaskConical className="w-4 h-4 text-stone-600 dark:text-stone-400" />
+                        <span className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Lab:</span>
                         <select
                             value={filterLaboratory}
                             onChange={e => setFilterLaboratory(e.target.value)}
@@ -1277,9 +1277,9 @@ export default function VentasPage() {
                         {filterSeller !== 'ALL' && filterSeller !== '__LOADING__' ? (
                             <User className="w-4 h-4 text-amber-500" />
                         ) : (
-                            <Users className="w-4 h-4 text-stone-400" />
+                            <Users className="w-4 h-4 text-stone-600 dark:text-stone-400" />
                         )}
-                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Vendedor:</span>
+                        <span className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Vendedor:</span>
                         <select
                             value={filterSeller}
                             onChange={e => setFilterSeller(e.target.value)}
@@ -1299,15 +1299,15 @@ export default function VentasPage() {
                     {/* Date filters */}
                     {isAdmin && (
                         <div className="flex items-center gap-3 bg-white dark:bg-stone-900 backdrop-blur-sm px-4 py-2.5 rounded-full border border-stone-300 dark:border-stone-700">
-                            <Calendar className="w-4 h-4 text-stone-400" />
-                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Desde:</span>
+                            <Calendar className="w-4 h-4 text-stone-600 dark:text-stone-400" />
+                            <span className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest">Desde:</span>
                             <input
                                 type="date"
                                 value={dateFrom}
                                 onChange={e => setDateFrom(e.target.value)}
                                 className="bg-transparent text-xs font-bold text-stone-700 dark:text-stone-300 outline-none cursor-pointer"
                             />
-                            <span className="text-stone-400 text-xs font-black px-2">a</span>
+                            <span className="text-stone-600 dark:text-stone-400 text-xs font-black px-2">a</span>
                             <input
                                 type="date"
                                 value={dateTo}
@@ -1332,7 +1332,7 @@ export default function VentasPage() {
             {loading ? (
                 <div className="text-center py-20">
                     <div className="w-10 h-10 border-4 border-stone-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-sm font-bold text-stone-400">Cargando ventas...</p>
+                    <p className="text-sm font-bold text-stone-600 dark:text-stone-400">Cargando ventas...</p>
                 </div>
             ) : error ? (
                 <div className="text-center py-20 border-2 border-dashed border-red-200 dark:border-red-900/30 rounded-3xl bg-red-50/30 dark:bg-red-900/10">
@@ -1539,7 +1539,7 @@ export default function VentasPage() {
                                                                     <span className="text-[8px] font-bold text-stone-500">
                                                                         🔹 {d.num}
                                                                     </span>
-                                                                    <span className={`text-[9px] font-black ${d.progress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                                                    <span className={`text-[9px] font-black ${d.progress >= 100 ? 'text-emerald-700 dark:text-emerald-400' : 'text-blue-600'}`}>
                                                                         {d.progress}%
                                                                     </span>
                                                                 </div>
@@ -1549,7 +1549,7 @@ export default function VentasPage() {
                                                                         style={{ width: `${Math.min(100, d.progress)}%` }}
                                                                     />
                                                                 </div>
-                                                                <span className="text-[7px] font-bold text-stone-400">{d.sector}</span>
+                                                                <span className="text-[7px] font-bold text-stone-600 dark:text-stone-400">{d.sector}</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1559,7 +1559,7 @@ export default function VentasPage() {
                                                             <span className="text-[9px] font-bold text-stone-600 dark:text-stone-300">
                                                                 {order.smartLabSector || '\u2014'}
                                                             </span>
-                                                            <span className={`text-[10px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                                            <span className={`text-[10px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-700 dark:text-emerald-400' : 'text-blue-600'}`}>
                                                                 {order.smartLabProgress}%
                                                             </span>
                                                         </div>
@@ -1594,13 +1594,13 @@ export default function VentasPage() {
                                             >
                                                 {order.labOrderNumber ? (
                                                     <div>
-                                                        <span className="text-[8px] lg:text-[9px] font-black text-stone-400 uppercase tracking-widest block">
+                                                        <span className="text-[8px] lg:text-[9px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block">
                                                             N° Op. Lab {orderLabs.length > 0 ? `(${orderLabs.join(', ')})` : ''}
                                                         </span>
                                                         <span className="text-xs lg:text-sm font-black text-stone-800 dark:text-white">{order.labOrderNumber}</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-2 text-stone-400 group-hover:text-emerald-500">
+                                                    <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400 group-hover:text-emerald-700 dark:text-emerald-400">
                                                         <Pencil className="w-3.5 h-3.5" />
                                                         <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">
                                                             Agregar N° Op. {orderLabs.length > 0 ? `(${orderLabs.join(', ')})` : ''}
@@ -1693,7 +1693,7 @@ export default function VentasPage() {
                                                         <button
                                                             onClick={() => handleSendWhatsAppInvoice(order, inv.id)}
                                                             disabled={requestingInvoiceId === `wsp-${inv.id}`}
-                                                            className="p-2 hover:bg-[#25D366]/10 text-stone-400 hover:text-[#25D366] transition-all rounded-lg disabled:opacity-50"
+                                                            className="p-2 hover:bg-[#25D366]/10 text-stone-600 dark:text-stone-400 hover:text-[#25D366] transition-all rounded-lg disabled:opacity-50"
                                                             title="Enviar Factura por WhatsApp"
                                                         >
                                                             {requestingInvoiceId === `wsp-${inv.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <WhatsAppIcon className="w-4 h-4" />}
@@ -1836,7 +1836,7 @@ export default function VentasPage() {
                                         {isAdmin ? (
                                             <button
                                                 onClick={() => handleDeleteRequest(order.id)}
-                                                className="p-3 bg-red-50 text-red-500 rounded-xl hover:scale-110 transition-all"
+                                                className="p-3 bg-red-50 text-red-600 dark:text-red-400 rounded-xl hover:scale-110 transition-all"
                                                 title="Eliminar venta"
                                             >
                                                 <X className="w-4 h-4" />
@@ -1872,7 +1872,7 @@ export default function VentasPage() {
             {/* Pagination Controls */}
             {!loading && !error && orders.length > 0 && (
                 <div className="mt-8 flex flex-col items-center gap-4">
-                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">
+                    <p className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest">
                         Mostrando {filteredOrders.length} de {totalOrders} ventas
                     </p>
                     {!allLoaded && (
@@ -1901,7 +1901,7 @@ export default function VentasPage() {
                 <div className="space-y-6">
                     {/* Search bar for post-sales */}
                     <div className="relative flex-1 group max-w-lg">
-                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 group-focus-within:text-amber-500 transition-colors duration-300" />
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-600 dark:text-stone-400 group-focus-within:text-amber-500 transition-colors duration-300" />
                         <input
                             type="text"
                             placeholder="Buscar por cliente, id, N° de OP o nota..."
@@ -1922,7 +1922,7 @@ export default function VentasPage() {
                         if (entries.length === 0) return null;
                         return (
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest mr-1">Por tipo:</span>
+                                <span className="text-[9px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest mr-1">Por tipo:</span>
                                 <button
                                     onClick={() => setCaseTypeFilter('')}
                                     className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border transition-all ${caseTypeFilter === '' ? 'bg-stone-800 text-white border-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750 hover:border-stone-400'}`}
@@ -2037,7 +2037,7 @@ export default function VentasPage() {
                                         </div>
                                         <button
                                             onClick={() => setExpandedDetail(null)}
-                                            className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors flex-shrink-0"
+                                            className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors flex-shrink-0"
                                             title="Cerrar ficha"
                                         >
                                             <X className="w-4 h-4" />
