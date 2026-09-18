@@ -155,6 +155,63 @@ export async function sendWhatsApp(input: SendWhatsAppInput): Promise<SendWhatsA
     };
 }
 
+/**
+ * ¿El envío falló por un tropiezo pasajero del lado de Meta o del wa-service,
+ * que un segundo intento suele resolver?
+ *
+ * SÍ: un 5xx real del wa-service, el bot desconectado un instante, o Meta
+ * contestando "(#131000) Something went wrong" / 5xx — su error genérico
+ * transitorio, documentado como "reintentar".
+ *
+ * NO, nunca: el resultado AMBIGUO (la request se cortó sin respuesta: el
+ * mensaje PUDO haber salido, y reintentar se lo manda dos veces al cliente y
+ * cobra dos conversaciones), ni los fallos definitivos — ventana cerrada sin
+ * plantilla, número inválido, plantilla rechazada, destinatario no permitido,
+ * regla anti-spam —, que no cambian por insistir.
+ */
+export function esFalloTransitorio(r: SendWhatsAppResult): boolean {
+    if (r.ok) return false;
+    if (r.code === AMBIGUO) return false;
+    const definitivos = new Set(['WINDOW_CLOSED', 'INVALID_NUMBER', 'TEMPLATE_ERROR', 'RECIPIENT_NOT_ALLOWED', 'BLOCKED']);
+    if (r.code && definitivos.has(r.code)) return false;
+    if (r.code === 'NOT_CONNECTED' || r.code === 'TIMEOUT') return true;
+    if (typeof r.status === 'number' && r.status >= 500) return true;
+    const e = r.error || '';
+    return /Graph 5\d\d/.test(e) || /#131000\b/.test(e) || /#131016\b/.test(e) || /#130429\b/.test(e);
+}
+
+const ESPERA_ENTRE_INTENTOS_MS = [2000, 5000];
+
+/**
+ * `sendWhatsApp` con hasta tres intentos ante un fallo transitorio.
+ *
+ * Para los envíos que son plata o compromiso con el cliente: el recibo de un
+ * pago, la confirmación de compra, el aviso interno de cobro. Con un solo
+ * intento, un "Something went wrong" de Meta que dura dos segundos se llevaba
+ * el recibo para siempre: pasó el 7/9, el 8/9 y el 17/9/2026 (Luis Greca) —
+ * tres recibos en diez días, cada uno con la ficha marcada en rojo y una
+ * vendedora reenviándolo a mano.
+ *
+ * Devuelve el ÚLTIMO resultado tal cual, así los llamadores siguen leyendo
+ * `ok`, `code` y `error` como siempre; la diferencia es que solo llegan a ver
+ * un fallo cuando de verdad no hubo forma.
+ */
+export async function sendWhatsAppConReintento(
+    input: SendWhatsAppInput,
+    opts: { intentos?: number; label?: string } = {},
+): Promise<SendWhatsAppResult> {
+    const intentos = Math.max(1, opts.intentos ?? 3);
+    const label = opts.label || 'envío';
+    let r = await sendWhatsApp(input);
+    for (let i = 1; i < intentos && esFalloTransitorio(r); i++) {
+        const espera = ESPERA_ENTRE_INTENTOS_MS[Math.min(i - 1, ESPERA_ENTRE_INTENTOS_MS.length - 1)];
+        console.warn(`[sendWhatsApp] ${label}: fallo transitorio (${r.code || r.status}: ${r.error}). Reintento ${i}/${intentos - 1} en ${espera} ms.`);
+        await new Promise(res => setTimeout(res, espera));
+        r = await sendWhatsApp(input);
+    }
+    return r;
+}
+
 /** Texto corto para mostrarle al vendedor cuando un envío no salió. */
 export function explainSendFailure(r: SendWhatsAppResult): string {
     switch (r.code) {

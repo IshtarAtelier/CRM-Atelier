@@ -17,7 +17,7 @@
 
 import { prisma } from '@/lib/db';
 import { escHtml, sendClientEmail } from '@/lib/client-email';
-import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
+import { sendWhatsApp, sendWhatsAppConReintento, explainSendFailure } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
@@ -715,7 +715,7 @@ export async function sendSaleConfirmation(
                 // Texto libre + PDF dentro de la ventana de 24 h; si está
                 // cerrada, plantilla "venta_confirmada" (A2) con el PDF de encabezado.
                 const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
-                const res = await sendWhatsApp({
+                const res = await sendWhatsAppConReintento({
                     chatId: `${normalizeArgentinePhone(tel)}@c.us`,
                     message: conf.waText,
                     senderName: 'Sistema Atelier',

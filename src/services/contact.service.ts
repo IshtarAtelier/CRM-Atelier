@@ -6,7 +6,7 @@ import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAY
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
-import { sendWhatsApp } from '@/lib/whatsapp/send';
+import { sendWhatsApp, sendWhatsAppConReintento } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { logAudit } from '@/lib/audit';
 import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
@@ -2391,7 +2391,7 @@ export const ContactService = {
                         //
                         // Ningún valor puede ir vacío o Meta rechaza el envío: por
                         // eso la referencia cae en "—" cuando no hay notas.
-                        const r = await sendWhatsApp({
+                        const r = await sendWhatsAppConReintento({
                             chatId: ADMIN_WHATSAPP_PHONE,
                             message: msgText,
                             senderName: 'Sistema Atelier',
@@ -2410,6 +2410,15 @@ export const ContactService = {
                             ]),
                         });
                         if (!r.ok) console.error('[Payment Notification] Aviso interno por WhatsApp no salió:', r.code, r.error);
+                        // Rastro del resultado, como ya lo deja `aviso_procesado`. Hasta
+                        // el 17/9/2026 este aviso fallaba en un console.error y nada
+                        // más: la dueña notaba que "no le llegó el detalle del pago" y
+                        // no había dónde mirar por qué.
+                        await logAudit({
+                            userId: actor?.id, userName: actor?.name,
+                            action: 'NOTIFY', entityType: 'ORDER', entityId: orderId,
+                            details: { tipo: 'aviso_pago_interno', ok: r.ok, motivo: r.ok ? null : `${r.code || r.status}: ${r.error}` },
+                        });
                     })().catch(e => console.error('[Payment Notification] Aviso interno:', e.message));
 
                     // Canal EMAIL: si la ficha tiene mail cargado, el recibo va también
@@ -2454,7 +2463,7 @@ export const ContactService = {
                         // mensaje, texto y recibo juntos. Con ventana abierta (o
                         // transporte legacy) sigue el camino de dos mensajes.
                         const nroPedido = `#${String(orderId).slice(-4).toUpperCase()}`;
-                        const resClient = await sendWhatsApp({
+                        const resClient = await sendWhatsAppConReintento({
                             chatId: phoneTo,
                             message: clientMsgText,
                             senderName: 'Sistema Atelier',
@@ -2521,7 +2530,7 @@ export const ContactService = {
 
                             if (pdfMedia && !pdfYaEntregadoPorPlantilla) {
                                 try {
-                                    const resPdf = await sendWhatsApp({
+                                    const resPdf = await sendWhatsAppConReintento({
                                         chatId: phoneTo,
                                         message: '',
                                         senderName: 'Sistema Atelier',

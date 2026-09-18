@@ -44,6 +44,11 @@ jobs:
       - name: La plata y las fechas, en argentino
         run: npm run check:plata
 
+      # Sin base ni red: lee tres archivos. Evita que un recibo de pago vuelva
+      # a perderse por un "Something went wrong" pasajero de Meta.
+      - name: Los envíos de plata reintentan
+        run: npm run check:reintentos
+
       - name: Run ESLint
         run: npm run lint
 
