@@ -62,6 +62,11 @@ export class ReportService {
                 },
                 client: { select: { name: true, doctor: true } },
                 user: { select: { id: true, name: true } },
+                // Quién la MANDÓ A FÁBRICA: ese es el vendedor de la venta, no
+                // quien la cargó (regla de CLAUDE.md). Se piden explícitos
+                // porque este query usa `select`.
+                labSentById: true,
+                labSentBy: true,
                 items: {
                     select: {
                         quantity: true,
@@ -198,8 +203,17 @@ export class ReportService {
             clientStats[cId].total += orderPaidReal;
             clientStats[cId].orders += 1;
 
-            const vId = order.userId;
-            const vName = order.user?.name || 'Sin asignar';
+            // EL VENDEDOR ES QUIEN LA MANDÓ A FÁBRICA. Regla de CLAUDE.md, y
+            // acá no se cumplía: se usaba `userId`, o sea quien CARGÓ la venta.
+            // Medido contra producción el 17/9/2026: 24 de 276 ventas de los
+            // últimos 120 días tienen `labSentById` distinto de `userId` — un
+            // 8,7% del facturado le contaba al vendedor equivocado en las
+            // métricas por vendedor y en los objetivos por mes.
+            // El fallback a `userId` sí es correcto para las que todavía no se
+            // mandaron a fábrica: es el mismo criterio que la fecha de dos
+            // líneas más abajo (`labSentAt || createdAt`).
+            const vId = order.labSentById || order.userId;
+            const vName = order.labSentBy || order.user?.name || 'Sin asignar';
             if (!vendorStats[vId]) vendorStats[vId] = { name: vName, revenue: 0, orders: 0, avgTicket: 0 };
             vendorStats[vId].revenue += orderPaidReal;
             vendorStats[vId].orders += 1;

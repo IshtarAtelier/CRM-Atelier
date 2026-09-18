@@ -708,21 +708,29 @@ export async function GET(request: Request) {
         let personalConfirmedCount = 0;
 
         if (userId) {
+            // "Mis ventas" son las que YO mandé a fábrica, no las que yo cargué
+            // (regla de CLAUDE.md: el vendedor es `labSentBy`). El fallback a
+            // `userId` vale solo para las que todavía no se mandaron, que es el
+            // mismo criterio que usa la fecha acá abajo.
+            //
+            // Va como AND de dos grupos y no como un `OR` suelto: el filtro de
+            // fecha ya usaba `OR`, y dos `OR` en el mismo objeto se pisan — el
+            // segundo borraría al primero y el conteo saldría sobre todas las
+            // ventas de cualquier fecha.
             const personalSoldWhere: any = {
-                userId,
                 orderType: 'SALE',
-                isDeleted: false
+                isDeleted: false,
+                AND: [
+                    { OR: [{ labSentById: userId }, { labSentById: null, userId }] },
+                ],
             };
             if (hasDateFilter && Object.keys(dateFilter).length > 0) {
-                personalSoldWhere.OR = [
-                    { labSentAt: dateFilter },
-                    {
-                        AND: [
-                            { labSentAt: null },
-                            { createdAt: dateFilter }
-                        ]
-                    }
-                ];
+                personalSoldWhere.AND.push({
+                    OR: [
+                        { labSentAt: dateFilter },
+                        { AND: [{ labSentAt: null }, { createdAt: dateFilter }] },
+                    ],
+                });
             }
             personalSoldMonth = await prisma.order.count({
                 where: personalSoldWhere
