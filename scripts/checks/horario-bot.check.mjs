@@ -81,9 +81,32 @@ console.log('\nEl bot se calla cuando interviene una persona');
     check('escribir desde el CELULAR (eco) también lo apaga', cloud.includes('async function onEcho') && cloud.includes('marcarTraspasoHumano'));
 
     const bc = readFileSync(new URL('../../wa-service/bot-cloud.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-    check('si una persona contesta MIENTRAS el bot piensa, la respuesta se descarta', bc.includes('humanoMientrasTanto') && bc.includes('comienzoDelTurno'));
-    check('ese control va ANTES de enviar', bc.indexOf('humanoMientrasTanto') < bc.indexOf('botReplyingTo.add(waId)'));
-    check('y además apaga el bot en ese chat', /if \(humanoMientrasTanto\)[\s\S]{0,400}disableBotForChatById/.test(bc));
+    // Se afirma la CONDUCTA, no el nombre de una variable. Antes se buscaba
+    // `humanoMientrasTanto` literal: al renombrarla, dos de estas tres
+    // fallaron sin que la conducta hubiera cambiado, y la tercera pasó EN
+    // FALSO —comparaba `indexOf(...) < indexOf(...)` y el primero valía −1,
+    // que es menor que cualquier cosa—. Un check que pasa porque no encuentra
+    // lo que busca es el peor de todos.
+    const preguntaPorHumano = /senderName: \{ notIn: NOMBRES_NO_HUMANOS \}/;
+    check('si una persona contesta MIENTRAS el bot piensa, la respuesta se descarta',
+        preguntaPorHumano.test(bc) && bc.includes('comienzoDelTurno'));
+
+    const posPregunta = bc.search(preguntaPorHumano);
+    const posEnvio = bc.indexOf('botReplyingTo.add(waId)');
+    check('ese control va ANTES de enviar', posPregunta > -1 && posEnvio > -1 && posPregunta < posEnvio);
+
+    // Por `marcarTraspasoHumano` y no por `disableBotForChatById` a secas: el
+    // helper apaga Y deja la etiqueta de traspaso, que es lo que después
+    // habilita que el bot vuelva solo a las 3 horas.
+    check('y además apaga el bot en ese chat', bc.includes('marcarTraspasoHumano'));
+
+    // La garantía fuerte, agregada el 17/9/2026 después de que el bot se
+    // encimara con Milena: preguntar una vez antes del primer envío no alcanza
+    // —entre burbuja y burbuja pasan segundos— así que se pregunta antes de
+    // CADA una. Se verifica que la pregunta viva en una función reusable y que
+    // se la llame más de una vez.
+    const llamadas = (bc.match(/await humanoSeAdelanto\(\)/g) || []).length;
+    check('y se vuelve a preguntar antes de CADA burbuja', llamadas >= 2);
     check('un turno con el bot apagado en el chat no llega a hablar', bc.includes('if (!freshChat || !freshChat.botEnabled)'));
 }
 
