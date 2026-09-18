@@ -7,6 +7,7 @@ import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
 import { sendWhatsApp, sendWhatsAppConReintento } from '@/lib/whatsapp/send';
+import { etiquetaMetodoDePago, textoReciboPago } from '@/lib/recibo-pago';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { logAudit } from '@/lib/audit';
 import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
@@ -2318,19 +2319,9 @@ export const ContactService = {
                     }).catch(err => console.error('[Payment Notification] Error email administración:', err));
 
                     const today = new Date().toLocaleDateString('es-AR');
-                    let methodLabel = method;
-                    if (method === 'EFECTIVO' || method === 'CASH') methodLabel = 'en efectivo';
-                    else if (method.includes('TRANSFERENCIA')) methodLabel = 'mediante transferencia bancaria';
-                    else if (method.includes('NARANJA_Z') || method === 'PLAN_Z') methodLabel = 'mediante Tarjeta Naranja (Plan Z)';
-                    else if (method.includes('PAY_WAY_3') || method === 'CREDIT_3') methodLabel = 'mediante Tarjeta de Crédito (3 Cuotas)';
-                    else if (method.includes('PAY_WAY_6') || method === 'CREDIT_6') methodLabel = 'mediante Tarjeta de Crédito (6 Cuotas)';
-                    else if (method.includes('PAY_WAY')) methodLabel = 'mediante Tarjeta de Crédito';
-                    else if (method.includes('MERCADO_PAGO_3')) methodLabel = 'mediante Mercado Pago (3 Cuotas sin interés)';
-                    else if (method.includes('MERCADO_PAGO_6')) methodLabel = 'mediante Mercado Pago (6 Cuotas sin interés)';
-                    else if (method.includes('MERCADO_PAGO_12')) methodLabel = 'mediante Mercado Pago (12 Cuotas, con 10% de costo financiero)';
-                    else if (method.includes('MERCADO_PAGO_18')) methodLabel = 'mediante Mercado Pago (18 Cuotas, con 10% de costo financiero)';
-                    else if (method.includes('GO_CUOTAS')) methodLabel = 'mediante Go Cuotas';
-                    else methodLabel = `mediante ${method.replace(/_/g, ' ')}`;
+                    // Etiqueta y texto del recibo por su helper: el reenvío a mano
+                    // desde la ficha tiene que decir EXACTAMENTE lo mismo.
+                    const methodLabel = etiquetaMetodoDePago(method);
 
                     // Generar PDF del recibo (una sola vez: lo usan WhatsApp Y email).
                     // De la misma consulta sale el email del cliente para el canal nuevo.
@@ -2450,7 +2441,7 @@ export const ContactService = {
                         let phoneTo = normalizeArgentinePhone(result.clientPhone);
                         if (!phoneTo.endsWith('@c.us')) phoneTo = `${phoneTo}@c.us`;
 
-                        const clientMsgText = `Hola *${result.clientName}*, desde Atelier te informamos que hemos recibido tu pago ${methodLabel} por *$${amount.toLocaleString('es-AR')}* con fecha *${today}*. ¡Muchas gracias!`;
+                        const clientMsgText = textoReciboPago({ clientName: result.clientName, method, amount, fecha: today });
 
                         // Enviar al cliente en DOS mensajes: primero el TEXTO solo,
                         // después el PDF. Producción (5/8/2026) mostró que los envíos

@@ -709,6 +709,7 @@ export async function sendSaleConfirmation(
 
         // ── WhatsApp ─────────────────────────────────────────────────────────
         let sinRegistro = false;
+        let viaWhatsApp: 'text' | 'template' | null = null;
         const tel = (order.client.phone || '').replace(/\D/g, '');
         if (tel.length >= 10) {
             try {
@@ -736,6 +737,7 @@ export async function sendSaleConfirmation(
                     })() : null,
                 });
                 resultado.whatsapp = res.ok;
+                viaWhatsApp = res.via ?? null;
                 // El wa-service contestó OK pero el mensaje no quedó en la
                 // conversación: el vendedor no lo puede verificar y el ✅ de la
                 // ficha no prueba nada. Se anota como lo que es.
@@ -816,7 +818,10 @@ export async function sendSaleConfirmation(
             action: 'NOTIFY',
             entityType: 'ORDER',
             entityId: order.id,
-            details: { tipo: 'confirmacion_compra', email: resultado.email, whatsapp: resultado.whatsapp, version: version || 1 },
+            // `via`: si salió como plantilla (ventana de 24 h cerrada) el cliente
+            // recibió el resumen corto; `enviarConfirmacionesCompletasPendientes`
+            // le manda la completa cuando vuelve a escribir.
+            details: { tipo: 'confirmacion_compra', email: resultado.email, whatsapp: resultado.whatsapp, version: version || 1, via: resultado.whatsapp ? (viaWhatsApp || 'text') : null },
         }).catch(err => console.error('[Confirmación de compra] audit:', err));
 
         return resultado;
@@ -824,4 +829,102 @@ export async function sendSaleConfirmation(
         console.error('[Confirmación de compra] Error inesperado:', err);
         return resultado;
     }
+}
+
+/**
+ * La confirmación COMPLETA para quien recibió solo la corta.
+ *
+ * Fuera de la ventana de 24 h Meta solo permite plantillas aprobadas, y
+ * `venta_confirmada` lleva nombre, número y monto con el PDF adjunto: Mary Lara
+ * y Samira Dalit (17/9/2026) recibieron eso y la dueña vio "salió solo el PDF".
+ * Con la ventana abierta sale el repaso entero y la foto del armazón — que es
+ * el control que el cliente sí puede hacer.
+ *
+ * Esto cierra la brecha: cada 10 minutos busca las confirmaciones que salieron
+ * como plantilla y cuyo cliente ESCRIBIÓ DESPUÉS (la ventana se abrió), y les
+ * manda la versión completa como texto libre, más las fotos. Sin plantilla a
+ * propósito: si la ventana volvió a cerrarse, el envío se rechaza y se vuelve a
+ * intentar en la próxima corrida — nunca se repite la corta.
+ *
+ * Idempotente por la auditoría: una vez enviada queda `confirmacion_completa`
+ * y no se vuelve a mandar aunque el cliente escriba diez veces más.
+ */
+export async function enviarConfirmacionesCompletasPendientes(): Promise<{ revisadas: number; enviadas: number; pendientes: number }> {
+    const hace14d = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const hace23h = new Date(Date.now() - 23 * 60 * 60 * 1000);
+
+    const cortas = await prisma.auditLog.findMany({
+        where: {
+            action: 'NOTIFY', entityType: 'ORDER', createdAt: { gte: hace14d },
+            AND: [
+                { details: { path: ['tipo'], equals: 'confirmacion_compra' } },
+                { details: { path: ['via'], equals: 'template' } },
+            ],
+        },
+        select: { entityId: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+    });
+    if (!cortas.length) return { revisadas: 0, enviadas: 0, pendientes: 0 };
+
+    const ids = [...new Set(cortas.map(c => c.entityId))];
+    const yaCompletas = await prisma.auditLog.findMany({
+        where: { action: 'NOTIFY', entityType: 'ORDER', entityId: { in: ids }, details: { path: ['tipo'], equals: 'confirmacion_completa' } },
+        select: { entityId: true },
+    });
+    const listas = new Set(yaCompletas.map(a => a.entityId));
+
+    let enviadas = 0, pendientes = 0;
+    for (const corta of cortas) {
+        if (listas.has(corta.entityId)) continue;
+        listas.add(corta.entityId); // una por pedido aunque haya dos plantillas (versiones)
+
+        const order: any = await prisma.order.findUnique({ where: { id: corta.entityId }, select: SELECT_CONFIRMACION });
+        if (!order || !order.client || order.isDeleted) continue;
+
+        // ¿El cliente escribió DESPUÉS de la corta, y hace menos de 23 h?
+        const chat = await prisma.whatsAppChat.findFirst({
+            where: { clientId: order.client.id, lastInboundAt: { gt: corta.createdAt, gte: hace23h } },
+            select: { lastInboundAt: true },
+        });
+        if (!chat) { pendientes++; continue; }
+
+        const tel = (order.client.phone || '').replace(/\D/g, '');
+        if (tel.length < 10) continue;
+        const chatId = `${normalizeArgentinePhone(tel)}@c.us`;
+        const conf = buildSaleConfirmation(order, false);
+
+        const res = await sendWhatsAppConReintento({
+            chatId, message: conf.waText, senderName: 'Sistema Atelier', isProactive: true,
+        }, { label: `confirmación completa #${String(order.id).slice(-4).toUpperCase()}` });
+        if (!res.ok || res.via !== 'text') {
+            // Ventana cerrada otra vez o fallo definitivo: se reintenta en la
+            // próxima corrida, y NUNCA se cae a la plantilla (ya la tiene).
+            listas.delete(corta.entityId);
+            pendientes++;
+            console.warn('[Confirmación completa] No salió, queda pendiente:', order.id, explainSendFailure(res));
+            continue;
+        }
+
+        for (const foto of conf.fotosArmazon) {
+            const img = await bytesDeImagen(foto.valor);
+            if (!img) continue;
+            await sendWhatsAppConReintento({
+                chatId, message: foto.titulo, senderName: 'Sistema Atelier', isProactive: true,
+                media: { base64: img.base64, mimetype: img.mimetype, filename: img.filename },
+            }).catch(err => console.error('[Confirmación completa] No se pudo enviar la foto del armazón:', err));
+        }
+
+        await prisma.interaction.create({
+            data: {
+                clientId: order.client.id, type: 'NOTE', userId: null, userName: 'Sistema',
+                content: `📨 Confirmación de compra COMPLETA enviada por WhatsApp: la primera había salido como plantilla (ventana de 24 h cerrada) y el cliente volvió a escribir.${DETALLE_MARK}${conf.waText}`,
+            },
+        }).catch(err => console.error('[Confirmación completa] No se pudo registrar la nota:', err));
+        await logAudit({
+            userId: null, userName: 'Sistema', action: 'NOTIFY', entityType: 'ORDER', entityId: order.id,
+            details: { tipo: 'confirmacion_completa', fotos: conf.fotosArmazon.length },
+        }).catch(err => console.error('[Confirmación completa] audit:', err));
+        enviadas++;
+    }
+    return { revisadas: cortas.length, enviadas, pendientes };
 }

@@ -496,6 +496,51 @@ export async function register() {
             }
         };
 
+        // ---- CONFIRMACIÓN DE COMPRA COMPLETA, cada 10 minutos ----
+        // A quien la confirmación le salió como plantilla corta (ventana de 24 h
+        // cerrada) se le manda la completa apenas vuelve a escribir. Cada 10
+        // minutos porque la ventana que se abre dura 24 h: no hace falta el
+        // segundo exacto, sí que no pase un día. MANDA MENSAJES AL CLIENTE, así
+        // que la franja se reclama en la base como el resto.
+        const COMPLETA_KEY = 'confirmacion_completa_last_slot';
+        let completaLastSlot: string | null = null;
+        let completaRunning = false;
+        const maybeRunConfirmacionCompleta = async () => {
+            const { hour, minute, dateKey } = argNow();
+            if (hour < 9 || hour >= 21) return;
+            const slotKey = `${dateKey}T${hour}:${Math.floor(minute / 10)}`;
+            if (completaLastSlot === slotKey || completaRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            let previo: string | null = null;
+            try {
+                previo = await reclamarCorrida(COMPLETA_KEY, slotKey);
+                if (previo === null) { completaLastSlot = slotKey; return; }
+            } catch (err) {
+                console.error('[CRON confirmacion-completa] No se pudo reclamar la franja:', err);
+                return;
+            }
+            completaRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/confirmacion-completa`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(4 * 60 * 1000),
+                });
+                if (!res.ok) {
+                    console.error(`[CRON confirmacion-completa] HTTP ${res.status} — se reintenta en la próxima franja.`);
+                    await devolverCorrida(COMPLETA_KEY, slotKey, previo);
+                    return;
+                }
+                completaLastSlot = slotKey;
+            } catch (err) {
+                console.error('[CRON confirmacion-completa] Error (se reintenta):', err);
+                await devolverCorrida(COMPLETA_KEY, slotKey, previo).catch(() => { });
+            } finally {
+                completaRunning = false;
+            }
+        };
+
         // ---- RECUPERO DE CARRITOS ABANDONADOS, una vez por hora ----
         // Mismo caso que el pickup-reminder: el schedule estaba declarado en
         // `vercel.json`, que Railway NO ejecuta, y la ruta lo dice en su propio
@@ -717,6 +762,7 @@ export async function register() {
             maybeRunPickupReminder().catch(err => console.error('[CRON pickup-reminder] maybeRunPickupReminder:', err));
             maybeRunCalidad().catch(err => console.error('[CRON whatsapp-calidad] maybeRunCalidad:', err));
             maybeRunCarritos().catch(err => console.error('[CRON abandoned-carts] maybeRunCarritos:', err));
+            maybeRunConfirmacionCompleta().catch(err => console.error('[CRON confirmacion-completa] maybeRunConfirmacionCompleta:', err));
             maybeRunTurnos().catch(err => console.error('[CRON turnos] maybeRunTurnos:', err));
             maybeRunSeguimientos().catch(err => console.error('[CRON seguimientos] maybeRunSeguimientos:', err));
             maybeRunEmbudoSalud().catch(err => console.error('[CRON embudo-salud] maybeRunEmbudoSalud:', err));

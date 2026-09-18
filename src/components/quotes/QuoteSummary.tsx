@@ -7,7 +7,7 @@ import {
     Banknote, ArrowRightLeft, CreditCard,
     Lock, Unlock, ChevronRight, ChevronUp, Pencil,
     History, Trash2, Eye, AlertCircle, Factory, Loader2,
-    FileText, ExternalLink, Link2, Check
+    FileText, ExternalLink, Link2, Check, Send
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -1108,12 +1108,28 @@ export default function QuoteSummary({
                                                             <Eye className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
-                                                    <button 
+                                                    <button
                                                         onClick={() => window.open(`/api/payments/${paymentValue.id}/receipt-pdf`, '_blank')}
                                                         className="p-2 hover:bg-emerald-50 text-emerald-500 hover:text-emerald-600 rounded-xl transition-all"
                                                         title="Descargar Recibo PDF"
                                                     >
                                                         <Download className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    {/* Reenviar el recibo por WhatsApp: cuando el automático falló,
+                                                        la ficha decía "reenviar a mano" y no había con qué. */}
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm('¿Reenviar este recibo por WhatsApp al cliente?')) return;
+                                                            try {
+                                                                const r = await fetch(`/api/payments/${paymentValue.id}/resend-receipt`, { method: 'POST' });
+                                                                const d = await r.json().catch(() => ({}));
+                                                                alert(r.ok ? `✅ Recibo reenviado (${d.via === 'template' ? 'como plantilla, ventana de 24 h cerrada' : 'texto + PDF'})` : `⚠️ No salió: ${d.error || 'error desconocido'}`);
+                                                            } catch { alert('⚠️ No se pudo reenviar el recibo.'); }
+                                                        }}
+                                                        className="p-2 hover:bg-emerald-50 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 rounded-xl transition-all"
+                                                        title="Reenviar recibo por WhatsApp"
+                                                    >
+                                                        <Send className="w-3.5 h-3.5" />
                                                     </button>
                                                     {/* Solo admin puede eliminar pagos de ventas */}
                                                     {(!isSale || currentUserRole === 'ADMIN') && (
