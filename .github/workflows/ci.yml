@@ -55,19 +55,22 @@ jobs:
           npm run check:gate
           npm run check:catalog
 
-      # Estos catorce existían desde hacía meses y NADIE los corría: estaban en
-      # package.json y en ningún workflow. Cubren plata (2x1, precios de oferta,
-      # que una venta no se repricee), atribución de anuncios (adTag, CAPI,
-      # origen, landing), comprobantes y el color del cristal. Ninguno necesita
-      # base ni red: son aserciones sobre el código, corren en segundos, y los
-      # catorce pasaban al momento de sumarlos (17/9/2026).
-      # Un guardián que nadie corre no guarda nada.
+      # Estos trece existían desde hacía meses y NADIE los corría: estaban en
+      # package.json y en ningún workflow. Cubren plata (2x1, precios de
+      # oferta), atribución de anuncios (adTag, CAPI, origen, landing),
+      # comprobantes y el color del cristal. Un guardián que nadie corre no
+      # guarda nada.
+      #
+      # Los trece son aserciones sobre el CÓDIGO y corren sin base ni red:
+      # verificado corriéndolos con el .env fuera del medio, que es la única
+      # forma de comprobarlo (con .env presente pasan igual porque encuentran
+      # la base local, y así se cuela uno que sí la necesita). `venta-no-repricea`
+      # quedó afuera justamente por eso: consulta la base y en CI no hay.
       - name: Chequeos de plata, atribución y catálogo
         run: |
           npm run check:promo
           npm run check:promo2x1web
           npm run check:oferta
-          npm run check:venta-no-repricea
           npm run check:comprobantes
           npm run check:adtag
           npm run check:capi
