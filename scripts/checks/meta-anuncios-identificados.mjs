@@ -83,6 +83,24 @@ try {
     console.log(`  con id del clic (sirve para contarle la venta a Meta):     ${conId.filter((c) => c.adCtwaClid).length}`);
     console.log(`  sin señal de anuncio:                                     ${sinNada}`);
 
+    // ESTE SCRIPT AHORA PUEDE FALLAR. Hasta el 17/9/2026 no tenía un solo
+    // `exit(1)`: se llamaba `check:` pero era un reporte, y un guardián que no
+    // puede fallar es peor que no tenerlo, porque da por cubierto algo que no
+    // lo está. Justo acá, donde ya nos pasó: tirábamos el id del anuncio en 915
+    // de 937 chats y la atribución se perdía sin que nada avisara.
+    //
+    // La condición es estrecha a propósito, para que un fallo signifique algo:
+    // hubo chats que llegaron por un anuncio de Meta (traen el texto
+    // precargado) y NINGUNO trajo el id del referral. Eso no es un mal día, es
+    // la captura rota. Si no hubo tráfico de anuncios, no hay nada que afirmar
+    // y el script no falla.
+    if (soloTexto.length > 0 && conId.length === 0) {
+        console.error(`\n❌ ${soloTexto.length} chat(s) llegaron por un anuncio de Meta y NINGUNO trajo el id del referral.`);
+        console.error('   El texto precargado se pierde si el cliente lo borra; el id no. Revisar que el');
+        console.error('   webhook esté suscripto al objeto `referral` y que la coexistencia siga activa.');
+        process.exit(1);
+    }
+
     if (conId.length) {
         const token = env.META_ADS_TOKEN || env.META_ACCESS_TOKEN;
         const porAnuncio = {};
