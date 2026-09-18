@@ -6,6 +6,7 @@ import { rethrowUnlessBuild } from '@/lib/db-guard';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { parseFrameSpecs, pickDescriptiveAlt } from '@/lib/catalog/frame-specs';
 import { normalizarTexto } from '@/lib/text-normalize';
+import { versionarImagenesLocales } from '@/lib/imagenes-versionadas';
 
 export const revalidate = 300;
 import { ProductClient } from './ProductClient';
@@ -89,7 +90,10 @@ const getProduct = cache(async (slug: string) => {
         // (/api/store/wholesale-prices, que exige sesión).
         wholesalePrice: 0,
         stock: webProduct.product.stock,
-        imagenesCatalogo: webProduct.images.length > 0 ? webProduct.images : webProduct.product.imagenesCatalogo,
+        // Con `?v=<hash>`: si una foto se regenera con el mismo nombre (pasó el
+        // 15/9 con las 306 "look"), la URL cambia y ningún navegador ni el
+        // optimizador siguen mostrando la vieja durante 31 días.
+        imagenesCatalogo: versionarImagenesLocales(webProduct.images.length > 0 ? webProduct.images : webProduct.product.imagenesCatalogo),
         imageAlts: webProduct.images.length > 0 ? webProduct.imageAlts : [],
         category: webProduct.category,
         description: webProduct.description,
