@@ -28,3 +28,4 @@ De dónde sale cada dato:
 | mercurio-tg2808-c4.json | PED-003510 | TG2808 C4 · Kazwini Titanium (semi al aire) | Mercurio |
 | neptuno-gt9615-c1.json | PED-003516 | GT9615 C1 · Titanium diseño femenino | Neptuno |
 | semele-c3-tl5213-c3.json | PED-003512 | TL5213 C3 · Metal inoxidable premium (color nuevo de Semele = C4) | Semele C3 |
+| isis-10006-c1.json | PED-003510 | 10006 C1 · Titanium montura al aire (foto del PDF Pedido_Kazwini_Final: el portal no lista el C1) | Isis |

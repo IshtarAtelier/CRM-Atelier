@@ -1,0 +1,23 @@
+{
+  "name": "Isis",
+  "brand": "Atelier",
+  "model": "10006 C1",
+  "category": "Armazón de Receta",
+  "price": 160000,
+  "cost": 15000,
+  "wholesalePrice": 32000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Femenino",
+  "ageGroup": "Adulto",
+  "seoTags": "Hexagonal, Titanio",
+  "lensWidth": 54,
+  "bridgeWidth": 17,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Receta Isis | Atelier",
+  "seoDescription": "Anteojos de receta al aire en titanio modelo Isis por Atelier, dorado con cristal facetado. Envío a todo el país.",
+  "description": "Montura al aire en titanio, modelo 10006 C1: sin aro, con el cristal tallado en facetas que le dan un contorno hexagonal delicado, y varillas finísimas en dorado. Casi no pesa y deja el rostro a la vista; el titanio es flexible e hipoalergénico para usarlo todo el día. Un diseño liviano y luminoso. Medidas: calibre 54mm, puente 17mm, patillas 145mm.",
+  "fotos": ["/assets/products/metal/10006-c1-titanium.avif"],
+  "alts": ["Isis — armazón de receta dorado, en titanio, forma hexagonal, al aire, visto de tres cuartos"],
+  "isFeatured": false
+}
