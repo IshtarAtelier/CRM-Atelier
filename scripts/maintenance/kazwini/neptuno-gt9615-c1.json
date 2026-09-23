@@ -1,0 +1,23 @@
+{
+  "name": "Neptuno",
+  "brand": "Atelier",
+  "model": "GT9615 C1",
+  "category": "Armazón de Receta",
+  "price": 160000,
+  "cost": 15000,
+  "wholesalePrice": 32000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Femenino",
+  "ageGroup": "Adulto",
+  "seoTags": "Rectangular, Titanio",
+  "lensWidth": 54,
+  "bridgeWidth": 18,
+  "templeLength": 143,
+  "seoTitle": "Lentes de Receta Neptuno | Atelier",
+  "seoDescription": "Anteojos de receta de titanio modelo Neptuno por Atelier, aro fino dorado. Envío a todo el país.",
+  "description": "Aro completo ultrafino en titanio, modelo GT9615 C1, en dorado brillante con terminales negros: el frente casi no pesa y el trazo delgado del metal deja que se vea la cara, no el anteojo. Titanio flexible e hipoalergénico, pensado para usarlo todo el día. Un diseño delicado y luminoso. Medidas: calibre 54mm, puente 18mm, patillas 143mm.",
+  "fotos": ["/assets/products/metal/gt9615-c1-titanium.avif"],
+  "alts": ["Neptuno — armazón de receta dorado, en titanio, forma rectangular, aro fino, visto de tres cuartos"],
+  "isFeatured": false
+}

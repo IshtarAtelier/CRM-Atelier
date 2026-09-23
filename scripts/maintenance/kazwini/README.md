@@ -25,3 +25,5 @@ De dónde sale cada dato:
 | spec | pedido | modelo | nombre |
 |---|---|---|---|
 | cratos-1111-c3.json | PED-003510 | 1111 C3 · Titanium montura al aire | Cratos |
+| mercurio-tg2808-c4.json | PED-003510 | TG2808 C4 · Kazwini Titanium (semi al aire) | Mercurio |
+| neptuno-gt9615-c1.json | PED-003516 | GT9615 C1 · Titanium diseño femenino | Neptuno |

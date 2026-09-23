@@ -93,10 +93,18 @@ async function main() {
     if (!web) throw new Error('El service no creó la ficha web');
     await api('PATCH', '/api/admin/web-products', { id: web.id, ...ficha }, cookie);
     console.log(`✔ ficha ${web.slug}`);
-    await prisma.product.update({ where: { id: producto.id }, data: { imagenesCatalogo: spec.fotos, rawImageUrls: spec.fotos } });
+    // select explícito: contra producción el schema local va adelantado y
+    // devolver la fila entera revienta (CLAUDE.md, "Trampas conocidas").
+    await prisma.product.update({ where: { id: producto.id }, data: { imagenesCatalogo: spec.fotos, rawImageUrls: spec.fotos }, select: { id: true } });
     console.log('✔ fotos del producto');
 
-    const final = await prisma.webProduct.findUnique({ where: { id: web.id }, include: { product: { select: { name: true, model: true, stock: true, price: true, imagenesCatalogo: true, lensWidth: true, bridgeWidth: true, templeLength: true } } } });
+    const final = await prisma.webProduct.findUnique({
+        where: { id: web.id },
+        select: {
+            id: true, slug: true, name: true, isActive: true, category: true, images: true, imageAlts: true, description: true,
+            product: { select: { name: true, model: true, stock: true, price: true, imagenesCatalogo: true, lensWidth: true, bridgeWidth: true, templeLength: true } },
+        },
+    });
     console.log('\nResultado:', JSON.stringify(final, null, 1));
     console.log(`\nFicha: ${base}/producto/${final.slug}`);
 }

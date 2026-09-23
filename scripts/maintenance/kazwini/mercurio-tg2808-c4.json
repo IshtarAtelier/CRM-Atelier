@@ -1,0 +1,31 @@
+{
+  "name": "Mercurio",
+  "brand": "Atelier",
+  "model": "TG2808 C4",
+  "category": "Armazón de Receta",
+  "price": 160000,
+  "cost": 15000,
+  "wholesalePrice": 32000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "Rectangular, Titanio",
+  "lensWidth": 54,
+  "bridgeWidth": 18,
+  "templeLength": 142,
+  "seoTitle": "Lentes de Receta Mercurio | Atelier",
+  "seoDescription": "Anteojos de receta de titanio modelo Mercurio por Atelier, semi al aire en dorado. Envío a todo el país.",
+  "description": "Semi al aire en titanio IP, modelo TG2808 C4: el aro superior en dorado satinado enmarca la mirada y la mitad inferior queda libre, así que el armazón se ve fino y liviano. Las varillas de titanio con terminal marrón son flexibles e hipoalergénicas, cómodas para todo el día. Un clásico de oficina con un toque cálido. Medidas: calibre 54mm, puente 18mm, patillas 142mm.",
+  "fotos": [
+    "/assets/products/metal/tg2808-c4-titanium.avif",
+    "/assets/products/gallery/TG2808-C4-2.avif",
+    "/assets/products/gallery/TG2808-C4-3.avif"
+  ],
+  "alts": [
+    "Mercurio — armazón de receta dorado, en titanio, forma rectangular, semi al aire, visto de frente",
+    "Mercurio — armazón de receta dorado, en titanio, forma rectangular, semi al aire, segunda vista",
+    "Mercurio — armazón de receta dorado, en titanio, forma rectangular, semi al aire, vista 3"
+  ],
+  "isFeatured": false
+}
