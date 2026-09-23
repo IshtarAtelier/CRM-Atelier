@@ -1,0 +1,23 @@
+{
+  "name": "Semele C3",
+  "brand": "Atelier",
+  "model": "TL5213 C3",
+  "category": "Armazón de Receta",
+  "price": 160000,
+  "cost": 15000,
+  "wholesalePrice": 32000,
+  "publishToWholesale": true,
+  "stock": 4,
+  "gender": "Femenino",
+  "ageGroup": "Adulto",
+  "seoTags": "Cat-Eye, Metal",
+  "lensWidth": 54,
+  "bridgeWidth": 16,
+  "templeLength": 140,
+  "seoTitle": "Lentes de Receta Semele C3 | Atelier",
+  "seoDescription": "Anteojos de receta cat-eye de metal modelo Semele C3 por Atelier, bordó y dorado. Envío a todo el país.",
+  "description": "Cat-eye en metal, modelo TL5213 C3: la ceja superior en bordó texturado se apoya sobre un aro fino dorado, con varillas a tono y terminales rojos. Aleación ultraliviana y resistente a la corrosión, plaquetas de silicona ajustables y terminales suaves para un calce sin presión. El mismo diseño de Semele, en su versión más cálida. Medidas: calibre 54mm, puente 16mm, patillas 140mm.",
+  "fotos": ["/assets/products/metal/tl5213-c3.avif"],
+  "alts": ["Semele C3 — armazón de receta bordó y dorado, en metal, forma cat-eye, visto de tres cuartos"],
+  "isFeatured": false
+}
