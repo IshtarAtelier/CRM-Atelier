@@ -3,7 +3,7 @@
   "brand": "Cápsula Escarlata",
   "model": "TR3391 C22-P90",
   "category": "Lentes de Sol",
-  "price": 175000,
+  "price": 220000,
   "cost": 15000,
   "wholesalePrice": 34000,
   "publishToWholesale": true,
@@ -25,5 +25,6 @@
     "Olimpo C22-P90 — anteojos de sol plomo con lente marrón polarizada, en metal, forma rectangular, visto de tres cuartos",
     "Olimpo C22-P90 — anteojos de sol plomo con lente marrón polarizada, en metal, forma rectangular, segunda vista"
   ],
-  "isFeatured": false
+  "isFeatured": false,
+  "salePrice": 175000
 }

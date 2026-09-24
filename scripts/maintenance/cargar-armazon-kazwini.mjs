@@ -75,7 +75,8 @@ async function main() {
         customSlug: spec.slug ?? spec.name,
     };
     const medidas = { lensWidth: spec.lensWidth, bridgeWidth: spec.bridgeWidth, templeLength: spec.templeLength };
-    const ficha = { description: spec.description, images: spec.fotos, imageAlts: spec.alts, isFeatured: spec.isFeatured ?? false };
+    // salePrice = precio de oferta (se muestra con la lista tachada); la API lo valida contra price.
+    const ficha = { description: spec.description, images: spec.fotos, imageAlts: spec.alts, isFeatured: spec.isFeatured ?? false, ...(spec.salePrice ? { salePrice: spec.salePrice } : {}) };
 
     console.log('1) POST /api/products', JSON.stringify(crear, null, 1));
     console.log('2) PUT  /api/products/<id>', JSON.stringify(medidas));

@@ -3,7 +3,7 @@
   "brand": "Cápsula Escarlata",
   "model": "TR3391 C10-P71",
   "category": "Lentes de Sol",
-  "price": 175000,
+  "price": 220000,
   "cost": 15000,
   "wholesalePrice": 34000,
   "publishToWholesale": true,
@@ -23,5 +23,6 @@
   "alts": [
     "Olimpo C10-P71 — anteojos de sol plateado con lente azul polarizada, en metal, forma rectangular, visto de tres cuartos"
   ],
-  "isFeatured": false
+  "isFeatured": false,
+  "salePrice": 175000
 }

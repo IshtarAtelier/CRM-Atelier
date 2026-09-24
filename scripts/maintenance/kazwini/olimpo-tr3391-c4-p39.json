@@ -3,7 +3,7 @@
   "brand": "Cápsula Escarlata",
   "model": "TR3391 C4-P39",
   "category": "Lentes de Sol",
-  "price": 175000,
+  "price": 220000,
   "cost": 15000,
   "wholesalePrice": 34000,
   "publishToWholesale": true,
@@ -23,5 +23,6 @@
   "alts": [
     "Olimpo C4-P39 — anteojos de sol negro con lente rosa polarizada, en metal, forma rectangular, visto de tres cuartos"
   ],
-  "isFeatured": false
+  "isFeatured": false,
+  "salePrice": 175000
 }
