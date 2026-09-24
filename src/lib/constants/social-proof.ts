@@ -32,11 +32,18 @@ export const UMBRAL_ELEGIDO_MODELO = 3;
 export const UMBRAL_ELEGIDO_MARCA = 10;
 
 /**
- * Stock igual o menor a esto = "¡Últimas N u.!". Es el mismo 3 que la ficha
- * de producto usa desde siempre; ahora también lo leen las tarjetas de la
- * tienda para que las dos superficies digan lo mismo del mismo dato.
+ * Stock igual o menor a esto = aviso de "última unidad". Lo leen la ficha de
+ * producto y las tarjetas de la tienda, para que las dos superficies digan lo
+ * mismo del mismo dato. Era 3 ("¡Últimas 3 u.!"); Ishtar lo bajó a 1 el
+ * 24/9/2026: con 3 en stock no hay apuro que avisar, y en un lote de 5
+ * unidades el cartel salía casi siempre.
  */
-export const UMBRAL_ULTIMAS_UNIDADES = 3;
+export const UMBRAL_ULTIMAS_UNIDADES = 1;
+
+/** El texto del aviso, único para ficha y tarjetas: "¡Última unidad!" o "¡Últimas N u.!". */
+export function textoUltimasUnidades(stock: number): string {
+  return stock === 1 ? '¡Última unidad!' : `¡Últimas ${stock} u.!`;
+}
 
 /**
  * Normalización de la marca para el mapa de prueba social. Vive acá (y no en

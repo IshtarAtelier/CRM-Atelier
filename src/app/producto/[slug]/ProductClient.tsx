@@ -20,7 +20,7 @@ import { PricingService } from "@/services/PricingService";
 import { formatearPrecio } from "@/lib/format-precio";
 import { textoCuotas12 } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
-import { UMBRAL_ULTIMAS_UNIDADES, claveMarca, claveModelo } from "@/lib/constants/social-proof";
+import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades, claveMarca, claveModelo } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
 import ProductReviews from "@/components/Storefront/ProductReviews";
 
@@ -533,7 +533,7 @@ export function ProductClient({
                 product.stock <= 0 ? (
                   <span className="text-red-500 font-bold uppercase tracking-widest">Agotado</span>
                 ) : product.stock <= UMBRAL_ULTIMAS_UNIDADES ? (
-                  <span className="text-stone-800 font-bold uppercase tracking-widest">¡Últimas {product.stock} u.!</span>
+                  <span className="text-stone-800 font-bold uppercase tracking-widest">{textoUltimasUnidades(product.stock)}</span>
                 ) : (
                   <span className="text-stone-500 uppercase tracking-widest">En Stock</span>
                 )

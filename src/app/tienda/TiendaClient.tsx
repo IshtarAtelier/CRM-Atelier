@@ -17,7 +17,7 @@ import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
-import { UMBRAL_ULTIMAS_UNIDADES } from "@/lib/constants/social-proof";
+import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades } from "@/lib/constants/social-proof";
 import { track } from "@/lib/client-analytics";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
@@ -938,7 +938,7 @@ export function TiendaClient({
                                 )}
                                 {hayStockBajo && (
                                   <span className="text-[10px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 rounded-sm shadow-sm">
-                                    ¡Últimas {p.stock} u.!
+                                    {textoUltimasUnidades(p.stock as number)}
                                   </span>
                                 )}
                               </div>
