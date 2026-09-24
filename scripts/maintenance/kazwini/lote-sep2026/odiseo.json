@@ -1,0 +1,35 @@
+{
+  "name": "Odiseo",
+  "brand": "Cápsula Escarlata",
+  "model": "8548 C5",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "8548 c5, odiseo, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 59,
+  "bridgeWidth": 16,
+  "templeLength": 128,
+  "seoTitle": "Lentes de Sol Odiseo | Atelier",
+  "seoDescription": "Odiseo: anteojos de sol deportivos de TR90 negro y amarillo con lente marrón polarizada. Envío a todo el país.",
+  "description": "Odiseo es un anteojo de sol deportivo envolvente en TR90 negro mate, con detalles amarillos en las patillas y lente marrón polarizada que reduce los reflejos en ruta, agua y asfalto. El frente semi al aire y las patillas envolventes lo mantienen firme en movimiento, pensado para manejar, correr o andar en bici sin que se mueva. Una pieza premium de Atelier. Medidas: calibre 59mm, puente 16mm, patillas 128mm.",
+  "fotos": [
+    "/images/products/odiseo.webp"
+  ],
+  "alts": [
+    "Odiseo — anteojos de sol negro y amarillo con lente marrón polarizada, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "odiseo",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": true,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón deportivo envolvente negro mate con insertos amarillos en las puntas de las patillas, lentes marrones con etiqueta de polarizado visible, aro rectangular. Coincide con la propuesta (negro y amarillo, marrón polarizada, Rectangular) y con el catálogo del proveedor \"SOLAR TR90 POLARIZADO\"; el material TR90 es consistente con el acabado mate del plástico deportivo."
+  }
+}

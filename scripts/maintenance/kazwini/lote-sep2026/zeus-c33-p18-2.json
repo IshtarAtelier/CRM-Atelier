@@ -1,0 +1,36 @@
+{
+  "name": "Zeus C33-P18-2",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3381 C33-P18-2",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3381 c33-p18-2, zeus c33-p18-2, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 55,
+  "bridgeWidth": 15,
+  "templeLength": 135,
+  "seoTitle": "Lentes de Sol Zeus C33-P18-2 | Atelier",
+  "seoDescription": "Zeus: anteojos de sol rectangulares en TR90 negro mate con lente amarilla polarizada, livianos y deportivos. Envío a todo el país.",
+  "description": "Zeus es un anteojo de sol rectangular en TR90 negro mate, liviano y de líneas deportivas, pensado para el uso de todos los días. Su lente amarilla polarizada, de la línea Kazwini Polarizado Premium, realza el contraste en días nublados o con poca luz, y las patillas rectas con detalle grabado le dan un calce firme sin presionar. Una pieza premium de Atelier. Medidas: calibre 55mm, puente 15mm, patillas 135mm.",
+  "fotos": [
+    "/images/products/zeus-c33-p18-2.webp"
+  ],
+  "alts": [
+    "Zeus C33-P18-2 — anteojos de sol negro mate con lente amarilla polarizada, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "zeus-c33-p18-2",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón negro de terminación mate (sin brillo), frente rectangular con esquinas marcadas y lentes amarillas uniformes, coherente con \"TR SOLAR KAZWINI POLARIZADO PREMIUM\". Las varillas tienen ranuras tipo aluminio, pero el frente es plástico TR90 según el catálogo del proveedor, así que se mantiene TR90. Color, forma y lente coinciden con la propuesta."
+  }
+}

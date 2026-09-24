@@ -1,0 +1,35 @@
+{
+  "name": "Luna",
+  "brand": "Cápsula Escarlata",
+  "model": "S31102 C3",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "s31102 c3, luna, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Redondo",
+  "lensWidth": 48,
+  "bridgeWidth": 25,
+  "templeLength": 147,
+  "seoTitle": "Lentes de Sol Luna | Atelier",
+  "seoDescription": "Luna: anteojos de sol redondos oliva y carey con lente verde, calibre 48. Envío a todo el país.",
+  "description": "Luna es un anteojo de sol redondo con puente tipo ojo de cerradura, frente en tono oliva opaco y patillas carey que le suman contraste. Los remaches metálicos en el frente y la lente verde de tono clásico le dan un aire retro sobrio, fácil de combinar. Una pieza premium de Atelier. Medidas: calibre 48mm, puente 25mm, patillas 147mm.",
+  "fotos": [
+    "/images/products/luna.webp"
+  ],
+  "alts": [
+    "Luna — anteojos de sol oliva y carey con lente verde, en tr90, forma redondo, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "luna",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un frente oliva/caqui translúcido con patillas carey (tortoise ámbar) y lentes verde oscuro tipo G15; la forma es redonda tipo panto con puente keyhole. Color, lente y forma coinciden con la propuesta. Material no verificable desde la foto (el frente grueso y brillante podría ser acetato), se mantiene TR90 según catálogo Aeroflex."
+  }
+}

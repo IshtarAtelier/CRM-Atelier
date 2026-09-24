@@ -1,0 +1,36 @@
+{
+  "name": "Meteoro C280",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3399 C280-P111",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3399 c280-p111, meteoro c280, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Cuadrado",
+  "lensWidth": 53,
+  "bridgeWidth": 18,
+  "templeLength": 140,
+  "seoTitle": "Lentes de Sol Meteoro C280 | Atelier",
+  "seoDescription": "Anteojos de sol Meteoro C280 en TR90 beige translúcido con lente marrón polarizada, forma cuadrada. Envío a todo el país.",
+  "description": "Meteoro C280 son anteojos de sol de TR90 en un beige translúcido que deja ver la estructura del armazón, con lente marrón polarizada que corta reflejos y da un contraste cálido. El frente cuadrado de líneas clásicas se combina con patillas que llevan un detalle interior en azul oscuro, apenas visible cuando se usan. Livianos y resistentes, pensados para todos los días en la calle o al volante. Una pieza premium de Atelier. Medidas: calibre 53mm, puente 18mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/meteoro-c280.webp"
+  ],
+  "alts": [
+    "Meteoro C280 — anteojos de sol beige translúcido con lente marrón polarizada, en tr90, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "meteoro-c280",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": true,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón de cristal translúcido beige/taupe claro (se ve el interior de las varillas en azul marino a través del plástico), con lentes marrones opacas de sol, consistente con \"TR SOLAR KAZWINI POLARIZADO PREMIUM\". La forma es cuadrada tipo wayfarer, con esquinas apenas redondeadas y proporción cercana a 1:1 (no lo bastante alargada para ser Rectangular ni redonda para ser Redondo/Ovalado). El material plástico translúcido y la línea \"TR\" del proveedor son coherentes con TR90. Todo coincide con la propuesta."
+  }
+}

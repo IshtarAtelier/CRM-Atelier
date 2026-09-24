@@ -1,0 +1,35 @@
+{
+  "name": "Edipo",
+  "brand": "Cápsula Escarlata",
+  "model": "6307 C87-P130",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "6307 c87-p130, edipo, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Aviador",
+  "lensWidth": 61,
+  "bridgeWidth": 14,
+  "templeLength": 140,
+  "seoTitle": "Lentes de Sol Edipo | Atelier",
+  "seoDescription": "Edipo, anteojos de sol de metal gris plomo con doble puente y lente marrón. Envío a todo el país.",
+  "description": "Edipo es un anteojo de sol de metal con doble puente, en un gris plomo que se equilibra con la lente marrón y con el mostaza de las patillas. El frente toma la estructura del aviador clásico y la lleva a una lectura más urbana, con un grabado fino en el borde del aro. Las patillas negras terminan en un mostaza mate que le da carácter sin estridencia, y las plaquetas regulables ajustan el apoyo en la nariz. Una pieza premium de Atelier. Medidas: calibre 61mm, puente 14mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/edipo.webp"
+  ],
+  "alts": [
+    "Edipo — anteojos de sol gris plomo con lente marrón, en metal, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "edipo",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón metálico gunmetal (gris plomo) con doble puente y lentes marrones sólidas: coincide con la propuesta. La forma es un aviador de lente cuadrada (estilo navigator), no lágrima clásica; dentro de las formas válidas, Aviador es la que corresponde por el doble puente y la estética piloto, aunque un cliente también lo reconocería como cuadrado. Material metal correcto; las patillas tienen terminales de plástico negro con detalle mostaza/ocre (vale mencionarlo en la descripción, no cambia el color principal del frente)."
+  }
+}

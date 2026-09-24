@@ -1,0 +1,35 @@
+{
+  "name": "Eva C2",
+  "brand": "Cápsula Escarlata",
+  "model": "YD1224S C2",
+  "category": "Lentes de Sol",
+  "price": 225000,
+  "cost": 22725,
+  "wholesalePrice": 36000,
+  "publishToWholesale": true,
+  "stock": 2,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "yd1224s c2, eva c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Rectangular",
+  "lensWidth": 52,
+  "bridgeWidth": 21,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Sol Eva C2 | Atelier",
+  "seoDescription": "Eva C2: anteojos de sol de acetato italiano en carey oscuro, frente recto y lente gris. Envío a todo el país.",
+  "description": "Eva C2 es un anteojo de sol de acetato italiano Mazzucchelli en carey oscuro, con un frente recto y grueso que le da presencia sin estridencias. La lente gris uniforme acompaña el tono del armazón, y las patillas dejan ver el veteado ámbar del carey. Una pieza premium de Atelier. Medidas: calibre 52mm, puente 21mm, patillas 145mm.",
+  "fotos": [
+    "/images/products/eva-c2.webp"
+  ],
+  "alts": [
+    "Eva C2 — anteojos de sol carey oscuro con lente gris, en acetato, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "eva-c2",
+  "_familia": "acetato-sol",
+  "_fuentePrecio": "Adhara C4 / Fénix C1",
+  "_fotoDelPedido": true,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón de acetato carey oscuro (frente casi negro con veteado rojizo-ámbar visible en las varillas y en la unión del frente), lentes gris oscuro casi negro, y forma rectangular de frente plano (flat top) más ancha que alta. Coincide con la propuesta en color, lente, forma y material."
+  }
+}

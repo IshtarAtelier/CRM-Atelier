@@ -1,0 +1,35 @@
+{
+  "name": "Salerno",
+  "brand": "Cápsula Escarlata",
+  "model": "TR12219 C2",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "tr12219 c2, salerno, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Redondo",
+  "lensWidth": 52,
+  "bridgeWidth": 19,
+  "templeLength": 146,
+  "seoTitle": "Lentes de Sol Salerno | Atelier",
+  "seoDescription": "Salerno: armazón redondo TR90 negro con 5 clips de sol magnéticos, uno polarizado. Envío a todo el país.",
+  "description": "Salerno es un armazón de receta redondo en TR90 negro que viene con cinco clips de sol magnéticos: gris polarizado, degradé azul-naranja, degradé gris-rojo, amarillo tipo night vision y marrón. Las patillas con resorte se adaptan a la cara sin apretar, y el estuche que lo acompaña permite llevar los clips y pasar de los lentes de receta a los de sol en un segundo. Una pieza premium de Atelier. Medidas: calibre 52mm, puente 19mm, patillas 146mm.",
+  "fotos": [
+    "/images/products/salerno.webp"
+  ],
+  "alts": [
+    "Salerno — armazón con clip de sol negro con lente clip gris polarizado, en tr90, forma redondo, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "salerno",
+  "_familia": "clip-on",
+  "_fuentePrecio": "Capri/Siena/Riviera/Verona/Génova/Venice/Torino/Florence",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto (modelo 12219, 52-19-146, \"Spring Temples\") muestra un armazón base negro de frente redondo/panto con 5 clips magnéticos: polarized grey, blue orange, grey red, night vision (amarillo) y brown — coincide exactamente con la propuesta de lente. El frente del armazón es negro (solo el clip marrón aparece renderizado sobre una patilla carey, pero el armazón base de abajo es negro). Forma redonda correcta. Catálogo \"TR CLIPON 5 CLIP FLEXIBLE\" confirma TR90 y 5 clips."
+  }
+}

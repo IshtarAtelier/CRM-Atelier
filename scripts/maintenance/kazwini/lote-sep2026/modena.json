@@ -1,0 +1,37 @@
+{
+  "name": "Módena",
+  "brand": "Cápsula Escarlata",
+  "model": "G5910 C3",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "g5910 c3, módena, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, masculino, premium, Acetato, Rectangular",
+  "lensWidth": 56,
+  "bridgeWidth": 18,
+  "templeLength": 155,
+  "seoTitle": "Lentes de Sol Módena | Atelier",
+  "seoDescription": "Módena: armazón rectangular de acetato verde oscuro con clip de sol polarizado gris. Envío a todo el país.",
+  "description": "Módena es un armazón de receta rectangular en acetato verde oscuro translúcido, de frente amplio y líneas rectas, con una placa metálica discreta en las patillas. Trae un clip de sol magnético polarizado en gris que se coloca y se saca en un gesto, para pasar del interior al sol con el mismo par. Una pieza premium de Atelier. Medidas: calibre 56mm, puente 18mm, patillas 155mm.",
+  "fotos": [
+    "/images/products/modena.webp",
+    "/images/products/modena-2.webp"
+  ],
+  "alts": [
+    "Módena — armazón con clip de sol verde oscuro con lente clip gris, en acetato, forma rectangular, visto de tres cuartos",
+    "Módena — armazón con clip de sol verde oscuro con lente clip gris, en acetato, forma rectangular, segunda vista"
+  ],
+  "isFeatured": false,
+  "slug": "modena",
+  "_familia": "clip-on",
+  "_fuentePrecio": "Capri/Siena/Riviera/Verona/Génova/Venice/Torino/Florence",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón de acetato traslúcido verde oscuro (tono oliva/militar) con frente claramente rectangular (aros anchos y bajos, esquinas rectas), varillas del mismo acetato con el logo Kazwini, y un clip-on suelto con lentes gris oscuro/negro. Color, forma y material coinciden con la propuesta; el catálogo del proveedor (Top Luxury Acetato Clip On Kazwini) confirma acetato y tipo clip-on."
+  }
+}

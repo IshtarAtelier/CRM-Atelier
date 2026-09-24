@@ -1,0 +1,36 @@
+{
+  "name": "Deméter",
+  "brand": "Cápsula Escarlata",
+  "model": "S11107K C2",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "s11107k c2, deméter, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 58,
+  "bridgeWidth": 17,
+  "templeLength": 138,
+  "seoTitle": "Lentes de Sol Deméter | Atelier",
+  "seoDescription": "Deméter: anteojos de sol deportivos en TR90 azul marino mate con lente gris polarizada, calibre 58mm. Envío a todo el país.",
+  "description": "Deméter es un anteojo de sol de línea deportiva, con frente rectangular envolvente en TR90 azul marino mate y lente gris polarizada, de la serie Kazwini Polarizado Premium. Las patillas anchas y livianas terminan en un inserto de goma amarilla con textura, que fija el armazón y le da el único toque de color a un diseño sobrio. Una pieza premium de Atelier. Medidas: calibre 58mm, puente 17mm, patillas 138mm.",
+  "fotos": [
+    "/images/products/demeter.webp"
+  ],
+  "alts": [
+    "Deméter — anteojos de sol azul marino con lente gris polarizada, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "demeter",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón azul marino mate de estilo deportivo con lentes gris oscuro (coherente con gris polarizada). Los aros son claramente más anchos que altos, con esquinas marcadas: Rectangular. El acabado mate y flexible coincide con TR90 y con la línea \"TR SOLAR\" del catálogo. Detalle a tener en cuenta: las patillas llevan un inserto de goma amarillo en la punta, que no cambia el color principal pero conviene mencionarlo en la descripción."
+  }
+}

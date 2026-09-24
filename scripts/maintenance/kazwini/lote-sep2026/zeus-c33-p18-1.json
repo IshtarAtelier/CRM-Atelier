@@ -1,0 +1,36 @@
+{
+  "name": "Zeus C33-P18-1",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3381 C33-P18-1",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3381 c33-p18-1, zeus c33-p18-1, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 55,
+  "bridgeWidth": 15,
+  "templeLength": 135,
+  "seoTitle": "Lentes de Sol Zeus C33-P18-1 | Atelier",
+  "seoDescription": "Zeus: anteojos de sol TR90 negro mate con lente bordó polarizada, forma rectangular. Atelier Óptica, Córdoba. Envío a todo el país.",
+  "description": "Zeus es un anteojo de sol de línea deportiva urbana en TR90 negro mate, con frente rectangular y patillas anchas con detalle acanalado. La lente polarizada en tono bordó corta los reflejos y le da un contraste cálido a la mirada, en un armazón liviano pensado para el uso diario al aire libre. Una pieza premium de Atelier. Medidas: calibre 55mm, puente 15mm, patillas 135mm.",
+  "fotos": [
+    "/images/products/zeus-c33-p18-1.webp"
+  ],
+  "alts": [
+    "Zeus C33-P18-1 — anteojos de sol negro con lente bordó polarizada, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "zeus-c33-p18-1",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón negro mate, frente rectangular (más ancho que alto, esquinas cuadradas) con lentes bordó/rojizas oscuras de terminación polarizada. El plástico mate liviano con patillas ranuradas es consistente con TR90 del catálogo \"TR SOLAR KAZWINI POLARIZADO PREMIUM\". Color, lente, forma y material coinciden con la propuesta."
+  }
+}

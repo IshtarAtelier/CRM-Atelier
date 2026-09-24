@@ -1,0 +1,36 @@
+{
+  "name": "Zeus C33-P01",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3381 C33-P01",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3381 c33-p01, zeus c33-p01, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 55,
+  "bridgeWidth": 15,
+  "templeLength": 135,
+  "seoTitle": "Lentes de Sol Zeus C33-P01 | Atelier",
+  "seoDescription": "Zeus C33-P01: anteojo de sol rectangular en TR90 negro mate con lente gris polarizada, liviano y cómodo. Envío a todo el país.",
+  "description": "Zeus C33-P01 es un anteojo de sol de línea rectangular en TR90 negro mate, con lente gris polarizada que reduce los reflejos y descansa la vista en el sol de la calle o la ruta. El frente lleva una leve curvatura envolvente y las patillas tienen terminaciones de goma que ayudan a que no se mueva, con detalles grabados en la varilla. Es una pieza liviana, sobria y cómoda para el uso diario, que acompaña bien tanto con ropa deportiva como urbana. Una pieza premium de Atelier. Medidas: calibre 55mm, puente 15mm, patillas 135mm.",
+  "fotos": [
+    "/images/products/zeus-c33-p01.webp"
+  ],
+  "alts": [
+    "Zeus C33-P01 — anteojos de sol negro mate con lente gris polarizada, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "zeus-c33-p01",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón negro mate (acabado opaco, sin brillo) con lentes gris oscuro uniformes, coherente con \"gris polarizada\". La forma es claramente rectangular: aros más anchos que altos, esquinas cuadradas y línea superior recta. El material se ve como plástico inyectado mate con varillas ranuradas y puntas de goma, consistente con TR90 y con la línea \"TR SOLAR\" del catálogo Kazwini. Todo coincide con la propuesta."
+  }
+}

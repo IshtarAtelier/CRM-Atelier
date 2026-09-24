@@ -1,0 +1,37 @@
+{
+  "name": "Bari",
+  "brand": "Cápsula Escarlata",
+  "model": "G5903 C2",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "g5903 c2, bari, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado",
+  "lensWidth": 52,
+  "bridgeWidth": 18,
+  "templeLength": 150,
+  "seoTitle": "Lentes de Sol Bari | Atelier",
+  "seoDescription": "Bari, armazón de acetato gris translúcido con clip de sol magnético polarizado, forma cuadrada. Envío a todo el país.",
+  "description": "Bari es un armazón de receta en acetato italiano Mazzucchelli gris translúcido, de forma cuadrada, con un clip de sol magnético polarizado que se coloca sobre el frente en un solo gesto. El acetato deja pasar la luz y le da al gris un fondo ahumado que combina con cualquier look, mientras el detalle metálico en la varilla le suma carácter sin llamar la atención. Dos anteojos en uno: de receta adentro y de sol apenas salís a la calle. Una pieza premium de Atelier. Medidas: calibre 52mm, puente 18mm, patillas 150mm.",
+  "fotos": [
+    "/images/products/bari.webp",
+    "/images/products/bari-2.webp"
+  ],
+  "alts": [
+    "Bari — armazón con clip de sol gris translúcido con lente clip gris, en acetato, forma cuadrado, visto de tres cuartos",
+    "Bari — armazón con clip de sol gris translúcido con lente clip gris, en acetato, forma cuadrado, segunda vista"
+  ],
+  "isFeatured": false,
+  "slug": "bari",
+  "_familia": "clip-on",
+  "_fuentePrecio": "Capri/Siena/Riviera/Verona/Génova/Venice/Torino/Florence",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón de acetato gris translúcido (se ve la transparencia en varillas, puente y aro), lente cuadrado con ángulos suaves de proporción casi pareja, y clip-on de lente gris oscuro/ahumado. Coincide con el catálogo Kazwini acetato clip-on."
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "Zafiro",
+  "brand": "Cápsula Escarlata",
+  "model": "YD1310 C3",
+  "category": "Lentes de Sol",
+  "price": 225000,
+  "cost": 22725,
+  "wholesalePrice": 36000,
+  "publishToWholesale": true,
+  "stock": 2,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "yd1310 c3, zafiro, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado",
+  "lensWidth": 50,
+  "bridgeWidth": 17,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Sol Zafiro | Atelier",
+  "seoDescription": "Zafiro: anteojos de sol cuadrados de acetato verde con lente gris, de Atelier Óptica. Envío a todo el país.",
+  "description": "Zafiro es un anteojo de sol en acetato italiano Mazzucchelli, en un verde esmeralda translúcido que gana profundidad con la luz. El frente cuadrado, de líneas rectas y volumen marcado, se completa con patillas anchas con detalle metálico y lentes grises oscuras. Una pieza premium de Atelier. Medidas: calibre 50mm, puente 17mm, patillas 145mm.",
+  "fotos": [
+    "/images/products/zafiro.webp"
+  ],
+  "alts": [
+    "Zafiro — anteojos de sol verde con lente gris, en acetato, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "zafiro",
+  "_familia": "acetato-sol",
+  "_fuentePrecio": "Adhara C4 / Fénix C1",
+  "_fotoDelPedido": true,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón de acetato translúcido verde esmeralda, grueso y de líneas rectas, con lentes oscuras gris/negro. La forma es cuadrada chunky (bloque recto, estilo Kazwini acetato solar), y el material coincide con acetato Mazzucchelli del catálogo. Color, lente, forma y material coinciden con la propuesta."
+  }
+}

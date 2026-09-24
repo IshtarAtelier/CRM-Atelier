@@ -1,0 +1,32 @@
+{
+  "name": "Saturno",
+  "brand": "Cápsula Escarlata",
+  "model": "009208",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "009208 sin variación, saturno, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Rectangular",
+  "seoTitle": "Lentes de Sol Saturno | Atelier",
+  "seoDescription": "Saturno: anteojos de sol deportivos envolventes en TR90 azul marino con lente gris, para correr o andar en bici. Envío a todo el país.",
+  "description": "Saturno es un anteojo de sol deportivo envolvente, con una lente única ahumada en gris que cubre todo el campo visual y protege también de costado. El frente es de TR90 en azul marino mate, liviano y flexible, con la lente semi al aire y patillas con terminación de goma que se quedan en su lugar aunque transpires. Pensado para correr, andar en bici o pasar el día al sol sin sentir peso en la cara. Una pieza premium de Atelier.",
+  "fotos": [
+    "/images/products/saturno.webp"
+  ],
+  "alts": [
+    "Saturno — anteojos de sol azul marino con lente gris, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "saturno",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un anteojo de sol deportivo semi-al-aire con lente única tipo escudo (shield) envolvente, gris oscuro/humo. El armazón (barra superior y patillas) es azul marino mate, con terminales de patilla y plaquetas nasales de goma negra: el color \"azul marino\" coincide. La lente \"gris\" coincide. La forma real es un escudo envolvente deportivo; de las 8 formas válidas, \"Rectangular\" es la más honesta (lente ancha de perfil rectangular con base angular) — \"XL\" en este catálogo significa talle grande (ej. Poseidon, metal rectangular ancho), no lente escudo, así que no corresponde. Material: plástico deportivo mate, consistente con TR90 (no verificable al 100% por foto, pero es lo habitual en este tipo de armazón). Catálogo \"LOTE SOLAR\" / tipo sol: coincide."
+  }
+}

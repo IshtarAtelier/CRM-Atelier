@@ -1,0 +1,35 @@
+{
+  "name": "Tritón C3",
+  "brand": "Cápsula Escarlata",
+  "model": "8546 C3",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "8546 c3, tritón c3, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 60,
+  "bridgeWidth": 18,
+  "templeLength": 128,
+  "seoTitle": "Lentes de Sol Tritón C3 | Atelier",
+  "seoDescription": "Tritón C3: anteojos de sol deportivos en TR90 negro mate con lente gris polarizada. Envío a todo el país.",
+  "description": "Tritón C3 es un anteojo de sol deportivo en TR90 negro mate, con detalles azules en las puntas de las patillas y el apoyo nasal, y un frente envolvente que acompaña el rostro. La lente gris polarizada reduce los reflejos y trae protección UV400, ideal para manejar o hacer actividad al aire libre. Una pieza premium de Atelier. Medidas: calibre 60mm, puente 18mm, patillas 128mm.",
+  "fotos": [
+    "/images/products/triton-c3.webp"
+  ],
+  "alts": [
+    "Tritón C3 — anteojos de sol negro mate con lente gris polarizada, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "triton-c3",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": false,
+    "motivo": "La foto muestra un armazón deportivo envolvente de plástico mate, con lente gris oscura y sticker \"Polarized / UV400\" (coincide con lente gris polarizada y con el catálogo \"SOLAR TR90 POLARIZADO\"). Forma Rectangular y material TR90 son correctos. Lo que no coincide es el color: el cuerpo es negro mate (muy oscuro, con un leve tinte azulado por la luz), pero tiene terminales de patilla y plaquetas nasales en azul bien visibles, un detalle que distingue a esta variante (C3) y que \"negro mate\" a secas omite. Se corrige a \"negro mate con detalles azules\"."
+  }
+}

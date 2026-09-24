@@ -1,0 +1,36 @@
+{
+  "name": "Perseo C5",
+  "brand": "Cápsula Escarlata",
+  "model": "S11110K C5",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 4,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "s11110k c5, perseo c5, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Aviador",
+  "lensWidth": 59,
+  "bridgeWidth": 11,
+  "templeLength": 143,
+  "seoTitle": "Lentes de Sol Perseo C5 | Atelier",
+  "seoDescription": "Perseo C5: aviador de TR90 transparente mate con lente polarizada naranja espejada. Envío a todo el país.",
+  "description": "El Perseo C5 es un aviador de TR90 en acabado transparente mate, con barra superior recta y puente bajo, liviano y de trazo limpio. La lente polarizada naranja espejada le da carácter y corta el reflejo en la ruta, en el agua o en la calle. Una pieza premium de Atelier. Medidas: calibre 59mm, puente 11mm, patillas 143mm.",
+  "fotos": [
+    "/images/products/perseo-c5.webp"
+  ],
+  "alts": [
+    "Perseo C5 — anteojos de sol transparente mate con lente naranja espejada, en tr90, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "perseo-c5",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón translúcido esmerilado (transparente mate) con lentes espejadas naranja/rojo-dorado, forma piloto clásica con barra superior y lente en gota (Aviador); el plástico mate liviano con patillas finas es consistente con TR90 y con la línea TR SOLAR KAZWINI POLARIZADO. Todo coincide con la propuesta."
+  }
+}

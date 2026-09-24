@@ -1,0 +1,35 @@
+{
+  "name": "Plutón C4",
+  "brand": "Cápsula Escarlata",
+  "model": "6313 C4-P130",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "6313 c4-p130, plutón c4, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Aviador",
+  "lensWidth": 58,
+  "bridgeWidth": 17,
+  "templeLength": 140,
+  "seoTitle": "Lentes de Sol Plutón C4 | Atelier",
+  "seoDescription": "Plutón C4: anteojos de sol de metal negro con doble puente y lente marrón, patillas con terminación verde oliva. Envío a todo el país.",
+  "description": "Plutón C4 es un anteojo de sol de metal negro mate, con doble puente y un frente aviador de ángulos marcados que le da presencia sin estridencias. La lente marrón suaviza la luz y mantiene los colores naturales, y las patillas terminan en un verde oliva texturado que suma carácter y buen agarre. Una pieza premium de Atelier. Medidas: calibre 58mm, puente 17mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/pluton-c4.webp"
+  ],
+  "alts": [
+    "Plutón C4 — anteojos de sol negro con lente marrón, en metal, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "pluton-c4",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra armazón de metal negro mate con doble puente (clásico aviador/navigator), lentes marrones sólidas y patillas de metal negro con terminales verde oliva texturados. Color negro, lente marrón y material metal coinciden. La forma es aviador de lente cuadrada (estilo navigator): el doble puente y el perfil sostienen \"Aviador\" como la categoría más fiel entre las válidas; \"Rectangular\" sería la segunda opción si se prefiere describir solo la silueta de la lente."
+  }
+}

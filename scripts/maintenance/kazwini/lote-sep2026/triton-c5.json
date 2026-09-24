@@ -1,0 +1,35 @@
+{
+  "name": "Tritón C5",
+  "brand": "Cápsula Escarlata",
+  "model": "8546 C5",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "8546 c5, tritón c5, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 60,
+  "bridgeWidth": 18,
+  "templeLength": 128,
+  "seoTitle": "Lentes de Sol Tritón C5 | Atelier",
+  "seoDescription": "Tritón C5: anteojos de sol deportivos en TR90 negro mate con lente marrón polarizada UV400. Envío a todo el país.",
+  "description": "Tritón C5 es un anteojo de sol deportivo envolvente en TR90 negro mate, con lente marrón polarizada y protección UV400. Las patillas llevan terminales y plaquetas nasales en amarillo, con calados que aligeran el frente y un detalle metálico en la varilla. Un modelo liviano y firme para actividad al aire libre o uso diario con sol fuerte. Una pieza premium de Atelier. Medidas: calibre 60mm, puente 18mm, patillas 128mm.",
+  "fotos": [
+    "/images/products/triton-c5.webp"
+  ],
+  "alts": [
+    "Tritón C5 — anteojos de sol negro mate con detalles amarillos con lente marrón polarizada, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "triton-c5",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón deportivo envolvente negro mate con puntas de patilla y plaquetas nasales amarillas, lentes marrones con la leyenda \"Polarized\" impresa, y aro rectangular. Todo coincide con la propuesta y con el catálogo \"SOLAR TR90 POLARIZADO\"."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "Zeus C33-P86",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3381 C33-P86",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3381 c33-p86, zeus c33-p86, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 55,
+  "bridgeWidth": 15,
+  "templeLength": 135,
+  "seoTitle": "Lentes de Sol Zeus C33-P86 | Atelier",
+  "seoDescription": "Zeus C33-P86: anteojos de sol cuadrados en TR90 negro mate con lente polarizada gris. Envío a todo el país.",
+  "description": "Zeus C33-P86 es un anteojo de sol de línea cuadrada en TR90 negro mate, liviano y con lente polarizada gris que corta el reflejo del sol. Las patillas llevan un detalle de ranuras y terminales que lo mantienen firme sin apretar, en un perfil urbano y deportivo para usar todos los días. Una pieza premium de Atelier. Medidas: calibre 55mm, puente 15mm, patillas 135mm.",
+  "fotos": [
+    "/images/products/zeus-c33-p86.webp"
+  ],
+  "alts": [
+    "Zeus C33-P86 — anteojos de sol negro mate con lente gris, en tr90, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "zeus-c33-p86",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": false,
+    "motivo": "El color coincide: armazón negro mate, patillas negras con terminación de goma, lente gris oscuro polarizado (leve tinte azulado, pero se lee como gris). El material TR90 es coherente con el acabado mate y con el catálogo \"TR SOLAR\". Lo que no coincide es la forma: los aros son claramente más anchos que altos (proporción cercana a 3:2), con borde superior recto y esquinas marcadas; eso es Rectangular, no Cuadrado."
+  }
+}

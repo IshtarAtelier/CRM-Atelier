@@ -1,0 +1,36 @@
+{
+  "name": "Meteoro C275",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3399 C275-P37",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3399 c275-p37, meteoro c275, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Cuadrado",
+  "lensWidth": 53,
+  "bridgeWidth": 18,
+  "templeLength": 140,
+  "seoTitle": "Lentes de Sol Meteoro C275 | Atelier",
+  "seoDescription": "Meteoro C275: anteojos de sol cuadrados en TR90 azul marino mate con lente polarizada azul oscuro. Envío a todo el país.",
+  "description": "Meteoro C275 es un anteojo de sol de línea cuadrada clásica, en TR90 mate de un azul marino tan profundo que de lejos se lee casi negro. Las lentes polarizadas en tono azul oscuro cortan el reflejo, y el interior de las patillas suma un detalle en azul más vivo que acompaña los remaches metálicos del frente. Liviano y flexible, va bien para el día a día, tanto en la ciudad como al aire libre. Una pieza premium de Atelier. Medidas: calibre 53mm, puente 18mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/meteoro-c275.webp"
+  ],
+  "alts": [
+    "Meteoro C275 — anteojos de sol azul marino mate con lente azul oscuro polarizada, en tr90, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "meteoro-c275",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón azul marino de terminación mate (con detalle azul en las varillas), lentes azul oscuro polarizadas y frente cuadrado tipo wayfarer con esquinas apenas redondeadas. Coincide con la propuesta y con la línea TR SOLAR KAZWINI POLARIZADO PREMIUM (TR90, sol)."
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "Gema",
+  "brand": "Cápsula Escarlata",
+  "model": "YD1283 C4",
+  "category": "Lentes de Sol",
+  "price": 225000,
+  "cost": 22725,
+  "wholesalePrice": 36000,
+  "publishToWholesale": true,
+  "stock": 2,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "yd1283 c4, gema, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado",
+  "lensWidth": 54,
+  "bridgeWidth": 17,
+  "templeLength": 143,
+  "seoTitle": "Lentes de Sol Gema | Atelier",
+  "seoDescription": "Gema: anteojos de sol carey en acetato Mazzucchelli, forma cuadrada con lente gris degradé. Envío a todo el país.",
+  "description": "Gema es un anteojo de sol en acetato italiano Mazzucchelli, con frente cuadrado de líneas firmes y patillas anchas que le dan presencia. El carey combina manchas ámbar sobre fondo oscuro y el pulido brillante del material resalta ese contraste. La lente gris degradé acompaña el tono del acetato y suaviza la mirada sin perder cobertura. Una pieza premium de Atelier. Medidas: calibre 54mm, puente 17mm, patillas 143mm.",
+  "fotos": [
+    "/images/products/gema.webp"
+  ],
+  "alts": [
+    "Gema — anteojos de sol carey con lente gris degradé, en acetato, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "gema",
+  "_familia": "acetato-sol",
+  "_fuentePrecio": "Adhara C4 / Fénix C1",
+  "_fotoDelPedido": true,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón carey (habano/ámbar moteado sobre negro) de acetato grueso, con lente gris degradé (oscuro arriba, más claro abajo). El frente es cuadrado, ancho y robusto, con puente plano y esquinas inferiores apenas redondeadas: coincide con Cuadrado. Todo coincide con lo propuesto."
+  }
+}

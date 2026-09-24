@@ -1,0 +1,36 @@
+{
+  "name": "Calisto C5",
+  "brand": "Cápsula Escarlata",
+  "model": "S11105K C5",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "s11105k c5, calisto c5, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Aviador",
+  "lensWidth": 60,
+  "bridgeWidth": 11,
+  "templeLength": 14,
+  "seoTitle": "Lentes de Sol Calisto C5 | Atelier",
+  "seoDescription": "Anteojos de sol Calisto C5 en TR90 azul marino con lente polarizada naranja espejada, forma aviador. Envío a todo el país.",
+  "description": "Calisto C5 es un anteojo de sol de frente plano y calce amplio, en TR90 azul marino mate con lente polarizada espejada en tonos naranja. Las patillas llevan un estriado hacia el extremo y el interior del puente suma un detalle naranja que acompaña el color de la lente, en una montura liviana pensada para el uso diario y el aire libre. Una pieza premium de Atelier. Medidas: calibre 60mm, puente 11mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/calisto-c5.webp"
+  ],
+  "alts": [
+    "Calisto C5 — anteojos de sol azul marino con lente naranja espejada, en tr90, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "calisto-c5",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón azul marino mate con silueta aviador de frente plano (barra superior recta, lentes anchas con base cuadrada), lentes naranja espejadas con degradé amarillo-naranja y plaquetas naranjas en el puente. El acabado gomoso mate y el catálogo \"TR SOLAR KAZWINI POLARIZADO PREMIUM\" confirman TR90 y polarizado. Coincide todo con la propuesta."
+  }
+}

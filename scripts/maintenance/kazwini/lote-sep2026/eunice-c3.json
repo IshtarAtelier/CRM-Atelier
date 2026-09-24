@@ -1,0 +1,35 @@
+{
+  "name": "Eunice C3",
+  "brand": "Cápsula Escarlata",
+  "model": "7605 C3",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "7605 c3, eunice c3, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Aviador",
+  "lensWidth": 54,
+  "bridgeWidth": 17,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Sol Eunice C3 | Atelier",
+  "seoDescription": "Eunice C3: armazón aviador de metal plateado con clips de sol magnéticos gris y amarillo. Envío a todo el país.",
+  "description": "Eunice C3 es un armazón aviador de magnesio y aluminio en terminación plateada mate, con doble puente y varillas finas de terminales negros. Viene con dos clips magnéticos que se ponen y se sacan en un segundo: uno gris polarizado para el sol y uno amarillo para manejar de noche o con poca luz. Liviano y de líneas clásicas, sirve como anteojo de receta y como lente de sol en el mismo armazón. Una pieza premium de Atelier. Medidas: calibre 54mm, puente 17mm, patillas 145mm.",
+  "fotos": [
+    "/images/products/eunice-c3.webp"
+  ],
+  "alts": [
+    "Eunice C3 — armazón con clip de sol plateado con lente clip gris y amarillo, en metal, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "eunice-c3",
+  "_familia": "clip-on",
+  "_fuentePrecio": "Capri/Siena/Riviera/Verona/Génova/Venice/Torino/Florence",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón metálico plateado mate, con doble puente y varillas con terminales negros, forma piloto/aviador de corte levemente geométrico. Vienen dos clips: uno gris oscuro y otro amarillo, con marco plateado. Coincide con la propuesta (plateado, clip gris y amarillo, Aviador, Metal) y con el catálogo de clip-on de magnesio con aluminio."
+  }
+}

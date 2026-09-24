@@ -1,0 +1,35 @@
+{
+  "name": "Plutón C7",
+  "brand": "Cápsula Escarlata",
+  "model": "6313 C7-P08",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "6313 c7-p08, plutón c7, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Aviador",
+  "lensWidth": 58,
+  "bridgeWidth": 17,
+  "templeLength": 140,
+  "seoTitle": "Lentes de Sol Plutón C7 | Atelier",
+  "seoDescription": "Plutón C7: anteojos de sol aviador en metal negro y plateado con lente gris espejada y patillas blancas. Envío a todo el país.",
+  "description": "Plutón C7 es un anteojo de sol de metal con doble puente y frente de líneas aviador, en plateado con el borde de los aros en negro. La lente gris espejada le da un carácter urbano, y las patillas blancas con textura grabada e interior negro rematan la pieza con un detalle poco común. Una pieza premium de Atelier. Medidas: calibre 58mm, puente 17mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/pluton-c7.webp"
+  ],
+  "alts": [
+    "Plutón C7 — anteojos de sol negro y plateado con lente gris espejada, en metal, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "pluton-c7",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": false,
+    "motivo": "Frente de metal plateado/gunmetal con aro negro y doble puente (navigator/aviador cuadrado), lente gris espejada: forma, material y lente coinciden. El color propuesto omite un rasgo visible: las patillas son bicolor, una negra (con marca KAZWINI) y la otra BLANCA texturada con terminación negra. Corregido a \"negro, plateado y blanco\"."
+  }
+}

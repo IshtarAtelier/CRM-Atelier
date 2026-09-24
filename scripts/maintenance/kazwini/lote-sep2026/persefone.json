@@ -1,0 +1,39 @@
+{
+  "name": "Perséfone",
+  "brand": "Cápsula Escarlata",
+  "model": "JS8512 C43-P191",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "js8512 c43-p191, perséfone, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Rectangular",
+  "lensWidth": 59,
+  "bridgeWidth": 17,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Sol Perséfone | Atelier",
+  "seoDescription": "Perséfone: anteojos de sol de metal dorado semi al aire con lente marrón degradé. Cápsula Escarlata. Envío a todo el país.",
+  "description": "Perséfone es un anteojo de sol de metal dorado con frente semi al aire: el aro sostiene la lente por arriba y la deja libre abajo, para un frente rectangular liviano y prolijo. La lente marrón degradé acompaña el tono cálido del metal y se ve bien con ropa clara y oscura por igual. Las patillas son de metal con grabado en la bisagra y terminales de acetato negro, un contraste sobrio que remata la línea Kazwini Premium de Cápsula Escarlata. Una pieza premium de Atelier. Medidas: calibre 59mm, puente 17mm, patillas 145mm.",
+  "fotos": [
+    "/images/products/persefone.webp",
+    "/images/products/persefone-2.webp",
+    "/images/products/persefone-3.webp"
+  ],
+  "alts": [
+    "Perséfone — anteojos de sol dorado con lente marrón degradé, en metal, forma rectangular, visto de tres cuartos",
+    "Perséfone — anteojos de sol dorado con lente marrón degradé, en metal, forma rectangular, segunda vista",
+    "Perséfone — anteojos de sol dorado con lente marrón degradé, en metal, forma rectangular, vista 3"
+  ],
+  "isFeatured": false,
+  "slug": "persefone",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón metálico dorado (marca KAZWINI en la varilla, terminales negros), lentes marrones con degradé (más oscuro arriba, más claro abajo) y aros rectangulares más anchos que altos. Coincide con la propuesta: color dorado, lente marrón degradé, forma Rectangular, material Metal."
+  }
+}

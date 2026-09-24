@@ -1,0 +1,35 @@
+{
+  "name": "Eunice C4",
+  "brand": "Cápsula Escarlata",
+  "model": "7605 C4",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "7605 c4, eunice c4, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Aviador",
+  "lensWidth": 54,
+  "bridgeWidth": 17,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Sol Eunice C4 | Atelier",
+  "seoDescription": "Eunice C4: armazón aviador dorado en metal con clip de sol magnético polarizado. Envío a todo el país.",
+  "description": "Eunice C4 es un armazón aviador de doble puente en metal dorado satinado, con patillas rematadas en negro y un frente liviano de aleación de magnesio y aluminio. Trae clips de sol magnéticos polarizados —uno gris y uno amarillo— que se apoyan sobre el frente y lo convierten en anteojo de sol sin cambiar de armazón. Una pieza premium de Atelier. Medidas: calibre 54mm, puente 17mm, patillas 145mm.",
+  "fotos": [
+    "/images/products/eunice-c4.webp"
+  ],
+  "alts": [
+    "Eunice C4 — armazón con clip de sol dorado con lente clip gris y amarillo, en metal, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "eunice-c4",
+  "_familia": "clip-on",
+  "_fuentePrecio": "Capri/Siena/Riviera/Verona/Génova/Venice/Torino/Florence",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón de metal dorado mate con doble puente y patillas con terminales negras, forma aviador/navigator de bordes ligeramente angulosos. Vienen dos clips magnéticos: uno gris oscuro y uno amarillo, lo que coincide con \"clip gris y amarillo\". Color dorado, forma Aviador y material Metal coinciden con lo propuesto."
+  }
+}

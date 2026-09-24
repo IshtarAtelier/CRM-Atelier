@@ -1,0 +1,36 @@
+{
+  "name": "Perseo C4",
+  "brand": "Cápsula Escarlata",
+  "model": "S11110K C4",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 4,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "s11110k c4, perseo c4, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Aviador",
+  "lensWidth": 59,
+  "bridgeWidth": 11,
+  "templeLength": 143,
+  "seoTitle": "Lentes de Sol Perseo C4 | Atelier",
+  "seoDescription": "Perseo C4: anteojos de sol aviador en TR90 gris mate con lente polarizada azul espejada. Envío a todo el país.",
+  "description": "Perseo C4 es un anteojo de sol de línea aviador con doble puente y frente de TR90 gris translúcido con terminación mate. Lleva lente polarizada azul espejada, pensada para cortar el reflejo en ruta, agua o pleno sol. Las patillas, del mismo gris, tienen una línea azul que acompaña el tono de la lente. Una pieza premium de Atelier. Medidas: calibre 59mm, puente 11mm, patillas 143mm.",
+  "fotos": [
+    "/images/products/perseo-c4.webp"
+  ],
+  "alts": [
+    "Perseo C4 — anteojos de sol gris con lente azul espejada, en tr90, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "perseo-c4",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón aviador clásico (lente en gota con barra superior recta y puente doble), de frente mate gris oscuro semitranslúcido con una línea azul en las patillas, y lentes azul espejadas. El acabado mate flexible y el catálogo \"TR SOLAR\" confirman TR90. Todo coincide con la propuesta."
+  }
+}

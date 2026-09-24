@@ -1,0 +1,32 @@
+{
+  "name": "Urano",
+  "brand": "Cápsula Escarlata",
+  "model": "009206",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "009206 sin variación, urano, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Rectangular",
+  "seoTitle": "Lentes de Sol Urano | Atelier",
+  "seoDescription": "Urano: anteojos de sol deportivos envolventes negros con lente espejada violeta, en TR90. Envío a todo el país.",
+  "description": "Urano es un anteojo de sol deportivo envolvente, con frente semi al aire en TR90 negro mate y una lente única espejada en tonos violeta. La lente lleva pequeñas ventilaciones en el borde superior y las patillas terminan en punta calada, un diseño pensado para el uso en movimiento. Es un modelo liviano y de calce amplio, para correr, andar en bici o pasar el día al aire libre. Una pieza premium de Atelier.",
+  "fotos": [
+    "/images/products/urano.webp"
+  ],
+  "alts": [
+    "Urano — anteojos de sol negro con lente espejada violeta, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "urano",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un anteojo deportivo envolvente: armazón negro mate de media montura (barra superior con ventilaciones, patillas caladas), un solo lente tipo máscara con espejado violeta/magenta que vira a azul y dorado en los reflejos. Color negro y lente espejada violeta coinciden. El material no se puede probar desde la foto, pero el acabado mate y flexible es el típico del TR90 deportivo, y es consistente con el lote solar. La forma real es \"máscara deportiva envolvente\", que no existe entre las 8 válidas: de esas, Rectangular es la más cercana (lente ancho, borde superior recto, más ancho que alto); XL no corresponde porque en este catálogo se usa para armazones oversize de moda (Dionisio, Selene, Poseidon), no para deportivos. Si el catálogo llegara a sumar una forma \"Deportivo/Envolvente\", conviene reclasificarlo."
+  }
+}

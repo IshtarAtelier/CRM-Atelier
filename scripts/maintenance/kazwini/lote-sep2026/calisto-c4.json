@@ -1,0 +1,36 @@
+{
+  "name": "Calisto C4",
+  "brand": "Cápsula Escarlata",
+  "model": "S11105K C4",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "s11105k c4, calisto c4, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Aviador",
+  "lensWidth": 60,
+  "bridgeWidth": 11,
+  "templeLength": 14,
+  "seoTitle": "Lentes de Sol Calisto C4 | Atelier",
+  "seoDescription": "Calisto C4: anteojos de sol TR90 cristal mate con lente azul espejada polarizada, calibre 60mm. Envío a todo el país.",
+  "description": "Calisto C4 es un anteojo de sol de frente amplio y línea superior recta, en TR90 cristal mate que deja ver la estructura translúcida del armazón. Las lentes azul espejadas polarizadas cortan el reflejo del sol en el agua, la ruta o el asfalto, y los apoyos nasales de goma lo mantienen firme aunque el día sea largo. Una pieza premium de Atelier. Medidas: calibre 60mm, puente 11mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/calisto-c4.webp"
+  ],
+  "alts": [
+    "Calisto C4 — anteojos de sol cristal mate con lente azul espejada, en tr90, forma aviador, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "calisto-c4",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón translúcido esmerilado (cristal mate) con lentes azules espejadas, puente doble tipo navigator/aviador con barra superior recta y frente grande. Coincide con la propuesta; el acabado mate plástico es consistente con TR90 y con el catálogo \"TR SOLAR KAZWINI POLARIZADO PREMIUM\"."
+  }
+}

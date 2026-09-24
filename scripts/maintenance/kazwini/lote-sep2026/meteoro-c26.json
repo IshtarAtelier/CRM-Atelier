@@ -1,0 +1,36 @@
+{
+  "name": "Meteoro C26",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3399 C26-P96",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3399 c26-p96, meteoro c26, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Cuadrado",
+  "lensWidth": 53,
+  "bridgeWidth": 18,
+  "templeLength": 140,
+  "seoTitle": "Lentes de Sol Meteoro C26 | Atelier",
+  "seoDescription": "Meteoro C26: anteojos de sol cuadrados en TR90 transparente con lente verde polarizada. Envío a todo el país.",
+  "description": "Meteoro C26 es un anteojo de sol de frente cuadrado en TR90 transparente, con lente verde oscuro polarizada que corta los reflejos sin alterar los colores. Liviano y de líneas clásicas, acompaña el uso diario sin perder presencia. Una pieza premium de Atelier. Medidas: calibre 53mm, puente 18mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/meteoro-c26.webp"
+  ],
+  "alts": [
+    "Meteoro C26 — anteojos de sol transparente con lente verde oscuro, en tr90, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "meteoro-c26",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": true,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón cristal transparente (con detalle negro en el interior de las varillas), lentes muy oscuras de tono verde/negro, forma cuadrada tipo wayfarer con bordes apenas redondeados. Coincide con la propuesta; el catálogo \"TR SOLAR\" respalda TR90."
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "Lucca",
+  "brand": "Cápsula Escarlata",
+  "model": "G5919 C1",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 4,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "g5919 c1, lucca, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado",
+  "lensWidth": 49,
+  "bridgeWidth": 19,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Sol Lucca | Atelier",
+  "seoDescription": "Lucca: armazón cuadrado de acetato negro con clip de sol magnético polarizado, de Cápsula Escarlata. Envío a todo el país.",
+  "description": "Lucca es un armazón cuadrado de acetato italiano Mazzucchelli en negro, de frente grueso y presencia firme, pensado para receta. Trae un clip magnético con lente gris polarizada que se coloca en segundos y lo convierte en anteojo de sol sin cambiar de armazón. Forma parte de la colección Cápsula Escarlata: una pieza premium de Atelier. Medidas: calibre 49mm, puente 19mm, patillas 145mm.",
+  "fotos": [
+    "/images/products/lucca.webp"
+  ],
+  "alts": [
+    "Lucca — armazón con clip de sol negro con lente clip gris, en acetato, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "lucca",
+  "_familia": "clip-on",
+  "_fuentePrecio": "Capri/Siena/Riviera/Verona/Génova/Venice/Torino/Florence",
+  "_fotoDelPedido": true,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón de acetato negro brillante, grueso, con aros claramente cuadrados (lados rectos, esquinas marcadas) y un clip-on con lentes gris oscuro. Color, forma y material coinciden con la propuesta y con el catálogo del proveedor (acetato clip-on)."
+  }
+}

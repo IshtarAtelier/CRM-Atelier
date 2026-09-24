@@ -1,0 +1,35 @@
+{
+  "name": "Fénix C2",
+  "brand": "Cápsula Escarlata",
+  "model": "J853T19 C2",
+  "category": "Lentes de Sol",
+  "price": 225000,
+  "cost": 22725,
+  "wholesalePrice": 36000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "j853t19 c2, fénix c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado",
+  "lensWidth": 51,
+  "bridgeWidth": 26,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Sol Fénix C2 | Atelier",
+  "seoDescription": "Fénix C2: anteojos de sol carey en acetato italiano, forma cuadrada, lente marrón y patillas ámbar. Envío a todo el país.",
+  "description": "Fénix C2 combina un frente carey de acetato italiano Mazzucchelli con patillas en ámbar translúcido, un contraste cálido que se nota sin estridencias. La forma cuadrada, el puente tipo ojo de cerradura y los remaches metálicos en las esquinas le dan un aire clásico con carácter. La lente marrón de sol acompaña bien el tono del armazón y resulta cómoda para el uso diario. Una pieza premium de Atelier. Medidas: calibre 51mm, puente 26mm, patillas 145mm.",
+  "fotos": [
+    "/images/products/fenix-c2.webp"
+  ],
+  "alts": [
+    "Fénix C2 — anteojos de sol carey y ámbar con lente marrón, en acetato, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "fenix-c2",
+  "_familia": "acetato-sol",
+  "_fuentePrecio": "Adhara C4 / Fénix C1",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto coincide con la propuesta: frente carey oscuro (negro-marrón con manchas ámbar), varillas de acetato ámbar/miel translúcido, lentes marrones lisas, remaches plateados. Aros cuadrados, gruesos, con esquinas apenas redondeadas y puente en ojo de cerradura — es Cuadrado, no Rectangular ni Redondo. El acabado brillante y el grosor del acetato coinciden con el catálogo (acetato Mazzucchelli, sol)."
+  }
+}

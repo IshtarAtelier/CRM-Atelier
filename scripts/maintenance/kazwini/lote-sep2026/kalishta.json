@@ -1,0 +1,35 @@
+{
+  "name": "Kalishta",
+  "brand": "Cápsula Escarlata",
+  "model": "S1105 C3",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "s1105 c3, kalishta, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Silicona, Rectangular",
+  "lensWidth": 57,
+  "bridgeWidth": 18,
+  "templeLength": 125,
+  "seoTitle": "Lentes de Sol Kalishta | Atelier",
+  "seoDescription": "Kalishta: anteojos de sol deportivos envolventes en silicona, marrón mate con lente marrón. Envío a todo el país.",
+  "description": "Kalishta es un anteojo de sol deportivo de silueta envolvente, con frente marrón mate y detalles en amarillo pálido sobre las patillas que le dan un contraste discreto. Está hecho en silicona, un material liviano y flexible que acompaña el movimiento sin apretar, pensado para el día a día activo. La lente marrón suaviza el resplandor y mantiene un tono cálido en la visión. Una pieza premium de Atelier. Medidas: calibre 57mm, puente 18mm, patillas 125mm.",
+  "fotos": [
+    "/images/products/kalishta.webp"
+  ],
+  "alts": [
+    "Kalishta — anteojos de sol marrón y amarillo con lente marrón, en silicona, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "kalishta",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un lente de sol deportivo envolvente: armazón marrón oscuro mate con insertos amarillo claro (pastel) en ambas varillas, y lentes marrones. La forma es rectangular envolvente, que dentro de las formas válidas corresponde a Rectangular. El material Silicona coincide con el catálogo del proveedor (\"SILICONE TPI\") y con el acabado gomoso mate que se ve. Todo coincide con la propuesta; el único matiz es que el amarillo es claro/pastel, no intenso, pero \"marrón y amarillo\" lo describe correctamente."
+  }
+}

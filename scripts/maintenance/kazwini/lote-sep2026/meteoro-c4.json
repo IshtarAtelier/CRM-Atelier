@@ -1,0 +1,36 @@
+{
+  "name": "Meteoro C4",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3399 C4-P109",
+  "category": "Lentes de Sol",
+  "price": 220000,
+  "salePrice": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3399 c4-p109, meteoro c4, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Cuadrado",
+  "lensWidth": 53,
+  "bridgeWidth": 18,
+  "templeLength": 140,
+  "seoTitle": "Lentes de Sol Meteoro C4 | Atelier",
+  "seoDescription": "Meteoro C4: anteojos de sol cuadrados negros en TR90 con lente gris polarizada y patillas transparentes. Envío a todo el país.",
+  "description": "Meteoro C4 son anteojos de sol de frente negro brillante y patillas transparentes, en TR90 liviano, con lente gris polarizada que corta el reflejo sin oscurecer de más. La forma cuadrada, de líneas rectas y esquinas apenas suavizadas, es un clásico que queda bien en casi cualquier cara. Una pieza premium de Atelier. Medidas: calibre 53mm, puente 18mm, patillas 140mm.",
+  "fotos": [
+    "/images/products/meteoro-c4.webp"
+  ],
+  "alts": [
+    "Meteoro C4 — anteojos de sol negro con lente gris polarizada, en tr90, forma cuadrado, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "meteoro-c4",
+  "_familia": "tr-polarizado",
+  "_fuentePrecio": "Olimpo (decisión Ishtar)",
+  "_fotoDelPedido": true,
+  "_verificador": {
+    "ok": false,
+    "motivo": "La foto muestra frente negro brillante con lentes gris oscuro (compatible con gris polarizada) y forma cuadrada de esquinas suavemente redondeadas (tipo wayfarer cuadrado); forma y material TR90 coinciden con el catálogo TR SOLAR. Pero las patillas son claramente transparentes/cristal (se ve el alma negra a través), no negras: decir solo \"negro\" describe el frente y omite un rasgo visible del modelo. Se corrige el color para reflejar el bicolor."
+  }
+}

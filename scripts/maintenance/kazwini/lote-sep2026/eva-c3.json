@@ -1,0 +1,35 @@
+{
+  "name": "Eva C3",
+  "brand": "Cápsula Escarlata",
+  "model": "YD1224S C3",
+  "category": "Lentes de Sol",
+  "price": 225000,
+  "cost": 22725,
+  "wholesalePrice": 36000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "yd1224s c3, eva c3, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Rectangular",
+  "lensWidth": 52,
+  "bridgeWidth": 21,
+  "templeLength": 145,
+  "seoTitle": "Lentes de Sol Eva C3 | Atelier",
+  "seoDescription": "Eva C3: anteojos de sol rectangulares de acetato italiano en bordó oscuro con lente gris. Envío a todo el país.",
+  "description": "Eva C3 es un anteojo de sol de acetato italiano Mazzucchelli, con frente recto tipo flat top y un color bordó oscuro que a la sombra se lee casi negro y a la luz deja ver su veta rojiza. La lente gris oscura acompaña el tono del armazón, y la montura gruesa le da presencia sin resultar pesada. Una pieza premium de Atelier. Medidas: calibre 52mm, puente 21mm, patillas 145mm.",
+  "fotos": [
+    "/images/products/eva-c3.webp"
+  ],
+  "alts": [
+    "Eva C3 — anteojos de sol bordó oscuro con lente gris, en acetato, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "eva-c3",
+  "_familia": "acetato-sol",
+  "_fuentePrecio": "Adhara C4 / Fénix C1",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón de acetato brilloso en un tono bordó muy oscuro (casi negro en el frente, con el rojizo bien visible en las varillas y el jaspeado interno), lentes solares gris oscuro uniforme, y una forma rectangular de frente recto (flat-top) con esquinas angulosas. Coincide con la propuesta y con el catálogo Kazwini acetato solar Mazzucchelli."
+  }
+}

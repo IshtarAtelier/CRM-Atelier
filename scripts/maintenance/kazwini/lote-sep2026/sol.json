@@ -1,0 +1,35 @@
+{
+  "name": "Sol",
+  "brand": "Cápsula Escarlata",
+  "model": "8383-3 C5",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 5,
+  "gender": "Masculino",
+  "ageGroup": "Adulto",
+  "seoTags": "8383-3 c5, sol, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular",
+  "lensWidth": 55,
+  "bridgeWidth": 18,
+  "templeLength": 143,
+  "seoTitle": "Lentes de Sol Sol | Atelier",
+  "seoDescription": "Anteojos de sol Sol en TR90 verde oscuro mate con lente gris polarizada UV400, forma rectangular urbana. Envío a todo el país.",
+  "description": "Sol es un anteojo de sol rectangular en TR90 mate verde oscuro, de líneas rectas y frente amplio que se apoya con firmeza en el rostro. La lente gris polarizada corta los reflejos del agua y del asfalto y protege del UV400, pensada para manejar o pasar el día al aire libre. Las patillas llevan una textura de agarre en verde y un detalle metálico triangular que lo distingue sin estridencia. Medidas: calibre 55mm, puente 18mm, patillas 143mm.",
+  "fotos": [
+    "/images/products/sol.webp"
+  ],
+  "alts": [
+    "Sol — anteojos de sol verde oscuro con lente gris polarizada, en tr90, forma rectangular, visto de tres cuartos"
+  ],
+  "isFeatured": false,
+  "slug": "sol",
+  "_familia": "estandar",
+  "_fuentePrecio": "sin hermano: estándar Kazwini sol",
+  "_fotoDelPedido": false,
+  "_verificador": {
+    "ok": true,
+    "motivo": "La foto muestra un armazón mate verde oscuro (verde botella casi negro, con textura verde en las varillas), lentes gris humo con sticker \"Polarized\", frente claramente rectangular (más ancho que alto, líneas rectas y esquinas cuadradas) y plástico mate tipo TR90 consistente con el catálogo \"SOLAR TR90 POLARIZADO\". Todo coincide con la propuesta."
+  }
+}
