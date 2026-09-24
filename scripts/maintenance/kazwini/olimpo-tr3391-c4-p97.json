@@ -1,0 +1,29 @@
+{
+  "name": "Olimpo C4-P97",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3391 C4-P97",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3391 c4-p97, olimpo c4-p97, lentes de sol, gafas de sol, anteojos de sol, polarizado, deportivo, optica cordoba, atelier optica, proteccion uv, unisex, Metal, Rectangular",
+  "lensWidth": 61,
+  "bridgeWidth": 14,
+  "templeLength": 130,
+  "seoTitle": "Lentes de Sol Olimpo C4-P97 | Atelier",
+  "seoDescription": "Anteojos de sol polarizados Olimpo C4-P97 por Atelier: armazón deportivo semi al aire en negro mate con lente gris. Envío a todo el país.",
+  "description": "Los anteojos de sol Olimpo C4-P97 son la versión negro mate con lente gris de la curva Olimpo: un armazón deportivo semi al aire, ultraliviano y resistente, con lente polarizada que elimina los reflejos del agua, la ruta y el asfalto, y protección UV completa. Terminales antideslizantes para que no se muevan en actividad. Una pieza premium de Atelier. Medidas: calibre 61mm, puente 14mm, patillas 130mm.",
+  "fotos": [
+    "/images/products/olimpo-c4-p97.webp",
+    "/images/products/olimpo-c4-p97-2.webp"
+  ],
+  "alts": [
+    "Olimpo C4-P97 — anteojos de sol negro con lente gris polarizada, en metal, forma rectangular, visto de tres cuartos",
+    "Olimpo C4-P97 — anteojos de sol negro con lente gris polarizada, en metal, forma rectangular, segunda vista"
+  ],
+  "isFeatured": false
+}

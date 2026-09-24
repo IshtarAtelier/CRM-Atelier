@@ -29,3 +29,5 @@ De dónde sale cada dato:
 | neptuno-gt9615-c1.json | PED-003516 | GT9615 C1 · Titanium diseño femenino | Neptuno |
 | semele-c3-tl5213-c3.json | PED-003512 | TL5213 C3 · Metal inoxidable premium (color nuevo de Semele = C4) | Semele C3 |
 | isis-10006-c1.json | PED-003510 | 10006 C1 · Titanium montura al aire (foto del PDF Pedido_Kazwini_Final: el portal no lista el C1) | Isis |
+| lyra-h3788-312.json | (sin nº de pedido) | H3788 312 · acetato cristal (proveedor sin confirmar: el color es numérico, no el C<n> de Kazwini). SIN fotos: las sube Ishtar a mano desde el CRM, con alt que diga el color | Lyra |
+| olimpo-tr3391-<tono>.json (×5) | PED-003510 | TR3391 · TR solar polarizado premium, curva completa: C4-P39, C4-P97, C10-P71, C22-P90, C22-P101 (el C4-P39 no está en el portal: es la foto "genérica" del modelo, verificada contra el PDF) | Olimpo <tono> |

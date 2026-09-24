@@ -1,0 +1,29 @@
+{
+  "name": "Olimpo C22-P101",
+  "brand": "Cápsula Escarlata",
+  "model": "TR3391 C22-P101",
+  "category": "Lentes de Sol",
+  "price": 175000,
+  "cost": 15000,
+  "wholesalePrice": 34000,
+  "publishToWholesale": true,
+  "stock": 3,
+  "gender": "Unisex",
+  "ageGroup": "Adulto",
+  "seoTags": "tr3391 c22-p101, olimpo c22-p101, lentes de sol, gafas de sol, anteojos de sol, polarizado, deportivo, optica cordoba, atelier optica, proteccion uv, unisex, Metal, Rectangular",
+  "lensWidth": 61,
+  "bridgeWidth": 14,
+  "templeLength": 130,
+  "seoTitle": "Lentes de Sol Olimpo C22-P101 | Atelier",
+  "seoDescription": "Anteojos de sol polarizados Olimpo C22-P101 por Atelier: armazón deportivo semi al aire en gris plomo con lente gris. Envío a todo el país.",
+  "description": "Los anteojos de sol Olimpo C22-P101 son la versión gris plomo con lente gris de la curva Olimpo: un armazón deportivo semi al aire, ultraliviano y resistente, con lente polarizada que elimina los reflejos del agua, la ruta y el asfalto, y protección UV completa. Terminales antideslizantes para que no se muevan en actividad. Una pieza premium de Atelier. Medidas: calibre 61mm, puente 14mm, patillas 130mm.",
+  "fotos": [
+    "/images/products/olimpo-c22-p101.webp",
+    "/images/products/olimpo-c22-p101-2.webp"
+  ],
+  "alts": [
+    "Olimpo C22-P101 — anteojos de sol plomo con lente gris polarizada, en metal, forma rectangular, visto de tres cuartos",
+    "Olimpo C22-P101 — anteojos de sol plomo con lente gris polarizada, en metal, forma rectangular, segunda vista"
+  ],
+  "isFeatured": false
+}
