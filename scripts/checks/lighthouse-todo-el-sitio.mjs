@@ -30,9 +30,19 @@ const fecha = opt('fecha', 'corrida');
 const OUT = opt('salida', path.join('logs', 'lighthouse', fecha));
 mkdirSync(OUT, { recursive: true });
 
-const sitemap = execFileSync('curl', ['-s', `${BASE}/sitemap.xml`]).toString();
-let urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-if (SOLO.length) urls = SOLO.map((r) => (r.startsWith('http') ? r : BASE + r));
+let urls;
+if (SOLO.length) {
+  urls = SOLO.map((r) => (r.startsWith('http') ? r : BASE + r));
+} else {
+  // curl -s devuelve 56 si la conexión se corta a mitad: reintentar antes de rendirse.
+  let sitemap = '';
+  for (let i = 0; i < 3 && !sitemap.includes('<loc>'); i++) {
+    const r = spawnSync('curl', ['-sS', '--retry', '2', `${BASE}/sitemap.xml`], { encoding: 'utf8' });
+    sitemap = r.stdout || '';
+  }
+  urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  if (!urls.length) { console.error('No pude leer el sitemap'); process.exit(1); }
+}
 if (MAX) urls = urls.slice(0, MAX);
 console.log(`${urls.length} URLs · salida en ${OUT}`);
 
