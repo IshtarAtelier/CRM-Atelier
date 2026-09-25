@@ -31,15 +31,17 @@ export function CheckoutResumenCelular({ items, totales, isWholesale, appliedCou
         aria-controls="resumen-pedido-celular"
         className="w-full flex items-center justify-between gap-3 px-4 py-4 text-left rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
       >
-        <span className="flex items-center gap-2 min-w-0">
-          <ShoppingBag className="w-4 h-4 text-stone-700 shrink-0" />
-          <span className="text-[11px] font-black uppercase tracking-widest text-stone-900">
-            {abierto ? "Ocultar resumen" : "Ver resumen"}
+        <span className="flex items-start gap-2.5 min-w-0">
+          <ShoppingBag className="w-4 h-4 text-stone-700 shrink-0 mt-0.5" />
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-stone-900 whitespace-nowrap">
+              Tu pedido
+              <ChevronDown className={`w-4 h-4 text-stone-700 shrink-0 transition-transform ${abierto ? "rotate-180" : ""}`} />
+            </span>
+            <span className="block text-[11px] text-stone-600 whitespace-nowrap mt-0.5">
+              {cantidad === 1 ? "1 producto" : `${cantidad} productos`} · {abierto ? "ocultar detalle" : "ver detalle"}
+            </span>
           </span>
-          <span className="text-[11px] text-stone-600">
-            ({cantidad === 1 ? "1 producto" : `${cantidad} productos`})
-          </span>
-          <ChevronDown className={`w-4 h-4 text-stone-700 shrink-0 transition-transform ${abierto ? "rotate-180" : ""}`} />
         </span>
         <span className="text-right shrink-0">
           <span className="block text-lg font-semibold text-stone-950 leading-tight">{precioConSigno(totales.total)}</span>
