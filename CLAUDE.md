@@ -260,6 +260,19 @@ Reglas para que el proyecto escale sin volverse un mazacote.
   convertir zona horaria, que no se muestra.
 - **Toda integración externa (SmartLab, Payway, Meta, Resend, AFIP) se toca a
   través de su service** — nunca `fetch` directo desde una ruta o componente.
+- **Toda compra se informa a Meta SÍ O SÍ, por la outbox `MetaConversion`**
+  (`MetaConversionService.registrarCompraWeb` / `registrarCompraLocal`, en
+  `src/services/meta-conversions.service.ts`). Regla de Ishtar del 25/9/2026.
+  La compra se ANOTA antes de mandarse; si Meta no la acepta, el cron
+  `/api/cron/meta-conversiones` insiste cada 10 min hasta que entre o venza la
+  ventana de 7 días, y lo que no entró avisa por mail una sola vez. Un camino
+  de venta nuevo (otra pasarela, otra forma de convertir un presupuesto) TIENE
+  que llamar a `registrarCompra*`: un `fetch` suelto o `AdsService.postEvent`
+  a mano deja la compra sin rastro, que es lo que pasaba antes. `event_time`
+  es la VENTA (`labSentAt`), nunca `createdAt` (el presupuesto): Meta rechaza
+  más de 7 días y así se perdían las ventas cerradas sobre presupuestos viejos.
+  `npm run check:capi` fija las garantías sin red; `npm run check:meta-compras
+  -- --prod` (solo lee) dice qué ventas no llegaron. Runbook: `docs/compras-a-meta.md`.
 - **Schema Prisma**: todo campo nuevo llega por migración commiteada, nunca
   editando la DB a mano. Borrar columnas: primero dejar de leerlas en el código,
   deploy, y recién después la migración que las borra (el deploy viejo sigue

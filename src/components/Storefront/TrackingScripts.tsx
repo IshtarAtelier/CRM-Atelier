@@ -185,7 +185,7 @@ export function TrackingScripts({
           cuando lo tipea en el checkout, tarde para el init) y el único canal
           con sesión —mayoristas— se excluye de Meta a propósito (ver
           medirCompraWeb en api/checkout/payway). El matching por datos
-          personales lo aporta el server: sendWebPurchase manda email,
+          personales lo aporta el server: registrarCompraWeb manda email,
           teléfono y nombre hasheados por el Conversions API. */}
       {META_PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">

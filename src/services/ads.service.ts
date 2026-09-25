@@ -16,8 +16,12 @@ import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
  *   donde esta clase lo reenvía como `event_id`. Meta recibe los dos y cuenta
  *   UNO: el del navegador llega antes, el del server resiste adblock/ITP.
  * - Purchase: `event_id = order.id` en los dos lados — `trackPurchase()` en el
- *   navegador y `sendWebPurchase()` acá, en las DOS ramas de cobro (Payway en
- *   línea y webhook de Mercado Pago vía `finalize-web-payment.ts`).
+ *   navegador y el evento que arma `buildPurchaseEvent()` acá. Quien lo MANDA
+ *   es `MetaConversionService` (outbox `MetaConversion` + reintentos): las DOS
+ *   ramas de cobro web (Payway en línea y webhook de Mercado Pago vía
+ *   `finalize-web-payment.ts`) y la venta del local (`order.service.ts`, al
+ *   convertir el presupuesto en venta) registran la compra ahí. Este archivo
+ *   no manda compras por su cuenta: arma el evento y hace el POST.
  * - Por eso NO hay un ViewContent disparado desde el server component de la
  *   ficha: el id nace en el cliente, así que un evento emitido en el render
  *   del server no podría compartirlo con el Pixel y Meta lo contaría doble.
@@ -37,7 +41,7 @@ interface ClientData {
   lastName?: string | null;
 }
 
-interface OrderData {
+export interface PurchaseOrderData {
   id: string;
   total: number;
   client: ClientData;
@@ -49,11 +53,45 @@ interface OrderData {
  * lleguen, mejor atribuye Meta la conversión al click del anuncio — fbc/fbp
  * son las de mayor peso. Van en texto plano (así lo exige CAPI), no se hashean.
  */
-interface MatchData {
+export interface MatchData {
   fbc?: string | null;
   fbp?: string | null;
   clientIp?: string | null;
   userAgent?: string | null;
+}
+
+/** Dónde ocurrió la compra, en el vocabulario de Meta. */
+export type ActionSource = 'website' | 'physical_store';
+
+/**
+ * Resultado de un POST al Conversions API, clasificado para que la outbox
+ * decida qué hacer: `transitorio` se reintenta (red, rate limit, token caído
+ * hasta que alguien lo reponga), `vencido` y `rechazo` no (insistir no los
+ * cambia), `sin_credenciales` se reintenta y avisa (no puede quedar mudo).
+ */
+export type ResultadoEnvio =
+  | { ok: true; eventsReceived: number }
+  | { ok: false; tipo: 'transitorio' | 'vencido' | 'rechazo' | 'sin_credenciales'; error: string };
+
+/**
+ * Traduce el error JSON de la Graph API a un tipo de fallo. El texto nunca
+ * incluye el token (Meta no lo devuelve), así que es seguro guardarlo.
+ */
+export function clasificarErrorMeta(error: {
+  code?: number | string;
+  message?: string;
+  error_subcode?: number;
+}): { tipo: 'transitorio' | 'vencido' | 'rechazo'; error: string } {
+  const code = Number(error?.code);
+  const msg = String(error?.message || 'error de Meta');
+  const texto = `Meta #${code}${error?.error_subcode ? '/' + error.error_subcode : ''}: ${msg}`.slice(0, 500);
+  // #100 sobre event_time: la compra ya tiene más de 7 días para Meta.
+  if (code === 100 && /event_time|older than|7 days|too old|too far/i.test(msg)) return { tipo: 'vencido', error: texto };
+  // #100 = parámetro inválido, #368 = política: reintentar no lo cambia.
+  if (code === 100 || code === 368) return { tipo: 'rechazo', error: texto };
+  // 190 token, 10/200-299 permisos, 1/2/4/17/32/613 rate limit o genérico: se
+  // arregla afuera (token nuevo, esperar) y el reintento lo recupera.
+  return { tipo: 'transitorio', error: texto };
 }
 
 export class AdsService {
@@ -92,130 +130,105 @@ export class AdsService {
   }
 
   /**
-   * Núcleo de envío de un evento Purchase al Conversions API de Meta.
-   * No bloquea (fetch fire-and-forget) ni lanza: medir no rompe la venta.
-   * @param eventId  Para deduplicar con el Pixel client-side (mismo id en ambos lados).
+   * Arma un evento Purchase del Conversions API. PURO: no manda nada y no toca
+   * la base. Quien lo manda es `MetaConversionService`, que primero lo anota en
+   * la tabla `MetaConversion` y después insiste hasta que Meta lo acepte.
+   *
+   * `eventTime` es el momento REAL de la compra: `labSentAt` en la venta del
+   * local, `createdAt` en la web. Antes iba `order.createdAt` siempre, y en una
+   * venta del local eso es la fecha del PRESUPUESTO: Meta rechaza cualquier
+   * evento con más de 7 días, así que toda venta cerrada sobre un presupuesto
+   * de la semana anterior se perdía en silencio (auditoría del 25/9/2026).
+   *
+   * `event_id = order.id` SIEMPRE, también en physical_store: es lo que permite
+   * reintentar sin que Meta cuente la misma venta dos veces, y deduplicar con el
+   * Purchase que dispara el navegador en la web.
    */
-  private static dispatchPurchase(
-    order: OrderData,
-    actionSource: 'physical_store' | 'website',
-    opts: {
-      eventId?: string;
-      eventSourceUrl?: string;
-      matchData?: MatchData;
-    } = {},
-  ) {
-    const metaToken = process.env.META_ACCESS_TOKEN;
-    const pixelId = process.env.META_PIXEL_ID;
-
-    // Si no están configuradas las variables, salimos silenciosamente
-    // para no interrumpir el flujo de la aplicación.
-    if (!metaToken || !pixelId) {
-      console.log('[AdsService] Meta CAPI ignorado: credenciales no configuradas.');
-      return;
+  public static buildPurchaseEvent(
+    order: PurchaseOrderData,
+    actionSource: ActionSource,
+    opts: { eventTime: Date; eventSourceUrl?: string; matchData?: MatchData },
+  ): Record<string, unknown> {
+    const userData: any = {};
+    if (order.client.email) userData.em = [this.hashData(order.client.email)];
+    if (order.client.phone) {
+      const telefono = this.normalizePhone(order.client.phone);
+      if (telefono) userData.ph = [this.hashData(telefono)];
     }
+    // fn/ln hasheados: más señales de matching = mejor atribución. Si el
+    // caller solo tiene el nombre completo (fichas del CRM), se parte acá:
+    // primera palabra = nombre, el resto = apellido. Un split imperfecto
+    // solo baja un poco el matcheo; nunca expone nada (viaja hasheado).
+    const nombre =
+      order.client.firstName || (order.client.name || '').trim().split(/\s+/)[0] || '';
+    const apellido =
+      order.client.lastName ||
+      (order.client.name || '').trim().split(/\s+/).slice(1).join(' ') ||
+      '';
+    if (nombre) userData.fn = [this.hashData(this.normalizeName(nombre))];
+    if (apellido) userData.ln = [this.hashData(this.normalizeName(apellido))];
+    const match = opts.matchData;
+    if (match?.fbc) userData.fbc = match.fbc;
+    if (match?.fbp) userData.fbp = match.fbp;
+    if (match?.clientIp) userData.client_ip_address = match.clientIp;
+    if (match?.userAgent) userData.client_user_agent = match.userAgent;
 
-    try {
-      const timeOfEvent = Math.floor((order.createdAt?.getTime() || Date.now()) / 1000);
-
-      const userData: any = {};
-      if (order.client.email) userData.em = [this.hashData(order.client.email)];
-      if (order.client.phone) {
-        const telefono = this.normalizePhone(order.client.phone);
-        if (telefono) userData.ph = [this.hashData(telefono)];
-      }
-      // fn/ln hasheados: más señales de matching = mejor atribución. Si el
-      // caller solo tiene el nombre completo (fichas del CRM), se parte acá:
-      // primera palabra = nombre, el resto = apellido. Un split imperfecto
-      // solo baja un poco el matcheo; nunca expone nada (viaja hasheado).
-      const nombre =
-        order.client.firstName || (order.client.name || '').trim().split(/\s+/)[0] || '';
-      const apellido =
-        order.client.lastName ||
-        (order.client.name || '').trim().split(/\s+/).slice(1).join(' ') ||
-        '';
-      if (nombre) userData.fn = [this.hashData(this.normalizeName(nombre))];
-      if (apellido) userData.ln = [this.hashData(this.normalizeName(apellido))];
-      const match = opts.matchData;
-      if (match?.fbc) userData.fbc = match.fbc;
-      if (match?.fbp) userData.fbp = match.fbp;
-      if (match?.clientIp) userData.client_ip_address = match.clientIp;
-      if (match?.userAgent) userData.client_user_agent = match.userAgent;
-
-      const event: any = {
-        event_name: 'Purchase',
-        event_time: timeOfEvent,
-        action_source: actionSource,
-        user_data: userData,
-        custom_data: {
-          currency: 'ARS',
-          value: order.total,
-          order_id: order.id,
-        },
-      };
-      // event_id permite a Meta descartar el duplicado del Pixel (dedup client+server).
-      if (opts.eventId) event.event_id = opts.eventId;
-      if (opts.eventSourceUrl) event.event_source_url = opts.eventSourceUrl;
-
-      this.postToMeta(event, `Conversión ${actionSource}`);
-    } catch (err) {
-      console.error('[AdsService] Error general preparando evento CAPI:', err);
-    }
+    const event: Record<string, unknown> = {
+      event_name: 'Purchase',
+      event_time: Math.floor(opts.eventTime.getTime() / 1000),
+      // event_id permite a Meta descartar el duplicado (Pixel del navegador o
+      // un reintento nuestro): compara event_name + event_id.
+      event_id: order.id,
+      action_source: actionSource,
+      user_data: userData,
+      custom_data: {
+        currency: 'ARS',
+        value: order.total,
+        order_id: order.id,
+      },
+    };
+    if (opts.eventSourceUrl) event.event_source_url = opts.eventSourceUrl;
+    return event;
   }
 
   /**
-   * Transporte al Conversions API. Fire-and-forget: no se `await`-ea nunca desde
-   * una ruta de venta ni de medición.
+   * POST de UN evento al Conversions API. Devuelve el resultado clasificado en
+   * vez de tragárselo: la outbox de compras necesita saber si reintentar.
+   * Nunca lanza. Nunca loguea el token.
    */
-  private static postToMeta(event: Record<string, unknown>, label: string) {
+  public static async postEvent(event: Record<string, unknown>): Promise<ResultadoEnvio> {
     const metaToken = process.env.META_ACCESS_TOKEN;
     const pixelId = process.env.META_PIXEL_ID;
-    if (!metaToken || !pixelId) return;
+    if (!metaToken || !pixelId) {
+      return { ok: false, tipo: 'sin_credenciales', error: 'META_ACCESS_TOKEN o META_PIXEL_ID sin configurar' };
+    }
 
     // v24.0: la Marketing API rechaza versiones viejas desde jun-2026 (#2635).
     const apiUrl = `https://graph.facebook.com/v24.0/${pixelId}/events`;
-
-    // Enviamos el request de forma asíncrona sin bloquear
-    fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: [event], access_token: metaToken }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.error) {
-          console.error('[AdsService] Meta CAPI Error:', data.error);
-        } else {
-          console.log(
-            `[AdsService] ${label} enviada a Meta. Eventos procesados: ${data.events_received}`,
-          );
-        }
-      })
-      .catch((error) => {
-        console.error('[AdsService] Excepción enviando a Meta CAPI:', error);
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: [event], access_token: metaToken }),
+        signal: AbortSignal.timeout(15_000),
       });
+      const data: any = await response.json().catch(() => ({}));
+      if (data?.error) return { ok: false, ...clasificarErrorMeta(data.error) };
+      if (!response.ok) return { ok: false, tipo: 'transitorio', error: `HTTP ${response.status} sin detalle` };
+      return { ok: true, eventsReceived: Number(data?.events_received ?? 0) };
+    } catch (error) {
+      return { ok: false, tipo: 'transitorio', error: error instanceof Error ? error.message : String(error) };
+    }
   }
 
   /**
-   * Conversión offline (venta del local/CRM). action_source: physical_store.
+   * Envío fire-and-forget para el EMBUDO (ViewContent, AddToCart, …): un evento
+   * de embudo perdido no vale un reintento. Las COMPRAS no pasan por acá.
    */
-  public static async sendOfflineConversion(order: OrderData) {
-    this.dispatchPurchase(order, 'physical_store');
-  }
-
-  /**
-   * Conversión de una compra WEB (checkout online). action_source: website.
-   * Respaldo server-side del Pixel: resiste adblock/iOS/ITP. Usa event_id =
-   * order.id para deduplicar con el Purchase del Pixel del navegador.
-   */
-  public static async sendWebPurchase(
-    order: OrderData,
-    opts: { eventSourceUrl?: string; matchData?: MatchData } = {},
-  ) {
-    this.dispatchPurchase(order, 'website', {
-      eventId: order.id,
-      eventSourceUrl: opts.eventSourceUrl,
-      matchData: opts.matchData,
+  private static postToMeta(event: Record<string, unknown>, label: string) {
+    void this.postEvent(event).then((r) => {
+      if (r.ok) console.log(`[AdsService] ${label} enviada a Meta. Eventos procesados: ${r.eventsReceived}`);
+      else if (r.tipo !== 'sin_credenciales') console.error(`[AdsService] ${label} no llegó a Meta (${r.tipo}): ${r.error}`);
     });
   }
 

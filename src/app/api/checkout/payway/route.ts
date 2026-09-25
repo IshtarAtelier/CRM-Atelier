@@ -17,7 +17,7 @@ import { notifyPaymentFailed } from '@/lib/payment-failed-alert';
 import { enforceRateLimit } from '@/lib/api-guard';
 import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
-import { AdsService } from '@/services/ads.service';
+import { MetaConversionService } from '@/services/meta-conversions.service';
 import { recordServerEvent } from '@/lib/analytics';
 import { logAudit } from '@/lib/audit';
 import type { ContactSource } from '@/lib/contact-source';
@@ -208,6 +208,8 @@ function medirCompraWeb(opts: {
     });
 
     // 2) Meta CAPI server-side (respaldo del Pixel; event_id = order.id deduplica).
+    //    Va a la outbox MetaConversion: queda anotada y el cron insiste si Meta
+    //    no la acepta a la primera (regla "sí o sí", 25/9/2026).
     //
     // Los pedidos MAYORISTAS no se espejan a Meta a propósito: los hace una
     // óptica logueada del canal Cápsula Escarlata, no un cliente que vino de un
@@ -218,7 +220,7 @@ function medirCompraWeb(opts: {
     // única excepción y queda escrita acá para que se pueda revertir a sabiendas.
     if (paymentMethod === 'MAYORISTA') return;
 
-    AdsService.sendWebPurchase(
+    void MetaConversionService.registrarCompraWeb(
       {
         id: order.id,
         total,

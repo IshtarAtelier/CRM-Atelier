@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { normalizeArgentinePhone } from '@/services/contact.service';
-import { AdsService } from '@/services/ads.service';
+import { MetaConversionService } from '@/services/meta-conversions.service';
 import { GoogleAdsService } from '@/services/google-ads.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
@@ -2273,9 +2273,13 @@ export class OrderService {
                 notifyZeroCostSale(updatedOrder.id)
                     .catch(err => console.error('Error en alerta de costo $0 (venta CRM):', err));
 
-                // Enviar conversión offline a Meta/Google de forma asíncrona (fire and forget)
-                AdsService.sendOfflineConversion(updatedOrder as any).catch(err => {
-                    console.error('Error al notificar conversión offline:', err);
+                // Compra del local → Meta (Conversions API). Se ANOTA en la tabla
+                // MetaConversion antes de salir y el cron insiste si no entra: regla
+                // "sí o sí" de Ishtar (25/9/2026). Sigue siendo fire-and-forget:
+                // medir no frena la venta. La fecha del evento es labSentAt (la
+                // venta), no createdAt (el presupuesto): Meta rechaza más de 7 días.
+                MetaConversionService.registrarCompraLocal(updatedOrder as any).catch(err => {
+                    console.error('Error al anotar la compra para Meta:', err);
                 });
 
                 // Lo mismo hacia Google Ads. Va aparte porque son dos APIs

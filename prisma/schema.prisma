@@ -1317,6 +1317,40 @@ model OpticaLead {
 /// Eventos de analítica propia de la tienda (embudo web, tráfico y navegación).
 /// Fuente de verdad interna, independiente de Meta/GA. Se llena de forma
 /// asíncrona (sendBeacon → /api/track) para no tocar el critical path.
+/// Registro de CADA compra que el sistema le informa a Meta (Conversions API).
+/// Una fila por orden y fuente (`website` = tienda online, `physical_store` =
+/// venta del local). Es la prueba de que la venta le llegó a Meta, o de por qué
+/// no: antes el envío era fire-and-forget y una compra perdida no dejaba rastro.
+/// Ciclo: PENDING → SENDING → SENT | FAILED (se reintenta con backoff) |
+/// REJECTED (Meta la rechazó en firme) | EXPIRED (venció la ventana de 7 días).
+/// Lo reintenta /api/cron/meta-conversiones; ver src/services/meta-conversions.service.ts.
+model MetaConversion {
+  id            String    @id @default(cuid())
+  orderId       String
+  /// website | physical_store
+  actionSource  String
+  /// Momento REAL de la compra (labSentAt en el local, createdAt en la web). Meta rechaza más de 7 días.
+  eventTime     DateTime
+  value         Float
+  currency      String    @default("ARS")
+  /// PENDING | SENDING | SENT | FAILED | REJECTED | EXPIRED
+  status        String    @default("PENDING")
+  attempts      Int       @default(0)
+  lastError     String?
+  sentAt        DateTime?
+  nextAttemptAt DateTime?
+  /// Cuándo se avisó por mail que esta compra no llegó (una sola vez por fila).
+  alertedAt     DateTime?
+  /// Payload EXACTO que se manda a Meta (datos personales ya hasheados), para auditar y reenviar.
+  payload       Json
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([orderId, actionSource])
+  @@index([status, nextAttemptAt])
+  @@index([eventTime])
+}
+
 model AnalyticsEvent {
   id        String  @id @default(cuid())
   /// page_view | view_content | add_to_cart | begin_checkout | add_contact | purchase | search | zone_view
