@@ -49,7 +49,7 @@ export function TrustStrip({ onGarantiaClick }: { onGarantiaClick?: () => void }
         <>
           <Link
             href="/resenas"
-            className="inline-flex items-center gap-1.5 hover:text-black transition-colors underline decoration-stone-300 underline-offset-2"
+            className="inline-flex items-center gap-1.5 min-h-6 py-1 hover:text-black transition-colors underline decoration-stone-300 underline-offset-2"
           >
             <span className="flex items-center gap-0.5 text-stone-900">
               {rating.toFixed(1).replace(".", ",")}
@@ -64,14 +64,14 @@ export function TrustStrip({ onGarantiaClick }: { onGarantiaClick?: () => void }
         <button
           type="button"
           onClick={onGarantiaClick}
-          className="inline-flex items-center gap-1.5 hover:text-black transition-colors underline decoration-stone-300 underline-offset-2"
+          className="inline-flex items-center gap-1.5 min-h-6 py-1 hover:text-black transition-colors underline decoration-stone-300 underline-offset-2"
         >
           {garantiaContenido}
         </button>
       ) : (
         <Link
           href="/politicas-de-cambio"
-          className="inline-flex items-center gap-1.5 hover:text-black transition-colors underline decoration-stone-300 underline-offset-2"
+          className="inline-flex items-center gap-1.5 min-h-6 py-1 hover:text-black transition-colors underline decoration-stone-300 underline-offset-2"
         >
           {garantiaContenido}
         </Link>

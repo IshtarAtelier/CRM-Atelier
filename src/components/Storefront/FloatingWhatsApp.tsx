@@ -49,7 +49,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   const isVisible = true;
   const corridoArriba = heroTapando || pathname?.startsWith("/capsulaescarlata");
   /** Páginas con una barra de acción fija abajo: ahí sí hay con qué chocar. */
-  const hayBarraFijaAbajo = pathname?.startsWith("/capsulaescarlata");
+  const hayBarraFijaAbajo = pathname?.startsWith("/capsulaescarlata") || pathname?.startsWith("/producto/");
 
   useEffect(() => {
     try {

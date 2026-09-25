@@ -489,7 +489,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                   </p>
                 </div>
  
-                <div style={{ animationDelay: '0.3s' }} className="chat-burbuja-entra bg-[#c8a55c] text-white p-3 rounded-2xl rounded-br-sm shadow-lg shadow-[#c8a55c]/20 w-[85%] self-end mt-2 text-center"
+                <div style={{ animationDelay: '0.3s' }} className="chat-burbuja-entra bg-[var(--dorado-solido)] text-white p-3 rounded-2xl rounded-br-sm shadow-lg shadow-[#8a6d3b]/20 w-[85%] self-end mt-2 text-center"
                 >
                   <p className="text-[11px] font-black tracking-[0.1em] uppercase flex items-center justify-center gap-1.5">
                     <Glasses className="w-3.5 h-3.5" /> Seleccioná un modelo
@@ -552,9 +552,9 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                         <p className={`text-[10px] uppercase tracking-[0.3em] font-bold mb-1 transition-colors duration-300 ${isSelected ? 'text-[var(--dorado-texto)]' : 'text-stone-400 group-hover:text-stone-500'}`}>
                           {group.brand}
                         </p>
-                        <h3 className={`text-sm font-serif uppercase tracking-tight transition-colors duration-300 mb-1.5 ${isSelected ? 'text-[#1a1714]' : 'text-stone-800 group-hover:text-black'}`}>
+                        <span className={`block text-sm font-serif uppercase tracking-tight transition-colors duration-300 mb-1.5 ${isSelected ? 'text-[#1a1714]' : 'text-stone-800 group-hover:text-black'}`}>
                           {group.baseName}
-                        </h3>
+                        </span>
                         <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[var(--dorado-texto)]' : 'text-stone-600'}`}>
                           ${formatearPrecio(activeVariant.price)}
                         </p>
