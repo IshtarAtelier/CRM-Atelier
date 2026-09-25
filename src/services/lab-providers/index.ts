@@ -27,7 +27,9 @@ export const LAB_PROVIDERS: LabProvider[] = [
     {
         name: 'GRUPO_OPTICO',
         description: 'Pedidos vía la API del portal SmartLab',
-        collect: () => GrupoOpticoProvider.collect(),
+        // La diaria ESPERA el turno del portal (no se reintenta si se saltea):
+        // ver grupo-optico.provider.ts.
+        collect: () => GrupoOpticoProvider.collect({ esperarTurno: true }),
     },
 ];
 

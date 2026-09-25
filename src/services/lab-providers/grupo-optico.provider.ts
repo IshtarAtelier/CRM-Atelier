@@ -35,12 +35,19 @@ const MAX_PAGES = 50; // tope de seguridad (~5000 pedidos)
  *
  * El turno se reclama con un `updateMany` condicional (atómico en Postgres, y
  * sirve entre instancias). Vence solo: si una pasada muere a la mitad, a los
- * TURNO_MIN minutos otra lo puede tomar.
+ * TURNO_MIN minutos otra lo puede tomar. 30 minutos cubre la pasada más larga
+ * posible: la diaria tiene 25 de tope (instrumentation.ts).
+ *
+ * Quién espera y quién se saltea. La DIARIA espera el turno (hasta
+ * ESPERA_TURNO_MIN): si se salteara, ese día no habría pasada completa, porque
+ * la diaria no se reintenta cuando la ruta responde bien. El pase rápido, la
+ * recuperación y el botón de la pantalla se saltean y reintentan después.
  */
 const TURNO_KEY = 'lab-provider:GRUPO_OPTICO:turno';
-const TURNO_MIN = 20;
+const TURNO_MIN = 30;
+const ESPERA_TURNO_MIN = 12;
 
-async function tomarTurnoDelPortal(): Promise<string | null> {
+export async function tomarTurnoDelPortal(): Promise<string | null> {
     const ahora = new Date();
     const hasta = new Date(ahora.getTime() + TURNO_MIN * 60000).toISOString();
     await prisma.systemSetting.createMany({
@@ -54,7 +61,17 @@ async function tomarTurnoDelPortal(): Promise<string | null> {
     return tomado.count === 1 ? hasta : null;
 }
 
-async function soltarTurnoDelPortal(hasta: string) {
+/** Espera el turno hasta `maxMs`, preguntando cada `cadaMs`. Null si no se liberó. */
+export async function esperarTurnoDelPortal(maxMs: number, cadaMs = 20000): Promise<string | null> {
+    const limite = Date.now() + maxMs;
+    for (;;) {
+        const turno = await tomarTurnoDelPortal();
+        if (turno || Date.now() + cadaMs > limite) return turno;
+        await new Promise(r => setTimeout(r, cadaMs));
+    }
+}
+
+export async function soltarTurnoDelPortal(hasta: string) {
     await prisma.systemSetting.updateMany({
         where: { key: TURNO_KEY, value: hasta },
         data: { value: new Date(0).toISOString() },
@@ -108,10 +125,12 @@ export class GrupoOpticoProvider {
      * asigna los importes cuando el pedido pasa a FINALIZADO) sin re-parsear
      * toda la era en cada corrida. La pasada completa sigue siendo la diaria.
      */
-    static async collect(opts: { sinceDays?: number } = {}): Promise<Record<string, any>> {
+    static async collect(opts: { sinceDays?: number; esperarTurno?: boolean } = {}): Promise<Record<string, any>> {
         let turno: string | null = null;
         try {
-            turno = await tomarTurnoDelPortal();
+            turno = opts.esperarTurno
+                ? await esperarTurnoDelPortal(ESPERA_TURNO_MIN * 60000)
+                : await tomarTurnoDelPortal();
         } catch (err) {
             // Sin base para el turno se corre igual: mejor datos que silencio.
             console.error('[GrupoOptico] No se pudo tomar el turno del portal (se corre igual):', err);
