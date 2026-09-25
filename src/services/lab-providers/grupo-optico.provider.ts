@@ -134,7 +134,12 @@ export function evaluarConteo(n: number, previo: number, dudoso: number): {
     return {
         usarImportes: n > 0,
         completo: previo > 0 && n >= previo,
-        nuevaBase: n > 0 ? n : null,
+        // La base SOLO SUBE, salvo que dos pasadas seguidas confirmen un conteo
+        // bajo. Si un PDF al 95% la bajara, la pasada siguiente —todavía
+        // incompleta— ya contaría como entera y borraría importes (tercera
+        // auditoría, 25/9/2026). El portal suma comprobantes todos los días,
+        // así que una baja chica real (un comprobante anulado) se alcanza sola.
+        nuevaBase: n > 0 ? (confirmaElDudoso ? n : Math.max(n, previo)) : null,
         nuevoDudoso: 0,
     };
 }

@@ -81,10 +81,17 @@ const casos = [
     ['PDF entero (640 contra 640): se usan los importes y se puede borrar', () => {
         assert.deepEqual(evaluarConteo(640, 640, 0), { usarImportes: true, completo: true, nuevaBase: 640, nuevoDudoso: 0 });
     }],
-    ['PDF con el 95% (600 contra 640): se usan los importes pero NO se borra nada', () => {
+    ['PDF con el 95% (600 contra 640): se usan los importes, NO se borra nada y la base no baja', () => {
         const d = evaluarConteo(600, 640, 0);
         assert.equal(d.usarImportes, true);
         assert.equal(d.completo, false);
+        assert.equal(d.nuevaBase, 640);
+    }],
+    ['y el siguiente, todavía incompleto (610 contra la base de 640), tampoco borra', () => {
+        assert.equal(evaluarConteo(610, 640, 0).completo, false);
+    }],
+    ['la base sube con los comprobantes nuevos del día (650 contra 640)', () => {
+        assert.deepEqual(evaluarConteo(650, 640, 0), { usarImportes: true, completo: true, nuevaBase: 650, nuevoDudoso: 0 });
     }],
     ['PDF a medias (374 contra 640): no se tocan importes y queda anotado como dudoso', () => {
         assert.deepEqual(evaluarConteo(374, 640, 0), { usarImportes: false, completo: false, nuevaBase: null, nuevoDudoso: 374 });
