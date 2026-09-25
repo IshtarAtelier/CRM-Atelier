@@ -590,6 +590,22 @@ export const WHATSAPP_TEMPLATES = {
             { type: 'QUICK_REPLY', text: 'No quiero más mensajes' },
         ],
     },
+    // v2 con el cupón SOYCLIENTE (pedido de Ishtar del 25/9/2026, "regalales el
+    // cupón de ya soy cliente"). Reemplaza a novedades_clientes_escarlata, que
+    // quedó creada en Meta sin usarse. OJO: el texto promete una fecha — el
+    // cupón en la base tiene que vencer ese día o después (Coupon.expiresAt).
+    novedades_clientes_soycliente: {
+        name: 'novedades_clientes_soycliente',
+        inventario: 'Campaña novedades a clientes + cupón SOYCLIENTE (sep-oct 2026)',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Gracias por elegirnos para tus anteojos.\n🎁 Por ser cliente tenés 15% off en la tienda online con el cupón *SOYCLIENTE*, hasta el 31 de octubre.\n📲 Agendanos como *Atelier Óptica* así te llegan nuestras novedades.\n📸 Seguinos en Instagram: https://www.instagram.com/atelieroptica_\n🕶️ Ya está nuestra nueva *Cápsula Escarlata* en la tienda online: https://atelieroptica.com.ar/tienda\n💳 Tus próximos anteojos en 3 y 6 cuotas sin interés, y hasta 12 cuotas fijas.\nTe esperamos en José Luis de Tejeda 4380 o por acá.',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [
+            { type: 'URL', text: 'Ver Cápsula Escarlata', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
+            { type: 'QUICK_REPLY', text: 'No quiero más mensajes' },
+        ],
+    },
 } as const satisfies Record<string, TemplateDef>;
 
 export type TemplateName = keyof typeof WHATSAPP_TEMPLATES;

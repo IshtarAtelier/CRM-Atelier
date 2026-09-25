@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { sendWhatsApp } from '@/lib/whatsapp/send';
+import { sendWhatsApp, esFalloTransitorio } from '@/lib/whatsapp/send';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { WHATSAPP_TEMPLATES, templateSpec } from '@/lib/whatsapp/templates';
 import { STORE_ORIGIN } from '@/lib/constants';
@@ -39,10 +39,17 @@ import type { Prisma } from '@prisma/client';
  */
 
 type Campana = 'soycliente' | 'armazones' | 'novedades';
-type Plantilla = 'tienda_online_soycliente_v2' | 'tienda_online_quieromislentes' | 'novedades_clientes_escarlata';
+type Plantilla = 'tienda_online_soycliente_v2' | 'tienda_online_quieromislentes' | 'novedades_clientes_escarlata' | 'novedades_clientes_soycliente';
 
-/** Tope de envíos por día de la campaña novedades (decidido con Ishtar el 25/9/26: ~120/día, ~6 días). */
-const LIMITE_DIARIO_NOVEDADES = 120;
+/**
+ * Tope de envíos por día de la campaña novedades, en rampa: 40 el primer día,
+ * 80 el segundo y 120 desde el tercero (decidido con Ishtar el 25/9/26). Así,
+ * si el primer día la gente bloquea más de lo esperado, se nota con 40
+ * mensajes y no con 120.
+ */
+const RAMPA_NOVEDADES = [40, 80, 120];
+/** Si más de este porcentaje de los que recibieron pide la baja, la campaña se frena sola. */
+const TASA_MAXIMA_BAJAS = 0.05;
 /** Etiquetas que sacan a alguien de la campaña novedades aunque esté en la lista. */
 const EXCLUIR_NOVEDADES = ['Campaña Tienda SoyCliente', 'Sin Seguimiento', 'Reclamo y post venta', 'Cancelar Bot'];
 
@@ -52,7 +59,8 @@ const EXCLUIR_NOVEDADES = ['Campaña Tienda SoyCliente', 'Sin Seguimiento', 'Rec
 const CONFIG: Record<Campana, { tag: string; plantilla: Plantilla }> = {
     soycliente: { tag: 'Campaña Tienda SoyCliente', plantilla: 'tienda_online_soycliente_v2' },
     armazones: { tag: 'Campaña Seguimiento Armazones', plantilla: 'tienda_online_quieromislentes' },
-    novedades: { tag: 'Campaña Novedades Sep26', plantilla: 'novedades_clientes_escarlata' },
+    // v2 con cupón SOYCLIENTE (25/9/26). La v1 (sin cupón) quedó creada en Meta sin usar.
+    novedades: { tag: 'Campaña Novedades Sep26', plantilla: 'novedades_clientes_soycliente' },
 };
 
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -113,6 +121,27 @@ export async function GET(request: NextRequest) {
         }
         if (estado !== 'APPROVED') {
             return NextResponse.json({ ok: true, campana: campanaParam, enviados: 0, esperando: `plantilla ${plantilla} en estado ${estado ?? 'inexistente'} en Meta` });
+        }
+    }
+
+    // Novedades: frenos de salud de la línea. Con la API oficial el riesgo no es
+    // que "cierren el número" por mandar plantillas aprobadas: es que la gente
+    // bloquee o reporte, baje la calidad (GREEN → YELLOW → RED) y Meta recorte el
+    // cupo o pause la plantilla. Por eso: solo se manda con la calidad en GREEN,
+    // y si la tasa de bajas de esta campaña pasa el 5% se frena sola.
+    if (campanaParam === 'novedades' && !dryRun) {
+        const st = await fetchWa('/api/status', { cache: 'no-store' }).then(r => r.json()).catch(() => null) as { qualityRating?: string; isReady?: boolean } | null;
+        if (!st?.isReady || st.qualityRating !== 'GREEN') {
+            return NextResponse.json({ ok: true, campana: campanaParam, enviados: 0, esperando: `calidad de la línea ${st?.qualityRating ?? 'desconocida'} (se manda solo con GREEN)` });
+        }
+        const recibieron = await prisma.client.count({ where: { tags: { some: { id: tag.id } } } });
+        if (recibieron >= 40) {
+            const bajas = await prisma.client.count({
+                where: { tags: { some: { id: tag.id } }, whatsappChats: { some: { chatLabels: { has: 'SIN_SEGUIMIENTO' } } } },
+            });
+            if (bajas / recibieron > TASA_MAXIMA_BAJAS) {
+                return NextResponse.json({ ok: true, campana: campanaParam, enviados: 0, frenada: `tasa de bajas ${bajas}/${recibieron} supera el ${TASA_MAXIMA_BAJAS * 100}%: revisar antes de seguir` });
+            }
         }
     }
 
@@ -182,21 +211,34 @@ export async function GET(request: NextRequest) {
     if (campanaParam === 'novedades' && !dryRun) {
         const ahoraArt = new Date(Date.now() - 3 * 3600e3);
         const inicioDia = new Date(Date.UTC(ahoraArt.getUTCFullYear(), ahoraArt.getUTCMonth(), ahoraArt.getUTCDate(), 3, 0, 0));
+        const prefijo = `📣 [${nombreTag}]`;
         const enviadosHoy = await prisma.interaction.count({
-            where: { createdAt: { gte: inicioDia }, content: { startsWith: `📣 [${nombreTag}]` } },
+            where: { createdAt: { gte: inicioDia }, content: { startsWith: prefijo } },
         });
-        cupoHoy = Math.min(batch, Math.max(0, LIMITE_DIARIO_NOVEDADES - enviadosHoy));
+        // Día de campaña = días calendario desde el primer envío (0 = hoy es el primero).
+        const primero = await prisma.interaction.findFirst({
+            where: { content: { startsWith: prefijo } }, orderBy: { createdAt: 'asc' }, select: { createdAt: true },
+        });
+        const diaDeCampana = primero ? Math.floor((inicioDia.getTime() - primero.createdAt.getTime()) / 864e5) + 1 : 0;
+        const limiteHoy = RAMPA_NOVEDADES[Math.min(Math.max(diaDeCampana, 0), RAMPA_NOVEDADES.length - 1)];
+        cupoHoy = Math.min(batch, Math.max(0, limiteHoy - enviadosHoy));
         if (cupoHoy === 0) {
-            return NextResponse.json({ ok: true, campana: campanaParam, enviados: 0, motivo: `tope diario alcanzado (${enviadosHoy}/${LIMITE_DIARIO_NOVEDADES})` });
+            return NextResponse.json({ ok: true, campana: campanaParam, enviados: 0, motivo: `tope del día alcanzado (${enviadosHoy}/${limiteHoy})` });
         }
     }
 
-    const candidatos = await prisma.client.findMany({
-        where: whereCandidatos,
-        select: { id: true, name: true, phone: true },
-        orderBy: { createdAt: 'asc' },
-        take: dryRun ? 1000 : cupoHoy,
-    });
+    // Novedades respeta el orden de la lista (compra más reciente primero).
+    const ordenLista = new Map(audienciaNovedades.clientIds.map((id, i) => [id, i]));
+    const candidatos = campanaParam === 'novedades'
+        ? (await prisma.client.findMany({ where: whereCandidatos, select: { id: true, name: true, phone: true } }))
+            .sort((a, b) => (ordenLista.get(a.id) ?? 1e9) - (ordenLista.get(b.id) ?? 1e9))
+            .slice(0, dryRun ? 1000 : cupoHoy)
+        : await prisma.client.findMany({
+            where: whereCandidatos,
+            select: { id: true, name: true, phone: true },
+            orderBy: { createdAt: 'asc' },
+            take: dryRun ? 1000 : cupoHoy,
+        });
 
     if (dryRun) {
         return NextResponse.json({
@@ -249,10 +291,16 @@ export async function GET(request: NextRequest) {
         });
 
         if (!res.ok) {
-            const permanente = /Destino inválido/i.test(res.error || '');
+            // Solo se libera (y se reintenta en otra tanda) lo transitorio. Un
+            // resultado AMBIGUO pudo haber salido: reintentar se lo manda dos
+            // veces. Lo definitivo (número sin WhatsApp, plantilla rechazada,
+            // bloqueo anti-spam) no cambia por insistir.
+            const permanente = /Destino inválido/i.test(res.error || '') || !esFalloTransitorio(res);
             if (permanente) await reclamar(c.id);
             else await liberar(c.id);
             errores.push(`${c.name}: ${res.error || 'fallo de envío'}`);
+            // Meta frenó la plantilla o la línea: no se sigue insistiendo en esta tanda.
+            if (res.code === 'BLOCKED' || res.code === 'TEMPLATE_ERROR') break;
             continue;
         }
 
