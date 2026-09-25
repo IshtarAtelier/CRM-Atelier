@@ -432,11 +432,16 @@ export async function upsertEntry(input: LabCostInput) {
     // En un 2x1 decirlo con todas las letras: el costo de sistema es de la
     // venta y cuenta UN par (el bonificado va en $0). Sin esto, el mismo
     // importe repetido en las dos filas se leía como "cada par cuesta eso".
-    const cabeceraMulti = es2x1
-        ? `Venta 2x1 con ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber}): el costo sistema cuenta UN par, el bonificado va en $0`
-        : `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber})`;
+    // Se arma SOLO si la venta tiene varios pedidos (y entonces hay venta). El
+    // 25/9/2026 se armaba siempre, y con un pedido SIN venta (huérfano) leía
+    // el nº de una venta que no existe: TypeError en cada huérfano. Se cayeron
+    // el pase de Grupo Óptico, el re-cruce y el control de huérfanos desde las
+    // 14:19 hasta el arreglo.
+    const cabeceraMulti = () => es2x1
+        ? `Venta 2x1 con ${orderNumbers.length} pedidos de lab (${order?.labOrderNumber}): el costo sistema cuenta UN par, el bonificado va en $0`
+        : `La venta tiene ${orderNumbers.length} pedidos de lab (${order?.labOrderNumber})`;
     const multiNote = multiPedido && !baseNotes?.includes('pedidos de lab')
-        ? cabeceraMulti
+        ? cabeceraMulti()
         + (ajenos.size
             // Venta mixta: decir explícitamente que este veredicto es solo de
             // este laboratorio. La nota vieja decía "el costo sistema es el
