@@ -1,10 +1,9 @@
 import { prisma } from '../../lib/db';
 import { RESOLUCIONES_CONOCIDAS } from '../lab-providers/resoluciones';
 import { isQuietLab } from './backfill';
-import { sendChargedReworkAlert } from './alerts';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
-import { LAB_ITEM_PATTERNS, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS } from './types';
+import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS } from './types';
 import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
 
 /**
@@ -334,7 +333,7 @@ export async function upsertEntry(input: LabCostInput) {
     // NO es uno de los pedidos de la venta original. Un reproceso NO entra en
     // el cruce de costo de la venta (compararía la garantía de ~$0 contra el
     // costo del par completo → falso "a favor" en cada reproceso). Su auditoría
-    // es sendChargedReworkAlert: si el reproceso vino CON cargo, alerta.
+    // es la marca REWORK_MARK: si el reproceso vino CON cargo, el semanal lo lista.
     const pvEntry = !!pvCase && !orderNumbers.includes(cleanNumber);
 
     // Comparable a nivel venta: importe de este pedido + el de sus hermanos ya
@@ -550,27 +549,17 @@ export async function upsertEntry(input: LabCostInput) {
 
     // Auditoría de POSTVENTA: un reproceso debería venir sin cargo (garantía;
     // Optovision los factura a ~$0). Si el pedido nació de un caso de postventa
-    // y la factura trae plata, avisa EN EL MOMENTO con el caso completo — es
-    // plata a reclamarle al laboratorio y no puede esperar al resumen del día
-    // (excepción confirmada por el administrador el 22/7, junto con los
-    // pedidos sin venta). El marcador en la nota hace el aviso persistente: si
-    // el email falla se reintenta en la próxima corrida, y una vez enviado no
-    // se repite nunca; además deja la marca visible en la pantalla.
-    if (pvCase && order && billedComparable !== null && billedComparable > 5000
+    // y la factura trae plata, se deja la MARCA en la nota: la pantalla la
+    // muestra y el reporte semanal lo lista como plata a reclamar, con el caso
+    // al lado. Hasta el 25/9/2026 además mandaba un mail al instante; Ishtar
+    // pidió un solo reporte semanal y se retiró (el marcador sigue siendo el
+    // mismo, así las entradas ya marcadas se leen igual).
+    if (pvCase && order && billedComparable !== null && billedComparable > REPROCESO_CON_CARGO_MIN
         && !(entry.notes || '').includes(REWORK_MARK)) {
-        const marcar = () => prisma.labCostEntry.update({
+        await prisma.labCostEntry.update({
             where: { id: entry.id },
             data: { notes: `${REWORK_MARK}. ${entry.notes || ''}`.trim() },
         }).catch(err => console.error('[LabCost] Error estampando aviso de reproceso:', err));
-
-        if (quiet) {
-            // Backfill: el reproceso histórico queda marcado sin avisar.
-            await marcar();
-        } else {
-            const ok = await sendChargedReworkAlert(entry, order, pvCase, billedComparable)
-                .catch(err => { console.error('[LabCost] Error enviando alerta de reproceso cobrado:', err); return false; });
-            if (ok) await marcar();
-        }
     }
 
     // COSTO DEL CASO DE POSTVENTA: con la factura del lab ya se conoce el

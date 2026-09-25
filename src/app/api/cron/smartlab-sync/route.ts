@@ -161,15 +161,14 @@ export async function GET(req: Request) {
                 (collect as any).modo = alDia ? `rápido (${FAST_INVOICE_WINDOW_DAYS} días)` : 'COMPLETO (recuperación)';
 
                 const recheck = await LabCostReconciliationService.recheckUnmatched();
-                // Cada 10 minutos solo salen los pedidos SIN VENTA (lo que hay que
-                // resolver en el momento). Las facturas nuevas y las diferencias
-                // de costo se juntan en el resumen del cron diario.
-                const alerts = await LabCostReconciliationService.alertNewFindings({ modo: 'urgente' });
+                // El pase rápido ya NO manda mails (Ishtar, 25/9/2026): los pedidos
+                // sin venta se avisan una vez por día desde el cron diario, y todo
+                // lo demás va en el reporte semanal. Acá solo se registra y cruza.
                 // Pedidos de Optovision facturados hace 3+ días hábiles → FINISHED
                 // (la factura llega unos días antes de que el pedido esté listo).
                 const promoted = await LabCostReconciliationService.promoteFinishedOptovision()
                     .catch((err: any) => { console.error('[CRON SmartLab] promoteFinishedOptovision:', err); return { promoted: 0 }; });
-                fastReconciliation = { ...collect, optovision: optoScan, recheck, alerts, promoted };
+                fastReconciliation = { ...collect, optovision: optoScan, recheck, promoted };
 
                 // Red de seguridad: el backfill (y con él, TODO el régimen de
                 // alertas) depende de que el cron diario corra — y su alta en
@@ -207,7 +206,7 @@ export async function GET(req: Request) {
                     console.error('[CRON SmartLab] Aviso de backfill pendiente falló:', warnErr);
                 }
                 console.log(`[CRON SmartLab] Conciliación rápida: ${collect.withCost || 0} con costo, ` +
-                    `${recheck.rematched || 0} re-cruzados, ${alerts.alerted || 0} alerta(s) nueva(s)`);
+                    `${recheck.rematched || 0} re-cruzados`);
             } catch (fastErr) {
                 console.error('[CRON SmartLab] Conciliación rápida falló (el sync de estados salió bien):', fastErr);
                 fastReconciliation = { error: fastErr instanceof Error ? fastErr.message : String(fastErr) };

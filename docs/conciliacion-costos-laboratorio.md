@@ -35,7 +35,7 @@ existen en el laboratorio y no responden a ninguna venta del sistema**.
 ## Ciclo diario (`/api/cron/lab-invoices?secret=CRON_SECRET`)
 
 1. **Optovision**: escanea el Gmail (IMAP), parsea las facturas PDF de
-   `procesos@optovisionsa.com.ar` → registra costo real y alerta sobrecostos nuevos.
+   `procesos@optovisionsa.com.ar` → registra costo real y cruza.
 2. **Grupo Óptico**: pagina la API del portal (`smartlab-api-v2 → laboratory/order/list`)
    desde el pedido más nuevo hasta el inicio de la auditoría → registra todos los
    pedidos de la era CRM; los que no matchean quedan **"Sin venta"** (huérfanos).
@@ -55,6 +55,27 @@ existen en el laboratorio y no responden a ninguna venta del sistema**.
 
 Cada paso tolera la falla de los demás. El sync de estado de SmartLab (cada 15 min)
 además registra huérfanos de los últimos 100 pedidos visibles, para latencia intra-día.
+
+## Avisos por email: UNO semanal y UNO diario (Ishtar, 25/9/2026)
+
+Hasta el 25/9/2026 salían tres reportes (el semanal de los viernes, una
+"revisión semanal" que se disparaba junto con él, y un resumen diario), más un
+aviso de pedidos sin venta cada 10 minutos y un mail al instante por cada
+reproceso cobrado. Ishtar: "mi correo está lleno de spam y me cuesta seguir el
+ritmo". Quedaron dos:
+
+| Mail | Cuándo | Qué trae |
+|---|---|---|
+| **Reporte semanal de laboratorio** (`/api/cron/lab-weekly-report`, arma `lab-recon/weekly-email.ts`) | Viernes 9:30, lo dispara `instrumentation.ts` | En orden de urgencia: 1 para reclamar (sobrecostos abiertos de 30 días uno por venta con el 2x1 explicado, reprocesos de garantía cobrados con su caso, posibles 2x1 cobrados dos veces); 2 pedidos sin venta abiertos con su pista; 3 facturas de la semana por lab agrupadas por venta; 4 postventa de la semana (costo del caso vs facturado); 5 esperando factura hace más de 15 días; 6 Grupo Óptico sin nombre en el portal; 7 resueltos a mano en la semana; 8 cuenta corriente y salud de las fuentes. |
+| **Pedidos sin venta** (`alertNewFindings`, `lab-recon/alerts.ts`) | Una vez por día, desde el cron diario de las 8:30 | Los huérfanos nuevos (con más de 1 h sin que le carguen el número) y su pista: posible caso de postventa, posible venta sin número, o dudoso. Cada uno se avisa una sola vez; el semanal vuelve a listar todos los abiertos. |
+
+El pase rápido de cada 10 minutos sigue registrando y cruzando pedidos, pero
+**no manda mail**. El reproceso de garantía cobrado ya no avisa al instante:
+queda la marca en la nota (`REWORK_MARK`) y sale en el semanal. Siguen aparte,
+porque no son reportes sino avisos de que algo se rompió: "fuentes caídas"
+(máximo uno por día, solo mientras una fuente lleve 3+ días sin datos) y el
+mail del costo del caso de postventa (es del circuito de postventa, decide la
+caja). Nada se avisa si está resuelto a mano, y nada de más de 30 días.
 
 ## Reglas de dinero (verificadas contra los comprobantes reales — NO romper)
 
@@ -115,9 +136,9 @@ pares de un 2x1 son un solo hallazgo). Las resoluciones que viven en código
 
 **Ventana de los avisos: 30 días** (`VENTANA_REPORTE_DIAS`, regla de Ishtar
 del 25/9/2026: "solo evaluá en los últimos 30 días"). El reporte semanal
-informa el estado y los sobrecostos de los últimos 30 días; el resumen diario
-no avisa una entrada de más de 30 días aunque cambie de estado (la estampa
-como vista); el detector de "2x1 cobrado dos veces" y el script
+informa el estado y lo abierto de los últimos 30 días; el aviso diario de
+pedidos sin venta no avisa una entrada de más de 30 días (la estampa como
+vista); el detector de "2x1 cobrado dos veces" y el script
 `dos-por-uno-par-bonificado.mjs` miran la misma ventana. Lo más viejo que
 sigue abierto no se repite en cada mail (se cuenta, nada más) y se resuelve en
 la pantalla eligiendo el mes. Antes un sobrecosto de junio salía todos los

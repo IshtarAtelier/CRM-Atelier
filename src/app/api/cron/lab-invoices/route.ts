@@ -78,15 +78,11 @@ export async function GET(request: Request) {
         results.essilorStatement = await LabCostReconciliationService.scanEssilorStatement()
             .catch((err: any) => { console.error('[Cron lab-invoices] Resumen Essilor:', err); return { error: err?.message }; });
 
-        // Los pedidos SIN VENTA ya avisan en el momento (pase de 10 min) con su
-        // triage hecho — ver alertNewFindings({ modo: 'urgente' }) más abajo.
-
-        // RESUMEN DEL DÍA: todo lo que se movió (facturas que llegaron con su
-        // veredicto, sobrecostos, ahorros) en UN solo email. Los pedidos sin venta
-        // ya se avisaron en el momento — acá solo se barren los que hayan quedado.
-        results.sinVenta = await LabCostReconciliationService.alertNewFindings({ modo: 'urgente' })
-            .catch((err: any) => ({ error: err?.message }));
-        results.resumenDiario = await LabCostReconciliationService.alertNewFindings({ modo: 'diario' })
+        // PEDIDOS SIN VENTA: el único aviso diario (Ishtar, 25/9/2026). Sale
+        // UNA vez por día, desde acá, con el triage hecho. Antes salía cada 10
+        // minutos desde el pase rápido, y además había un "resumen del día" con
+        // las facturas y diferencias — eso ahora va en el reporte semanal.
+        results.sinVenta = await LabCostReconciliationService.alertNewFindings()
             .catch((err: any) => ({ error: err?.message }));
 
         // Pedidos de Optovision con TODAS sus operaciones facturadas hace 5+

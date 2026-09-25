@@ -1,20 +1,19 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
-import { aclaracionImporte, estaResuelta, etiquetaSinVenta, tieneParBonificadoCobrado } from '../../lib/lab-factura';
+import { estaResuelta, etiquetaSinVenta } from '../../lib/lab-factura';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
-import { dobleCobroNuevos, marcarDobleCobroAvisado } from './dos-por-uno';
 import { LAB_LABELS, UNMATCHED_GRACE_MS, VENTANA_REPORTE_DIAS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
 
 /**
- * AVISOS de la conciliación de costos de laboratorio.
+ * AVISO DIARIO de la conciliación de costos de laboratorio: los pedidos SIN
+ * VENTA, una vez por día, con su pista. Es el ÚNICO mail diario (Ishtar,
+ * 25/9/2026); todo lo demás —facturas con su veredicto, sobrecostos,
+ * reprocesos cobrados, 2x1— va en el reporte semanal (weekly-email.ts).
  *
- * Dos canales, definidos con el administrador el 22/7/2026:
- *   - AL INSTANTE (pase de 10 min): pedidos SIN VENTA que los respalde, y
- *     reprocesos de garantía que el lab facturó CON CARGO. Son las dos cosas que
- *     hay que resolver en el momento — plata a reclamar o un número a asignar.
- *   - RESUMEN DIARIO (cron de la mañana): todo lo demás junto en UN email —
- *     facturas que llegaron con su veredicto, sobrecostos y ahorros.
+ * Hasta el 25/9/2026 había dos canales (definidos el 22/7/2026): un aviso al
+ * instante cada 10 minutos y un resumen diario con el resto. El primero pasó a
+ * una vez por día y el segundo se retiró a favor del semanal.
  *
  * El dedupe vive en las columnas alertedAt/alertedStatus de LabCostEntry: nada
  * se avisa dos veces, y se re-avisa solo si el estado cambió.
@@ -28,7 +27,7 @@ import { LAB_LABELS, UNMATCHED_GRACE_MS, VENTANA_REPORTE_DIAS, adminInbox, appUr
  *   3) ¿Hay un cliente con ese nombre? → venta a la que falta anotarle el nº
  *   4) Nada de lo anterior → DUDOSO, revisar con urgencia
  */
-async function clasificarHuerfanos(huerfanos: any[]) {
+export async function clasificarHuerfanos(huerfanos: any[]) {
     // Ventas recientes YA ENVIADAS al laboratorio cuyo nº de operación todavía
     // no está cargado. Caso real del 20/8/2026 (Cecilia Damon): el envío por
     // SmartLab deja `labOrderNumber = "SML-<borrador>"` y el nº real (8053…)
@@ -233,29 +232,23 @@ export async function markAlerted(id: string, status: string) {
 
 
 /**
- * Barrido de alertas. DOS MODOS (pedido del administrador el 22/7):
+ * AVISO DIARIO DE PEDIDOS SIN VENTA — el único aviso diario de laboratorio
+ * (Ishtar, 25/9/2026: "ese sería el único que lo pasaría una vez al día").
  *
- *  - `urgente` (pase rápido, cada 10 min): SOLO los pedidos SIN VENTA. Son
- *    los que hay que resolver en el momento (asignarle el nº a una venta,
- *    vincularlo a una postventa o reclamarle al lab), así que van apenas
- *    aparecen y con el triage ya hecho.
- *  - `diario` (cron de la mañana): TODO LO DEMÁS junto en UN SOLO email —
- *    facturas que llegaron, diferencias de costo a favor y en contra. Nada
- *    de un mail por factura: un resumen del día y listo.
+ * Un pedido que el laboratorio facturó y no tiene venta ni postventa que lo
+ * respalde es plata sin dueño: o falta cargarle el nº de operación a la venta,
+ * o es un reproceso sin nº asignado, o hay que reclamárselo al lab. Sale una
+ * vez por día desde el cron diario, con el triage hecho (clasificarHuerfanos).
  *
- * En ambos, el par alertedAt/alertedStatus garantiza que nada se avise dos
- * veces ni se escape (se re-alerta solo si el estado cambió).
+ * El par alertedAt/alertedStatus garantiza que ningún pedido se avise dos
+ * veces (se re-avisa solo si cambió de estado). Lo resuelto a mano no se
+ * avisa. Y solo lo de la ventana (VENTANA_REPORTE_DIAS): lo más viejo se
+ * estampa como visto sin avisar. El reporte semanal vuelve a listar TODOS los
+ * que sigan abiertos, así nada se pierde por haberse avisado una sola vez.
  */
-export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {}) {
-    const modo = opts.modo ?? 'diario';
-    // Se calcula ANTES de los cortes por "no hay novedades": un 2x1 cobrado dos
-    // veces tiene que salir aunque ese día no se haya movido nada más.
-    const dobles = modo === 'diario' ? await dobleCobroNuevos().catch(() => []) : [];
-    const estados = modo === 'urgente'
-        ? ['UNMATCHED']
-        : ['OVERCOST', 'UNDERCOST', 'OK', 'PENDING'];
+export async function alertNewFindings() {
     const candidatos = await prisma.labCostEntry.findMany({
-        where: { status: { in: estados } },
+        where: { status: 'UNMATCHED' },
         include: { order: { select: { id: true, clientId: true, client: { select: { name: true } } } } },
         orderBy: [{ lab: 'asc' }, { createdAt: 'desc' }],
     });
@@ -265,195 +258,146 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     for (const l of BACKFILL_LABS) quietPorLab[l] = await isQuietLab(l);
     // Un SIN VENTA recién aparecido no es huérfano todavía: el vendedor tiene
     // el margen de UNMATCHED_GRACE_MS para cargarle el nº de operación a la
-    // venta antes de que se lo dé por perdido. No se marca alertado, así que
-    // sigue entrando en cada corrida hasta que se cumpla el margen (o consiga venta).
-    const listoParaAvisar = (e: any) => e.status !== 'UNMATCHED'
-        || Date.now() - new Date(e.createdAt).getTime() >= UNMATCHED_GRACE_MS;
-    // Lo RESUELTO A MANO no vuelve a avisarse aunque cambie de estado: ya se
-    // trató (Ishtar, 25/9/2026). Si hace falta, se reabre desde la pantalla.
-    const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && !estaResuelta(e) && (!e.alertedAt || e.alertedStatus !== e.status) && listoParaAvisar(e));
-    if (nuevos.length === 0 && dobles.length === 0) return { alerted: 0 };
-
-    // En el modo `urgente` todo lo que entra son huérfanos: van sí o sí.
-    // En el `diario` solo entran las entradas que ya tienen COSTO REAL — un
-    // pedido registrado del portal que todavía no facturó no es novedad y
-    // llenaría el resumen de ruido (queda esperando en la pantalla, y cuando
-    // llegue su factura aparece en el resumen de ese día).
-    const bill = (e: any) => e.lab === 'OPTOVISION' ? (e.billedTotal ?? e.billedNet ?? 0) : (e.billedNet ?? e.billedTotal ?? 0);
-    // A PARTIR DE AHORA (Ishtar, 25/9/2026): el resumen diario solo evalúa lo
-    // de los últimos VENTANA_REPORTE_DIAS días. Una entrada vieja que el cruce
-    // vuelve a tocar (el lab re-manda la factura, un recálculo) cambiaba de
-    // estado y reaparecía como "novedad" meses después. Lo que queda fuera de
-    // la ventana se estampa como visto, así no se acumula pendiente de avisar.
+    // venta antes de que se lo dé por perdido.
+    const listoParaAvisar = (e: any) => Date.now() - new Date(e.createdAt).getTime() >= UNMATCHED_GRACE_MS;
     const ventanaDesde = Date.now() - VENTANA_REPORTE_DIAS * 86400000;
     const enVentana = (e: any) => new Date(e.invoiceDate ?? e.createdAt).getTime() >= ventanaDesde;
-    const viejos = modo === 'diario' ? nuevos.filter(e => !enVentana(e)) : [];
-    const relevantes = modo === 'urgente'
-        ? nuevos
-        : nuevos.filter(e => enVentana(e) && (bill(e) > 0 || e.difference !== null));
-    // El resumen diario no silencia nada por monto: es un solo email por día,
-    // así que las diferencias chicas también entran. Lo único que se estampa
-    // sin avisar es lo de más de 30 días (`viejos`).
-    const chicos: any[] = [...viejos];
+    const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && !estaResuelta(e)
+        && (!e.alertedAt || e.alertedStatus !== e.status) && listoParaAvisar(e));
+    const viejos = nuevos.filter(e => !enVentana(e));
+    let findings: any[] = nuevos.filter(enVentana);
+    if (findings.length === 0 && viejos.length === 0) return { alerted: 0 };
 
-    // Una venta con varios pedidos (2x1) estampa el estado a NIVEL VENTA en
-    // todas sus entradas hermanas: informar UNA fila por venta (la de mayor
-    // importe; a igualdad, menor nº) y marcar el resto como alertado junto
-    // con ella — el mismo sobrecosto no se lista dos veces.
-    // OJO: las entradas de POSTVENTA (reproceso) comparten el orderId de la
-    // venta pero son un hallazgo APARTE — agruparlas con la venta escondería
-    // una de las dos. Van sueltas, como los huérfanos.
-    const esPostventa = (e: any) => (e.notes || '').includes('POSTVENTA (caso');
-    const porVenta = new Map<string, any[]>();
-    let findings: any[] = [];
-    const suprimidosDe = new Map<string, any[]>();
-    for (const e of relevantes) {
-        if (!e.orderId || esPostventa(e)) { findings.push(e); continue; }
-        const key = `${e.lab}:${e.orderId}`;
-        if (!porVenta.has(key)) porVenta.set(key, []);
-        porVenta.get(key)!.push(e);
-    }
-    for (const grupo of porVenta.values()) {
-        grupo.sort((a, b) => bill(b) - bill(a) || a.labOrderNumber.localeCompare(b.labOrderNumber));
-        findings.push(grupo[0]);
-        suprimidosDe.set(grupo[0].id, grupo.slice(1));
-    }
-
-    // Triage de huérfanos ANTES de decidir qué sale en el email: un pedido que
-    // coincide por nombre con una venta ya enviada al lab que espera su nº real
-    // (borrador SML- de SmartLab) no es una alarma — es papeleo en curso. Se le
-    // da 24 h para que carguen el nº (el re-cruce lo engancha solo); si pasado
-    // ese plazo sigue suelto, sale en el aviso con la explicación, no como DUDOSO.
-    // No se marca alertado, así vuelve a evaluarse en cada corrida.
+    // Triage ANTES de decidir qué sale: un pedido que coincide por nombre con
+    // una venta ya enviada al lab que espera su nº real (borrador SML- de
+    // SmartLab) no es una alarma — es papeleo en curso. Se le da 24 h para que
+    // carguen el nº (el re-cruce lo engancha solo); si pasado ese plazo sigue
+    // suelto, sale con la explicación, no como DUDOSO. No se marca alertado,
+    // así vuelve a evaluarse al día siguiente.
     const EN_CAMINO_MS = 24 * 60 * 60 * 1000;
     let triage = new Map<string, any>();
-    if (modo === 'urgente' && findings.length > 0) {
+    if (findings.length > 0) {
         triage = new Map((await clasificarHuerfanos(findings).catch(() => [])).map((c: any) => [c.id, c]));
         const enCamino = findings.filter(f => triage.get(f.id)?.tipo === 'VENTA_SMARTLAB'
             && Date.now() - new Date(f.createdAt).getTime() < EN_CAMINO_MS);
         if (enCamino.length > 0) {
             console.log(`[LabCost] alertNewFindings: ${enCamino.length} pedido(s) sin alertar — su venta ya está enviada al lab y espera el nº real: ${enCamino.map(f => f.labOrderNumber).join(', ')}`);
-            const quedan = findings.filter(f => !enCamino.includes(f));
-            findings.length = 0;
-            findings.push(...quedan);
+            findings = findings.filter(f => !enCamino.includes(f));
         }
-        if (findings.length === 0) return { alerted: 0, enCamino: enCamino.length };
     }
 
     // En local/desarrollo no se mandan emails (ruido al administrador con datos
     // de la base local); tampoco se marca alertado, así prod avisa igual.
     if (!emailsEnabled()) {
-        console.log(`[LabCost] alertNewFindings: ${findings.length} hallazgo(s), ${chicos.length} silenciado(s) por monto chico (email omitido fuera de producción)`);
-        return { alerted: 0, skipped: findings.length, silenciados: chicos.length };
+        console.log(`[LabCost] alertNewFindings: ${findings.length} pedido(s) sin venta, ${viejos.length} fuera de ventana (email omitido fuera de producción)`);
+        return { alerted: 0, skipped: findings.length, viejos: viejos.length };
     }
-    // Las diferencias chicas se estampan acá (en prod): sin esto quedarían
-    // como "pendientes de alertar" y se re-evaluarían en cada corrida.
-    for (const c of chicos) await markAlerted(c.id, c.status);
-    if (findings.length === 0 && dobles.length === 0) return { alerted: 0, silenciados: chicos.length };
+    // Lo de más de 30 días se estampa como visto sin avisar: si no, quedaría
+    // "pendiente de avisar" y se re-evaluaría en cada corrida.
+    for (const v of viejos) await markAlerted(v.id, v.status);
+    if (findings.length === 0) return { alerted: 0, viejos: viejos.length };
+
+    // TOPE AUTO-DRENANTE: un evento masivo (p. ej. el barrido del portal que
+    // vuelve después de fallar y registra cientos de pedidos de golpe) llenaría
+    // el aviso con cientos de filas — Gmail lo recorta a los 102 KB. Se informan
+    // los MÁS NUEVOS y solo esos se marcan como vistos: los demás salen al día
+    // siguiente, sin perderse ninguno.
+    const MAX_FILAS = 60;
+    findings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const total = findings.length;
+    const pendientes = Math.max(0, total - MAX_FILAS);
+    if (pendientes > 0) findings.length = MAX_FILAS;
+
+    // RELECTURA ANTES DE MANDAR. Todo lo de arriba se arma con una foto que se
+    // sacó al empezar la corrida; entre esa foto y el envío, el propio cruce
+    // puede haber enganchado la factura con su venta. Pasó el 25/8/2026: la
+    // factura de Gonzalez Victoria entró 08:31, enganchó 08:35, y el aviso
+    // salió igual gritando "SIN VENTA" de algo que estuvo huérfano cuatro
+    // minutos. Un aviso que llega resuelto entrena a ignorarlos, que es peor
+    // que no mandarlo. Se relee el estado y se caen los resueltos.
+    const ids = findings.map((f: any) => f.id).filter(Boolean);
+    const vigentes = await prisma.labCostEntry.findMany({
+        where: { id: { in: ids }, status: 'UNMATCHED', orderId: null },
+        select: { id: true },
+    }).catch(() => null);
+    // FAIL-CLOSED: si la relectura no se pudo hacer, el aviso NO sale esta
+    // corrida (mañana lo manda si sigue vigente). Con un catch permisivo, un
+    // error transitorio de base dejaba pasar la foto vieja y el mail acusaba
+    // "SIN VENTA" a ventas cargadas — pasó el 27/8/2026 con dos pedidos
+    // matcheados hacía días.
+    if (!vigentes) {
+        console.error('[LabCost] No se pudo releer el estado antes del aviso: se omite el email de esta corrida.');
+        return { alerted: 0, omitidoPorRelecturaFallida: true };
+    }
+    const sigueSinVenta = new Set(vigentes.map(e => e.id));
+    const resueltos = findings.filter((f: any) => !sigueSinVenta.has(f.id));
+    if (resueltos.length) {
+        console.log(`[LabCost] ${resueltos.length} pedido(s) se engancharon mientras se armaba el aviso: no se avisan (${resueltos.map((f: any) => f.labOrderNumber).join(', ')})`);
+        findings = findings.filter((f: any) => sigueSinVenta.has(f.id));
+    }
+
+    // ÚLTIMA BARRERA, contra TODA la clase de error: antes de acusar "SIN
+    // VENTA", buscar cada número directamente en las VENTAS. Si una venta no
+    // borrada ya tiene ese nº de operación, el pedido NO es huérfano — sea cual
+    // sea el estado (viejo o corrupto) de la entrada de costo. El matcheo real
+    // lo hace la próxima pasada; acá solo se evita el falso grito. (Origen:
+    // 27/8/2026, mail acusando a 3581791 y 3578632 con ambas ventas cargadas.)
+    if (findings.length > 0) {
+        const numeros = findings.map((f: any) => String(f.labOrderNumber || '').trim()).filter(n => n.length >= 4);
+        const ventasConNumero = numeros.length > 0
+            ? await prisma.order.findMany({
+                where: { isDeleted: false, OR: numeros.map(n => ({ labOrderNumber: { contains: n } })) },
+                select: { labOrderNumber: true },
+            }).catch(() => null)
+            : [];
+        if (ventasConNumero === null) {
+            console.error('[LabCost] No se pudo verificar los números contra Ventas: se omite el email de esta corrida.');
+            return { alerted: 0, omitidoPorRelecturaFallida: true };
+        }
+        const numsEnVentas = new Set((ventasConNumero as any[]).flatMap(o => String(o.labOrderNumber || '').match(/\d{4,}/g) || []));
+        const conVenta = findings.filter((f: any) => numsEnVentas.has(String(f.labOrderNumber || '').trim()));
+        if (conVenta.length) {
+            console.warn(`[LabCost] ${conVenta.length} pedido(s) tienen su venta cargada aunque la entrada figure huérfana — NO se avisan y quedan para el rematch: ${conVenta.map((f: any) => f.labOrderNumber).join(', ')}`);
+            findings = findings.filter((f: any) => !numsEnVentas.has(String(f.labOrderNumber || '').trim()));
+        }
+    }
+    if (findings.length === 0) return { alerted: 0, resueltosAntesDeAvisar: resueltos.length };
 
     const appUrl = appUrlFn();
     const fmt = fmtARS;
     const LABS = LAB_LABELS;
-    const META: Record<string, { label: string; color: string }> = {
-        UNMATCHED: { label: 'SIN VENTA NI POSTVENTA', color: '#b91c1c' },
-        OVERCOST: { label: 'SOBRECOSTO', color: '#c2410c' },
-        UNDERCOST: { label: 'Menor costo (a favor)', color: '#047857' },
-        OK: { label: 'Coincide', color: '#047857' },
-        PENDING: { label: 'Esperando el otro par (2x1)', color: '#1d4ed8' },
-    };
-    const cuenta = (s: string) => findings.filter(f => f.status === s).length;
-    const partes = [
-        cuenta('UNMATCHED') ? `${cuenta('UNMATCHED')} sin venta` : null,
-        cuenta('OVERCOST') ? `${cuenta('OVERCOST')} sobrecosto${cuenta('OVERCOST') > 1 ? 's' : ''}` : null,
-        cuenta('UNDERCOST') ? `${cuenta('UNDERCOST')} a favor` : null,
-        cuenta('OK') ? `${cuenta('OK')} coinciden` : null,
-        cuenta('PENDING') ? `${cuenta('PENDING')} esperando el par` : null,
-    ].filter(Boolean).join(', ');
-
-    // Lo que necesita acción primero: sobrecostos (por monto), después el resto.
-    const PRIORIDAD: Record<string, number> = { UNMATCHED: 0, OVERCOST: 1, UNDERCOST: 2, PENDING: 3, OK: 4 };
-    findings.sort((a, b) =>
-        (PRIORIDAD[a.status] ?? 9) - (PRIORIDAD[b.status] ?? 9)
-        || Math.abs(b.difference ?? 0) - Math.abs(a.difference ?? 0));
-
-    // TOPE AUTO-DRENANTE: un evento masivo (p. ej. el PDF de comprobantes que
-    // vuelve después de fallar y mueve cientos de pedidos de golpe) llenaría
-    // el resumen con cientos de filas — Gmail lo recorta a los 102 KB y los
-    // hallazgos importantes se pierden. Se informan los MÁS IMPORTANTES y solo
-    // esos se marcan como vistos: los demás salen en el resumen siguiente, sin
-    // perderse ninguno. Con el volumen normal (unos pocos por día) nunca actúa.
-    const MAX_FILAS = 60;
-    const pendientes = Math.max(0, findings.length - MAX_FILAS);
-    const total = findings.length;
-    if (pendientes > 0) findings.length = MAX_FILAS;
-
-    // En el aviso de huérfanos, la última columna es el TRIAGE (ya calculado
-    // arriba, antes del filtro de "en camino"); en el resumen diario, el
-    // detalle de la entrada.
     const BADGE: Record<string, string> = {
         POSTVENTA: 'background:#dbeafe;color:#1d4ed8',
         VENTA_SMARTLAB: 'background:#dbeafe;color:#1d4ed8',
         VENTA_SIN_NUMERO: 'background:#fef3c7;color:#92400e',
         DUDOSO: 'background:#fee2e2;color:#b91c1c;font-weight:bold',
     };
-
     // TODA fila lleva SIEMPRE las tres claves con las que se reclama al lab:
-    // nº de operación, comprobante y fecha. Ninguna puede quedar vacía en unas
-    // filas y llena en otras — el administrador reclama con esos tres datos, y
-    // una fila incompleta obliga a ir a buscarlos a mano al PDF.
-    //
-    // Cuando la factura NO trae nº de pedido (Optovision factura remitos y
-    // reprocesos sin él), el registro guarda el nº de comprobante como clave —
-    // por eso la columna "Nº operación" venía mostrando "S/PEDIDO 3008-00069150"
-    // o, en las entradas viejas, la serie pelada ("3008"). Eso no es un nº de
-    // operación: se dice explícitamente que la factura no lo trae y el
-    // comprobante se muestra en su propia columna.
+    // nº de operación, comprobante y fecha. Cuando la factura NO trae nº de
+    // pedido (Optovision factura remitos y reprocesos sin él), se dice así.
     const ES_PEDIDO = /^\d{5,}$/;
+    const faltante = (texto: string) => `<span style="color:#b91c1c">${texto}</span>`;
     const comprobanteDe = (f: any): string | null => {
         const m = String(f.labOrderNumber || '').match(/\d{4}-\d{4,8}/)
             || String(f.sourceFile || '').match(/\d{4}-\d{4,8}/);
         if (m) return m[0];
         return f.sourceFile ? String(f.sourceFile).replace(/\.pdf$/i, '') : null;
     };
-    const faltante = (texto: string) => `<span style="color:#b91c1c">${texto}</span>`;
-
     const rows = findings.map((f, i) => {
-        const m = META[f.status] || { label: f.status, color: '#374151' };
-        // "Sin venta" es la acusación grave: el lab facturó algo que no existe
-        // en el sistema. Una factura que llegó SIN nº de pedido no es eso — la
-        // venta suele estar cargada y lo que falta es el dato en el papel.
-        // Decirle "sin venta" a las dos cosas quema el aviso que importa.
-        // Un 2x1 con el par bonificado cobrado es sobrecosto aunque la suma
-        // cierre: decirlo en la etiqueta, que es lo primero que se lee.
-        const etiqueta = f.status === 'UNMATCHED'
-            ? etiquetaSinVenta(f.labOrderNumber).label.toUpperCase()
-            : tieneParBonificadoCobrado(f.notes)
-                ? `${m.label} · 2x1: par bonificado cobrado`
-                : m.label;
-        // Sin venta enganchada, la columna mostraba un guión aunque el portal
-        // hubiera mandado el nombre del cliente en la nota. Ese nombre es la
-        // única pista para encontrarle el dueño al pedido: se muestra.
+        // "Sin venta" es la acusación grave; una factura que llegó SIN nº de
+        // pedido no es eso — la venta suele estar cargada y falta el dato.
+        const etiqueta = etiquetaSinVenta(f.labOrderNumber).label.toUpperCase();
         const delPortal = labPortalClientName(f.notes);
-        const cliente = f.order
-            ? `<a href="${appUrl}/admin/contactos?clientId=${f.order.clientId}">${f.order.client?.name || 'ver ficha'}</a>`
-            : delPortal
-                ? `<span style="color:#b45309">${delPortal}</span><br><span style="font-size:11px;color:#6b7280">nombre del portal, sin venta</span>`
-                : '<span style="color:#b91c1c">—</span>';
         const nroOperacion = ES_PEDIDO.test(String(f.labOrderNumber || '').trim())
             ? String(f.labOrderNumber).trim()
             : faltante('la factura no trae nº');
         const comprobante = comprobanteDe(f) || faltante('sin comprobante');
-        // Siempre una fecha: la de la factura y, si el comprobante no la trajo,
-        // la del alta en el sistema aclarada como tal (nunca un guión).
         // La fecha de ingreso que manda el portal vale más que el alta en el
-        // sistema: es cuándo entró el trabajo al laboratorio.
-        // El portal escribe los dos formatos según la pantalla de la que salió:
-        // "ingreso 2026-07-28 16:06" y "ingreso 13-07-26 09:52".
+        // sistema: es cuándo entró el trabajo al laboratorio. El portal escribe
+        // dos formatos: "ingreso 2026-07-28 16:06" y "ingreso 13-07-26 09:52".
         const iso = (f.notes || '').match(/ingreso (\d{4})-(\d{2})-(\d{2})/);
         const ar = (f.notes || '').match(/ingreso (\d{2})-(\d{2})-(\d{2})\b/);
-        const ingresoPortal = iso
-            ? `${iso[3]}/${iso[2]}/${iso[1]}`
-            : ar ? `${ar[1]}/${ar[2]}/20${ar[3]}` : null;
+        const ingresoPortal = iso ? `${iso[3]}/${iso[2]}/${iso[1]}` : ar ? `${ar[1]}/${ar[2]}/20${ar[3]}` : null;
         const fecha = f.invoiceDate
             ? fmtFecha(f.invoiceDate)
             : ingresoPortal
@@ -461,7 +405,7 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
                 : `${fmtFecha(f.createdAt)} <span style="color:#6b7280">(alta)</span>`;
         const real = f.lab === 'OPTOVISION' ? (f.billedTotal ?? f.billedNet) : (f.billedNet ?? f.billedTotal);
         const t: any = triage.get(f.id);
-        const ultima = t
+        const pista = t
             ? `<span style="padding:2px 8px;border-radius:10px;${BADGE[t.tipo] || ''}">${t.detalle}</span>${t.clientId ? ` <a href="${appUrl}/admin/contactos?clientId=${t.clientId}">ver ficha</a>` : ''}`
             : (f.notes || '—');
         return `<tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
@@ -469,144 +413,32 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
             <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${comprobante}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap">${fecha}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb">${LABS[f.lab] || f.lab}</td>
-            <td style="padding:6px 8px;border:1px solid #e5e7eb">${cliente}</td>
-            <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${fmt(f.systemCost)}</td>
-            <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold">${fmt(real)}${
-                aclaracionImporte(f.notes)
-                    ? `<br><span style="font-size:10px;font-weight:normal;color:#b45309">≈ factura compartida</span>`
-                    : ''}</td>
-            <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;color:${(f.difference ?? 0) > 0 ? '#b91c1c' : '#047857'}">${f.difference != null ? fmt(f.difference) : '—'}</td>
-            <td style="padding:6px 8px;border:1px solid #e5e7eb"><span style="color:${m.color};font-weight:bold">${etiqueta}</span></td>
-            <td style="padding:6px 8px;border:1px solid #e5e7eb;font-size:12px">${ultima}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb">${delPortal
+                ? `<span style="color:#b45309">${delPortal}</span><br><span style="font-size:11px;color:#6b7280">nombre del portal</span>`
+                : '<span style="color:#b91c1c">sin nombre</span>'}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold">${fmt(real)}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb"><span style="color:#b91c1c;font-weight:bold">${etiqueta}</span></td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;font-size:12px">${pista}</td>
         </tr>`;
     }).join('');
 
-    // 2x1 CON LOS DOS PARES COBRADOS: sección propia del resumen del día. Es
-    // plata a reclamar, y el cruce normal no lo ve cuando los pedidos quedaron
-    // huérfanos (sin venta no hay contra qué comparar).
-    // Solo se marcan como avisados los que SALEN en este email (mismo criterio
-    // que el tope de filas de arriba): el resto tiene que salir en el próximo.
-    const doblesMostrados = dobles.slice(0, 25);
-    const tablaDobles = dobles.length ? `
-        <h3 style="color:#b91c1c;margin-top:22px">Posible 2x1 cobrado dos veces (${dobles.length})</h3>
-        <p style="font-size:13px">En el 2x1 el laboratorio cobra un par y el otro va sin cargo. Acá los dos vinieron con cargo:
-        <strong>${fmtARS(dobles.reduce((a, d) => a + d.aReclamar, 0))}</strong> a revisar. Ojo que puede ser legítimo
-        (dos anteojos distintos comprados juntos), por eso van los dos importes.</p>
-        <table style="border-collapse:collapse;width:100%;font-size:13px">
-            <tr style="background:#111827;color:#fff">
-                <th style="padding:8px;text-align:left">Cliente</th><th style="padding:8px;text-align:left">Pedidos</th>
-                <th style="padding:8px;text-align:right">Cobrado</th><th style="padding:8px;text-align:right">A reclamar</th>
-            </tr>
-            ${doblesMostrados.map((d, i) => `<tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
-                <td style="padding:6px 8px;border:1px solid #e5e7eb">${
-                    d.clientId ? `<a href="${appUrl}/admin/contactos?clientId=${d.clientId}">${d.cliente || 'ver ficha'}</a>` : (d.cliente || '—')
-                }${d.origen === 'PORTAL' ? '<br><span style="font-size:11px;color:#6b7280">nombre del portal, sin venta</span>' : ''}</td>
-                <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${d.pedidos.map(p => p.labOrderNumber).join(' · ')}</td>
-                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${d.pedidos.map(p => fmtARS(p.importe)).join('<br>')}</td>
-                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold;color:#b91c1c">${fmtARS(d.aReclamar)}${
-                    d.mismoImporte ? '<br><span style="font-size:10px;font-weight:normal;color:#6b7280">mismo importe</span>' : ''}</td>
-            </tr>`).join('')}
-        </table>${dobles.length > 25
-            ? `<p style="font-size:12px;color:#6b7280">Se muestran los 25 de mayor importe; los otros ${dobles.length - 25} salen en el próximo resumen.</p>`
-            : ''}` : '';
-
-    const esUrgente = modo === 'urgente';
-
-    // RELECTURA ANTES DE MANDAR. Todo lo de arriba se arma con una foto que se
-    // sacó al empezar la corrida; entre esa foto y el envío, el propio cruce
-    // puede haber enganchado la factura con su venta. Pasó el 25/8/2026: la
-    // factura de Gonzalez Victoria entró 08:31, enganchó 08:35, y el aviso
-    // salió igual gritando "SIN VENTA" de algo que estuvo huérfano cuatro
-    // minutos. Un aviso urgente que llega resuelto entrena a ignorarlos, que
-    // es peor que no mandarlo. Se relee el estado y se caen los resueltos.
-    if (esUrgente && findings.length > 0) {
-        const ids = findings.map((f: any) => f.id).filter(Boolean);
-        const vigentes = await prisma.labCostEntry.findMany({
-            where: { id: { in: ids }, status: 'UNMATCHED', orderId: null },
-            select: { id: true },
-        }).catch(() => null);
-        // FAIL-CLOSED: si la relectura no se pudo hacer, el aviso urgente NO
-        // sale esta corrida (la próxima, en 10 min, lo manda si sigue vigente).
-        // Con el catch permisivo de antes, un error transitorio de base dejaba
-        // pasar la foto vieja y el mail acusaba "SIN VENTA" a ventas cargadas
-        // — pasó el 27/8/2026 con dos pedidos matcheados hacía días.
-        if (!vigentes) {
-            console.error('[LabCost] No se pudo releer el estado antes del aviso urgente: se omite el email de esta corrida.');
-            return { alerted: 0, omitidoPorRelecturaFallida: true };
-        }
-        const sigueSinVenta = new Set(vigentes.map(e => e.id));
-        const resueltos = findings.filter((f: any) => !sigueSinVenta.has(f.id));
-        if (resueltos.length) {
-            console.log(`[LabCost] ${resueltos.length} pedido(s) se engancharon mientras se armaba el aviso: no se avisan (${resueltos.map((f: any) => f.labOrderNumber).join(', ')})`);
-            findings = findings.filter((f: any) => sigueSinVenta.has(f.id));
-        }
-
-        // ÚLTIMA BARRERA, contra TODA la clase de error: antes de acusar "SIN
-        // VENTA", buscar cada número directamente en las VENTAS. Si una venta
-        // no borrada ya tiene ese nº de operación, el pedido NO es huérfano —
-        // sea cual sea el estado (viejo o corrupto) de la entrada de costo. El
-        // matcheo real lo hace la próxima pasada; acá solo se evita el falso
-        // grito. (Origen: 27/8/2026, mail urgente acusando a 3581791 y 3578632
-        // con ambas ventas cargadas — la 3581791 desde el 28/7.)
-        if (findings.length > 0) {
-            const numeros = findings.map((f: any) => String(f.labOrderNumber || '').trim()).filter(n => n.length >= 4);
-            const ventasConNumero = numeros.length > 0
-                ? await prisma.order.findMany({
-                    where: { isDeleted: false, OR: numeros.map(n => ({ labOrderNumber: { contains: n } })) },
-                    select: { labOrderNumber: true },
-                }).catch(() => null)
-                : [];
-            if (ventasConNumero === null) {
-                console.error('[LabCost] No se pudo verificar los números contra Ventas: se omite el email urgente de esta corrida.');
-                return { alerted: 0, omitidoPorRelecturaFallida: true };
-            }
-            const numsEnVentas = new Set((ventasConNumero as any[]).flatMap(o => String(o.labOrderNumber || '').match(/\d{4,}/g) || []));
-            const conVenta = findings.filter((f: any) => numsEnVentas.has(String(f.labOrderNumber || '').trim()));
-            if (conVenta.length) {
-                console.warn(`[LabCost] ${conVenta.length} pedido(s) tienen su venta cargada aunque la entrada figure huérfana — NO se avisan y quedan para el rematch: ${conVenta.map((f: any) => f.labOrderNumber).join(', ')}`);
-                findings = findings.filter((f: any) => !numsEnVentas.has(String(f.labOrderNumber || '').trim()));
-            }
-        }
-
-        if (findings.length === 0) return { alerted: 0, resueltosAntesDeAvisar: resueltos.length };
-    }
-    const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
-    // Día sin movimientos pero con un 2x1 cobrado dos veces: el asunto tiene
-    // que hablar de ESO, no anunciar "0 movimientos".
-    const soloDobles = findings.length === 0 && dobles.length > 0;
-    const asunto = esUrgente
-        ? `🚨 ${findings.length} pedido(s) de laboratorio SIN VENTA en el sistema`
-        : soloDobles
-            ? `🚨 Laboratorios ${hoy}: ${dobles.length} posible 2x1 cobrado dos veces`
-            : `📋 Laboratorios ${hoy}: ${findings.length} movimiento(s) — ${partes}${dobles.length ? ` · ${dobles.length} posible 2x1 cobrado dos veces` : ''}`;
-    const titulo = esUrgente
-        ? '🚨 Pedidos de laboratorio sin venta que los respalde'
-        : `📋 Resumen del día — laboratorios`;
-    const bajada = esUrgente
-        ? `Aparecieron <strong>${findings.length}</strong> pedido(s) facturados por el laboratorio que no tienen ninguna venta ni postventa que los respalde. Conviene resolverlos ahora: asignarle el número a la venta que corresponda, vincularlo a un caso de postventa, o reclamárselo al laboratorio.`
-        : soloDobles
-            ? `Hoy no se movió nada en los laboratorios, pero hay algo para revisar.`
-            : `Todo lo que se movió hoy en los dos laboratorios, junto: ${partes}. Los pedidos sin venta se avisan aparte, en el momento.`;
-
     const res: any = await sendEmail({
         to: adminInbox(),
-        subject: asunto,
+        subject: `🚨 ${findings.length} pedido(s) de laboratorio SIN VENTA en el sistema`,
         html: `
             <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;color:#1f2937">
-                <h2 style="color:${esUrgente ? '#b91c1c' : '#1f2937'}">${titulo}</h2>
-                <p>${bajada}</p>
-                ${pendientes > 0 ? `<p style="background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 12px;font-size:13px">Se movieron <strong>${total}</strong> en total: acá van los <strong>${MAX_FILAS} más importantes</strong> y los otros <strong>${pendientes}</strong> salen en el próximo resumen (no se pierde ninguno). Están todos en <a href="${appUrl}/admin/laboratorio/costos">la pantalla de conciliación</a>.</p>` : ''}
-                ${findings.length ? `<table style="border-collapse:collapse;width:100%;font-size:13px">
+                <h2 style="color:#b91c1c">🚨 Pedidos de laboratorio sin venta que los respalde</h2>
+                <p>Aparecieron <strong>${findings.length}</strong> pedido(s) facturados por el laboratorio que no tienen ninguna venta ni postventa que los respalde. Conviene resolverlos hoy: asignarle el número a la venta que corresponda, vincularlo a un caso de postventa, o reclamárselo al laboratorio. Si ya está tratado, marcalo <strong>resuelto</strong> en la pantalla y no vuelve a salir.</p>
+                ${pendientes > 0 ? `<p style="background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 12px;font-size:13px">Aparecieron <strong>${total}</strong> en total: acá van los <strong>${MAX_FILAS} más nuevos</strong> y los otros <strong>${pendientes}</strong> salen mañana (no se pierde ninguno). Están todos en <a href="${appUrl}/admin/laboratorio/costos?estado=UNMATCHED">la pantalla de conciliación</a>.</p>` : ''}
+                <table style="border-collapse:collapse;width:100%;font-size:13px">
                     <tr style="background:#111827;color:#fff">
                         <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Comprobante</th>
                         <th style="padding:8px;text-align:left">Fecha</th><th style="padding:8px;text-align:left">Lab</th>
-                        <th style="padding:8px;text-align:left">Cliente</th><th style="padding:8px;text-align:right">Costo sistema</th>
-                        <th style="padding:8px;text-align:right">Costo real</th><th style="padding:8px;text-align:right">Dif.</th>
-                        <th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Detalle</th>
+                        <th style="padding:8px;text-align:left">Cargado en el portal</th><th style="padding:8px;text-align:right">Importe</th>
+                        <th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Pista</th>
                     </tr>${rows}
-                </table>` : ''}
-                ${tablaDobles}
-                <p style="margin-top:14px"><a href="${appUrl}/admin/laboratorio/costos">Ver conciliación completa en el CRM</a></p>
+                </table>
+                <p style="margin-top:14px"><a href="${appUrl}/admin/laboratorio/costos?estado=UNMATCHED">Ver los pedidos sin venta en el CRM</a></p>
             </div>
         `,
     });
@@ -614,125 +446,16 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     // Marcar como alertado un hallazgo cuyo email no salió lo silenciaría
     // para siempre — solo se marca lo que efectivamente se avisó.
     if (!res?.success) {
-        console.error('[LabCost] alertNewFindings: el email NO salió; se reintenta en la próxima corrida.');
+        console.error('[LabCost] alertNewFindings: el email NO salió; se reintenta mañana.');
         return { alerted: 0, failed: findings.length };
     }
-    // Igual que los hallazgos: el 2x1 se marca SOLO si el email salió.
-    await marcarDobleCobroAvisado(doblesMostrados);
-    // Se marca SOLO lo que salió en este email (con los hermanos de esas
-    // ventas): lo que quedó fuera del tope sigue pendiente para el próximo.
-    // Un updateMany por estado en vez de N updates: con lotes grandes, N
-    // updates secuenciales contra la base (Singapur) agregaban minutos al cron.
-    const aMarcar = [...findings];
-    for (const f of findings) aMarcar.push(...(suprimidosDe.get(f.id) || []));
-    const porEstado = new Map<string, string[]>();
-    for (const e of aMarcar) {
-        if (!porEstado.has(e.status)) porEstado.set(e.status, []);
-        porEstado.get(e.status)!.push(e.id);
-    }
-    const ahora = new Date();
-    for (const [st, ids] of porEstado) {
-        await prisma.labCostEntry.updateMany({
-            where: { id: { in: ids } },
-            data: { alertedAt: ahora, alertedStatus: st },
-        }).catch(err => console.error('[LabCost] Error marcando hallazgos alertados:', err));
-    }
-    // Los 2x1 se informan aparte en el resultado: si solo salieron ellos,
-    // `alerted: 0` haría parecer que el cron no avisó nada (y un run verde que
-    // miente es cómo se pierde de vista que algo dejó de funcionar).
+    await prisma.labCostEntry.updateMany({
+        where: { id: { in: findings.map((f: any) => f.id) } },
+        data: { alertedAt: new Date(), alertedStatus: 'UNMATCHED' },
+    }).catch(err => console.error('[LabCost] Error marcando hallazgos alertados:', err));
     return {
         alerted: findings.length,
-        ...(doblesMostrados.length ? { dobleCobro: doblesMostrados.length } : {}),
         ...(pendientes > 0 ? { pendientes } : {}),
+        ...(viejos.length ? { viejos: viejos.length } : {}),
     };
 }
-
-
-export async function sendChargedReworkAlert(entry: any, order: any, pvCase: any, billed: number): Promise<boolean> {
-    const appUrl = appUrlFn();
-    const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
-    // EL CASO COMPLETO en el email (pedido del administrador): para poder
-    // reclamarle al laboratorio sin tener que entrar al sistema a buscar qué
-    // pasó — tipo de caso, falla, cobertura, historial de notas y la venta
-    // original con sus pedidos.
-    const caso = await prisma.postSaleCase.findUnique({
-        where: { id: pvCase.id },
-        include: {
-            notesList: { orderBy: { createdAt: 'asc' }, take: 20 },
-            statusHistory: { orderBy: { createdAt: 'asc' }, take: 20 },
-        },
-    }).catch(() => null);
-
-    const fecha = (d: Date | string | null | undefined) => d
-        ? new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' })
-        : '—';
-    const fila = (k: string, v: string) => `<tr><td style="padding:5px 8px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:bold;white-space:nowrap">${k}</td><td style="padding:5px 8px;border:1px solid #e5e7eb">${v}</td></tr>`;
-
-    // Fotos que el vendedor adjuntó al caso (el lente roto, el comprobante):
-    // son la prueba para reclamarle al lab, así que van con link directo.
-    const urlFoto = (u: string) => /^https?:\/\//i.test(u) ? u : `${appUrl}${u.startsWith('/') ? '' : '/'}${u}`;
-    const notasHtml = (caso?.notesList || []).length
-        ? `<p style="margin:14px 0 4px;font-weight:bold">Historial del caso:</p>
-           <ul style="line-height:1.6;font-size:13px;margin-top:0">${(caso!.notesList as any[]).map(n =>
-                `<li><span style="color:#6b7280">${fecha(n.createdAt)}${n.createdBy ? ` · ${n.createdBy}` : ''}:</span> ${n.content || ''}` +
-                `${n.imageUrl ? ` <a href="${urlFoto(n.imageUrl)}">📎 ver foto adjunta</a>` : ''}</li>`).join('')}</ul>`
-        : '';
-    const notaLibreHtml = caso?.notes
-        ? `<p style="margin:14px 0 4px;font-weight:bold">Observaciones:</p><p style="font-size:13px;white-space:pre-wrap;margin-top:0">${caso.notes}</p>`
-        : '';
-
-    const estadosHtml = (caso?.statusHistory || []).length
-        ? `<p style="margin:14px 0 4px;font-weight:bold">Estados por los que pasó:</p>
-           <p style="font-size:13px;margin-top:0">${(caso!.statusHistory as any[]).map(h => `${fecha(h.createdAt)}: ${h.fromStatus} → <strong>${h.toStatus}</strong>${h.changedBy ? ` (${h.changedBy})` : ''}`).join('<br>')}</p>`
-        : '';
-
-    const res: any = await sendEmail({
-        to: adminInbox(),
-        subject: `🚨 Reproceso de POSTVENTA facturado CON CARGO: pedido ${entry.labOrderNumber} (${fmt(billed)}) — ${order.client?.name || 'cliente'}`,
-        html: `
-            <div style="font-family: Arial, sans-serif; max-width: 720px; margin: 0 auto; color: #1f2937;">
-                <h2 style="color: #b91c1c;">🚨 Reproceso de postventa facturado con cargo</h2>
-                <p>El laboratorio cobró <strong style="color:#b91c1c;font-size:17px">${fmt(billed)}</strong> por un reproceso que salió de un caso de <strong>postventa</strong>.
-                Las garantías deberían venir sin cargo — <strong>verificar con el laboratorio si corresponde nota de crédito</strong>.</p>
-
-                <p style="margin:16px 0 4px;font-weight:bold">El caso:</p>
-                <table style="border-collapse:collapse;width:100%;font-size:13px">
-                    ${fila('Cliente', `<a href="${appUrl}/admin/contactos?clientId=${order.clientId}">${order.client?.name || 'ver ficha'}</a>`)}
-                    ${fila('Tipo de caso', caso?.caseType || pvCase.caseType || 'sin tipo')}
-                    ${fila('Falla reportada', caso?.fault || pvCase.fault || '—')}
-                    ${fila('Cobertura', caso?.coverage || pvCase.coverage || '—')}
-                    ${fila('Responsable', caso?.responsible || '—')}
-                    ${fila('Estado del caso', caso?.status || '—')}
-                    ${fila('Abierto el', fecha(caso?.createdAt))}
-                    ${fila('Costo cargado en el caso', caso?.cost ? fmt(caso.cost) : '$0 (se cargó como garantía)')}
-                </table>
-
-                <p style="margin:16px 0 4px;font-weight:bold">Lo que facturó el laboratorio:</p>
-                <table style="border-collapse:collapse;width:100%;font-size:13px">
-                    ${fila('Laboratorio', entry.lab === 'GRUPO_OPTICO' ? 'Grupo Óptico' : 'Optovisión')}
-                    ${fila('Nº de operación del reproceso', `<span style="font-family:monospace">${/^\d{5,}$/.test(String(entry.labOrderNumber || '').trim()) ? entry.labOrderNumber : '<span style="color:#b91c1c">la factura no trae nº</span>'}</span>`)}
-                    ${fila('Importe facturado', `<strong style="color:#b91c1c">${fmt(billed)}</strong>`)}
-                    ${fila('Comprobante', entry.sourceFile || '<span style="color:#b91c1c">sin comprobante</span>')}
-                    ${fila('Fecha de factura', entry.invoiceDate ? fecha(entry.invoiceDate) : `${fecha(entry.createdAt)} <span style="color:#6b7280">(alta en el sistema)</span>`)}
-                    ${fila('Venta original', `<span style="font-family:monospace">${order.labOrderNumber || '—'}</span>`)}
-                </table>
-
-                ${notaLibreHtml}
-                ${notasHtml}
-                ${estadosHtml}
-
-                <p style="margin-top:18px">
-                    <a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver la ficha del cliente y el caso</a> ·
-                    <a href="${appUrl}/admin/laboratorio/costos?lab=${entry.lab}">Ver la conciliación</a>
-                </p>
-            </div>
-        `,
-    });
-    if (!res?.success) {
-        console.error(`[LabCost] Alerta de reproceso cobrado NO salió (pedido ${entry.labOrderNumber}); se reintenta en la próxima corrida.`);
-        return false;
-    }
-    console.log(`[LabCost] Alerta de reproceso cobrado enviada: pedido ${entry.labOrderNumber} (${billed})`);
-    return true;
-}
-

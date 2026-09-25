@@ -23,6 +23,8 @@ import { VENTANA_REPORTE_DIAS } from './types';
  * Es una SOSPECHA, no un veredicto: dos pares cobrados pueden ser legítimos
  * (dos anteojos distintos comprados juntos, o el mismo cristal a precio de
  * lista — ver CLAUDE.md). Por eso informa los dos importes y deja decidir.
+ * Sale en el reporte semanal (weekly-email.ts); hasta el 25/9/2026 salía en
+ * el resumen diario con un dedupe propio, que se retiró con ese resumen.
  */
 
 /** Piso para considerar que un par "vino con cargo" y no a $0 simbólico. */
@@ -168,35 +170,4 @@ export async function detectarDobleCobro(dias = VENTANA_REPORTE_DIAS): Promise<D
         }
     }
     return hallazgos.sort((a, b) => b.aReclamar - a.aReclamar);
-}
-
-/** Clave estable del hallazgo (no depende del orden ni de los importes). */
-export const claveDobleCobro = (d: DobleCobro) =>
-    `${d.lab}:${d.pedidos.map(p => p.labOrderNumber).sort().join('+')}`;
-
-const AVISADOS_KEY = 'lab_doble_cobro_avisados';
-
-/**
- * Los que todavía no se avisaron. El dedupe es imprescindible: sin él, el mismo
- * par reaparecería en el resumen todos los días hasta que se resuelva con el
- * laboratorio (semanas), y un aviso que se repite deja de leerse.
- */
-export async function dobleCobroNuevos(dias = VENTANA_REPORTE_DIAS): Promise<DobleCobro[]> {
-    const todos = await detectarDobleCobro(dias);
-    const row = await prisma.systemSetting.findUnique({ where: { key: AVISADOS_KEY } }).catch(() => null);
-    const avisados = new Set<string>(row?.value ? JSON.parse(row.value) : []);
-    return todos.filter(d => !avisados.has(claveDobleCobro(d)));
-}
-
-/** Marca hallazgos como avisados (después de que el email salió de verdad). */
-export async function marcarDobleCobroAvisado(hallazgos: DobleCobro[]) {
-    if (hallazgos.length === 0) return;
-    const row = await prisma.systemSetting.findUnique({ where: { key: AVISADOS_KEY } }).catch(() => null);
-    const avisados: string[] = row?.value ? JSON.parse(row.value) : [];
-    const value = JSON.stringify([...new Set([...avisados, ...hallazgos.map(claveDobleCobro)])]);
-    await prisma.systemSetting.upsert({
-        where: { key: AVISADOS_KEY },
-        update: { value },
-        create: { key: AVISADOS_KEY, value },
-    }).catch(err => console.error('[LabCost] Error marcando doble cobro avisado:', err));
 }
