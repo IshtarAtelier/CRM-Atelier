@@ -1,5 +1,21 @@
 # Pedido a Wave Publicidad — redirección del subdominio viejo
 
+> **✅ YA NO HACE FALTA ENVIARLO — resuelto el 25/9/2026 sin Wave.**
+> El DNS de `atelieroptica.com.ar` vive en Cloudflare, así que el 301 se hizo
+> desde ahí: el registro A `promo` pasó a *Proxied* (nube naranja) y la
+> Redirect Rule "promo viejo -> sitio real (301)" manda **cualquier ruta** de
+> `promo.atelieroptica.com.ar` a `https://atelieroptica.com.ar/`, conservando
+> la query string (gclid/utm). Comprobación:
+>
+> ```
+> curl -sI 'https://promo.atelieroptica.com.ar/x?utm_source=prueba'
+> ```
+>
+> Tiene que dar `301` con `location: https://atelieroptica.com.ar/?utm_source=prueba`.
+> Si algún día deja de darlo, el arreglo está en Cloudflare (Rules → Redirect
+> Rules), no en este repo ni en Wave. Lo de abajo queda como registro de por
+> qué se pidió.
+
 **Para:** Wave Publicidad (proveedor que administra `promo.atelieroptica.com.ar`)
 **De:** Atelier Óptica
 **Urgencia:** alta — el subdominio le manda clientes al WhatsApp equivocado y sale

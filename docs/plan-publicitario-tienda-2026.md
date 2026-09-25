@@ -55,7 +55,7 @@ margen por cada peso de Meta y ~3,8 de Google**, con un CPA de **$40.840** (Meta
 
 1. **Semana del 11/8 — apagar riesgos, costo $0.** Bajar `opticascordoba.com.ar` (PBN vivo que se
    presenta como ranking independiente), 301 de `promo.atelieroptica.com.ar` (2x1 "por tiempo
-   limitado" sin fecha), bajar el titular "Garantía de adaptación 90 días" de la PMax de Google
+   limitado" sin fecha — **resuelto el 25/9/2026** en Cloudflare), bajar el titular "Garantía de adaptación 90 días" de la PMax de Google
    (la política publicada dice 30). Commitear `/multifocales`.
 2. **Semana del 11/8 — deployar.** Los 39 commits de `deploy/bot-recetas` (incluyen el guardián
    del techo y el vínculo chat↔ficha) y cargar `GOOGLE_ADS_CONVERSION_LABEL` en Railway.
@@ -94,7 +94,7 @@ Lista corta y bloqueante. Cada fila dice qué cuesta saltearla.
 | # | Qué | Dónde | Costo de saltearlo |
 |---|---|---|---|
 | B1 | Bajar `opticascordoba.com.ar` (HTTP 200 hoy) y lo que quede de la PBN de 14 dominios. Disavow en Search Console. Borrar `docs/seo_external_campaign/deploy_sites` y `pbn` del disco | `docs/seo_external_campaign/` | Acción manual de Google Search sobre `atelieroptica.com.ar`. Se pierde la 1ª posición orgánica con 5,0/677 reseñas — el único canal que hoy trae clientes **gratis**. Recuperación de meses, no garantizada |
-| B2 | 301 de `promo.atelieroptica.com.ar` al dominio principal (o noindex + bajar la página, vía Wave Publicidad) | subdominio externo | "2x1 por tiempo limitado" sin fecha ni condiciones = práctica engañosa (Decreto 274/2019) y *Misrepresentation* en Google. Además manda los leads al WhatsApp **mayorista** (+54 9 3541 21-5971), que no atiende el bot ni queda en el CRM |
+| ~~B2~~ | ~~301 de `promo.atelieroptica.com.ar` al dominio principal (o noindex + bajar la página, vía Wave Publicidad)~~ · **RESUELTO el 25/9/2026, sin Wave**: el DNS vive en Cloudflare; registro A `promo` en *Proxied* + Redirect Rule "promo viejo -> sitio real (301)" → `https://atelieroptica.com.ar/` conservando la query (gclid/utm) | subdominio externo | "2x1 por tiempo limitado" sin fecha ni condiciones = práctica engañosa (Decreto 274/2019) y *Misrepresentation* en Google. Además manda los leads al WhatsApp **mayorista** (+54 9 3541 21-5971), que no atiende el bot ni queda en el CRM |
 | B3 | Bajar el titular "Garantía de adaptación 90 días" de la PMax al local | `scripts/ads/google_titulos.js:16,47` vs `src/app/politicas-de-cambio/page.tsx:58-61` | Está vivo en la campaña que se lleva el **56% del gasto de Google** y contradice la política publicada (30 días, solo Varilux y Super Blue, con receta nueva). Un reclamo a los 60 días con el anuncio en la mano se gana: un cambio de multifocales Varilux se come el margen entero de la venta |
 | B4 | Commitear `src/app/multifocales/` **junto con** `src/lib/pricing/` en un mismo commit | untracked | La página importa `precioMultifocalDesde` de esa carpeta: commitear una sin la otra rompe el build. Es la landing del producto que factura el 62,5%, y hoy vive solo en este disco |
 | ~~B5~~ | ~~Deployar los 39 commits de `deploy/bot-recetas`~~ · **RESUELTO el 10/8**: ya están en `origin/main` (`rev-list --left-right --count` = `0 0`). Con ellos el guardián del techo, el vínculo chat↔ficha, la frescura de stories y el cron de carritos | — | — |
@@ -1110,7 +1110,10 @@ vacío de datos de ads y nadie lo notaría.
 
 Tres cosas que son invisibles desde el Ads Manager y que ningún punto del checklist actual tocaría:
 
-1. `curl` a `promo.atelieroptica.com.ar` y a `opticascordoba.com.ar` → esperar **404 o 301**.
+1. `curl` a `promo.atelieroptica.com.ar` y a `opticascordoba.com.ar` → esperar **404 o 301**. Desde el
+   25/9/2026 `promo.` tiene que dar **301** a `https://atelieroptica.com.ar/` (Redirect Rule de
+   Cloudflare): `curl -sI 'https://promo.atelieroptica.com.ar/x?utm_source=prueba'` → `location:
+   https://atelieroptica.com.ar/?utm_source=prueba`. Si da otra cosa, se rompió la regla en Cloudflare.
 2. Search Console → **Acciones manuales en verde**.
 3. Estado de cuenta de **WhatsApp Business sin restricciones**.
 

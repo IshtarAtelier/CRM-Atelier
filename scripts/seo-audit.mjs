@@ -180,7 +180,7 @@ ${buckets.ERROR.map(r => `- \`${r.path}\` — ${r.detail}`).join('\n') || '- (ni
 ${suggestions || '// nada que agregar 🎉'}
 \`\`\`
 
-## promo.atelieroptica.com.ar (decisión pendiente: redirigir o dar de baja)
+## promo.atelieroptica.com.ar (resuelto 25/9/2026: todo redirige 301 al home por Redirect Rule de Cloudflare; lista solo de referencia)
 ${promo.map(p => `- \`${p}\``).join('\n') || '- (sin páginas archivadas)'}
 
 ## 🟢 Redirigen bien (verificación completa)

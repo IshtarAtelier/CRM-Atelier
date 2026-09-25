@@ -88,8 +88,8 @@ Duplicación de reglas, transacciones, estructura, observabilidad. Detalle en la
 - [ ] 🔒 **B10** — Alta en Merchant Center *(requiere B2 y sacar PREVENTA primero)*
 - [x] ✅ **B11** — UTMs en el pipeline social
 - [ ] 🔒 **B12** — Dar de alta los crons en el scheduler. *Código terminado; sin esto el carrito abandonado no recupera un peso y no sale el reporte diario*
-- [ ] 🔒 **B13** — 301 del subdominio `promo.atelieroptica.com.ar` *(no se resuelve desde este repo)*
-- [ ] 🔒 **B14** — Removal en Search Console del subdominio del CRM
+- [x] ✅ **B13** — 301 del subdominio `promo.atelieroptica.com.ar`. **Hecho el 25/9/2026**, sin pasar por la agencia Wave: el DNS del dominio vive en Cloudflare, así que se pasó el registro A `promo` a *Proxied* (nube naranja) y se creó la Redirect Rule "promo viejo -> sitio real (301)". Cualquier ruta de `promo.` responde 301 a `https://atelieroptica.com.ar/` conservando la query (gclid/utm). Comprobación: `curl -sI 'https://promo.atelieroptica.com.ar/x?utm_source=prueba'` → 301 con `location: https://atelieroptica.com.ar/?utm_source=prueba`
+- [ ] 🔒 **B14** — Removal en Search Console del subdominio del CRM *(desde el 25/9/2026 el host de Railway redirige siempre al dominio real — `next.config.ts`, commit `dab79414` —, así que Google lo va a ir sacando solo; el removal solo lo acelera)*
 - [ ] 🔒 **B15** — ¿Qué convenios de obras sociales están activos? *(define sitelink, keywords y placa)*
 
 ### A.2 Quick wins (QW1–QW15)
