@@ -571,6 +571,25 @@ export const WHATSAPP_TEMPLATES = {
             { label: 'texto de la nota', example: 'Vino a retirar y quiere cambiar el color del armazón' },
         ],
     },
+    // Campaña a clientes que compraron hace más de 3 meses (25/9/2026, texto
+    // aprobado por Ishtar tal cual). Audiencia cruzada con las planillas del
+    // sistema anterior (prisma/legacy_data/ATELIER 1 y 2): la base no tiene la
+    // fecha de esas compras. Cuotas con la fórmula de promo-cuotas.ts: 3 y 6
+    // sin interés, 12 FIJAS, sin el %. El botón "No quiero más mensajes" dispara
+    // la auto-exclusión del bot (patrón /no quiero/ en wa-service/index.js).
+    // OJO category=MARKETING → cobra por conversación.
+    novedades_clientes_escarlata: {
+        name: 'novedades_clientes_escarlata',
+        inventario: 'Campaña novedades a clientes: Instagram, agendar, cuotas y Cápsula Escarlata (sep 2026)',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Gracias por elegirnos para tus anteojos.\n📲 Agendanos como *Atelier Óptica* así te llegan nuestras novedades.\n📸 Seguinos en Instagram: https://www.instagram.com/atelieroptica_\n🕶️ Ya está nuestra nueva *Cápsula Escarlata* en la tienda online: https://atelieroptica.com.ar/tienda\n💳 Tus próximos anteojos en 3 y 6 cuotas sin interés, y hasta 12 cuotas fijas.\nTe esperamos en José Luis de Tejeda 4380 o por acá.',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [
+            { type: 'URL', text: 'Ver Cápsula Escarlata', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
+            { type: 'QUICK_REPLY', text: 'No quiero más mensajes' },
+        ],
+    },
 } as const satisfies Record<string, TemplateDef>;
 
 export type TemplateName = keyof typeof WHATSAPP_TEMPLATES;

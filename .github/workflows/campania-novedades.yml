@@ -1,0 +1,38 @@
+# Campaña de WhatsApp "novedades" a clientes que compraron hace más de 3 meses
+# (25/9/2026, texto y audiencia aprobados por Ishtar). Ver el comentario de
+# src/app/api/cron/campania-seguimiento/route.ts.
+#
+# Corre cada 20 minutos de lunes a sábado entre las 9 y las 19 de Argentina.
+# Cada run manda una tanda chica (5, con pausas de 20-40 s adentro). El
+# endpoint se frena solo:
+#   - mientras Meta no apruebe la plantilla responde "esperando" y no manda;
+#   - al llegar a 120 envíos en el día responde "tope diario";
+#   - fuera de 9-20 ART no manda.
+# Cuando "restantes" llegue a 0, esta campaña terminó: borrar este workflow.
+#
+# Para frenarla YA: deshabilitar el workflow desde la pestaña Actions, o poner
+# followups_enabled=false en SystemSetting (frena también los seguimientos).
+
+name: Campaña WhatsApp novedades
+
+on:
+  schedule:
+    - cron: '*/20 12-21 * * 1-6'   # 09:00-18:40 ART, lunes a sábado
+  workflow_dispatch: {}
+
+concurrency:
+  group: campania-novedades
+  cancel-in-progress: false
+
+jobs:
+  tanda:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Mandar una tanda
+        run: |
+          RESPUESTA=$(curl -sS --max-time 480 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://atelieroptica.com.ar/api/cron/campania-seguimiento?campana=novedades&batch=5")
+          echo "$RESPUESTA"
+          echo "$RESPUESTA" | grep -q '"ok":true' || exit 1

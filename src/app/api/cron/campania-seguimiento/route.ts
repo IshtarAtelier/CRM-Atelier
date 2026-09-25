@@ -5,6 +5,8 @@ import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { WHATSAPP_TEMPLATES, templateSpec } from '@/lib/whatsapp/templates';
 import { STORE_ORIGIN } from '@/lib/constants';
 import { BUSINESS_INFO } from '@/lib/business-info';
+import { fetchWa } from '@/lib/wa-config';
+import audienciaNovedades from '@/data/campanias/novedades-sep2026.json';
 import type { Prisma } from '@prisma/client';
 
 /**
@@ -19,20 +21,38 @@ import type { Prisma } from '@prisma/client';
  *   tag "Campaña MP 12 Cuotas") y sigue sin comprar — sumarle lo que a ese
  *   mensaje le faltaba: tienda, cupón QUIEROMISLENTES e Instagram.
  *
+ * - `?campana=novedades` (25/9/26): clientes que compraron hace más de 3
+ *   meses y no volvieron — Instagram, agendarnos, cuotas y Cápsula Escarlata.
+ *   La audiencia sale de CRUZAR las planillas del sistema anterior
+ *   (prisma/legacy_data/ATELIER 1 y 2, las únicas con la fecha de esas
+ *   compras) con el CRM: es una lista de ids en
+ *   src/data/campanias/novedades-sep2026.json, que acá se vuelve a filtrar en
+ *   vivo (compra reciente, exclusiones, ya enviado). Dos frenos propios: no
+ *   manda nada mientras la plantilla no esté APPROVED en Meta, y corta en
+ *   LIMITE_DIARIO_NOVEDADES por día (el cupo de la línea es 250 conversaciones
+ *   diarias, compartido con los seguimientos automáticos).
+ *
  * Mismo diseño anti-ban que el cron hermano: tandas chicas (`batch`, default
  * 5) con pausas de 20-40 s adentro, tag propio por campaña para dedup
  * atómico, respeta followups_enabled y horario comercial ART (10-19).
  * `?dryRun=1` lista sin enviar.
  */
 
-type Campana = 'soycliente' | 'armazones';
+type Campana = 'soycliente' | 'armazones' | 'novedades';
+type Plantilla = 'tienda_online_soycliente_v2' | 'tienda_online_quieromislentes' | 'novedades_clientes_escarlata';
+
+/** Tope de envíos por día de la campaña novedades (decidido con Ishtar el 25/9/26: ~120/día, ~6 días). */
+const LIMITE_DIARIO_NOVEDADES = 120;
+/** Etiquetas que sacan a alguien de la campaña novedades aunque esté en la lista. */
+const EXCLUIR_NOVEDADES = ['Campaña Tienda SoyCliente', 'Sin Seguimiento', 'Reclamo y post venta', 'Cancelar Bot'];
 
 // v2 (30/8/26): ambas plantillas suman "contanos qué modelito te gustó" y
 // llevan tienda + Instagram sí o sí (texto y botones). El TAG no cambia:
 // quien ya recibió la v1 esta tarde no vuelve a recibir la v2.
-const CONFIG: Record<Campana, { tag: string; plantilla: 'tienda_online_soycliente_v2' | 'tienda_online_quieromislentes' }> = {
+const CONFIG: Record<Campana, { tag: string; plantilla: Plantilla }> = {
     soycliente: { tag: 'Campaña Tienda SoyCliente', plantilla: 'tienda_online_soycliente_v2' },
     armazones: { tag: 'Campaña Seguimiento Armazones', plantilla: 'tienda_online_quieromislentes' },
+    novedades: { tag: 'Campaña Novedades Sep26', plantilla: 'novedades_clientes_escarlata' },
 };
 
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -53,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const campanaParam = searchParams.get('campana') as Campana | null;
     if (!campanaParam || !CONFIG[campanaParam]) {
-        return NextResponse.json({ error: `?campana debe ser 'soycliente' o 'armazones'` }, { status: 400 });
+        return NextResponse.json({ error: `?campana debe ser 'soycliente', 'armazones' o 'novedades'` }, { status: 400 });
     }
     const { tag: nombreTag, plantilla } = CONFIG[campanaParam];
 
@@ -82,8 +102,46 @@ export async function GET(request: NextRequest) {
     const NUCLEO_TEL_OPTICA = BUSINESS_INFO.phoneE164.replace(/\D/g, '').slice(-10);
     const CORTE_RECIENTE = new Date('2026-06-01T00:00:00-03:00');
 
+    // Novedades: no se manda nada con la plantilla PENDING en Meta (el envío se
+    // rechaza y quema un turno de la tanda). El espejo local se actualiza con el
+    // mismo sync que usa el cron de calidad; si falla, se espera al próximo run.
+    if (campanaParam === 'novedades' && !dryRun) {
+        let estado = (await prisma.whatsAppTemplate.findFirst({ where: { name: plantilla }, select: { status: true } }))?.status;
+        if (estado !== 'APPROVED') {
+            await fetchWa('/api/templates/sync', { method: 'POST' }).catch(() => null);
+            estado = (await prisma.whatsAppTemplate.findFirst({ where: { name: plantilla }, select: { status: true } }))?.status;
+        }
+        if (estado !== 'APPROVED') {
+            return NextResponse.json({ ok: true, campana: campanaParam, enviados: 0, esperando: `plantilla ${plantilla} en estado ${estado ?? 'inexistente'} en Meta` });
+        }
+    }
+
     let whereCandidatos: Prisma.ClientWhereInput;
-    if (campanaParam === 'soycliente') {
+    if (campanaParam === 'novedades') {
+        // Lista cruzada con las planillas del sistema anterior; acá se vuelve a
+        // filtrar EN VIVO: quien compró en los últimos 3 meses (pago o fábrica)
+        // ya no es "hace más de 3 meses", y quien pidió no recibir mensajes
+        // (etiqueta o chat marcado SIN_SEGUIMIENTO por la auto-exclusión) no entra.
+        const corte = new Date(Date.now() - 3 * 30.44 * 864e5);
+        const excluidas = await prisma.tag.findMany({ where: { name: { in: EXCLUIR_NOVEDADES } }, select: { id: true } });
+        whereCandidatos = {
+            id: { in: audienciaNovedades.clientIds },
+            isDeleted: false,
+            phone: { not: null },
+            NOT: { phone: { contains: NUCLEO_TEL_OPTICA } },
+            tags: { none: { id: { in: [tag.id, ...excluidas.map(t => t.id)] } } },
+            whatsappChats: { none: { chatLabels: { has: 'SIN_SEGUIMIENTO' } } },
+            orders: {
+                none: {
+                    isDeleted: false,
+                    OR: [
+                        { labSentAt: { gte: corte } },
+                        { payments: { some: { date: { gte: corte } } } },
+                    ],
+                },
+            },
+        };
+    } else if (campanaParam === 'soycliente') {
         // Venta real vieja, o del sistema anterior — pero sin nada reciente
         // (jun-ago 2026, ya cubiertos por la campaña de 12 cuotas).
         whereCandidatos = {
@@ -118,11 +176,26 @@ export async function GET(request: NextRequest) {
         };
     }
 
+    // Tope diario de la campaña novedades: se cuentan las notas que deja cada
+    // envío en la ficha desde la medianoche de Argentina.
+    let cupoHoy = batch;
+    if (campanaParam === 'novedades' && !dryRun) {
+        const ahoraArt = new Date(Date.now() - 3 * 3600e3);
+        const inicioDia = new Date(Date.UTC(ahoraArt.getUTCFullYear(), ahoraArt.getUTCMonth(), ahoraArt.getUTCDate(), 3, 0, 0));
+        const enviadosHoy = await prisma.interaction.count({
+            where: { createdAt: { gte: inicioDia }, content: { startsWith: `📣 [${nombreTag}]` } },
+        });
+        cupoHoy = Math.min(batch, Math.max(0, LIMITE_DIARIO_NOVEDADES - enviadosHoy));
+        if (cupoHoy === 0) {
+            return NextResponse.json({ ok: true, campana: campanaParam, enviados: 0, motivo: `tope diario alcanzado (${enviadosHoy}/${LIMITE_DIARIO_NOVEDADES})` });
+        }
+    }
+
     const candidatos = await prisma.client.findMany({
         where: whereCandidatos,
         select: { id: true, name: true, phone: true },
         orderBy: { createdAt: 'asc' },
-        take: dryRun ? 500 : batch,
+        take: dryRun ? 1000 : cupoHoy,
     });
 
     if (dryRun) {
