@@ -12,7 +12,7 @@
     "remarketing",
     "cupon"
   ],
-  "caption": "Esos anteojos que estuviste mirando siguen acá 👓 Llevátelos con 10% OFF usando el cupón QUIEROMISLENTES en la tienda online.\n\n3 y 6 cuotas sin interés, y hasta 12 cuotas fijas, con envío gratis a todo el país.\n\nCompra mínima $100.000 · Cupos limitados.",
+  "caption": "Esos anteojos que estuviste mirando siguen acá 👓 Solo esta semana, llevátelos con 10% OFF usando el cupón QUIEROMISLENTES en la tienda online.\n\n3 y 6 cuotas sin interés, y hasta 12 cuotas fijas, con envío gratis a todo el país.\n\nCompra mínima $100.000 · Solo 10 cupones.",
   "slides": [
     {
       "type": "cupon",
@@ -26,14 +26,15 @@
       ],
       "eyebrow": "VOLVISTE A MIRARLOS",
       "dato": "10% OFF",
-      "title": "Llevátelos con el cupón",
+      "title": "Llevátelos con el cupón · *solo esta semana*",
       "cupon": "QUIEROMISLENTES",
+      "requisito": "En la *tienda online* · compras desde $100.000",
       "items": [
         "3 y 6 cuotas sin interés",
         "Hasta 12 cuotas fijas",
         "Envío gratis a todo el país"
       ],
-      "condiciones": "Compra mínima $100.000 · Cupos limitados · Válido en la tienda online",
+      "condiciones": "Solo 10 cupones",
       "cta": "Escribinos y te ayudamos a usarlo"
     }
   ]

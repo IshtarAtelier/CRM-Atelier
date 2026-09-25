@@ -227,21 +227,27 @@ const PLANTILLAS = {
         const grillaResuelta = (slide.imagenesResueltas || []).filter(Boolean);
         const fotos = grillaResuelta.length ? grillaResuelta : [slide.imagenResuelta].filter(Boolean);
         const grilla = fotos.length > 1 ? `grilla-${Math.min(fotos.length, 4)}` : 'sola';
+        // En el apaisado (628 px de alto) cuatro armazones salen chicos y con
+        // un hueco en el medio (lo marcó la revisión del 25/9): van dos, apilados.
+        const tope = id.formato?.nombre === '1.91:1' ? 2 : 4;
         return `
     <div class="c-cabeza">
-      ${slide.eyebrow ? `<p class="c-eyebrow">${esc(slide.eyebrow)}</p>` : ''}
+      ${slide.eyebrow ? `<p class="c-eyebrow${slide.sello ? ' sello' : ''}">${esc(slide.eyebrow)}</p>` : ''}
       <p class="c-dato">${esc(slide.dato)}</p>
       ${slide.title ? `<p class="c-bajada">${resaltar(slide.title)}</p>` : ''}
     </div>
     <div class="c-panel ${grilla}">
-      ${fotos.slice(0, 4).map(u => `<div class="c-foto" style="background-image:url('${comoUrl(u)}')"></div>`).join('')}
+      ${fotos.slice(0, tope).map(u => `<div class="c-foto" style="background-image:url('${comoUrl(u)}')"></div>`).join('')}
     </div>
     <div class="c-ticket">
       <span class="c-ticket-label">CUPÓN</span>
       <span class="c-ticket-codigo">${esc(slide.cupon)}</span>
     </div>
     <div class="c-oferta">
-      ${(slide.items || []).map(i => `<p class="c-linea"><span class="c-check" aria-hidden="true"></span>${resaltar(i)}</p>`).join('')}
+      ${slide.requisito ? `<p class="c-requisito">${resaltar(slide.requisito)}</p>` : ''}
+      <div class="c-lista">
+        ${(slide.items || []).map(i => `<p class="c-linea"><span class="c-check" aria-hidden="true"></span>${resaltar(i)}</p>`).join('')}
+      </div>
       ${slide.condiciones ? `<p class="c-condiciones">${esc(slide.condiciones)}</p>` : ''}
       ${slide.cta ? `<p class="c-cta">${esc(slide.cta)}</p>` : ''}
     </div>
@@ -314,6 +320,12 @@ function cssCupon(id, { esStory, esApaisado, esCuadrado }) {
     const base = `
   .c-cabeza { position:absolute; left:0; right:0; text-align:center; color:${id.oscuro}; }
   .c-eyebrow { font-size:27px; font-weight:700; letter-spacing:8px; color:${bronce}; }
+  /* sello: la urgencia como etiqueta llena (bronce oscuro, letra blanca: pasa
+     de 4,5:1). Era la línea con menos peso de la cabeza y es la estrategia. */
+  .c-eyebrow.sello {
+    display:inline-block; background:${bronce}; color:#ffffff;
+    padding:12px 30px 12px 38px; border-radius:6px; font-weight:800;
+  }
   .c-dato {
     font-family:${id.fuentes.titulo}; font-weight:800; line-height:.92;
     letter-spacing:-4px; color:${id.oscuro};
@@ -348,6 +360,14 @@ function cssCupon(id, { esStory, esApaisado, esCuadrado }) {
   .c-ticket-codigo { font-family:${id.fuentes.titulo}; font-weight:800; letter-spacing:3px; }
 
   .c-oferta { position:absolute; left:0; right:0; text-align:center; color:${id.oscuro}; }
+  /* El requisito (dónde vale y la compra mínima) va pegado al cupón y bien
+     visible: en letra chica era lo que menos se leía, y el botón de WhatsApp
+     iba a traer consultas por compras que no llegan al mínimo. */
+  .c-requisito { font-weight:800; letter-spacing:.2px; white-space:nowrap; }
+  .c-requisito .marca { color:${bronce}; }
+  /* La lista se alinea a la izquierda y el BLOQUE se centra: centradas una por
+     una, las tildes no quedaban una debajo de la otra. */
+  .c-lista { display:flex; flex-direction:column; align-items:flex-start; gap:inherit; }
   .c-linea {
     display:inline-flex; align-items:center; gap:14px;
     font-weight:700; letter-spacing:.2px; white-space:nowrap;
@@ -368,75 +388,84 @@ function cssCupon(id, { esStory, esApaisado, esCuadrado }) {
 `;
 
     if (esApaisado) return base + `
-  /* 1200x628: foto a la derecha, oferta a la izquierda. Solo lo esencial. */
-  .c-cabeza { top:34px; left:48px; right:auto; width:600px; text-align:left; }
+  /* 1200x628: foto a la derecha, oferta a la izquierda. Solo lo esencial. El
+     pie va de lado a lado y abajo: metido en la columna de texto quedaban
+     logo, usuario y dirección amontonados. */
+  .c-cabeza { top:30px; left:46px; right:auto; width:560px; text-align:left; }
   .c-eyebrow { font-size:17px; letter-spacing:5px; }
-  .c-dato { font-size:118px; letter-spacing:-3px; margin-top:6px; }
-  .c-bajada { font-size:22px; margin-top:8px; }
-  .c-panel { top:0; bottom:0; left:auto; right:0; width:540px; border:0;
+  .c-eyebrow.sello { padding:7px 16px 7px 21px; border-radius:4px; }
+  .c-dato { font-size:112px; letter-spacing:-3px; margin-top:8px; }
+  .c-bajada { font-size:22px; margin-top:6px; }
+  .c-panel { top:0; bottom:64px; left:auto; right:0; width:590px; border:0;
              border-left:1px solid ${filete}; }
-  .c-panel.sola { padding:40px 30px; }
+  .c-panel.sola { padding:30px 26px; }
   .c-panel.grilla-2, .c-panel.grilla-3, .c-panel.grilla-4 {
-    grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; padding:40px 22px; gap:18px 16px; }
-  .c-panel.grilla-3 .c-foto:nth-child(3) { grid-column:1 / span 2; }
-  .c-ticket { top:218px; left:48px; transform:none; height:62px; box-shadow:none; }
-  .c-ticket-label { font-size:13px; padding:0 14px; line-height:62px; letter-spacing:3px; }
+    grid-template-columns:1fr; grid-template-rows:1fr 1fr; padding:22px 40px; gap:14px; }
+  .c-ticket { top:226px; left:46px; transform:none; height:58px; box-shadow:none; }
+  .c-ticket-label { font-size:13px; padding:0 14px; line-height:58px; letter-spacing:3px; }
   .c-ticket-codigo { font-size:24px; padding:0 20px; }
-  .c-oferta { top:306px; left:48px; right:auto; width:600px; text-align:left;
-              display:flex; flex-direction:column; gap:10px; }
-  .c-linea { font-size:24px; gap:10px; }
-  .c-check { width:26px; height:26px; }
+  .c-oferta { top:298px; left:46px; right:auto; width:560px; text-align:left;
+              display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .c-requisito { font-size:20px; }
+  .c-linea { font-size:22px; gap:10px; }
+  .c-check { width:24px; height:24px; }
   .c-check::after { border-width:0 3px 3px 0; }
-  .c-condiciones { font-size:16px; margin-top:4px; }
+  .c-condiciones { font-size:16px; margin-top:2px; }
   .c-cta { font-size:18px; }
-  .c-pie { top:auto; bottom:0; left:0; right:auto; width:670px; height:70px; padding:0 48px; }
+  .c-pie { top:auto; bottom:0; left:0; right:0; height:64px; padding:0 46px; gap:40px; }
   .c-pie .v-logo { height:32px; }
-  .c-pie .v-handle { font-size:19px; }
-  .c-pie .v-dir { font-size:14px; }
+  .c-pie .v-handle { font-size:20px; margin-right:auto; }
+  .c-pie .v-dir { font-size:15px; }
 `;
 
     if (esStory) return base + `
-  /* 1080x1920. Arriba 250 px y abajo 460 px los tapa la interfaz: el
-     contenido vive entre esas dos franjas. El pie oscuro es una banda fina
-     que termina justo donde empieza la zona tapada; debajo, fondo claro
-     ("prefiero que haya menos parte negra", Ishtar 28/8). */
-  .c-cabeza { top:226px; }
-  .c-eyebrow { font-size:32px; letter-spacing:9px; }
-  .c-dato { font-size:226px; margin-top:8px; }
-  .c-bajada { font-size:42px; margin-top:12px; }
-  .c-panel { top:572px; height:480px; }
-  .c-panel.sola { padding:20px 50px 70px; }
-  .c-panel.grilla-4 { padding:16px 34px 66px; gap:6px 22px; }
-  .c-ticket { top:1002px; height:104px; }
-  .c-ticket-label { font-size:21px; padding:0 24px; line-height:104px; }
-  .c-ticket-codigo { font-size:52px; padding:0 32px; }
-  .c-oferta { top:1134px; display:flex; flex-direction:column; align-items:center; gap:9px; }
-  .c-linea { font-size:34px; }
-  .c-check { width:35px; height:35px; }
+  /* 1080x1920. Arriba ~250 px (cabecera de la cuenta) y abajo ~460 px (botón
+     "Enviar mensaje" y la pila de Reels) los tapa la interfaz: el contenido
+     arranca en 300 y el pie termina antes de 1460. La dirección y el horario
+     se quedan (van en todas las placas, pedido de Ishtar del 27/8). Debajo,
+     fondo claro: "prefiero que haya menos parte negra" (28/8). */
+  .c-cabeza { top:300px; }
+  .c-eyebrow { font-size:30px; letter-spacing:8px; }
+  .c-eyebrow.sello { padding:12px 28px 12px 36px; }
+  .c-dato { font-size:204px; margin-top:12px; }
+  .c-bajada { font-size:40px; margin-top:10px; }
+  .c-panel { top:636px; height:380px; }
+  .c-panel.sola { padding:14px 44px 58px; }
+  .c-panel.grilla-4 { padding:10px 34px 54px; gap:2px 22px; }
+  .c-ticket { top:968px; height:96px; }
+  .c-ticket-label { font-size:20px; padding:0 22px; line-height:96px; }
+  .c-ticket-codigo { font-size:50px; padding:0 30px; }
+  .c-oferta { top:1086px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .c-requisito { font-size:31px; margin-bottom:4px; }
+  .c-linea { font-size:32px; }
+  .c-check { width:33px; height:33px; }
   .c-condiciones { font-size:23px; margin-top:2px; }
-  .c-cta { font-size:27px; }
-  .c-pie { top:1376px; bottom:auto; height:88px; }
-  .c-pie .v-logo { height:42px; }
+  .c-cta { font-size:26px; }
+  .c-pie { top:1370px; bottom:auto; height:86px; }
+  .c-pie .v-logo { height:40px; }
 `;
 
     if (esCuadrado) return base + `
-  /* 1080x1080: el mismo orden que el feed, con menos aire. */
-  .c-cabeza { top:40px; }
-  .c-eyebrow { font-size:23px; letter-spacing:7px; }
-  .c-dato { font-size:152px; margin-top:6px; }
-  .c-bajada { font-size:30px; margin-top:6px; }
-  .c-panel { top:262px; height:420px; }
-  .c-panel.sola { padding:14px 50px 60px; }
-  .c-panel.grilla-4 { padding:12px 40px 54px; gap:4px 24px; }
-  .c-ticket { top:638px; height:88px; }
-  .c-ticket-label { font-size:18px; padding:0 20px; line-height:88px; }
-  .c-ticket-codigo { font-size:42px; padding:0 26px; }
-  .c-oferta { top:758px; display:flex; flex-direction:column; align-items:center; gap:8px; }
-  .c-linea { font-size:29px; }
-  .c-check { width:30px; height:30px; }
+  /* 1080x1080: el mismo orden que el feed, con menos aire. La cabeza va más
+     compacta: con el sello de urgencia, el panel tapaba la bajada. */
+  .c-cabeza { top:30px; }
+  .c-eyebrow { font-size:22px; letter-spacing:7px; }
+  .c-eyebrow.sello { padding:9px 24px 9px 31px; }
+  .c-dato { font-size:140px; margin-top:6px; }
+  .c-bajada { font-size:29px; margin-top:4px; }
+  .c-panel { top:272px; height:380px; }
+  .c-panel.sola { padding:12px 50px 56px; }
+  .c-panel.grilla-4 { padding:10px 40px 50px; gap:2px 24px; }
+  .c-ticket { top:610px; height:84px; }
+  .c-ticket-label { font-size:18px; padding:0 20px; line-height:84px; }
+  .c-ticket-codigo { font-size:40px; padding:0 26px; }
+  .c-oferta { top:716px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .c-requisito { font-size:27px; margin-bottom:4px; }
+  .c-linea { font-size:26px; }
+  .c-check { width:27px; height:27px; }
   .c-check::after { border-width:0 3px 3px 0; }
-  .c-condiciones { font-size:20px; margin-top:2px; }
-  .c-cta { font-size:23px; }
+  .c-condiciones { font-size:19px; margin-top:0; }
+  .c-cta { font-size:22px; }
   .c-pie { height:88px; }
   .c-pie .v-logo { height:40px; }
   .c-pie .v-handle { font-size:25px; }
@@ -453,11 +482,12 @@ function cssCupon(id, { esStory, esApaisado, esCuadrado }) {
   .c-ticket { top:842px; height:100px; }
   .c-ticket-label { font-size:20px; padding:0 22px; line-height:100px; }
   .c-ticket-codigo { font-size:48px; padding:0 30px; }
-  .c-oferta { top:978px; display:flex; flex-direction:column; align-items:center; gap:10px; }
-  .c-linea { font-size:32px; }
-  .c-check { width:33px; height:33px; }
-  .c-condiciones { font-size:22px; margin-top:6px; }
-  .c-cta { font-size:27px; margin-top:4px; }
+  .c-oferta { top:966px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .c-requisito { font-size:32px; margin-bottom:6px; }
+  .c-linea { font-size:29px; }
+  .c-check { width:30px; height:30px; }
+  .c-condiciones { font-size:21px; margin-top:2px; }
+  .c-cta { font-size:26px; }
 `;
 }
 

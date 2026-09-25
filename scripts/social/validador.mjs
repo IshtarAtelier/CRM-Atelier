@@ -55,7 +55,7 @@ function textoDeSlide(slide) {
         // es el campo MÁS visible de la placa; `eyebrow`, `condiciones` y
         // `cupon` llegaron con la plantilla `cupon`. La compra mínima vive en
         // `condiciones`: por eso esa pieza sale del generador, con fuente base.
-        slide.dato, slide.eyebrow, slide.condiciones, slide.cupon,
+        slide.dato, slide.eyebrow, slide.condiciones, slide.cupon, slide.requisito,
     ].filter(Boolean).join(' ');
 }
 

@@ -23,10 +23,12 @@
  *    ella puede apagar el cupón cuando quiera. No se discute.
  *  - Las cuotas con la fórmula única de business-info ("3 y 6 cuotas sin
  *    interés, y hasta 12 cuotas fijas"): nunca un "12 sin interés".
- *  - "Cupos limitados" y no "quedan N": el número de usos cambia solo y la
- *    placa no.
- *  - La compra mínima SIEMPRE, en letra chica: sin ella, el que llega con una
- *    compra más baja se encuentra el cupón rechazado en el checkout.
+ *  - "Solo N cupones" (el total, que es fijo) y nunca "quedan N": los usos
+ *    cambian solos y la placa no.
+ *  - La compra mínima SIEMPRE y a la vista, pegada al cupón: sin ella, el que
+ *    llega con una compra más baja se encuentra el cupón rechazado en el
+ *    checkout. Y "tienda online" también: la placa lleva la dirección del
+ *    local y alguien podría ir a pedir el descuento ahí.
  *
  * LOS ARMAZONES
  * Los más vendidos de los últimos 90 días que HOY tienen stock y ficha activa
@@ -199,8 +201,17 @@ export async function generarPlacasDeCupon({ codigo = 'QUIEROMISLENTES' } = {}) 
             ? `${cupon.discountValue % 1 === 0 ? cupon.discountValue : cupon.discountValue.toFixed(1)}% OFF`
             : `${plata(cupon.discountValue)} OFF`;
         const minimo = cupon.minOrderAmount && cupon.minOrderAmount > 0 ? `Compra mínima ${plata(cupon.minOrderAmount)}` : null;
-        const cupos = cupon.maxUses != null ? 'Cupos limitados' : null;
-        const condiciones = [minimo, cupos, 'Válido en la tienda online'].filter(Boolean).join(' · ');
+        // "Solo N cupones" es el total de la fila, que no cambia con los usos
+        // (lo que cambia es cuántos quedan, y eso no se escribe). Cuando se
+        // agotan, este generador se niega y los anuncios hay que pausarlos.
+        const cupos = cupon.maxUses != null ? `Solo ${cupon.maxUses} cupones` : null;
+        // Pegado al cupón y bien visible: dónde vale y desde cuánto. En letra
+        // chica era lo que menos se leía (revisión del 25/9).
+        const requisito = [
+            'En la *tienda online*',
+            cupon.minOrderAmount && cupon.minOrderAmount > 0 ? `compras desde ${plata(cupon.minOrderAmount)}` : null,
+        ].filter(Boolean).join(' · ');
+        const condiciones = cupos;
 
         // "3 y 6 cuotas sin interés, y hasta 12 cuotas fijas" → dos renglones con las mismas palabras.
         const cuotas = await campoDeBusinessInfo('installmentsPromo');
@@ -217,6 +228,7 @@ export async function generarPlacasDeCupon({ codigo = 'QUIEROMISLENTES' } = {}) 
             'ad-l5-cupon-semana': {
                 temas: ['tienda', 'remarketing', 'cupon'],
                 eyebrow: 'SOLO ESTA SEMANA',
+                sello: true,
                 title: `En *toda la tienda online* con el cupón`,
                 fotos: [armazones[0].foto],
                 caption: `Solo esta semana: ${descuento} en toda la tienda online con el cupón ${cupon.code} 🏷️\n\n${cuotas}. Envío gratis a todo el país.\n\n${[minimo, cupos].filter(Boolean).join(' · ')}.`,
@@ -224,9 +236,11 @@ export async function generarPlacasDeCupon({ codigo = 'QUIEROMISLENTES' } = {}) 
             'ad-l5-cupon-vuelta': {
                 temas: ['tienda', 'remarketing', 'cupon'],
                 eyebrow: 'VOLVISTE A MIRARLOS',
-                title: `Llevátelos con el cupón`,
+                // La urgencia tiene que estar también acá (en la placa de
+                // producto aprobada estaba): la revisión del 25/9 la echó en falta.
+                title: `Llevátelos con el cupón · *solo esta semana*`,
                 fotos: armazones.map((a) => a.foto),
-                caption: `Esos anteojos que estuviste mirando siguen acá 👓 Llevátelos con ${descuento} usando el cupón ${cupon.code} en la tienda online.\n\n${cuotas}, con envío gratis a todo el país.\n\n${[minimo, cupos].filter(Boolean).join(' · ')}.`,
+                caption: `Esos anteojos que estuviste mirando siguen acá 👓 Solo esta semana, llevátelos con ${descuento} usando el cupón ${cupon.code} en la tienda online.\n\n${cuotas}, con envío gratis a todo el país.\n\n${[minimo, cupos].filter(Boolean).join(' · ')}.`,
             },
         };
 
@@ -254,9 +268,11 @@ export async function generarPlacasDeCupon({ codigo = 'QUIEROMISLENTES' } = {}) 
                         image: p.fotos[0],
                         images: p.fotos.length > 1 ? p.fotos : [],
                         eyebrow: p.eyebrow,
+                        ...(p.sello ? { sello: true } : {}),
                         dato: descuento,
                         title: p.title,
                         cupon: cupon.code,
+                        requisito,
                         items: renglones,
                         condiciones,
                         // El botón del anuncio abre WhatsApp: el llamado dice lo mismo.
