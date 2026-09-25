@@ -8,8 +8,9 @@
  * PROHIBIDO escribir un color o una fuente literal acá: todo sale de
  * `identidad.mjs`, que a su vez lee `globals.css`.
  *
- * Se arrancó con TRES tipos (cover, list, cta) y hoy son cinco: se sumó `number`
- * para las piezas de precio y `testimonio` para las de prueba social. La guía
+ * Se arrancó con TRES tipos (cover, list, cta) y se fueron sumando `number`
+ * para las piezas de precio, `testimonio` para las de prueba social, `venta`
+ * para la placa de producto y `cupon` para los anuncios de un cupón. La guía
  * propone ocho; cada uno es una plantilla más para mantener, así que se suman
  * cuando una pieza real los necesite, no antes.
  */
@@ -211,6 +212,47 @@ const PLANTILLAS = {
     },
 
     /**
+     * Cupón: la placa de anuncio de un cupón de la tienda (25/9/26, pedido de
+     * Ishtar: "rediseñalas, les falta muchísimo"). Mismo idioma que `venta`
+     * —fondo claro, armazones gigantes sobre blanco, oferta completa y
+     * jerarquizada— porque es lo que ella aprobó el 1/9 y rechazó lo oscuro y
+     * minimalista. El cupón va como un ticket troquelado, en caja alta.
+     *
+     * TODO lo que dice sale del generador (`generar-cupon.mjs`), que lo lee de
+     * la base: porcentaje, código, compra mínima y cuotas. Acá solo se maqueta.
+     * Una foto = armazón protagonista; dos a cuatro = grilla (variedad).
+     */
+    cupon: (slide, id) => {
+        // `images` es la grilla; si no viene, la foto de `image` va sola.
+        const grillaResuelta = (slide.imagenesResueltas || []).filter(Boolean);
+        const fotos = grillaResuelta.length ? grillaResuelta : [slide.imagenResuelta].filter(Boolean);
+        const grilla = fotos.length > 1 ? `grilla-${Math.min(fotos.length, 4)}` : 'sola';
+        return `
+    <div class="c-cabeza">
+      ${slide.eyebrow ? `<p class="c-eyebrow">${esc(slide.eyebrow)}</p>` : ''}
+      <p class="c-dato">${esc(slide.dato)}</p>
+      ${slide.title ? `<p class="c-bajada">${resaltar(slide.title)}</p>` : ''}
+    </div>
+    <div class="c-panel ${grilla}">
+      ${fotos.slice(0, 4).map(u => `<div class="c-foto" style="background-image:url('${comoUrl(u)}')"></div>`).join('')}
+    </div>
+    <div class="c-ticket">
+      <span class="c-ticket-label">CUPÓN</span>
+      <span class="c-ticket-codigo">${esc(slide.cupon)}</span>
+    </div>
+    <div class="c-oferta">
+      ${(slide.items || []).map(i => `<p class="c-linea"><span class="c-check" aria-hidden="true"></span>${resaltar(i)}</p>`).join('')}
+      ${slide.condiciones ? `<p class="c-condiciones">${esc(slide.condiciones)}</p>` : ''}
+      ${slide.cta ? `<p class="c-cta">${esc(slide.cta)}</p>` : ''}
+    </div>
+    <div class="v-pie c-pie">
+      ${id.logo ? `<img class="v-logo" src="${id.logo}" alt="Atelier Óptica">` : ''}
+      <span class="v-handle">${esc(id.handle)}</span>
+      <span class="v-dir">${esc(DIRECCION_PIE)}<br>${esc(HORARIO_PIE)}</span>
+    </div>`;
+    },
+
+    /**
      * Testimonio: la palabra de un cliente, textual.
      *
      * La pieza que más convierte es la que no escribimos nosotros, y por eso
@@ -253,6 +295,171 @@ const PLANTILLAS = {
 };
 
 export const TIPOS_SOPORTADOS = Object.keys(PLANTILLAS);
+
+/**
+ * El CSS de la plantilla `cupon`, con su ajuste por formato. Vive aparte del
+ * bloque general porque sus cuatro tamaños se diagraman distinto (no es el
+ * mismo layout escalado) y mezclarlo con los ajustes de las otras plantillas
+ * volvía ilegibles las dos cosas. Mismos colores de la identidad que `venta`.
+ *
+ * Zonas seguras (verificadas en la vista previa de Meta para las otras
+ * plantillas): en la story, arriba ~250 px los tapa la cabecera de la cuenta y
+ * abajo ~460 px el botón "Enviar mensaje" y la pila de Reels. Nada que haya que
+ * leer vive ahí.
+ */
+function cssCupon(id, { esStory, esApaisado, esCuadrado }) {
+    const bronce = `color-mix(in srgb, ${id.colores.marca} 72%, ${id.oscuro} 28%)`;
+    const filete = `color-mix(in srgb, ${id.oscuro} 10%, ${id.colores.fondo} 90%)`;
+    const suave = `color-mix(in srgb, ${id.oscuro} 70%, ${id.colores.fondo} 30%)`;
+    const base = `
+  .c-cabeza { position:absolute; left:0; right:0; text-align:center; color:${id.oscuro}; }
+  .c-eyebrow { font-size:27px; font-weight:700; letter-spacing:8px; color:${bronce}; }
+  .c-dato {
+    font-family:${id.fuentes.titulo}; font-weight:800; line-height:.92;
+    letter-spacing:-4px; color:${id.oscuro};
+  }
+  .c-bajada { font-weight:600; letter-spacing:.2px; color:${id.oscuro}; }
+  .c-bajada .marca { color:${bronce}; }
+  .c-panel {
+    position:absolute; left:0; right:0; background:#ffffff;
+    border-top:1px solid ${filete}; border-bottom:1px solid ${filete};
+    display:grid; gap:0;
+  }
+  .c-foto { background-size:contain; background-repeat:no-repeat; background-position:center; }
+  .c-panel.sola { grid-template-columns:1fr; padding:18px 60px 70px; }
+  .c-panel.grilla-2 { grid-template-columns:1fr 1fr; padding:22px 30px 70px; gap:10px; }
+  .c-panel.grilla-3 { grid-template-columns:1fr 1fr 1fr; padding:22px 26px 70px; gap:8px; }
+  .c-panel.grilla-4 { grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; padding:14px 34px 64px; gap:4px 24px; }
+
+  /* El ticket: borde punteado de cupón recortable, apoyado sobre el borde
+     inferior del panel como un sticker pegado a la vidriera. Iba con muescas
+     a los costados y pisaban la palabra "CUPÓN": se sacaron. */
+  .c-ticket {
+    position:absolute; left:50%; transform:translateX(-50%);
+    background:${id.colores.fondo}; color:${id.oscuro};
+    border:3px dashed ${bronce}; border-radius:14px;
+    display:flex; align-items:center; white-space:nowrap;
+    box-shadow:0 10px 30px color-mix(in srgb, ${id.oscuro} 14%, transparent);
+  }
+  .c-ticket-label {
+    font-weight:700; letter-spacing:5px; color:${bronce};
+    border-right:2px dashed ${bronce};
+  }
+  .c-ticket-codigo { font-family:${id.fuentes.titulo}; font-weight:800; letter-spacing:3px; }
+
+  .c-oferta { position:absolute; left:0; right:0; text-align:center; color:${id.oscuro}; }
+  .c-linea {
+    display:inline-flex; align-items:center; gap:14px;
+    font-weight:700; letter-spacing:.2px; white-space:nowrap;
+  }
+  .c-linea .marca { color:${bronce}; }
+  /* Tilde dibujada con bordes (sin emoji ni fuente de íconos: se ve igual en
+     el navegador que captura y en el celular del que mira). */
+  .c-check {
+    flex:none; border-radius:50%; background:${id.colores.marca}; position:relative;
+  }
+  .c-check::after {
+    content:''; position:absolute; left:34%; top:22%; width:26%; height:44%;
+    border:solid #ffffff; border-width:0 4px 4px 0; transform:rotate(45deg);
+  }
+  .c-condiciones { font-weight:500; color:${suave}; letter-spacing:.3px; }
+  .c-cta { font-weight:800; color:${bronce}; letter-spacing:1px; }
+  .c-pie { justify-content:space-between; }
+`;
+
+    if (esApaisado) return base + `
+  /* 1200x628: foto a la derecha, oferta a la izquierda. Solo lo esencial. */
+  .c-cabeza { top:34px; left:48px; right:auto; width:600px; text-align:left; }
+  .c-eyebrow { font-size:17px; letter-spacing:5px; }
+  .c-dato { font-size:118px; letter-spacing:-3px; margin-top:6px; }
+  .c-bajada { font-size:22px; margin-top:8px; }
+  .c-panel { top:0; bottom:0; left:auto; right:0; width:540px; border:0;
+             border-left:1px solid ${filete}; }
+  .c-panel.sola { padding:40px 30px; }
+  .c-panel.grilla-2, .c-panel.grilla-3, .c-panel.grilla-4 {
+    grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; padding:40px 22px; gap:18px 16px; }
+  .c-panel.grilla-3 .c-foto:nth-child(3) { grid-column:1 / span 2; }
+  .c-ticket { top:218px; left:48px; transform:none; height:62px; box-shadow:none; }
+  .c-ticket-label { font-size:13px; padding:0 14px; line-height:62px; letter-spacing:3px; }
+  .c-ticket-codigo { font-size:24px; padding:0 20px; }
+  .c-oferta { top:306px; left:48px; right:auto; width:600px; text-align:left;
+              display:flex; flex-direction:column; gap:10px; }
+  .c-linea { font-size:24px; gap:10px; }
+  .c-check { width:26px; height:26px; }
+  .c-check::after { border-width:0 3px 3px 0; }
+  .c-condiciones { font-size:16px; margin-top:4px; }
+  .c-cta { font-size:18px; }
+  .c-pie { top:auto; bottom:0; left:0; right:auto; width:670px; height:70px; padding:0 48px; }
+  .c-pie .v-logo { height:32px; }
+  .c-pie .v-handle { font-size:19px; }
+  .c-pie .v-dir { font-size:14px; }
+`;
+
+    if (esStory) return base + `
+  /* 1080x1920. Arriba 250 px y abajo 460 px los tapa la interfaz: el
+     contenido vive entre esas dos franjas. El pie oscuro es una banda fina
+     que termina justo donde empieza la zona tapada; debajo, fondo claro
+     ("prefiero que haya menos parte negra", Ishtar 28/8). */
+  .c-cabeza { top:226px; }
+  .c-eyebrow { font-size:32px; letter-spacing:9px; }
+  .c-dato { font-size:226px; margin-top:8px; }
+  .c-bajada { font-size:42px; margin-top:12px; }
+  .c-panel { top:572px; height:480px; }
+  .c-panel.sola { padding:20px 50px 70px; }
+  .c-panel.grilla-4 { padding:16px 34px 66px; gap:6px 22px; }
+  .c-ticket { top:1002px; height:104px; }
+  .c-ticket-label { font-size:21px; padding:0 24px; line-height:104px; }
+  .c-ticket-codigo { font-size:52px; padding:0 32px; }
+  .c-oferta { top:1134px; display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .c-linea { font-size:34px; }
+  .c-check { width:35px; height:35px; }
+  .c-condiciones { font-size:23px; margin-top:2px; }
+  .c-cta { font-size:27px; }
+  .c-pie { top:1376px; bottom:auto; height:88px; }
+  .c-pie .v-logo { height:42px; }
+`;
+
+    if (esCuadrado) return base + `
+  /* 1080x1080: el mismo orden que el feed, con menos aire. */
+  .c-cabeza { top:40px; }
+  .c-eyebrow { font-size:23px; letter-spacing:7px; }
+  .c-dato { font-size:152px; margin-top:6px; }
+  .c-bajada { font-size:30px; margin-top:6px; }
+  .c-panel { top:262px; height:420px; }
+  .c-panel.sola { padding:14px 50px 60px; }
+  .c-panel.grilla-4 { padding:12px 40px 54px; gap:4px 24px; }
+  .c-ticket { top:638px; height:88px; }
+  .c-ticket-label { font-size:18px; padding:0 20px; line-height:88px; }
+  .c-ticket-codigo { font-size:42px; padding:0 26px; }
+  .c-oferta { top:758px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .c-linea { font-size:29px; }
+  .c-check { width:30px; height:30px; }
+  .c-check::after { border-width:0 3px 3px 0; }
+  .c-condiciones { font-size:20px; margin-top:2px; }
+  .c-cta { font-size:23px; }
+  .c-pie { height:88px; }
+  .c-pie .v-logo { height:40px; }
+  .c-pie .v-handle { font-size:25px; }
+  .c-pie .v-dir { font-size:19px; }
+`;
+
+    // 4:5, 1080x1350: el feed. Es el tamaño que más se ve.
+    return base + `
+  .c-cabeza { top:52px; }
+  .c-dato { font-size:196px; margin-top:8px; }
+  .c-bajada { font-size:36px; margin-top:10px; }
+  .c-panel { top:352px; height:540px; }
+  .c-panel.sola { padding:20px 44px 70px; }
+  .c-ticket { top:842px; height:100px; }
+  .c-ticket-label { font-size:20px; padding:0 22px; line-height:100px; }
+  .c-ticket-codigo { font-size:48px; padding:0 30px; }
+  .c-oferta { top:978px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .c-linea { font-size:32px; }
+  .c-check { width:33px; height:33px; }
+  .c-condiciones { font-size:22px; margin-top:6px; }
+  .c-cta { font-size:27px; margin-top:4px; }
+`;
+}
 
 /** El HTML completo de UNA slide, listo para capturar. */
 export function htmlDeSlide(slide, id, pieza) {
@@ -646,6 +853,7 @@ export function htmlDeSlide(slide, id, pieza) {
   .estrellas svg { width:26px; height:26px; }
   .firma { font-size:20px; margin-top:12px; }
   ` : ''}
+  ${slide.type === 'cupon' ? cssCupon(id, { esStory, esApaisado, esCuadrado }) : ''}
 </style></head>
 <body>${plantilla(slide, id)}</body></html>`;
 }

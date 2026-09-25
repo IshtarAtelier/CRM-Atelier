@@ -35,7 +35,7 @@ const plata = (n) => `$${Math.round(n).toLocaleString('es-AR')}`;
  * sin salida IPv6 el fetch muere con un "fetch failed" seco (ya nos pasó con
  * las fotos que manda el bot).
  */
-async function fotoLocal(url, nombre) {
+export async function fotoLocal(url, nombre) {
     const destino = path.join(CACHE_FOTOS, `${nombre}.jpg`);
     if (existsSync(destino)) return destino;
 

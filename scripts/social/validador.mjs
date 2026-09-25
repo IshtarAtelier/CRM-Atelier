@@ -51,6 +51,11 @@ function textoDeSlide(slide) {
     return [
         slide.title, slide.subtitle, slide.body, slide.cita, slide.cta, ...(slide.items || []),
         slide.cuotaImporte, slide.transferencia, slide.lista, slide.doceCuotas, slide.cuponDetalle,
+        // 25/9/26: `dato` (el número grande de `number` y `cupon`) no estaba y
+        // es el campo MÁS visible de la placa; `eyebrow`, `condiciones` y
+        // `cupon` llegaron con la plantilla `cupon`. La compra mínima vive en
+        // `condiciones`: por eso esa pieza sale del generador, con fuente base.
+        slide.dato, slide.eyebrow, slide.condiciones, slide.cupon,
     ].filter(Boolean).join(' ');
 }
 

@@ -59,30 +59,29 @@ const PLACAS = path.join(RAIZ, 'public', 'social');
 // receta), présbita decidida (multifocal), y descubrimiento de la óptica
 // (probarse en el local / línea propia estelar). Los lotes ad-l1 (multifocales)
 // y ad-l2 (remarketing) quedan para sus campañas del plan.
-// Lote ad-l4 (31/8/2026): remarketing que VENDE, pedido de Ishtar. El público
-// ya interactuó con el IG o la web — no hay que presentarle la óptica, hay que
-// darle el empujón: cupón QUIEROMISLENTES (verificado vivo contra la tienda en
-// producción, vence 30/9), las 12 cuotas fijas (fórmula 31/8 noche) y la fecha
-// límite. Fotos de la sesión editorial de junio. El lote ad-atp anterior ya
-// está subido (10/8) — este archivo siempre carga el lote PENDIENTE.
+// Lote ad-l4 (31/8/2026): remarketing con el cupón QUIEROMISLENTES, las 12
+// cuotas fijas y "vence el 30/9". Subido el 1/9 al conjunto de remarketing.
+//
+// Lote ad-l5 (25/9/2026): el rediseño de las placas del cupón. Ishtar extendió
+// el cupón y pidió rehacerlas ("les falta muchísimo"): las del l4 eran oscuras
+// y minimalistas, lo que ella ya había rechazado el 1/9. Las nuevas salen de
+// `scripts/social/generar-cupon.mjs`, que lee el cupón y los armazones de la
+// base (fondo claro, anteojo gigante, oferta completa, compra mínima). Etiquetas
+// NUEVAS: no se reusan las del l4, que siguen midiendo los anuncios viejos.
+// El título no lleva el porcentaje a propósito: el de la placa sale de la base,
+// y un "10%" tipeado acá quedaría viejo el día que el cupón cambie.
 const ANUNCIOS = [
   {
-    pieza: 'ad-l4-cupon-vuelta',
-    etiqueta: 'metaCuponVuelta',
-    titulo: '10% OFF con el cupón QUIEROMISLENTES',
-    mensaje: 'Hola! Vi lo del cupón QUIEROMISLENTES, ¿me ayudan a usarlo con el modelo que estuve viendo? [metaCuponVuelta]',
+    pieza: 'ad-l5-cupon-semana',
+    etiqueta: 'metaCuponSemana',
+    titulo: 'Cupón QUIEROMISLENTES en toda la tienda',
+    mensaje: 'Hola! Vi el cupón QUIEROMISLENTES de esta semana, ¿me ayudan a usarlo? [metaCuponSemana]',
   },
   {
-    pieza: 'ad-l4-doce-cuotas',
-    etiqueta: 'meta12CuotasRmk',
-    titulo: 'Hasta 12 cuotas fijas',
-    mensaje: 'Hola! Quiero saber cómo es lo de las 12 cuotas para unos lentes que estuve viendo. [meta12CuotasRmk]',
-  },
-  {
-    pieza: 'ad-l4-cupon-vence',
-    etiqueta: 'metaCuponVence',
-    titulo: 'El cupón QUIEROMISLENTES vence el 30/9',
-    mensaje: 'Hola! Antes de que venza el cupón QUIEROMISLENTES quiero aprovecharlo, ¿me ayudan? [metaCuponVence]',
+    pieza: 'ad-l5-cupon-vuelta',
+    etiqueta: 'metaCuponVolviste',
+    titulo: 'Volviste a mirarlos: usá el cupón QUIEROMISLENTES',
+    mensaje: 'Hola! Quiero usar el cupón QUIEROMISLENTES con los anteojos que estuve mirando, ¿me ayudan? [metaCuponVolviste]',
   },
 ];
 

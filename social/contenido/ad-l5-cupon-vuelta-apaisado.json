@@ -1,0 +1,40 @@
+{
+  "id": "ad-l5-cupon-vuelta-apaisado",
+  "format": "1.91:1",
+  "theme": "light",
+  "pilar": "campania",
+  "fuente": "base",
+  "generadoEl": "2026-09-25",
+  "generadoDesde": "produccion",
+  "cupon": "QUIEROMISLENTES",
+  "temas": [
+    "tienda",
+    "remarketing",
+    "cupon"
+  ],
+  "caption": "Esos anteojos que estuviste mirando siguen acá 👓 Llevátelos con 10% OFF usando el cupón QUIEROMISLENTES en la tienda online.\n\n3 y 6 cuotas sin interés, y hasta 12 cuotas fijas, con envío gratis a todo el país.\n\nCompra mínima $100.000 · Cupos limitados.",
+  "slides": [
+    {
+      "type": "cupon",
+      "role": "portada",
+      "image": "catalogo-social/atelier-artemis-tendencia-recorte.jpg",
+      "images": [
+        "catalogo-social/atelier-artemis-tendencia-recorte.jpg",
+        "catalogo-social/lentes-sol-clip-on-siena-g5921-c2-recorte.jpg",
+        "catalogo-social/sirio-c1-recorte.jpg",
+        "catalogo-social/lumen-recorte.jpg"
+      ],
+      "eyebrow": "VOLVISTE A MIRARLOS",
+      "dato": "10% OFF",
+      "title": "Llevátelos con el cupón",
+      "cupon": "QUIEROMISLENTES",
+      "items": [
+        "3 y 6 cuotas sin interés",
+        "Hasta 12 cuotas fijas",
+        "Envío gratis a todo el país"
+      ],
+      "condiciones": "Compra mínima $100.000 · Cupos limitados · Válido en la tienda online",
+      "cta": "Escribinos y te ayudamos a usarlo"
+    }
+  ]
+}

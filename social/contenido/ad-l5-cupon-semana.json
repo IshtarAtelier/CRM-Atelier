@@ -1,0 +1,35 @@
+{
+  "id": "ad-l5-cupon-semana",
+  "format": "4:5",
+  "theme": "light",
+  "pilar": "campania",
+  "fuente": "base",
+  "generadoEl": "2026-09-25",
+  "generadoDesde": "produccion",
+  "cupon": "QUIEROMISLENTES",
+  "temas": [
+    "tienda",
+    "remarketing",
+    "cupon"
+  ],
+  "caption": "Solo esta semana: 10% OFF en toda la tienda online con el cupón QUIEROMISLENTES 🏷️\n\n3 y 6 cuotas sin interés, y hasta 12 cuotas fijas. Envío gratis a todo el país.\n\nCompra mínima $100.000 · Cupos limitados.",
+  "slides": [
+    {
+      "type": "cupon",
+      "role": "portada",
+      "image": "catalogo-social/atelier-artemis-tendencia-recorte.jpg",
+      "images": [],
+      "eyebrow": "SOLO ESTA SEMANA",
+      "dato": "10% OFF",
+      "title": "En *toda la tienda online* con el cupón",
+      "cupon": "QUIEROMISLENTES",
+      "items": [
+        "3 y 6 cuotas sin interés",
+        "Hasta 12 cuotas fijas",
+        "Envío gratis a todo el país"
+      ],
+      "condiciones": "Compra mínima $100.000 · Cupos limitados · Válido en la tienda online",
+      "cta": "Escribinos y te ayudamos a usarlo"
+    }
+  ]
+}
