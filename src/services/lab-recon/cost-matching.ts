@@ -4,8 +4,8 @@ import { isQuietLab } from './backfill';
 import { sendChargedReworkAlert } from './alerts';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
-import { LAB_ITEM_PATTERNS, TOLERANCE } from './types';
-import { CLAVE_SIN_NUMERO } from '../../lib/lab-factura';
+import { LAB_ITEM_PATTERNS, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS } from './types';
+import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de
@@ -76,6 +76,32 @@ export function esVenta2x1(order: any): boolean {
     const categoryOf = (item: any) => item.productCategorySnapshot || item.product?.category || '';
     return (order.appliedPromoName || '').toLowerCase().includes('2x1')
         || items.some((i: any) => /cristal/i.test(categoryOf(i)) && i.price === 0);
+}
+
+/**
+ * ¿EL LABORATORIO COBRÓ EL PAR BONIFICADO? Regla de Ishtar del 25/9/2026:
+ * "siempre que esté tildado el 2x1 en cristales, SIEMPRE tiene que haber uno
+ * sin costo o con costos mínimos que no superen 30.000".
+ *
+ * Recibe lo facturado por CADA pedido de la venta (en este lab) y mira el más
+ * barato: si hasta ese vino por encima del tope, ningún par fue sin cargo.
+ *
+ * Se mira pedido por pedido A PROPÓSITO: la comparación de la venta entera
+ * (suma de facturas contra costo de sistema) no lo ve. Con un costo de sistema
+ * de $370.399 (un par cobrado + el bonificado en $0), un lab que factura
+ * $200.000 + $170.000 cierra la suma en $370.000 —"OK"— y cobró el par
+ * bonificado entero. Y al revés, el caso de Gabriela Peralta (21/9/2026):
+ * $288.380 + $25.410 contra $370.399 da "menor costo" por $56.609, y lo que
+ * importa es que el segundo par vino a $25.410, dentro del tope: el 2x1 se
+ * cumplió.
+ *
+ * Con un solo pedido facturado no hay nada que mirar: un par por el precio de
+ * dos es el 2x1 funcionando, y un par cobrado de más ya lo acusa la suma.
+ */
+export function parBonificadoCobrado(importesPorPedido: number[]): { cobrado: boolean; masBarato: number | null } {
+    if (importesPorPedido.length < 2) return { cobrado: false, masBarato: null };
+    const masBarato = Math.min(...importesPorPedido);
+    return { cobrado: masBarato > TOPE_PAR_BONIFICADO_2X1, masBarato };
 }
 
 /**
@@ -319,6 +345,10 @@ export async function upsertEntry(input: LabCostInput) {
         input.lab === 'OPTOVISION' ? (e.billedTotal ?? e.billedNet ?? null) : (e.billedNet ?? e.billedTotal ?? null);
     let saleBilled = billedComparable;
     let facturadosEnVenta = billedComparable !== null ? 1 : 0;
+    // Lo facturado por CADA pedido de la venta (este y sus hermanos): la regla
+    // del par bonificado del 2x1 mira pedido por pedido, no la suma.
+    const facturadoPorPedido: { numero: string; importe: number }[] =
+        billedComparable !== null ? [{ numero: cleanNumber, importe: billedComparable }] : [];
     // Principal de la venta = pedido de mayor importe facturado; a igualdad,
     // el nº de pedido menor. Garantiza EXACTAMENTE un principal (una sola
     // alerta por venta), tanto si el 2º par va gratis como si se cobra igual.
@@ -354,7 +384,11 @@ export async function upsertEntry(input: LabCostInput) {
         });
         for (const s of siblings) {
             const b = billedForLab(s);
-            if (b !== null) { saleBilled = (saleBilled ?? 0) + b; facturadosEnVenta++; }
+            if (b !== null) {
+                saleBilled = (saleBilled ?? 0) + b;
+                facturadosEnVenta++;
+                facturadoPorPedido.push({ numero: s.labOrderNumber, importe: b });
+            }
             const sb = b ?? 0;
             if (sb > myBilled || (sb === myBilled && s.labOrderNumber < cleanNumber)) isPrimaryOfSale = false;
         }
@@ -382,17 +416,40 @@ export async function upsertEntry(input: LabCostInput) {
         else status = 'OK';
     }
 
+    // 2x1 CON EL PAR BONIFICADO COBRADO: es SOBRECOSTO aunque la suma cierre
+    // (ver parBonificadoCobrado). Solo con la venta entera facturada — hasta
+    // ahí es PENDING y no hay veredicto — y nunca para un reproceso.
+    const es2x1 = !!order && !pvEntry && esVenta2x1(order);
+    const parBonificado = es2x1 && difference !== null
+        ? parBonificadoCobrado(facturadoPorPedido.map(p => p.importe))
+        : { cobrado: false, masBarato: null };
+    if (parBonificado.cobrado) status = 'OVERCOST';
+
     // Conservar las notas existentes (p. ej. la del portal) cuando la
     // actualización no trae nota propia, y no duplicar la de multi-pedido.
-    const baseNotes = input.notes ?? existing?.notes ?? null;
+    // La nota del par bonificado se saca y se vuelve a escribir en cada cruce:
+    // si el lab acreditó el par y la factura se releyó, la acusación se va sola.
+    const baseNotes = sinNotaParBonificado(input.notes ?? existing?.notes ?? null);
+    // En un 2x1 decirlo con todas las letras: el costo de sistema es de la
+    // venta y cuenta UN par (el bonificado va en $0). Sin esto, el mismo
+    // importe repetido en las dos filas se leía como "cada par cuesta eso".
+    const cabeceraMulti = es2x1
+        ? `Venta 2x1 con ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber}): el costo sistema cuenta UN par, el bonificado va en $0`
+        : `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber})`;
     const multiNote = multiPedido && !baseNotes?.includes('pedidos de lab')
-        ? `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber})`
+        ? cabeceraMulti
         + (ajenos.size
             // Venta mixta: decir explícitamente que este veredicto es solo de
             // este laboratorio. La nota vieja decía "el costo sistema es el
             // total de la venta" también acá, y eso era falso y confundía.
             ? `, de más de un laboratorio; este cruce compara SOLO lo de ${input.lab} (${misNumeros.join(', ')}).`
-            : `; el costo sistema es el total de la venta.`)
+            : es2x1 ? `; se compara contra la suma de sus pedidos.` : `; el costo sistema es el total de la venta.`)
+        : null;
+    const pedidoMasBarato = parBonificado.cobrado
+        ? facturadoPorPedido.find(p => p.importe === parBonificado.masBarato)?.numero
+        : null;
+    const parBonificadoNote = parBonificado.cobrado
+        ? `[${MARCA_PAR_BONIFICADO_COBRADO}: ninguno de los ${facturadoPorPedido.length} pedidos vino sin cargo — el más barato (${pedidoMasBarato}) costó ${fmtARS(parBonificado.masBarato)} y el par bonificado no debería pasar de ${fmtARS(TOPE_PAR_BONIFICADO_2X1)}; a reclamar ${fmtARS(parBonificado.masBarato)}]`
         : null;
     // Enganchó por el nº de la planilla: decirlo, porque el número que figura
     // en la venta no es el de la factura y si no parece un cruce equivocado.
@@ -417,7 +474,7 @@ export async function upsertEntry(input: LabCostInput) {
     // administrador. Ahora los dos lados usan la MISMA constante.
     const reworkMark = existing?.notes?.includes(REWORK_MARK) && !baseNotes?.includes(REWORK_MARK)
         ? REWORK_MARK : null;
-    const notes = [resolucionNote, pvNote, baseNotes, multiNote, aliasNote, reworkMark].filter(Boolean).join(' ') || null;
+    const notes = [resolucionNote, pvNote, baseNotes, multiNote, aliasNote, reworkMark, parBonificadoNote].filter(Boolean).join(' ') || null;
 
     const data = {
         orderId: order?.id ?? null,

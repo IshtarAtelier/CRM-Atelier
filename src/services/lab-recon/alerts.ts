@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
-import { aclaracionImporte, etiquetaSinVenta } from '../../lib/lab-factura';
+import { aclaracionImporte, etiquetaSinVenta, tieneParBonificadoCobrado } from '../../lib/lab-factura';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
 import { dobleCobroNuevos, marcarDobleCobroAvisado } from './dos-por-uno';
@@ -412,9 +412,13 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
         // en el sistema. Una factura que llegó SIN nº de pedido no es eso — la
         // venta suele estar cargada y lo que falta es el dato en el papel.
         // Decirle "sin venta" a las dos cosas quema el aviso que importa.
+        // Un 2x1 con el par bonificado cobrado es sobrecosto aunque la suma
+        // cierre: decirlo en la etiqueta, que es lo primero que se lee.
         const etiqueta = f.status === 'UNMATCHED'
             ? etiquetaSinVenta(f.labOrderNumber).label.toUpperCase()
-            : m.label;
+            : tieneParBonificadoCobrado(f.notes)
+                ? `${m.label} · 2x1: par bonificado cobrado`
+                : m.label;
         // Sin venta enganchada, la columna mostraba un guión aunque el portal
         // hubiera mandado el nombre del cliente en la nota. Ese nombre es la
         // única pista para encontrarle el dueño al pedido: se muestra.

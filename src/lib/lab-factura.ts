@@ -56,3 +56,26 @@ export function etiquetaSinVenta(labOrderNumber: string | null | undefined): { l
             detalle: 'El laboratorio facturó este pedido y no hay ninguna venta ni postventa que lo respalde.',
         };
 }
+
+/**
+ * 3) EL PAR BONIFICADO DE UN 2x1 VINO COBRADO. Regla de Ishtar del 25/9/2026:
+ *    siempre que el 2x1 esté tildado en los cristales, uno de los pedidos de la
+ *    venta tiene que venir sin cargo o con un cargo mínimo (el tope vive en
+ *    `TOPE_PAR_BONIFICADO_2X1`, lab-recon/types.ts). Cuando TODOS los pedidos
+ *    vinieron por encima, el cruce lo deja escrito en la nota con esta marca y
+ *    la pantalla y los emails la muestran como alerta. Va entre corchetes para
+ *    poder sacar la nota entera cuando deja de aplicar (el lab acreditó el par
+ *    y la factura se volvió a leer) — si no, quedaría acusando para siempre.
+ */
+export const MARCA_PAR_BONIFICADO_COBRADO = '⚠️ 2x1 CON EL PAR BONIFICADO COBRADO';
+
+/** ¿El cruce dejó marcada esta entrada como 2x1 con el par bonificado cobrado? */
+export const tieneParBonificadoCobrado = (notes: string | null | undefined): boolean =>
+    (notes || '').includes(MARCA_PAR_BONIFICADO_COBRADO);
+
+/** Saca la nota del par bonificado: el cruce la vuelve a escribir en cada pasada si sigue aplicando. */
+export function sinNotaParBonificado(notes: string | null | undefined): string | null {
+    const marca = MARCA_PAR_BONIFICADO_COBRADO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const limpio = (notes || '').replace(new RegExp(`\\s*\\[${marca}[^\\]]*\\]`, 'g'), '').trim();
+    return limpio || null;
+}

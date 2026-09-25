@@ -44,6 +44,21 @@ export interface LabCostInput {
 export const TOLERANCE = 100;
 
 /**
+ * TOPE DEL PAR BONIFICADO DE UN 2x1 (regla de Ishtar, 25/9/2026): "siempre que
+ * esté tildado el 2x1 en cristales, SIEMPRE tiene que haber uno sin costo o con
+ * costos mínimos que no superen 30.000".
+ *
+ * El 2x1 de los cristales lo hace el LABORATORIO: manda el segundo par sin
+ * cargo. En la práctica Optovisión lo factura a unos pesos ($5 a $41) y a veces
+ * con un cargo chico (Gabriela Peralta, 21/9/2026: $25.410); hasta este importe
+ * se acepta como "sin cargo". Si TODOS los pedidos de una venta 2x1 vinieron por
+ * encima, el lab cobró el par bonificado, y eso se reclama aunque la SUMA de las
+ * facturas cierre contra el costo de sistema: un descuento en el par cobrado no
+ * compensa un par que tenía que ser gratis, son dos cosas distintas.
+ */
+export const TOPE_PAR_BONIFICADO_2X1 = 30000;
+
+/**
  * Umbral de "monto grueso" para los EMAILS de diferencia de costo (regla del
  * administrador): las diferencias chicas no merecen mail — quedan visibles en
  * la página de conciliación — y solo alertan las que superan este monto, en

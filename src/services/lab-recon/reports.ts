@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/db';
 import { LAB_ITEM_PATTERNS, TOLERANCE } from './types';
+import { esVenta2x1, parBonificadoCobrado, systemCostForLab } from './cost-matching';
 
 /**
  * REPORTES y LIBRO DE AUDITORÍA de la conciliación: la foto del estado del
@@ -88,13 +89,103 @@ export async function weeklyReport(from: Date, to: Date) {
     const billedOf = (e: any) => e.lab === 'OPTOVISION'
         ? (e.billedTotal ?? e.billedNet ?? null)
         : (e.billedNet ?? e.billedTotal ?? null);
+    const esPostventa = (e: any) => (e.notes || '').includes('POSTVENTA (caso');
+    const enSemana = (e: any) => !!e.invoiceDate && e.invoiceDate >= from && e.invoiceDate < to;
+
+    // ¿QUÉ VENTAS SON 2x1? Se mira en los ítems de la venta con la MISMA regla
+    // del cruce (esVenta2x1), solo para las ventas que van a salir en el email.
+    // El 2x1 tiene que decirse en el reporte: el costo de sistema de la venta
+    // cuenta UN par (el bonificado va en $0) y repetirlo en cada fila sin
+    // aclararlo se leía como "cada par cuesta eso" (Ishtar, 8/9 y 25/9/2026).
+    const idsDeInteres = [...new Set(entries
+        .filter(e => e.orderId && (enSemana(e) || e.status === 'OVERCOST'))
+        .map(e => e.orderId as string))];
+    const ventas = idsDeInteres.length
+        ? await prisma.order.findMany({
+            where: { id: { in: idsDeInteres } },
+            select: {
+                id: true, appliedPromoName: true,
+                items: { select: { price: true, productCategorySnapshot: true, product: { select: { category: true } } } },
+            },
+        }).catch(() => [] as any[])
+        : [];
+    const es2x1De = new Map(ventas.map((v: any) => [v.id, esVenta2x1(v)]));
+
+    // Los pedidos de la MISMA venta en el mismo lab (sin los reprocesos de
+    // postventa, que son un hallazgo aparte), estén o no en la semana.
+    const porVenta = new Map<string, any[]>();
+    for (const e of entries) {
+        if (!e.orderId || esPostventa(e)) continue;
+        const k = `${e.lab}:${e.orderId}`;
+        if (!porVenta.has(k)) porVenta.set(k, []);
+        porVenta.get(k)!.push(e);
+    }
+    const hermanosDe = (e: any) => (e.orderId && !esPostventa(e) ? porVenta.get(`${e.lab}:${e.orderId}`) : null) || [e];
+    /**
+     * Veredicto del 2x1 a nivel venta: si es 2x1, si ya están facturados todos
+     * sus pedidos y si el par bonificado vino cobrado (regla del tope, la misma
+     * que aplica el cruce al guardar).
+     */
+    const veredicto2x1 = (e: any) => {
+        const hermanos = hermanosDe(e);
+        const importes = hermanos.map(billedOf).filter((n: number | null) => n !== null) as number[];
+        const es2x1 = !!e.orderId && es2x1De.get(e.orderId) === true;
+        const completa = hermanos.length >= 2 && importes.length === hermanos.length;
+        const par = es2x1 && completa ? parBonificadoCobrado(importes) : { cobrado: false, masBarato: null };
+        return { es2x1, hermanos, completa, par };
+    };
 
     const perLab: Record<string, any> = {};
     for (const lab of ['OPTOVISION', 'GRUPO_OPTICO']) {
         const rows = entries.filter(e => e.lab === lab);
-        const nuevasSemana = rows.filter(e => e.invoiceDate && e.invoiceDate >= from && e.invoiceDate < to);
+        const nuevasSemana = rows.filter(enSemana);
         const facturadoSemana = nuevasSemana.reduce((t, e) => t + (billedOf(e) || 0), 0);
         const count = (s: string) => rows.filter(e => e.status === s).length;
+
+        // FILAS AGRUPADAS POR VENTA. Los pedidos de un 2x1 van pegados, el par
+        // cobrado primero: el costo de sistema y la diferencia son de la VENTA
+        // y se muestran una sola vez (misma regla que la pantalla y el aviso
+        // diario). Los grupos quedan ordenados por la factura más nueva.
+        const grupos = new Map<string, any[]>();
+        for (const e of [...nuevasSemana].sort((a, b) => b.invoiceDate!.getTime() - a.invoiceDate!.getTime())) {
+            const k = e.orderId && !esPostventa(e) ? `v:${e.orderId}` : `e:${e.id}`;
+            if (!grupos.has(k)) grupos.set(k, []);
+            grupos.get(k)!.push(e);
+        }
+        const detalleSemana = [...grupos.values()].flatMap(grupo => {
+            grupo.sort((a, b) => (billedOf(b) || 0) - (billedOf(a) || 0) || a.labOrderNumber.localeCompare(b.labOrderNumber));
+            const v = veredicto2x1(grupo[0]);
+            const enElGrupo = new Set(grupo.map(g => g.id));
+            return grupo.map((e, i) => ({
+                labOrderNumber: e.labOrderNumber,
+                // El email reclama con nº de operación + comprobante + fecha:
+                // las tres viajan siempre, en todas las filas.
+                sourceFile: e.sourceFile,
+                invoiceDate: e.invoiceDate,
+                createdAt: e.createdAt,
+                cliente: e.order?.client?.name || (e.status === 'UNMATCHED' ? 'SIN VENTA' : '—'),
+                clientId: e.order?.clientId || null,
+                billed: billedOf(e),
+                systemCost: e.systemCost,
+                difference: e.difference,
+                status: e.status,
+                esPostventa: esPostventa(e),
+                // De la VENTA (con valor en todas las filas; se muestra en la primera).
+                primeraDeLaVenta: i === 0,
+                pedidosDeLaVenta: v.hermanos.length,
+                es2x1: v.es2x1,
+                parBonificadoCobrado: v.par.cobrado,
+                parMasBarato: v.par.masBarato,
+                // ¿Se pudo verificar el par bonificado? Recién con los dos pedidos facturados.
+                parBonificadoVerificado: v.es2x1 && v.completa,
+                // Hermanos que NO salen en esta tabla (facturados otra semana o
+                // todavía sin factura): se nombran para que la fila no quede coja.
+                otrosPedidos: v.hermanos
+                    .filter((h: any) => !enElGrupo.has(h.id))
+                    .map((h: any) => ({ labOrderNumber: h.labOrderNumber, billed: billedOf(h), invoiceDate: h.invoiceDate })),
+            }));
+        });
+
         perLab[lab] = {
             totalPedidos: rows.length,
             facturasSemana: nuevasSemana.length,
@@ -107,34 +198,34 @@ export async function weeklyReport(from: Date, to: Date) {
             // Cuenta corriente / facturado acumulado por lab (todo lo que tiene importe).
             facturadoAcumulado: rows.reduce((t, e) => t + (billedOf(e) || 0), 0),
             // Detalle de las facturas de la semana (para la tabla del email).
-            detalleSemana: nuevasSemana
-                .sort((a, b) => (b.invoiceDate!.getTime()) - (a.invoiceDate!.getTime()))
-                .map(e => ({
-                    labOrderNumber: e.labOrderNumber,
-                    // El email reclama con nº de operación + comprobante + fecha:
-                    // las tres viajan siempre, en todas las filas.
-                    sourceFile: e.sourceFile,
-                    invoiceDate: e.invoiceDate,
-                    createdAt: e.createdAt,
-                    cliente: e.order?.client?.name || (e.status === 'UNMATCHED' ? 'SIN VENTA' : '—'),
-                    clientId: e.order?.clientId || null,
-                    billed: billedOf(e),
-                    systemCost: e.systemCost,
-                    difference: e.difference,
-                    status: e.status,
-                    esPostventa: (e.notes || '').includes('POSTVENTA (caso'),
-                })),
+            detalleSemana,
         };
     }
 
     // Sobrecostos vigentes (para destacar arriba, sobre todo Optovision).
+    // UNO POR VENTA: el estado se estampa en todas las entradas hermanas y un
+    // 2x1 con sobrecosto aparecía dos veces, como si fueran dos reclamos.
+    const vistos = new Set<string>();
     const sobrecostosVigentes = entries
         .filter(e => e.status === 'OVERCOST')
-        .map(e => ({
-            lab: e.lab, labOrderNumber: e.labOrderNumber, cliente: e.order?.client?.name || '—',
-            difference: e.difference, sourceFile: e.sourceFile, invoiceDate: e.invoiceDate, createdAt: e.createdAt,
-        }))
-        .sort((a, b) => (b.difference || 0) - (a.difference || 0));
+        .sort((a, b) => (b.difference || 0) - (a.difference || 0) || (billedOf(b) || 0) - (billedOf(a) || 0))
+        .filter(e => {
+            const k = e.orderId && !esPostventa(e) ? `${e.lab}:${e.orderId}` : e.id;
+            if (vistos.has(k)) return false;
+            vistos.add(k);
+            return true;
+        })
+        .map(e => {
+            const v = veredicto2x1(e);
+            return {
+                lab: e.lab, labOrderNumber: e.labOrderNumber, cliente: e.order?.client?.name || '—',
+                difference: e.difference, sourceFile: e.sourceFile, invoiceDate: e.invoiceDate, createdAt: e.createdAt,
+                es2x1: v.es2x1,
+                pedidos: v.hermanos.map((h: any) => h.labOrderNumber),
+                parBonificadoCobrado: v.par.cobrado,
+                parMasBarato: v.par.masBarato,
+            };
+        });
 
     // Cuenta corriente (deuda) por lab según el último resumen recibido.
     const statements = await prisma.labAccountStatement.findMany({
@@ -231,10 +322,12 @@ export async function assembleReport(orders: any[], monthLabel: string) {
 
             const lab = labItems.some((i: any) => LAB_ITEM_PATTERNS.OPTOVISION.test(labOf(i)))
                 ? 'OPTOVISION' : 'GRUPO_OPTICO';
-            // Regla por par: cada ítem con ojo (OD/OI) lleva el costo del par
-            // completo en el snapshot → cuenta la mitad (ver systemCostForLab).
-            const systemCost = labItems.reduce((t: number, i: any) =>
-                t + (i.productCostSnapshot ?? i.product?.cost ?? 0) * (i.eye ? 0.5 : 1) * (i.quantity || 1), 0);
+            // El costo de sistema sale de la REGLA ÚNICA del cruce (medio par,
+            // cantidad y el par bonificado del 2x1 en $0). Esta pantalla tenía
+            // su propia suma, que contaba los DOS pares de un 2x1: mostraba el
+            // doble de costo y un "menor costo" fantasma de un par entero.
+            const systemCost = systemCostForLab(order, lab);
+            const es2x1 = esVenta2x1(order);
             const numbers = order.labOrderNumber?.match(/\d{4,}/g) || [];
 
             return {
@@ -245,6 +338,7 @@ export async function assembleReport(orders: any[], monthLabel: string) {
                 labOrderNumber: order.labOrderNumber?.trim() || null,
                 numbers,
                 lab,
+                es2x1,
                 systemCost: Math.round(systemCost),
                 items: labItems.map((i: any) => i.productNameSnapshot || i.product?.name || 'Sin nombre'),
             };
@@ -286,10 +380,16 @@ export async function assembleReport(orders: any[], monthLabel: string) {
         const difference = ventaCompleta && saleBilled !== null
             ? Math.round(saleBilled - r.systemCost)
             : null;
+        // 2x1: uno de los pedidos tiene que venir sin cargo (tope). Si todos
+        // vinieron con cargo es SOBRECOSTO aunque la suma cierre — misma regla
+        // que aplica el cruce al guardar (parBonificadoCobrado).
+        const par = r.es2x1 && ventaCompleta
+            ? parBonificadoCobrado(matched.map((e: any) => billedDe(e)).filter((n: number | null) => n !== null) as number[])
+            : { cobrado: false, masBarato: null };
         const saleStatus = !r.labOrderNumber ? 'SIN_NUMERO'
             : matched.length === 0 ? 'SIN_FACTURA'
                 : !ventaCompleta ? 'PARCIAL'
-                    : difference! > TOLERANCE ? 'OVERCOST'
+                    : par.cobrado || difference! > TOLERANCE ? 'OVERCOST'
                         : difference! < -TOLERANCE ? 'UNDERCOST' : 'OK';
         const dias = Math.max(0, Math.floor((Date.now() - new Date(r.fecha).getTime()) / 86400000));
 
@@ -300,6 +400,8 @@ export async function assembleReport(orders: any[], monthLabel: string) {
             ventaCompleta,
             saleBilled: saleBilled !== null ? Math.round(saleBilled) : null,
             difference,
+            parBonificadoCobrado: par.cobrado,
+            parMasBarato: par.masBarato,
             status: saleStatus,
             invoicesFound: matched.length,
             daysWaiting: saleStatus === 'SIN_FACTURA' || saleStatus === 'SIN_NUMERO' || saleStatus === 'PARCIAL' ? dias : null,

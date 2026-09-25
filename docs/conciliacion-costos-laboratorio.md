@@ -78,13 +78,25 @@ además registra huérfanos de los últimos 100 pedidos visibles, para latencia 
    pedidos de esa factura sin líneas propias, si no a prorrata.
 5. Consumidor final / monotributo: el total del comprobante no discrimina IVA —
    el importe de línea ES el costo comparable contra el costo por par del CRM.
+6. **En un 2x1 el par bonificado va en $0 y UNO de los pedidos tiene que venir
+   sin cargo.** El costo de sistema de la venta cuenta UN par
+   (`costoDeItemParaCruce` pone en cero el cristal a precio 0) y se compara
+   contra la SUMA de sus pedidos. Pero la suma sola no alcanza: con los dos
+   pedidos facturados, el más barato tiene que estar dentro de
+   `TOPE_PAR_BONIFICADO_2X1` ($30.000, regla de Ishtar del 25/9/2026); si hasta
+   ese vino por encima, el lab cobró el par bonificado y la venta queda en
+   `OVERCOST` aunque la suma cierre (`parBonificadoCobrado`, con la marca
+   `MARCA_PAR_BONIFICADO_COBRADO` en la nota). Caso de referencia: Gabriela
+   Peralta, 21/9/2026 — $288.380 + $25.410 contra $370.399 de sistema es "menor
+   costo" y el 2x1 se cumplió (el segundo par vino a $25.410). Foto histórica:
+   `scripts/checks/dos-por-uno-par-bonificado.mjs` (solo lee).
 
 ## Estados de una entrada
 
 | Estado | Significado |
 |---|---|
 | `OK` | Costo facturado ≈ costo de lista (tolerancia $100) |
-| `OVERCOST` | El lab cobró de más **o** la venta se cargó con otro producto → email |
+| `OVERCOST` | El lab cobró de más, **o** la venta se cargó con otro producto, **o** es un 2x1 y ningún pedido vino sin cargo (par bonificado cobrado) → email |
 | `UNDERCOST` | El lab cobró menos que la lista |
 | `PENDING` | Pedido con venta, esperando el costo facturado |
 | `UNMATCHED` | **Sin venta en el sistema** (huérfano) — plata sin venta que la respalde |
