@@ -405,6 +405,18 @@ porqué de cada decisión están en `docs/plan-publicacion-meta.md`.
 - El horario que responde el bot vive en `SystemSetting.bot_prompt`, no en el
   código. Tocar los prompts y deployar NO cambia lo que contesta.
 - Qué falta deployar se mide con `git cherry -v origin/main`, no contra el `main` local.
+- **Los crons internos (`src/instrumentation.ts`) viven dentro de la app** y hasta
+  el 25/9/2026 se prendían en CUALQUIER server con `CRON_SECRET`: un
+  `npm run dev` con el `.env` real le pegaba a sus propias rutas `/api/cron/*`
+  con la base local y credenciales reales (mails de laboratorio, SmartLab, Meta).
+  El candado "ya corrió hoy" vive en la base de cada server, así que el de
+  producción no frena al local. Ahora `lib/cron-scheduler.ts` los prende solo con
+  `NODE_ENV=production` y la base fuera de la máquina (un `npm start` contra el
+  docker también queda apagado). Para probar un cron en local, a propósito:
+  `CRONS_LOCALES=1`. Al arrancar, el log dice `[CRON] Scheduler prendido` o
+  `APAGADO` y por qué. No cambiar la señal por una variable de Railway sin
+  comprobar que se inyecta: si faltara, apagaría producción callada.
+  Lo fija `npm run check:crons` (sin red, también en CI).
 - **El modo oscuro es del CRM, no del sitio público.** `ProveedorDeTema` le pone
   `forcedTheme="light"` a todo lo que no sea `/admin`, y no es un capricho: la
   tienda, el blog y las fichas fijan su fondo claro a mano pero heredan los
