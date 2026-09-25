@@ -1,0 +1,31 @@
+{
+  "id": "story-producto-helios-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-25",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Helios",
+    "slug": "helios-c1",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Helios · Cápsula Escarlata\n\n12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/helios-c1\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/metal/tg2807-c1-titanium-lateral.avif",
+      "compacto": true,
+      "title": "Helios · Cápsula Escarlata",
+      "dato": "$30.000",
+      "body": "12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

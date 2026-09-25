@@ -4,7 +4,7 @@
   "theme": "dark",
   "pilar": "producto",
   "fuente": "base",
-  "generadoEl": "2026-09-04",
+  "generadoEl": "2026-09-25",
   "generadoDesde": "produccion",
   "temas": [
     "armazones"
@@ -15,7 +15,7 @@
     "marca": "Cápsula Escarlata",
     "categoria": "Receta"
   },
-  "caption": "Aquiles · Cápsula Escarlata\n\n12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/aquiles-c4\nO vení a probártelo, Cerro de las Rosas.",
+  "caption": "Aquiles · Cápsula Escarlata\n\n12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/aquiles-c4\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
@@ -23,8 +23,8 @@
       "image": "assets/products/metal/tg2810-c4-titanium.avif",
       "compacto": true,
       "title": "Aquiles · Cápsula Escarlata",
-      "dato": "$26.667",
-      "body": "12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000",
+      "dato": "$30.000",
+      "body": "12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000",
       "cta": "Pedí tu presupuesto 👉 WhatsApp"
     }
   ]

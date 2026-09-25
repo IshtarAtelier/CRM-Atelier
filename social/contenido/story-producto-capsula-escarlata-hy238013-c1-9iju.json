@@ -1,0 +1,31 @@
+{
+  "id": "story-producto-capsula-escarlata-hy238013-c1-9iju",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-25",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Gaia",
+    "slug": "capsula-escarlata-hy238013-c1-9iju",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Gaia · Cápsula Escarlata\n\n12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/capsula-escarlata-hy238013-c1-9iju\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/metal/HY238013-c1.avif",
+      "compacto": true,
+      "title": "Gaia · Cápsula Escarlata",
+      "dato": "$26.667",
+      "body": "12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

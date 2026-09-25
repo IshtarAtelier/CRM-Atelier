@@ -1,0 +1,31 @@
+{
+  "id": "story-producto-rhea-c2",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-25",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Rhea",
+    "slug": "rhea-c2",
+    "marca": "Cápsula escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Rhea · Cápsula escarlata\n\n12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/rhea-c2\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/metal/tl5208-c2.avif",
+      "compacto": true,
+      "title": "Rhea · Cápsula escarlata",
+      "dato": "$26.667",
+      "body": "12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

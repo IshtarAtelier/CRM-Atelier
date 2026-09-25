@@ -1,0 +1,31 @@
+{
+  "id": "story-producto-hera-c4",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-25",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Hera",
+    "slug": "hera-c4",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Hera · Cápsula Escarlata\n\n12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/hera-c4\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/acetato/P5787-c4.avif",
+      "compacto": true,
+      "title": "Hera · Cápsula Escarlata",
+      "dato": "$26.667",
+      "body": "12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

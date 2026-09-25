@@ -1,0 +1,31 @@
+{
+  "id": "story-producto-teseo-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-25",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Teseo",
+    "slug": "teseo-c1",
+    "marca": "Cápsula escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Teseo · Cápsula escarlata\n\n12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/teseo-c1\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/metal/tg2809-c1-titanium.avif",
+      "compacto": true,
+      "title": "Teseo · Cápsula escarlata",
+      "dato": "$30.000",
+      "body": "12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

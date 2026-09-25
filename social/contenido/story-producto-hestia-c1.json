@@ -1,0 +1,31 @@
+{
+  "id": "story-producto-hestia-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-25",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Hestia",
+    "slug": "hestia-c1",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Hestia · Cápsula Escarlata\n\n12 cuotas fijas de $12.833\n6 cuotas sin interés de $23.333\nTransferencia 15% OFF: $119.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/hestia-c1\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/metal/m7033-c1.avif",
+      "compacto": true,
+      "title": "Hestia · Cápsula Escarlata",
+      "dato": "$23.333",
+      "body": "12 cuotas fijas de $12.833\n6 cuotas sin interés de $23.333\nTransferencia 15% OFF: $119.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}
