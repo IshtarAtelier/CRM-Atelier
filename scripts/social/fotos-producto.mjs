@@ -120,41 +120,70 @@ async function cabezaEn(rutaAbs) {
 }
 
 /**
- * La foto del modelo puesto, cortada desde la coronilla y centrada en la cara,
- * con el tamaño pedido. null si el modelo no tiene foto puesta usable.
+ * La foto del modelo puesto para una pieza de ancho×alto: la coronilla en el
+ * borde de arriba ("donde empieza la cabeza empiece la foto") y el MENTÓN en la
+ * altura `menton` (px desde arriba), para que la pera quede siempre entera por
+ * encima del bloque de producto y precio ("no me gusta que le cortes la pera",
+ * Ishtar 25/9/26). La escala sale de esas dos marcas, así que una foto de cerca
+ * se achica y una de lejos se acerca (tope 1,35×).
+ *
+ * Si al achicarla no llega a cubrir el ancho o el alto, lo que falta se
+ * completa con el color del fondo del estudio y el borde de la foto se funde
+ * (sin corte recto). La luz se ajusta suave: niveles y un punto de brillo.
+ * null si el modelo no tiene foto puesta de estudio usable.
  */
-export async function fotoPuesta(slug, { ancho, alto }) {
+export async function fotoPuesta(slug, { ancho, alto, menton }) {
     const sharp = await sharpDe();
     for (const n of [1, 2]) {
         const origen = path.join(PRODUCTOS, `${slug}-look-${n}.webp`);
         if (!existsSync(origen)) continue;
-        const destino = path.join(CACHE, `${slug}-puesta-${n}-${ancho}x${alto}.jpg`);
+        const destino = path.join(CACHE, `${slug}-puesta-${n}-${ancho}x${alto}-m${menton}.jpg`);
         if (existsSync(destino)) return destino;
         const meta = await sharp(origen).metadata();
         const W = meta.width, H = meta.height;
         if (!W || !H || W < 900) continue;
         const cabeza = await cabezaEn(origen);
         if (!cabeza) continue;
-        // "Donde empieza la cabeza empiece la foto": un margen mínimo (1%) para
-        // no rozar el pelo, y nada de aire vacío arriba.
-        const top = Math.max(0, Math.round(cabeza.arriba * H - H * 0.01));
-        const aspecto = ancho / alto;
-        // Encuadre según el tamaño de la cabeza EN ESTA FOTO: de la coronilla
-        // hasta un poco debajo del mentón (cabeza ≈ 1,35 × su ancho; +20% para
-        // que el mentón no quede pegado al borde). Así una foto de cerca no
-        // queda cortada a la altura de los anteojos y una de lejos no deja
-        // medio torso: se acerca. Nunca se agranda más de 1,6×.
-        const deseada = cabeza.ancho * W * 1.35 * 1.2;
-        let ch = Math.round(Math.min(Math.max(deseada, (ancho / 1.6) / aspecto), H - top, W / aspecto));
-        let cw = Math.round(ch * aspecto);
-        if (cw > W) { cw = W; ch = Math.round(W / aspecto); }
-        const left = Math.min(Math.max(0, Math.round(cabeza.centroX * W - cw / 2)), W - cw);
-        await sharp(origen)
-            .extract({ left, top, width: cw, height: ch })
-            .resize(ancho, alto)
-            // Luz: niveles (estira el rango sin recortar extremos) y un toque de brillo.
-            .normalise({ lower: 1, upper: 99.5 })
-            .modulate({ brightness: 1.04, saturation: 1.02 })
+
+        const coronilla = cabeza.arriba * H - H * 0.01;
+        // Mentón estimado: la cabeza mide ~1,35 veces su ancho; + un 5% del alto
+        // para que entre la pera con un poco de cuello.
+        const pera = cabeza.arriba * H + cabeza.ancho * W * 1.35 + H * 0.05;
+        const escala = Math.min(1.35, menton / (pera - coronilla));
+        const w = Math.round(W * escala), h = Math.round(H * escala);
+        const x = Math.round(ancho / 2 - cabeza.centroX * w);
+        const y = -Math.round(coronilla * escala);
+
+        // Foto escalada con la luz ajustada, en RGBA para poder fundir bordes.
+        const foto = await sharp(origen).normalise({ lower: 1, upper: 99.5 })
+            .modulate({ brightness: 1.04, saturation: 1.02 }).resize(w, h).ensureAlpha()
+            .raw().toBuffer({ resolveWithObject: true });
+        // Parte visible dentro de la pieza.
+        const vx0 = Math.max(0, x), vy0 = Math.max(0, y);
+        const vx1 = Math.min(ancho, x + w), vy1 = Math.min(alto, y + h);
+        const vw = vx1 - vx0, vh = vy1 - vy0;
+        const recorte = Buffer.alloc(vw * vh * 4);
+        const F = 70; // ancho del fundido, en px
+        for (let yy = 0; yy < vh; yy++) {
+            for (let xx = 0; xx < vw; xx++) {
+                const sx = vx0 - x + xx, sy = vy0 - y + yy;
+                const si = (sy * w + sx) * 4, di = (yy * vw + xx) * 4;
+                recorte[di] = foto.data[si]; recorte[di + 1] = foto.data[si + 1]; recorte[di + 2] = foto.data[si + 2];
+                // Se funde solo el borde que queda ADENTRO de la pieza (si la
+                // foto no llega al costado o al pie). El de arriba nunca: ahí
+                // está la coronilla, pegada al borde a propósito.
+                let a = 1;
+                if (x > 0) a = Math.min(a, xx / F);
+                if (x + w < ancho) a = Math.min(a, (vw - 1 - xx) / F);
+                if (y + h < alto) a = Math.min(a, (vh - 1 - yy) / F);
+                recorte[di + 3] = Math.round(255 * Math.max(0, Math.min(1, a)));
+            }
+        }
+        // Fondo: el color del estudio (esquinas de arriba de la foto original).
+        const { data: esq } = await sharp(origen).resize(20, 20, { fit: 'fill' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+        const fondo = [0, 1, 2].map(c => Math.round((esq[c] + esq[(19) * 3 + c]) / 2));
+        await sharp({ create: { width: ancho, height: alto, channels: 3, background: { r: fondo[0], g: fondo[1], b: fondo[2] } } })
+            .composite([{ input: recorte, raw: { width: vw, height: vh, channels: 4 }, left: vx0, top: vy0 }])
             .jpeg({ quality: 92 })
             .toFile(destino);
         return destino;

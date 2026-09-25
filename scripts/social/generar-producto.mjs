@@ -443,8 +443,12 @@ export async function generarPlacasPuestas({ limite = 12, categoria = null, slug
             if (rutas.length / 2 >= limite) break;
             const modelo = limpiar(p.name);
             if (vistos.has(modelo.toLowerCase())) continue;
-            const puesta = await fotoPuesta(p.slug, { ancho: 1080, alto: 900 });
-            if (!puesta) continue;
+            // Una foto por formato: la pera tiene que caer arriba del velo de
+            // cada uno (feed: foto de 1174 px, velo desde ~1010; story: 1468,
+            // velo desde ~1400). Si no hay foto puesta usable, no hay pieza.
+            const puestaFeed = await fotoPuesta(p.slug, { ancho: 1080, alto: 1174, menton: 790 });
+            const puestaStory = await fotoPuesta(p.slug, { ancho: 1080, alto: 1468, menton: 930 });
+            if (!puestaFeed || !puestaStory) continue;
             let recorte = null;
             try { recorte = await fotoDeCatalogo(await fotoLocal(p.imageUrl, p.slug), p.slug); } catch { /* sin foto de catálogo */ }
             if (!recorte) { console.log(`  · ${modelo}: sin foto de catálogo usable — se saltea`); continue; }
@@ -462,21 +466,21 @@ export async function generarPlacasPuestas({ limite = 12, categoria = null, slug
             ].join(' ');
             const slide = {
                 type: 'puesta', role: 'portada',
-                image: rel(recorte), images: [rel(puesta)],
+                image: rel(recorte),
                 eyebrow, title: modelo,
                 cuotasN: String(promo.cantidad), cuotaImporte: plata(cuota),
                 doceCuotas: `Hasta ${cuota12}`,
                 transferencia: plata(alContado), descuento: String(descuento),
                 linea: 'Envío gratis a todo el país',
             };
-            for (const [prefijo, format] of [['placa-puesta', '4:5'], ['story-puesta', '9:16']]) {
+            for (const [prefijo, format, puesta] of [['placa-puesta', '4:5', puestaFeed], ['story-puesta', '9:16', puestaStory]]) {
                 const id = `${prefijo}-${p.slug}`;
                 const pieza = {
                     id, format, theme: 'light', pilar: 'producto', fuente: 'base',
                     generadoEl: new Date().toISOString().slice(0, 10),
                     generadoDesde: desdeProduccion ? 'produccion' : 'local',
                     producto: { nombre: modelo, slug: p.slug, categoria: p.category },
-                    caption, slides: [slide],
+                    caption, slides: [{ ...slide, images: [rel(puesta)] }],
                 };
                 const ruta = path.join(DESTINO, `${id}.json`);
                 await writeFile(ruta, JSON.stringify(pieza, null, 2) + '\n');

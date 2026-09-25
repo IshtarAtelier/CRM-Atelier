@@ -185,12 +185,34 @@ const PLANTILLAS = {
      */
     puesta: (slide, id) => {
         const puesta = (slide.imagenesResueltas || []).filter(Boolean)[0];
+        // soloProducto: la misma pieza con el anteojo solo como protagonista
+        // (para comparar con la versión puesta). Sin tarjeta: el producto ya
+        // está arriba, grande.
+        if (slide.soloProducto) return `
+    <div class="p-cab">
+      ${slide.eyebrow ? `<p class="p-caps">${esc(slide.eyebrow)}</p>` : ''}
+      <h1 class="p-nombre">${esc(slide.title)}</h1>
+    </div>
+    <div class="p-look solo" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>
+    <div class="p-velo"></div>
+    <div class="p-fila solo">
+      <div class="p-precio">
+        ${slide.cuotaImporte ? `<p class="p-cuota-n">${esc(slide.cuotasN)} cuotas sin interés de</p><p class="p-cuota">${esc(slide.cuotaImporte)}</p>` : ''}
+        ${slide.doceCuotas ? `<p class="p-linea">${esc(slide.doceCuotas)} · Transferencia ${esc(slide.descuento)}% off: <b>${esc(slide.transferencia)}</b></p>` : ''}
+        ${slide.linea ? `<p class="p-linea suave">${esc(slide.linea)}</p>` : ''}
+      </div>
+    </div>
+    <div class="p-pie">
+      ${id.logo ? `<img src="${comoUrl(id.logo)}" alt="Atelier Óptica">` : ''}
+      <span>${esc(DIRECCION_PIE)} · ${esc(HORARIO_PIE)}</span>
+    </div>`;
         return `
     <div class="p-cab">
       ${slide.eyebrow ? `<p class="p-caps">${esc(slide.eyebrow)}</p>` : ''}
       <h1 class="p-nombre">${esc(slide.title)}</h1>
     </div>
     <div class="p-look" style="background-image:url('${comoUrl(puesta)}')"></div>
+    <div class="p-velo"></div>
     <div class="p-fila">
       <div class="p-producto" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>
       <div class="p-precio">
@@ -293,16 +315,30 @@ export const TIPOS_SOPORTADOS = Object.keys(PLANTILLAS);
  */
 function cssPuesta(id, { esStory }) {
     const bronce = `color-mix(in srgb, ${id.colores.marca} 72%, ${id.oscuro} 28%)`;
-    const filete = `color-mix(in srgb, ${id.oscuro} 14%, ${id.colores.fondo} 86%)`;
-    const suave = `color-mix(in srgb, ${id.oscuro} 72%, ${id.colores.fondo} 28%)`;
+    const filete = `color-mix(in srgb, ${id.oscuro} 16%, transparent)`;
+    const suave = `color-mix(in srgb, ${id.oscuro} 78%, ${id.colores.fondo} 22%)`;
+    const velo = (a) => `color-mix(in srgb, ${id.colores.fondo} ${a}%, transparent)`;
     const base = `
   .p-cab { position:absolute; left:0; right:0; text-align:center; color:${id.oscuro}; }
   .p-caps { font-weight:600; text-transform:uppercase; color:${bronce}; }
   .p-nombre { font-family:${id.fuentes.serif}; font-weight:500; line-height:1; }
-  .p-look { position:absolute; left:0; right:0; height:900px; background-size:100% 100%; }
+  /* La foto llega hasta el pie de la pieza: fotos-producto.mjs la arma al
+     tamaño exacto con la pera ubicada arriba del velo. */
+  .p-look { position:absolute; left:0; right:0; bottom:0; background-size:100% 100%; }
+  /* "La parte de abajo sobre una transparencia, no así cortado" (Ishtar
+     25/9/26): un velo claro que arranca invisible, se vuelve casi opaco y
+     desenfoca lo que tiene atrás. La máscara hace que el desenfoque también
+     aparezca de a poco: sin ella se ve el borde del blur como un corte. */
+  .p-velo { position:absolute; left:0; right:0; bottom:0;
+    background:linear-gradient(180deg, ${velo(0)} 0%, ${velo(72)} 30%, ${velo(88)} 60%, ${velo(94)} 100%);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 34%); mask-image:linear-gradient(180deg, transparent 0%, #000 34%); }
   .p-fila { position:absolute; left:40px; right:40px; display:flex; align-items:stretch; gap:34px; color:${id.oscuro}; }
-  .p-producto { flex:0 0 52%; background:#ffffff center/contain no-repeat;
-    border:1px solid ${filete}; background-origin:content-box; }
+  .p-look.solo { background-color:#ffffff; background-size:88% auto; background-repeat:no-repeat; background-position:center 38%; }
+  .p-fila.solo { justify-content:center; text-align:center; }
+  .p-fila.solo .p-precio { flex:0 1 auto; align-items:center; }
+  .p-producto { flex:0 0 52%; background:#ffffff center/contain no-repeat; background-origin:content-box;
+    border-radius:4px; box-shadow:0 8px 26px color-mix(in srgb, ${id.oscuro} 12%, transparent); }
   .p-precio { flex:1; display:flex; flex-direction:column; justify-content:center; }
   .p-cuota-n { font-weight:600; }
   .p-cuota { font-family:${id.fuentes.titulo}; font-weight:800; letter-spacing:-1px; line-height:1; margin:4px 0 10px; }
@@ -320,13 +356,14 @@ function cssPuesta(id, { esStory }) {
   .p-caps { font-size:24px; letter-spacing:8px; }
   .p-nombre { font-size:112px; margin-top:14px; }
   .p-look { top:452px; }
-  .p-fila { top:1376px; height:236px; }
+  .p-velo { height:560px; }
+  .p-fila { top:1430px; height:220px; }
   .p-producto { padding:14px 22px; }
   .p-cuota-n { font-size:26px; }
-  .p-cuota { font-size:68px; }
+  .p-cuota { font-size:66px; }
   .p-linea { font-size:22px; }
-  .p-pie { top:1636px; padding-top:18px; }
-  .p-pie img { height:38px; }
+  .p-pie { top:1672px; padding-top:16px; }
+  .p-pie img { height:36px; }
   .p-pie span { font-size:19px; }
 `;
     return base + `
@@ -335,12 +372,13 @@ function cssPuesta(id, { esStory }) {
   .p-caps { font-size:20px; letter-spacing:7px; }
   .p-nombre { font-size:84px; margin-top:10px; }
   .p-look { top:176px; }
-  .p-fila { top:1094px; height:186px; }
+  .p-velo { height:420px; }
+  .p-fila { top:1090px; height:180px; }
   .p-producto { padding:10px 18px; }
   .p-cuota-n { font-size:22px; }
-  .p-cuota { font-size:56px; margin:2px 0 6px; }
+  .p-cuota { font-size:54px; margin:2px 0 6px; }
   .p-linea { font-size:18px; }
-  .p-pie { top:1292px; padding-top:12px; }
+  .p-pie { top:1286px; padding-top:12px; }
   .p-pie img { height:30px; }
   .p-pie span { font-size:15px; }
 `;
