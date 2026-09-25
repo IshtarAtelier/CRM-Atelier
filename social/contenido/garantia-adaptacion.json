@@ -3,14 +3,14 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "accion",
-  "caption": "Comprar anteojos tiene un riesgo que nadie nombra: que no termines de ver bien, y que el problema pase a ser tuyo.\n\nAcá no. Tenés 30 días para probarlos en tu vida real. Si no te adaptás, te revisamos la vista de nuevo y hacemos el cristal otra vez con la graduación que corresponda, las veces que haga falta.\n\nLas veces que haga falta. Esa es la garantía.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
+  "caption": "Comprar multifocales tiene una duda que casi nadie dice en voz alta: ¿y si no me adapto?\n\nPara eso está la garantía de adaptación. Tenés 30 días para probarlos en tu vida real. Si no te adaptás, te cambiamos los cristales una sola vez, sin costo, con una receta nueva de tu oftalmólogo emitida a menos de 90 días de la anterior.\n\nCubre los multifocales Varilux y los monofocales Super Blue. Las condiciones completas están en atelieroptica.com.ar/politicas-de-cambio.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
       "image": "blog/pareja-multifocales-exterior.png",
-      "title": "Probalos 30 días. *Si no te adaptás, hacemos el cristal de nuevo.*",
-      "subtitle": "Con la graduación que haga falta."
+      "title": "Probalos 30 días. *Si no te adaptás, te cambiamos los cristales.*",
+      "subtitle": "Garantía de adaptación: un cambio, sin costo."
     },
     {
       "type": "number",
@@ -20,22 +20,22 @@
     },
     {
       "type": "list",
-      "title": "Qué hacemos, paso a paso",
+      "title": "Cómo funciona",
       "items": [
-        "Reajustamos el armazón las veces que haga falta",
-        "Te volvemos a medir, y si cambió la receta la tomamos",
-        "Hacemos el cristal de nuevo con la graduación correcta"
+        "Primero revisamos que el anteojo esté hecho según tu receta",
+        "Si hace falta, tu oftalmólogo ajusta la graduación en una receta nueva",
+        "Con esa receta te cambiamos los cristales una vez, sin costo"
       ]
     },
     {
       "type": "list",
       "role": "bisagra",
       "image": "blog/mostrador-marmol.jpg",
-      "title": "Las veces que *haga falta*",
+      "title": "Las *condiciones*",
       "items": [
-        "Rehacemos el cristal las veces que corresponda",
-        "El laboratorio es nuestro: rehacer un cristal no es un trámite",
-        "Un cliente que ve mal no vuelve, y nosotros vivimos de que vuelvan"
+        "Un solo cambio de cristales, del mismo producto y en el mismo armazón",
+        "Receta nueva a menos de 90 días de la anterior: si pasaron más, no aplica",
+        "Cubre multifocales Varilux y monofocales Super Blue"
       ]
     },
     {

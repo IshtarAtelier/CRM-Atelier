@@ -531,7 +531,7 @@ const posts: Record<string, Post> = {
         <p>Sin embargo, si tu graduación es alta (por ejemplo, +2.50), ponerte un lente genérico es comprar un boleto seguro a los mareos y la frustración. Ahí es donde <strong>Varilux es una obligación, no un lujo</strong>.</p>
 
         <h2>La Garantía Varilux en Atelier Óptica</h2>
-        <p>En Córdoba, <strong>Atelier Óptica</strong> es centro certificado Essilor. Cuando comprás un Varilux con nosotros, te entregamos la tarjeta de autenticidad y contás con <strong>Garantía de Adaptación real</strong>. Si por algún motivo no lográs asimilar el diseño premium, Essilor y nosotros nos hacemos cargo de recambiar los cristales.</p>
+        <p>En Córdoba, <strong>Atelier Óptica</strong> es centro certificado Essilor. Cuando comprás un Varilux con nosotros, te entregamos la tarjeta de autenticidad y contás con <strong>garantía de adaptación</strong>: si no te adaptás dentro de los 30 días, te cambiamos los cristales una sola vez, sin costo, presentando una receta nueva de tu oftalmólogo emitida a menos de 90 días de la anterior.</p>
         <p>Invertir en Varilux es invertir en calidad de vida. No permitas que un cristal económico te arruine la comodidad de tus ojos todos los días.</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
@@ -653,7 +653,7 @@ const posts: Record<string, Post> = {
           <li>El tiempo que les dedicamos sin apuros.</li>
           <li>La honestidad en las recomendaciones (nunca te vamos a vender algo que no necesitás).</li>
           <li>El seguimiento post-venta: te llamamos para saber cómo te estás adaptando.</li>
-          <li>La garantía de adaptación real en multifocales.</li>
+          <li>La garantía de adaptación en multifocales Varilux: un cambio de cristales.</li>
         </ul>
 
         <h2>Visitá la óptica más exclusiva de Córdoba</h2>
@@ -710,7 +710,7 @@ const posts: Record<string, Post> = {
         <p>Los primeros 5 a 7 días con tus nuevos multifocales vas a sentir que el mundo está &ldquo;un poquito diferente&rdquo;. Es completamente normal. Tu cerebro necesita recalibrarse. Usalos desde temprano a la mañana, girá la cabeza (no solo los ojos) y bajá escaleras mirando por la parte superior del cristal. En una semana vas a preguntarte cómo viviste sin ellos.</p>
 
         <h2>¿Dónde comprar tus primeros multifocales en Córdoba?</h2>
-        <p>En <strong>Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Somos la <strong>óptica con mejor atención de Córdoba</strong> y te acompañamos desde el primer día hasta que veas perfecto a todas las distancias. Contactanos por WhatsApp o visitanos personalmente.</p>
+        <p>En <strong>Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Somos la <strong>óptica con mejor atención de Córdoba</strong> y te acompañamos desde el primer día en tu adaptación. Contactanos por WhatsApp o visitanos personalmente.</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
@@ -971,7 +971,7 @@ const posts: Record<string, Post> = {
         <h2>Nuestros servicios en Córdoba</h2>
         <ul>
           <li><strong>Anteojos Recetados:</strong> Armazones de diseño exclusivo, nacionales e importados.</li>
-          <li><strong>Especialistas en Multifocales:</strong> Adaptación garantizada gracias a la experiencia de más de 10 años de nuestra Óptica Contactóloga Ishtar Pissano.</li>
+          <li><strong>Especialistas en Multifocales:</strong> Adaptación acompañada de cerca gracias a la experiencia de más de 10 años de nuestra Óptica Contactóloga Ishtar Pissano.</li>
           <li><strong>Lentes de Contacto:</strong> Asesoramiento y pruebas de tolerancia.</li>
           <li><strong>Atención por WhatsApp:</strong> Presupuestos y seguimiento de pedidos ágil y rápido.</li>
         </ul>
@@ -1197,7 +1197,7 @@ const posts: Record<string, Post> = {
         <p>Tienen un diseño básico, tallado en la cara externa del cristal. Sus canales de visión intermedia y de lectura suelen ser estrechos. <strong>¿Para quién son?</strong> Para usuarios con presbicia incipiente (adición baja, ej: +1.00) que tienen un presupuesto ajustado y mucha paciencia para adaptar los movimientos de su cabeza.</p>
 
         <h2>2. Novar (Tecnología Digital Argentina-Alemana)</h2>
-        <p><strong>Novar</strong> es hoy en día el líder en relación calidad-precio. Usan tecnología de tallado digital (Freeform) punto por punto en la cara interna del cristal. Esto acerca el diseño visual al ojo, ampliando notablemente el campo de visión respecto a los genéricos. Ofrecen líneas excelentes con adaptación garantizada, siendo una opción inmejorable para la gran mayoría de los pacientes.</p>
+        <p><strong>Novar</strong> es hoy en día el líder en relación calidad-precio. Usan tecnología de tallado digital (Freeform) punto por punto en la cara interna del cristal. Esto acerca el diseño visual al ojo, ampliando notablemente el campo de visión respecto a los genéricos. Ofrecen líneas excelentes y de adaptación sencilla, siendo una opción inmejorable para la gran mayoría de los pacientes.</p>
 
         <h2>3. Varilux (Essilor - La línea Premium)</h2>
         <p><strong>Varilux</strong> (creadores del multifocal) es el estándar de oro a nivel mundial. Sus lentes de alta gama (como las líneas Comfort Max, Physio o XR Series) utilizan inteligencia artificial y parámetros biométricos (cómo movés los ojos vs. cómo movés la cabeza) para fabricar un lente hecho a medida. <strong>¿El resultado?</strong> Campos visuales inmensos, casi nula distorsión lateral y una adaptación ultra rápida y natural.</p>
@@ -1237,7 +1237,7 @@ const posts: Record<string, Post> = {
         <p>Para que entren las tres graduaciones (lejos, intermedia y cerca), el cristal necesita un mínimo de espacio vertical (usualmente 30mm o más). Si elegís un armazón muy estrecho, el laboratorio tiene que "cortar" la zona de visión intermedia, haciendo que el salto de lejos a cerca sea muy brusco.</p>
 
         <h2>¿Cómo te ayudamos en Atelier Óptica?</h2>
-        <p>Si te hiciste los multifocales en otro lado y no los soportás, o si querés hacerte unos nuevos con <strong>garantía de adaptación total</strong>, vení a visitarnos. Contamos con herramientas de precisión para tomar las medidas correctas y trabajamos con laboratorios que garantizan cristales sin "saltos" molestos. ¡Tus ojos te lo van a agradecer!</p>
+        <p>Si te hiciste los multifocales en otro lado y no los soportás, o si querés hacerte unos nuevos con <strong>garantía de adaptación</strong> (un cambio de cristales, con receta nueva), vení a visitarnos. Contamos con herramientas de precisión para tomar las medidas correctas y trabajamos con laboratorios que garantizan cristales sin "saltos" molestos. ¡Tus ojos te lo van a agradecer!</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
@@ -1245,7 +1245,7 @@ const posts: Record<string, Post> = {
   'por-que-nuestros-multifocales-no-fallan-tecnologia-cordoba': {
     slug: 'por-que-nuestros-multifocales-no-fallan-tecnologia-cordoba',
     title: 'Por qué nuestros multifocales no fallan: El método de doble control en Córdoba',
-    excerpt: 'Hacer un lente progresivo perfecto requiere mucho más que una receta. Conocé nuestro protocolo de control cruzado y prueba de probines para una adaptación garantizada.',
+    excerpt: 'Hacer un lente progresivo perfecto requiere mucho más que una receta. Conocé nuestro protocolo de control cruzado y prueba de probines para una adaptación acompañada.',
     metaTitle: 'Multifocales con Garantía de Adaptación en Córdoba | Atelier Óptica',
     metaDescription: 'En Atelier Óptica garantizamos la adaptación de tus multifocales gracias a nuestra toma de medidas profesional, keratometría y prueba de probines en Cerro de las Rosas. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-06',
@@ -1270,8 +1270,8 @@ const posts: Record<string, Post> = {
         <h2>El Vínculo Laboratorio-Óptica</h2>
         <p>Una vez que terminamos nuestra calibración y pruebas bajo certificación experta, enviamos este "mapa" exacto a los mejores laboratorios de tallado digital de Argentina (como Novar, Kodak y Essilor-Varilux). Ellos tallan el lente milímetro a milímetro (tecnología Freeform) para que el canal visual se alinee de forma idéntica a lo que probamos en nuestro local.</p>
 
-        <h2>Garantía de Adaptación Real</h2>
-        <p>Nuestra confianza en nuestro método de control certificado por Essilor es tan grande que te brindamos <strong>Garantía de Adaptación</strong>. Si tenés problemas para acostumbrarte, re-evaluamos el lente y lo solucionamos.</p>
+        <h2>Garantía de Adaptación</h2>
+        <p>Nuestra confianza en nuestro método de control certificado por Essilor es tan grande que te brindamos <strong>Garantía de Adaptación</strong>. Si no te adaptás dentro de los 30 días, te cambiamos los cristales una sola vez, sin costo, presentando una receta nueva emitida a menos de 90 días de la anterior.</p>
 
         <p>Si buscás excelencia visual, un trato profesional que no se apure en tomar tus medidas, y resultados reales, te esperamos en Atelier Óptica, en el corazón del Cerro de las Rosas.</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>

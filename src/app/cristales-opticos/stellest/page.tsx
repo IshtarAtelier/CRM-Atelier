@@ -94,7 +94,7 @@ export default function StellestPage() {
             <ul className="list-disc pl-5 space-y-2">
               <li>Auditoría del armazón: el lente Stellest requiere ciertas dimensiones de armazón para funcionar. Te orientamos hacia las marcas infantiles más seguras.</li>
               <li>Higiene visual: te ayudamos a establecer las pautas 20-20-20 y horas de exterior necesarias para acompañar el cristal.</li>
-              <li>Garantía de adaptación con seguimiento programado.</li>
+              <li>Seguimiento programado de la adaptación.</li>
             </ul>
           </AccordionItem>
         </div>

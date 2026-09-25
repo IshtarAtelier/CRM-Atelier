@@ -51,12 +51,13 @@ export const GARANTIA_ADAPTACION = {
   /** Una frase, en segunda persona. Para tarjetas de beneficios y bajadas. */
   RESUMEN:
     `Si no te adaptás a tus multifocales Varilux o a tus monofocales Super Blue dentro de ` +
-    `los primeros ${GARANTIA_PLAZO_DIAS} días, te cambiamos los cristales sin costo.`,
+    `los primeros ${GARANTIA_PLAZO_DIAS} días, te cambiamos los cristales una sola vez, sin costo.`,
 
   /** Letra chica. Nunca prometer el cambio sin acompañarlo de esto. */
   REQUISITO:
     `Para hacerla efectiva hay que presentar una receta nueva de tu oftalmólogo, ` +
-    `emitida a menos de ${GARANTIA_DIAS_ENTRE_RECETAS} días de la anterior.`,
+    `emitida a menos de ${GARANTIA_DIAS_ENTRE_RECETAS} días de la anterior; si pasaron más ` +
+    `días, la garantía no aplica.`,
 
   /**
    * Párrafo de /politicas-de-cambio, en el registro formal ("el paciente") que usa
@@ -64,10 +65,11 @@ export const GARANTIA_ADAPTACION = {
    */
   CONDICIONES:
     `Si el paciente no logra adaptarse dentro de los primeros ${GARANTIA_PLAZO_DIAS} días, ` +
-    `nos comprometemos a reemplazar los cristales sin costo adicional. Para hacer efectiva ` +
-    `esta garantía, será indispensable la presentación de una nueva receta emitida por el ` +
-    `médico oftalmólogo tratante (no deben transcurrir más de ${GARANTIA_DIAS_ENTRE_RECETAS} ` +
-    `días entre ambas recetas).`,
+    `nos comprometemos a reemplazar los cristales sin costo adicional, por única vez. Para ` +
+    `hacer efectiva esta garantía, será indispensable la presentación de una nueva receta ` +
+    `emitida por el médico oftalmólogo tratante, y no deben transcurrir más de ` +
+    `${GARANTIA_DIAS_ENTRE_RECETAS} días entre ambas recetas: si pasaron más, la garantía no ` +
+    `aplica. Hecho el cambio, la garantía queda consumida.`,
 } as const;
 
 /**
@@ -170,10 +172,10 @@ export const GARANTIA_FAQ = {
   a:
     `Sí. Todos nuestros cristales multifocales Varilux, y los cristales Super Blue de ` +
     `monofocales, tienen garantía de adaptación. Si no te adaptás dentro de los primeros ` +
-    `${GARANTIA_PLAZO_DIAS} días, te cambiamos los cristales sin costo. Es requisito ` +
-    `presentar una nueva receta emitida por tu oftalmólogo, y entre ambas recetas no deben ` +
-    `pasar más de ${GARANTIA_DIAS_ENTRE_RECETAS} días. Los demás cristales monofocales no ` +
-    `tienen garantía de adaptación.`,
+    `${GARANTIA_PLAZO_DIAS} días, te cambiamos los cristales una sola vez, sin costo. Es ` +
+    `requisito presentar una nueva receta emitida por tu oftalmólogo, y entre ambas recetas ` +
+    `no deben pasar más de ${GARANTIA_DIAS_ENTRE_RECETAS} días: si pasaron más, la garantía no ` +
+    `aplica. Los demás cristales monofocales no tienen garantía de adaptación.`,
 } as const;
 
 /**

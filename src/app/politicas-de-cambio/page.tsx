@@ -56,7 +56,7 @@ export default function PoliticasDeCambioPage() {
               <h2 className="text-2xl font-bold text-stone-900 dark:text-white">Garantía de Adaptación en Multifocales</h2>
             </div>
             <p className="mb-4">
-              A pesar de no admitir devoluciones, ofrecemos una garantía total de adaptación para todos nuestros cristales multifocales de la marca premium Varilux.
+              A pesar de no admitir devoluciones, ofrecemos una garantía de adaptación de un único cambio de cristales para nuestros cristales multifocales de la marca premium Varilux.
             </p>
             {/* Las condiciones son las mismas que las de Super Blue más abajo: el
                 párrafo estaba escrito dos veces y podía divergir. */}

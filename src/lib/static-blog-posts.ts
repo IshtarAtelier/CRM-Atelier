@@ -267,7 +267,7 @@ export const staticPosts: StaticBlogPost[] = [
   {
     slug: 'por-que-nuestros-multifocales-no-fallan-tecnologia-cordoba',
     title: 'Por qué nuestros multifocales no fallan: Tecnología de medición en Córdoba',
-    excerpt: 'Hacer un lente progresivo perfecto requiere mucho más que una receta. Conocé nuestro proceso de toma de medidas de alta precisión para una adaptación garantizada.',
+    excerpt: 'Hacer un lente progresivo perfecto requiere mucho más que una receta. Conocé nuestro proceso de toma de medidas de alta precisión para una adaptación acompañada.',
     date: '2026-05-06',
     category: 'Nuestra Óptica',
     imageUrl: '/images/blog/arte-monalisa.webp'

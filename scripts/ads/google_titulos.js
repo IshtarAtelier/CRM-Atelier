@@ -12,7 +12,7 @@
  *     dice "en el local": la PMax combina los títulos como quiere y no se puede
  *     garantizar que aparezca solo con destino local.
  *   · 3 Y 6 cuotas sin interés (los avisos decían solo 3).
- *   · Garantía de adaptación: 90 días corridos.
+ *   · Garantía de adaptación: 30 días desde la entrega (un cambio de cristales, receta nueva a menos de 90 días de la anterior).
  *
  * "Gafas" sale de esta campaña: en Argentina se dice anteojos. Se mantiene en
  * las campañas web, donde la búsqueda "gafas online" sí convierte.
@@ -44,7 +44,7 @@ const SUMAR = [
   // PROHIBITED). Con "descuento" pasa. Verificado con validateOnly.
   '20% de descuento en efectivo',
   '3 y 6 cuotas sin interés',
-  'Garantía de adaptación 90 días',
+  'Garantía de adaptación 30 días',
   'Laboratorio propio',
 ];
 
