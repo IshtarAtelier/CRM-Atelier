@@ -4,7 +4,7 @@ import { sendEmail } from '@/lib/email';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import { fmtARS, fmtFecha, appUrl as appUrlFn, LAB_LABELS } from '@/services/lab-recon/types';
-import { tieneParBonificadoCobrado } from '@/lib/lab-factura';
+import { estaResuelta, tieneParBonificadoCobrado } from '@/lib/lab-factura';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
                 select: {
                     labOrderNumber: true, invoiceDate: true, sourceFile: true, notes: true,
                     billedNet: true, billedTotal: true, systemCost: true, difference: true,
-                    status: true, orderId: true, createdAt: true,
+                    status: true, orderId: true, createdAt: true, resolvedAt: true,
                     order: { select: { clientId: true, labOrderNumber: true, client: { select: { name: true } } } },
                 },
             });
@@ -95,8 +95,9 @@ export async function GET(request: Request) {
             const fechaRef = (e: typeof todas[number]) =>
                 e.invoiceDate ?? fechaIngreso(e.notes) ?? e.createdAt;
 
+            // Lo resuelto a mano ya se trató: no vuelve a salir (Ishtar, 25/9/2026).
             const entradas = todas
-                .filter(e => { const f = fechaRef(e); return f >= desde && f <= hasta; })
+                .filter(e => { const f = fechaRef(e); return f >= desde && f <= hasta && !estaResuelta(e); })
                 .sort((a, b) => fechaRef(a).getTime() - fechaRef(b).getTime());
 
             // Optovisión discrimina IVA y Atelier es monotributo (no lo recupera):

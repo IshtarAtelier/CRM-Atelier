@@ -23,7 +23,7 @@
 import assert from 'node:assert/strict';
 import { esVenta2x1, parBonificadoCobrado, systemCostForLab } from '../../src/services/lab-recon/cost-matching.ts';
 import { TOPE_PAR_BONIFICADO_2X1 } from '../../src/services/lab-recon/types.ts';
-import { MARCA_PAR_BONIFICADO_COBRADO, sinNotaParBonificado, tieneParBonificadoCobrado } from '../../src/lib/lab-factura.ts';
+import { MARCA_PAR_BONIFICADO_COBRADO, estaResuelta, sinNotaParBonificado, tieneParBonificadoCobrado } from '../../src/lib/lab-factura.ts';
 
 const cristal = (eye, price, cost = 370399) => ({
     eye, price, quantity: 1,
@@ -93,6 +93,19 @@ const casos = [
             assert.equal(sinNotaParBonificado(`[${MARCA_PAR_BONIFICADO_COBRADO}: x]`), null);
             assert.equal(sinNotaParBonificado(null), null);
         }],
+
+    // ── Resuelto a mano: deja de salir en los avisos (Ishtar, 25/9/2026) ──
+    ['una entrada con resolvedAt está resuelta',
+        () => assert.equal(estaResuelta({ resolvedAt: new Date(), notes: null }), true)],
+    ['sin resolvedAt y sin nota de resolución, sigue abierta',
+        () => assert.equal(estaResuelta({ resolvedAt: null, notes: 'Pedido visto en el portal.' }), false)],
+    ['las resoluciones en código (RESUELTO/RECLAMADO al inicio de la nota) cuentan como resueltas',
+        () => {
+            assert.equal(estaResuelta({ resolvedAt: null, notes: 'RESUELTO 16/7/2026: el vendedor lo cargó a costo de Atelier.' }), true);
+            assert.equal(estaResuelta({ resolvedAt: null, notes: 'RECLAMADO a Grupo Óptico el 8/9/2026 (2x1 con los dos pares cobrados).' }), true);
+        }],
+    ['una nota que solo MENCIONA "reclamado" en el medio no resuelve nada',
+        () => assert.equal(estaResuelta({ resolvedAt: null, notes: 'La venta tiene 2 pedidos; el cliente dice que fue reclamado.' }), false)],
 ];
 
 let fallas = 0;

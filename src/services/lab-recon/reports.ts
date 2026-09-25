@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/db';
-import { LAB_ITEM_PATTERNS, TOLERANCE } from './types';
+import { LAB_ITEM_PATTERNS, TOLERANCE, VENTANA_REPORTE_DIAS } from './types';
 import { esVenta2x1, parBonificadoCobrado, systemCostForLab } from './cost-matching';
+import { estaResuelta } from '../../lib/lab-factura';
 
 /**
  * REPORTES y LIBRO DE AUDITORÍA de la conciliación: la foto del estado del
@@ -91,6 +92,14 @@ export async function weeklyReport(from: Date, to: Date) {
         : (e.billedNet ?? e.billedTotal ?? null);
     const esPostventa = (e: any) => (e.notes || '').includes('POSTVENTA (caso');
     const enSemana = (e: any) => !!e.invoiceDate && e.invoiceDate >= from && e.invoiceDate < to;
+    // A PARTIR DE AHORA, NO LO DE MESES ATRÁS (Ishtar, 25/9/2026): el estado
+    // global y los sobrecostos vigentes miran solo la ventana (30 días) y lo
+    // que no se resolvió a mano. Lo viejo se resuelve en la pantalla, no se
+    // repite en cada mail.
+    const ventanaDesde = new Date(to.getTime() - VENTANA_REPORTE_DIAS * 86400000);
+    const fechaRef = (e: any): Date => e.invoiceDate ?? e.createdAt;
+    const enVentana = (e: any) => fechaRef(e) >= ventanaDesde && fechaRef(e) < to;
+    const abierta = (e: any) => !estaResuelta(e);
 
     // ¿QUÉ VENTAS SON 2x1? Se mira en los ítems de la venta con la MISMA regla
     // del cruce (esVenta2x1), solo para las ventas que van a salir en el email.
@@ -140,7 +149,8 @@ export async function weeklyReport(from: Date, to: Date) {
         const rows = entries.filter(e => e.lab === lab);
         const nuevasSemana = rows.filter(enSemana);
         const facturadoSemana = nuevasSemana.reduce((t, e) => t + (billedOf(e) || 0), 0);
-        const count = (s: string) => rows.filter(e => e.status === s).length;
+        const recientes = rows.filter(enVentana);
+        const count = (s: string) => recientes.filter(e => e.status === s && abierta(e)).length;
 
         // FILAS AGRUPADAS POR VENTA. Los pedidos de un 2x1 van pegados, el par
         // cobrado primero: el costo de sistema y la diferencia son de la VENTA
@@ -170,6 +180,9 @@ export async function weeklyReport(from: Date, to: Date) {
                 difference: e.difference,
                 status: e.status,
                 esPostventa: esPostventa(e),
+                resuelta: estaResuelta(e),
+                resolvedBy: e.resolvedBy ?? null,
+                resolvedNote: e.resolvedNote ?? null,
                 // De la VENTA (con valor en todas las filas; se muestra en la primera).
                 primeraDeLaVenta: i === 0,
                 pedidosDeLaVenta: v.hermanos.length,
@@ -190,11 +203,13 @@ export async function weeklyReport(from: Date, to: Date) {
             totalPedidos: rows.length,
             facturasSemana: nuevasSemana.length,
             facturadoSemana,
+            ventanaDias: VENTANA_REPORTE_DIAS,
             sinVenta: count('UNMATCHED'),
             esperandoFactura: count('PENDING'),
             ok: count('OK'),
             sobrecostos: count('OVERCOST'),
             menorCosto: count('UNDERCOST'),
+            resueltos: recientes.filter(e => !abierta(e)).length,
             // Cuenta corriente / facturado acumulado por lab (todo lo que tiene importe).
             facturadoAcumulado: rows.reduce((t, e) => t + (billedOf(e) || 0), 0),
             // Detalle de las facturas de la semana (para la tabla del email).
@@ -206,15 +221,21 @@ export async function weeklyReport(from: Date, to: Date) {
     // UNO POR VENTA: el estado se estampa en todas las entradas hermanas y un
     // 2x1 con sobrecosto aparecía dos veces, como si fueran dos reclamos.
     const vistos = new Set<string>();
-    const sobrecostosVigentes = entries
-        .filter(e => e.status === 'OVERCOST')
+    const unaPorVenta = (e: any) => {
+        const k = e.orderId && !esPostventa(e) ? `${e.lab}:${e.orderId}` : e.id;
+        if (vistos.has(k)) return false;
+        vistos.add(k);
+        return true;
+    };
+    const sobrecostosAbiertos = entries
+        .filter(e => e.status === 'OVERCOST' && abierta(e))
         .sort((a, b) => (b.difference || 0) - (a.difference || 0) || (billedOf(b) || 0) - (billedOf(a) || 0))
-        .filter(e => {
-            const k = e.orderId && !esPostventa(e) ? `${e.lab}:${e.orderId}` : e.id;
-            if (vistos.has(k)) return false;
-            vistos.add(k);
-            return true;
-        })
+        .filter(unaPorVenta);
+    // Los de más de 30 días sin resolver no se repiten en el mail: se cuentan,
+    // para que se sepa que están, y se resuelven en la pantalla.
+    const sobrecostosFueraDeVentana = sobrecostosAbiertos.filter(e => !enVentana(e)).length;
+    const sobrecostosVigentes = sobrecostosAbiertos
+        .filter(enVentana)
         .map(e => {
             const v = veredicto2x1(e);
             return {
@@ -235,7 +256,7 @@ export async function weeklyReport(from: Date, to: Date) {
         lab: s.lab, totalDebt: s.totalDebt, statementDate: s.statementDate, invoiceCount: s.invoiceCount,
     }));
 
-    return { from, to, perLab, sobrecostosVigentes, cuentaCorriente };
+    return { from, to, perLab, sobrecostosVigentes, sobrecostosFueraDeVentana, ventanaDias: VENTANA_REPORTE_DIAS, cuentaCorriente };
 }
 
 // Include compartido por el reporte mensual y la búsqueda histórica.

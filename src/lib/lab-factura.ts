@@ -79,3 +79,15 @@ export function sinNotaParBonificado(notes: string | null | undefined): string |
     const limpio = (notes || '').replace(new RegExp(`\\s*\\[${marca}[^\\]]*\\]`, 'g'), '').trim();
     return limpio || null;
 }
+
+/**
+ * 4) RESUELTO A MANO. Un hallazgo (sobrecosto, huérfano, lo que sea) que el
+ *    administrador ya trató —lo reclamó, el lab lo acreditó, o era correcto—
+ *    se marca desde la pantalla (`resolvedAt`, `resolvedBy`, `resolvedNote`) y
+ *    deja de salir en los avisos y en el semanal; sin eso reaparecía para
+ *    siempre (Ishtar, 25/9/2026). Las resoluciones que viven en código
+ *    (RESOLUCIONES_CONOCIDAS, notas que empiezan por RESUELTO/RECLAMADO)
+ *    cuentan igual hasta que el cruce les estampe la fecha.
+ */
+export const estaResuelta = (e: { resolvedAt?: Date | string | null; notes?: string | null }): boolean =>
+    !!e.resolvedAt || /^(RESUELTO|RECLAMADO)\b/.test((e.notes || '').trim());

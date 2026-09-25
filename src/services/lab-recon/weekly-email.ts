@@ -1,4 +1,4 @@
-import { LAB_LABELS, TOPE_PAR_BONIFICADO_2X1, fmtARS, fmtFecha } from './types';
+import { LAB_LABELS, TOPE_PAR_BONIFICADO_2X1, VENTANA_REPORTE_DIAS, fmtARS, fmtFecha } from './types';
 
 /**
  * EL EMAIL DEL REPORTE SEMANAL DE LABORATORIO (el de los viernes/domingos,
@@ -39,6 +39,12 @@ export const comprobante = (r: any) => {
 const fechaFila = (r: any) => r.invoiceDate
     ? fmtFecha(r.invoiceDate)
     : `${r.createdAt ? fmtFecha(r.createdAt) : 's/fecha'} <span style="color:#6b7280">(alta)</span>`;
+
+/** Resuelto a mano: se dice, con quién y cómo, en vez de volver a acusar. */
+function resuelto(r: any): string {
+    if (!r.resuelta) return '';
+    return `<span style="${CHICO};color:#047857">✓ resuelto${r.resolvedBy ? ` por ${r.resolvedBy}` : ''}${r.resolvedNote ? `: ${r.resolvedNote}` : ''}</span>`;
+}
 
 /** Qué dice la columna Estado de la primera fila de una venta 2x1. */
 function estado2x1(r: any): string {
@@ -103,7 +109,7 @@ function filaDetalle(r: any, i: number, appUrl: string): string {
                     <td style="${TD};text-align:right;font-weight:bold">${fmt(r.billed)}</td>
                     <td style="${TD};text-align:right">${fmt(r.systemCost)}${deLaVenta}</td>
                     <td style="${TD};text-align:right;color:${colorDif}">${dif}</td>
-                    <td style="${TD};font-size:12px">${STATUS_LABEL[r.status] || r.status}${estado2x1(r)}</td>
+                    <td style="${TD};font-size:12px">${STATUS_LABEL[r.status] || r.status}${estado2x1(r)}${resuelto(r)}</td>
                 </tr>`;
 }
 
@@ -113,9 +119,9 @@ function bloqueLab(lab: string, d: any, appUrl: string): string {
                 <h3 style="margin-top:24px;color:#111">${LAB_LABELS[lab] || lab}</h3>
                 <p style="font-size:13px;color:#4b5563">
                     Facturas esta semana: <strong>${d.facturasSemana}</strong> por <strong>${fmt(d.facturadoSemana)}</strong> ·
-                    Estado global: ${d.ok} OK, <span style="color:#b91c1c">${d.sobrecostos} sobrecosto(s)</span>,
+                    Últimos ${d.ventanaDias ?? VENTANA_REPORTE_DIAS} días: ${d.ok} OK, <span style="color:#b91c1c">${d.sobrecostos} sobrecosto(s)</span>,
                     ${d.menorCosto} menor costo, ${d.esperandoFactura} esperando factura,
-                    <span style="color:#b45309">${d.sinVenta} sin venta</span> · Facturado acumulado ${fmt(d.facturadoAcumulado)}
+                    <span style="color:#b45309">${d.sinVenta} sin venta</span>${d.resueltos ? `, ${d.resueltos} resuelto(s) a mano` : ''} · Facturado acumulado ${fmt(d.facturadoAcumulado)}
                 </p>
                 ${d.detalleSemana.length ? `
                 <table style="border-collapse:collapse;width:100%;font-size:13px">
@@ -154,11 +160,13 @@ export function armarEmailSemanal(rep: any, appUrl: string): { subject: string; 
                 </div>` : ''}
                 ${sobre.length ? `
                 <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:8px">
-                    <strong style="color:#b91c1c">${sobre.length} sobrecosto(s) vigente(s) a revisar:</strong>
+                    <strong style="color:#b91c1c">${sobre.length} sobrecosto(s) de los últimos ${rep.ventanaDias ?? VENTANA_REPORTE_DIAS} días a revisar:</strong>
                     <ul style="margin:6px 0 0;font-size:13px;line-height:1.6">
                         ${sobre.map((s: any) => lineaSobrecosto(s)).join('')}
                     </ul>
-                </div>` : '<p style="color:#059669">✅ Sin sobrecostos vigentes.</p>'}
+                    <p style="font-size:12px;color:#6b7280;margin:8px 0 0">Cuando lo trates (reclamado, acreditado, es correcto), marcalo <strong>resuelto</strong> en <a href="${appUrl}/admin/laboratorio/costos?estado=OVERCOST">la pantalla de conciliación</a> y deja de salir acá.</p>
+                </div>` : `<p style="color:#059669">✅ Sin sobrecostos abiertos en los últimos ${rep.ventanaDias ?? VENTANA_REPORTE_DIAS} días.</p>`}
+                ${rep.sobrecostosFueraDeVentana ? `<p style="font-size:12px;color:#6b7280;margin:0 0 8px">Además hay <strong>${rep.sobrecostosFueraDeVentana}</strong> sobrecosto(s) de más de ${rep.ventanaDias ?? VENTANA_REPORTE_DIAS} días sin resolver: no se repiten acá. Se ven eligiendo el mes en la pantalla, y ahí se marcan resueltos.</p>` : ''}
                 <p style="font-size:12px;color:#6b7280;margin:8px 0 0">En un 2x1 la venta tiene dos pedidos: el <strong>Sistema</strong> es de la venta entera y cuenta un solo par (el bonificado va en $0), por eso aparece una vez; la fila «misma venta» es el otro pedido con lo que le facturaron. El par bonificado tiene que venir sin cargo o hasta ${fmt(TOPE_PAR_BONIFICADO_2X1)}; si viene por encima, es sobrecosto y se reclama.</p>
                 ${bloqueLab('OPTOVISION', rep.perLab.OPTOVISION, appUrl)}
                 ${bloqueLab('GRUPO_OPTICO', rep.perLab.GRUPO_OPTICO, appUrl)}

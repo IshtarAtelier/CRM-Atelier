@@ -28,6 +28,10 @@ interface LabCostEntry {
     createdAt: string;
     alertedAt: string | null;
     alertedStatus: string | null;
+    // Resuelto a mano (reclamado, acreditado, es correcto…): deja de salir en los avisos.
+    resolvedAt: string | null;
+    resolvedBy: string | null;
+    resolvedNote: string | null;
     order: {
         id: string;
         clientId: string;
@@ -312,6 +316,39 @@ export default function LabCostosPage() {
             await fetchEntries();
         } catch (e: any) {
             setMessage(`Error en ${label.toLowerCase()}: ${e.message}`);
+        } finally {
+            setBusy(null);
+        }
+    };
+
+    // RESOLVER A MANO (Ishtar, 25/9/2026): un hallazgo tratado se marca con
+    // una nota y deja de salir en los avisos y el semanal; si no, se repetía
+    // para siempre. Resuelve también a los pedidos hermanos de la venta.
+    const resolver = async (entry: LabCostEntry, resuelto: boolean) => {
+        let nota: string | null = null;
+        if (resuelto) {
+            nota = window.prompt(`¿Cómo se resolvió el pedido ${entry.labOrderNumber}? (reclamado al laboratorio, acreditado, es correcto…)`, '');
+            if (nota === null) return;
+        } else if (!window.confirm(`¿Reabrir el pedido ${entry.labOrderNumber}? Vuelve a salir en los avisos.`)) {
+            return;
+        }
+        setBusy(`resolver-${entry.id}`);
+        setMessage(null);
+        try {
+            const res = await fetch(`/api/lab-costs/${entry.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ resuelto, nota }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error');
+            const hermanos: string[] = data.hermanos || [];
+            setMessage(resuelto
+                ? `Pedido ${entry.labOrderNumber} marcado como resuelto${hermanos.length ? ` (y ${hermanos.join(', ')}, de la misma venta)` : ''}. Deja de salir en los avisos y en el reporte semanal.`
+                : `Pedido ${entry.labOrderNumber} reabierto${hermanos.length ? ` (y ${hermanos.join(', ')})` : ''}.`);
+            await fetchEntries();
+        } catch (e: any) {
+            setMessage(`Error al ${resuelto ? 'resolver' : 'reabrir'}: ${e.message}`);
         } finally {
             setBusy(null);
         }
@@ -896,6 +933,7 @@ export default function LabCostosPage() {
                     <option value="OK">OK</option>
                     <option value="UNMATCHED">Sin venta</option>
                     <option value="PENDING">Esperando factura</option>
+                    <option value="RESUELTO">Resueltos a mano</option>
                 </select>
             </div>
 
@@ -932,6 +970,7 @@ export default function LabCostosPage() {
                                 <th className="px-4 py-3">Estado</th>
                                 <th className="px-4 py-3">Pedido</th>
                                 <th className="px-4 py-3">Origen</th>
+                                <th className="px-4 py-3">Resuelto</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1058,6 +1097,34 @@ export default function LabCostosPage() {
                                         </td>
                                         <td className="px-4 py-3 text-xs text-gray-500" title={entry.sourceFile || ''}>
                                             {SOURCE_LABELS[entry.source] || entry.source}
+                                        </td>
+                                        <td className="px-4 py-3 text-xs">
+                                            {entry.resolvedAt ? (
+                                                <div className="flex flex-col gap-0.5 items-start">
+                                                    <span className="text-emerald-700 font-medium whitespace-nowrap">
+                                                        ✓ {fmtDate(entry.resolvedAt)}{entry.resolvedBy ? ` · ${entry.resolvedBy}` : ''}
+                                                    </span>
+                                                    {entry.resolvedNote && (
+                                                        <span className="text-gray-500 max-w-[220px] truncate" title={entry.resolvedNote}>{entry.resolvedNote}</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => resolver(entry, false)}
+                                                        disabled={busy === `resolver-${entry.id}`}
+                                                        className="text-gray-400 hover:text-gray-700 underline disabled:opacity-50"
+                                                    >
+                                                        reabrir
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => resolver(entry, true)}
+                                                    disabled={busy === `resolver-${entry.id}`}
+                                                    className="px-2 py-1 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 whitespace-nowrap disabled:opacity-50"
+                                                    title="Ya lo trataste (reclamado, acreditado, es correcto…): deja de salir en los avisos y en el reporte semanal"
+                                                >
+                                                    Marcar resuelto
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 );

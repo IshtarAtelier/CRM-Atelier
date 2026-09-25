@@ -59,6 +59,15 @@ export const TOLERANCE = 100;
 export const TOPE_PAR_BONIFICADO_2X1 = 30000;
 
 /**
+ * VENTANA DE LOS AVISOS (Ishtar, 25/9/2026): el reporte semanal informa lo de
+ * los últimos 30 días y nada más. Antes los "sobrecostos vigentes" eran TODOS
+ * los de la historia y un +$97.707 de junio salía en cada mail, para siempre.
+ * Lo viejo que sigue abierto se resuelve A MANO en la pantalla (`resolvedAt`),
+ * no se repite en el mail.
+ */
+export const VENTANA_REPORTE_DIAS = 30;
+
+/**
  * Umbral de "monto grueso" para los EMAILS de diferencia de costo (regla del
  * administrador): las diferencias chicas no merecen mail — quedan visibles en
  * la página de conciliación — y solo alertan las que superan este monto, en

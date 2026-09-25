@@ -4,6 +4,7 @@ import * as imap from './lab-recon/imap';
 import * as orderStatus from './lab-recon/order-status';
 import * as alerts from './lab-recon/alerts';
 import * as reports from './lab-recon/reports';
+import * as resolver from './lab-recon/resolver';
 
 export type { LabName, LabCostInput } from './lab-recon/types';
 
@@ -25,6 +26,7 @@ export type { LabName, LabCostInput } from './lab-recon/types';
  *   lab-recon/order-status.ts  estado del pedido y costo del caso de postventa
  *   lab-recon/alerts.ts        avisos inmediatos y resumen diario
  *   lab-recon/reports.ts       reportes y libro de auditoría (solo lectura)
+ *   lab-recon/resolver.ts      resolver a mano un hallazgo (y reabrirlo)
  *
  * PARA SUMAR UN LABORATORIO NUEVO:
  *   1. Un proveedor en `lab-providers/` con su `collect()` (de dónde salen sus
@@ -63,6 +65,9 @@ export class LabCostReconciliationService {
     static reconciliationSnapshot = reports.reconciliationSnapshot;
     static recordAuditRun = reports.recordAuditRun;
     static weeklyReport = reports.weeklyReport;
+
+    // ── Resolución manual ───────────────────────────────────────────────────
+    static resolverEntrada = resolver.resolverEntrada;
     static monthlyReport = reports.monthlyReport;
     static searchReport = reports.searchReport;
 }

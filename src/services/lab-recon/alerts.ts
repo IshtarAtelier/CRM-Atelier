@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
-import { aclaracionImporte, etiquetaSinVenta, tieneParBonificadoCobrado } from '../../lib/lab-factura';
+import { aclaracionImporte, estaResuelta, etiquetaSinVenta, tieneParBonificadoCobrado } from '../../lib/lab-factura';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
 import { dobleCobroNuevos, marcarDobleCobroAvisado } from './dos-por-uno';
@@ -269,7 +269,9 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     // sigue entrando en cada corrida hasta que se cumpla el margen (o consiga venta).
     const listoParaAvisar = (e: any) => e.status !== 'UNMATCHED'
         || Date.now() - new Date(e.createdAt).getTime() >= UNMATCHED_GRACE_MS;
-    const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && (!e.alertedAt || e.alertedStatus !== e.status) && listoParaAvisar(e));
+    // Lo RESUELTO A MANO no vuelve a avisarse aunque cambie de estado: ya se
+    // trató (Ishtar, 25/9/2026). Si hace falta, se reabre desde la pantalla.
+    const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && !estaResuelta(e) && (!e.alertedAt || e.alertedStatus !== e.status) && listoParaAvisar(e));
     if (nuevos.length === 0 && dobles.length === 0) return { alerted: 0 };
 
     // En el modo `urgente` todo lo que entra son huérfanos: van sí o sí.

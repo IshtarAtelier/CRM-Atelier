@@ -101,6 +101,24 @@ además registra huérfanos de los últimos 100 pedidos visibles, para latencia 
 | `PENDING` | Pedido con venta, esperando el costo facturado |
 | `UNMATCHED` | **Sin venta en el sistema** (huérfano) — plata sin venta que la respalde |
 
+### Resuelto a mano (`resolvedAt` / `resolvedBy` / `resolvedNote`)
+
+Un hallazgo que ya se trató —reclamado al laboratorio, acreditado, o era
+correcto— se marca **Resuelto** desde `/admin/laboratorio/costos` (botón
+"Marcar resuelto", pide una nota; se puede reabrir). Queda firmado (quién,
+cuándo, cómo, y en el AuditLog) y **deja de salir** en los tres avisos: el
+reporte semanal, el mail de los lunes y el resumen diario. El estado del cruce
+no cambia: un sobrecosto resuelto sigue siendo sobrecosto, solo que tratado.
+Resolver un pedido resuelve también a sus hermanos de la misma venta (los dos
+pares de un 2x1 son un solo hallazgo). Las resoluciones que viven en código
+(`RESOLUCIONES_CONOCIDAS`) valen igual, y el cruce les estampa la fecha.
+
+**Ventana de los avisos: 30 días** (`VENTANA_REPORTE_DIAS`, regla de Ishtar
+del 25/9/2026). El reporte semanal informa el estado y los sobrecostos de los
+últimos 30 días; lo más viejo que sigue abierto no se repite en cada mail (se
+cuenta, nada más) y se resuelve en la pantalla eligiendo el mes. Antes un
+sobrecosto de junio salía todos los viernes, para siempre.
+
 ## Configuración
 
 | Variable | Uso |

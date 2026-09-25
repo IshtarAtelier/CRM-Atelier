@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/db';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
+import { estaResuelta } from '../../lib/lab-factura';
 
 /**
  * 2x1 CON LOS DOS PARES COBRADOS.
@@ -108,7 +109,7 @@ export async function detectarDobleCobro(dias = 120): Promise<DobleCobro[]> {
         },
         select: {
             lab: true, labOrderNumber: true, billedNet: true, billedTotal: true,
-            invoiceDate: true, notes: true, orderId: true,
+            invoiceDate: true, notes: true, orderId: true, resolvedAt: true,
             order: { select: { clientId: true, client: { select: { name: true } } } },
         },
     });
@@ -119,6 +120,8 @@ export async function detectarDobleCobro(dias = 120): Promise<DobleCobro[]> {
         if (importe === null || importe < CON_CARGO_MIN) continue;
         // Un reproceso de garantía no es el segundo par de un 2x1.
         if ((e.notes || '').includes('POSTVENTA (caso')) continue;
+        // Y lo que ya se resolvió a mano no se vuelve a acusar.
+        if (estaResuelta(e)) continue;
 
         const porPortal = labPortalClientName(e.notes);
         const key = e.orderId

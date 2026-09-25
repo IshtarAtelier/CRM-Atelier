@@ -458,8 +458,10 @@ export async function upsertEntry(input: LabCostInput) {
         : null;
     // Resolución conocida del administrador (p. ej. "COSTO VENDEDOR"): queda
     // fija en el detalle de la entrada, venga de la fuente que venga.
+    // (Se compara contra el texto entero: con 'RESUELTO' a secas, las notas
+    // que empiezan por "RECLAMADO…" se volvían a anteponer en cada corrida.)
     const resolucion = RESOLUCIONES_CONOCIDAS[cleanNumber];
-    const resolucionNote = resolucion && !baseNotes?.includes('RESUELTO') ? resolucion : null;
+    const resolucionNote = resolucion && !baseNotes?.includes(resolucion) ? resolucion : null;
     const pvNote = pvCase && !baseNotes?.includes('POSTVENTA (caso')
         ? `Pedido de POSTVENTA (caso ${pvCase.caseType || 's/tipo'}${pvCase.coverage ? `, cobertura: ${pvCase.coverage}` : ''}).`
         : null;
@@ -492,6 +494,12 @@ export async function upsertEntry(input: LabCostInput) {
         // Backfill: todo lo histórico queda marcado como ya alertado, así el
         // régimen normal solo avisa lo NUEVO desde el estreno del sistema.
         ...(quiet ? { alertedAt: new Date(), alertedStatus: status } : {}),
+        // Una resolución que vive en código (RESOLUCIONES_CONOCIDAS) vale como
+        // resuelta a mano: se estampa la fecha para que la pantalla y los avisos
+        // la traten igual que las marcadas desde la pantalla.
+        ...(resolucion && !existing?.resolvedAt
+            ? { resolvedAt: new Date(), resolvedBy: 'Sistema (resoluciones conocidas)', resolvedNote: resolucion }
+            : {}),
         // Transición SIN novedad para el administrador: un pedido que deja de
         // ser un hallazgo (pasa a OK o vuelve a esperar factura) no necesita
         // aviso — pero SÍ hay que realinear alertedStatus, si no queda como

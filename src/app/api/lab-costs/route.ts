@@ -18,7 +18,13 @@ export async function GET(request: Request) {
         const lab = searchParams.get('lab');
         const status = searchParams.get('status');
         if (lab) where.lab = lab;
-        if (status) where.status = status;
+        // RESUELTOS A MANO: por defecto no se listan (ya se trataron); con
+        // status=RESUELTO se ven solo ellos, para revisar o reabrir.
+        if (status === 'RESUELTO') where.resolvedAt = { not: null };
+        else {
+            where.resolvedAt = null;
+            if (status) where.status = status;
+        }
 
         // Período REAL (regla del administrador): mes AAAA-MM elegido, o los
         // últimos 30 días por defecto — el listado, las tarjetas de resumen y
@@ -100,12 +106,20 @@ export async function GET(request: Request) {
         // Tarjetas de resumen: SIEMPRE del período filtrado, por lab Y por tipo
         // de situación (dos cuadros en la pantalla, uno por laboratorio). No se
         // les aplica el filtro de lab: los dos cuadros se ven completos siempre.
+        // Sin los resueltos a mano: las tarjetas cuentan lo que sigue abierto.
         const totals = await prisma.labCostEntry.groupBy({
             by: ['lab', 'status'],
-            where: enPeriodo,
+            where: { AND: [enPeriodo, { resolvedAt: null }] },
             _count: { _all: true },
             _sum: { difference: true },
         });
+        const resueltosPorLab = await prisma.labCostEntry.groupBy({
+            by: ['lab'],
+            where: { AND: [enPeriodo, { resolvedAt: { not: null } }] },
+            _count: { _all: true },
+        });
+        const resueltos: Record<string, number> = {};
+        for (const r of resueltosPorLab) resueltos[r.lab] = r._count._all;
 
         // Historial de revisiones diarias (libro de auditoría del control).
         const auditRuns = await prisma.labAuditRun.findMany({
@@ -149,7 +163,7 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.json({
-            entries: entriesConProductos, totals, auditRuns, statements, cobertura,
+            entries: entriesConProductos, totals, resueltos, auditRuns, statements, cobertura,
             periodo: { desde, hasta, mes: periodo && /^\d{4}-\d{2}$/.test(periodo) ? periodo : null },
         });
     } catch (error: any) {
