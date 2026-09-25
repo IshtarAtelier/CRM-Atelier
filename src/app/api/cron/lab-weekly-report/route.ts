@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { LabCostReconciliationService } from '@/services/lab-cost-reconciliation.service';
 import { armarEmailSemanal } from '@/services/lab-recon/weekly-email';
 import { sendEmail } from '@/lib/email';
-import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { PRIVATE_ADMIN_EMAILS } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -36,7 +36,8 @@ export async function GET(request: Request) {
         const { subject, html } = armarEmailSemanal(rep, appUrl);
 
         await sendEmail({
-            to: process.env.ADMIN_EMAIL || ADMIN_ALERT_EMAILS,
+            // Solo la dueña: trae costos de laboratorio (regla del 25/9/2026).
+            to: PRIVATE_ADMIN_EMAILS,
             subject,
             html,
         });

@@ -2,6 +2,7 @@ import { prisma } from '../lib/db';
 import { OptovisionParserService } from './optovision-parser.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '../lib/email';
+import { PRIVATE_ADMIN_EMAILS } from '../lib/constants';
 
 export class LabAuditService {
     // 100 pesos of tolerance by default for rounding differences
@@ -100,7 +101,8 @@ export class LabAuditService {
         // Usa el sistema central de emails (Resend/SMTP según configuración).
         // Antes había un transporter propio con la contraseña de Gmail hardcodeada.
         await sendEmail({
-            to: 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com',
+            // Solo la dueña: es un sobrecosto de laboratorio (regla del 25/9/2026).
+            to: PRIVATE_ADMIN_EMAILS,
             subject: `⚠️ Alerta Sobrecosto: Operación ${invoice.labOrderNumber} (${order.client?.name})`,
             html: htmlContent
         });

@@ -74,6 +74,10 @@ y `wip-otra-sesion` son la cicatriz.
 - `npm run check:orden` — verifica que cada archivo esté en su carpeta (sin base ni red)
 - `npm run check:plata` — falla si alguien escribe plata o fechas sin decir el
   idioma (`toLocaleString()` a secas). Sin base ni red, y también en CI.
+- `npm run check:casilla-local` — falla si un correo de costos de laboratorio,
+  gastos, caja, anuncios o campañas le llega a la casilla del local
+  (`atelier.optica.cerro@`), o si un correo que va al local lee costos o
+  inversión publicitaria. Sin base ni red, y también en CI.
 - `npm run check:contraste` — mide el contraste de TODOS los textos de las 66
   páginas públicas, en modo claro y oscuro, contra localhost:3000 (`--base` para
   apuntar a producción, `--ruta` para una sola). Necesita el dev prendido.
@@ -158,6 +162,14 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
 - **Vendedor de una venta = quien la envió a fábrica** (`labSentBy`).
 - **Nombres de la tienda = estelar + color.** La marca (ej. Cápsula Escarlata) va
   en el campo marca, nunca en el nombre.
+- **La casilla del local (`atelier.optica.cerro@`) NO recibe costos ni
+  publicidad** (Ishtar, 25/9/2026): nada de costos de laboratorio ni de
+  productos, gastos, cierres, inversión en Meta/Google ni reportes de
+  campañas. La leen los vendedores. Esos correos van a `PRIVATE_ADMIN_EMAILS`;
+  `ADMIN_ALERT_EMAILS` y la bandeja de vendedores son SOLO para avisos
+  operativos (venta web, stock, cobros, comprobantes, pedidos). Nunca
+  `ADMIN_EMAIL || ADMIN_ALERT_EMAILS`: ADMIN_EMAIL no existe en producción y el
+  reporte semanal de laboratorio le llegaba al local por ese default.
 - **Fechas visibles en dd/MM/yyyy** vía `src/lib/format-date.ts`. No tocar el ISO interno.
 - **Links en mails y notificaciones**: `/admin/ventas?id=` (nunca `?orderId=`).
   Lo que ve el cliente sale de `STORE_ORIGIN`.

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { runAllProviders, LAB_PROVIDERS } from '@/services/lab-providers';
 import { LabCostReconciliationService } from '@/services/lab-cost-reconciliation.service';
 import { sendEmail } from '@/lib/email';
-import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { PRIVATE_ADMIN_EMAILS } from '@/lib/constants';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
 
@@ -140,7 +140,8 @@ export async function GET(request: Request) {
                 `<li><strong>${p.name}</strong> (${p.description}): ${p.days === null ? 'nunca corrió bien' : `sin corrida exitosa hace ${p.days} días`}</li>`
             ).join('');
             await sendEmail({
-                to: ADMIN_ALERT_EMAILS,
+                // Solo la dueña: es la conciliación de costos de laboratorio.
+                to: PRIVATE_ADMIN_EMAILS,
                 subject: `⚠️ Conciliación de laboratorio: ${stale.length} fuente(s) sin datos`,
                 html: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">

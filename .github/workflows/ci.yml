@@ -49,6 +49,12 @@ jobs:
       - name: Los envíos de plata reintentan
         run: npm run check:reintentos
 
+      # Sin base ni red. La casilla del local (la leen los vendedores) no
+      # recibe costos de laboratorio, inversión en publicidad ni reportes de
+      # campañas: regla de Ishtar del 25/9/2026.
+      - name: La casilla del local no recibe costos ni publicidad
+        run: npm run check:casilla-local
+
       - name: Run ESLint
         run: npm run lint
 

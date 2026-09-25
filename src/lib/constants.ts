@@ -27,9 +27,22 @@ export const STORE_ORIGIN = (process.env.NEXT_PUBLIC_APP_URL || 'https://atelier
 // cambiar uno no arrastre al otro cuando no hay NEXT_PUBLIC_APP_URL seteada.
 export const CRM_ORIGIN = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '');
 
-// Destinatarios de las alertas internas (nuevas ventas web, stock bajo, etc.).
-// Single source of truth: no hardcodear estos correos en cada endpoint.
+// Destinatarios de las alertas internas OPERATIVAS (nuevas ventas web, stock
+// bajo, cobros de Mercado Pago, etc.). Incluye la casilla del LOCAL, que leen
+// los vendedores: por esta lista NO puede salir nada de costos de laboratorio,
+// inversión en publicidad ni reportes de campañas — eso va a
+// PRIVATE_ADMIN_EMAILS. Single source of truth: no hardcodear estos correos.
 export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
+
+// Destinatarios de lo que SOLO ve la dueña: costos de laboratorio y su
+// conciliación, costos de productos, inversión en Meta y Google, reportes de
+// campañas y conversiones de anuncios. Regla de Ishtar del 25/9/2026: la
+// casilla del local "NO debe recibir NADA de información de costos de
+// laboratorios ni de inversiones en Meta, reportes de campañas, nada de eso".
+// Ese día el reporte semanal de laboratorio le llegaba al local porque iba a
+// `ADMIN_EMAIL || ADMIN_ALERT_EMAILS` y ADMIN_EMAIL no está seteada en
+// producción. Lo vigila `npm run check:casilla-local`.
+export const PRIVATE_ADMIN_EMAILS = process.env.PRIVATE_ADMIN_EMAILS || 'pisano.ishtar@gmail.com';
 
 // Destinatarios del reporte de pauta (Meta + Google). Lista APARTE de
 // ADMIN_ALERT_EMAILS a propósito: el reporte de ads lo mira la dueña y nadie

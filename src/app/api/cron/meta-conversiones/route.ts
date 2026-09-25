@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
-import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { PRIVATE_ADMIN_EMAILS } from '@/lib/constants';
 import { formatDateTime } from '@/lib/format-date';
 import { formatearPrecio } from '@/lib/format-precio';
 import { MetaConversionService, type FilaConversion } from '@/services/meta-conversions.service';
@@ -103,7 +103,8 @@ async function avisarPorMail(filas: FilaConversion[]) {
         </div>`;
 
     await sendEmail({
-        to: ADMIN_ALERT_EMAILS,
+        // Solo la dueña: es de la medición de anuncios de Meta (regla del 25/9/2026).
+        to: PRIVATE_ADMIN_EMAILS,
         subject: `⚠️ ${filas.length} compra${filas.length === 1 ? '' : 's'} sin informar a Meta`,
         html,
     });

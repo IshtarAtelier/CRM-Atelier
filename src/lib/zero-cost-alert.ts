@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
-import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { PRIVATE_ADMIN_EMAILS } from '@/lib/constants';
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '');
 
@@ -69,7 +69,8 @@ export async function notifyZeroCostSale(orderId: string): Promise<void> {
             `. ${APP_URL}/admin/ventas?id=${order.id}`;
 
         await sendEmail({
-            to: ADMIN_ALERT_EMAILS,
+            // Solo la dueña: muestra costos de productos (regla del 25/9/2026).
+            to: PRIVATE_ADMIN_EMAILS,
             subject: `⚠️ Venta con costo $0: ${clientName}`,
             html,
             text,
