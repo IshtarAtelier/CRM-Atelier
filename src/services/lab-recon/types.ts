@@ -59,6 +59,15 @@ export interface LabCostInput {
      * puede llegar en dos corridas o en dos correos distintos.
      */
     invoiceRefs?: InvoiceRef[];
+    /**
+     * Esta fuente es la verdad sobre el importe y dice que el pedido NO tiene
+     * líneas: se borra el importe que ELLA MISMA había guardado (nunca el de
+     * otra fuente, p. ej. la planilla importada a mano). Lo usa la pasada
+     * completa y sana de Grupo Óptico: un pedido que tenía plata solo por el
+     * viejo reparto de líneas sin nº (retirado el 25/9/2026) quedaba con ese
+     * importe para siempre.
+     */
+    sinImporteDeEstaFuente?: boolean;
 }
 
 /**
@@ -79,18 +88,27 @@ export function comprobanteDeArchivo(nombre: string | null | undefined): string 
     return m ? `${m[1]}-${m[2].padStart(8, '0')}` : null;
 }
 
+/**
+ * Clave de un comprobante sin la letra: "X-0004-00023793" y "0004-00023793" son
+ * el mismo (el PDF no trae la letra; la API sí). Sin esto quedaban los dos.
+ */
+const claveComprobante = (c: string) => c.replace(/^[A-Z]{1,2}-(?=\d)/, '');
+
 /** Junta dos listas de comprobantes por nº de comprobante; el nuevo pisa al viejo. */
 export function juntarComprobantes(viejos: unknown, nuevos: InvoiceRef[] | undefined): InvoiceRef[] | null {
     const base: InvoiceRef[] = Array.isArray(viejos) ? (viejos as InvoiceRef[]).filter(r => r && r.comprobante) : [];
     if (!nuevos?.length) return base.length ? base : null;
-    const porNumero = new Map(base.map(r => [r.comprobante, r]));
+    const porNumero = new Map(base.map(r => [claveComprobante(r.comprobante), r]));
     for (const r of nuevos) {
         if (!r?.comprobante) continue;
-        const previo = porNumero.get(r.comprobante);
+        const k = claveComprobante(r.comprobante);
+        const previo = porNumero.get(k);
         // Una corrida sin importes (PDF a medias, pase rápido que no llega a ese
         // comprobante) no borra el importe ni el link que ya estaban.
-        porNumero.set(r.comprobante, {
+        porNumero.set(k, {
             ...previo, ...r,
+            // El nombre con letra ("X-0004-…") gana al pelado.
+            comprobante: /^[A-Z]/.test(r.comprobante) || !previo ? r.comprobante : previo.comprobante,
             importe: r.importe ?? previo?.importe ?? null,
             url: r.url ?? previo?.url ?? null,
         });

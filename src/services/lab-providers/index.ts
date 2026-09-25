@@ -44,7 +44,11 @@ export async function runAllProviders(opts: { days?: number } = {}) {
     for (const provider of LAB_PROVIDERS) {
         try {
             const summary = await provider.collect(opts);
-            results[provider.name] = { ok: !summary?.skipped && !summary?.error, ...summary };
+            // `invoiceError` (sin importes, o PDF incompleto) tampoco es una
+            // pasada sana: si se estampara, la recuperación del pase de 10 min
+            // creería que hubo pasada completa con importes y no reintentaría
+            // en 26 h (revisión del 25/9/2026).
+            results[provider.name] = { ok: !summary?.skipped && !summary?.error && !summary?.invoiceError, ...summary };
             if (results[provider.name].ok) {
                 await prisma.systemSetting.upsert({
                     where: { key: STATE_KEY(provider.name) },

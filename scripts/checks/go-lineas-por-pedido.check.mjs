@@ -67,6 +67,11 @@ const casos = [
         const r = juntarComprobantes(viejos, [{ comprobante: 'A', importe: 5, url: null }]);
         assert.deepEqual(r, [{ comprobante: 'A', importe: 5, url: 'u1' }, { comprobante: 'B', importe: 2, url: 'u2' }]);
     }],
+    ['juntar comprobantes: "0004-…" (del PDF) y "X-0004-…" (de la API) son el mismo', () => {
+        const r = juntarComprobantes([{ comprobante: '0004-00023793', importe: 16611.2, url: null }],
+            [{ comprobante: 'X-0004-00023793', importe: null, url: 'https://portal/a', tipo: 'remito' }]);
+        assert.deepEqual(r, [{ comprobante: 'X-0004-00023793', importe: 16611.2, url: 'https://portal/a', tipo: 'remito' }]);
+    }],
     ['juntar comprobantes: nada de ningún lado es null', () => {
         assert.equal(juntarComprobantes(null, undefined), null);
     }],

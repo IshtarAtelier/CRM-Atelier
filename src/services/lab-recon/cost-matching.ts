@@ -288,7 +288,11 @@ export async function upsertEntry(input: LabCostInput) {
     // Una fuente sin importes (p. ej. el barrido del portal) NUNCA debe pisar
     // la facturación ya registrada por otra fuente (planilla, PDF de email).
     const hasNewBilling = input.billedNet != null || input.billedTotal != null;
-    const keepExistingBilling = !hasNewBilling && !!existing
+    // La fuente que es la verdad dice "sin líneas": se borra el importe que
+    // ELLA había puesto (nunca el de otra fuente). Ver sinImporteDeEstaFuente.
+    const borrarImporte = !!input.sinImporteDeEstaFuente && !hasNewBilling
+        && !!existing && existing.source === input.source;
+    const keepExistingBilling = !hasNewBilling && !!existing && !borrarImporte
         && (existing.billedNet !== null || existing.billedTotal !== null);
 
     // Y al revés: el pase RÁPIDO (ventana corta) no pisa importes registrados

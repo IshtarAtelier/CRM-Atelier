@@ -38,18 +38,26 @@ const MAX_PAGES = 50; // tope de seguridad (~5000 pedidos)
  * TURNO_MIN minutos otra lo puede tomar. 30 minutos cubre la pasada más larga
  * posible: la diaria tiene 25 de tope (instrumentation.ts).
  *
- * Quién espera y quién se saltea. La DIARIA espera el turno (hasta
- * ESPERA_TURNO_MIN): si se salteara, ese día no habría pasada completa, porque
- * la diaria no se reintenta cuando la ruta responde bien. El pase rápido, la
- * recuperación y el botón de la pantalla se saltean y reintentan después.
+ * Quién espera y quién se saltea. La DIARIA espera el turno si lo tiene un
+ * pase RÁPIDO (dura un par de minutos): si se salteara, ese día no habría
+ * pasada completa, porque la diaria no se reintenta cuando la ruta responde
+ * bien. Si lo tiene otra pasada COMPLETA (la recuperación), no espera: esa ya
+ * hace el trabajo, y esperarla podía pasar el tope de 25 minutos de la diaria.
+ * El pase rápido, la recuperación y el botón de la pantalla se saltean y
+ * reintentan después. El valor guardado es "<vence>|<completa|rapida>".
+ *
+ * 45 minutos de vencimiento: la pasada normal tarda ~8, y el tope de 25 de la
+ * diaria corta la espera del pedido, no el trabajo en el servidor. Solo una
+ * pasada que muere sin llegar al `finally` deja el turno tomado hasta que vence.
  */
 const TURNO_KEY = 'lab-provider:GRUPO_OPTICO:turno';
-const TURNO_MIN = 30;
-const ESPERA_TURNO_MIN = 12;
+const TURNO_MIN = 45;
+const ESPERA_TURNO_MIN = 8;
+type Pasada = 'completa' | 'rapida';
 
-export async function tomarTurnoDelPortal(): Promise<string | null> {
+export async function tomarTurnoDelPortal(pasada: Pasada = 'completa'): Promise<string | null> {
     const ahora = new Date();
-    const hasta = new Date(ahora.getTime() + TURNO_MIN * 60000).toISOString();
+    const hasta = `${new Date(ahora.getTime() + TURNO_MIN * 60000).toISOString()}|${pasada}`;
     await prisma.systemSetting.createMany({
         data: [{ key: TURNO_KEY, value: new Date(0).toISOString() }],
         skipDuplicates: true,
@@ -61,12 +69,24 @@ export async function tomarTurnoDelPortal(): Promise<string | null> {
     return tomado.count === 1 ? hasta : null;
 }
 
-/** Espera el turno hasta `maxMs`, preguntando cada `cadaMs`. Null si no se liberó. */
-export async function esperarTurnoDelPortal(maxMs: number, cadaMs = 20000): Promise<string | null> {
+/** Qué pasada tiene hoy el turno (null si está libre o vencido). */
+async function quienTieneElTurno(): Promise<Pasada | null> {
+    const v = (await prisma.systemSetting.findUnique({ where: { key: TURNO_KEY } }))?.value || '';
+    const [vence, pasada] = v.split('|');
+    if (!vence || vence < new Date().toISOString()) return null;
+    return pasada === 'rapida' ? 'rapida' : 'completa';
+}
+
+/**
+ * Espera el turno hasta `maxMs`, preguntando cada `cadaMs`, SOLO mientras lo
+ * tenga un pase rápido. Si lo tiene otra pasada completa, se rinde enseguida.
+ */
+export async function esperarTurnoDelPortal(maxMs: number, cadaMs = 20000, pasada: Pasada = 'completa'): Promise<string | null> {
     const limite = Date.now() + maxMs;
     for (;;) {
-        const turno = await tomarTurnoDelPortal();
+        const turno = await tomarTurnoDelPortal(pasada);
         if (turno || Date.now() + cadaMs > limite) return turno;
+        if ((await quienTieneElTurno()) === 'completa') return null;
         await new Promise(r => setTimeout(r, cadaMs));
     }
 }
@@ -128,9 +148,10 @@ export class GrupoOpticoProvider {
     static async collect(opts: { sinceDays?: number; esperarTurno?: boolean } = {}): Promise<Record<string, any>> {
         let turno: string | null = null;
         try {
+            const pasada: Pasada = opts.sinceDays ? 'rapida' : 'completa';
             turno = opts.esperarTurno
-                ? await esperarTurnoDelPortal(ESPERA_TURNO_MIN * 60000)
-                : await tomarTurnoDelPortal();
+                ? await esperarTurnoDelPortal(ESPERA_TURNO_MIN * 60000, 20000, pasada)
+                : await tomarTurnoDelPortal(pasada);
         } catch (err) {
             // Sin base para el turno se corre igual: mejor datos que silencio.
             console.error('[GrupoOptico] No se pudo tomar el turno del portal (se corre igual):', err);
@@ -314,6 +335,12 @@ export class GrupoOpticoProvider {
                 // tratarlo como "sin factura" dejaba esas ventas PENDING para siempre.
                 const raw = pedidoAmounts.get(o.num);
                 const billed: number | null = raw != null ? Math.round(raw * 100) / 100 : null;
+                // Pasada COMPLETA y sana (PDF leído entero): si el pedido no
+                // tiene líneas con su número, no tiene importe — y se borra el
+                // que esta misma fuente le hubiera puesto antes (el viejo
+                // reparto de líneas sin nº). Nunca en el pase rápido (ve solo
+                // 21 días) ni con el PDF a medias.
+                const importeAutoritativo = !opts.sinceDays && !summary.invoiceError && pedidoAmounts.size > 0;
 
                 // Los comprobantes del pedido con lo que cada uno le cobra y el
                 // link para verlo en el portal (pedido de Ishtar, 25/9/2026).
@@ -354,6 +381,7 @@ export class GrupoOpticoProvider {
                     invoiceDate: new Date(String(o.fecha).replace(' ', 'T')),
                     notes: `Pedido visto en el portal del laboratorio (${detail}).`,
                     invoiceRefs: invoiceRefs.length ? invoiceRefs : undefined,
+                    sinImporteDeEstaFuente: importeAutoritativo && billed === null,
                     // Pase rápido (ventana corta): solo COMPLETA importes faltantes;
                     // los ya registrados por la pasada completa no se pisan (el
                     // reparto de líneas con menos comprobantes daría otro número).
