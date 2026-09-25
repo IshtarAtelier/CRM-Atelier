@@ -61,6 +61,32 @@ export function parseAdTag(text?: string | null): ParsedAdTag | null {
 }
 
 /**
+ * Identificador del clic de Google Ads que viaja en el MISMO mensaje que la
+ * etiqueta: `[gclid:Cj0KCQ…]` (o `[wbraid:…]` / `[gbraid:…]`, que Google manda
+ * en iOS cuando no hay gclid). Lo agrega la landing (wa-attribution.ts) y lo
+ * lee el cron de conversiones offline para decirle a Google qué clic terminó
+ * en una venta del mostrador. Sin este código no hay forma de unir venta y
+ * anuncio: el emparejamiento por teléfono o mail solo lo acepta Google cuando
+ * el dato se cargó en un formulario del sitio, y en un chat de WhatsApp no pasa.
+ *
+ * Solo caracteres de un id real y un largo mínimo: si ValueTrack no reemplazó
+ * `{gclid}` en un sitelink, queda el literal con llaves y NO cuenta como id.
+ */
+export type ClickIdKind = 'gclid' | 'gbraid' | 'wbraid';
+export interface ParsedClickId {
+    kind: ClickIdKind;
+    id: string;
+}
+const CLICK_ID_REGEX = /\[\s*(gclid|gbraid|wbraid)\s*:\s*([A-Za-z0-9_-]{10,200})\s*\]/i;
+
+export function parseClickId(text?: string | null): ParsedClickId | null {
+    if (!text) return null;
+    const m = String(text).match(CLICK_ID_REGEX);
+    if (!m) return null;
+    return { kind: m[1].toLowerCase() as ClickIdKind, id: m[2] };
+}
+
+/**
  * Clave que se persiste en `WhatsAppChat.adTag` / `Client.adTag`.
  *
  * Meta va sin prefijo y Google con `google:` adelante. Es deliberado: hay
@@ -130,7 +156,12 @@ export function fallbackAdTag(text?: string | null): string | null {
  * `[googleBaja]` habría disparado la auto-exclusión por la palabra "baja".
  */
 export function stripAdTags(text?: string | null): string {
-    return String(text || '').replace(/\[\s*(?:meta|google|clipsjav)[^\]]*\]/gi, '').trim();
+    return String(text || '')
+        .replace(/\[\s*(?:meta|google|clipsjav)[^\]]*\]/gi, '')
+        // El id del clic tampoco es para la vendedora ni para el bot; se saca
+        // aunque venga roto (el literal `{gclid}` de un ValueTrack sin reemplazar).
+        .replace(/\[\s*(?:gclid|gbraid|wbraid)\s*:[^\]]*\]/gi, '')
+        .trim();
 }
 
 /** Plataforma a partir de una etiqueta ya guardada en la base. */

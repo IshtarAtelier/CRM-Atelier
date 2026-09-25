@@ -19,6 +19,8 @@
     "check:comprobantes": "node --experimental-strip-types scripts/checks/receipt-references.check.mjs",
     "check:origen": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/origen-deterministico.check.mjs",
     "check:landing": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/landing-atribucion.check.mjs",
+    "check:google-conv": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/google-conversiones.check.mjs",
+    "check:google-conv-base": "node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/google-conversiones-base.check.mjs",
     "check:adtag": "node --experimental-strip-types scripts/checks/ad-tag-paridad.check.mjs",
     "check:capi": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/capi-payload.check.mjs",
     "check:businessinfo": "node --experimental-strip-types scripts/checks/business-info-paridad.check.mjs",

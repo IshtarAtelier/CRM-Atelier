@@ -56,6 +56,22 @@ console.log('Bordes');
   check('espacios se van (el parser también los quita)', core.prefillAdTag(mensaje('default', { gclid: 'X', utmCampaign: 'search recetados' })) === 'google:searchrecetados');
   check('la etiqueta no dispara falsos negativos: stripAdTags la saca', !/\[google/.test(bot.stripAdTags(mensaje('default', { gclid: 'X', utmCampaign: 'baja' }))));
 }
+console.log('Clic de Google → el id del clic viaja en el mensaje (para subir la venta después)');
+{
+  const ID = 'Cj0KCQjw_abc-DEF123456789';
+  const m = mensaje('recetados', { gclid: ID });
+  check('lleva [gclid:…]', new RegExp(`\\[gclid:${ID}\\]`).test(m), m);
+  check('src lo lee', core.parseClickId(m)?.id === ID);
+  check('el bot lo lee igual', bot.parseClickId(m)?.id === ID && bot.parseClickId(m)?.kind === 'gclid');
+  check('la etiqueta de campaña sigue entera', core.prefillAdTag(m) === 'google:recetados', core.prefillAdTag(m));
+  check('stripAdTags lo saca en los dos parsers (la vendedora no lo ve)', !/gclid/.test(core.stripAdTags(m)) && !/gclid/.test(bot.stripAdTags(m)));
+  check('{gclid} sin reemplazar (ValueTrack) NO es un id', core.parseClickId('hola [gclid:{gclid}]') === null && bot.parseClickId('hola [gclid:{gclid}]') === null);
+  check('…pero igual se limpia del texto', !/gclid/.test(core.stripAdTags('hola [gclid:{gclid}]')));
+  check('wbraid cuando no hay gclid', /\[wbraid:WBRAID1234567890\]/.test(mensaje('recetados', { wbraid: 'WBRAID1234567890' })));
+  check('un gclid con basura se limpia', /\[gclid:Cj0KCQjwabcDEF123456789\]/.test(mensaje('recetados', { gclid: 'Cj0KCQjw abc<DEF>123456789' })));
+  check('sin clic de Google no hay marcador', !/\[(gclid|wbraid|gbraid):/.test(mensaje('recetados', { fbclid: 'Y', utmCampaign: 'flor' })));
+}
+
 console.log('\nProductos de la landing: catálogo REAL, nunca la lista inventada');
 {
   const { seleccionarProductosLanding, textoPrecioLanding } = await import(pathToFileURL(resolve(raiz, 'src/lib/landing/products-map.ts')).href);

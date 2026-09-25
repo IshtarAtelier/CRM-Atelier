@@ -58,6 +58,31 @@ export function etiquetaDeAnuncio(slug: string, v: DatosDeLaVisita): string | nu
     return `[${plataforma}${campana}]`;
 }
 
+/** El id del clic sin nada que no sea un id: letras, números, `_` y `-`. */
+function idDeClicLimpio(valor: string | null | undefined): string | null {
+    const limpio = String(valor || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 200);
+    return limpio.length >= 10 ? limpio : null;
+}
+
+/**
+ * El marcador del clic de Google: `[gclid:…]`, o `[wbraid:…]` / `[gbraid:…]`
+ * cuando Google no manda gclid (iOS). Es lo que después permite subir la venta
+ * del mostrador a Google como conversión offline: sin el id del clic, Google no
+ * puede unir la venta con el anuncio (ver
+ * src/services/google-offline-conversions.service.ts). Null si la visita no
+ * vino de un clic de Google. El parser que lo lee es `parseClickId()` en
+ * ad-tag-core.ts y su espejo del bot.
+ */
+export function marcadorDeClic(v: DatosDeLaVisita): string | null {
+    const gclid = idDeClicLimpio(v.gclid);
+    if (gclid) return `[gclid:${gclid}]`;
+    const wbraid = idDeClicLimpio(v.wbraid);
+    if (wbraid) return `[wbraid:${wbraid}]`;
+    const gbraid = idDeClicLimpio(v.gbraid);
+    if (gbraid) return `[gbraid:${gbraid}]`;
+    return null;
+}
+
 /**
  * La línea completa que se anexa al mensaje: legible para quien atiende, y con
  * la etiqueta al final para el bot.
@@ -74,5 +99,9 @@ export function lineaAtribucionWhatsApp(slug: string, v: DatosDeLaVisita): strin
     if (origen) line += ` · origen: ${origen}`;
     const etiqueta = etiquetaDeAnuncio(slug, v);
     if (etiqueta) line += ` ${etiqueta}`;
+    // Después de la etiqueta, el id del clic: el bot lo ignora (stripAdTags lo
+    // saca) y el CRM lo usa para subir la venta a Google.
+    const clic = marcadorDeClic(v);
+    if (clic) line += ` ${clic}`;
     return line;
 }

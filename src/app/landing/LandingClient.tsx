@@ -183,7 +183,9 @@ export function LandingClient({
   useEffect(() => {
     // Persiste UTMs + fbclid/gclid en la atribución compartida (ate_attr),
     // así la conversión se atribuye aunque el cliente compre días después.
-    captureAttribution();
+    // Devuelve lo guardado: si la persona navegó dentro del sitio antes de
+    // tocar WhatsApp, el gclid ya no está en la URL pero sigue en ate_attr.
+    const guardada = captureAttribution();
     try {
       const p = new URLSearchParams(window.location.search);
       let referrerHost = "";
@@ -198,9 +200,9 @@ export function LandingClient({
         lineaAtribucionWhatsApp(config.slug, {
           utmSource: p.get("utm_source"),
           utmCampaign: p.get("utm_campaign"),
-          gclid: p.get("gclid"),
-          gbraid: p.get("gbraid"),
-          wbraid: p.get("wbraid"),
+          gclid: p.get("gclid") || guardada.gclid || null,
+          gbraid: p.get("gbraid") || guardada.gbraid || null,
+          wbraid: p.get("wbraid") || guardada.wbraid || null,
           fbclid: p.get("fbclid"),
           referrerHost,
         }),

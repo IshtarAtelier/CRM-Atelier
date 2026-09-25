@@ -41,6 +41,26 @@ function parseAdTag(text) {
 }
 
 /**
+ * Identificador del clic de Google Ads que viaja en el MISMO mensaje que la
+ * etiqueta: `[gclid:Cj0KCQ…]` (o `[wbraid:…]` / `[gbraid:…]` en iOS). Lo agrega
+ * la landing y lo lee el cron de conversiones offline del CRM. Espejo exacto de
+ * `parseClickId` en ad-tag-core.ts. El literal `{gclid}` (ValueTrack sin
+ * reemplazar) no cuenta como id: solo letras, números, `_`, `-` y largo mínimo.
+ */
+const CLICK_ID_REGEX = /\[\s*(gclid|gbraid|wbraid)\s*:\s*([A-Za-z0-9_-]{10,200})\s*\]/i;
+
+/**
+ * @param {string|null|undefined} text
+ * @returns {{kind: 'gclid'|'gbraid'|'wbraid', id: string}|null}
+ */
+function parseClickId(text) {
+  if (!text) return null;
+  const m = String(text).match(CLICK_ID_REGEX);
+  if (!m) return null;
+  return { kind: m[1].toLowerCase(), id: m[2] };
+}
+
+/**
  * Clave que se persiste en WhatsAppChat.adTag / Client.adTag. Meta sin prefijo
  * (hay historial guardado así y los reportes lo cruzan por ese valor exacto),
  * Google con `google:` adelante.
@@ -106,7 +126,12 @@ function fallbackAdTag(text) {
  * @returns {string}
  */
 function stripAdTags(text) {
-  return String(text || '').replace(/\[\s*(?:meta|google|clipsjav)[^\]]*\]/gi, '').trim();
+  return String(text || '')
+    .replace(/\[\s*(?:meta|google|clipsjav)[^\]]*\]/gi, '')
+    // El id del clic tampoco es para la vendedora ni para el bot; se saca
+    // aunque venga roto (el literal `{gclid}` de un ValueTrack sin reemplazar).
+    .replace(/\[\s*(?:gclid|gbraid|wbraid)\s*:[^\]]*\]/gi, '')
+    .trim();
 }
 
-module.exports = { parseAdTag, prefillAdTag, fallbackAdTag, stripAdTags, AD_TAG_REGEX };
+module.exports = { parseAdTag, prefillAdTag, fallbackAdTag, stripAdTags, parseClickId, AD_TAG_REGEX };

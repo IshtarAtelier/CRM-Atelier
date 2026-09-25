@@ -72,9 +72,16 @@ const CORPUS = [
   'LOS VI EN META',
   'los vi en metadona',                  // borde de palabra → null
   'vi en meta',                          // frase incompleta → null
+  // Id del clic de Google (viaja junto a la etiqueta desde la landing).
+  '[googlerecetados] [gclid:Cj0KCQjw_abc-DEF123456789] hola',
+  'hola [gclid:{gclid}]',                // ValueTrack sin reemplazar → null
+  '[wbraid:WBRAID1234567890] consulta',
+  '[GCLID:Cj0KCQjw_abc-DEF123456789]',   // mayúsculas en la clave
+  '[gclid:corto]',                       // muy corto para ser un id → null
+  '[gclid: con espacios ]',              // no es un id → null
 ];
 
-const FUNCIONES = ['parseAdTag', 'prefillAdTag', 'fallbackAdTag', 'stripAdTags'];
+const FUNCIONES = ['parseAdTag', 'prefillAdTag', 'fallbackAdTag', 'stripAdTags', 'parseClickId'];
 
 let fallas = 0;
 let comparaciones = 0;
