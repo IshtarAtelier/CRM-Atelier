@@ -199,9 +199,13 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   solo 3 y 6; "fijas" sí), y donde se muestra un IMPORTE de cuota (checkout,
   fichas, PDFs), ese importe sale de `PricingService` / `leerPromoCuotas()` con
   el recargo adentro (lista × 1,10 ÷ 12) — el número real no se disfraza, se
-  saca solo la LEYENDA. El % escrito sobrevive en DOS lugares: los T&C
-  (información contractual) y los labels de método de pago de recibos/cotizador
-  tipo "MP 12c Ish (+10%)" (documentan un cobro). El bot tampoco lo menciona
+  saca solo la LEYENDA. El % escrito sobrevive en TRES lugares: los T&C
+  (información contractual), los labels de método de pago de recibos/cotizador
+  tipo "MP 12c Ish (+10%)" (documentan un cobro), y la línea "Costo financiero
+  (10%) +$X" del resumen del checkout con 12 cuotas elegidas (Ishtar, 25/9/2026:
+  el "+$16.000" a secas "es raro"; `ETIQUETA_COSTO_FINANCIERO_MP`). Opciones de
+  pago, chips y botón del checkout siguen sin el %. No escribir "CFT": en
+  Argentina es una tasa anual regulada y el 10% no es ese número. El bot tampoco lo menciona
   espontáneamente: solo si el cliente pregunta por qué el total de 12 es más
   alto. El recargo vive en `RECARGO_MP_CUOTAS_LARGAS`
   (`src/lib/constants/descuentos.ts`) y la redacción única en

@@ -20,6 +20,12 @@
  *   Se saca la LEYENDA del porcentaje, nunca el número real.
  * - Los labels de MÉTODO DE PAGO en recibos y cotizador ("MP 12c Ish (+10%)")
  *   no son marketing: documentan un cobro y no se tocan.
+ * - La línea del RESUMEN DEL CHECKOUT que suma el recargo al total
+ *   ("Costo financiero (10%) +$16.000", `ETIQUETA_COSTO_FINANCIERO_MP`) lleva
+ *   el %: pedido de Ishtar del 25/9/2026 — sin él, "+$16.000" a secas se leía
+ *   raro. Es la misma lógica que los recibos: documenta el cobro que la
+ *   persona está por hacer, no lo promociona. El resto del checkout (opciones
+ *   de pago, chips, botón) sigue sin el %.
  *
  * LO OTRO QUE VIVE ACÁ: leer `web_promo_installments` SIN PODER MENTIR.
  * Ese setting es texto libre que se carga desde /admin/web, y tres pantallas
@@ -33,6 +39,7 @@
  */
 
 import { BUSINESS_INFO } from './business-info';
+import { RECARGO_MP_CUOTAS_LARGAS } from './constants/descuentos';
 
 /**
  * Cómo se nombran las 12 cuotas cuando NO se muestra el importe
@@ -45,6 +52,14 @@ export const TEXTO_MP_CUOTAS_LARGAS = 'Hasta 12 cuotas fijas';
  * (tablas de dos columnas: etiqueta a la izquierda, "12 x $X" a la derecha).
  */
 export const ETIQUETA_MP_CUOTAS_LARGAS = '12 cuotas fijas';
+
+/**
+ * La línea del resumen del checkout que explica por qué el total de 12 cuotas
+ * es más alto que el subtotal. ÚNICA superficie de venta que dice el % (ver
+ * arriba). No se escribe "CFT": en Argentina el CFT es una tasa anual
+ * regulada y este 10% no es ese número.
+ */
+export const ETIQUETA_COSTO_FINANCIERO_MP = `Costo financiero (${RECARGO_MP_CUOTAS_LARGAS}%)`;
 
 /**
  * Cómo se nombran las 12 cuotas CON el importe ya resuelto.

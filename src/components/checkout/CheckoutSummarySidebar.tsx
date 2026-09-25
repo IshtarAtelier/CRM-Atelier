@@ -6,7 +6,7 @@ import { CouponField, type AppliedCoupon } from "@/components/checkout/CouponFie
 import { getItemUnitPrice } from "@/store/useCart";
 import { PricingService, type TotalesCheckout } from "@/services/PricingService";
 import { recetaPendiente } from '@/lib/checkout/receta';
-import { ETIQUETA_MP_CUOTAS_LARGAS } from '@/lib/promo-cuotas';
+import { ETIQUETA_COSTO_FINANCIERO_MP, ETIQUETA_MP_CUOTAS_LARGAS } from '@/lib/promo-cuotas';
 import { formatearPrecio, precioConSigno } from '@/lib/format-precio';
 
 /*
@@ -123,11 +123,11 @@ export function ResumenTotales({ totales, appliedCoupon, isWholesale, descuentoT
 
       {/* El plan de 12 cuotas cuesta más que la lista, y el resumen tiene que
           sumar: sin esta línea el total salta de $160.000 a $176.000 sin
-          explicación. Se nombra el PLAN, nunca el porcentaje (regla de
-          comunicación de Ishtar del 31/8, ver promo-cuotas.ts). */}
+          explicación. Esta línea SÍ dice el % (Ishtar, 25/9/2026): documenta
+          el cobro, como los recibos. Ver promo-cuotas.ts. */}
       {totales.recargoCuotas > 0 && (
         <div className="flex justify-between text-sm text-stone-600 animate-in fade-in">
-          <span>Plan {ETIQUETA_MP_CUOTAS_LARGAS}</span>
+          <span>{ETIQUETA_COSTO_FINANCIERO_MP}</span>
           <span>+{precioConSigno(totales.recargoCuotas)}</span>
         </div>
       )}

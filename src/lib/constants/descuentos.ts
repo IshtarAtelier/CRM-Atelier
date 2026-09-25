@@ -38,7 +38,8 @@ export const OPCIONES_RECARGO_CUOTAS = [0, 5, 10];
  * recargo va ADENTRO de todo importe que se muestre (PricingService), y las
  * 12 jamás se anuncian "sin interés" (sin interés son solo 3 y 6). La
  * redacción única vive en `src/lib/promo-cuotas.ts`; el % escrito con todas
- * las letras sobrevive solo en los T&C (información contractual) y en los
+ * las letras sobrevive solo en los T&C (información contractual), en la
+ * línea de costo financiero del resumen del checkout (Ishtar, 25/9/2026) y en los
  * labels de método de pago de recibos/cotizador (documentan un cobro).
  *
  * No es negociable por venta (a diferencia de `discountCard`): es fijo, y la
