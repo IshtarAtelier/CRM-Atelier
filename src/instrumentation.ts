@@ -7,8 +7,23 @@
 // despertador externo (cron-job.org): si se pausaba o quedaba con el secret viejo,
 // el robot grande no corría y las alertas de costos quedaban mudas. Al vivir acá
 // adentro ya no depende de nada externo — corre sí o sí mientras el server esté vivo.
+//
+// "Mientras el server esté vivo" incluía CUALQUIER server: hasta el 25/9/2026 un
+// `npm run dev` con el .env real (que trae CRON_SECRET y las credenciales de mail,
+// Meta y SmartLab) disparaba todo esto contra la base local — mails de laboratorio
+// incluidos. Ahora solo se prende en producción; quién decide y por qué está en
+// `lib/cron-scheduler.ts`. Para probar un cron en local: CRONS_LOCALES=1.
 export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
+        // Antes de armar un solo timer. Lo fija `npm run check:crons`.
+        const { decidirScheduler } = await import('@/lib/cron-scheduler');
+        const decision = decidirScheduler(process.env);
+        if (!decision.prender) {
+            console.log(`[CRON] Scheduler APAGADO: ${decision.motivo}.`);
+            return;
+        }
+        console.log(`[CRON] Scheduler prendido: ${decision.motivo}.`);
+
         const INTERVAL_MS = 10 * 60 * 1000; // 10 minutos (pedido: revisión cada 10 min)
 
         // Hora/fecha de pared en Argentina (UTC-3), con corte de día correcto.
