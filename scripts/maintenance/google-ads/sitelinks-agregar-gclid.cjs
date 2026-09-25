@@ -17,7 +17,11 @@
 const { search, mutate } = require('../../ads/lib/google_client');
 
 const APLICAR = process.argv.includes('--aplicar');
-const SUFIJO = encodeURIComponent(' [gclid:{gclid}]');
+// `{gclid}` va con llaves LITERALES: Google solo reemplaza el ValueTrack así.
+// El 25/9/2026 se aplicó codificado (%7Bgclid%7D) y ningún clic llegaba al
+// mensaje; el resto del texto sí va codificado.
+const SUFIJO = encodeURIComponent(' [gclid:') + '{gclid}' + encodeURIComponent(']');
+const CODIFICADO = /%20%5Bgclid%3A%7Bgclid%7D%5D$/i;
 
 (async () => {
   const filas = await search(
@@ -32,9 +36,10 @@ const SUFIJO = encodeURIComponent(' [gclid:{gclid}]');
     vistos.add(rn);
     const url = (r.asset.finalUrls || [])[0] || '';
     if (!/wa\.me/.test(url)) { console.log(`  (${r.campaign.name}) "${r.asset.sitelinkAsset.linkText}": no va al WhatsApp, no se toca`); continue; }
-    if (/gclid/.test(url)) { console.log(`  (${r.campaign.name}) "${r.asset.sitelinkAsset.linkText}": ya manda el clic`); continue; }
-    const nueva = url + SUFIJO;
-    console.log(`  (${r.campaign.name}) "${r.asset.sitelinkAsset.linkText}"\n     antes:   …${decodeURIComponent(url).slice(-60)}\n     después: …${decodeURIComponent(nueva).slice(-60)}`);
+    if (/\{gclid\}/.test(url)) { console.log(`  (${r.campaign.name}) "${r.asset.sitelinkAsset.linkText}": ya manda el clic`); continue; }
+    // Si quedó la versión codificada, se reemplaza; si no hay nada, se agrega.
+    const nueva = CODIFICADO.test(url) ? url.replace(CODIFICADO, SUFIJO) : url + SUFIJO;
+    console.log(`  (${r.campaign.name}) "${r.asset.sitelinkAsset.linkText}"\n     antes:   …${url.slice(-45)}\n     después: …${nueva.slice(-45)}`);
     ops.push({ update: { resourceName: rn, finalUrls: [nueva] }, updateMask: 'final_urls' });
   }
   if (!ops.length) { console.log('Nada para cambiar.'); return; }
@@ -42,6 +47,6 @@ const SUFIJO = encodeURIComponent(' [gclid:{gclid}]');
   await mutate('assets:mutate', { operations: ops, partialFailure: false, validateOnly: !APLICAR }, { confirm: true });
   if (!APLICAR) { console.log('✅ Google aceptó la operación. No se cambió nada.'); return; }
   const despues = await search(`SELECT asset.resource_name, asset.final_urls FROM asset WHERE asset.resource_name IN (${[...vistos].map((v) => `'${v}'`).join(',')})`);
-  const conClic = despues.filter((r) => /gclid/.test((r.asset.finalUrls || [])[0] || '')).length;
+  const conClic = despues.filter((r) => /\{gclid\}/.test((r.asset.finalUrls || [])[0] || '')).length;
   console.log(`✅ Aplicado. VERIFICACIÓN: ${conClic} de ${despues.length} sitelinks mandan el clic.`);
 })().catch((e) => { console.error('ERROR', e.message, e.guidance || ''); process.exit(1); });
