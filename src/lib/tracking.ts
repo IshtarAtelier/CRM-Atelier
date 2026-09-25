@@ -15,6 +15,7 @@
  * dos veces: el server-side resiste adblock/ITP, el del navegador llega antes.
  */
 import { track } from '@/lib/client-analytics';
+import { navegadorEsInterno } from '@/lib/trafico-interno';
 
 /** Id de deduplicación Pixel ↔ CAPI. Único por evento, no por producto. */
 function newEventId(): string {
@@ -39,9 +40,15 @@ function newEventId(): string {
  * rechazó el consentimiento y no hay que insistir. La analítica propia
  * (`track()`) es independiente de esto y sigue registrando el evento, que es
  * desde donde el server lo espeja al Conversions API.
+ *
+ * En un navegador del equipo (src/lib/trafico-interno.ts) no se espera nada:
+ * TrackingScripts no carga ni el píxel ni gtag ahí, así que el tag no va a
+ * aparecer. Esta guarda es la segunda puerta: si algún día se cargaran por otro
+ * lado, igual no se les manda nada.
  */
 function whenTagReady(name: 'fbq' | 'gtag', fn: (tag: (...args: any[]) => void) => void) {
   if (typeof window === 'undefined') return;
+  if (navegadorEsInterno()) return;
   const w = window as any;
   if (typeof w[name] === 'function') {
     fn(w[name]);

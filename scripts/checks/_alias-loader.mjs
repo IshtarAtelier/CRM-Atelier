@@ -22,6 +22,12 @@ export function resolve(especificador, contexto, siguiente) {
         }
         return { url: pathToFileURL(base).href, shortCircuit: true };
     }
+    // `next/server` y compañía: Next no declara `exports` en su package.json,
+    // así que Node ESM no los encuentra sin la extensión. Sin esto, ningún
+    // check puede importar una ruta API o el middleware REALES.
+    if (/^next\/[a-z-]+$/.test(especificador)) {
+        return siguiente(`${especificador}.js`, contexto);
+    }
     // Import relativo sin extensión (estilo TS) desde un archivo .ts.
     // Ojo: `path.extname('./cash.service')` devuelve '.service' — hay que mirar
     // la lista real de extensiones, no si "tiene punto".

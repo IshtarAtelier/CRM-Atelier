@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
+import { conGuardaInterno } from "@/lib/trafico-interno";
 
 interface TrackingScriptsProps {
   /** Medición de GA4 (G-XXXXXXXXXX). Lo resuelve el layout en el servidor. */
@@ -112,7 +113,10 @@ export function TrackingScripts({
 
   const gtagInit = [
     "window.dataLayer = window.dataLayer || [];",
-    "function gtag(){window.dataLayer.push(arguments);}",
+    // Asignado a `window` y no declarado con `function gtag(){}`: el snippet va
+    // dentro del `if` de conGuardaInterno, y una declaración de función dentro
+    // de un bloque depende de reglas de compatibilidad del navegador.
+    "window.gtag = function gtag(){window.dataLayer.push(arguments);};",
     `gtag('consent', 'default', {
       ad_storage: 'granted',
       ad_user_data: 'granted',
@@ -165,6 +169,13 @@ export function TrackingScripts({
     fbq("track", "PageView");
   }, [pathname, pixelActivo]);
 
+  // Los dos snippets van envueltos en conGuardaInterno: en un navegador del
+  // equipo (cookie `ate_interno`, ver src/lib/trafico-interno.ts) no se carga
+  // ni gtag ni el píxel, así que ninguna prueba nuestra le llega a Meta ni a
+  // Google como visita, carrito o contacto. Se decide en el navegador al
+  // ejecutar, no acá al renderizar: estas páginas salen del HTML estático del
+  // build, igual para todos. Las compras de alguien del equipo igual le llegan
+  // a Meta por el servidor (registrarCompraWeb no mira la cookie).
   return (
     <>
       {/* Google tag (gtag.js) — GA4 + Google Ads en una sola carga */}
@@ -174,7 +185,7 @@ export function TrackingScripts({
               `gtag()` y los `config` quedan inmediatos y encolan en dataLayer,
               así ninguna conversión se pierde — se manda cuando llega el loader. */}
           <Script id="google-gtag" strategy="afterInteractive">
-            {gtagInit + "\n" + cargaDiferida(`https://www.googletagmanager.com/gtag/js?id=${primaryGtagId}`)}
+            {conGuardaInterno(gtagInit + "\n" + cargaDiferida(`https://www.googletagmanager.com/gtag/js?id=${primaryGtagId}`))}
           </Script>
         </>
       )}
@@ -189,7 +200,7 @@ export function TrackingScripts({
           teléfono y nombre hasheados por el Conversions API. */}
       {META_PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">
-          {`
+          {conGuardaInterno(`
             !function(f,n)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
             n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -200,7 +211,7 @@ export function TrackingScripts({
             /* Solo la vista en la que se monta el Pixel. Las navegaciones
                siguientes las manda el useEffect de arriba. */
             fbq('track', 'PageView');
-          `}
+          `)}
         </Script>
       )}
     </>

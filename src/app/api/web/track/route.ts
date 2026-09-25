@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { recordEvents, sanitizeEvents, type AnalyticsEventInput } from '@/lib/analytics';
 import { AdsService } from '@/services/ads.service';
+import { esTraficoInterno } from '@/lib/trafico-interno';
 
 /**
  * Ingesta de analítica propia. Público, liviano y no bloqueante.
@@ -49,7 +50,8 @@ const CAPI_EVENT: Record<string, 'ViewContent' | 'AddToCart' | 'InitiateCheckout
  * Corre para todo el tráfico: el cartel de cookies se retiró del sitio el
  * 13/8/2026 (decisión del dueño; la Ley 25.326 no lo exige en Argentina). El
  * gate anterior por la cookie `ate_consent` dejaba el espejo casi apagado —
- * los públicos de remarketing web juntaban ~20 personas.
+ * los públicos de remarketing web juntaban ~20 personas. La única excepción
+ * es el equipo, que se filtra antes de llegar acá (ver POST).
  */
 function mirrorToMetaCapi(events: AnalyticsEventInput[], req: Request) {
   const fbp = readCookie(req, '_fbp');
@@ -82,6 +84,12 @@ function mirrorToMetaCapi(events: AnalyticsEventInput[], req: Request) {
 
 export async function POST(req: Request) {
   try {
+    // Navegador del equipo (ver src/lib/trafico-interno.ts): ni a Meta ni a la
+    // analítica propia. Se corta acá y no en el cliente porque este es el único
+    // camino al CAPI: un bundle viejo cacheado o un script que no mire la
+    // cookie igual pasa por esta puerta. Las compras no entran por esta ruta.
+    if (esTraficoInterno(req.headers.get('cookie'))) return ended();
+
     // Rate limit generoso por IP (una visita normal emite varios eventos/min).
     const rl = checkRateLimit(`track:${clientIp(req)}`, { limit: 240, windowMs: 60_000 });
     if (!rl.success) return ended();

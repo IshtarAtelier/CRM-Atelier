@@ -112,6 +112,13 @@ jobs:
       - name: Crons internos solo en producción
         run: npm run check:crons
 
+      # /api/web/track espejaba a Meta (CAPI) cada prueba del equipo como si
+      # fuera un cliente. Esto fija que un navegador marcado (`ate_interno`) no
+      # le cuente nada a Meta ni a Google, que los clientes sí, y que las
+      # compras no miren la marca.
+      - name: Tráfico del equipo fuera de Meta
+        run: npm run check:interno
+
       - name: Tipo de lente (la adición manda, no una etiqueta)
         run: npm run check:receta
 
