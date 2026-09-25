@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import { montosPorPedido } from '../../src/services/lab-providers/grupo-optico-invoices.ts';
 import { juntarComprobantes, linkGmail, comprobanteDeArchivo } from '../../src/services/lab-recon/types.ts';
 import { comprobantesHtml } from '../../src/services/lab-recon/comprobantes-html.ts';
+import { evaluarConteo } from '../../src/services/lab-providers/grupo-optico.provider.ts';
 
 const comprobante = (invoiceNumber, lineas, unattributed = 0) => ({
     invoiceNumber, total: null, faImporte: null, descuento: 0.8,
@@ -74,6 +75,31 @@ const casos = [
     }],
     ['juntar comprobantes: nada de ningún lado es null', () => {
         assert.equal(juntarComprobantes(null, undefined), null);
+    }],
+
+    // ── El PDF de comprobantes: cuándo se usa y cuándo se puede borrar ──
+    ['PDF entero (640 contra 640): se usan los importes y se puede borrar', () => {
+        assert.deepEqual(evaluarConteo(640, 640, 0), { usarImportes: true, completo: true, nuevaBase: 640, nuevoDudoso: 0 });
+    }],
+    ['PDF con el 95% (600 contra 640): se usan los importes pero NO se borra nada', () => {
+        const d = evaluarConteo(600, 640, 0);
+        assert.equal(d.usarImportes, true);
+        assert.equal(d.completo, false);
+    }],
+    ['PDF a medias (374 contra 640): no se tocan importes y queda anotado como dudoso', () => {
+        assert.deepEqual(evaluarConteo(374, 640, 0), { usarImportes: false, completo: false, nuevaBase: null, nuevoDudoso: 374 });
+    }],
+    ['dos PDFs a medias DISTINTOS seguidos (374 y 195): se siguen rechazando', () => {
+        assert.equal(evaluarConteo(195, 640, 374).usarImportes, false);
+    }],
+    ['dos pasadas SEGUIDAS que coinciden en un conteo bajo (500 y 501): el portal cambió, nueva base, sin borrar', () => {
+        assert.deepEqual(evaluarConteo(501, 640, 500), { usarImportes: true, completo: false, nuevaBase: 501, nuevoDudoso: 0 });
+    }],
+    ['primera pasada tras el deploy (sin base): se usan los importes pero NO se borra nada', () => {
+        assert.deepEqual(evaluarConteo(640, 0, 0), { usarImportes: true, completo: false, nuevaBase: 640, nuevoDudoso: 0 });
+    }],
+    ['PDF vacío: no hay importes', () => {
+        assert.equal(evaluarConteo(0, 0, 0).usarImportes, false);
     }],
 
     ['link a Gmail por Message-ID, en la cuenta que lo recibió', () => {

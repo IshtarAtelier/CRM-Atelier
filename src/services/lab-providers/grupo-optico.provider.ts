@@ -105,7 +105,39 @@ export async function soltarTurnoDelPortal(hasta: string) {
  * sana la cantidad solo crece: la era CRM no pierde comprobantes.
  */
 const CONTEO_KEY = 'lab-provider:GRUPO_OPTICO:comprobantes';
+const CONTEO_DUDOSO_KEY = 'lab-provider:GRUPO_OPTICO:comprobantes-dudoso';
 const CONTEO_MINIMO = 0.9;
+
+/**
+ * Qué hacer con los comprobantes que leyó una pasada COMPLETA. Pura: la prueba
+ * `npm run check:go-lineas`.
+ *
+ *  - `usarImportes`: si se pueden escribir los importes. No, si el PDF trae
+ *    menos del 90% de la última pasada buena (vino a medias).
+ *  - `completo`: si además se puede BORRAR el importe de un pedido sin líneas
+ *    (sinImporteDeEstaFuente). Solo con al menos los comprobantes de la última
+ *    pasada buena, y nunca sin una base (la primera pasada tras el deploy): un
+ *    PDF con el 95% pasaría el control y borraría los pedidos del 5% faltante.
+ *  - Autocorrección: un PDF a medias sale distinto cada vez (374, 195, 130,
+ *    463 en septiembre de 2026). Si dos pasadas completas SEGUIDAS coinciden en
+ *    un conteo bajo, el portal cambió de verdad (comprobantes depurados, un
+ *    tope nuevo) y ese conteo pasa a ser la base. Sin esto, un cambio así
+ *    dejaba a Grupo Óptico sin importes para siempre. Al aceptarlo no se borra
+ *    nada: un comprobante depurado no quiere decir que el pedido no se cobró.
+ */
+export function evaluarConteo(n: number, previo: number, dudoso: number): {
+    usarImportes: boolean; completo: boolean; nuevaBase: number | null; nuevoDudoso: number | null;
+} {
+    const bajo = previo > 0 && n < previo * CONTEO_MINIMO;
+    const confirmaElDudoso = bajo && dudoso > 0 && Math.abs(n - dudoso) <= Math.max(2, dudoso * 0.02);
+    if (bajo && !confirmaElDudoso) return { usarImportes: false, completo: false, nuevaBase: null, nuevoDudoso: n };
+    return {
+        usarImportes: n > 0,
+        completo: previo > 0 && n >= previo,
+        nuevaBase: n > 0 ? n : null,
+        nuevoDudoso: 0,
+    };
+}
 
 /**
  * Link al PDF de un comprobante en el portal: el mismo que arma su página al
@@ -289,6 +321,9 @@ export class GrupoOpticoProvider {
             // líneas sin nº no se le asignan a nadie. Si falla, seguimos sin importes.
             let pedidoAmounts = new Map<string, number>();
             let porComprobante = new Map<string, Map<string, number>>();
+            // ¿Se puede borrar el importe de un pedido sin líneas? Solo con el
+            // PDF entero (ver evaluarConteo).
+            let pdfCompleto = false;
             try {
                 const res = await buildPedidoAmountMap(page, clientId, auditStart, new Date());
                 pedidoAmounts = res.amounts;
@@ -302,21 +337,27 @@ export class GrupoOpticoProvider {
                 summary.comprobantesConDescuento = res.stats.conDescuento;
                 summary.descuentoPromedio = res.stats.descuentoPromedio;
 
-                // PDF a medias (ver CONTEO_KEY): no se tocan importes.
+                // PDF a medias (ver evaluarConteo): no se tocan importes.
                 if (!opts.sinceDays) {
-                    const previo = Number((await prisma.systemSetting.findUnique({ where: { key: CONTEO_KEY } }).catch(() => null))?.value || 0);
-                    if (previo > 0 && res.stats.invoices < previo * CONTEO_MINIMO) {
-                        summary.invoiceError = `PDF de comprobantes incompleto: ${res.stats.invoices} comprobantes contra ${previo} de la última pasada completa. No se tocaron importes.`;
+                    const leer = async (key: string) => Number((await prisma.systemSetting.findUnique({ where: { key } }).catch(() => null))?.value || 0);
+                    const guardar = (key: string, value: number) => prisma.systemSetting.upsert({
+                        where: { key }, update: { value: String(value) }, create: { key, value: String(value) },
+                    }).catch(err => console.error(`[GrupoOptico] No se pudo guardar ${key}:`, err));
+                    const previo = await leer(CONTEO_KEY);
+                    const decision = evaluarConteo(res.stats.invoices, previo, await leer(CONTEO_DUDOSO_KEY));
+                    if (decision.nuevoDudoso !== null) await guardar(CONTEO_DUDOSO_KEY, decision.nuevoDudoso);
+                    if (decision.nuevaBase !== null) await guardar(CONTEO_KEY, decision.nuevaBase);
+                    if (!decision.usarImportes) {
+                        summary.invoiceError = res.stats.invoices === 0
+                            ? 'No llegó el PDF de comprobantes (o vino vacío). No se tocaron importes.'
+                            : `PDF de comprobantes incompleto: ${res.stats.invoices} comprobantes contra ${previo} de la última pasada completa. No se tocaron importes.`;
                         console.error(`[GrupoOptico] ${summary.invoiceError}`);
                         pedidoAmounts = new Map();
                         porComprobante = new Map();
-                    } else if (res.stats.invoices > 0) {
-                        await prisma.systemSetting.upsert({
-                            where: { key: CONTEO_KEY },
-                            update: { value: String(res.stats.invoices) },
-                            create: { key: CONTEO_KEY, value: String(res.stats.invoices) },
-                        }).catch(err => console.error('[GrupoOptico] No se pudo guardar el conteo de comprobantes:', err));
+                    } else if (previo > 0 && res.stats.invoices < previo * CONTEO_MINIMO) {
+                        console.warn(`[GrupoOptico] Dos pasadas seguidas leyeron ${res.stats.invoices} comprobantes (antes ${previo}): el portal cambió; se toma como nueva base.`);
                     }
+                    pdfCompleto = decision.completo;
                 }
             } catch (err: any) {
                 console.error('[GrupoOptico] No se pudo obtener el PDF de facturas (se sigue sin importes):', err);
@@ -340,7 +381,7 @@ export class GrupoOpticoProvider {
                 // que esta misma fuente le hubiera puesto antes (el viejo
                 // reparto de líneas sin nº). Nunca en el pase rápido (ve solo
                 // 21 días) ni con el PDF a medias.
-                const importeAutoritativo = !opts.sinceDays && !summary.invoiceError && pedidoAmounts.size > 0;
+                const importeAutoritativo = !opts.sinceDays && !summary.invoiceError && pedidoAmounts.size > 0 && pdfCompleto;
 
                 // Los comprobantes del pedido con lo que cada uno le cobra y el
                 // link para verlo en el portal (pedido de Ishtar, 25/9/2026).
