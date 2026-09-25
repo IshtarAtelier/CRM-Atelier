@@ -1,3 +1,4 @@
+import { describirConfiguracion, tieneCristales } from '@/lib/cristales-web/claves';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
@@ -304,9 +305,7 @@ async function enviarCorreos(opts: {
   const { order, ctx } = opts;
   const { customer, items, shippingMethodLabel, emailTotal } = ctx;
 
-  const hasCrystals = items.some(
-    (item: any) => item.lensConfig && (item.lensConfig.lensType !== 'NONE' || item.lensConfig.color),
-  );
+  const hasCrystals = items.some((item: any) => tieneCristales(item.lensConfig));
 
   // Mismo desglose que usa la rama de Payway para el mail de administración.
   const itemsHtml = items
@@ -317,12 +316,10 @@ async function enviarCorreos(opts: {
           <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${item.brand || 'ATELIER'}</p>
           <p style="margin: 5px 0 0; font-size: 16px; color: #000;">${item.model}</p>
           ${
-            item.lensConfig && (item.lensConfig.lensType !== 'NONE' || item.lensConfig.color)
+            tieneCristales(item.lensConfig)
               ? `
             <p style="margin: 5px 0 0; font-size: 12px; color: #666;">
-              Cristales: ${item.lensConfig.lensType === 'NONE' ? 'Sin Aumento' : item.lensConfig.lensType}
-              ${item.lensConfig.treatment ? `- ${item.lensConfig.treatment.replace(/_/g, ' ')}` : ''}
-              ${item.lensConfig.color ? `<br/>Tinte: ${item.lensConfig.color}` : ''}
+              Cristales: ${describirConfiguracion(item.lensConfig)}
               ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
             </p>
           `

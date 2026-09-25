@@ -1,5 +1,6 @@
 "use client";
 
+import { tieneCristales } from '@/lib/cristales-web/claves';
 import { useCart } from "@/store/useCart";
 import { calcular2x1Armazones, armazonesDelCarrito } from "@/lib/promo-2x1-armazones";
 import { usePromo2x1 } from "@/hooks/usePromo2x1";
@@ -108,7 +109,7 @@ export function CheckoutClient({
     }
   }, [mounted, items]);
 
-  const hasCrystals = items.some(item => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
+  const hasCrystals = items.some(item => tieneCristales(item.lensConfig));
 
   // Método preseleccionado. Mercado Pago manda mientras sea la pasarela
   // principal; Payway solo si está visible; y si no hay ninguna tarjeta, la

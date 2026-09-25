@@ -85,6 +85,7 @@ jobs:
           npm run check:promo
           npm run check:promo2x1web
           npm run check:oferta
+          npm run check:cristales
           npm run check:comprobantes
           npm run check:adtag
           npm run check:capi

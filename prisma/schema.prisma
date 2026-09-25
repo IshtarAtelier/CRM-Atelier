@@ -364,6 +364,7 @@ model Product {
   salePrice             Float? // Precio de oferta web ("precio tachado"). Si es > 0 y < price, se muestra y se cobra este.
   orderItems            OrderItem[]
   webProducts           WebProduct[]
+  webLensOptions        WebLensOption[]
 
   @@index([name])
   @@index([brand])
@@ -915,6 +916,32 @@ model WebProduct {
   @@index([productId])
   @@index([category])
 }
+
+// Opciones de cristal del configurador "Arma tus lentes" de la tienda, con el
+// producto del sistema al que apunta cada una. Es la ÚNICA fuente del precio
+// que publica y cobra la web: sin producto vinculado no hay opción, y nunca un
+// número escrito a mano. Se edita en /admin/web → Cristales. Ver docs/cristales-web.md.
+model WebLensOption {
+  // 'MONOFOCAL.ORGANICO_AR', 'TENIDO.COMPACTO'… Es la misma clave que viaja en
+  // lensConfig.treatment de los carritos guardados en los navegadores: no se
+  // renombra nunca. Agregar una opción es agregar una fila (y su card).
+  clave       String   @id
+  grupo       String   // MONOFOCAL | BIFOCAL | MULTIFOCAL | TENIDO
+  codigo      String   // la parte después del punto
+  etiqueta    String   // título comercial de la card ("Super Blue")
+  descripcion String?
+  badge       String?  // "MÁS ELEGIDO ⭐"
+  destacados  String[] @default([]) // los tres bullets de la card
+  orden       Int      @default(0)
+  activa      Boolean  @default(true)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @default(now()) @updatedAt
+  updatedBy   String?
+
+  @@index([productId])
+}
+
 
 model LaboratoryConfig {
   id           String   @id @default(cuid())

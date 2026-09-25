@@ -5,10 +5,12 @@ import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { sendEmail } from '@/lib/email';
 import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
 import { getWebSettings } from '@/lib/web-settings';
-import { CrystalMapping } from '@/lib/config/crystal-mapping';
+import { resolverOpcionesDeCristal } from '@/services/cristales-web.service';
+import { describirConfiguracion, indexarOpciones, tieneCristales, variluxHabilita2x1 } from '@/lib/cristales-web/claves';
+import { precioPorOjo, type ResultadoCalculo } from '@/lib/cristales-web/calculo';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
-import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
+import { calcularItemDeCarrito, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
 import { calcular2x1Armazones } from '@/lib/promo-2x1-armazones';
 import { isFrame } from '@/lib/promo-utils';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
@@ -98,70 +100,6 @@ function getArgentineStateCode(stateName: string): string {
       }
       return "C";
   }
-}
-
-// Helper to find the matched product by mapping configuration (lowest price to match findPrice logic)
-function findMatchedProduct(crystals: any[], config: any) {
-  let matches = crystals;
-  if (config.type) {
-    matches = matches.filter(p => p.type === config.type);
-  }
-  // Misma exclusión que en `findPrice`: este helper elige el PRODUCTO que se
-  // adjunta a la orden y que después ve el laboratorio. Sin esta rama, a un
-  // pedido de Varilux se le enganchaba "Mi Primer Varilux" —el que la config
-  // excluye por sus restricciones de adición— y el lab fabricaba un cristal que
-  // no correspondía. El precio y el producto tienen que salir del MISMO filtro.
-  if (config.excludeKeywords && config.excludeKeywords.length > 0) {
-    matches = matches.filter(p =>
-      !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-    );
-  }
-  if (config.exactMatchName) {
-    const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
-    if (exactMatch) return exactMatch;
-  }
-  if (config.matchKeywords && config.matchKeywords.length > 0) {
-    matches = matches.filter(p => 
-      config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-    );
-  } else if (config.matchKeywords && config.matchKeywords.length === 0 && config.type === "Cristal Monofocal") {
-    matches = matches.filter(p => 
-      !p.name?.toLowerCase().includes('blue') && 
-      !p.name?.toLowerCase().includes('foto') &&
-      !p.name?.toLowerCase().includes('transitions')
-    );
-  }
-  if (matches.length === 0) return null;
-  return [...matches].sort((a, b) => (a.price || 0) - (b.price || 0))[0];
-}
-
-// Helper to resolve the crystal product configuration selected on checkout
-function resolveCrystalProduct(item: any, crystals: any[]) {
-  if (!item.lensConfig || (item.lensConfig.lensType === "NONE" && !item.lensConfig.color)) return null;
-
-  const { lensType, treatment, color } = item.lensConfig;
-  let config: any = null;
-
-  if (color) {
-    if (lensType === "NONE" || lensType === "MONOFOCAL") {
-      config = CrystalMapping.MONOFOCAL.ORGANICO_BLANCO;
-    } else if (lensType === "BIFOCAL") {
-      config = CrystalMapping.BIFOCAL.ORGANICO_BLANCO;
-    } else if (lensType === "MULTIFOCAL") {
-      config = CrystalMapping.MULTIFOCAL.SMART_FREE;
-    }
-  } else {
-    if (lensType === "MONOFOCAL") {
-      config = CrystalMapping.MONOFOCAL[treatment as keyof typeof CrystalMapping.MONOFOCAL];
-    } else if (lensType === "BIFOCAL") {
-      config = CrystalMapping.BIFOCAL.ORGANICO_BLANCO;
-    } else if (lensType === "MULTIFOCAL") {
-      config = CrystalMapping.MULTIFOCAL[treatment as keyof typeof CrystalMapping.MULTIFOCAL];
-    }
-  }
-
-  if (!config) return null;
-  return findMatchedProduct(crystals, config);
 }
 
 /**
@@ -326,82 +264,13 @@ export async function POST(req: Request) {
     const cashDiscountRate = (webSettings.web_promo_cash_discount ?? 15) / 100;
     const transferMultiplier = 1 - cashDiscountRate;
 
-    // Fetch all crystals and treatments from DB to recalculate pricing on backend
-    const crystals = await prisma.product.findMany({
-      where: { category: 'Cristal' }
-    });
-    const treatments = await prisma.product.findMany({
-      where: { category: 'Tratamientos y Accesorios' }
-    });
-
-    const findTintPrice = () => {
-      const tintProduct = treatments.find(p => p.name?.toLowerCase().includes('teñido') || p.name?.toLowerCase().includes('tenido'));
-      if (tintProduct && tintProduct.price) return tintProduct.price;
-      return CrystalMapping.EXTRAS.TINT;
-    };
-
-    const findPrice = (config: any) => {
-      let matches = crystals;
-      if (config.type) {
-        matches = matches.filter(p => p.type === config.type);
-      }
-      // Exclusiones del mapeo. Esta rama FALTABA acá y la tienda sí la tenía
-      // (/api/web/pricing), así que las dos puntas del checkout no coincidían:
-      // `MULTIFOCAL.VARILUX` excluye "mi primer" —tiene restricciones de adición
-      // y por eso no puede ser el precio que se publica—, pero como este
-      // `findPrice` toma el MÍNIMO sin filtrar, elegía justo ese. Medido contra
-      // el catálogo real: la web mostraba $1.346.599 (COMFORT MAX - ORMA +
-      // CRIZAL 2x1) y acá se cobraba $673.301 (MI PRIMER VARILUX COMFORT MAX -
-      // ORMA). Diferencia de $673.298 por par, a favor del cliente, y el guard
-      // de precio no lo frena porque es direccional (solo bloquea si se paga de
-      // menos que lo que calcula el backend). Peor todavía: `findMatchedProduct`
-      // adjuntaba a la orden ese mismo cristal, así que al laboratorio le iba el
-      // que la exclusión existía para no vender.
-      if (config.excludeKeywords && config.excludeKeywords.length > 0) {
-        matches = matches.filter(p =>
-          !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-        );
-      }
-      if (config.exactMatchName) {
-        const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
-        if (exactMatch && exactMatch.price) return exactMatch.price;
-      }
-      if (config.matchKeywords && config.matchKeywords.length > 0) {
-        matches = matches.filter(p => 
-          config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-        );
-      } else if (config.matchKeywords && config.matchKeywords.length === 0 && config.type === "Cristal Monofocal") {
-        matches = matches.filter(p => 
-          !p.name?.toLowerCase().includes('blue') && 
-          !p.name?.toLowerCase().includes('foto') &&
-          !p.name?.toLowerCase().includes('transitions')
-        );
-      }
-      if (matches.length === 0) return 0;
-      return Math.min(...matches.map(p => p.price || 0));
-    };
-
-    const PRICING = {
-      MONOFOCAL: {
-        ORGANICO_BLANCO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLANCO) || 20000,
-        ORGANICO_AR: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_AR) || 45000,
-        ORGANICO_BLUE: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLUE) || 68000,
-        POLI_BLUE: findPrice(CrystalMapping.MONOFOCAL.POLI_BLUE) || 120000,
-        ORGANICO_FOTOCROMATICO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_FOTOCROMATICO) || 105000,
-        ORGANICO_BLANCO_TENIDO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLANCO_TENIDO) || 68000,
-      },
-      BIFOCAL: {
-        ORGANICO_BLANCO: findPrice(CrystalMapping.BIFOCAL.ORGANICO_BLANCO) || 45000,
-      },
-      MULTIFOCAL: {
-        SMART_FREE: findPrice(CrystalMapping.MULTIFOCAL.SMART_FREE) || 120000,
-        VARILUX: findPrice(CrystalMapping.MULTIFOCAL.VARILUX) || 350000,
-        FOTOCROMATICO: findPrice(CrystalMapping.MULTIFOCAL.FOTOCROMATICO) || 180000,
-      },
-      EXTRAS: {
-        TINT: findTintPrice()
-      }
-    };
+    // Opciones de cristal de la tienda, con el producto del sistema vinculado a
+    // cada una (src/services/cristales-web.service.ts). Es la MISMA lectura que
+    // publica GET /api/web/pricing y el mismo cálculo que corre el configurador
+    // (src/lib/cristales-web/calculo.ts): lo que se muestra y lo que se cobra
+    // no pueden divergir. Sin números de respaldo: una opción sin producto
+    // vinculado no se cobra, se rechaza.
+    const opcionesDeCristal = indexarOpciones(await resolverOpcionesDeCristal());
 
     // Promo 2x1 Varilux: los ítems marcados secondPair2x1 van sin cargo
     // (armazón + cristales), pero SOLO si el pedido incluye al menos un
@@ -414,10 +283,20 @@ export async function POST(req: Request) {
     if (freePairQty > paidVariluxQty) {
       return NextResponse.json({ error: "El segundo par sin cargo requiere un Varilux en el pedido (promo 2x1)." }, { status: 400 });
     }
+    // El segundo par sale gratis porque el laboratorio lo bonifica: solo existe
+    // si el Varilux vinculado en /admin/web es un producto 2x1. Si no lo es, el
+    // lab cobraría ese par y la tienda lo estaría regalando.
+    if (freePairQty > 0 && !variluxHabilita2x1(opcionesDeCristal)) {
+      return NextResponse.json({ error: "La promo 2x1 de Varilux no está disponible en este momento. Quitá el segundo par del carrito para continuar." }, { status: 400 });
+    }
 
     // Recalculate prices and verify total
     let recalculatedItemsTotal = 0;
     const sanitizedItems = [];
+    // Resultado del cálculo por ítem (mismo índice que sanitizedItems): arma
+    // las líneas de la orden con los productos que se cobraron. No viaja dentro
+    // de sanitizedItems porque ese array se persiste en el intent de MP.
+    const calculosPorItem: Extract<ResultadoCalculo, { ok: true }>[] = [];
     // Armazones candidatos al 2x1 de la tienda. Se juntan acá adentro del loop
     // porque el precio que vale es el que se acaba de leer de la DB, no el que
     // mandó el cliente.
@@ -448,11 +327,21 @@ export async function POST(req: Request) {
         throw new Error(`Producto no encontrado en la base de datos: ${item.model}`);
       }
 
-      // Segundo par de la promo 2x1 Varilux (apareo ya validado arriba):
-      // armazón + cristales sin cargo, no se recalcula contra la DB.
-      const calculatedPrice = item.lensConfig?.secondPair2x1
-        ? 0
-        : recalculateItemPrice(item, dbProduct, isWholesaleUser, PRICING);
+      // Armazón (con oferta o mayorista) + cristal + teñido, con el MISMO
+      // cálculo que el configurador. El segundo par del 2x1 Varilux (apareo ya
+      // validado arriba) vale 0. Una opción que dejó de estar disponible
+      // mientras el carrito esperaba se rechaza con el motivo, nunca se
+      // reemplaza por otro precio.
+      const calculo = calcularItemDeCarrito(item, dbProduct, isWholesaleUser, opcionesDeCristal);
+      if (!calculo.ok) {
+        console.warn(`[PAYWAY CHECKOUT] Configuración de cristales rechazada (${item.model}): ${calculo.error}`);
+        return NextResponse.json({
+          error: `${item.model || 'Un producto del carrito'}: ${calculo.error} Volvé a armar los cristales de ese anteojo.`,
+          code: 'OPCION_CRISTAL_NO_DISPONIBLE',
+        }, { status: 400 });
+      }
+      const calculatedPrice = calculo.total;
+      calculosPorItem.push(calculo);
 
       recalculatedItemsTotal += calculatedPrice * item.quantity;
 
@@ -731,86 +620,34 @@ export async function POST(req: Request) {
       throw err;
     }
 
-    // 2.5 Preparar items de la orden desglosando cristales OD/OI si aplica
+    // 2.5 Líneas de la orden: armazón + cristal OD/OI + teñido, cada una con el
+    // PRODUCTO del sistema que se cobró (el vinculado a la opción elegida). Es
+    // la misma forma que arma el mostrador, así el CRM, el PDF, la hoja de
+    // laboratorio y el cruce de costos ven una venta web igual que una del local.
+    //  · cristal: por par, partido en OD/OI (costo del par en cada ojo: el cruce
+    //    lo parte por `eye`, regla del CLAUDE.md);
+    //  · teñido: UNA línea por anteojo, sin ojo, con estilo y tono (como
+    //    `armarParesDeCristal`), para que `isTeñidoAddon` la reconozca;
+    //  · segundo par del 2x1: todo a $0 (el armazón también: el cliente no lo
+    //    paga; su costo real queda en el snapshot).
+    // Con más de un anteojo en el pedido cada línea lleva a cuál pertenece
+    // (`framePosition`): sin eso un teñido no dice de qué par es.
+    const anteojosConCristales = sanitizedItems.filter((it: any) => tieneCristales(it.lensConfig)).length;
+    let posicionAnteojo = 0;
     const orderItemsToCreate: any[] = [];
-    for (const item of sanitizedItems) {
-      const isCustomLens = item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color);
-      
-      if (isCustomLens) {
-        let dbProduct = null;
-        if (item.productId) {
-          dbProduct = await prisma.product.findUnique({
-            where: { id: item.productId }
-          });
-        }
-        
-        // Mismo criterio que recalculateItemPrice (salePrice/wholesale) para que el desglose cierre.
-        const framePrice = dbProduct ? effectiveFramePrice(dbProduct, isWholesaleUser) : item.price;
-        const totalLensPrice = Math.max(0, item.price - framePrice);
-        const lensPricePerEye = Math.round(totalLensPrice / 2);
-        
-        // 1. Agregar el armazón
-        orderItemsToCreate.push({
-          productId: item.productId || undefined,
-          ...snapshotFromProduct(dbProduct),
-          productNameSnapshot: item.model,
-          productBrandSnapshot: item.brand,
-          productCategorySnapshot: dbProduct?.category || "Armazón",
-          quantity: item.quantity,
-          price: framePrice,
-          eye: null
+    for (let idx = 0; idx < sanitizedItems.length; idx++) {
+      const item = sanitizedItems[idx];
+      const calculo = calculosPorItem[idx];
+
+      let dbProduct = null;
+      if (item.productId) {
+        dbProduct = await prisma.product.findUnique({
+          where: { id: item.productId }
         });
-        
-        // Describir el cristal
-        const lensTypeDesc = item.lensConfig.lensType === "NONE" || !item.lensConfig.lensType
-          ? "Cristal Neutro" 
-          : `Cristal ${item.lensConfig.lensType}`;
-        const treatmentDesc = item.lensConfig.treatment 
-          ? ` - ${item.lensConfig.treatment.replace(/_/g, ' ')}` 
-          : '';
-        const lensName = `${lensTypeDesc}${treatmentDesc}`;
-        
-        // Encontrar producto de cristal coincidente en BD para capturar costo y laboratorio reales
-        const matchedCrystal = resolveCrystalProduct(item, crystals);
-        const crystalCost = matchedCrystal ? (matchedCrystal.cost || 0) : 0;
-        const crystalCostPerEye = Math.round(crystalCost / 2);
-        
-        // 2. Agregar cristal Ojo Derecho (OD)
-        orderItemsToCreate.push({
-          productId: matchedCrystal ? matchedCrystal.id : undefined,
-          ...snapshotFromProduct(matchedCrystal),
-          productNameSnapshot: lensName,
-          productBrandSnapshot: "Laboratorio",
-          productCategorySnapshot: "Cristal",
-          quantity: item.quantity,
-          price: lensPricePerEye,
-          eye: "OD",
-          prismVal: item.lensConfig.prescriptionFile || null,
-          crystalColor: item.lensConfig.color || null
-        });
-        
-        // 3. Agregar cristal Ojo Izquierdo (OI)
-        orderItemsToCreate.push({
-          productId: matchedCrystal ? matchedCrystal.id : undefined,
-          ...snapshotFromProduct(matchedCrystal),
-          productNameSnapshot: lensName,
-          productBrandSnapshot: "Laboratorio",
-          productCategorySnapshot: "Cristal",
-          quantity: item.quantity,
-          price: lensPricePerEye,
-          eye: "OI",
-          prismVal: item.lensConfig.prescriptionFile || null,
-          crystalColor: item.lensConfig.color || null
-        });
-      } else {
+      }
+
+      if (!tieneCristales(item.lensConfig)) {
         // Producto estándar sin cristales customizados
-        let dbProduct = null;
-        if (item.productId) {
-          dbProduct = await prisma.product.findUnique({
-            where: { id: item.productId }
-          });
-        }
-        
         orderItemsToCreate.push({
           productId: item.productId || undefined,
           ...snapshotFromProduct(dbProduct),
@@ -820,6 +657,56 @@ export async function POST(req: Request) {
           quantity: item.quantity,
           price: item.price,
           eye: null
+        });
+        continue;
+      }
+
+      posicionAnteojo++;
+      const framePosition = anteojosConCristales > 1 || sanitizedItems.length > 1 ? posicionAnteojo : null;
+
+      // 1. El armazón, al precio que se cobró (0 si es el par bonificado).
+      orderItemsToCreate.push({
+        productId: item.productId || undefined,
+        ...snapshotFromProduct(dbProduct),
+        productNameSnapshot: item.model,
+        productBrandSnapshot: item.brand,
+        productCategorySnapshot: dbProduct?.category || "Armazón",
+        quantity: item.quantity,
+        price: calculo.armazon,
+        eye: null,
+        framePosition,
+      });
+
+      // 2. El cristal, partido por ojo. El par suma exacto lo cobrado.
+      if (calculo.cristal) {
+        const producto = opcionesDeCristal[calculo.cristal.clave]?.producto ?? null;
+        const precioPar = calculo.bonificado2x1 ? 0 : calculo.cristal.precio;
+        const od = precioPorOjo(precioPar);
+        for (const [eye, price] of [["OD", od], ["OI", precioPar - od]] as const) {
+          orderItemsToCreate.push({
+            productId: producto?.id,
+            ...snapshotFromProduct(producto),
+            quantity: item.quantity,
+            price,
+            eye,
+            prismVal: item.lensConfig.prescriptionFile || null,
+            framePosition,
+          });
+        }
+      }
+
+      // 3. El teñido: una línea por anteojo, con estilo y tono del laboratorio.
+      if (calculo.tenido) {
+        const producto = opcionesDeCristal[calculo.tenido.clave]?.producto ?? null;
+        orderItemsToCreate.push({
+          productId: producto?.id,
+          ...snapshotFromProduct(producto),
+          quantity: item.quantity,
+          price: calculo.bonificado2x1 ? 0 : calculo.tenido.precio,
+          eye: null,
+          crystalColor: calculo.tenido.tono,
+          crystalColorType: calculo.tenido.estilo,
+          framePosition,
         });
       }
     }
@@ -1029,18 +916,16 @@ export async function POST(req: Request) {
     // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
     const emailTotal = isTransfer ? finalItemsTotal * transferMultiplier : finalItemsTotal;
-    const hasCrystals = sanitizedItems.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
+    const hasCrystals = sanitizedItems.some((item: any) => tieneCristales(item.lensConfig));
 
     const itemsHtml = sanitizedItems.map((item: any) => `
       <tr>
         <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee;">
           <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${item.brand || 'ATELIER'}</p>
           <p style="margin: 5px 0 0; font-size: 16px; color: #000;">${item.model}</p>
-          ${item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) ? `
+          ${tieneCristales(item.lensConfig) ? `
             <p style="margin: 5px 0 0; font-size: 12px; color: #666;">
-              Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType} 
-              ${item.lensConfig.treatment ? `- ${item.lensConfig.treatment.replace(/_/g, ' ')}` : ''}
-              ${item.lensConfig.color ? `<br/>Tinte: ${item.lensConfig.color}` : ''}
+              Cristales: ${describirConfiguracion(item.lensConfig, opcionesDeCristal)}
               ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
             </p>
           ` : ''}

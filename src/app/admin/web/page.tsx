@@ -22,12 +22,14 @@ import {
   Copy,
   Grid,
   List,
-  Ticket
+  Ticket,
+  Glasses
 } from "lucide-react";
 import Link from "next/link";
 import CouponsManager from '@/components/admin/CouponsManager';
 import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
 import VeredictoTienda from '@/components/admin/web/VeredictoTienda';
+import { CristalesConfigurador } from '@/components/admin/web/CristalesConfigurador';
 import { LineChart } from 'lucide-react';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { WHATSAPP_PHONE } from '@/lib/constants';
@@ -77,7 +79,7 @@ interface BlogPost {
 }
 
 export default function WebManagementPage() {
-  const [activeTab, setActiveTab] = useState<'analitica' | 'products' | 'blog' | 'config' | 'flyers' | 'coupons'>('products');
+  const [activeTab, setActiveTab] = useState<'analitica' | 'products' | 'cristales' | 'blog' | 'config' | 'flyers' | 'coupons'>('products');
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -916,6 +918,18 @@ export default function WebManagementPage() {
         >
           <Globe className="w-4 h-4" /> Productos en Tienda
         </button>
+        {userRole === 'ADMIN' && (
+        <button
+          onClick={() => setActiveTab('cristales')}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === 'cristales'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+          }`}
+        >
+          <Glasses className="w-4 h-4" /> Cristales de Arma tus lentes
+        </button>
+        )}
         <button
           onClick={() => setActiveTab('blog')}
           className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold uppercase tracking-widest transition-all ${
@@ -967,6 +981,14 @@ export default function WebManagementPage() {
       )}
 
       {/* TAB 1: PRODUCTS LIST */}
+      {/* Qué producto del sistema vende cada opción del configurador. Solo
+          ADMIN: decide precios de la tienda (docs/cristales-web.md). */}
+      {activeTab === 'cristales' && userRole === 'ADMIN' && (
+        <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 p-6">
+          <CristalesConfigurador />
+        </div>
+      )}
+
       {activeTab === 'products' && (
         <div className="space-y-6">
           {/* El diagnóstico va ARRIBA del listado, no abajo: lo que hay que

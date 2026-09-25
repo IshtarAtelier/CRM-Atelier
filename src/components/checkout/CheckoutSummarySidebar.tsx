@@ -1,4 +1,5 @@
 import React from "react";
+import { describirConfiguracion, tieneCristales } from '@/lib/cristales-web/claves';
 import Image from "next/image";
 import { CreditCard, BadgePercent, Truck } from "lucide-react";
 import { CouponField, type AppliedCoupon } from "@/components/checkout/CouponField";
@@ -70,15 +71,9 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
             <div className="flex-1">
               <p className="text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-0.5">{item.brand}</p>
               <p className="text-sm font-medium leading-tight mb-1">{item.model}</p>
-              {item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) && (
+              {tieneCristales(item.lensConfig) && (
                 <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-stone-400">
-                  <p>
-                    Cristales: {item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType}
-                    {item.lensConfig.treatment && ` + ${item.lensConfig.treatment.replace(/_/g, ' ')}`}
-                  </p>
-                  {item.lensConfig.color && (
-                    <p>Tinte: {item.lensConfig.color}</p>
-                  )}
+                  <p>Cristales: {describirConfiguracion(item.lensConfig)}</p>
                   {/* Un tilde verde comunica "ya la tenemos". Cuando la receta
                       está pendiente hay que decirlo con otro tono: si no, el
                       cliente que pagó cree que mandó todo y nadie le pide nada

@@ -1,3 +1,4 @@
+import { describirConfiguracion, tieneCristales } from '@/lib/cristales-web/claves';
 import { WHATSAPP_PHONE, STORE_ORIGIN, CRM_ORIGIN } from '@/lib/constants';
 import { PricingService } from '@/services/PricingService';
 
@@ -118,11 +119,9 @@ export function getClientItemsHtml(items: any[]) {
       <td valign="middle" style="padding: 18px 0; border-bottom: 1px solid ${HAIRLINE};">
         <p style="margin: 0; font-family: ${SANS}; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: ${GOLD};">${item.brand || 'ATELIER'}</p>
         <p style="margin: 5px 0 0; font-family: ${SERIF}; font-size: 21px; line-height: 1.2; color: ${IVORY};">${item.model}</p>
-        ${item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) ? `
+        ${tieneCristales(item.lensConfig) ? `
           <p style="margin: 7px 0 0; font-family: ${SANS}; font-size: 12px; line-height: 1.6; color: ${MUTED};">
-            Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType}
-            ${item.lensConfig.treatment ? `- ${item.lensConfig.treatment.replace(/_/g, ' ')}` : ''}
-            ${item.lensConfig.color ? `<br/>Tinte: ${item.lensConfig.color}` : ''}
+            Cristales: ${describirConfiguracion(item.lensConfig)}
             ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
           </p>
         ` : ''}

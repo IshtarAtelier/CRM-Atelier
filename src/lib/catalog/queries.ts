@@ -118,6 +118,10 @@ export const ARMA_SELECT = {
       id: true,
       model: true,
       price: true,
+      // Sin la oferta, el builder sumaba el armazón a precio de LISTA mientras
+      // la tienda y el checkout usaban la rebajada: Orión C1 se presupuestaba a
+      // $215.000 y se cobraba $180.000 (auditoría 25/9/26).
+      salePrice: true,
       stock: true,
       imagenesCatalogo: true,
     },

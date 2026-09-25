@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import nextDynamic from 'next/dynamic';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { getArmaTusLentes } from "@/lib/catalog/sources";
+import { precioFinal } from "@/lib/precio-oferta";
 
 // ISR y no `force-dynamic`: la página no lee cookies ni searchParams, y el
 // catálogo sale de una fuente resiliente (vivo → memoria → snapshot). Con
@@ -33,7 +34,9 @@ export default async function ArmaTusLentesPage() {
     id: wp.product.id,
     brand: 'ATELIER',
     model: wp.name || wp.product.model || '',
-    price: wp.product.price,
+    // El que se cobra (oferta si la hay): la misma regla que la tienda y el
+    // checkout. El snapshot viejo no trae salePrice y cae al de lista.
+    price: precioFinal(wp.product),
     stock: wp.product.stock,
     imagenesCatalogo: (() => {
       let combinedImages = wp.imageUrl ? [wp.imageUrl, ...wp.images] : (wp.images.length > 0 ? [...wp.images] : []);
@@ -50,20 +53,6 @@ export default async function ArmaTusLentesPage() {
     category: wp.category,
     slug: wp.slug
   }));
-
-  // Demo fallback si no hay productos
-  if (products.length === 0) {
-    products.push({
-      id: "atelier-carey-vintage",
-      brand: "ATELIER",
-      model: "9030 (GLD)",
-      price: 55000,
-      stock: 5,
-      imagenesCatalogo: [],
-      category: "Receta",
-      slug: "atelier-carey-vintage"
-    } as any);
-  }
 
   return (
     <div className="min-h-[100dvh] bg-stone-50 dark:bg-stone-950 flex flex-col overflow-hidden">

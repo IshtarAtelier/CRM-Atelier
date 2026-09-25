@@ -9,9 +9,24 @@ import { track } from "@/lib/client-analytics";
 import { RECETA_POR_WHATSAPP } from '@/lib/checkout/receta';
 import { leerPromoCuotas } from '@/lib/promo-cuotas';
 import { formatearPrecio } from '@/lib/format-precio';
+import { TONOS_TENIDO } from '@/lib/constants/tenido';
+import { calcularConfiguracion } from '@/lib/cristales-web/calculo';
+import {
+  claveDeCristal,
+  describirConfiguracion,
+  hexDeTono,
+  indexarOpciones,
+  opcionesDelGrupo,
+  tieneCristales,
+  variluxHabilita2x1,
+  type EstiloTenidoWeb,
+  type LensConfig,
+  type LensType as TipoLente,
+  type MapaOpciones,
+  type OpcionCristalWeb,
+} from '@/lib/cristales-web/claves';
 
-type LensType = "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | "NONE" | null;
-type Treatment = "ORGANICO_BLANCO" | "ORGANICO_AR" | "ORGANICO_BLUE" | "POLI_BLUE" | "ORGANICO_FOTOCROMATICO" | "ORGANICO_BLANCO_TENIDO" | "SMART_FREE" | "VARILUX" | "FOTOCROMATICO" | "UNICO" | null;
+type LensType = TipoLente | null;
 
 /** Trazo del logo de WhatsApp: lo usan el bloque de asesoramiento y el de receta. */
 const WHATSAPP_ICON_PATH = "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z";
@@ -75,11 +90,53 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
 
   const [step, setStep] = useState<number>(1);
   const [lensType, setLensType] = useState<LensType>(null);
-  const [treatment, setTreatment] = useState<Treatment>(null);
+  // Código de la opción dentro del grupo ('ORGANICO_AR', 'VARILUX'…).
+  const [treatment, setTreatment] = useState<string | null>(null);
+  // Tono del teñido, de la paleta del laboratorio (TONOS_TENIDO).
   const [tintColor, setTintColor] = useState<string | null>(null);
-  const [tintStyle, setTintStyle] = useState<"COMPACTO" | "DEGRADÉ" | "SEGÚN MUESTRA" | null>(null);
-  const [dynamicPricing, setDynamicPricing] = useState<any>(null);
+  const [tintStyle, setTintStyle] = useState<EstiloTenidoWeb | null>(null);
   const { addItem, updateItemLensConfig } = useCart();
+
+  // ── Precios de los cristales ─────────────────────────────────────────────
+  // Salen del producto del sistema vinculado a cada opción (/admin/web →
+  // Cristales). No hay tabla de respaldo: mientras cargan no se muestra ningún
+  // número y el botón espera; si no llegan, se dice. Antes acá había precios
+  // escritos a mano ($20.000, $350.000…) que se mostraban en el primer render
+  // y cada vez que la API fallaba, y que el checkout después cobraba distinto.
+  const [opciones, setOpciones] = useState<MapaOpciones | null>(null);
+  const [estadoPrecios, setEstadoPrecios] = useState<"cargando" | "ok" | "error">("cargando");
+  const [intentoPrecios, setIntentoPrecios] = useState(0);
+
+  useEffect(() => {
+    let vivo = true;
+    setEstadoPrecios("cargando");
+    fetch('/api/web/pricing', { cache: 'no-store' })
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data: { opciones?: OpcionCristalWeb[] }) => {
+        if (!vivo) return;
+        if (!Array.isArray(data?.opciones)) throw new Error('respuesta sin opciones');
+        setOpciones(indexarOpciones(data.opciones));
+        setEstadoPrecios("ok");
+      })
+      .catch(err => {
+        console.error("No se pudieron cargar los precios de los cristales:", err);
+        if (vivo) setEstadoPrecios("error");
+      });
+    return () => { vivo = false; };
+  }, [intentoPrecios]);
+
+  const disponibles = (grupo: "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | "TENIDO") =>
+    opciones ? opcionesDelGrupo(opciones, grupo).filter(o => o.disponible) : [];
+  const monofocales = disponibles("MONOFOCAL");
+  const bifocales = disponibles("BIFOCAL");
+  const multifocales = disponibles("MULTIFOCAL");
+  const tenidos = disponibles("TENIDO");
+  const opcion = (clave: string) => (opciones ? (opciones as Record<string, OpcionCristalWeb | undefined>)[clave] : undefined);
+  const disponible = (clave: string) => !!opcion(clave)?.disponible;
+  // Con los precios ya leídos, un grupo sin opciones no se ofrece. Mientras
+  // cargan (o si fallaron) se muestran los tipos igual: el paso siguiente
+  // explica qué pasa.
+  const ofrecer = (lista: OpcionCristalWeb[]) => estadoPrecios !== "ok" || lista.length > 0;
 
   useEffect(() => {
     if (onStepChange) {
@@ -155,98 +212,71 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
     });
   }, [step, lensType, treatment, flowType, nombreProducto, productId]);
 
-  // Load pricing on mount
-  useEffect(() => {
-    fetch('/api/web/pricing')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.error && data.MONOFOCAL) {
-          setDynamicPricing(data);
-        }
-      })
-      .catch(console.error);
-  }, []);
-
-  const PRICING = dynamicPricing || {
-    MONOFOCAL: { ORGANICO_BLANCO: 20000, ORGANICO_AR: 45000, ORGANICO_BLUE: 68000, POLI_BLUE: 120000, ORGANICO_FOTOCROMATICO: 105000, ORGANICO_BLANCO_TENIDO: 68000 },
-    BIFOCAL: { ORGANICO_BLANCO: 45000 },
-    MULTIFOCAL: { SMART_FREE: 120000, VARILUX: 350000, FOTOCROMATICO: 180000 },
-    EXTRAS: { TINT: 25000 },
+  // ── La configuración y su precio ─────────────────────────────────────────
+  // El total sale de `calcularConfiguracion`, la MISMA función con la que el
+  // checkout recalcula antes de cobrar. Lo que se ve acá es lo que se cobra.
+  const esSol = flowType === "SUN";
+  const claveCristal = claveDeCristal({ lensType, treatment, color: esSol ? tintColor : null, tintStyle: esSol ? tintStyle : null, prescriptionFile: null }).clave;
+  const lensConfig: LensConfig = {
+    lensType,
+    treatment,
+    color: esSol ? tintColor : null,
+    tintStyle: esSol ? tintStyle : null,
+    prescriptionFile: lensType === "NONE" ? null : RECETA_POR_WHATSAPP,
+    etiqueta: claveCristal ? opcion(claveCristal)?.etiqueta ?? null : null,
   };
-
-  const calculateTotal = () => {
-    let total = basePrice;
-    
-    if (flowType === "SUN" && tintColor && tintStyle) {
-      // SUN FLOW: All lenses are base "Organico Blanco" (or Smart Free for Multifocal) + TINT
-      if (lensType === "NONE") total += (PRICING.MONOFOCAL.ORGANICO_BLANCO || 0);
-      if (lensType === "MONOFOCAL") total += (PRICING.MONOFOCAL.ORGANICO_BLANCO || 0);
-      if (lensType === "BIFOCAL") total += (PRICING.BIFOCAL.ORGANICO_BLANCO || 0);
-      if (lensType === "MULTIFOCAL") total += (PRICING.MULTIFOCAL.SMART_FREE || 0);
-      
-      // Teñido applies to all configured vision options in the sun flow
-      if (lensType !== null) {
-        total += PRICING.EXTRAS.TINT;
-      }
-    } else {
-      // CLEAR FLOW
-      if (lensType === "MONOFOCAL" && treatment) {
-        total += PRICING.MONOFOCAL[treatment as keyof typeof PRICING.MONOFOCAL] || 0;
-      }
-      if (lensType === "BIFOCAL" && treatment) {
-        total += PRICING.BIFOCAL.ORGANICO_BLANCO;
-      }
-      if (lensType === "MULTIFOCAL" && treatment) {
-        total += PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] || 0;
-      }
-    }
-    
-    return total;
-  };
-
-  const mapColorToHex = (colorName: string | null) => {
-    if (!colorName) return null;
-    if (colorName.includes("Gris")) return "#555555";
-    if (colorName.includes("Marrón")) return "#6b4c3a";
-    if (colorName.includes("Verde")) return "#2c4c3b";
-    if (colorName.includes("Rosa")) return "#d4a3a3";
-    if (colorName.includes("Amarillo")) return "#e1b854";
-    if (colorName.includes("Naranja")) return "#d6804a";
-    if (colorName.includes("Rojo")) return "#ab4040";
-    return null;
-  };
+  const sinCristales = !tieneCristales(lensConfig);
+  const calculo = sinCristales
+    ? calcularConfiguracion({ basePrice, lensConfig, opciones: {} })
+    : opciones
+      ? calcularConfiguracion({ basePrice, lensConfig, opciones })
+      : null;
+  const calculoOk = calculo && calculo.ok ? calculo : null;
+  const total = calculoOk ? calculoOk.total : basePrice;
 
   // Antes el botón de agregar al carrito se habilitaba con el archivo de receta
   // (o el checkbox de "la mando después"). Sin dropzone, la única condición que
-  // queda es la que siempre importó: que la configuración esté completa. Sin
-  // esto, un clic temprano mandaba al carrito un armazón sin cristales elegidos.
+  // queda es la que siempre importó: que la configuración esté completa — y
+  // ahora también que su precio salga del sistema.
   const configuracionCompleta =
-    flowType === "SUN"
+    (esSol
       ? Boolean(tintColor && tintStyle && lensType)
-      : lensType === "NONE" || Boolean(lensType && treatment);
+      : lensType === "NONE" || Boolean(lensType && treatment)) && !!calculoOk;
 
-  const resumenConfig = [
-    lensType && lensType !== "NONE" ? lensType.toLowerCase() : null,
-    flowType === "CLEAR" && treatment ? treatment.replace(/_/g, " ").toLowerCase() : null,
-    flowType === "SUN" && tintColor
-      ? `teñido ${tintColor.toLowerCase()}${tintStyle ? ` (${tintStyle.toLowerCase()})` : ""}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  // La promo del segundo par solo existe si el Varilux vinculado es un 2x1:
+  // el laboratorio bonifica ese par. Si no lo es, no se ofrece.
+  const ofrece2x1 = !!opciones && variluxHabilita2x1(opciones);
+
+  const resumenConfig = describirConfiguracion(lensConfig, opciones ?? undefined);
 
   // El mensaje se arma solo con el estado del configurador (nada de window ni de
   // fecha): tiene que dar el mismo texto en el servidor y en el cliente, porque
   // React 19 no parchea el href durante la hidratación.
   const textoRecetaWhatsApp = [
-    tintStyle === "SEGÚN MUESTRA"
-      ? "¡Hola! Estoy armando mis lentes en la web y les paso la muestra del color (y mi receta)."
-      : "¡Hola! Estoy armando mis lentes en la web y les paso mi receta.",
+    "¡Hola! Estoy armando mis lentes en la web y les paso mi receta.",
     nombreProducto ? `Armazón: ${nombreProducto}.` : null,
     resumenConfig ? `Cristales: ${resumenConfig}.` : null,
   ]
     .filter(Boolean)
     .join(" ");
+
+  const precioOpcion = (o: OpcionCristalWeb | undefined) => (o?.precio != null ? `+$${formatearPrecio(o.precio)}` : undefined);
+  const tituloTipo = (t: LensType) => (t === "NONE" ? "Sin Aumento" : t === "MONOFOCAL" ? "Monofocal" : t === "BIFOCAL" ? "Bifocal" : t === "MULTIFOCAL" ? "Multifocal" : "");
+
+  const avisoPrecios = estadoPrecios === "error" ? (
+    <div role="alert" className="col-span-full border border-amber-300 bg-amber-50 text-amber-900 rounded-[1rem] p-5 text-[12px] leading-relaxed">
+      No pudimos cargar los precios de los cristales. Probá de nuevo en un momento o escribinos por WhatsApp.
+      <button type="button" onClick={() => setIntentoPrecios(n => n + 1)} className="block mt-3 text-[10px] font-bold uppercase tracking-widest underline underline-offset-4">
+        Reintentar
+      </button>
+    </div>
+  ) : null;
+  const cargandoPrecios = estadoPrecios === "cargando" ? (
+    <>
+      <SkeletonCard />
+      <SkeletonCard />
+    </>
+  ) : null;
 
   return (
     <div className="w-full text-black">
@@ -271,7 +301,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
         </div>
       </div>
 
-      {flowType === "CLEAR" && category !== "Anteojos de Sol" && (
+      {flowType === "CLEAR" && category !== "Anteojos de Sol" && ofrecer(tenidos) && (
         <div role="button" tabIndex={0} className="relative overflow-hidden mb-8 p-6 bg-stone-900 text-white rounded-[1rem] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-black transition-colors shadow-xl shadow-stone-900/10 group" onClick={() => { setFlowType("SUN"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
           {/* Brillo móvil infinito (Shimmer) */}
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
@@ -313,7 +343,8 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
         <>
           {/* ====== FLUJO DE SOL ====== */}
           
-          {/* PASO 1: COLOR DEL CRISTAL */}
+          {/* PASO 1: COLOR DEL CRISTAL — la paleta del laboratorio, no una propia:
+              un tono que SmartLab no tiene es un pedido que se traba. */}
           <motion.div animate={{ opacity: step < 1 ? 0.5 : 1 }} className="mb-8">
             {step > 1 ? (
               <CompletedStep num="01" subtitle="Color" title={tintColor || "Elegir"} onClick={() => {setStep(1); setTintStyle(null); setLensType(null);}} />
@@ -324,13 +355,9 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                   <p className="text-sm font-serif italic text-black">Seleccioná el tinte para proteger tu vista con estilo.</p>
                 </div>
                 <div className="flex flex-wrap gap-4 mt-6">
-                  <ColorOption color="Gris" hex="#555555" selected={tintColor === "Gris"} onClick={() => { setTintColor("Gris"); if (onColorChange) onColorChange("#555555"); setStep(2); }} />
-                  <ColorOption color="Marrón" hex="#6b4c3a" selected={tintColor === "Marrón"} onClick={() => { setTintColor("Marrón"); if (onColorChange) onColorChange("#6b4c3a"); setStep(2); }} />
-                  <ColorOption color="Verde G15" hex="#2c4c3b" selected={tintColor === "Verde G15"} onClick={() => { setTintColor("Verde G15"); if (onColorChange) onColorChange("#2c4c3b"); setStep(2); }} />
-                  <ColorOption color="Rosa" hex="#d4a3a3" selected={tintColor === "Rosa"} onClick={() => { setTintColor("Rosa"); if (onColorChange) onColorChange("#d4a3a3"); setStep(2); }} />
-                  <ColorOption color="Amarillo" hex="#e1b854" selected={tintColor === "Amarillo"} onClick={() => { setTintColor("Amarillo"); if (onColorChange) onColorChange("#e1b854"); setStep(2); }} />
-                  <ColorOption color="Naranja" hex="#d6804a" selected={tintColor === "Naranja"} onClick={() => { setTintColor("Naranja"); if (onColorChange) onColorChange("#d6804a"); setStep(2); }} />
-                  <ColorOption color="Rojo" hex="#ab4040" selected={tintColor === "Rojo"} onClick={() => { setTintColor("Rojo"); if (onColorChange) onColorChange("#ab4040"); setStep(2); }} />
+                  {TONOS_TENIDO.map(t => (
+                    <ColorOption key={t.name} color={t.name} hex={t.hexColor} selected={tintColor === t.name} onClick={() => { setTintColor(t.name); if (onColorChange) onColorChange(t.hexColor); setStep(2); }} />
+                  ))}
                 </div>
               </>
             )}
@@ -341,7 +368,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             {step >= 2 && tintColor && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-8 overflow-hidden">
                 {step > 2 ? (
-                  <CompletedStep num="02" subtitle="Estilo" title={tintStyle || ""} onClick={() => {setStep(2); setLensType(null);}} />
+                  <CompletedStep num="02" subtitle="Estilo" title={opcion(`TENIDO.${tintStyle}`)?.etiqueta || ""} onClick={() => {setStep(2); setLensType(null);}} />
                 ) : (
                   <>
                     <div className="mb-6 mt-4">
@@ -349,8 +376,11 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                       <p className="text-sm font-serif italic text-black">Elegí la forma en que se aplicará el color en tu lente.</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                      <OptionCard selected={tintStyle === "COMPACTO"} onClick={() => { setTintStyle("COMPACTO"); setStep(3); }} title="Compacto" desc="Color uniforme en todo el lente." />
-                      <OptionCard selected={tintStyle === "DEGRADÉ"} onClick={() => { setTintStyle("DEGRADÉ"); setStep(3); }} title="Degradé" desc="Más oscuro arriba y claro abajo." />
+                      {avisoPrecios}
+                      {cargandoPrecios}
+                      {tenidos.map(o => (
+                        <OptionCard key={o.clave} selected={tintStyle === o.codigo} onClick={() => { setTintStyle(o.codigo as EstiloTenidoWeb); setStep(3); }} title={o.etiqueta} desc={o.descripcion} badge={o.badge} price={precioOpcion(o)} />
+                      ))}
                     </div>
                   </>
                 )}
@@ -363,7 +393,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             {step >= 3 && tintStyle && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-8 overflow-hidden">
                 {step > 3 ? (
-                  <CompletedStep num="03" subtitle="Visión" title={lensType === "NONE" ? "Sin Aumento" : lensType || ""} onClick={() => setStep(3)} />
+                  <CompletedStep num="03" subtitle="Visión" title={tituloTipo(lensType)} onClick={() => setStep(3)} />
                 ) : (
                   <>
                     <div className="mb-6 mt-4">
@@ -371,30 +401,44 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                       <p className="text-sm font-serif italic text-black">Podés hacer que tus anteojos de sol tengan tu receta.</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                      <OptionCard 
-                        selected={lensType === "NONE"} 
-                        onClick={() => { setLensType("NONE"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
-                        title="Sin Aumento" 
-                        desc="Orgánico Blanco neutro + Teñido." 
-                      />
-                      <OptionCard 
-                        selected={lensType === "MONOFOCAL"} 
-                        onClick={() => { setLensType("MONOFOCAL"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
-                        title="Monofocal Teñido" 
-                        desc="Orgánico Blanco para lejos o cerca." 
-                      />
-                      <OptionCard 
-                        selected={lensType === "BIFOCAL"} 
-                        onClick={() => { setLensType("BIFOCAL"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
-                        title="Bifocal Teñido" 
-                        desc="Visión dividida para lejos y cerca." 
-                      />
-                      <OptionCard 
-                        selected={lensType === "MULTIFOCAL"} 
-                        onClick={() => { setLensType("MULTIFOCAL"); setTreatment("SMART_FREE"); setStep(4); }} 
-                        title="Multifocal Teñido" 
-                        desc="Visión progresiva para todas las distancias." 
-                      />
+                      {avisoPrecios}
+                      {cargandoPrecios}
+                      {disponible("MONOFOCAL.ORGANICO_BLANCO") && (
+                        <>
+                          <OptionCard 
+                            selected={lensType === "NONE"} 
+                            onClick={() => { setLensType("NONE"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
+                            title="Sin Aumento" 
+                            desc="Orgánico Blanco neutro + Teñido." 
+                            price={precioOpcion(opcion("MONOFOCAL.ORGANICO_BLANCO"))}
+                          />
+                          <OptionCard 
+                            selected={lensType === "MONOFOCAL"} 
+                            onClick={() => { setLensType("MONOFOCAL"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
+                            title="Monofocal Teñido" 
+                            desc="Orgánico Blanco para lejos o cerca." 
+                            price={precioOpcion(opcion("MONOFOCAL.ORGANICO_BLANCO"))}
+                          />
+                        </>
+                      )}
+                      {disponible("BIFOCAL.ORGANICO_BLANCO") && (
+                        <OptionCard 
+                          selected={lensType === "BIFOCAL"} 
+                          onClick={() => { setLensType("BIFOCAL"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
+                          title="Bifocal Teñido" 
+                          desc="Visión dividida para lejos y cerca." 
+                          price={precioOpcion(opcion("BIFOCAL.ORGANICO_BLANCO"))}
+                        />
+                      )}
+                      {disponible("MULTIFOCAL.SMART_FREE") && (
+                        <OptionCard 
+                          selected={lensType === "MULTIFOCAL"} 
+                          onClick={() => { setLensType("MULTIFOCAL"); setTreatment("SMART_FREE"); setStep(4); }} 
+                          title="Multifocal Teñido" 
+                          desc="Visión progresiva para todas las distancias." 
+                          price={precioOpcion(opcion("MULTIFOCAL.SMART_FREE"))}
+                        />
+                      )}
                     </div>
                   </>
                 )}
@@ -409,7 +453,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
           {/* PASO 1: TIPO DE CRISTAL */}
           <motion.div animate={{ opacity: step < 1 ? 0.5 : 1 }} className="mb-8">
             {step > 1 ? (
-              <CompletedStep num="01" subtitle="Tipo de Visión" title={lensType || ""} onClick={() => setStep(1)} />
+              <CompletedStep num="01" subtitle="Tipo de Visión" title={tituloTipo(lensType)} onClick={() => setStep(1)} />
             ) : (
               <>
                 <div className="mb-6">
@@ -417,9 +461,16 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                   <p className="text-sm font-serif italic text-black">Definí cómo vas a usar tus anteojos en el día a día.</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                  <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }} title="Monofocal" desc="Diseñado para ver a una sola distancia (Lejos o Cerca)." />
-                  <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }} title="Multifocal" desc="Para ver a todas las distancias sin cambiar de anteojos." />
-                  <OptionCard selected={lensType === "BIFOCAL"} onClick={() => { setLensType("BIFOCAL"); setTreatment("UNICO"); setStep(2); }} title="Bifocal" desc="Visión dividida para lejos y cerca de forma tradicional." />
+                  {ofrecer(monofocales) && (
+                    <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }} title="Monofocal" desc="Diseñado para ver a una sola distancia (Lejos o Cerca)." />
+                  )}
+                  {ofrecer(multifocales) && (
+                    <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }} title="Multifocal" desc="Para ver a todas las distancias sin cambiar de anteojos." />
+                  )}
+                  {ofrecer(bifocales) && (
+                    // El bifocal tiene una sola opción: queda elegida al tocar el tipo.
+                    <OptionCard selected={lensType === "BIFOCAL"} onClick={() => { setLensType("BIFOCAL"); setTreatment(bifocales[0]?.codigo ?? null); setStep(2); }} title="Bifocal" desc="Visión dividida para lejos y cerca de forma tradicional." />
+                  )}
                   {!cartItemId && (
                     <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setTintStyle(null); setStep(4); }} title="Solo Armazón" desc="Llevar el armazón sin cristales con aumento." />
                   )}
@@ -428,12 +479,12 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             )}
           </motion.div>
 
-          {/* PASO 2: TRATAMIENTO */}
+          {/* PASO 2: CALIDAD DEL CRISTAL — una card por opción vinculada en el sistema */}
           <AnimatePresence>
             {step >= 2 && lensType && lensType !== "NONE" && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-8 overflow-hidden">
                 {step > 2 ? (
-                  <CompletedStep num="02" subtitle="Tratamiento" title={treatment || ""} onClick={() => setStep(2)} />
+                  <CompletedStep num="02" subtitle="Tratamiento" title={lensConfig.etiqueta || ""} onClick={() => setStep(2)} />
                 ) : (
                   <>
                     <div className="mb-6 mt-4">
@@ -441,58 +492,22 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                       <p className="text-sm font-serif italic text-black">Elegí el tratamiento ideal para cuidar tu vista.</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                      {lensType === "MONOFOCAL" && (
-                        <>
-                          <OptionCard 
-                            selected={treatment === "ORGANICO_BLANCO"} 
-                            onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
-                            title="Básico (Sin Protección)" 
-                            features={["Visión estándar", "Sin Antirreflex", "Grosor normal"]} 
-                            price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO || 0).toLocaleString('es-AR')}`}
-                          />
-                          <OptionCard 
-                            selected={treatment === "ORGANICO_AR"} 
-                            onClick={() => { setTreatment("ORGANICO_AR"); setStep(4); }} 
-                            title="Antirreflex (Evita Brillos)" 
-                            features={["Visión más nítida", "Sin reflejos molestos", "Mayor estética"]} 
-                            price={`+$${(PRICING.MONOFOCAL.ORGANICO_AR || 0).toLocaleString('es-AR')}`}
-                          />
-                          <OptionCard 
-                            selected={treatment === "ORGANICO_BLUE"} 
-                            onClick={() => { setTreatment("ORGANICO_BLUE"); setStep(4); }} 
-                            title="Super Blue" 
-                            badge="MÁS ELEGIDO ⭐"
-                            features={["Antirreflex Premium", "Filtro luz azul (Pantallas)", "20% más delgado"]} 
-                            price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLUE || 0).toLocaleString('es-AR')}`}
-                          />
-                          <OptionCard 
-                            selected={treatment === "POLI_BLUE"} 
-                            onClick={() => { setTreatment("POLI_BLUE"); setStep(4); }} 
-                            title="Extra Fino y Resistente" 
-                            badge="PREMIUM 👑"
-                            features={["Policarbonato irrompible", "Filtro luz azul", "Ultra liviano"]} 
-                            price={`+$${(PRICING.MONOFOCAL.POLI_BLUE || 0).toLocaleString('es-AR')}`}
-                          />
-                          <OptionCard 
-                            selected={treatment === "ORGANICO_FOTOCROMATICO"} 
-                            onClick={() => { setTreatment("ORGANICO_FOTOCROMATICO"); setStep(4); }} 
-                            title="Fotocromático" 
-                            features={["Se oscurece al sol", "Protección UV 100%", "Uso interior/exterior"]} 
-                            price={`+$${(PRICING.MONOFOCAL.ORGANICO_FOTOCROMATICO || 0).toLocaleString('es-AR')}`}
-                          />
-                        </>
-                      )}
-                      
-                      {lensType === "BIFOCAL" && (
-                        <OptionCard selected={true} onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} title="Bifocal Estándar" desc="Cristal tradicional con línea divisoria." price={`+$${(PRICING.BIFOCAL.ORGANICO_BLANCO || 0).toLocaleString('es-AR')}`} />
-                      )}
-
-                      {lensType === "MULTIFOCAL" && (
-                        <>
-                          <OptionCard selected={treatment === "SMART_FREE"} onClick={() => { setTreatment("SMART_FREE"); setStep(4); }} title="Diseño Digital ONE" desc="Campo visual amplio y transición natural." price={`+$${(PRICING.MULTIFOCAL.SMART_FREE || 0).toLocaleString('es-AR')}`} />
-                          <OptionCard selected={treatment === "VARILUX"} onClick={() => { setTreatment("VARILUX"); setStep(4); }} title="Varilux Premium" desc="La experiencia visual definitiva. Incluye 2x1 en cristales y armazones." price={`+$${(PRICING.MULTIFOCAL.VARILUX || 0).toLocaleString('es-AR')}`} />
-                          <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Multi Fotocromático" desc="Tecnología digital que se oscurece al sol." price={`+$${(PRICING.MULTIFOCAL.FOTOCROMATICO || 0).toLocaleString('es-AR')}`} />
-                        </>
+                      {avisoPrecios}
+                      {cargandoPrecios}
+                      {(lensType === "MONOFOCAL" ? monofocales : lensType === "BIFOCAL" ? bifocales : multifocales).map(o => (
+                        <OptionCard
+                          key={o.clave}
+                          selected={treatment === o.codigo}
+                          onClick={() => { setTreatment(o.codigo); setStep(4); }}
+                          title={o.etiqueta}
+                          badge={o.badge}
+                          features={o.destacados.length > 0 ? o.destacados : undefined}
+                          desc={o.descripcion}
+                          price={precioOpcion(o)}
+                        />
+                      ))}
+                      {estadoPrecios === "ok" && (lensType === "MONOFOCAL" ? monofocales : lensType === "BIFOCAL" ? bifocales : multifocales).length === 0 && (
+                        <p className="col-span-full text-[12px] text-stone-600">Por ahora no tenemos esta opción en la tienda. Escribinos por WhatsApp y te la cotizamos.</p>
                       )}
                     </div>
                   </>
@@ -514,12 +529,10 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
           >
             <div className="mb-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">
-                {flowType === "SUN" ? "04" : "03"} / {tintStyle === "SEGÚN MUESTRA" ? "Receta y Muestra" : "Tu Receta"}
+                {flowType === "SUN" ? "04" : "03"} / Tu Receta
               </p>
               <p className="text-sm font-serif italic text-black">
-                {tintStyle === "SEGÚN MUESTRA"
-                  ? "Mandanos por WhatsApp la foto del color a igualar (y tu receta si llevan aumento)."
-                  : "Mandanos tu receta por WhatsApp y los fabricamos exactos."}
+                Mandanos tu receta por WhatsApp y los fabricamos exactos.
               </p>
             </div>
 
@@ -532,12 +545,10 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                 </svg>
               </div>
               <h4 className="font-bold text-[14px] uppercase tracking-widest mb-2">
-                {tintStyle === "SEGÚN MUESTRA" ? "Enviá la muestra por WhatsApp" : "Enviá tu receta por WhatsApp"}
+                Enviá tu receta por WhatsApp
               </h4>
               <p className="text-[11px] text-[#666] max-w-xs mx-auto leading-relaxed mb-6">
-                {tintStyle === "SEGÚN MUESTRA"
-                  ? "Tomale una foto al color que querés que igualemos (y a tu receta). Se abre el chat con tu pedido ya escrito."
-                  : "Tomale una foto clara con el celular o mandá el PDF. Se abre el chat con tu pedido ya escrito."}
+                Tomale una foto clara con el celular o mandá el PDF. Se abre el chat con tu pedido ya escrito.
               </p>
               <a
                 href={buildWhatsAppUrl(textoRecetaWhatsApp, { phone: WHATSAPP_PHONE })}
@@ -572,7 +583,8 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
 
       {/* TOTAL Y ACCIÓN */}
       <motion.div layout className="flex flex-col gap-6">
-        {/* Resumen del Presupuesto / Desglose */}
+        {/* Resumen del Presupuesto / Desglose: cada renglón es un producto del
+            sistema, con el mismo precio que va a cobrar el checkout. */}
         <div className="w-full bg-[#faf8f5] border border-[#e8e2db] rounded-2xl p-5 mb-2 shadow-sm text-left">
           <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider block mb-3 border-b border-[#e8e2db] pb-2">
             Desglose del Presupuesto
@@ -580,47 +592,27 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
           <div className="space-y-2 text-xs">
             <div className="flex justify-between text-stone-600">
               <span>Armazón de Diseño ({productInfo?.model || 'Modelo Seleccionado'}):</span>
-              <span className="font-mono font-bold">${basePrice.toLocaleString('es-AR')}</span>
+              <span className="font-mono font-bold">${formatearPrecio(basePrice)}</span>
             </div>
-            
-            {flowType === "SUN" && tintColor && tintStyle && lensType ? (
-              <>
-                <div className="flex justify-between text-stone-600">
-                  <span>
-                    Cristales de Sol ({lensType === "NONE" ? "Sin Aumento" : lensType}):
-                  </span>
-                  <span className="font-mono font-bold">
-                    ${(() => {
-                      if (lensType === "NONE" || lensType === "MONOFOCAL") return (PRICING.MONOFOCAL.ORGANICO_BLANCO || 0);
-                      if (lensType === "BIFOCAL") return (PRICING.BIFOCAL.ORGANICO_BLANCO || 0);
-                      if (lensType === "MULTIFOCAL") return (PRICING.MULTIFOCAL.SMART_FREE || 0);
-                      return 0;
-                    })().toLocaleString('es-AR')}
-                  </span>
-                </div>
-                <div className="flex justify-between text-stone-600">
-                  <span>Teñido de Cristal ({tintColor} - {tintStyle}):</span>
-                  <span className="font-mono font-bold">
-                    ${(PRICING.EXTRAS.TINT || 0).toLocaleString('es-AR')}
-                  </span>
-                </div>
-              </>
-            ) : null}
 
-            {flowType === "CLEAR" && lensType && lensType !== "NONE" && (
+            {calculoOk?.cristal && (
               <div className="flex justify-between text-stone-600">
                 <span>
-                  Cristales ({lensType} {treatment ? `- ${treatment.replace(/_/g, ' ')}` : ''}):
+                  {esSol ? `Cristales de Sol (${tituloTipo(lensType)})` : `Cristales ${tituloTipo(lensType)} · ${calculoOk.cristal.etiqueta}`}:
                 </span>
-                <span className="font-mono font-bold">
-                  ${(calculateTotal() - basePrice).toLocaleString('es-AR')}
-                </span>
+                <span className="font-mono font-bold">${formatearPrecio(calculoOk.cristal.precio)}</span>
+              </div>
+            )}
+            {calculoOk?.tenido && (
+              <div className="flex justify-between text-stone-600">
+                <span>Teñido {calculoOk.tenido.etiqueta.toLowerCase()} ({calculoOk.tenido.tono}):</span>
+                <span className="font-mono font-bold">${formatearPrecio(calculoOk.tenido.precio)}</span>
               </div>
             )}
             
             <div className="border-t border-[#e8e2db] pt-3 mt-1 flex justify-between font-bold text-stone-900 text-sm">
               <span>Total Estimado:</span>
-              <span className="font-mono">${calculateTotal().toLocaleString('es-AR')}</span>
+              <span className="font-mono">${formatearPrecio(total)}</span>
             </div>
           </div>
         </div>
@@ -640,20 +632,20 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
         <div className="w-full flex flex-col items-center mb-2 sticky bottom-0 z-20 bg-[#fafafa]/95 backdrop-blur border-t border-[#e8e2db] pt-3 pb-2 -mx-5 px-5 sm:static sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:mx-0 sm:px-0 sm:pt-0">
           <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#78716c] mb-2">Tu anteojo completo</p>
           <motion.p
-            key={calculateTotal()}
+            key={total}
             className="text-4xl font-serif tracking-tight"
           >
-            ${formatearPrecio(calculateTotal() * (1 - discountRate))}
+            ${formatearPrecio(total * (1 - discountRate))}
           </motion.p>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#8a6d3b] mt-1">
             transferencia o efectivo · {webSettings.web_promo_cash_discount}% OFF
           </p>
           <div className="flex flex-col items-center gap-1 mt-3.5 text-center">
             <p className="text-[11px] font-bold text-stone-700">
-              💳 ${formatearPrecio(calculateTotal())} con tarjeta
+              💳 ${formatearPrecio(total)} con tarjeta
             </p>
             <p className="text-[11px] font-bold text-stone-700">
-              {promo.texto} de <span className="underline">${formatearPrecio(calculateTotal() / installmentsCount)}</span>
+              {promo.texto} de <span className="underline">${formatearPrecio(total / installmentsCount)}</span>
             </p>
           </div>
         </div>
@@ -664,10 +656,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             // Sin datos del producto no hay nada que agregar: se corta ANTES de
             // medir para que el evento de cierre cuente carritos reales.
             if (!cartItemId && !productInfo) return;
-
-            const finalColorStr = flowType === "SUN" && tintColor && tintStyle
-              ? `${tintColor} (${tintStyle})`
-              : tintColor;
+            if (!calculoOk) return;
 
             // Cierre del embudo: con este evento y `lens_config_start` sale la
             // tasa de conversión del configurador, y con los del medio, en qué
@@ -675,25 +664,18 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             track("lens_config_complete", {
               productId,
               productName: nombreProducto,
-              value: calculateTotal(),
+              value: total,
               meta: {
                 flujo: flowType,
                 tipo: lensType,
                 tratamiento: treatment,
-                color: finalColorStr,
+                color: esSol && tintColor ? `${tintColor} (${tintStyle})` : null,
                 modo: cartItemId ? "editar" : "nuevo",
               },
             });
 
             if (cartItemId) {
-              const additionalPrice = calculateTotal() - basePrice;
-              updateItemLensConfig(cartItemId, {
-                lensType,
-                treatment,
-                color: finalColorStr,
-                prescriptionFile: lensType === "NONE" ? null : RECETA_POR_WHATSAPP
-              }, additionalPrice);
-
+              updateItemLensConfig(cartItemId, lensConfig, total - basePrice);
               if (onSuccess) onSuccess();
             } else {
               if (!productInfo) return;
@@ -701,22 +683,18 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                 productId: productId || "unknown",
                 brand: productInfo.brand,
                 model: productInfo.model,
-                price: calculateTotal(),
+                price: total,
                 basePrice: basePrice,
                 wholesaleBasePrice: wholesaleBasePrice || 0,
                 image: productInfo.image,
-                lensColor: mapColorToHex(tintColor),
-                lensConfig: {
-                  lensType,
-                  treatment,
-                  color: finalColorStr,
-                  prescriptionFile: lensType === "NONE" ? null : RECETA_POR_WHATSAPP
-                },
+                lensColor: esSol ? hexDeTono(tintColor) : null,
+                lensConfig,
                 quantity: 1
               });
-              // Varilux incluye 2x1: en vez de cerrar, pasar a elegir el
-              // segundo armazón sin cargo (si el contenedor lo soporta).
-              if (treatment === "VARILUX" && onTwoForOne) onTwoForOne();
+              // Varilux 2x1: en vez de cerrar, pasar a elegir el segundo armazón
+              // sin cargo (si el contenedor lo soporta y el Varilux vinculado
+              // es un 2x1 de verdad).
+              if (!esSol && treatment === "VARILUX" && ofrece2x1 && onTwoForOne) onTwoForOne();
               else if (onSuccess) onSuccess();
             }
           }}
@@ -727,6 +705,17 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
 
         <p className="text-xs uppercase font-bold tracking-[0.2em] text-[#78716c] text-center">Envío Asegurado sin cargo a todo el país</p>
       </motion.div>
+    </div>
+  );
+}
+
+/** Lugar de una card mientras llegan los precios: sin números inventados. */
+function SkeletonCard() {
+  return (
+    <div aria-hidden="true" className="border border-black/10 bg-white rounded-[1rem] p-6 min-h-[160px] animate-pulse flex flex-col gap-3">
+      <div className="h-3 w-2/3 bg-stone-200 rounded" />
+      <div className="h-2 w-1/2 bg-stone-100 rounded" />
+      <div className="h-2 w-1/3 bg-stone-100 rounded mt-auto" />
     </div>
   );
 }

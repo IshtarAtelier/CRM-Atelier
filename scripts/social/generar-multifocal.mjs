@@ -16,12 +16,12 @@
  * publicar precios de más de 10 días (`src/lib/social/frescura.ts`).
  *
  * DE DÓNDE SALE CADA NÚMERO
- *  · El "desde" de cada gama: MISMO criterio que `src/lib/pricing/multifocal-desde.ts`,
- *    que es el que alimenta el ancla de la landing `/multifocales`. Se lee el
- *    mapeo de cristales del propio `crystal-mapping.ts` (no se copia acá) y se
- *    respetan sus `excludeKeywords`: el 10/8/2026 se descubrió que las copias
- *    del checkout ignoraban esa exclusión y por eso cobraban la mitad de lo
- *    publicado. Una gama excluida está excluida en TODOS lados.
+ *  · El precio de cada gama: el de la opción de multifocal del configurador,
+ *    con el producto vinculado en /admin/web → Cristales. Se lee con el MISMO
+ *    service que usan la tienda, el checkout y la landing `/multifocales`
+ *    (`src/services/cristales-web.service.ts`), no con una copia: antes esto
+ *    repetía el matcher por palabras clave y el 10/8/2026 dos copias
+ *    distintas publicaban y cobraban precios distintos.
  *  · Las cuotas y el descuento de contado: de `SystemSetting`, que es de donde
  *    los lee la tienda (`PaymentOptions.tsx`), con el mismo redondeo.
  *  · El armazón de entrada: el más barato publicado, activo y CON STOCK.
@@ -46,11 +46,11 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { RAIZ } from './identidad.mjs';
+import { register } from 'node:module';
 import { cuotasLargas, leerPromoCuotas } from './condiciones-pago.mjs';
 
 const SALIDA = path.join(RAIZ, 'social', 'contenido');
 const BANCO = path.join(RAIZ, 'public', 'images');
-const MAPEO_TS = path.join(RAIZ, 'src', 'lib', 'config', 'crystal-mapping.ts');
 
 /** El id de la pieza del feed, tal como lo nombra el calendario del plan. */
 const ID_CARRUSEL = 'multifocal-desde';
@@ -58,43 +58,16 @@ const ID_CARRUSEL = 'multifocal-desde';
 const ID_ANUNCIO = 'ad-l1-multifocal-desde';
 
 /**
- * Las gamas, con el nombre PÚBLICO que ya usa la tienda.
- *
- * Los textos son los mismos que muestran `CristalesShowcase.tsx` y el
- * configurador; si la placa las llamara distinto, alguien llegaría desde el
- * aviso buscando "Diseño Digital ONE" y encontraría otra cosa. Acá se repite el
- * rótulo, nunca el precio: el rótulo es texto de marca, el precio es el dato que
- * R6 obliga a leer de la base.
- *
- * El orden es el de la placa: primero el que fija el ancla.
+ * Una línea de detalle por gama, para la escalera de la placa. El NOMBRE de la
+ * gama no va acá: es la etiqueta de la opción en la base (la misma card que ve
+ * el cliente en el configurador), así el aviso y la tienda no pueden llamarla
+ * distinto.
  */
-const GAMAS = [
-    { clave: 'SMART_FREE', rotulo: 'Diseño Digital ONE', detalle: 'campo visual amplio' },
-    { clave: 'FOTOCROMATICO', rotulo: 'Multi Fotocromático', detalle: 'se oscurece al sol' },
-    { clave: 'VARILUX', rotulo: 'Varilux Premium', detalle: 'la gama alta de Essilor' },
-];
-
-/** La gama cuyo "desde" es el ancla — la misma que usa `multifocal-desde.ts`. */
-const GAMA_ANCLA = 'SMART_FREE';
-
-/**
- * Junta las exclusiones declaradas en CUALQUIER gama de multifocal.
- *
- * Para qué: el mapeo declara "mi primer" como excluido en Varilux, y el motivo
- * escrito ahí es que ese cristal tiene restricciones de adición y NO PUEDE SER
- * EL PRECIO "DESDE" QUE MUESTRA LA WEB. Ese motivo no es de Varilux: es del
- * producto. Pero la gama FOTOCROMATICO no lo declara, y su "desde" termina
- * siendo justamente un "Mi Primer Varilux".
- *
- * Acá NO se cambia ningún precio ni se inventa un criterio: se usa la exclusión
- * que el negocio ya escribió como guarda de publicación. Si una gama arranca en
- * un producto que el propio mapeo declara inhábil para ser un "desde", esa línea
- * no sale en la placa (y se avisa fuerte). Arreglar el mapeo hace que vuelva
- * sola.
- */
-function exclusionesDeclaradas(multifocal) {
-    return [...new Set(Object.values(multifocal).flatMap(c => c?.excludeKeywords ?? []))];
-}
+const DETALLE_DE_GAMA = {
+    SMART_FREE: 'campo visual amplio',
+    FOTOCROMATICO: 'se oscurece al sol',
+    VARILUX: 'la gama alta de Essilor',
+};
 
 /** Los cuatro tamaños de anuncio, con el sufijo de archivo de la familia ad-l1-*. */
 const TAMANOS = [
@@ -112,80 +85,13 @@ function tieneFlag(nombre) {
 }
 
 /**
- * El mapeo de cristales, leído del propio archivo de la app.
- *
- * No se copia acá a propósito: el mapeo es la definición de qué producto es cada
- * gama, y tener dos copias es exactamente cómo se termina publicando un precio
- * que el checkout no cobra. `crystal-mapping.ts` es un objeto literal sin tipos,
- * así que se puede importar tal cual como módulo. Si alguien le agrega sintaxis
- * de TypeScript, esto falla FUERTE y con instrucciones — mejor que seguir con un
- * mapeo desactualizado en silencio.
+ * El resolutor de opciones de cristal de la app, importado tal cual (TypeScript
+ * directo: Node 22 lo lee sin compilar). El loader de alias es el mismo que usan
+ * los checks para importar services reales con `@/`.
  */
-async function leerMapeoDeCristales() {
-    const fuente = await readFile(MAPEO_TS, 'utf-8');
-    try {
-        const url = `data:text/javascript;base64,${Buffer.from(fuente, 'utf-8').toString('base64')}`;
-        const { CrystalMapping } = await import(url);
-        if (!CrystalMapping?.MULTIFOCAL) throw new Error('no exporta MULTIFOCAL');
-        return CrystalMapping;
-    } catch (e) {
-        throw new Error(
-            `No se pudo leer ${path.relative(RAIZ, MAPEO_TS)} como módulo (${e.message}). ` +
-            `Seguramente le agregaron sintaxis de TypeScript. Adaptá este lector — NO copies ` +
-            `el mapeo acá: dos copias del mapeo es cómo se publica un precio que el checkout no cobra.`,
-        );
-    }
-}
-
-/**
- * El "desde" de una gama. Es la MISMA lógica que `precioMultifocalDesde()` de
- * `src/lib/pricing/multifocal-desde.ts`, en el mismo orden:
- * excluir → nombre exacto (corta acá si lo encuentra) → palabras clave → mínimo.
- *
- * Devuelve `null` cuando no puede calcularlo. Nada de valores por defecto: un
- * precio inventado que queda viejo es el daño que R6 existe para impedir.
- */
-function desdeDeGama(config, cristales) {
-    let candidatos = cristales.filter(p => !config.type || p.type === config.type);
-
-    if (config.excludeKeywords?.length) {
-        candidatos = candidatos.filter(
-            p => !config.excludeKeywords.some(kw => p.name?.toLowerCase().includes(kw)),
-        );
-    }
-    if (config.exactMatchName) {
-        const exacto = candidatos.find(
-            p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase(),
-        );
-        if (exacto?.price) return { precio: exacto.price, producto: exacto.name };
-    }
-    if (config.matchKeywords?.length) {
-        candidatos = candidatos.filter(p =>
-            config.matchKeywords.some(kw => p.name?.toLowerCase().includes(kw)),
-        );
-    }
-
-    const conPrecio = candidatos.filter(p => (p.price || 0) > 0);
-    if (!conPrecio.length) return null;
-    const ganador = conPrecio.reduce((a, b) => (b.price < a.price ? b : a));
-    return { precio: ganador.price, producto: ganador.name, es2x1: esDosPorUno(ganador) };
-}
-
-/**
- * ¿Ese precio cubre DOS pares?
- *
- * No es un detalle de redacción: el Varilux más barato del catálogo es un 2x1 y
- * su precio de lista es el de los dos pares. Publicarlo al lado del cristal de
- * entrada sin decirlo lo hace parecer cinco veces más caro de lo que es, y
- * esconde justo la ventaja que se quiere vender.
- *
- * La fuente que manda es la bandera `is2x1` del producto, igual que en
- * `isMultifocal2x1()` (`src/lib/promo-utils.ts`), que es LA regla del proyecto;
- * el nombre queda solo como red por los productos viejos que nunca la tuvieron.
- */
-function esDosPorUno(producto) {
-    if (producto?.is2x1 === true) return true;
-    return /\b(2\s?x\s?1|2\s?por\s?1|dos\s?por\s?uno)\b/i.test(producto?.name || '');
+async function importarResolutor() {
+    register('../checks/_alias-loader.mjs', import.meta.url);
+    return import('../../src/services/cristales-web.service.ts');
 }
 
 /**
@@ -255,66 +161,43 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
     const url = produccion ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL;
     if (!url) throw new Error(`Falta ${produccion ? 'PROD_DATABASE_URL' : 'DATABASE_URL'} en el .env`);
 
-    const mapeo = await leerMapeoDeCristales();
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient({ datasources: { db: { url } } });
 
     try {
         console.log(`\nBase: ${produccion ? 'PRODUCCIÓN (solo lectura)' : 'LOCAL'}`);
 
-        // `select` explícito: el schema local está adelantado respecto de
-        // producción y traer la fila entera revienta contra prod.
-        const cristales = await prisma.product.findMany({
-            where: { category: 'Cristal', type: 'Cristal Multifocal' },
-            select: { name: true, price: true, type: true, is2x1: true },
-        });
-        if (!cristales.length) throw new Error('No hay cristales multifocales en la base. Sin precio no hay pieza.');
-
-        const inhabiles = exclusionesDeclaradas(mapeo.MULTIFOCAL);
+        // Las gamas son las opciones de multifocal que vende la tienda, con el
+        // precio del producto vinculado. El service usa `select` explícito
+        // (el schema local está adelantado respecto de producción).
+        const { resolverOpcionesDeCristal } = await importarResolutor();
+        const opciones = await resolverOpcionesDeCristal(prisma);
         const gamas = [];
-        for (const g of GAMAS) {
-            const config = mapeo.MULTIFOCAL[g.clave];
-            if (!config) throw new Error(`El mapeo no tiene la gama ${g.clave}.`);
-            const desde = desdeDeGama(config, cristales);
-            if (!desde) {
-                // Una gama sin precio no se inventa: se deja afuera de la placa.
-                console.log(`  ⚠️  ${g.rotulo}: sin precio calculable, queda fuera de la pieza.`);
+        for (const o of opciones.filter(x => x.grupo === 'MULTIFOCAL')) {
+            if (!o.disponible) {
+                // Una gama sin producto vinculado no se inventa: queda fuera.
+                console.log(`  ⚠️  ${o.etiqueta}: no disponible en la tienda (${o.motivo}), queda fuera de la pieza.`);
                 continue;
             }
-            const inhabil = inhabiles.find(kw => desde.producto.toLowerCase().includes(kw));
-            if (inhabil) {
-                console.log(
-                    `  ⚠️  ${g.rotulo}: su "desde" (${plata(desde.precio)}) sale de "${desde.producto.trim()}", ` +
-                    `que el mapeo declara inhábil como precio "desde" ("${inhabil}"). Queda FUERA de la placa. ` +
-                    `Ojo: la web lo muestra igual — hay que agregarle excludeKeywords a esa gama en crystal-mapping.ts.`,
-                );
-                continue;
-            }
-            gamas.push({ ...g, ...desde });
-            console.log(`  · ${g.rotulo.padEnd(22)} ${plata(desde.precio).padStart(12)}   ← ${desde.producto.trim()}`);
+            gamas.push({
+                clave: o.codigo,
+                rotulo: o.etiqueta,
+                detalle: DETALLE_DE_GAMA[o.codigo] ?? o.descripcion ?? '',
+                precio: o.precio,
+                producto: o.nombreProducto,
+                es2x1: o.is2x1,
+            });
+            console.log(`  · ${o.etiqueta.padEnd(22)} ${plata(o.precio).padStart(12)}   ← ${o.nombreProducto}`);
+        }
+        if (!gamas.length) {
+            throw new Error('Ninguna opción de multifocal está disponible en la tienda (/admin/web → Cristales). Sin precio no hay pieza.');
         }
 
-        const ancla = gamas.find(g => g.clave === GAMA_ANCLA);
-        if (!ancla) {
-            throw new Error(
-                `Sin precio para ${GAMA_ANCLA} no hay pieza: es el mismo número que ancla la landing ` +
-                `/multifocales, y publicar otro sería decir dos precios distintos por el mismo producto.`,
-            );
-        }
-
-        // La placa dice "desde $ancla": si alguna gama arrancara MÁS BARATO, el
-        // titular sería mentira y el ancla de la landing también. Se frena, no se
-        // maquilla: si esto salta, lo que está mal es el mapeo o el catálogo.
-        const masBarata = gamas.reduce((a, b) => (b.precio < a.precio ? b : a));
-        if (masBarata.precio < ancla.precio) {
-            throw new Error(
-                `"${masBarata.rotulo}" arranca en ${plata(masBarata.precio)}, más barato que el ancla ` +
-                `(${plata(ancla.precio)}). La landing /multifocales estaría publicando un "desde" que no es el más bajo.`,
-            );
-        }
-
+        // El ancla es la gama más barata: el mismo número que calcula
+        // `precioMultifocalDesde()` para la landing, con la misma regla.
         // De menor a mayor: la escalera se lee de una sola pasada.
         gamas.sort((a, b) => a.precio - b.precio);
+        const ancla = gamas[0];
 
         const cond = await condicionesDeVenta(prisma);
         console.log(`  · condiciones (de la tienda): ${cond.textoCuotas} · ${cond.descuento}% al contado`);
@@ -492,8 +375,8 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
         }
 
         // El ancla de la landing NO se escribe en ningún archivo: `/multifocales`
-        // la calcula en vivo con `precioMultifocalDesde()`, la misma función que
-        // replica este script. Guardarla acá crearía una segunda copia del
+        // la calcula en vivo con `precioMultifocalDesde()`, sobre las mismas
+        // opciones que leyó este script. Guardarla acá crearía una segunda copia del
         // número, que es justo lo que hay que evitar. Se imprime para poder
         // verificar de un vistazo que la placa, el anuncio y la landing dicen lo
         // mismo.

@@ -1,5 +1,6 @@
 "use client";
 
+import { describirConfiguracion, tieneCristales } from '@/lib/cristales-web/claves';
 import { useCart, getItemUnitPrice } from "@/store/useCart";
 import { useIsWholesale, useWholesaleCartBackfill } from "@/hooks/useIsWholesale";
 import { WHOLESALE_MIN_PIECES } from "@/lib/constants";
@@ -86,19 +87,14 @@ export function CartSidebar() {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        {item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) && (
+                        {tieneCristales(item.lensConfig) && (
                           <div className="mt-2 flex flex-col gap-1">
-                            <p className="text-[10px] text-stone-600 uppercase tracking-widest font-bold">
-                              {item.lensConfig.lensType === "NONE" ? "SIN AUMENTO" : item.lensConfig.lensType} {item.lensConfig.treatment && `+ ${item.lensConfig.treatment.replace(/_/g, ' ')}`}
+                            <p className="text-[10px] text-stone-600 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                              {item.lensColor && (
+                                <span className="w-2 h-2 rounded-full border border-stone-300 shrink-0" style={{ backgroundColor: item.lensColor }} />
+                              )}
+                              {describirConfiguracion(item.lensConfig)}
                             </p>
-                            {item.lensConfig.color && (
-                              <p className="text-xs text-stone-500 uppercase tracking-widest flex items-center gap-1">
-                                {item.lensColor && (
-                                  <span className="w-2 h-2 rounded-full border border-stone-300" style={{ backgroundColor: item.lensColor }} />
-                                )}
-                                Tinte: {item.lensConfig.color}
-                              </p>
-                            )}
                             {/* Ver la nota en src/lib/checkout/receta.ts: el
                                 tilde verde solo va cuando la receta llegó. */}
                             {item.lensConfig.prescriptionFile && (
@@ -138,7 +134,7 @@ export function CartSidebar() {
                           {isWholesale && item.wholesaleBasePrice != null && item.wholesaleBasePrice > 0 && (
                             <p className="text-[9px] font-black uppercase tracking-widest text-blue-600">Mayorista</p>
                           )}
-                          {(!item.lensConfig || (item.lensConfig.lensType === "NONE" && !item.lensConfig.color)) && (
+                          {!tieneCristales(item.lensConfig) && (
                             <button
                               onClick={() => setConfiguringItemId(item.id)}
                               className="text-xs uppercase tracking-widest font-bold text-blue-700 hover:text-blue-800 underline mt-1"
