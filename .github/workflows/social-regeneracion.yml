@@ -104,8 +104,13 @@ jobs:
                    social/contenido/receta-seleccion.json \
                    social/contenido/armazones-destacados.json; do
             echo "render: $f"
-            node scripts/social/render.mjs "$f"
+            # Una pieza que no pasa el validador se salta y se anota; no se tira
+            # la regeneración entera (el 25/9/2026 una sola foto inexistente
+            # dejó las 153 stories sin commitear). La pieza sin JPG no sale
+            # igual: el cron de publicación vuelve a validar antes de publicar.
+            node scripts/social/render.mjs "$f" || fallidas="$fallidas $f"
           done
+          if [ -n "$fallidas" ]; then echo "⚠ Sin renderizar (revisar con npm run check:social):$fallidas"; fi
 
       - name: Verificar que ninguna pieza quedó con precio crudo
         run: |

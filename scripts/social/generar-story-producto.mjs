@@ -32,6 +32,8 @@
  * lleva el nombre del modelo bien visible y el pie remite a la tienda: alguien
  * que ve la story puede buscarlo por nombre y encontrarlo.
  */
+import { existsSync } from 'node:fs';
+import { join as joinPath } from 'node:path';
 import 'dotenv/config';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -168,12 +170,27 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
         ].filter(Boolean).join(' · ');
         console.log(`\n${webs.length} producto(s) publicados con stock — ${filtros}`);
 
-        const usables = webs.filter(w => (w.images?.length || w.imageUrl) && (w.product?.price ?? 0) > 0);
-        const sinFoto = webs.length - usables.length;
+        const conFotoYPrecio = webs.filter(w => (w.images?.length || w.imageUrl) && (w.product?.price ?? 0) > 0);
+        // La foto tiene que ser una ruta pública del repo (empieza con "/" y el
+        // archivo existe en public/): las fotos subidas desde el CRM viven en
+        // Firebase con una clave tipo "1789702045553_calipso….webp" que la
+        // tienda resuelve, pero el render no. El 25/9/2026 Calipso Oval Negro
+        // (subida así el 18/9) frenó la regeneración de las 153 stories con un
+        // "[R5] la imagen no existe" y el commit nunca llegó.
+        const fotoPublica = (w) => {
+            const f = (w.images?.[0] || w.imageUrl || '');
+            return f.startsWith('/') && existsSync(joinPath('public', f));
+        };
+        const usables = conFotoYPrecio.filter(fotoPublica);
+        const sinFoto = webs.length - conFotoYPrecio.length;
+        const fotoNoPublica = conFotoYPrecio.filter(w => !fotoPublica(w));
         if (sinFoto > 0) {
             // Se dice en voz alta: un filtro silencioso hace creer que se
             // cubrió todo el catálogo cuando se dejó afuera un tercio.
             console.log(`  · ${sinFoto} quedaron afuera por no tener foto o precio.`);
+        }
+        if (fotoNoPublica.length > 0) {
+            console.log(`  · ${fotoNoPublica.length} quedaron afuera porque su foto no está en public/ (subida desde el CRM): ${fotoNoPublica.map(w => w.slug).join(', ')}`);
         }
 
         const cond = await condicionesDeVenta(prisma);
