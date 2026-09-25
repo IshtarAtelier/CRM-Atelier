@@ -1,5 +1,7 @@
 import { prisma } from '../../lib/db';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
+import { estaResuelta } from '../../lib/lab-factura';
+import { VENTANA_REPORTE_DIAS } from './types';
 
 /**
  * 2x1 CON LOS DOS PARES COBRADOS.
@@ -99,7 +101,10 @@ function tandasDelMismoPedido<T extends Entrada>(items: T[]): T[][] {
  * Busca ventas (o clientes del portal) con DOS O MÁS pedidos facturados con
  * cargo en la ventana pedida. Solo lee.
  */
-export async function detectarDobleCobro(dias = 120): Promise<DobleCobro[]> {
+// Ventana: la de todos los avisos (30 días, Ishtar 25/9/2026). Un par partido
+// por el borde de la ventana no se acusa acá, pero la venta con nº cargado ya
+// lo detecta el cruce (parBonificadoCobrado) al llegar la segunda factura.
+export async function detectarDobleCobro(dias = VENTANA_REPORTE_DIAS): Promise<DobleCobro[]> {
     const desde = new Date(Date.now() - dias * 86400000);
     const entradas = await prisma.labCostEntry.findMany({
         where: {
@@ -108,7 +113,7 @@ export async function detectarDobleCobro(dias = 120): Promise<DobleCobro[]> {
         },
         select: {
             lab: true, labOrderNumber: true, billedNet: true, billedTotal: true,
-            invoiceDate: true, notes: true, orderId: true,
+            invoiceDate: true, notes: true, orderId: true, resolvedAt: true,
             order: { select: { clientId: true, client: { select: { name: true } } } },
         },
     });
@@ -119,6 +124,8 @@ export async function detectarDobleCobro(dias = 120): Promise<DobleCobro[]> {
         if (importe === null || importe < CON_CARGO_MIN) continue;
         // Un reproceso de garantía no es el segundo par de un 2x1.
         if ((e.notes || '').includes('POSTVENTA (caso')) continue;
+        // Y lo que ya se resolvió a mano no se vuelve a acusar.
+        if (estaResuelta(e)) continue;
 
         const porPortal = labPortalClientName(e.notes);
         const key = e.orderId
@@ -174,7 +181,7 @@ const AVISADOS_KEY = 'lab_doble_cobro_avisados';
  * par reaparecería en el resumen todos los días hasta que se resuelva con el
  * laboratorio (semanas), y un aviso que se repite deja de leerse.
  */
-export async function dobleCobroNuevos(dias = 120): Promise<DobleCobro[]> {
+export async function dobleCobroNuevos(dias = VENTANA_REPORTE_DIAS): Promise<DobleCobro[]> {
     const todos = await detectarDobleCobro(dias);
     const row = await prisma.systemSetting.findUnique({ where: { key: AVISADOS_KEY } }).catch(() => null);
     const avisados = new Set<string>(row?.value ? JSON.parse(row.value) : []);

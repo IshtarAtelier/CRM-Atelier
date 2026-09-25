@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import { fmtARS, fmtFecha, appUrl as appUrlFn, LAB_LABELS } from '@/services/lab-recon/types';
+import { estaResuelta, tieneParBonificadoCobrado } from '@/lib/lab-factura';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -77,7 +78,7 @@ export async function GET(request: Request) {
                 select: {
                     labOrderNumber: true, invoiceDate: true, sourceFile: true, notes: true,
                     billedNet: true, billedTotal: true, systemCost: true, difference: true,
-                    status: true, orderId: true, createdAt: true,
+                    status: true, orderId: true, createdAt: true, resolvedAt: true,
                     order: { select: { clientId: true, labOrderNumber: true, client: { select: { name: true } } } },
                 },
             });
@@ -94,8 +95,9 @@ export async function GET(request: Request) {
             const fechaRef = (e: typeof todas[number]) =>
                 e.invoiceDate ?? fechaIngreso(e.notes) ?? e.createdAt;
 
+            // Lo resuelto a mano ya se trató: no vuelve a salir (Ishtar, 25/9/2026).
             const entradas = todas
-                .filter(e => { const f = fechaRef(e); return f >= desde && f <= hasta; })
+                .filter(e => { const f = fechaRef(e); return f >= desde && f <= hasta && !estaResuelta(e); })
                 .sort((a, b) => fechaRef(a).getTime() - fechaRef(b).getTime());
 
             // Optovisión discrimina IVA y Atelier es monotributo (no lo recupera):
@@ -198,7 +200,9 @@ export async function GET(request: Request) {
                 const numeros = grupo.map(x => x.labOrderNumber).join(' + ');
                 return `
                 <tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
-                    <td style="${BD};font-family:monospace">${numeros}${grupo.length > 1 ? `<div style="font-size:11px;color:#6b7280;font-family:inherit">${grupo.length} pedidos de la misma venta</div>` : ''}</td>
+                    <td style="${BD};font-family:monospace">${numeros}${grupo.length > 1 ? `<div style="font-size:11px;color:#6b7280;font-family:inherit">${grupo.length} pedidos de la misma venta</div>` : ''}${
+                        // 2x1 con todos los pedidos cobrados: sobrecosto aunque la suma cierre (regla del tope, cost-matching).
+                        grupo.some(x => tieneParBonificadoCobrado(x.notes)) ? `<div style="font-size:11px;color:#b91c1c;font-weight:bold;font-family:inherit">⚠️ 2x1: el par bonificado vino cobrado — a reclamar</div>` : ''}</td>
                     <td style="${BD};white-space:nowrap">${fmtFecha(fechaRef(e))}</td>
                     <td style="${BD}">${ficha(e.order?.clientId, e.order?.client?.name || '—')}</td>
                     <td style="${BD};text-align:right">${fmtARS(e.systemCost)}</td>

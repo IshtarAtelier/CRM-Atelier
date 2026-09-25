@@ -1,10 +1,10 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
-import { aclaracionImporte, etiquetaSinVenta } from '../../lib/lab-factura';
+import { aclaracionImporte, estaResuelta, etiquetaSinVenta, tieneParBonificadoCobrado } from '../../lib/lab-factura';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
 import { dobleCobroNuevos, marcarDobleCobroAvisado } from './dos-por-uno';
-import { LAB_LABELS, UNMATCHED_GRACE_MS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
+import { LAB_LABELS, UNMATCHED_GRACE_MS, VENTANA_REPORTE_DIAS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
 
 /**
  * AVISOS de la conciliación de costos de laboratorio.
@@ -269,7 +269,9 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     // sigue entrando en cada corrida hasta que se cumpla el margen (o consiga venta).
     const listoParaAvisar = (e: any) => e.status !== 'UNMATCHED'
         || Date.now() - new Date(e.createdAt).getTime() >= UNMATCHED_GRACE_MS;
-    const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && (!e.alertedAt || e.alertedStatus !== e.status) && listoParaAvisar(e));
+    // Lo RESUELTO A MANO no vuelve a avisarse aunque cambie de estado: ya se
+    // trató (Ishtar, 25/9/2026). Si hace falta, se reabre desde la pantalla.
+    const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && !estaResuelta(e) && (!e.alertedAt || e.alertedStatus !== e.status) && listoParaAvisar(e));
     if (nuevos.length === 0 && dobles.length === 0) return { alerted: 0 };
 
     // En el modo `urgente` todo lo que entra son huérfanos: van sí o sí.
@@ -278,12 +280,21 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     // llenaría el resumen de ruido (queda esperando en la pantalla, y cuando
     // llegue su factura aparece en el resumen de ese día).
     const bill = (e: any) => e.lab === 'OPTOVISION' ? (e.billedTotal ?? e.billedNet ?? 0) : (e.billedNet ?? e.billedTotal ?? 0);
+    // A PARTIR DE AHORA (Ishtar, 25/9/2026): el resumen diario solo evalúa lo
+    // de los últimos VENTANA_REPORTE_DIAS días. Una entrada vieja que el cruce
+    // vuelve a tocar (el lab re-manda la factura, un recálculo) cambiaba de
+    // estado y reaparecía como "novedad" meses después. Lo que queda fuera de
+    // la ventana se estampa como visto, así no se acumula pendiente de avisar.
+    const ventanaDesde = Date.now() - VENTANA_REPORTE_DIAS * 86400000;
+    const enVentana = (e: any) => new Date(e.invoiceDate ?? e.createdAt).getTime() >= ventanaDesde;
+    const viejos = modo === 'diario' ? nuevos.filter(e => !enVentana(e)) : [];
     const relevantes = modo === 'urgente'
         ? nuevos
-        : nuevos.filter(e => bill(e) > 0 || e.difference !== null);
+        : nuevos.filter(e => enVentana(e) && (bill(e) > 0 || e.difference !== null));
     // El resumen diario no silencia nada por monto: es un solo email por día,
-    // así que las diferencias chicas también entran (ordenadas al final).
-    const chicos: any[] = [];
+    // así que las diferencias chicas también entran. Lo único que se estampa
+    // sin avisar es lo de más de 30 días (`viejos`).
+    const chicos: any[] = [...viejos];
 
     // Una venta con varios pedidos (2x1) estampa el estado a NIVEL VENTA en
     // todas sus entradas hermanas: informar UNA fila por venta (la de mayor
@@ -412,9 +423,13 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
         // en el sistema. Una factura que llegó SIN nº de pedido no es eso — la
         // venta suele estar cargada y lo que falta es el dato en el papel.
         // Decirle "sin venta" a las dos cosas quema el aviso que importa.
+        // Un 2x1 con el par bonificado cobrado es sobrecosto aunque la suma
+        // cierre: decirlo en la etiqueta, que es lo primero que se lee.
         const etiqueta = f.status === 'UNMATCHED'
             ? etiquetaSinVenta(f.labOrderNumber).label.toUpperCase()
-            : m.label;
+            : tieneParBonificadoCobrado(f.notes)
+                ? `${m.label} · 2x1: par bonificado cobrado`
+                : m.label;
         // Sin venta enganchada, la columna mostraba un guión aunque el portal
         // hubiera mandado el nombre del cliente en la nota. Ese nombre es la
         // única pista para encontrarle el dueño al pedido: se muestra.

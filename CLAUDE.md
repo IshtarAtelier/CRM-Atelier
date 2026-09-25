@@ -130,7 +130,15 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   no hay ningún armazón a $0 en las 59 ventas 2x1 desde abril, porque la promo
   todavía no regala armazones; cuando se prenda, se cuenta solo. En el cruce
   (`systemCostForLab`) ese par suma CERO, y cualquier importe que el lab le
-  facture es un sobrecosto a reclamar. Decisión de Ishtar del 8/9/2026, con los
+  facture es un sobrecosto a reclamar. **Y la suma no alcanza para verlo**: con
+  los dos pedidos facturados, UNO tiene que venir sin cargo o hasta
+  `TOPE_PAR_BONIFICADO_2X1` ($30.000, Ishtar 25/9/2026); si hasta el más
+  barato vino por encima, es `OVERCOST` aunque la suma cierre
+  (`parBonificadoCobrado`). **Los avisos de laboratorio miran 30 días y lo
+  tratado se marca "resuelto" a mano** en `/admin/laboratorio/costos`
+  (`resolvedAt`, Ishtar 25/9/2026): un hallazgo resuelto no vuelve a salir en
+  ningún mail, y lo de más de 30 días no se repite aunque siga abierto.
+  Decisión de Ishtar del 8/9/2026, con los
   datos a la vista: sobre 48 ventas 2x1, Optovisión cobra el segundo par $5 a
   $41 —nada—, Grupo Óptico entre $3.724 y $15.385, y en 14 ventas lo cobró
   ENTERO. Antes se valuaba en el calibrado del lab ($27.830 en Optovisión), y

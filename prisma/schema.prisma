@@ -1143,6 +1143,11 @@ model LabCostEntry {
   // pase rápido (cada 10 min) y el cron diario.
   alertedAt      DateTime?
   alertedStatus  String?
+  // Resuelto A MANO por el administrador (reclamado, acreditado, es correcto…):
+  // deja de salir en los avisos y en el semanal. El estado del cruce no cambia.
+  resolvedAt     DateTime?
+  resolvedBy     String?
+  resolvedNote   String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   order          Order?    @relation(fields: [orderId], references: [id])

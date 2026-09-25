@@ -71,6 +71,7 @@
     "check:auditoria-costos": "node scripts/checks/auditoria-costos-optovision.check.mjs",
     "check:crizal": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/crizal-obligatorio.check.mjs",
     "check:recalculo-lab": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/recalculo-costos-lab.check.mjs",
+    "check:par-bonificado": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/par-bonificado-2x1.check.mjs",
     "check:meta-anuncios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/meta-anuncios-identificados.mjs",
     "check:referral": "node scripts/checks/referral-anuncio.check.cjs"
   },
