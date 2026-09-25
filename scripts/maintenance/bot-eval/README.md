@@ -9,7 +9,7 @@ los mensajes. **Uso interno.**
 | Archivo | Qué es |
 | --- | --- |
 | `conversaciones-reales.json` | 264 conversaciones reales donde participó el Bot (excluye chats internos del equipo y pruebas). Cada una: `id`, `categoria`, `resumen` (el `chatSummary` del CRM), `turnos` (`quien`: cliente/bot/humano + texto + fecha) y `problemas_detectados` con fragmento textual. |
-| `casos-de-prueba.json` | 40 casos destilados: mensaje de cliente + criterios que una respuesta perfecta debe cumplir según `src/lib/business-info.ts` (horarios L-V 8-20 / Sáb 9-17, 15% efectivo y transferencia, 3/6 sin interés, "hasta 12 cuotas con MP" sin mencionar el %, 2x1 multifocales, UN cambio de cristal, Factura B o C, Essilor). **Si cambia una regla de negocio, actualizar los criterios antes de evaluar.** |
+| `casos-de-prueba.json` | 40 casos destilados: mensaje de cliente + criterios que una respuesta perfecta debe cumplir según `src/lib/business-info.ts` (horarios L-V 8-20 / Sáb 9-17, 15% efectivo y transferencia, 3/6 sin interés, "hasta 12 cuotas con MP" sin mencionar el %, 2x1 multifocales, UN cambio de cristal, Factura C (nunca A ni B), Essilor). **Si cambia una regla de negocio, actualizar los criterios antes de evaluar.** |
 | `minar-conversaciones.mjs` | Etapa 1 — pega a la base (solo lectura, `select` explícito). `--relevar` imprime volumen; `--extraer` emite los hilos crudos por stdout. |
 | `categorizar-y-detectar.mjs` | Etapa 2 — sin base: lee el dump crudo, categoriza por intención (heurísticas por palabras clave), detecta fallas y escribe `conversaciones-reales.json`. |
 

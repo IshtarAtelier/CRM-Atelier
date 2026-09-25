@@ -34,7 +34,10 @@ export function HomeConfiguratorSection() {
         {[
           { num: 1, title: "Elegí tu armazón", desc: "Explorá la colección" },
           { num: 2, title: "Elegí tus cristales", desc: "A medida exacta" },
-          { num: 3, title: "Enviá tu receta", desc: "Cargala en el checkout" },
+          // La receta no se sube en la web: el dropzone guardaba solo el nombre
+          // del archivo y se sacó (ver `lib/checkout/receta.ts`). Lo que pasa
+          // de verdad es que se paga y la pedimos por WhatsApp.
+          { num: 3, title: "Enviá tu receta", desc: "Pagás y te la pedimos por WhatsApp" },
           { num: 4, title: "Recibí tus lentes", desc: "En el local o a domicilio" }
         ].map((step, i) => (
           <motion.div 

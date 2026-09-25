@@ -112,14 +112,18 @@ export const BUSINESS_INFO = {
   // cobro y no se tocan. Los T&C conservan la explicación contractual del 10%.
   installmentsPromo: "3 y 6 cuotas sin interés, y hasta 12 cuotas fijas",
   /**
-   * Único tipo de factura que se comunica. Un commit del 29/8 (`f35d1757`)
-   * puso "Factura A" acá diciendo que el fix del 28/8 (`346d9e5b`, "Factura B
-   * o C") había quedado desactualizado — Ishtar confirmó DIRECTAMENTE en el
-   * chat el 30/8 que "Factura B o C" es la correcta y NO se emite Factura A.
-   * No volver a cambiar esto sin que ella lo confirme explícitamente: ya se
-   * revirtió una vez sin preguntarle primero.
+   * Único tipo de factura que se comunica. Lo lee /obras-sociales.
+   *
+   * Historial: un commit del 29/8 (`f35d1757`) puso "Factura A"; Ishtar
+   * confirmó el 30/8 que NO se emite Factura A y quedó "Factura B o C". El
+   * 9/9/2026 confirmó que TODAS las cuentas emisoras son monotributo, y un
+   * monotributista no puede emitir Factura B (ARCA la rechaza): el sistema
+   * emite solo Factura C (código 11), que igual sirve para el reintegro de la
+   * prepaga. La auditoría del 25/9/2026 lo pasó a "Factura C".
+   * No volver a agregar la B sin un CUIT inscripto en IVA — y sin que Ishtar
+   * lo confirme explícitamente.
    */
-  invoiceType: "Factura B o C",
+  invoiceType: "Factura C",
   /**
    * 29/8/2026 (Ishtar): en piezas sobre cristales, mencionar SIEMPRE que
    * trabajamos con Essilor por ser el laboratorio líder a nivel mundial —

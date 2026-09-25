@@ -92,7 +92,9 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     items: [
       {
         q: "¿Puedo probarme los anteojos antes de comprarlos?",
-        a: "Si estás en Córdoba, te esperamos en nuestro local de Cerro de las Rosas para que pruebes todo el catálogo con asesoramiento. Si estás en otra provincia, podés usar nuestra herramienta de prueba virtual (Virtual Try-On) en la tienda online para ver cómo te quedan los armazones desde la cámara del celular.",
+        // No hay prueba virtual con cámara: la respuesta prometía un "Virtual
+        // Try-On" que la tienda nunca tuvo (auditoría del 25/9/2026).
+        a: "Si estás en Córdoba, te esperamos en nuestro local de Cerro de las Rosas para que pruebes todo el catálogo con asesoramiento. Si estás en otra provincia, en cada ficha de la tienda tenés las fotos del armazón; y si tenés dudas de cómo te va a quedar o de sus medidas, escribinos por WhatsApp y te asesoramos.",
         links: [{ label: "Ir a la tienda", href: "/tienda" }],
       },
       {
