@@ -308,6 +308,16 @@ Reglas para que el proyecto escale sin volverse un mazacote.
   más de 7 días y así se perdían las ventas cerradas sobre presupuestos viejos.
   `npm run check:capi` fija las garantías sin red; `npm run check:meta-compras
   -- --prod` (solo lee) dice qué ventas no llegaron. Runbook: `docs/compras-a-meta.md`.
+- **El navegador del equipo no le cuenta nada a Meta ni a Google** (Ishtar,
+  25/9/2026). La cookie `ate_interno=1` corta en `/api/web/track` el espejo al
+  CAPI y la analítica propia, y en el navegador no carga ni el píxel ni gtag.
+  La ponen `/interno` (cualquier celular o compu) y el middleware al abrir
+  /admin con una cuenta del equipo (OPTICA no: es cliente). **Antes de
+  verificar algo en producción con un navegador — el del panel de Claude
+  incluido — abrir `https://atelieroptica.com.ar/interno`**: una prueba sin
+  marca le llega a Meta como un InitiateCheckout de verdad y ensucia la
+  campaña. Las compras NO miran la marca. Todo en `src/lib/trafico-interno.ts`;
+  lo fija `npm run check:interno` (sin red, también en CI).
 - **Schema Prisma**: todo campo nuevo llega por migración commiteada, nunca
   editando la DB a mano. Borrar columnas: primero dejar de leerlas en el código,
   deploy, y recién después la migración que las borra (el deploy viejo sigue
