@@ -59,6 +59,19 @@ const NOMBRE = arg('nombre', 'desfile-tienda');
 // --excluir Calisto,Eva → modelos cuya foto pasa el filtro automático pero no
 // luce (un armazón blanco sobre blanco, un ángulo raro). Criterio a ojo.
 const EXCLUIR = new Set((arg('excluir', '') || '').split(',').map(n => n.trim().toLowerCase()).filter(Boolean));
+// --genero femme|homme → solo los modelos de ese género Y los unisex, con el
+// MISMO criterio que el filtro de la tienda (/api/store/products): el reel
+// muestra lo que la persona encuentra al entrar a /tienda?genero=… (Ishtar,
+// 25/9/26: "que entren a un área filtrada de hombre, y lo mismo de mujer").
+const GENERO = arg('genero', null);
+function esDelGenero(texto) {
+    if (!GENERO) return true;
+    const g = String(texto || '').toLowerCase();
+    if (g.includes('unisex')) return true;
+    if (GENERO === 'femme') return g.includes('femenino') || g.includes('mujer') || g.includes('femme');
+    if (GENERO === 'homme') return g.includes('masculino') || g.includes('hombre') || g.includes('homme');
+    throw new Error(`--genero acepta femme u homme (recibido: ${GENERO})`);
+}
 const SALIDA = path.join(RAIZ, 'public', 'social', 'reels');
 const FRAMES = path.join(RAIZ, 'social', 'contenido', 'reels', 'salida', `.frames-desfile-tienda-${Date.now()}`);
 
@@ -78,7 +91,7 @@ async function elegirArmazones() {
     try {
         const fichas = await prisma.webProduct.findMany({
             where: { isActive: true, imageUrl: { not: null }, category: { in: CATEGORIAS.map(c => c.clave) }, product: { stock: { gt: 0 } } },
-            include: { product: { select: { brand: true } } },
+            include: { product: { select: { brand: true, gender: true } } },
             orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
             take: 500,
         });
@@ -86,7 +99,16 @@ async function elegirArmazones() {
         for (const c of CATEGORIAS) {
             const vistos = new Set();
             const elegidas = [];
-            for (const f of fichas.filter(x => x.category === c.clave)) {
+            // Con --genero, primero los modelos PROPIOS de ese género y después
+            // los unisex: si no, el reel de hombre y el de mujer salen casi
+            // iguales (la mayoría del catálogo de sol es unisex).
+            const propio = (f) => {
+                const g = String(f.product?.gender || '').toLowerCase();
+                return GENERO && !g.includes('unisex') && esDelGenero(g) ? 0 : 1;
+            };
+            const candidatas = fichas.filter(x => x.category === c.clave && esDelGenero(x.product?.gender))
+                .sort((a, b) => propio(a) - propio(b));
+            for (const f of candidatas) {
                 if (elegidas.length >= POR_CATEGORIA) break;
                 const modelo = limpiarNombre(f.name);
                 if (vistos.has(modelo.toLowerCase()) || EXCLUIR.has(modelo.toLowerCase())) continue;

@@ -448,8 +448,13 @@ export async function generarPlacasPuestas({ limite = 12, categoria = null, slug
             // velo desde ~1400). Si no hay foto puesta usable, no hay pieza.
             // Diapositiva 1 del carrusel: la foto a sangre (1080x1350), la
             // coronilla arriba y la pera a 2/3 del alto, con cuello y hombros.
-            const puestaFeed = await fotoPuesta(p.slug, { ancho: 1080, alto: 1350, cubrir: true });
-            if (!puestaFeed) continue;
+            // Modelos de HOMBRE: solo la foto del producto, sin la foto puesta
+            // (las de estudio son de Agostina). Ishtar, 25/9/26: "en los modelos
+            // de hombre no pongas las fotos de Agostina, solo foto producto".
+            const genero = String(p.product.gender || '').toLowerCase();
+            const soloHombre = /masculino|hombre|homme/.test(genero) && !/femenino|mujer|femme|unisex/.test(genero);
+            const puestaFeed = soloHombre ? null : await fotoPuesta(p.slug, { ancho: 1080, alto: 1350, cubrir: true });
+            if (!soloHombre && !puestaFeed) continue;
             let recorte = null;
             try { recorte = await fotoDeCatalogo(await fotoLocal(p.imageUrl, p.slug), p.slug); } catch { /* sin foto de catálogo */ }
             if (!recorte) { console.log(`  · ${modelo}: sin foto de catálogo usable — se saltea`); continue; }
@@ -478,8 +483,10 @@ export async function generarPlacasPuestas({ limite = 12, categoria = null, slug
             // con toda la información (la versión que Ishtar dio por perfecta).
             // Story: la del producto con la información.
             const piezas = [
-                ['placa-puesta', '4:5', [{ type: 'puesta', role: 'portada', limpia: true, image: rel(puestaFeed), images: [rel(puestaFeed)] },
-                    { ...slide, role: 'cierre', soloProducto: true }]],
+                ['placa-puesta', '4:5', soloHombre
+                    ? [{ ...slide, soloProducto: true }]
+                    : [{ type: 'puesta', role: 'portada', limpia: true, image: rel(puestaFeed), images: [rel(puestaFeed)] },
+                        { ...slide, role: 'cierre', soloProducto: true }]],
                 ['story-puesta', '9:16', [{ ...slide, soloProducto: true }]],
             ];
             for (const [prefijo, format, slides] of piezas) {
@@ -496,7 +503,7 @@ export async function generarPlacasPuestas({ limite = 12, categoria = null, slug
                 await writeFile(ruta, JSON.stringify(pieza, null, 2) + '\n');
                 rutas.push(ruta);
             }
-            console.log(`  ✅ ${modelo} (${rotulo}) — ${plata(cuota)} × ${promo.cantidad}`);
+            console.log(`  ✅ ${modelo} (${rotulo})${soloHombre ? ' · hombre: solo producto' : ''} — ${plata(cuota)} × ${promo.cantidad}`);
         }
         console.log(`\n${rutas.length / 2} modelo(s), feed y story. Precios de la base HOY.`);
         return rutas;
