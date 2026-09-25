@@ -79,21 +79,22 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // Redirect del dominio Railway al dominio real (sin www, como canonicaliza
-    // el dominio vivo). APAGADO hasta el cutover DNS: se activa seteando
-    // DOMAIN_CUTOVER=1 en Railway (el cambio de variable dispara redeploy).
-    // Activarlo antes dejaría la tienda inaccesible (el dominio real todavía
-    // sirve Tienda Nube).
-    const cutoverRedirect = process.env.DOMAIN_CUTOVER === '1'
-      ? [{
-          source: '/:path*',
-          has: [{ type: 'host' as const, value: 'crm-atelier-production-ae72.up.railway.app' }],
-          destination: 'https://atelieroptica.com.ar/:path*',
-          permanent: true,
-        }]
-      : [];
     return [
-      ...cutoverRedirect,
+      // Host de Railway → dominio real. Siempre prendido: el cutover DNS ya
+      // pasó hace meses y el dominio real sirve esta app. Antes estaba detrás
+      // de DOMAIN_CUTOVER=1, pero eso nunca pudo funcionar: redirects() se
+      // evalúa en `next build`, y el Dockerfile no declara esa variable como
+      // ARG, así que dentro del build siempre estaba vacía. Mientras tanto el
+      // host de Railway servía la tienda entera en paralelo (el 25/9/2026 el
+      // píxel de Meta le contaba 73 eventos en 28 días, de sesiones internas
+      // y links viejos). El bot no pasa por acá: llega al CRM por
+      // crm-service.railway.internal.
+      {
+        source: '/:path*',
+        has: [{ type: 'host' as const, value: 'crm-atelier-production-ae72.up.railway.app' }],
+        destination: 'https://atelieroptica.com.ar/:path*',
+        permanent: true,
+      },
       // www → apex. Los dos hosts servían 200: el mismo sitio en dos dominios,
       // con el visitante que llega por un link viejo con www quedándose ahí.
       // El <link rel="canonical"> ya apuntaba al apex (Google cubierto), pero
