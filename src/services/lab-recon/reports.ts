@@ -1,7 +1,10 @@
 import { prisma } from '../../lib/db';
-import { LAB_ITEM_PATTERNS, TOLERANCE, VENTANA_REPORTE_DIAS } from './types';
+import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, VENTANA_REPORTE_DIAS } from './types';
 import { esVenta2x1, parBonificadoCobrado, systemCostForLab } from './cost-matching';
-import { estaResuelta } from '../../lib/lab-factura';
+import { clasificarHuerfanos } from './alerts';
+import { detectarDobleCobro } from './dos-por-uno';
+import { esFacturaSinNumero, estaResuelta } from '../../lib/lab-factura';
+import { labPortalClientName } from '../../lib/lab-portal-client-name';
 
 /**
  * REPORTES y LIBRO DE AUDITORÍA de la conciliación: la foto del estado del
@@ -77,10 +80,18 @@ export async function recordAuditRun(opts: {
  * sistema, costo real facturado (si ya se cargó/escaneó) y diferencia.
  */
 /**
- * Resumen semanal de conciliación para ambos laboratorios: qué facturas
- * ingresaron en la ventana (por invoiceDate), montos, y el estado GLOBAL
- * vigente por lab (con venta / sin venta / esperando factura / sobrecostos).
- * Es la base del email de fin de semana para llevar la tratativa al día.
+ * EL REPORTE SEMANAL — todo lo de laboratorio en un solo lugar (Ishtar,
+ * 25/9/2026: "uno solo, hiper completo, semanal"). Reemplaza al semanal de los
+ * lunes y al resumen diario, así que trae lo que traían los tres:
+ *   - lo que hay que RECLAMAR: sobrecostos abiertos, reprocesos de garantía
+ *     cobrados, posibles 2x1 cobrados dos veces;
+ *   - los pedidos SIN VENTA abiertos, con su pista;
+ *   - las facturas de la semana por lab, agrupadas por venta (2x1 explicado);
+ *   - la postventa de la semana (costo del caso al lado de lo facturado);
+ *   - lo que espera factura hace demasiado, y lo que el portal mandó sin nombre;
+ *   - el estado de los últimos 30 días, lo resuelto a mano en la semana, la
+ *     cuenta corriente y la salud de las fuentes.
+ * Solo lee. Lo renderiza weekly-email.ts.
  */
 export async function weeklyReport(from: Date, to: Date) {
     const entries = await prisma.labCostEntry.findMany({
@@ -256,7 +267,149 @@ export async function weeklyReport(from: Date, to: Date) {
         lab: s.lab, totalDebt: s.totalDebt, statementDate: s.statementDate, invoiceCount: s.invoiceCount,
     }));
 
-    return { from, to, perLab, sobrecostosVigentes, sobrecostosFueraDeVentana, ventanaDias: VENTANA_REPORTE_DIAS, cuentaCorriente };
+    // ── PEDIDOS SIN VENTA abiertos (30 días), con su pista ──────────────────
+    // El aviso diario los manda una sola vez; acá se vuelven a listar TODOS los
+    // que sigan abiertos, para que ninguno se pierda por haberse avisado.
+    const huerfanosAbiertos = entries.filter(e => e.status === 'UNMATCHED' && abierta(e) && enVentana(e));
+    const pistas = new Map<string, any>(
+        (await clasificarHuerfanos(huerfanosAbiertos).catch(() => [] as any[])).map((c: any) => [c.id, c]),
+    );
+    const sinVenta = [...huerfanosAbiertos]
+        .sort((a, b) => fechaRef(b).getTime() - fechaRef(a).getTime())
+        .map(e => ({
+            id: e.id, lab: e.lab, labOrderNumber: e.labOrderNumber, sourceFile: e.sourceFile,
+            invoiceDate: e.invoiceDate, createdAt: e.createdAt,
+            billed: billedOf(e),
+            nombrePortal: labPortalClientName(e.notes),
+            facturaSinNumero: esFacturaSinNumero(e.labOrderNumber),
+            nuevoEnLaSemana: e.createdAt >= from,
+            pista: pistas.get(e.id) || null,
+        }));
+
+    // ── REPROCESOS DE POSTVENTA (30 días) con su caso al lado ────────────────
+    // Un reproceso de garantía debería venir sin cargo. Si el caso está en $0
+    // (garantía) y el lab lo cobró, es plata a reclamar.
+    const reprocesos = entries.filter(e => esPostventa(e) && enVentana(e));
+    const numerosReproceso = reprocesos.map(e => e.labOrderNumber).filter(n => /^\d{5,}$/.test(n));
+    const casos = numerosReproceso.length
+        ? await prisma.postSaleCase.findMany({
+            where: { OR: numerosReproceso.map(n => ({ newOrderNumber: { contains: n } })) },
+            select: {
+                newOrderNumber: true, caseType: true, coverage: true, fault: true, cost: true, status: true,
+                order: { select: { clientId: true, client: { select: { name: true } } } },
+            },
+        }).catch(() => [] as any[])
+        : [];
+    const casoDe = (n: string) => casos.find((c: any) => (c.newOrderNumber || '').includes(n));
+    const postventa = reprocesos
+        .sort((a, b) => fechaRef(b).getTime() - fechaRef(a).getTime())
+        .map(e => {
+            const c: any = casoDe(e.labOrderNumber);
+            const cobrado = billedOf(e) ?? 0;
+            const costoCaso = c?.cost ?? null;
+            return {
+                lab: e.lab, labOrderNumber: e.labOrderNumber, sourceFile: e.sourceFile,
+                invoiceDate: e.invoiceDate, createdAt: e.createdAt,
+                cliente: e.order?.client?.name || c?.order?.client?.name || '—',
+                clientId: e.order?.clientId || c?.order?.clientId || null,
+                caso: c ? { tipo: c.caseType, cobertura: c.coverage, falla: c.fault, estado: c.status } : null,
+                costoCaso, cobrado,
+                garantiaCobrada: (costoCaso ?? 0) === 0 && cobrado > REPROCESO_CON_CARGO_MIN,
+                resuelta: estaResuelta(e),
+                enLaSemana: enSemana(e),
+            };
+        });
+    const reprocesosConCargo = postventa.filter(p => p.garantiaCobrada && !p.resuelta);
+    const postventaSemana = postventa.filter(p => p.enLaSemana);
+
+    // ── POSIBLE 2x1 COBRADO DOS VECES (30 días) ──────────────────────────────
+    // Es una sospecha (dos anteojos distintos comprados juntos también dan dos
+    // pares cobrados). Las ventas que el cruce ya acusó como 2x1 con el par
+    // bonificado cobrado no se repiten acá.
+    const yaAcusados = new Set(sobrecostosVigentes.filter(s => s.parBonificadoCobrado).flatMap(s => s.pedidos.map((p: string) => `${s.lab}:${p}`)));
+    const dobles = (await detectarDobleCobro().catch(() => [] as any[]))
+        .filter((d: any) => !d.pedidos.some((p: any) => yaAcusados.has(`${d.lab}:${p.labOrderNumber}`)));
+
+    // ── ESPERANDO FACTURA HACE DEMASIADO (30 días) ───────────────────────────
+    // Una venta enviada al lab cuyo pedido lleva más de ESPERA_MAX_DIAS sin
+    // factura: o el número está mal cargado, o la factura no llegó. Una fila
+    // por venta.
+    const ESPERA_MAX_DIAS = 15;
+    const esperaVieja = new Map<string, any>();
+    for (const e of entries) {
+        if (e.status !== 'PENDING' || !abierta(e) || !enVentana(e)) continue;
+        const dias = Math.floor((to.getTime() - fechaRef(e).getTime()) / 86400000);
+        if (dias <= ESPERA_MAX_DIAS) continue;
+        const k = e.orderId && !esPostventa(e) ? `${e.lab}:${e.orderId}` : e.id;
+        const hermanos = hermanosDe(e);
+        if (!esperaVieja.has(k)) {
+            esperaVieja.set(k, {
+                lab: e.lab, cliente: e.order?.client?.name || '—', clientId: e.order?.clientId || null,
+                pedidos: hermanos.map((h: any) => h.labOrderNumber),
+                facturados: hermanos.filter((h: any) => billedOf(h) !== null).length,
+                dias,
+            });
+        } else {
+            esperaVieja.get(k).dias = Math.max(esperaVieja.get(k).dias, dias);
+        }
+    }
+    const esperandoHaceMucho = [...esperaVieja.values()].sort((a, b) => b.dias - a.dias);
+
+    // ── GRUPO ÓPTICO: pedidos que el portal mandó SIN NOMBRE (semana) ────────
+    // El nombre del portal es con lo que se le busca la venta a un huérfano;
+    // sin nombre no hay por dónde empezar y hay que pedírselo al laboratorio.
+    const sinNombrePortal = entries
+        .filter(e => e.lab === 'GRUPO_OPTICO' && enSemana(e) && !labPortalClientName(e.notes))
+        .map(e => ({
+            labOrderNumber: e.labOrderNumber, invoiceDate: e.invoiceDate, createdAt: e.createdAt,
+            cliente: e.order?.client?.name || null, clientId: e.order?.clientId || null, billed: billedOf(e),
+        }));
+
+    // ── RESUELTOS A MANO en la semana ────────────────────────────────────────
+    const resueltosSemana = entries
+        .filter(e => e.resolvedAt && e.resolvedAt >= from && e.resolvedAt < to)
+        .sort((a, b) => b.resolvedAt!.getTime() - a.resolvedAt!.getTime())
+        .map(e => ({
+            lab: e.lab, labOrderNumber: e.labOrderNumber, status: e.status,
+            cliente: e.order?.client?.name || labPortalClientName(e.notes) || '—', clientId: e.order?.clientId || null,
+            billed: billedOf(e), difference: e.difference,
+            resolvedAt: e.resolvedAt, resolvedBy: e.resolvedBy, resolvedNote: e.resolvedNote,
+        }));
+
+    // ── SALUD DE LAS FUENTES y corridas de la conciliación ───────────────────
+    const labs = ['OPTOVISION', 'GRUPO_OPTICO'];
+    const estados = await prisma.systemSetting.findMany({
+        where: { key: { in: labs.map(l => `lab-provider:${l}:lastOkAt`) } },
+    }).catch(() => [] as any[]);
+    const fuentes = labs.map(l => {
+        const v = estados.find((r: any) => r.key === `lab-provider:${l}:lastOkAt`)?.value;
+        const lastOkAt = v ? new Date(v) : null;
+        const dias = lastOkAt ? Math.floor((to.getTime() - lastOkAt.getTime()) / 86400000) : null;
+        return { lab: l, lastOkAt, dias, caida: dias === null || dias >= 3 };
+    });
+    const corridasSemana = await prisma.labAuditRun.count({ where: { runAt: { gte: from, lt: to } } }).catch(() => 0);
+    const ultimaCorrida = await prisma.labAuditRun.findFirst({ orderBy: { runAt: 'desc' }, select: { runAt: true, staleSources: true } }).catch(() => null);
+
+    // ── RESUMEN: cuánto hay para reclamar ────────────────────────────────────
+    const montoSobrecostos = sobrecostosVigentes.reduce((t, s) => t + (s.parBonificadoCobrado ? (s.parMasBarato || 0) : Math.max(0, s.difference || 0)), 0);
+    const montoReprocesos = reprocesosConCargo.reduce((t, p) => t + p.cobrado, 0);
+    const montoDobles = dobles.reduce((t: number, d: any) => t + (d.aReclamar || 0), 0);
+    const paraReclamar = {
+        cantidad: sobrecostosVigentes.length + reprocesosConCargo.length + dobles.length,
+        monto: Math.round(montoSobrecostos + montoReprocesos + montoDobles),
+    };
+
+    return {
+        from, to, perLab, ventanaDias: VENTANA_REPORTE_DIAS,
+        paraReclamar,
+        sobrecostosVigentes, sobrecostosFueraDeVentana,
+        reprocesosConCargo, dobles,
+        sinVenta, postventaSemana,
+        esperandoHaceMucho, esperaMaxDias: ESPERA_MAX_DIAS,
+        sinNombrePortal, resueltosSemana,
+        salud: { fuentes, corridasSemana, ultimaCorrida },
+        cuentaCorriente,
+    };
 }
 
 // Include compartido por el reporte mensual y la búsqueda histórica.

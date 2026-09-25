@@ -154,14 +154,15 @@ export async function register() {
 
         // ---- REPORTE SEMANAL DE LABORATORIO, auto-disparado ----
         //
-        // Es el que trae la CUENTA CORRIENTE al día de los dos laboratorios, y
-        // NUNCA CORRIÓ: la ruta existía desde siempre pero no la disparaba nadie
-        // —no estaba acá y no hay rastro de que se diera de alta en cron-job.org—,
-        // así que ese reporte no llegó una sola vez. Lo mismo le pasaba a
-        // `laboratorios-semanal`, que se dispara junto con este.
+        // ES EL ÚNICO REPORTE DE LABORATORIO (Ishtar, 25/9/2026: "uno solo,
+        // hiper completo, semanal"). Hasta ese día salían tres —este, el
+        // `laboratorios-semanal` de los lunes que se disparaba junto con este, y
+        // un resumen diario— con la misma información repartida y repetida.
+        // Los dos últimos se retiraron; lo que traían vive acá adentro
+        // (lab-recon/weekly-email.ts). Lo único que sigue saliendo aparte es el
+        // aviso diario de pedidos SIN VENTA (en el cron diario de las 8:30).
         //
-        // Viernes a las 9:30 ARG, que es para cuando la ruta fue pensada
-        // ("correr los viernes/domingos y dejar al día la tratativa").
+        // Viernes a las 9:30 ARG.
         const SEMANAL_KEY = 'lab_weekly_report_last_run';
         const SEMANAL_DIA = 5; // viernes
         const SEMANAL_HORA = 9;
@@ -190,7 +191,7 @@ export async function register() {
 
             semanalRunning = true;
             try {
-                for (const ruta of ['lab-weekly-report', 'laboratorios-semanal']) {
+                for (const ruta of ['lab-weekly-report']) {
                     const res = await fetch(`${baseUrl}/api/cron/${ruta}?secret=${cronSecret}`, {
                         method: 'GET',
                         signal: AbortSignal.timeout(10 * 60 * 1000),

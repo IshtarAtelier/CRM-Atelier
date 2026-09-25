@@ -68,6 +68,13 @@ export const TOPE_PAR_BONIFICADO_2X1 = 30000;
 export const VENTANA_REPORTE_DIAS = 30;
 
 /**
+ * Un reproceso de garantía debería venir sin cargo (Optovisión los factura a
+ * ~$0). Por encima de este importe se considera COBRADO y va al reporte
+ * semanal como plata a reclamar.
+ */
+export const REPROCESO_CON_CARGO_MIN = 5000;
+
+/**
  * Umbral de "monto grueso" para los EMAILS de diferencia de costo (regla del
  * administrador): las diferencias chicas no merecen mail — quedan visibles en
  * la página de conciliación — y solo alertan las que superan este monto, en
