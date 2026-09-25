@@ -638,7 +638,9 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             ${formatearPrecio(total * (1 - discountRate))}
           </motion.p>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#8a6d3b] mt-1">
-            transferencia o efectivo · {webSettings.web_promo_cash_discount}% OFF
+            {/* Online el descuento es solo por transferencia: el efectivo se
+                cobra en el local (el de Mercado Pago por Rapipago no lo lleva). */}
+            por transferencia · {webSettings.web_promo_cash_discount}% OFF
           </p>
           <div className="flex flex-col items-center gap-1 mt-3.5 text-center">
             <p className="text-[11px] font-bold text-stone-700">

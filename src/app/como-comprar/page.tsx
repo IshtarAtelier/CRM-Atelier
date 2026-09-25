@@ -6,16 +6,20 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Cómo Comprar",
-  description: "Guía paso a paso para realizar tus compras online en Atelier Óptica de manera segura. Envíos a todo el país y métodos de pago.",
+  description: "Guía paso a paso para realizar tus compras online en Atelier Óptica de manera segura. Envío gratis a todo el país y métodos de pago.",
   alternates: { canonical: 'https://atelieroptica.com.ar/como-comprar' },
 };
 
 export default function ComoComprarPage() {
+  // Alineado con cómo funciona la tienda hoy (auditoría del 25/9/2026): los
+  // cristales se eligen en el configurador de la ficha, la receta se pide por
+  // WhatsApp después de pagar (no hay dónde subirla) y el envío es gratis a
+  // todo el país — no existe ninguna calculadora por código postal.
   const steps = [
     {
       icon: <ShoppingBag className="w-6 h-6" />,
       title: "1. Elegí tus productos",
-      description: "Navegá por nuestras categorías y seleccioná los armazones o lentes de sol que más te gusten. Hacé clic en 'Agregar al carrito'. Si necesitás cristales recetados, ¡escribinos por WhatsApp para asesorarte!"
+      description: "Navegá por nuestras categorías y seleccioná los armazones o lentes de sol que más te gusten. Si necesitás cristales recetados, en la ficha del armazón tocá 'Elegir mis cristales': elegís el tipo de lente y el tratamiento, y ves el precio del anteojo completo antes de agregarlo al carrito."
     },
     {
       icon: <ShieldCheck className="w-6 h-6" />,
@@ -25,12 +29,12 @@ export default function ComoComprarPage() {
     {
       icon: <Truck className="w-6 h-6" />,
       title: "3. Elegí el método de envío",
-      description: "Hacemos envíos a todo el país. Ingresá tu código postal para ver los costos y tiempos estimados. Si estás en Córdoba, también podés elegir 'Retiro por local'."
+      description: "El envío es gratis a todo el país por Correo Argentino, a tu domicilio o a la sucursal que elijas, y llega en 3 a 5 días hábiles desde que se despacha. Si estás en Córdoba, también podés retirarlo sin cargo en nuestro local. Los anteojos con cristales suman 5 días hábiles de laboratorio antes del despacho."
     },
     {
       icon: <CreditCard className="w-6 h-6" />,
       title: "4. Medio de pago",
-      description: "Podés pagar con tarjeta de crédito (tenemos cuotas sin interés) o elegir la opción de transferencia bancaria para acceder a descuentos especiales en efectivo."
+      description: "Podés pagar con tarjeta de crédito (tenemos cuotas sin interés) o elegir la opción de transferencia bancaria para acceder al descuento por transferencia. Si tu anteojo lleva cristales con aumento, después de pagar te pedimos la receta por WhatsApp."
     }
   ];
 
@@ -74,7 +78,7 @@ export default function ComoComprarPage() {
           <div className="relative z-10">
             <h2 className="text-3xl font-black mb-4">¿Tenés dudas con tu receta?</h2>
             <p className="text-stone-300 max-w-2xl mx-auto mb-8 text-lg">
-              Si necesitás encargar cristales graduados o multifocales, la mejor manera es contactarnos directamente. Nuestro equipo de ópticos revisará tu receta oftalmológica y te recomendará el mejor lente para tu caso.
+              Podés elegir tus cristales graduados o multifocales en la ficha de cada armazón. Si no sabés cuáles te convienen, escribinos: nuestro equipo de ópticos revisará tu receta oftalmológica y te recomendará el mejor lente para tu caso.
             </p>
             <a 
               href={`https://wa.me/${WHATSAPP_PHONE}`}

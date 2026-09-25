@@ -99,7 +99,13 @@ export function leerPromoCuotas(textoCrudo?: string | null): PromoCuotas {
  * OJO: esto es el DEFAULT. El valor vivo en producción está en la base
  * (`SystemSetting.web_announcement_text`) y le gana a este texto — cambiarlo se
  * hace desde /admin/web, no desde acá.
+ *
+ * El descuento dice "por Transferencia" y no "en Efectivo o Transferencia":
+ * el cartel se lee en la tienda online, donde el efectivo no existe como
+ * medio con descuento (el checkout lo aplica solo a TRANSFER). El efectivo en
+ * el local tiene su propio descuento, `discountCashLocalPercent` (auditoría
+ * del 25/9/2026).
  */
 export const CARTEL_PROMO_POR_DEFECTO =
   `6 Cuotas Sin Interés • Hasta 12 Cuotas Fijas • ` +
-  `${BUSINESS_INFO.discountCashPercent}% OFF en Efectivo o Transferencia • Envío Gratis`;
+  `${BUSINESS_INFO.discountTransferPercent}% OFF por Transferencia • Envío Gratis`;
