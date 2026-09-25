@@ -6,7 +6,7 @@ import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { logAudit } from '@/lib/audit';
-import { AdsService } from '@/services/ads.service';
+import { MetaConversionService } from '@/services/meta-conversions.service';
 import { recordServerEvent } from '@/lib/analytics';
 
 /**
@@ -402,7 +402,8 @@ async function enviarCorreos(opts: {
  * ciega y las campañas la valorarían mucho menos de lo que vale.
  *
  * `event_id = order.id` deduplica contra el evento que dispara el navegador al
- * volver del pago, igual que en la rama de Payway.
+ * volver del pago, igual que en la rama de Payway. La compra va a la outbox
+ * MetaConversion: queda anotada y el cron insiste si Meta no la acepta.
  */
 function medirCompra(opts: { order: { id: string; createdAt: Date }; ctx: CheckoutContext; orderTotal: number }) {
   const { order, ctx, orderTotal } = opts;
@@ -422,7 +423,7 @@ function medirCompra(opts: { order: { id: string; createdAt: Date }; ctx: Checko
       },
     });
 
-    AdsService.sendWebPurchase(
+    void MetaConversionService.registrarCompraWeb(
       {
         id: order.id,
         total: orderTotal,

@@ -220,7 +220,7 @@ export function trackPurchase(orderId: string, totalValue: number, cartItems: an
   if (typeof window !== "undefined") {
     // (La analítica propia registra `purchase` server-side en el checkout.)
     // Meta Pixel Event. El 4º arg { eventID } deduplica con el evento server-side
-    // del Conversions API (AdsService.sendWebPurchase usa event_id = order.id).
+    // del Conversions API (MetaConversionService.registrarCompraWeb usa event_id = order.id).
     whenTagReady('fbq', (fbq) => {
       fbq("track", "Purchase", {
         value: totalValue,

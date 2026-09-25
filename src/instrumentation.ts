@@ -749,6 +749,39 @@ export async function register() {
             }
         };
 
+        // ---- COMPRAS QUE NO ENTRARON A META, cada tick (10 min, las 24 h) ----
+        // `/api/cron/meta-conversiones` reintenta las compras que la outbox
+        // MetaConversion tiene sin entregar y avisa por mail las que vencieron.
+        // Sin reclamo de franja a propósito: cada fila se reclama sola en la base
+        // (UPDATE condicional) y `event_id` hace que Meta descarte un duplicado,
+        // así que dos instancias corriendo a la vez no pueden contar doble.
+        let metaConversionesRunning = false;
+        const maybeRunMetaConversiones = async () => {
+            if (metaConversionesRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            metaConversionesRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/meta-conversiones`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(4 * 60 * 1000),
+                });
+                if (!res.ok) {
+                    console.error(`[CRON meta-conversiones] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    return;
+                }
+                const data = await res.json().catch(() => ({}));
+                if (data.revisadas) {
+                    console.log(`[CRON meta-conversiones] revisadas ${data.revisadas} · enviadas ${data.enviadas} · fallidas ${data.fallidas} · vencidas ${data.vencidas} · rechazadas ${data.rechazadas}${data.avisadas ? ` · avisadas por mail ${data.avisadas}` : ''}`);
+                }
+            } catch (err) {
+                console.error('[CRON meta-conversiones] Error (se reintenta):', err);
+            } finally {
+                metaConversionesRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
@@ -768,6 +801,7 @@ export async function register() {
             maybeRunEmbudoSalud().catch(err => console.error('[CRON embudo-salud] maybeRunEmbudoSalud:', err));
             maybeRunSaldo().catch(err => console.error('[CRON recordatorio-saldo] maybeRunSaldo:', err));
             maybeRunCierreBot().catch(err => console.error('[Vigilante bot] maybeRunCierreBot:', err));
+            maybeRunMetaConversiones().catch(err => console.error('[CRON meta-conversiones] maybeRunMetaConversiones:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');
