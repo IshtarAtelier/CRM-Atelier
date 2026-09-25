@@ -175,6 +175,38 @@ const PLANTILLAS = {
     </div>`,
 
     /**
+     * Puesta: la pieza de producto de Instagram con el anteojo PUESTO (25/9/26,
+     * Ishtar: "las fotos de Agostina, el producto y el producto en el rostro").
+     * Misma gráfica que el reel de la tienda que aprobó ese día: fondo crema,
+     * versalitas, el nombre con serifa, la foto puesta grande (cortada desde la
+     * coronilla, ver fotos-producto.mjs) y el anteojo solo en una tarjeta
+     * blanca, con el precio del día al lado. Los importes llegan del generador,
+     * que los lee de la base (R6); acá solo se maquetan.
+     */
+    puesta: (slide, id) => {
+        const puesta = (slide.imagenesResueltas || []).filter(Boolean)[0];
+        return `
+    <div class="p-cab">
+      ${slide.eyebrow ? `<p class="p-caps">${esc(slide.eyebrow)}</p>` : ''}
+      <h1 class="p-nombre">${esc(slide.title)}</h1>
+    </div>
+    <div class="p-look" style="background-image:url('${comoUrl(puesta)}')"></div>
+    <div class="p-fila">
+      <div class="p-producto" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>
+      <div class="p-precio">
+        ${slide.cuotaImporte ? `<p class="p-cuota-n">${esc(slide.cuotasN)} cuotas sin interés de</p><p class="p-cuota">${esc(slide.cuotaImporte)}</p>` : ''}
+        ${slide.doceCuotas ? `<p class="p-linea">${esc(slide.doceCuotas)}</p>` : ''}
+        ${slide.transferencia ? `<p class="p-linea">Transferencia ${esc(slide.descuento)}% off: <b>${esc(slide.transferencia)}</b></p>` : ''}
+        ${slide.linea ? `<p class="p-linea suave">${esc(slide.linea)}</p>` : ''}
+      </div>
+    </div>
+    <div class="p-pie">
+      ${id.logo ? `<img src="${comoUrl(id.logo)}" alt="Atelier Óptica">` : ''}
+      <span>${esc(DIRECCION_PIE)} · ${esc(HORARIO_PIE)}</span>
+    </div>`;
+    },
+
+    /**
      * Collage: grilla de fotos chicas, cada celda un modelo distinto. Acá la
      * foto no es fondo sino contenido, así que va sin velo y el título arriba.
      * Las imágenes llegan por `images` (plural) y las resuelve render.mjs.
@@ -253,6 +285,66 @@ const PLANTILLAS = {
 };
 
 export const TIPOS_SOPORTADOS = Object.keys(PLANTILLAS);
+
+/**
+ * CSS de la plantilla `puesta` (feed 4:5 y story 9:16). La foto puesta mide
+ * 1080x900 en los dos: fotos-producto.mjs la corta a ese tamaño exacto, así que
+ * acá no se recorta nada (un `cover` distinto movería la coronilla del borde).
+ */
+function cssPuesta(id, { esStory }) {
+    const bronce = `color-mix(in srgb, ${id.colores.marca} 72%, ${id.oscuro} 28%)`;
+    const filete = `color-mix(in srgb, ${id.oscuro} 14%, ${id.colores.fondo} 86%)`;
+    const suave = `color-mix(in srgb, ${id.oscuro} 72%, ${id.colores.fondo} 28%)`;
+    const base = `
+  .p-cab { position:absolute; left:0; right:0; text-align:center; color:${id.oscuro}; }
+  .p-caps { font-weight:600; text-transform:uppercase; color:${bronce}; }
+  .p-nombre { font-family:${id.fuentes.serif}; font-weight:500; line-height:1; }
+  .p-look { position:absolute; left:0; right:0; height:900px; background-size:100% 100%; }
+  .p-fila { position:absolute; left:40px; right:40px; display:flex; align-items:stretch; gap:34px; color:${id.oscuro}; }
+  .p-producto { flex:0 0 52%; background:#ffffff center/contain no-repeat;
+    border:1px solid ${filete}; background-origin:content-box; }
+  .p-precio { flex:1; display:flex; flex-direction:column; justify-content:center; }
+  .p-cuota-n { font-weight:600; }
+  .p-cuota { font-family:${id.fuentes.titulo}; font-weight:800; letter-spacing:-1px; line-height:1; margin:4px 0 10px; }
+  .p-linea { font-weight:500; line-height:1.35; }
+  .p-linea b { font-weight:800; }
+  .p-linea.suave { color:${suave}; }
+  .p-pie { position:absolute; left:40px; right:40px; display:flex; align-items:center; justify-content:space-between;
+    border-top:1px solid ${filete}; color:${suave}; }
+  .p-pie img { width:auto; }
+`;
+    if (esStory) return base + `
+  /* 1080x1920: arriba ~250 px la cabecera de la cuenta; abajo la barra de
+     respuesta. Lo que se lee vive entre 250 y ~1700. */
+  .p-cab { top:250px; }
+  .p-caps { font-size:24px; letter-spacing:8px; }
+  .p-nombre { font-size:112px; margin-top:14px; }
+  .p-look { top:452px; }
+  .p-fila { top:1376px; height:236px; }
+  .p-producto { padding:14px 22px; }
+  .p-cuota-n { font-size:26px; }
+  .p-cuota { font-size:68px; }
+  .p-linea { font-size:22px; }
+  .p-pie { top:1636px; padding-top:18px; }
+  .p-pie img { height:38px; }
+  .p-pie span { font-size:19px; }
+`;
+    return base + `
+  /* 1080x1350, el feed. */
+  .p-cab { top:34px; }
+  .p-caps { font-size:20px; letter-spacing:7px; }
+  .p-nombre { font-size:84px; margin-top:10px; }
+  .p-look { top:176px; }
+  .p-fila { top:1094px; height:186px; }
+  .p-producto { padding:10px 18px; }
+  .p-cuota-n { font-size:22px; }
+  .p-cuota { font-size:56px; margin:2px 0 6px; }
+  .p-linea { font-size:18px; }
+  .p-pie { top:1292px; padding-top:12px; }
+  .p-pie img { height:30px; }
+  .p-pie span { font-size:15px; }
+`;
+}
 
 /** El HTML completo de UNA slide, listo para capturar. */
 export function htmlDeSlide(slide, id, pieza) {
@@ -646,6 +738,7 @@ export function htmlDeSlide(slide, id, pieza) {
   .estrellas svg { width:26px; height:26px; }
   .firma { font-size:20px; margin-top:12px; }
   ` : ''}
+  ${slide.type === 'puesta' ? cssPuesta(id, { esStory }) : ''}
 </style></head>
 <body>${plantilla(slide, id)}</body></html>`;
 }

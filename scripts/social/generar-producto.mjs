@@ -4,6 +4,7 @@
  *   node scripts/social/generar-producto.mjs --destacados
  *   node scripts/social/generar-producto.mjs --marca "Cápsula Escarlata"
  *   node scripts/social/generar-producto.mjs --destacados --render
+ *   node scripts/social/generar-producto.mjs --puestas [--slugs a,b] [--limite 12] --render   (foto puesta + producto)
  *
  * Por qué existe: el nombre, el precio y la foto de un armazón ya viven en la
  * base — son los mismos que ve la tienda y el bot de WhatsApp. Copiarlos a mano
@@ -393,9 +394,118 @@ export async function generarPlacasIndividuales({ limite = 10, categoria = null,
     }
 }
 
+const ROTULO_CATEGORIA = { sol: 'Lentes de sol', receta: 'Armazones de receta', 'clip-on': 'Clip-on' };
+
+/**
+ * Piezas de producto con el anteojo PUESTO (plantilla `puesta`), en feed 4:5 y
+ * story 9:16. Pedido de Ishtar (25/9/26): la gráfica del reel de la tienda, con
+ * "el producto y el producto en el rostro", fotos bien cortadas e iluminadas.
+ *
+ * Solo entran los modelos con stock, ficha activa, foto de catálogo usable y
+ * foto puesta de estudio (fotos-producto.mjs descarta selfies, capturas y
+ * fotos que no pasan el recorte). Precio de la base, fuente "base" (R6).
+ */
+export async function generarPlacasPuestas({ limite = 12, categoria = null, slugs = null } = {}) {
+    const { fotoDeCatalogo, fotoPuesta } = await import('./fotos-producto.mjs');
+    const { PrismaClient } = await import('@prisma/client');
+    const desdeProduccion = Boolean(process.env.PROD_DATABASE_URL);
+    const prisma = new PrismaClient({
+        datasources: { db: { url: process.env.PROD_DATABASE_URL || process.env.DATABASE_URL } },
+    });
+    try {
+        const productos = await prisma.webProduct.findMany({
+            where: {
+                isActive: true,
+                imageUrl: { not: null },
+                ...(slugs ? { slug: { in: slugs } } : {}),
+                ...(categoria ? { category: { equals: categoria, mode: 'insensitive' } } : {}),
+                product: { stock: { gt: 0 }, price: { gt: 0 } },
+            },
+            include: { product: true },
+            orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
+            take: 400,
+        });
+        const filas = await prisma.systemSetting.findMany({
+            where: { key: { in: ['web_promo_installments', 'web_promo_cash_discount'] } },
+            select: { key: true, value: true },
+        });
+        const getS = (k) => filas.find(f => f.key === k)?.value;
+        const promo = leerPromoCuotas(getS('web_promo_installments'));
+        const crudo = Number(getS('web_promo_cash_discount'));
+        const descuento = Number.isFinite(crudo) && crudo > 0 ? crudo : 15;
+        const limpiar = (n) => String(n).replace(/\s+C\d+\s*$/i, '').trim();
+        const rel = (abs) => path.relative(path.join(RAIZ, 'public', 'images'), abs);
+
+        const vistos = new Set();
+        const rutas = [];
+        await mkdir(DESTINO, { recursive: true });
+        for (const p of productos) {
+            if (rutas.length / 2 >= limite) break;
+            const modelo = limpiar(p.name);
+            if (vistos.has(modelo.toLowerCase())) continue;
+            const puesta = await fotoPuesta(p.slug, { ancho: 1080, alto: 900 });
+            if (!puesta) continue;
+            let recorte = null;
+            try { recorte = await fotoDeCatalogo(await fotoLocal(p.imageUrl, p.slug), p.slug); } catch { /* sin foto de catálogo */ }
+            if (!recorte) { console.log(`  · ${modelo}: sin foto de catálogo usable — se saltea`); continue; }
+            vistos.add(modelo.toLowerCase());
+
+            const cuota = Math.round(p.product.price / promo.cantidad);
+            const alContado = Math.round(p.product.price * (1 - descuento / 100));
+            const cuota12 = (await cuotasLargas(p.product.price)).texto;
+            const rotulo = ROTULO_CATEGORIA[String(p.category || '').toLowerCase()] || p.category;
+            const eyebrow = [rotulo, p.product.brand].filter(Boolean).join(' · ');
+            const caption = [
+                `${modelo} — ${promo.texto} de ${plata(cuota)}.`,
+                `Hasta ${cuota12}. Transferencia ${descuento}% off: ${plata(alContado)}.`,
+                'Envío gratis a todo el país 🇦🇷',
+            ].join(' ');
+            const slide = {
+                type: 'puesta', role: 'portada',
+                image: rel(recorte), images: [rel(puesta)],
+                eyebrow, title: modelo,
+                cuotasN: String(promo.cantidad), cuotaImporte: plata(cuota),
+                doceCuotas: `Hasta ${cuota12}`,
+                transferencia: plata(alContado), descuento: String(descuento),
+                linea: 'Envío gratis a todo el país',
+            };
+            for (const [prefijo, format] of [['placa-puesta', '4:5'], ['story-puesta', '9:16']]) {
+                const id = `${prefijo}-${p.slug}`;
+                const pieza = {
+                    id, format, theme: 'light', pilar: 'producto', fuente: 'base',
+                    generadoEl: new Date().toISOString().slice(0, 10),
+                    generadoDesde: desdeProduccion ? 'produccion' : 'local',
+                    producto: { nombre: modelo, slug: p.slug, categoria: p.category },
+                    caption, slides: [slide],
+                };
+                const ruta = path.join(DESTINO, `${id}.json`);
+                await writeFile(ruta, JSON.stringify(pieza, null, 2) + '\n');
+                rutas.push(ruta);
+            }
+            console.log(`  ✅ ${modelo} (${rotulo}) — ${plata(cuota)} × ${promo.cantidad}`);
+        }
+        console.log(`\n${rutas.length / 2} modelo(s), feed y story. Precios de la base HOY.`);
+        return rutas;
+    } finally {
+        await prisma.$disconnect();
+    }
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
     const args = process.argv.slice(2);
     const val = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : null; };
+    if (args.includes('--puestas')) {
+        const rutas = await generarPlacasPuestas({
+            limite: Number(val('--limite') || 12),
+            categoria: val('--categoria'),
+            slugs: val('--slugs')?.split(',').map(x => x.trim()).filter(Boolean) || null,
+        });
+        if (args.includes('--render')) {
+            const { renderizarPieza } = await import('./render.mjs');
+            for (const r of rutas) await renderizarPieza(r);
+        }
+        process.exit(0);
+    }
     if (args.includes('--individuales')) {
         const rutas = await generarPlacasIndividuales({
             limite: Number(val('--limite') || 10),

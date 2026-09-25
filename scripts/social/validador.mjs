@@ -51,6 +51,9 @@ function textoDeSlide(slide) {
     return [
         slide.title, slide.subtitle, slide.body, slide.cita, slide.cta, ...(slide.items || []),
         slide.cuotaImporte, slide.transferencia, slide.lista, slide.doceCuotas, slide.cuponDetalle,
+        // 25/9/26: `dato` (el número grande de `number`) y los de la plantilla
+        // `puesta` (`eyebrow`, `linea`) también son texto visible.
+        slide.dato, slide.eyebrow, slide.linea,
     ].filter(Boolean).join(' ');
 }
 

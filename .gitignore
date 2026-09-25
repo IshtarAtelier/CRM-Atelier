@@ -120,3 +120,4 @@ scripts/maintenance/etiquetas-limpieza/respaldo-*.json
 # Recortes de las fotos de catálogo (reel-desfile-tienda.mjs): se derivan del
 # original y se regeneran solos en cada corrida.
 public/images/catalogo-social/*-recorte.jpg
+public/images/catalogo-social/*-puesta-*.jpg

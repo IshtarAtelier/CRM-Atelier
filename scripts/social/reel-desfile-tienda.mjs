@@ -37,6 +37,7 @@ import { promisify } from 'node:util';
 import ffmpegPath from 'ffmpeg-static';
 import { cargarIdentidad, RAIZ } from './identidad.mjs';
 import { fotoLocal } from './generar-producto.mjs';
+import { fotoDeCatalogo } from './fotos-producto.mjs';
 import { DIRECCION_PIE, HORARIO_PIE } from './plantillas.mjs';
 
 const ejecutar = promisify(execFile);
@@ -69,38 +70,6 @@ async function cuotasDeBusinessInfo() {
     const m = ts.match(/\binstallmentsPromo:\s*"((?:[^"\\]|\\.)*)"/);
     if (!m) throw new Error('No se pudo leer installmentsPromo de business-info.ts.');
     return m[1];
-}
-
-/** Foto de catálogo recortada al borde del anteojo, o null si no es de catálogo. */
-async function fotoDeCatalogo(rutaAbs, nombre) {
-    const sharp = (await import('sharp')).default;
-    const destino = path.join(path.dirname(rutaAbs), `${nombre}-recorte.jpg`);
-    if (existsSync(destino)) return destino;
-    const meta = await sharp(rutaAbs).metadata();
-    if ((meta.width || 0) < 900) return null; // baja resolución: una captura o una miniatura
-    const { data, info } = await sharp(rutaAbs).resize(60, 60, { fit: 'fill' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    const esquina = (x0, y0) => {
-        let s = 0, n = 0;
-        for (let y = y0; y < y0 + 6; y++) for (let x = x0; x < x0 + 6; x++) {
-            const i = (y * info.width + x) * info.channels; s += Math.min(data[i], data[i + 1], data[i + 2]); n++;
-        }
-        return s / n;
-    };
-    if (Math.min(esquina(0, 0), esquina(54, 0), esquina(0, 54), esquina(54, 54)) < 236) return null;
-    const t = await sharp(rutaAbs).trim({ background: '#ffffff', threshold: 22 }).toBuffer({ resolveWithObject: true });
-    if (t.info.width / t.info.height < 1.3) return null;
-    // Blanqueo del fondo apenas gris (solo píxeles neutros y casi blancos).
-    const crudo = await sharp(t.data).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    const px = crudo.data;
-    for (let i = 0; i < px.length; i += crudo.info.channels) {
-        const min = Math.min(px[i], px[i + 1], px[i + 2]), max = Math.max(px[i], px[i + 1], px[i + 2]);
-        if (min < 222 || max - min > 14) continue;
-        const k = Math.min(1, (min - 222) / 14);
-        for (let c = 0; c < 3; c++) px[i + c] = Math.round(px[i + c] + (255 - px[i + c]) * k);
-    }
-    const m = Math.round(t.info.width * 0.04);
-    await sharp(px, { raw: crudo.info }).extend({ top: m, bottom: m, left: m, right: m, background: '#ffffff' }).jpeg({ quality: 92 }).toFile(destino);
-    return destino;
 }
 
 async function elegirArmazones() {
