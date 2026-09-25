@@ -3,7 +3,7 @@ import { RESOLUCIONES_CONOCIDAS } from '../lab-providers/resoluciones';
 import { isQuietLab } from './backfill';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
-import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS } from './types';
+import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
 import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
 
 /**
@@ -482,8 +482,12 @@ export async function upsertEntry(input: LabCostInput) {
         ? REWORK_MARK : null;
     const notes = [resolucionNote, pvNote, baseNotes, multiNote, aliasNote, reworkMark, parBonificadoNote].filter(Boolean).join(' ') || null;
 
+    // Los comprobantes del pedido (con su link): se suman a los que ya tenía.
+    const invoiceRefs = juntarComprobantes(existing?.invoiceRefs, input.invoiceRefs);
+
     const data = {
         orderId: order?.id ?? null,
+        ...(invoiceRefs ? { invoiceRefs: invoiceRefs as any } : {}),
         // Un reproceso no participa del cruce de costo de la venta: mostrar el
         // costo del sistema ahí sería comparar peras con garantías.
         systemCost: pvEntry ? null : systemCost,

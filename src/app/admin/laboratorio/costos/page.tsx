@@ -32,6 +32,9 @@ interface LabCostEntry {
     resolvedAt: string | null;
     resolvedBy: string | null;
     resolvedNote: string | null;
+    // Los comprobantes del pedido, con lo que cada uno le cobra y el link para
+    // verlo (portal de Grupo Óptico o correo de Optovisión).
+    invoiceRefs?: { comprobante: string; importe: number | null; url: string | null; tipo?: string }[] | null;
     order: {
         id: string;
         clientId: string;
@@ -969,7 +972,7 @@ export default function LabCostosPage() {
                                 <th className="px-4 py-3 text-right">Diferencia</th>
                                 <th className="px-4 py-3">Estado</th>
                                 <th className="px-4 py-3">Pedido</th>
-                                <th className="px-4 py-3">Origen</th>
+                                <th className="px-4 py-3">Origen y comprobantes</th>
                                 <th className="px-4 py-3">Resuelto</th>
                             </tr>
                         </thead>
@@ -1097,6 +1100,24 @@ export default function LabCostosPage() {
                                         </td>
                                         <td className="px-4 py-3 text-xs text-gray-500" title={entry.sourceFile || ''}>
                                             {SOURCE_LABELS[entry.source] || entry.source}
+                                            {Array.isArray(entry.invoiceRefs) && entry.invoiceRefs.length > 0 && (
+                                                <div className="flex flex-col gap-0.5 mt-1">
+                                                    {entry.invoiceRefs.map(ref => {
+                                                        const texto = `${ref.comprobante}${ref.importe != null ? ` · ${fmt(ref.importe)}` : ''}`;
+                                                        return ref.url ? (
+                                                            <a key={ref.comprobante} href={ref.url} target="_blank" rel="noopener noreferrer"
+                                                                className="text-indigo-600 hover:underline whitespace-nowrap"
+                                                                title={ref.tipo === 'correo'
+                                                                    ? 'Abre en Gmail el correo de Optovisión con esta factura'
+                                                                    : 'Abre el PDF de la factura en el portal de Grupo Óptico'}>
+                                                                {texto} {ref.tipo === 'correo' ? '✉︎' : '↗'}
+                                                            </a>
+                                                        ) : (
+                                                            <span key={ref.comprobante} className="whitespace-nowrap">{texto}</span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 text-xs">
                                             {entry.resolvedAt ? (

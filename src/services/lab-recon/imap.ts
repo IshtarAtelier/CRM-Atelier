@@ -4,6 +4,8 @@ import { prisma } from '../../lib/db';
 import { CLAVE_SIN_NUMERO, notaFacturaCompartida } from '../../lib/lab-factura';
 import { OptovisionParserService } from '../optovision-parser.service';
 import { upsertEntry } from './cost-matching';
+import { comprobanteDeArchivo, linkGmail } from './types';
+import type { InvoiceRef } from './types';
 
 /**
  * INGESTA POR EMAIL (Optovision / Essilor): las facturas de Optovision no tienen
@@ -43,7 +45,7 @@ export async function openImap(): Promise<any | null> {
     let lastError: any = null;
     for (const cred of candidates) {
         try {
-            return await imaps.connect({
+            const connection = await imaps.connect({
                 imap: {
                     user: cred.user!, password: cred.password!,
                     host: 'imap.gmail.com', port: 993, tls: true,
@@ -53,6 +55,9 @@ export async function openImap(): Promise<any | null> {
                     tlsOptions: { servername: 'imap.gmail.com', rejectUnauthorized: false }, authTimeout: 10000,
                 },
             });
+            // La cuenta que se leyó: el link a cada correo tiene que abrirla a ella.
+            (connection as any).__cuenta = cred.user;
+            return connection;
         } catch (err: any) {
             lastError = err;
             console.warn(`[LabCost] IMAP no autenticó con ${cred.user}; probando la siguiente credencial…`);
@@ -128,6 +133,7 @@ export async function scanOptovisionInbox(sinceDays = 35) {
         );
         summary.emails = messages.length;
         console.log(`[LabCost] ${messages.length} emails de Optovision desde ${since.toISOString().slice(0, 10)}`);
+        const cuenta: string | undefined = (connection as any).__cuenta;
 
         for (const msg of messages) {
             try {
@@ -135,9 +141,16 @@ export async function scanOptovisionInbox(sinceDays = 35) {
             if (!allPart) continue;
 
             const parsed = await simpleParser(allPart.body);
+            // Link al correo en Gmail (pedido de Ishtar, 25/9/2026): para cruzar
+            // la factura con lo que dice el sistema sin tener que buscarla.
+            const linkCorreo = linkGmail(cuenta, parsed.messageId);
             for (const attachment of parsed.attachments || []) {
                 if (attachment.contentType !== 'application/pdf') continue;
                 summary.pdfs++;
+                const refDe = (importe: number | null, nro?: string | null): InvoiceRef[] => [{
+                    comprobante: nro || comprobanteDeArchivo(attachment.filename) || attachment.filename || 'factura',
+                    importe, url: linkCorreo, tipo: 'correo',
+                }];
 
                 try {
                     const invoice = await OptovisionParserService.parseInvoice(attachment.content);
@@ -214,6 +227,7 @@ export async function scanOptovisionInbox(sinceDays = 35) {
                                 invoiceDate: parsed.date || null,
                                 notes: `Factura SIN nº de pedido${remito ? ` — emitida contra el remito ${remito[1]}-${remito[2]}` : ''}. `
                                     + 'El comprobante no dice a qué pedido corresponde: hay que asignarlo a mano a la venta que lo espera.',
+                                invoiceRefs: refDe(invoice.total, nroFactura ? `${nroFactura[1]}-${nroFactura[2].padStart(8, '0')}` : null),
                             });
                             if (entry) {
                                 summary.sinPedidoRegistradas = (summary.sinPedidoRegistradas || 0) + 1;
@@ -241,6 +255,7 @@ export async function scanOptovisionInbox(sinceDays = 35) {
                             sourceFile: attachment.filename || 'factura.pdf',
                             invoiceDate: parsed.date || null,
                             notes: peds.length > 1 ? notaFacturaCompartida(peds) : null,
+                            invoiceRefs: refDe(invoice.total !== null ? invoice.total / peds.length : null),
                         });
 
                         if (entry) {

@@ -20,8 +20,12 @@ const FAST_OPTOVISION_EMAIL_DAYS = 3;
 // Recuperación del portal de Grupo Óptico: si la pasada COMPLETA lleva más de
 // estas horas sin salir bien (el portal caído, o el cron diario que no corrió),
 // el próximo pase que lo encuentre en pie hace una completa en vez de la corta.
-// 20 h < 24 h del ciclo diario: si el diario funcionó, esto nunca se dispara.
-const FULL_CATCHUP_HOURS = 20;
+// Tiene que ser MÁS de 24 h: la diaria corre cada 24 h. Con 20 (hasta el
+// 25/9/2026) la "recuperación" se disparaba TODAS las mañanas a las 8:00
+// aunque la diaria estuviera bien —a esa hora la última completa tenía ~23 h—
+// y chocaba con la diaria de las 8:30 contra el portal (PDFs a medias,
+// importes disparatados). Con 26 solo entra si la diaria de verdad no salió.
+const FULL_CATCHUP_HOURS = 26;
 
 // Sello de la última pasada COMPLETA exitosa de Grupo Óptico. Es la misma clave
 // que escribe runAllProviders en el cron diario (lab-providers/index.ts), así
@@ -151,7 +155,9 @@ export async function GET(req: Request) {
                     console.error('[CRON SmartLab] Portal de Grupo Óptico no respondió (se reintenta en la próxima corrida):', err?.message || err);
                     return { error: err?.message || 'portal sin respuesta' };
                 });
-                if (!alDia && !collect?.error && !collect?.invoiceError) {
+                // Salteada por el turno (otra pasada contra el portal en curso):
+                // no se hizo nada, así que no se sella nada.
+                if (!alDia && !collect?.error && !collect?.invoiceError && !collect?.skipped) {
                     // La recuperación salió bien y CON importes: sella la pasada
                     // completa para no repetirla cada 10 minutos.
                     await setSetting(GO_LAST_OK_KEY, new Date().toISOString());

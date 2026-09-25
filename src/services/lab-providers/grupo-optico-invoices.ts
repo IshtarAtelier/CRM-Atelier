@@ -17,10 +17,17 @@ import PDFParser from 'pdf2json';
  *        está en las líneas aunque el total del comprobante diga 0.
  *    Un pedido de stock suma de las dos series (armado en factura + cristal en
  *    remito): NO es doble conteo, son conceptos distintos.
- *  - Algunas facturas traen líneas SIN nº de pedido (columna vacía). Esas se
- *    asignan por el vínculo pedido→factura que da la API del portal
- *    (invoices[].number de cada pedido): se reparten entre los pedidos de esa
- *    factura que no tengan líneas propias, o a prorrata si todos tienen.
+ *  - UN PEDIDO CUESTA SOLO LAS LÍNEAS QUE LLEVAN SU NÚMERO (regla de Ishtar,
+ *    25/9/2026: "debe ingresar y ver únicamente los que están con su
+ *    nombrecito"). Un comprobante agrupa pedidos de muchos clientes; de cada
+ *    uno se toman las líneas de la columna Pedido de ESE pedido, en todos los
+ *    comprobantes donde aparece, y nada más.
+ *  - Las líneas SIN nº de pedido (columna vacía) NO se le asignan a nadie.
+ *    Antes se repartían entre los pedidos que la API vinculaba con esa factura,
+ *    y ese reparto es la única forma de que un pedido reciba plata de líneas
+ *    que no son suyas: el 24/9/2026 Rius Belen (80544194) figuró con $162.872
+ *    cuando sus líneas suman $18.988. Esas líneas quedan contadas aparte
+ *    (`stats.unattributedSum`), a la vista en el log.
  *
  * Endpoint de descarga (el mismo que usa la web del portal):
  *   GET /smartlab-api-v2/public/index.php/laboratory/order/invoice?cl={cliente}&t=2&c=1&s={DD-MM-YYYY}&e={DD-MM-YYYY}
@@ -191,60 +198,46 @@ export function parseInvoicePdf(pdfBuffer: Buffer): Promise<ParsedInvoice[]> {
     });
 }
 
+export interface MontosPorPedido {
+    /** nº de pedido → suma de SUS líneas en todos los comprobantes (con descuento). */
+    amounts: Map<string, number>;
+    /** nº de pedido → (nº de comprobante → lo que ese comprobante le cobra). */
+    porComprobante: Map<string, Map<string, number>>;
+    stats: { invoices: number; attributedSum: number; unattributedSum: number; conDescuento: number; descuentoPromedio: number | null };
+}
+
 /**
- * Costo real POR PEDIDO: suma de sus líneas en todos los comprobantes (ambas
- * series) + reparto de las líneas sin nº de pedido usando el vínculo
- * pedido→facturas de la API. Devuelve también métricas de conciliación.
+ * Costo real POR PEDIDO a partir de los comprobantes ya parseados: la suma de
+ * las líneas que llevan su número, en todos los comprobantes (ambas series), y
+ * el detalle de cuánto aporta cada comprobante. Las líneas sin nº de pedido no
+ * se le asignan a nadie (ver arriba). Pura: se prueba sin el portal
+ * (`npm run check:go-lineas`).
  */
-export async function buildPedidoAmountMap(
-    page: any,
-    clientId: string,
-    from: Date,
-    to: Date,
-    pedidoInvoices: Map<string, string[]>, // nº pedido → nº de facturas (de la API)
-): Promise<{ amounts: Map<string, number>; stats: { invoices: number; attributedSum: number; unattributedSum: number; distributedSum: number; conDescuento: number; descuentoPromedio: number | null } }> {
+export function montosPorPedido(invoices: ParsedInvoice[]): MontosPorPedido {
     const amounts = new Map<string, number>();
-    const stats = { invoices: 0, attributedSum: 0, unattributedSum: 0, distributedSum: 0, conDescuento: 0, descuentoPromedio: null as number | null };
-
-    const pdf = await downloadInvoicePdf(page, clientId, from, to);
-    if (!pdf) return { amounts, stats };
-    const invoices = await parseInvoicePdf(pdf);
-    stats.invoices = invoices.length;
-
-    // Índice inverso: factura → pedidos que la referencian según la API
-    const invoicePedidos = new Map<string, string[]>();
-    for (const [ped, invs] of pedidoInvoices) {
-        for (const n of invs) {
-            const key = normalizeInvoiceNumber(n);
-            invoicePedidos.set(key, [...(invoicePedidos.get(key) || []), ped]);
-        }
-    }
-
+    const porComprobante = new Map<string, Map<string, number>>();
+    const stats = { invoices: invoices.length, attributedSum: 0, unattributedSum: 0, conDescuento: 0, descuentoPromedio: null as number | null };
     const factores: number[] = [];
     for (const inv of invoices) {
         if (inv.descuento !== null) { stats.conDescuento++; factores.push(inv.descuento); }
         for (const [ped, sum] of inv.attributed) {
             amounts.set(ped, (amounts.get(ped) || 0) + sum);
+            if (!porComprobante.has(ped)) porComprobante.set(ped, new Map());
+            const delPedido = porComprobante.get(ped)!;
+            delPedido.set(inv.invoiceNumber, Math.round(((delPedido.get(inv.invoiceNumber) || 0) + sum) * 100) / 100);
             stats.attributedSum += sum;
         }
-        if (inv.unattributed > 0) {
-            stats.unattributedSum += inv.unattributed;
-            const peds = invoicePedidos.get(inv.invoiceNumber) || [];
-            // Preferir los pedidos de esta factura SIN líneas propias en ella;
-            // si todos tienen, repartir a prorrata simple entre todos.
-            const sinLineas = peds.filter(p => !inv.attributed.has(p));
-            const target = sinLineas.length > 0 ? sinLineas : peds;
-            if (target.length > 0) {
-                const share = inv.unattributed / target.length;
-                for (const ped of target) {
-                    amounts.set(ped, (amounts.get(ped) || 0) + share);
-                    stats.distributedSum += share;
-                }
-            }
-        }
+        stats.unattributedSum += inv.unattributed;
     }
     if (factores.length > 0) {
         stats.descuentoPromedio = Math.round((factores.reduce((a, b) => a + b, 0) / factores.length) * 10000) / 10000;
     }
-    return { amounts, stats };
+    return { amounts, porComprobante, stats };
+}
+
+/** Descarga el PDF de comprobantes del rango y calcula el costo de cada pedido. */
+export async function buildPedidoAmountMap(page: any, clientId: string, from: Date, to: Date): Promise<MontosPorPedido> {
+    const pdf = await downloadInvoicePdf(page, clientId, from, to);
+    if (!pdf) return montosPorPedido([]);
+    return montosPorPedido(await parseInvoicePdf(pdf));
 }

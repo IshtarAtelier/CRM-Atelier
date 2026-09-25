@@ -125,6 +125,12 @@ AuditLog y emails/WhatsApp que la mencionen.
 Cada una nació de un dato mal calculado en producción. No deducirlas del código.
 - **Los costos de cristales son POR PAR**: `item.eye ? cost / 2 : cost`. Grupo
   Óptico factura por línea, nunca el total del comprobante.
+- **Un pedido de Grupo Óptico cuesta SOLO las líneas que llevan su número**
+  (Ishtar, 25/9/2026), en todos los comprobantes donde aparece. Las líneas sin
+  nº de pedido no se le asignan a nadie: repartirlas le dio $162.872 a un
+  pedido de $18.988. Una sola pasada a la vez contra el portal, y un PDF que
+  trae menos del 90% de los comprobantes no toca importes. Cada entrada guarda
+  sus comprobantes con link (`invoiceRefs`).
 - **Los CRISTALES del segundo par de un 2x1 no tienen costo, en ningún
   laboratorio. El ARMAZÓN del segundo par SÍ.** El 2x1 de los cristales lo hace
   el LAB: manda el par bonificado sin cargo. El armazón, en cambio, lo regala

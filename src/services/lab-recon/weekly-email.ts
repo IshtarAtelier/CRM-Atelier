@@ -1,4 +1,5 @@
 import { LAB_LABELS, TOPE_PAR_BONIFICADO_2X1, VENTANA_REPORTE_DIAS, fmtARS, fmtFecha } from './types';
+import { ACLARACION_LINKS, comprobantesHtml } from './comprobantes-html';
 
 /**
  * EL ÚNICO REPORTE DE LABORATORIO: un correo semanal, los viernes a las 9:30
@@ -46,6 +47,8 @@ export const comprobante = (r: any) => {
     if (m) return m[0];
     return r.sourceFile ? String(r.sourceFile).replace(/\.pdf$/i, '') : faltante('sin comprobante');
 };
+/** Los comprobantes del pedido con su link (portal o correo); si no hay guardados, el de siempre. */
+const comprobantes = (r: any) => comprobantesHtml(r, comprobante(r));
 const fechaFila = (r: any) => r.invoiceDate
     ? fmtFecha(r.invoiceDate)
     : `${r.createdAt ? fmtFecha(r.createdAt) : 's/fecha'} <span style="color:${GRIS}">(alta)</span>`;
@@ -111,7 +114,7 @@ function filaFactura(r: any, i: number, appUrl: string): string {
         return `
                 <tr style="${zebra(i)}">
                     <td style="${TD};font-family:monospace"><span style="color:#9ca3af">↳</span> ${nroOperacion(r)}</td>
-                    <td style="${TD};font-family:monospace">${comprobante(r)}</td>
+                    <td style="${TD};font-family:monospace">${comprobantes(r)}</td>
                     <td style="${TD};white-space:nowrap">${fechaFila(r)}</td>
                     <td style="${TD};color:${GRIS}">↳ misma venta</td>
                     <td style="${TD};text-align:right;font-weight:bold">${fmt(r.billed)}</td>
@@ -126,7 +129,7 @@ function filaFactura(r: any, i: number, appUrl: string): string {
     return `
                 <tr style="${zebra(i)}">
                     <td style="${TD};font-family:monospace">${nroOperacion(r)}${otrosPedidos(r)}</td>
-                    <td style="${TD};font-family:monospace">${comprobante(r)}</td>
+                    <td style="${TD};font-family:monospace">${comprobantes(r)}</td>
                     <td style="${TD};white-space:nowrap">${fechaFila(r)}</td>
                     <td style="${TD}">${cliente}${r.esPostventa ? ` · <span style="color:#1d4ed8">postventa</span>` : ''}</td>
                     <td style="${TD};text-align:right;font-weight:bold">${fmt(r.billed)}</td>
@@ -154,7 +157,8 @@ function bloqueFacturas(lab: string, d: any, appUrl: string): string {
 
 /** 1a · Un sobrecosto abierto, en una línea: o el 2x1 con el par cobrado, o la diferencia. */
 function lineaSobrecosto(s: any): string {
-    const cabecera = `${labDe(s.lab)} · operación ${s.es2x1 && s.pedidos?.length > 1 ? s.pedidos.join(' + ') : nroOperacion(s)} · comprobante ${comprobante(s)} · ${fechaFila(s)} (${s.cliente})`;
+    const refs = comprobantes(s).replace(/<div style="white-space:nowrap">/g, '<span style="white-space:nowrap">').replace(/<\/div>/g, '</span> ');
+    const cabecera = `${labDe(s.lab)} · operación ${s.es2x1 && s.pedidos?.length > 1 ? s.pedidos.join(' + ') : nroOperacion(s)} · ${refs} · ${fechaFila(s)} (${s.cliente})`;
     if (s.parBonificadoCobrado) {
         return `<li>${cabecera}: <strong style="color:${ROJO}">2x1 con el par bonificado cobrado — a reclamar ${fmt(s.parMasBarato)}</strong>` +
             `${(s.difference || 0) > 100 ? ` (y la venta entera ${fmt(s.difference)} por encima del sistema)` : ''}</li>`;
@@ -193,7 +197,7 @@ export function armarEmailSemanal(rep: any, appUrl: string): { subject: string; 
     const filasReprocesos = reprocesos.map((p, i) => `
         <tr style="${zebra(i)}">
             <td style="${TD};font-family:monospace">${nroOperacion(p)}</td>
-            <td style="${TD};font-family:monospace">${comprobante(p)}</td>
+            <td style="${TD};font-family:monospace">${comprobantes(p)}</td>
             <td style="${TD};white-space:nowrap">${fechaFila(p)}</td>
             <td style="${TD}">${labDe(p.lab)}</td>
             <td style="${TD}">${ficha(appUrl, p.clientId, p.cliente)}</td>
@@ -242,7 +246,7 @@ export function armarEmailSemanal(rep: any, appUrl: string): { subject: string; 
     const filasSinVenta = sinVenta.map((h, i) => `
         <tr style="${zebra(i)}">
             <td style="${TD};font-family:monospace">${nroOperacion(h)}${h.nuevoEnLaSemana ? `<span style="${CHICO};color:#b45309;font-family:Arial,sans-serif">nuevo esta semana</span>` : ''}</td>
-            <td style="${TD};font-family:monospace">${comprobante(h)}</td>
+            <td style="${TD};font-family:monospace">${comprobantes(h)}</td>
             <td style="${TD};white-space:nowrap">${fechaFila(h)}</td>
             <td style="${TD}">${labDe(h.lab)}</td>
             <td style="${TD}">${h.nombrePortal ? `<span style="color:#b45309">${h.nombrePortal}</span>` : `<span style="color:${ROJO}">sin nombre</span>`}</td>
@@ -353,7 +357,8 @@ export function armarEmailSemanal(rep: any, appUrl: string): { subject: string; 
             ${bloqueSinNombre}
             ${bloqueResueltos}
             ${bloqueSalud}
-            <p style="margin-top:16px;font-size:13px"><a href="${pantalla}">Ver la conciliación completa en el CRM</a></p>
+            <p style="margin-top:16px;font-size:12px;color:${GRIS}">${ACLARACION_LINKS}</p>
+            <p style="margin-top:8px;font-size:13px"><a href="${pantalla}">Ver la conciliación completa en el CRM</a></p>
             <p style="font-size:11px;color:#9ca3af;border-top:1px solid #f3f4f6;padding-top:12px;margin-top:16px">Atelier Óptica — reporte semanal de laboratorios. Sale los viernes a las 9:30.</p>
         </div>`;
 

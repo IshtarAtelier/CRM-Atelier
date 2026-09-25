@@ -73,6 +73,7 @@
     "check:crizal": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/crizal-obligatorio.check.mjs",
     "check:recalculo-lab": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/recalculo-costos-lab.check.mjs",
     "check:par-bonificado": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/par-bonificado-2x1.check.mjs",
+    "check:go-lineas": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/go-lineas-por-pedido.check.mjs",
     "check:meta-anuncios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/meta-anuncios-identificados.mjs",
     "check:referral": "node scripts/checks/referral-anuncio.check.cjs",
     "check:meta-compras": "node scripts/checks/compras-informadas-a-meta.mjs"

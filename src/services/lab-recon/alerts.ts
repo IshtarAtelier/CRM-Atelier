@@ -4,6 +4,7 @@ import { estaResuelta, etiquetaSinVenta } from '../../lib/lab-factura';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
 import { LAB_LABELS, UNMATCHED_GRACE_MS, VENTANA_REPORTE_DIAS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
+import { ACLARACION_LINKS, comprobantesHtml } from './comprobantes-html';
 
 /**
  * AVISO DIARIO de la conciliación de costos de laboratorio: los pedidos SIN
@@ -391,7 +392,7 @@ export async function alertNewFindings() {
         const nroOperacion = ES_PEDIDO.test(String(f.labOrderNumber || '').trim())
             ? String(f.labOrderNumber).trim()
             : faltante('la factura no trae nº');
-        const comprobante = comprobanteDe(f) || faltante('sin comprobante');
+        const comprobante = comprobantesHtml(f, comprobanteDe(f) || faltante('sin comprobante'));
         // La fecha de ingreso que manda el portal vale más que el alta en el
         // sistema: es cuándo entró el trabajo al laboratorio. El portal escribe
         // dos formatos: "ingreso 2026-07-28 16:06" y "ingreso 13-07-26 09:52".
@@ -438,7 +439,8 @@ export async function alertNewFindings() {
                         <th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Pista</th>
                     </tr>${rows}
                 </table>
-                <p style="margin-top:14px"><a href="${appUrl}/admin/laboratorio/costos?estado=UNMATCHED">Ver los pedidos sin venta en el CRM</a></p>
+                <p style="margin-top:14px;font-size:12px;color:#6b7280">${ACLARACION_LINKS}</p>
+                <p style="margin-top:8px"><a href="${appUrl}/admin/laboratorio/costos?estado=UNMATCHED">Ver los pedidos sin venta en el CRM</a></p>
             </div>
         `,
     });

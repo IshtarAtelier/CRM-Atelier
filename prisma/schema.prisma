@@ -1148,6 +1148,11 @@ model LabCostEntry {
   resolvedAt     DateTime?
   resolvedBy     String?
   resolvedNote   String?
+  // Los comprobantes de este pedido, con lo que cada uno le cobra y el link
+  // para verlo: [{ comprobante, importe, url, tipo }]. Un pedido de Grupo
+  // Óptico suele estar en DOS (el remito del cristal y la factura del
+  // calibrado); uno de Optovisión, en el PDF de un correo.
+  invoiceRefs    Json?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   order          Order?    @relation(fields: [orderId], references: [id])

@@ -94,9 +94,26 @@ caja). Nada se avisa si está resuelto a mano, y nada de más de 30 días.
    conceptos distintos): FACTURAS (nº alto, total real: trabajos de lab y
    armados ~$2.670) y REMITOS X (nº bajo, total $0, "30 Días Lista": cristales
    de STOCK a cuenta corriente — el importe real está en las líneas).
-4. **Líneas sin nº de pedido** en una factura se asignan por el vínculo
-   pedido→factura que da la API del portal (`invoices[].number`): primero a los
-   pedidos de esa factura sin líneas propias, si no a prorrata.
+4. **Un pedido cuesta SOLO las líneas que llevan su número** (Grupo Óptico,
+   regla de Ishtar del 25/9/2026). Un comprobante agrupa pedidos de muchos
+   clientes; de cada pedido se suman sus líneas en todos los comprobantes donde
+   aparece (suele estar en dos: el remito del cristal y la factura del
+   calibrado). Las **líneas sin nº de pedido NO se asignan a nadie**: hasta ese
+   día se repartían entre los pedidos de la factura, y con un PDF leído a
+   medias eso le dio a Rius Belen (80544194) $162.872 cuando sus líneas suman
+   $18.988. Lo fija `npm run check:go-lineas`.
+   - **Una sola pasada a la vez contra el portal** (turno en
+     `SystemSetting lab-provider:GRUPO_OPTICO:turno`, 20 min): la diaria de las
+     8:30 y la "recuperación" del pase de 10 min chocaban todas las mañanas y el
+     portal devolvía PDFs a medias (374 comprobantes en vez de ~640).
+   - **PDF incompleto = no se tocan importes**: si una pasada completa lee menos
+     del 90% de los comprobantes de la anterior, queda como fuente degradada.
+   - Cada pedido guarda sus comprobantes (`invoiceRefs`) con lo que cada uno le
+     cobra y el **link al PDF en el portal**
+     (`laboratory/order/invoice?id={salesId}&pedido={nº}&t={2 remito, 1 factura}&c=1`,
+     abre aun sin sesión). En Optovisión el link lleva al **correo en Gmail**
+     (por Message-ID). Los muestran el reporte semanal, el aviso de pedidos sin
+     venta y la pantalla.
 5. Consumidor final / monotributo: el total del comprobante no discrimina IVA —
    el importe de línea ES el costo comparable contra el costo por par del CRM.
 6. **En un 2x1 el par bonificado va en $0 y UNO de los pedidos tiene que venir

@@ -1,6 +1,8 @@
 import { LabCostReconciliationService } from '../lab-cost-reconciliation.service';
 import { LAB_AUDIT_START_ISO } from '../../lib/constants';
-import { buildPedidoAmountMap } from './grupo-optico-invoices';
+import { prisma } from '../../lib/db';
+import { buildPedidoAmountMap, normalizeInvoiceNumber } from './grupo-optico-invoices';
+import type { InvoiceRef } from '../lab-recon/types';
 
 /**
  * Proveedor de Grupo Óptico: lee los pedidos desde la API JSON interna del
@@ -19,6 +21,68 @@ const API_BASE = `${PORTAL_BASE}/smartlab-api-v2/public/index.php`;
 const ROWS_PER_PAGE = 100;
 const MAX_PAGES = 50; // tope de seguridad (~5000 pedidos)
 
+/**
+ * UNA SOLA PASADA A LA VEZ CONTRA EL PORTAL.
+ *
+ * Todas las mañanas corrían dos pasadas completas juntas: la diaria de las
+ * 8:30 y la "recuperación" del pase de 10 minutos (que hace una completa si la
+ * última tiene más de 20 horas). Las dos pedían al mismo tiempo el PDF de
+ * todos los comprobantes de la era CRM y el portal devolvía PDFs a medias:
+ * medido en LabAuditRun, 374 y 195 comprobantes el 24/9/2026 contra ~640 de
+ * una pasada normal. Esas lecturas escribieron importes disparatados (Rius
+ * Belen con $162.872 en vez de $18.988), el resumen de las 8:38 los mandó, y
+ * la pasada de las 8:47 los corrigió. Todos los días.
+ *
+ * El turno se reclama con un `updateMany` condicional (atómico en Postgres, y
+ * sirve entre instancias). Vence solo: si una pasada muere a la mitad, a los
+ * TURNO_MIN minutos otra lo puede tomar.
+ */
+const TURNO_KEY = 'lab-provider:GRUPO_OPTICO:turno';
+const TURNO_MIN = 20;
+
+async function tomarTurnoDelPortal(): Promise<string | null> {
+    const ahora = new Date();
+    const hasta = new Date(ahora.getTime() + TURNO_MIN * 60000).toISOString();
+    await prisma.systemSetting.createMany({
+        data: [{ key: TURNO_KEY, value: new Date(0).toISOString() }],
+        skipDuplicates: true,
+    });
+    const tomado = await prisma.systemSetting.updateMany({
+        where: { key: TURNO_KEY, value: { lt: ahora.toISOString() } },
+        data: { value: hasta },
+    });
+    return tomado.count === 1 ? hasta : null;
+}
+
+async function soltarTurnoDelPortal(hasta: string) {
+    await prisma.systemSetting.updateMany({
+        where: { key: TURNO_KEY, value: hasta },
+        data: { value: new Date(0).toISOString() },
+    }).catch(err => console.error('[GrupoOptico] No se pudo soltar el turno del portal (vence solo):', err));
+}
+
+/**
+ * CONTROL DE PDF INCOMPLETO. La pasada completa recuerda cuántos comprobantes
+ * leyó; si la próxima lee menos del 90% de esos, el PDF vino a medias y NO se
+ * tocan los importes (se deja constancia como fuente degradada). En una pasada
+ * sana la cantidad solo crece: la era CRM no pierde comprobantes.
+ */
+const CONTEO_KEY = 'lab-provider:GRUPO_OPTICO:comprobantes';
+const CONTEO_MINIMO = 0.9;
+
+/**
+ * Link al PDF de un comprobante en el portal: el mismo que arma su página al
+ * tocar la factura (`openInvoice` en su código). Verificado el 25/9/2026 con
+ * los dos de Rius Belen (80544194): devuelve el PDF, aun sin la sesión del
+ * portal. `t` es 2 para los remitos X y 1 para las facturas.
+ */
+function linkComprobante(salesId: string, pedido: string, tipo: string): string {
+    return `${API_BASE}/laboratory/order/invoice?id=${encodeURIComponent(salesId)}&pedido=${encodeURIComponent(pedido)}&t=${tipo === 'r' ? 2 : 1}&c=1`;
+}
+
+/** "00004-00353854" → "0004-00353854"; si no tiene la forma esperada, tal cual. */
+const nroComprobante = (n: string) => /^\d+-\d+$/.test(n) ? normalizeInvoiceNumber(n) : n;
+
 interface PortalOrder {
     num: string;
     fecha: string; // "YYYY-MM-DD HH:mm:ss.000"
@@ -26,6 +90,8 @@ interface PortalOrder {
     anulado: boolean;
     factura: string | null;
     invoiceNumbers: string[]; // todos los nº de factura del pedido (para cruzar importes)
+    /** Los comprobantes como los da la API: con ellos se arma el link a cada uno. */
+    comprobantes: { salesId: string; letter: string; number: string; type: string }[];
     rework: boolean; // el portal lo marca como reproceso/reclamo
 }
 
@@ -42,7 +108,27 @@ export class GrupoOpticoProvider {
      * asigna los importes cuando el pedido pasa a FINALIZADO) sin re-parsear
      * toda la era en cada corrida. La pasada completa sigue siendo la diaria.
      */
-    static async collect(opts: { sinceDays?: number } = {}) {
+    static async collect(opts: { sinceDays?: number } = {}): Promise<Record<string, any>> {
+        let turno: string | null = null;
+        try {
+            turno = await tomarTurnoDelPortal();
+        } catch (err) {
+            // Sin base para el turno se corre igual: mejor datos que silencio.
+            console.error('[GrupoOptico] No se pudo tomar el turno del portal (se corre igual):', err);
+            turno = 'sin-turno';
+        }
+        if (!turno) {
+            console.log(`[GrupoOptico] Otra pasada contra el portal está en curso: esta (${opts.sinceDays ? 'rápida' : 'completa'}) se saltea.`);
+            return { skipped: true, reason: 'otra pasada contra el portal en curso' };
+        }
+        try {
+            return await GrupoOpticoProvider.recolectar(opts);
+        } finally {
+            if (turno !== 'sin-turno') await soltarTurnoDelPortal(turno);
+        }
+    }
+
+    private static async recolectar(opts: { sinceDays?: number }): Promise<Record<string, any>> {
         // Dónde está Chromium. Mismo caso —y misma consecuencia— que
         // `smartlab.service.ts`: el build lo instala en `.playwright-browsers`
         // y Playwright lo busca por defecto en ~/.cache/ms-playwright, vacía en
@@ -138,6 +224,12 @@ export class GrupoOpticoProvider {
                         anulado: r.Anulado === '1',
                         factura: r.invoices?.[0]?.number || r.Factura || null,
                         invoiceNumbers,
+                        comprobantes: (r.invoices || [])
+                            .filter((i: any) => i && i.number)
+                            .map((i: any) => ({
+                                salesId: String(i.salesId ?? ''), letter: String(i.letter ?? ''),
+                                number: String(i.number), type: String(i.type ?? ''),
+                            })),
                         rework: !!r.is_rework || r.Reclamo === '1',
                     });
                 }
@@ -152,23 +244,40 @@ export class GrupoOpticoProvider {
 
             summary.seen = orders.length;
 
-            // Importes reales POR PEDIDO: líneas de detalle del PDF de comprobantes
-            // (facturas + remitos X), con reparto de líneas sin nº por el vínculo
-            // pedido→factura de la API. Si falla, seguimos sin importes.
+            // Importes reales POR PEDIDO: SOLO las líneas de detalle que llevan
+            // su número, en todos los comprobantes (facturas + remitos X). Las
+            // líneas sin nº no se le asignan a nadie. Si falla, seguimos sin importes.
             let pedidoAmounts = new Map<string, number>();
+            let porComprobante = new Map<string, Map<string, number>>();
             try {
-                const pedidoInvoices = new Map<string, string[]>();
-                for (const o of orders) if (o.invoiceNumbers.length) pedidoInvoices.set(o.num, o.invoiceNumbers);
-                const res = await buildPedidoAmountMap(page, clientId, auditStart, new Date(), pedidoInvoices);
+                const res = await buildPedidoAmountMap(page, clientId, auditStart, new Date());
                 pedidoAmounts = res.amounts;
+                porComprobante = res.porComprobante;
                 console.log(`[GrupoOptico] Comprobantes parseados: ${res.stats.invoices} | ` +
                     `líneas con pedido $${Math.round(res.stats.attributedSum).toLocaleString('es-AR')} | ` +
-                    `sin pedido $${Math.round(res.stats.unattributedSum).toLocaleString('es-AR')} ` +
-                    `(repartido $${Math.round(res.stats.distributedSum).toLocaleString('es-AR')}) | ` +
+                    `sin nº de pedido $${Math.round(res.stats.unattributedSum).toLocaleString('es-AR')} (no se asignan) | ` +
                     `con descuento de cuenta: ${res.stats.conDescuento}/${res.stats.invoices}` +
                     `${res.stats.descuentoPromedio !== null ? ` (promedio ${Math.round((1 - res.stats.descuentoPromedio) * 100)}% off)` : ''}`);
+                summary.comprobantes = res.stats.invoices;
                 summary.comprobantesConDescuento = res.stats.conDescuento;
                 summary.descuentoPromedio = res.stats.descuentoPromedio;
+
+                // PDF a medias (ver CONTEO_KEY): no se tocan importes.
+                if (!opts.sinceDays) {
+                    const previo = Number((await prisma.systemSetting.findUnique({ where: { key: CONTEO_KEY } }).catch(() => null))?.value || 0);
+                    if (previo > 0 && res.stats.invoices < previo * CONTEO_MINIMO) {
+                        summary.invoiceError = `PDF de comprobantes incompleto: ${res.stats.invoices} comprobantes contra ${previo} de la última pasada completa. No se tocaron importes.`;
+                        console.error(`[GrupoOptico] ${summary.invoiceError}`);
+                        pedidoAmounts = new Map();
+                        porComprobante = new Map();
+                    } else if (res.stats.invoices > 0) {
+                        await prisma.systemSetting.upsert({
+                            where: { key: CONTEO_KEY },
+                            update: { value: String(res.stats.invoices) },
+                            create: { key: CONTEO_KEY, value: String(res.stats.invoices) },
+                        }).catch(err => console.error('[GrupoOptico] No se pudo guardar el conteo de comprobantes:', err));
+                    }
+                }
             } catch (err: any) {
                 console.error('[GrupoOptico] No se pudo obtener el PDF de facturas (se sigue sin importes):', err);
                 // Dejar constancia en el resumen: si esto falla corrida tras corrida,
@@ -186,6 +295,25 @@ export class GrupoOpticoProvider {
                 // tratarlo como "sin factura" dejaba esas ventas PENDING para siempre.
                 const raw = pedidoAmounts.get(o.num);
                 const billed: number | null = raw != null ? Math.round(raw * 100) / 100 : null;
+
+                // Los comprobantes del pedido con lo que cada uno le cobra y el
+                // link para verlo en el portal (pedido de Ishtar, 25/9/2026).
+                // Si esta corrida no tiene importes, van sin importe y se
+                // conservan los que ya estaban guardados (juntarComprobantes).
+                const delPedido = porComprobante.get(o.num);
+                const invoiceRefs: InvoiceRef[] = o.comprobantes.map(c => {
+                    const nro = nroComprobante(c.number);
+                    return {
+                        comprobante: `${c.letter ? `${c.letter}-` : ''}${nro}`,
+                        importe: delPedido?.get(nro) ?? null,
+                        url: c.salesId ? linkComprobante(c.salesId, o.num, c.type) : null,
+                        tipo: c.type === 'r' ? 'remito' : 'factura',
+                    };
+                });
+                // Un comprobante con líneas del pedido que la API no listó: sin link.
+                for (const [nro, importe] of delPedido || []) {
+                    if (!invoiceRefs.some(r => r.comprobante.endsWith(nro))) invoiceRefs.push({ comprobante: nro, importe, url: null });
+                }
 
                 const detail = [o.cliente, `ingreso ${o.fecha.slice(0, 16)}`, o.rework ? 'REPROCESO' : null]
                     .filter(Boolean).join(', ');
@@ -206,6 +334,7 @@ export class GrupoOpticoProvider {
                     // factura); para Optovisión sigue siendo la del comprobante.
                     invoiceDate: new Date(String(o.fecha).replace(' ', 'T')),
                     notes: `Pedido visto en el portal del laboratorio (${detail}).`,
+                    invoiceRefs: invoiceRefs.length ? invoiceRefs : undefined,
                     // Pase rápido (ventana corta): solo COMPLETA importes faltantes;
                     // los ya registrados por la pasada completa no se pisan (el
                     // reparto de líneas con menos comprobantes daría otro número).

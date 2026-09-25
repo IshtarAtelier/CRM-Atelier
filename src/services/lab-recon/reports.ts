@@ -182,6 +182,7 @@ export async function weeklyReport(from: Date, to: Date) {
                 // El email reclama con nº de operación + comprobante + fecha:
                 // las tres viajan siempre, en todas las filas.
                 sourceFile: e.sourceFile,
+                invoiceRefs: e.invoiceRefs ?? null,
                 invoiceDate: e.invoiceDate,
                 createdAt: e.createdAt,
                 cliente: e.order?.client?.name || (e.status === 'UNMATCHED' ? 'SIN VENTA' : '—'),
@@ -252,6 +253,8 @@ export async function weeklyReport(from: Date, to: Date) {
             return {
                 lab: e.lab, labOrderNumber: e.labOrderNumber, cliente: e.order?.client?.name || '—',
                 difference: e.difference, sourceFile: e.sourceFile, invoiceDate: e.invoiceDate, createdAt: e.createdAt,
+                // Los comprobantes de TODOS los pedidos de la venta (los dos pares del 2x1).
+                invoiceRefs: v.hermanos.flatMap((h: any) => Array.isArray(h.invoiceRefs) ? h.invoiceRefs : []),
                 es2x1: v.es2x1,
                 pedidos: v.hermanos.map((h: any) => h.labOrderNumber),
                 parBonificadoCobrado: v.par.cobrado,
@@ -278,6 +281,7 @@ export async function weeklyReport(from: Date, to: Date) {
         .sort((a, b) => fechaRef(b).getTime() - fechaRef(a).getTime())
         .map(e => ({
             id: e.id, lab: e.lab, labOrderNumber: e.labOrderNumber, sourceFile: e.sourceFile,
+            invoiceRefs: e.invoiceRefs ?? null,
             invoiceDate: e.invoiceDate, createdAt: e.createdAt,
             billed: billedOf(e),
             nombrePortal: labPortalClientName(e.notes),
@@ -309,6 +313,7 @@ export async function weeklyReport(from: Date, to: Date) {
             const costoCaso = c?.cost ?? null;
             return {
                 lab: e.lab, labOrderNumber: e.labOrderNumber, sourceFile: e.sourceFile,
+                invoiceRefs: e.invoiceRefs ?? null,
                 invoiceDate: e.invoiceDate, createdAt: e.createdAt,
                 cliente: e.order?.client?.name || c?.order?.client?.name || '—',
                 clientId: e.order?.clientId || c?.order?.clientId || null,

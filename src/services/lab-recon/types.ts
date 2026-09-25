@@ -7,6 +7,21 @@
 
 export type LabName = 'OPTOVISION' | 'GRUPO_OPTICO';
 
+/**
+ * Un comprobante de un pedido de laboratorio: qué es, cuánto le cobra A ESTE
+ * pedido y dónde verlo. Grupo Óptico: link al PDF del comprobante en su portal
+ * (verificado el 25/9/2026: abre aun sin la sesión del portal). Optovisión:
+ * link al correo con el PDF en Gmail.
+ */
+export interface InvoiceRef {
+    /** Como lo muestra el lab: "X-0004-00023793" (Grupo Óptico) o "3008-00079329" (Optovisión). */
+    comprobante: string;
+    /** Lo que este comprobante le cobra a ESTE pedido (con el descuento de cuenta). */
+    importe: number | null;
+    url: string | null;
+    tipo?: 'remito' | 'factura' | 'correo';
+}
+
 export interface LabCostInput {
     lab: LabName | string;
     labOrderNumber: string;
@@ -38,6 +53,49 @@ export interface LabCostInput {
      * entrada se sigue guardando con el nº de pedido como clave.
      */
     aliases?: string[];
+    /**
+     * Los comprobantes del pedido con su importe y su link. Se SUMAN a los que
+     * ya tenía la entrada (por nº de comprobante, el nuevo manda): un pedido
+     * puede llegar en dos corridas o en dos correos distintos.
+     */
+    invoiceRefs?: InvoiceRef[];
+}
+
+/**
+ * Link a un correo de Gmail por su Message-ID, abierto en la cuenta que lo
+ * recibió (`authuser`): así el link lleva al correo aunque el navegador tenga
+ * varias cuentas de Google abiertas. Sin Message-ID no hay link.
+ */
+export function linkGmail(cuenta: string | null | undefined, messageId: string | null | undefined): string | null {
+    const id = String(messageId || '').trim().replace(/^<|>$/g, '');
+    if (!id) return null;
+    const quien = cuenta ? `?authuser=${encodeURIComponent(cuenta)}` : '';
+    return `https://mail.google.com/mail/${quien}#search/rfc822msgid%3A${encodeURIComponent(id)}`;
+}
+
+/** "FA_3025-00051752.pdf" → "3025-00051752": el nº de comprobante de Optovisión, del nombre del adjunto. */
+export function comprobanteDeArchivo(nombre: string | null | undefined): string | null {
+    const m = String(nombre || '').match(/(\d{4})-?(\d{6,8})/);
+    return m ? `${m[1]}-${m[2].padStart(8, '0')}` : null;
+}
+
+/** Junta dos listas de comprobantes por nº de comprobante; el nuevo pisa al viejo. */
+export function juntarComprobantes(viejos: unknown, nuevos: InvoiceRef[] | undefined): InvoiceRef[] | null {
+    const base: InvoiceRef[] = Array.isArray(viejos) ? (viejos as InvoiceRef[]).filter(r => r && r.comprobante) : [];
+    if (!nuevos?.length) return base.length ? base : null;
+    const porNumero = new Map(base.map(r => [r.comprobante, r]));
+    for (const r of nuevos) {
+        if (!r?.comprobante) continue;
+        const previo = porNumero.get(r.comprobante);
+        // Una corrida sin importes (PDF a medias, pase rápido que no llega a ese
+        // comprobante) no borra el importe ni el link que ya estaban.
+        porNumero.set(r.comprobante, {
+            ...previo, ...r,
+            importe: r.importe ?? previo?.importe ?? null,
+            url: r.url ?? previo?.url ?? null,
+        });
+    }
+    return [...porNumero.values()];
 }
 
 /** Tolerancia en pesos para diferencias de redondeo entre lista y factura. */
