@@ -1,23 +1,31 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
-import { PricingService } from "@/services/PricingService";
+import { PricingService, type TotalesCheckout } from "@/services/PricingService";
 import { TEXTO_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
+import { precioConSigno } from "@/lib/format-precio";
 
-export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal, mercadoPagoEnabled, paywayEnabled = true }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number, mercadoPagoEnabled?: boolean, paywayEnabled?: boolean }) {
+export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, totales, mercadoPagoEnabled, paywayEnabled = true }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, totales: TotalesCheckout, mercadoPagoEnabled?: boolean, paywayEnabled?: boolean }) {
   // El monto en el botón mata la última duda ("¿cuánto termino pagando?") justo
-  // en el clic que cierra la venta. Se calcula igual que el resumen de la derecha.
-  const montoFmt = payableTotal && payableTotal > 0
-    ? `$${Math.round(payableTotal).toLocaleString("es-AR")}`
-    : null;
+  // en el clic que cierra la venta. Es `totales.total`: el MISMO número que el
+  // TOTAL del resumen, porque los dos leen del mismo cálculo
+  // (PricingService.totalesCheckout). Antes cada uno hacía su cuenta y con las
+  // 12 cuotas el botón decía $176.000 y el resumen $160.000.
+  const payableTotal = totales.total;
+  const montoFmt = payableTotal > 0 ? precioConSigno(payableTotal) : null;
   // Cuántas cuotas eligió el visitante en el select, NO las del texto
   // promocional. Antes se sacaba de `web_promo_installments` ("6 cuotas sin
   // interés"), así que quien elegía 1 pago leía "Pagar $X en 6 cuotas" justo en
   // el botón que cierra la compra: el peor lugar para un número que no es.
   const cuotasElegidas = Math.max(1, Number(formData.installments) || 1);
 
-  // Plan 12 cuotas MP: números resueltos por PricingService (regla del proyecto:
-  // cálculo de plata SOLO ahí) — una sola vez, para radios y botón.
-  const planMp12 = payableTotal && payableTotal > 0 ? PricingService.cuotasMpLargas(payableTotal) : null;
+  // Los dos planes de Mercado Pago se ofrecen sobre lo que queda a pagar ANTES
+  // del medio de pago (con 2x1 y cupón): con el de 12 elegido, `totales.total`
+  // ya trae el recargo y aplicarlo otra vez lo cobraría dos veces.
+  // Números resueltos por PricingService (regla del proyecto: cálculo de plata
+  // SOLO ahí).
+  const baseMp = totales.subtotalConCupon;
+  const cuota6Mp = baseMp > 0 ? PricingService.preciosVidriera(baseMp).cuota6 : null;
+  const planMp12 = baseMp > 0 ? PricingService.cuotasMpLargas(baseMp) : null;
 
   /** " · 6 x $107.708" para la opción de N cuotas; vacío si no hay total aún. */
   const porCuota = (n: number) =>
@@ -110,8 +118,8 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                           <input type="radio" name="mpCuotas" value="hasta_6" checked={(formData.mpCuotas || 'hasta_6') === 'hasta_6'} onChange={handleChange} className="accent-black" />
                           <span>
                             <span className="text-[13px] font-bold block">Hasta 6 cuotas sin interés</span>
-                            {payableTotal && payableTotal > 0 && (
-                              <span className="text-[11px] text-stone-500 block">6 x ${Math.round(payableTotal / 6).toLocaleString('es-AR')} · total ${Math.round(payableTotal).toLocaleString('es-AR')}</span>
+                            {cuota6Mp !== null && (
+                              <span className="text-[11px] text-stone-500 block">6 x {precioConSigno(cuota6Mp)} · total {precioConSigno(baseMp)}</span>
                             )}
                           </span>
                         </span>
@@ -127,7 +135,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                                 comprador ve el número real antes de tildar. */}
                             <span className="text-[13px] font-bold block">{TEXTO_MP_CUOTAS_LARGAS}</span>
                             {planMp12 && (
-                              <span className="text-[11px] text-stone-500 block">12 x ${planMp12.installment12.toLocaleString('es-AR')} · total ${planMp12.totalFinanced.toLocaleString('es-AR')}</span>
+                              <span className="text-[11px] text-stone-500 block">12 x {precioConSigno(planMp12.installment12)} · total {precioConSigno(planMp12.totalFinanced)}</span>
                             )}
                           </span>
                         </span>
@@ -267,11 +275,11 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
         ) : formData.paymentMethod === 'MERCADO_PAGO' ? (
           // Dice que se sale del sitio, porque se sale del sitio. El botón que
           // promete "pagar" y en cambio redirige es el que hace abandonar.
-          // Con el plan de 12 el botón muestra el TOTAL DEL PLAN (con recargo):
-          // el número del botón tiene que ser el que se va a pagar, siempre.
+          // Con el plan de 12 el total ya trae el recargo: el número del botón
+          // tiene que ser el que se va a pagar, siempre.
           <>
-            {payableTotal && payableTotal > 0
-              ? `Continuar a Mercado Pago · $${(formData.mpCuotas === '12' && planMp12 ? planMp12.totalFinanced : Math.round(payableTotal)).toLocaleString('es-AR')}`
+            {montoFmt
+              ? `Continuar a Mercado Pago · ${montoFmt}`
               : "Continuar a Mercado Pago"} <ShieldCheck className="w-4 h-4" />
           </>
         ) : (

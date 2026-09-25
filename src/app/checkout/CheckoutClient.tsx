@@ -14,7 +14,10 @@ import { CheckoutContactForm } from "@/components/checkout/CheckoutContactForm";
 import { CheckoutShippingForm } from "@/components/checkout/CheckoutShippingForm";
 import { CheckoutPaymentOptions } from "@/components/checkout/CheckoutPaymentOptions";
 import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySidebar";
+import { CheckoutResumenCelular } from "@/components/checkout/CheckoutResumenCelular";
 import type { AppliedCoupon } from "@/components/checkout/CouponField";
+import { PricingService } from "@/services/PricingService";
+import { telefonoADigitos, telefonoValido } from "@/lib/checkout/telefono";
 import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 import { getAdsMatchData, getSessionId, track } from "@/lib/client-analytics";
@@ -155,6 +158,21 @@ export function CheckoutClient({
   });
 
   const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
+  const descuentoTransferenciaPct = webSettings?.web_promo_cash_discount || 15;
+
+  // Lo que la persona termina pagando, desglosado. UN solo cálculo
+  // (PricingService.totalesCheckout) para el botón de pago, el resumen de
+  // escritorio, el de celular y la pantalla de éxito: si cada uno hiciera su
+  // cuenta, el botón podría decir un número y el resumen otro — que es lo que
+  // pasaba con las 12 cuotas (auditoría 25/9/2026).
+  const totales = PricingService.totalesCheckout({
+    bruto: getCartTotal(!!isWholesale),
+    descuento2x1: promo2x1.descuento,
+    descuentoCupon: couponDiscount,
+    paymentMethod: formData.paymentMethod,
+    mpCuotas: formData.mpCuotas,
+    descuentoTransferenciaPct,
+  });
 
   useEffect(() => {
     // Con Payway oculto no se inyecta decidir.js: es un script de terceros que
@@ -357,14 +375,18 @@ export function CheckoutClient({
       
       // Debounce session tracking to avoid spamming the API
       const timeoutId = setTimeout(async () => {
-        if (formData.email || formData.phone) {
+        // El teléfono se guarda en dígitos y solo si ya es un número completo:
+        // a medio tipear ("35") no sirve para escribirle y abriría la sesión de
+        // recupero con un dato basura.
+        const telefonoGuardable = telefonoValido(formData.phone) ? telefonoADigitos(formData.phone) : "";
+        if (formData.email || telefonoGuardable) {
           const sessionId = localStorage.getItem("atelier-checkout-session-id");
           const payload = {
             sessionId,
             email: formData.email,
             firstName: formData.firstName,
             lastName: formData.lastName,
-            phone: formData.phone,
+            phone: telefonoGuardable,
             cartData: items,
             shippingData: {
               address: formData.address,
@@ -448,6 +470,10 @@ export function CheckoutClient({
     setTimeout(() => { payLockRef.current = false; }, 5000);
     setIsProcessing(true);
 
+    // Lo que viaja al servidor: el teléfono en dígitos. En pantalla queda como
+    // lo tipeó la persona ("351 123-4567"); guardado, "3511234567".
+    const cliente = { ...formData, phone: telefonoADigitos(formData.phone) };
+
     try {
       // MERCADO PAGO: se arma el pedido acá y el cobro ocurre en mercadopago.com.
       // Por eso NO se vacía el carrito ni se mide la compra: todavía no hay
@@ -459,7 +485,7 @@ export function CheckoutClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             customer: {
-              ...formData,
+              ...cliente,
               shippingMethod: formData.shippingMethod,
               shippingBranch: formData.shippingBranch
             },
@@ -499,7 +525,7 @@ export function CheckoutClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             customer: {
-              ...formData,
+              ...cliente,
               shippingMethod: formData.shippingMethod,
               shippingBranch: formData.shippingBranch
             },
@@ -632,7 +658,7 @@ export function CheckoutClient({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               customer: {
-                ...formData,
+                ...cliente,
                 shippingMethod: formData.shippingMethod,
                 shippingBranch: formData.shippingBranch
               },
@@ -714,16 +740,8 @@ export function CheckoutClient({
 
   if (!mounted) return null;
 
-  // Lo que la persona termina pagando. Mismo cálculo que CheckoutSummarySidebar:
-  // primero el cupón, después el % por método de pago. Si divergen, el botón
-  // miente. Vive acá arriba porque lo usan el botón de pago Y la pantalla de
-  // éxito (regla del proyecto: un dato que se muestra en dos lados se arma una
-  // sola vez).
-  const subtotalConCupon = Math.max(0, totalConPromo2x1 - (couponDiscount || 0));
-  const payableTotal =
-    formData.paymentMethod === 'TRANSFER'
-      ? subtotalConCupon * (1 - (webSettings?.web_promo_cash_discount || 15) / 100)
-      : subtotalConCupon;
+  // Lo que se guarda para la pantalla de éxito: el mismo total que el botón.
+  const payableTotal = totales.total;
 
   if (isSuccess) {
     return (
@@ -879,6 +897,18 @@ export function CheckoutClient({
             <p className="text-stone-500 text-sm">Completá tus datos para finalizar la compra de forma segura.</p>
           </div>
 
+          {/* En celular la columna del resumen cae debajo del botón de pagar:
+              este desplegable trae el total y el cupón arriba del formulario. */}
+          <CheckoutResumenCelular
+            items={items}
+            totales={totales}
+            isWholesale={isWholesale}
+            appliedCoupon={appliedCoupon}
+            onCouponApplied={setAppliedCoupon}
+            bonificados2x1={promo2x1.bonificados}
+            descuentoTransferenciaPct={descuentoTransferenciaPct}
+          />
+
           <form onSubmit={handlePaywaySubmit}>
             <fieldset disabled={isProcessing} className="flex flex-col gap-10 border-0 p-0 m-0 disabled:opacity-75 transition-opacity">
               <CheckoutContactForm formData={formData} handleChange={handleChange} />
@@ -892,7 +922,7 @@ export function CheckoutClient({
                 webSettings={webSettings}
                 paywayLoaded={paywayLoaded}
                 isWholesale={isWholesale}
-                payableTotal={payableTotal}
+                totales={totales}
                 mercadoPagoEnabled={mercadoPagoEnabled}
                 paywayEnabled={paywayEnabled}
               />
@@ -903,14 +933,11 @@ export function CheckoutClient({
         {/* DERECHA: Resumen de Compra */}
         <CheckoutSummarySidebar
           items={items}
-          getCartTotal={getCartTotal}
-          formData={formData}
+          totales={totales}
           webSettings={webSettings}
           isWholesale={isWholesale}
           appliedCoupon={appliedCoupon}
-          couponDiscount={couponDiscount}
           onCouponApplied={setAppliedCoupon}
-          descuento2x1={promo2x1.descuento}
           bonificados2x1={promo2x1.bonificados}
         />
       </main>

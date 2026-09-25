@@ -182,6 +182,71 @@ export class PricingService {
     }
 
     /**
+     * Lo que termina pagando el comprador del checkout web, según el medio de
+     * pago elegido. ÚNICO cálculo: el botón de pagar, el resumen (escritorio y
+     * celular) y la pantalla de éxito leen de acá.
+     *
+     * Existe porque cada pantalla lo calculaba por su lado y divergieron: con
+     * las 12 cuotas de Mercado Pago el botón decía lista × 1,10 y el TOTAL del
+     * resumen seguía en lista (auditoría del 25/9/2026).
+     *
+     * Mismo orden que /api/checkout/payway, que es quien cobra: 2x1 → cupón →
+     * medio de pago. Lo que calcula el navegador es solo para mostrar; el
+     * servidor vuelve a calcular todo al pagar.
+     */
+    static totalesCheckout(opts: {
+        /** Lo que suman los productos, antes de cualquier descuento. */
+        bruto: number;
+        /** Armazones bonificados por el 2x1. */
+        descuento2x1?: number;
+        /** Descuento del cupón, ya calculado sobre lo que queda tras el 2x1. */
+        descuentoCupon?: number;
+        paymentMethod: string;
+        /** Plan de Mercado Pago: "12" = cuotas largas; cualquier otro = hasta 6 sin interés. */
+        mpCuotas?: string;
+        /** % de la promo por transferencia (setting web_promo_cash_discount). */
+        descuentoTransferenciaPct: number;
+    }) {
+        const bruto = Math.max(0, safePrice(opts.bruto));
+        const subtotal = Math.max(0, bruto - safePrice(opts.descuento2x1 ?? 0));
+        const subtotalConCupon = Math.max(0, subtotal - safePrice(opts.descuentoCupon ?? 0));
+
+        let total = subtotalConCupon;
+        let descuentoTransferencia = 0;
+        let recargoCuotas = 0;
+        let cuotas = 1;
+        let valorCuota = subtotalConCupon;
+
+        if (opts.paymentMethod === 'TRANSFER') {
+            descuentoTransferencia = Math.round(subtotalConCupon * (safePrice(opts.descuentoTransferenciaPct) / 100));
+            total = subtotalConCupon - descuentoTransferencia;
+            valorCuota = total;
+        } else if (opts.paymentMethod === 'MERCADO_PAGO' && opts.mpCuotas === '12') {
+            const plan = PricingService.cuotasMpLargas(subtotalConCupon);
+            total = plan.totalFinanced;
+            recargoCuotas = total - subtotalConCupon;
+            cuotas = 12;
+            valorCuota = plan.installment12;
+        }
+
+        return {
+            bruto,
+            /** Con el 2x1 descontado. Es la base del cupón. */
+            subtotal,
+            /** Con el 2x1 y el cupón descontados. Es la base del medio de pago. */
+            subtotalConCupon,
+            descuentoTransferencia,
+            /** Costo financiero del plan de 12 cuotas. Nunca se muestra como %. */
+            recargoCuotas,
+            /** Cuántas cuotas implica el plan elegido (12 solo con MP 12; si no, 1). */
+            cuotas,
+            /** Importe de cada cuota del plan elegido (con 1 cuota, el total). */
+            valorCuota,
+            total,
+        };
+    }
+
+    /**
      * Números que ve el COMPRADOR en la tienda para un precio dado, todos
      * resueltos (regla de Ishtar: "el cliente no calcula nada"). Único lugar:
      * grillas, carrito, resumen del checkout, emails y CTAs leen de acá.
@@ -265,6 +330,9 @@ export class PricingService {
     }
 
 }
+
+/** Desglose de lo que paga el comprador del checkout web (ver `totalesCheckout`). */
+export type TotalesCheckout = ReturnType<typeof PricingService.totalesCheckout>;
 
 export const calculateQuoteTotals = (
     items: any[],
