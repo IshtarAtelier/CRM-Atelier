@@ -92,8 +92,13 @@ export async function cargarIdentidad() {
             // HTML del render; si no hay internet, cae a la del sistema.
             titulo: "'Geist', -apple-system, 'Helvetica Neue', sans-serif",
             texto: "'Geist', -apple-system, 'Helvetica Neue', sans-serif",
+            // Serifa para piezas de tono boutique (25/9/26): el sitio ya titula
+            // con serifa en la portada y en la tienda (`font-serif`), así que es
+            // de la marca. Cormorant Garamond por Google Fonts; cae a la del
+            // sistema si no carga.
+            serif: "'Cormorant Garamond', 'New York', Georgia, serif",
         },
-        googleFonts: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700;900&display=swap',
+        googleFonts: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap',
         logo: path.join(RAIZ, 'public', 'assets', 'logo-atelier-optica.png'),
         handle: '@atelieroptica',
         // Formato por defecto: 4:5 es el que más pantalla ocupa en el feed.

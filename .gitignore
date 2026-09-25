@@ -116,3 +116,7 @@ scripts/maintenance/etiquetas-limpieza/respaldo-*.json
 # El historial de git ya guarda el original: esto es solo para revertir rápido
 # en local sin tocar git.
 *.original
+
+# Recortes de las fotos de catálogo (reel-desfile-tienda.mjs): se derivan del
+# original y se regeneran solos en cada corrida.
+public/images/catalogo-social/*-recorte.jpg
