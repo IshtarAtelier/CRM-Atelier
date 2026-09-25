@@ -46,6 +46,30 @@ export interface PurchaseOrderData {
   total: number;
   client: ClientData;
   createdAt?: Date;
+  /**
+   * Ids de los productos comprados, los MISMOS que usa el catálogo de Meta
+   * (`<g:id>` del feed = id del Product). Con esto el anuncio de catálogo sabe
+   * QUÉ se vendió y puede optimizar por producto; sin esto solo sabe que hubo
+   * una compra. Armarlos con `idsDeProductos()`.
+   */
+  contentIds?: string[];
+}
+
+/**
+ * Los ids de producto de una lista de ítems, sin repetir, en el formato del
+ * catálogo. Acepta las tres formas que existen: el ítem del carrito web
+ * (`productId`), la línea de una orden del CRM (`product.id`) y un id suelto.
+ */
+export function idsDeProductos(items: unknown): string[] {
+  if (!Array.isArray(items)) return [];
+  const ids = new Set<string>();
+  for (const it of items as any[]) {
+    const crudo = it?.productId ?? it?.product?.id ?? (typeof it === 'string' ? it : null);
+    if (crudo == null || crudo === 'unknown') continue;
+    const id = String(crudo).replace(/[^a-zA-Z0-9_-]/g, '');
+    if (id) ids.add(id);
+  }
+  return [...ids];
 }
 
 /**
@@ -185,6 +209,11 @@ export class AdsService {
         currency: 'ARS',
         value: order.total,
         order_id: order.id,
+        // Qué se compró, con los ids del catálogo: es lo que deja a la campaña
+        // de catálogo optimizar por producto (sin esto solo ve "hubo una compra").
+        ...(order.contentIds?.length
+          ? { content_ids: order.contentIds, content_type: 'product', num_items: order.contentIds.length }
+          : {}),
       },
     };
     if (opts.eventSourceUrl) event.event_source_url = opts.eventSourceUrl;

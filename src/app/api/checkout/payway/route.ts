@@ -20,6 +20,7 @@ import { enforceRateLimit } from '@/lib/api-guard';
 import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import { MetaConversionService } from '@/services/meta-conversions.service';
+import { idsDeProductos } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
 import { logAudit } from '@/lib/audit';
 import type { ContactSource } from '@/lib/contact-source';
@@ -170,6 +171,7 @@ function medirCompraWeb(opts: {
           lastName: customer.lastName,
         },
         createdAt: order.createdAt,
+        contentIds: idsDeProductos(body?.items),
       },
       {
         eventSourceUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/checkout`,

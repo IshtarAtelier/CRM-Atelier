@@ -13,6 +13,7 @@ import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { MetaConversionService } from '@/services/meta-conversions.service';
+import { idsDeProductos } from '@/services/ads.service';
 import { GoogleAdsService } from '@/services/google-ads.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
@@ -2278,7 +2279,10 @@ export class OrderService {
                 // "sí o sí" de Ishtar (25/9/2026). Sigue siendo fire-and-forget:
                 // medir no frena la venta. La fecha del evento es labSentAt (la
                 // venta), no createdAt (el presupuesto): Meta rechaza más de 7 días.
-                MetaConversionService.registrarCompraLocal(updatedOrder as any).catch(err => {
+                MetaConversionService.registrarCompraLocal({
+                    ...(updatedOrder as any),
+                    contentIds: idsDeProductos(updatedOrder.items),
+                }).catch(err => {
                     console.error('Error al anotar la compra para Meta:', err);
                 });
 

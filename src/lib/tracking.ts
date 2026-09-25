@@ -222,10 +222,17 @@ export function trackPurchase(orderId: string, totalValue: number, cartItems: an
     // Meta Pixel Event. El 4º arg { eventID } deduplica con el evento server-side
     // del Conversions API (MetaConversionService.registrarCompraWeb usa event_id = order.id).
     whenTagReady('fbq', (fbq) => {
+      // content_ids = productId del carrito (el id de la línea es otra cosa):
+      // son los ids del catálogo de Meta, los mismos que manda el server.
+      const contentIds = [...new Set((cartItems || [])
+        .map((i: any) => i?.productId ?? null)
+        .filter((id: unknown) => id != null && id !== "unknown")
+        .map((id: unknown) => String(id)))];
       fbq("track", "Purchase", {
         value: totalValue,
         currency: "ARS",
         transaction_id: orderId,
+        ...(contentIds.length ? { content_ids: contentIds, content_type: "product", num_items: contentIds.length } : {}),
       }, { eventID: orderId });
     });
     // Google Analytics 4 Event

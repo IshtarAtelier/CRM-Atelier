@@ -28,7 +28,7 @@
 
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import { AdsService } from '../../src/services/ads.service.ts';
+import { AdsService, idsDeProductos } from '../../src/services/ads.service.ts';
 import {
   MetaConversionService,
   crearAlmacenEnMemoria,
@@ -298,6 +298,29 @@ await MetaConversionService.registrarCompraWeb({
 await asentar();
 check('con la base caída el Purchase sale igual (mejor sin rastro que ninguno)', llamadas.length === n5 + 1 && llamadas.at(-1).body.data[0].event_id === 'orden-base-caida');
 MetaConversionService.usarAlmacen(almacen);
+
+// ── 13b. Qué se compró: los ids del catálogo viajan en la compra ──
+check('idsDeProductos: carrito web (productId), orden del CRM (product.id), sin repetir ni "unknown"',
+  JSON.stringify(idsDeProductos([{ productId: 'p1' }, { product: { id: 'p2' } }, { productId: 'p1' }, { productId: 'unknown' }, null])) === JSON.stringify(['p1', 'p2']));
+check('idsDeProductos: algo que no es lista → vacío', idsDeProductos(undefined).length === 0);
+await MetaConversionService.registrarCompraWeb({
+  id: 'orden-con-productos',
+  total: 250000,
+  client: { email: 'q@r.com', phone: '351 612 3456', name: 'Q R' },
+  createdAt: new Date(),
+  contentIds: ['prod-a', 'prod-b'],
+});
+await asentar();
+const cd = llamadas.at(-1).body.data[0].custom_data;
+check('compra con productos: content_ids = ids del catálogo, content_type product, num_items', JSON.stringify(cd.content_ids) === JSON.stringify(['prod-a', 'prod-b']) && cd.content_type === 'product' && cd.num_items === 2);
+await MetaConversionService.registrarCompraWeb({
+  id: 'orden-sin-productos',
+  total: 1,
+  client: { email: 's@t.com', phone: '351 612 3456', name: 'S T' },
+  createdAt: new Date(),
+});
+await asentar();
+check('compra sin productos: no se inventa content_ids', llamadas.at(-1).body.data[0].custom_data.content_ids === undefined);
 
 // ── 14. Evento de embudo: el eventId del navegador pasa intacto ──
 const n6 = llamadas.length;

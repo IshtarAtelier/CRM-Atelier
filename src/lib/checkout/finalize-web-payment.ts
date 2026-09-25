@@ -8,6 +8,7 @@ import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { logAudit } from '@/lib/audit';
 import { MetaConversionService } from '@/services/meta-conversions.service';
+import { idsDeProductos } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
 
 /**
@@ -432,6 +433,7 @@ function medirCompra(opts: { order: { id: string; createdAt: Date }; ctx: Checko
           lastName: ctx.customer.lastName,
         },
         createdAt: order.createdAt,
+        contentIds: idsDeProductos(ctx.items),
       },
       {
         eventSourceUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/checkout`,
