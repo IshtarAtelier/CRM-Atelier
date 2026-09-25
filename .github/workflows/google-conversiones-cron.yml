@@ -1,0 +1,34 @@
+# Sube a Google Ads las ventas del CRM que empezaron con un clic en un anuncio
+# de Google (conversiones offline). Ver docs/conversiones-offline-google.md.
+#
+# Diario, 10:00 Argentina. GitHub demora los schedules 40-80 minutos: no
+# importa, el endpoint mira los últimos 10 días de cierres y Google desduplica
+# por orderId, así que un día que corra tarde (o que no corra) no pierde nada.
+#
+# CRON_SECRET vive en los secrets del repo (Settings → Secrets → Actions),
+# el mismo que usan los demás crons de /api/cron/*.
+#
+# Un run verde con "subidas":0 NO es un error: la mayoría de las ventas no
+# vienen de un clic de Google. Falla (rojo) si el endpoint no responde ok:true,
+# que es lo que pasa si la carga está apagada por entorno ("bloqueo") o si
+# Google rechazó alguna venta ("errores").
+
+name: Conversiones offline a Google Ads
+
+on:
+  schedule:
+    - cron: '0 13 * * *'   # 10:00 ART
+  workflow_dispatch: {}
+
+jobs:
+  subir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Llamar el endpoint
+        run: |
+          RESPUESTA=$(curl -sS --max-time 300 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://atelieroptica.com.ar/api/cron/google-conversiones")
+          echo "$RESPUESTA"
+          echo "$RESPUESTA" | grep -q '"ok":true' || exit 1

@@ -61,9 +61,10 @@ Mismas reglas que el resto del sistema (CLAUDE.md), probadas en
    `https://atelieroptica.com.ar/api/cron/google-conversiones?seco=1&secret=<CRON_SECRET>`.
    Un `ok:true` con `conClic: 0` es normal los primeros días: solo cuentan los
    chats que entraron después del deploy.
-5. Alta en cron-job.org, como los demás crons: diario, 10:00 Argentina,
-   `GET https://atelieroptica.com.ar/api/cron/google-conversiones` con header
-   `Authorization: Bearer <CRON_SECRET>`.
+5. El cron corre por GitHub Actions (`.github/workflows/google-conversiones-cron.yml`),
+   diario a las 10:00 Argentina, con el `CRON_SECRET` de los secrets del repo.
+   Se puede disparar a mano desde la pestaña Actions ("Run workflow") o con
+   `gh workflow run google-conversiones-cron.yml`.
 
 ## Dónde se ve
 
