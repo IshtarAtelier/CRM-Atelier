@@ -114,10 +114,14 @@ pares de un 2x1 son un solo hallazgo). Las resoluciones que viven en código
 (`RESOLUCIONES_CONOCIDAS`) valen igual, y el cruce les estampa la fecha.
 
 **Ventana de los avisos: 30 días** (`VENTANA_REPORTE_DIAS`, regla de Ishtar
-del 25/9/2026). El reporte semanal informa el estado y los sobrecostos de los
-últimos 30 días; lo más viejo que sigue abierto no se repite en cada mail (se
-cuenta, nada más) y se resuelve en la pantalla eligiendo el mes. Antes un
-sobrecosto de junio salía todos los viernes, para siempre.
+del 25/9/2026: "solo evaluá en los últimos 30 días"). El reporte semanal
+informa el estado y los sobrecostos de los últimos 30 días; el resumen diario
+no avisa una entrada de más de 30 días aunque cambie de estado (la estampa
+como vista); el detector de "2x1 cobrado dos veces" y el script
+`dos-por-uno-par-bonificado.mjs` miran la misma ventana. Lo más viejo que
+sigue abierto no se repite en cada mail (se cuenta, nada más) y se resuelve en
+la pantalla eligiendo el mes. Antes un sobrecosto de junio salía todos los
+viernes, para siempre.
 
 ## Configuración
 
