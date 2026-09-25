@@ -4,6 +4,7 @@
  *
  *   node --env-file=.env scripts/social/reel-desfile-tienda.mjs
  *   node --env-file=.env scripts/social/reel-desfile-tienda.mjs --por-categoria 5 --segundos 1.2
+ *   node --env-file=.env scripts/social/reel-desfile-tienda.mjs --categorias Sol --por-categoria 12 --nombre desfile-tienda-sol
  *
  * Sale en public/social/reels/desfile-tienda.mp4 (+ -cover.jpg), que queda
  * servido en https://atelieroptica.com.ar/social/reels/desfile-tienda.mp4:
@@ -44,11 +45,19 @@ const POR_CATEGORIA = Number(arg('por-categoria', 5));
 const SEGUNDOS = Number(arg('segundos', 1.2));
 const CIERRE = 2.6;
 const FUNDIDO = 0.35;
-const CATEGORIAS = [
+const TODAS = [
     { clave: 'Sol', rotulo: 'Lentes de sol' },
     { clave: 'Receta', rotulo: 'Armazones de receta' },
     { clave: 'Clip-On', rotulo: 'Clip-on' },
 ];
+// --categorias Sol → un desfile de una sola categoría (p. ej. el de temporada).
+const PEDIDAS = arg('categorias', null)?.split(',').map(c => c.trim().toLowerCase());
+const CATEGORIAS = PEDIDAS ? TODAS.filter(c => PEDIDAS.includes(c.clave.toLowerCase())) : TODAS;
+if (!CATEGORIAS.length) throw new Error(`--categorias no coincide con ninguna: ${TODAS.map(c => c.clave).join(', ')}`);
+const NOMBRE = arg('nombre', 'desfile-tienda');
+// --excluir Calisto,Eva → modelos cuya foto pasa el filtro automático pero no
+// luce (un armazón blanco sobre blanco, un ángulo raro). Criterio a ojo.
+const EXCLUIR = new Set((arg('excluir', '') || '').split(',').map(n => n.trim().toLowerCase()).filter(Boolean));
 const SALIDA = path.join(RAIZ, 'public', 'social', 'reels');
 const FRAMES = path.join(RAIZ, 'social', 'contenido', 'reels', 'salida', `.frames-desfile-tienda-${Date.now()}`);
 
@@ -111,7 +120,7 @@ async function elegirArmazones() {
             for (const f of fichas.filter(x => x.category === c.clave)) {
                 if (elegidas.length >= POR_CATEGORIA) break;
                 const modelo = limpiarNombre(f.name);
-                if (vistos.has(modelo.toLowerCase())) continue;
+                if (vistos.has(modelo.toLowerCase()) || EXCLUIR.has(modelo.toLowerCase())) continue;
                 try {
                     const yaEstaba = existsSync(path.join(RAIZ, 'public', 'images', 'catalogo-social', `${f.slug}.jpg`));
                     const original = await fotoLocal(f.imageUrl, f.slug);
@@ -239,8 +248,8 @@ async function main() {
         offset += SEGUNDOS;
     }
     await mkdir(SALIDA, { recursive: true });
-    const mp4 = path.join(SALIDA, 'desfile-tienda.mp4');
-    const cover = path.join(SALIDA, 'desfile-tienda-cover.jpg');
+    const mp4 = path.join(SALIDA, `${NOMBRE}.mp4`);
+    const cover = path.join(SALIDA, `${NOMBRE}-cover.jpg`);
     await ejecutar(ffmpegPath, ['-y', ...inputs, '-filter_complex', filtro.slice(0, -1), '-map', '[vout]',
         '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-movflags', '+faststart', '-an', mp4]);
     await writeFile(cover, await readFile(cuadros[0]));
