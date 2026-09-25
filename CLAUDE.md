@@ -201,8 +201,8 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   el recargo adentro (lista × 1,10 ÷ 12) — el número real no se disfraza, se
   saca solo la LEYENDA. El % escrito sobrevive en TRES lugares: los T&C
   (información contractual), los labels de método de pago de recibos/cotizador
-  tipo "MP 12c Ish (+10%)" (documentan un cobro), y la línea "Costo financiero
-  (10%) +$X" del resumen del checkout con 12 cuotas elegidas (Ishtar, 25/9/2026:
+  tipo "MP 12c Ish (+10%)" (documentan un cobro), y la línea "12 cuotas
+  fijas (10%) +$X" del resumen del checkout con 12 cuotas elegidas (Ishtar, 25/9/2026:
   el "+$16.000" a secas "es raro"; `ETIQUETA_COSTO_FINANCIERO_MP`). Opciones de
   pago, chips y botón del checkout siguen sin el %. No escribir "CFT": en
   Argentina es una tasa anual regulada y el 10% no es ese número. El bot tampoco lo menciona
