@@ -177,6 +177,24 @@ export const GARANTIA_FAQ = {
 } as const;
 
 /**
+ * ¿La ficha de este producto puede prometer la garantía de adaptación?
+ *
+ * Solo las fichas de armazón de RECETA: ahí el cliente elige los cristales
+ * graduados en el configurador, y entre ellos están los que la garantía cubre
+ * (Varilux y Super Blue); el alcance exacto queda a un clic, en el acordeón de
+ * cambios. Los anteojos de sol y los clip-on mostraban igual el sello
+ * "Garantía de adaptación 30 días" (auditoría del 25/9/2026, ej. /producto/sirio-c1),
+ * y según /politicas-de-cambio sobre ellos no hay nada a qué adaptarse: la
+ * garantía es de los cristales, no del armazón.
+ *
+ * Recibe la categoría WEB de la ficha (`WebProduct.category`: 'Receta', 'Sol',
+ * 'Clip-On'), no la del stock.
+ */
+export function fichaMuestraGarantiaDeAdaptacion(categoriaWeb: string | null | undefined): boolean {
+    return categoriaWeb === 'Receta';
+}
+
+/**
  * ¿Este pedido lleva algún cristal CON garantía de adaptación?
  *
  * La garantía no es de todos los cristales: cubre los MULTIFOCALES y los

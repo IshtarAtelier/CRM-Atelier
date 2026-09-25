@@ -3,6 +3,8 @@
 /**
  * Franja de confianza para el punto de decisión (debajo del botón de compra):
  * "5,0 ★ · 698 reseñas en Google · Garantía de adaptación 30 días".
+ * La garantía va solo en las fichas donde aplica (armazones de receta); en sol
+ * y clip-on la franja queda con las reseñas.
  *
  * REGLA: nada tipeado a mano. La nota y la cantidad de reseñas salen de
  * /api/reviews (Google Places, los mismos datos que ya usa <GoogleReviews/>);
@@ -16,7 +18,14 @@ import Link from "next/link";
 import { Star, ShieldCheck } from "lucide-react";
 import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 
-export function TrustStrip({ onGarantiaClick }: { onGarantiaClick?: () => void }) {
+export function TrustStrip({
+  onGarantiaClick,
+  conGarantia,
+}: {
+  onGarantiaClick?: () => void;
+  /** Solo donde la garantía aplica: ver `fichaMuestraGarantiaDeAdaptacion()`. */
+  conGarantia: boolean;
+}) {
   const [rating, setRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
 
@@ -35,6 +44,7 @@ export function TrustStrip({ onGarantiaClick }: { onGarantiaClick?: () => void }
   }, []);
 
   const conResenas = rating > 0 && reviewCount > 0;
+  if (!conResenas && !conGarantia) return null;
 
   const garantiaContenido = (
     <>
@@ -57,10 +67,10 @@ export function TrustStrip({ onGarantiaClick }: { onGarantiaClick?: () => void }
             </span>
             <span>{reviewCount.toLocaleString("es-AR")} reseñas en Google</span>
           </Link>
-          <span aria-hidden="true" className="text-stone-400">·</span>
+          {conGarantia && <span aria-hidden="true" className="text-stone-400">·</span>}
         </>
       )}
-      {onGarantiaClick ? (
+      {!conGarantia ? null : onGarantiaClick ? (
         <button
           type="button"
           onClick={onGarantiaClick}

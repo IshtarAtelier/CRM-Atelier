@@ -15,7 +15,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackViewContent } from "@/lib/tracking";
-import { GARANTIA_ADAPTACION } from "@/lib/garantia";
+import { GARANTIA_ADAPTACION, fichaMuestraGarantiaDeAdaptacion } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
 import { formatearPrecio } from "@/lib/format-precio";
 import { textoCuotas12 } from "@/lib/promo-cuotas";
@@ -240,6 +240,7 @@ export function ProductClient({
   const productWholesalePrice = wholesalePriceOf(product.id);
 
   const whatsappPhoneId = (settings?.web_store_whatsapp_id || WHATSAPP_PHONE).replace(/\D/g, '');
+  const conGarantiaAdaptacion = fichaMuestraGarantiaDeAdaptacion(product.category);
   const cashDiscount = settings && settings.web_promo_cash_discount && !isNaN(Number(settings.web_promo_cash_discount)) ? Number(settings.web_promo_cash_discount) : 15;
   const installmentsText = settings ? settings.web_promo_installments : "6 cuotas sin interés";
   const installmentsCount = parseInt(installmentsText?.match(/\d+/)?.[0] || "6", 10);
@@ -751,6 +752,7 @@ export function ProductClient({
                 reseñas REALES de Google + la garantía canónica. El botón de
                 garantía abre el acordeón con la letra chica, acá mismo. */}
             <TrustStrip
+              conGarantia={conGarantiaAdaptacion}
               onGarantiaClick={() => {
                 setActiveAccordion("returns");
                 // El acordeón queda más abajo: llevar la vista hasta él para
@@ -828,6 +830,10 @@ export function ProductClient({
                               frameHeight: product.frameHeight ?? null,
                             }}
                             editable={false}
+                            consultaHref={buildWhatsAppUrl(
+                              `¡Hola! Quiero consultar las medidas del anteojo ${product.brand || ''} ${product.model || ''}.`,
+                              { pageUrl: currentPageUrl(`/producto/${product.slug}`), phone: whatsappPhoneId }
+                            )}
                           />
                         </div>
 
@@ -940,8 +946,11 @@ export function ProductClient({
                           <li>Tenés 10 días hábiles para realizar cambios si el armazón no te convence, sin ningún desperfecto.</li>
                           {/* Decía "garantía de adaptación total en cristales
                               multifocales": la cobertura real no es todo
-                              multifocal, es Varilux + Super Blue. */}
-                          <li>{GARANTIA_ADAPTACION.RESUMEN} {GARANTIA_ADAPTACION.REQUISITO}</li>
+                              multifocal, es Varilux + Super Blue. Y solo en
+                              fichas de receta: sol y clip-on no la tienen. */}
+                          {conGarantiaAdaptacion && (
+                            <li>{GARANTIA_ADAPTACION.RESUMEN} {GARANTIA_ADAPTACION.REQUISITO}</li>
+                          )}
                           <li>Para iniciar un cambio, contactanos por WhatsApp con tu número de orden.</li>
                         </ul>
                       </div>

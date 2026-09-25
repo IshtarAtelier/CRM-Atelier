@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getFileBuffer } from '@/lib/storage';
+import { medidasCompactas } from '@/lib/medidas-armazon';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
@@ -313,10 +314,9 @@ export async function GET(req: NextRequest) {
           
           const displayName = cleanName ? `${cleanName.toUpperCase()} (${modelCode.toUpperCase()})` : modelCode.toUpperCase();
 
-          const lw = p.lensWidth ?? 52;
-          const bw = p.bridgeWidth ?? 18;
-          const tl = p.templeLength ?? 145;
-          const measuresStr = `${lw}-${bw}-${tl}`;
+          // Solo las medidas cargadas: antes un armazón sin medidas salía
+          // impreso como "52-18-145" (ver lib/medidas-armazon.ts).
+          const measuresStr = medidasCompactas(p) ?? '';
 
           doc.setTextColor(0, 0, 0);
           doc.setFont('helvetica', 'bold');
@@ -327,7 +327,7 @@ export async function GET(req: NextRequest) {
           doc.setTextColor(120, 120, 120);
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(8.5);
-          doc.text(`    ${measuresStr}    ${colorCode.toUpperCase()}`, 40 + mWidth, textY);
+          doc.text(`    ${[measuresStr, colorCode.toUpperCase()].filter(Boolean).join('    ')}`, 40 + mWidth, textY);
 
           // Render Stock badge
           const stock = p.stock ?? 0;

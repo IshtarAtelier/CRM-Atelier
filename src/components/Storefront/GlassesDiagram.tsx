@@ -2,21 +2,22 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-
-interface FrameMeasures {
-  lensWidth: number | null;
-  bridgeWidth: number | null;
-  templeLength: number | null;
-  frameHeight: number | null;
-}
+import {
+  medidaCargada,
+  medidasCargadas,
+  medidasFaltantes,
+  type MedidasArmazon as FrameMeasures,
+} from "@/lib/medidas-armazon";
 
 interface Props {
   productId: string;
   measures: FrameMeasures;
   editable?: boolean;
+  /** Link de WhatsApp para consultar las medidas que no están cargadas. */
+  consultaHref?: string;
 }
 
-export function GlassesDiagram({ productId, measures: initialMeasures, editable = false }: Props) {
+export function GlassesDiagram({ productId, measures: initialMeasures, editable = false, consultaHref }: Props) {
   const [measures, setMeasures] = useState<FrameMeasures>(initialMeasures);
   const [editing, setEditing] = useState<keyof FrameMeasures | null>(null);
   const [saving, setSaving] = useState(false);
@@ -46,12 +47,18 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
     }
   };
 
-  const lw = measures.lensWidth ?? 52;
-  const bw = measures.bridgeWidth ?? 18;
-  const fh = measures.frameHeight ?? Math.round(lw * 0.8);
-  const tl = measures.templeLength ?? 145;
+  // Solo lo cargado. Antes cada vacío se completaba con un valor típico
+  // (52/18/145, y el alto como calibre × 0,8) y el cliente lo leía como la
+  // medida del armazón. Ver `lib/medidas-armazon.ts`.
+  const lw = medidaCargada(measures.lensWidth) ? measures.lensWidth : null;
+  const bw = medidaCargada(measures.bridgeWidth) ? measures.bridgeWidth : null;
+  const fh = medidaCargada(measures.frameHeight) ? measures.frameHeight : null;
+  const hayCotas = lw !== null || bw !== null || fh !== null;
+  const cargadas = medidasCargadas(measures);
+  const faltantes = medidasFaltantes(measures);
 
-  // Render SVG Diagram - Delicate Minimalist Silhouette Style
+  // Render SVG Diagram - Delicate Minimalist Silhouette Style.
+  // La silueta es genérica; las cotas se dibujan solo para las medidas cargadas.
   const renderBlueprint = () => (
     <div className="w-full flex flex-col items-center justify-center py-6 opacity-90 mix-blend-multiply dark:mix-blend-normal">
       <svg
@@ -79,22 +86,34 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
         {/* Dimension Lines & Labels */}
         <g stroke="#b5b5b5" strokeWidth="0.4" strokeDasharray="1.5 1.5" fill="none">
           {/* Lens Width (35 to 85) */}
-          <line x1="35" y1="12" x2="85" y2="12" />
-          <line x1="35" y1="10" x2="35" y2="16" strokeDasharray="none" />
-          <line x1="85" y1="10" x2="85" y2="16" strokeDasharray="none" />
-          <text x="60" y="8" textAnchor="middle" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{lw}mm</text>
+          {lw !== null && (
+            <>
+              <line x1="35" y1="12" x2="85" y2="12" />
+              <line x1="35" y1="10" x2="35" y2="16" strokeDasharray="none" />
+              <line x1="85" y1="10" x2="85" y2="16" strokeDasharray="none" />
+              <text x="60" y="8" textAnchor="middle" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{lw}mm</text>
+            </>
+          )}
 
           {/* Bridge Width (85 to 115) */}
-          <line x1="85" y1="36" x2="115" y2="36" />
-          <line x1="85" y1="32" x2="85" y2="40" strokeDasharray="none" />
-          <line x1="115" y1="32" x2="115" y2="40" strokeDasharray="none" />
-          <text x="100" y="44" textAnchor="middle" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{bw}mm</text>
+          {bw !== null && (
+            <>
+              <line x1="85" y1="36" x2="115" y2="36" />
+              <line x1="85" y1="32" x2="85" y2="40" strokeDasharray="none" />
+              <line x1="115" y1="32" x2="115" y2="40" strokeDasharray="none" />
+              <text x="100" y="44" textAnchor="middle" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{bw}mm</text>
+            </>
+          )}
 
           {/* Frame Height (19 to 53) */}
-          <line x1="178" y1="19" x2="178" y2="53" />
-          <line x1="174" y1="19" x2="182" y2="19" strokeDasharray="none" />
-          <line x1="174" y1="53" x2="182" y2="53" strokeDasharray="none" />
-          <text x="186" y="38" textAnchor="start" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{fh}mm</text>
+          {fh !== null && (
+            <>
+              <line x1="178" y1="19" x2="178" y2="53" />
+              <line x1="174" y1="19" x2="182" y2="19" strokeDasharray="none" />
+              <line x1="174" y1="53" x2="182" y2="53" strokeDasharray="none" />
+              <text x="186" y="38" textAnchor="start" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{fh}mm</text>
+            </>
+          )}
         </g>
       </svg>
     </div>
@@ -168,32 +187,55 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
         className="overflow-hidden"
       >
         <div className="pt-6 pb-2">
-          {renderBlueprint()}
-          
-          <div className="flex flex-col gap-3 text-[11px] font-mono tracking-widest text-black mt-6">
-            <div className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Frente</span>
-              <span>{((measures.lensWidth ?? 0) * 2) + (measures.bridgeWidth ?? 0) + 12} mm</span>
+          {/* Sin ninguna cota, la silueta sola no dice nada: no se dibuja. */}
+          {hayCotas && renderBlueprint()}
+
+          {/* Solo las medidas cargadas. Ya no está "Frente": no hay un campo
+              con el ancho total, y se calculaba como 2 × lente + puente + 12,
+              así que sin medidas decía "12 mm". */}
+          {cargadas.length > 0 && (
+            <div className="flex flex-col gap-3 text-[11px] font-mono tracking-widest text-black mt-6">
+              {cargadas.map(({ campo, etiqueta, mm }, i) => (
+                <div
+                  key={campo}
+                  className={`flex justify-between items-center pb-2 ${i < cargadas.length - 1 ? "border-b border-[#f0f0f0]" : ""}`}
+                >
+                  <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">{etiqueta}</span>
+                  <span>{mm} mm</span>
+                </div>
+              ))}
             </div>
-            <div className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Largo de patilla</span>
-              <span>{measures.templeLength ?? "—"} mm</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Ancho de lente</span>
-              <span>{measures.lensWidth ?? "—"} mm</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Alto de lente</span>
-              <span>{measures.frameHeight ?? Math.round(lw * 0.8)} mm</span>
-            </div>
-            <div className="flex justify-between items-center pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Puente</span>
-              <span>{measures.bridgeWidth ?? "—"} mm</span>
-            </div>
-          </div>
+          )}
+
+          {faltantes.length > 0 && (
+            <p className={`text-xs text-stone-600 leading-relaxed ${cargadas.length > 0 ? "mt-4" : ""}`}>
+              {cargadas.length === 0
+                ? "Todavía no tenemos cargadas las medidas de este armazón."
+                : `¿Necesitás ${listaDeMedidas(faltantes.map((f) => f.etiqueta.toLowerCase()))}?`}{" "}
+              {consultaHref ? (
+                <a
+                  href={consultaHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-black underline underline-offset-2 hover:text-stone-600 transition-colors"
+                >
+                  Consultanos por WhatsApp
+                </a>
+              ) : (
+                "Consultanos."
+              )}
+            </p>
+          )}
         </div>
       </motion.div>
     </div>
   );
+}
+
+/** "el puente" · "el puente o el alto de lente" · "el puente, el largo de patilla o el alto de lente".
+ *  Todas las etiquetas de `MEDIDAS_ARMAZON` son masculinas. */
+function listaDeMedidas(nombres: string[]): string {
+  const conArticulo = nombres.map((n) => `el ${n}`);
+  if (conArticulo.length <= 1) return conArticulo.join("");
+  return `${conArticulo.slice(0, -1).join(", ")} o ${conArticulo[conArticulo.length - 1]}`;
 }
