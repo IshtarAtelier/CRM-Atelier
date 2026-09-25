@@ -245,6 +245,16 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   un automático ILEGIBLE: el importe existe en Meta o en Google, y cerrar sin
   él informa una ganancia más alta que la real. Se puede forzar con `&forzar=1`.
   Los $0 se listan en el mail del cierre para que se vean.
+- **Cada opción de cristal de "Arma tus lentes" vende UN producto del sistema,
+  elegido por id en /admin/web → Cristales** (tabla `WebLensOption`). El precio
+  web es el del producto; sin producto vinculado la opción no se ofrece y el
+  checkout la rechaza. PROHIBIDO un precio de respaldo (`|| 20000`) o volver a
+  buscar cristales por palabras clave: el 25/9/2026 el "Básico" se vendía a
+  $20.000 (el sistema decía $34.480) y el teñido a $25.000 fijos. La tienda y el
+  checkout calculan con la MISMA función (`src/lib/cristales-web/calculo.ts`) y
+  las claves de opción no se renombran nunca (viven en los carritos guardados).
+  Lo vigilan `npm run check:cristales` (CI) y `check:cristales-vinculos -- --prod`
+  (solo lectura). Ver docs/cristales-web.md.
 - **`web_promo_installments` es texto libre y solo lo interpreta
   `leerPromoCuotas()`** (`src/lib/promo-cuotas.ts`). Acepta únicamente 3 o 6:
   cualquier otro número cae al default. Estaba parseado a mano con

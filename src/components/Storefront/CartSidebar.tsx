@@ -1,5 +1,6 @@
 "use client";
 
+import { useCristalesAlDia } from '@/hooks/useCristalesAlDia';
 import { describirConfiguracion, tieneCristales } from '@/lib/cristales-web/claves';
 import { useCart, getItemUnitPrice } from "@/store/useCart";
 import { useIsWholesale, useWholesaleCartBackfill } from "@/hooks/useIsWholesale";
@@ -18,6 +19,8 @@ import { ETIQUETA_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
 
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
+  // Precio de los cristales al día con el sistema (ver el hook).
+  useCristalesAlDia();
   const { isWholesale } = useIsWholesale();
   const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
   // El descuento se calcula con la MISMA función que usa la ruta de pago. Acá

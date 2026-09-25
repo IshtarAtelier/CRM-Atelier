@@ -208,7 +208,7 @@ export function describirConfiguracion(lc: LensConfig | null | undefined, opcion
         partes.push(viva ?? lc!.etiqueta ?? clave.split('.')[1].replace(/_/g, ' ').toLowerCase());
     }
     const t = tenidoDeConfig(lc);
-    if (t) partes.push(`Teñido ${t.tono}${t.estilo ? ` ${ESTILO_LEGIBLE[t.estilo]}` : ''}`);
+    if (t) partes.push(`Teñido ${TONOS_TENIDO.find(x => x.name === t.tono)?.publico ?? t.tono}${t.estilo ? ` ${ESTILO_LEGIBLE[t.estilo]}` : ''}`);
     return partes.join(' · ');
 }
 

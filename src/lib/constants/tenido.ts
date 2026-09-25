@@ -13,8 +13,11 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 export interface TonoTenido {
+    /** Tal cual lo escribe SmartLab: es lo que se guarda y va al laboratorio. */
     name: string;
     hexColor: string;
+    /** Cómo se le muestra al cliente en la tienda, si difiere del nombre del laboratorio. */
+    publico?: string;
 }
 
 /** Tal cual el desplegable de SmartLab, en su mismo orden. */
@@ -23,7 +26,7 @@ export const TONOS_TENIDO: TonoTenido[] = [
     { name: 'Verde', hexColor: '#3f6b4a' },
     { name: 'Sepia', hexColor: '#7a5c3a' },
     { name: 'G15', hexColor: '#2c4c3b' },
-    { name: 'Nigth Drive', hexColor: '#c9a227' },
+    { name: 'Nigth Drive', hexColor: '#c9a227', publico: 'Night Drive' },
     { name: 'Azul', hexColor: '#3a5a8c' },
     { name: 'Rosa', hexColor: '#d4a3a3' },
     { name: 'Rojo', hexColor: '#ab4040' },

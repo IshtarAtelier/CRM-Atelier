@@ -347,7 +347,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
               un tono que SmartLab no tiene es un pedido que se traba. */}
           <motion.div animate={{ opacity: step < 1 ? 0.5 : 1 }} className="mb-8">
             {step > 1 ? (
-              <CompletedStep num="01" subtitle="Color" title={tintColor || "Elegir"} onClick={() => {setStep(1); setTintStyle(null); setLensType(null);}} />
+              <CompletedStep num="01" subtitle="Color" title={TONOS_TENIDO.find(t => t.name === tintColor)?.publico ?? tintColor ?? "Elegir"} onClick={() => {setStep(1); setTintStyle(null); setLensType(null);}} />
             ) : (
               <>
                 <div className="mb-6">
@@ -356,7 +356,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                 </div>
                 <div className="flex flex-wrap gap-4 mt-6">
                   {TONOS_TENIDO.map(t => (
-                    <ColorOption key={t.name} color={t.name} hex={t.hexColor} selected={tintColor === t.name} onClick={() => { setTintColor(t.name); if (onColorChange) onColorChange(t.hexColor); setStep(2); }} />
+                    <ColorOption key={t.name} color={t.publico ?? t.name} hex={t.hexColor} selected={tintColor === t.name} onClick={() => { setTintColor(t.name); if (onColorChange) onColorChange(t.hexColor); setStep(2); }} />
                   ))}
                 </div>
               </>

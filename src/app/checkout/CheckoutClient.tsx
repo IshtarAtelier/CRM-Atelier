@@ -1,5 +1,6 @@
 "use client";
 
+import { useCristalesAlDia } from '@/hooks/useCristalesAlDia';
 import { tieneCristales } from '@/lib/cristales-web/claves';
 import { useCart } from "@/store/useCart";
 import { calcular2x1Armazones, armazonesDelCarrito } from "@/lib/promo-2x1-armazones";
@@ -55,6 +56,8 @@ export function CheckoutClient({
   footer?: React.ReactNode
 }) {
   const { items, getCartTotal, clearCart } = useCart();
+  // Precio de los cristales al día con el sistema antes de pagar (ver el hook).
+  useCristalesAlDia();
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);

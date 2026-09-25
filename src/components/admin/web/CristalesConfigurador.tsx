@@ -214,20 +214,20 @@ export function CristalesConfigurador() {
                                     </label>
                                 </div>
 
-                                <div className="grid gap-2 sm:grid-cols-[1fr_2fr]">
+                                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
                                     <input
                                         type="search"
                                         value={filtro[o.clave] || ""}
                                         onChange={e => setFiltro(prev => ({ ...prev, [o.clave]: e.target.value }))}
                                         placeholder="Buscar producto…"
                                         aria-label={`Buscar producto para ${o.etiqueta}`}
-                                        className="px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg text-xs outline-none focus:border-stone-900"
+                                        className="w-full min-w-0 px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg text-xs outline-none focus:border-stone-900"
                                     />
                                     <select
                                         value={b.productId ?? ""}
                                         onChange={e => editar(o.clave, { productId: e.target.value || null })}
                                         aria-label={`Producto del sistema para ${o.etiqueta}`}
-                                        className="px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg text-xs outline-none focus:border-stone-900"
+                                        className="w-full min-w-0 px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg text-xs outline-none focus:border-stone-900"
                                     >
                                         <option value="">— Sin producto (no se vende) —</option>
                                         {elegido && !visibles.some(c => c.id === elegido.id) && (
