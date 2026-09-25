@@ -185,6 +185,13 @@ const PLANTILLAS = {
      */
     puesta: (slide, id) => {
         const puesta = (slide.imagenesResueltas || []).filter(Boolean)[0];
+        // limpia: la diapositiva 1 del carrusel, "bien limpia" (Ishtar 25/9/26):
+        // solo la foto puesta a sangre, con la coronilla en el borde de arriba.
+        // Sin texto: el nombre, el precio y la dirección van en la diapositiva 2
+        // (el generador no manda `title`; si se lo pasa, sale chico abajo).
+        if (slide.limpia) return `
+    <div class="p-look full" style="background-image:url('${comoUrl(puesta)}')"></div>
+    ${slide.title ? `<div class="p-firma"><p class="p-nombre">${esc(slide.title)}</p></div>` : ''}`;
         // soloProducto: la misma pieza con el anteojo solo como protagonista
         // (para comparar con la versión puesta). Sin tarjeta: el producto ya
         // está arriba, grande.
@@ -334,6 +341,10 @@ function cssPuesta(id, { esStory }) {
     backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
     -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 34%); mask-image:linear-gradient(180deg, transparent 0%, #000 34%); }
   .p-fila { position:absolute; left:40px; right:40px; display:flex; align-items:stretch; gap:34px; color:${id.oscuro}; }
+  .p-look.full { top:0 !important; }
+  .p-firma { position:absolute; left:0; right:0; bottom:0; height:220px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:44px;
+    background:linear-gradient(180deg, ${velo(0)} 0%, ${velo(55)} 100%); }
+  .p-firma .p-nombre { font-size:64px; color:${id.oscuro}; }
   .p-look.solo { background-color:#ffffff; background-size:88% auto; background-repeat:no-repeat; background-position:center 38%; }
   .p-fila.solo { justify-content:center; text-align:center; }
   .p-fila.solo .p-precio { flex:0 1 auto; align-items:center; }

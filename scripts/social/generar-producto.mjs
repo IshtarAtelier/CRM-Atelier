@@ -446,9 +446,10 @@ export async function generarPlacasPuestas({ limite = 12, categoria = null, slug
             // Una foto por formato: la pera tiene que caer arriba del velo de
             // cada uno (feed: foto de 1174 px, velo desde ~1010; story: 1468,
             // velo desde ~1400). Si no hay foto puesta usable, no hay pieza.
-            const puestaFeed = await fotoPuesta(p.slug, { ancho: 1080, alto: 1174, menton: 790 });
-            const puestaStory = await fotoPuesta(p.slug, { ancho: 1080, alto: 1468, menton: 930 });
-            if (!puestaFeed || !puestaStory) continue;
+            // Diapositiva 1 del carrusel: la foto a sangre (1080x1350), la
+            // coronilla arriba y la pera a 2/3 del alto, con cuello y hombros.
+            const puestaFeed = await fotoPuesta(p.slug, { ancho: 1080, alto: 1350, cubrir: true });
+            if (!puestaFeed) continue;
             let recorte = null;
             try { recorte = await fotoDeCatalogo(await fotoLocal(p.imageUrl, p.slug), p.slug); } catch { /* sin foto de catálogo */ }
             if (!recorte) { console.log(`  · ${modelo}: sin foto de catálogo usable — se saltea`); continue; }
@@ -473,14 +474,23 @@ export async function generarPlacasPuestas({ limite = 12, categoria = null, slug
                 transferencia: plata(alContado), descuento: String(descuento),
                 linea: 'Envío gratis a todo el país',
             };
-            for (const [prefijo, format, puesta] of [['placa-puesta', '4:5', puestaFeed], ['story-puesta', '9:16', puestaStory]]) {
+            // Feed: carrusel de dos — 1) la foto puesta, limpia; 2) el producto
+            // con toda la información (la versión que Ishtar dio por perfecta).
+            // Story: la del producto con la información.
+            const piezas = [
+                ['placa-puesta', '4:5', [{ type: 'puesta', role: 'portada', limpia: true, image: rel(puestaFeed), images: [rel(puestaFeed)] },
+                    { ...slide, role: 'cierre', soloProducto: true }]],
+                ['story-puesta', '9:16', [{ ...slide, soloProducto: true }]],
+            ];
+            for (const [prefijo, format, slides] of piezas) {
                 const id = `${prefijo}-${p.slug}`;
                 const pieza = {
                     id, format, theme: 'light', pilar: 'producto', fuente: 'base',
                     generadoEl: new Date().toISOString().slice(0, 10),
                     generadoDesde: desdeProduccion ? 'produccion' : 'local',
+                    ...(slides.length > 1 ? { images_waived: 'Carrusel de producto: la foto puesta y la foto del producto SON el contenido.' } : {}),
                     producto: { nombre: modelo, slug: p.slug, categoria: p.category },
-                    caption, slides: [{ ...slide, images: [rel(puesta)] }],
+                    caption, slides,
                 };
                 const ruta = path.join(DESTINO, `${id}.json`);
                 await writeFile(ruta, JSON.stringify(pieza, null, 2) + '\n');

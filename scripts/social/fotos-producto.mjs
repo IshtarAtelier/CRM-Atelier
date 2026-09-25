@@ -132,12 +132,12 @@ async function cabezaEn(rutaAbs) {
  * (sin corte recto). La luz se ajusta suave: niveles y un punto de brillo.
  * null si el modelo no tiene foto puesta de estudio usable.
  */
-export async function fotoPuesta(slug, { ancho, alto, menton }) {
+export async function fotoPuesta(slug, { ancho, alto, menton, cubrir = false }) {
     const sharp = await sharpDe();
     for (const n of [1, 2]) {
         const origen = path.join(PRODUCTOS, `${slug}-look-${n}.webp`);
         if (!existsSync(origen)) continue;
-        const destino = path.join(CACHE, `${slug}-puesta-${n}-${ancho}x${alto}-m${menton}.jpg`);
+        const destino = path.join(CACHE, `${slug}-puesta-${n}-${ancho}x${alto}-${cubrir ? 'cubre' : `m${menton}`}.jpg`);
         if (existsSync(destino)) return destino;
         const meta = await sharp(origen).metadata();
         const W = meta.width, H = meta.height;
@@ -149,7 +149,13 @@ export async function fotoPuesta(slug, { ancho, alto, menton }) {
         // Mentón estimado: la cabeza mide ~1,35 veces su ancho; + un 5% del alto
         // para que entre la pera con un poco de cuello.
         const pera = cabeza.arriba * H + cabeza.ancho * W * 1.35 + H * 0.05;
-        const escala = Math.min(1.35, menton / (pera - coronilla));
+        // cubrir: la foto llena toda la pieza desde la coronilla (la diapositiva
+        // "bien limpia" del carrusel). Sin relleno: si se achicara para ubicar
+        // la pera, quedaba un tercio vacío abajo y parecía una cabeza flotando.
+        const escala = cubrir
+            ? Math.max(alto / (H - coronilla), ancho / W)
+            : Math.min(1.35, menton / (pera - coronilla));
+        if (cubrir && pera > H * 0.99) continue; // la pera ya viene cortada en la foto original
         const w = Math.round(W * escala), h = Math.round(H * escala);
         const x = Math.round(ancho / 2 - cabeza.centroX * w);
         const y = -Math.round(coronilla * escala);
