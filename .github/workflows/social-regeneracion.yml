@@ -63,10 +63,15 @@ jobs:
           PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
         run: |
           set -e
-          # 40 cubre TODO el catálogo publicado de la marca: el carril diario usa 24
-          # stories (con clip-on incluidos) y con 12 los que quedaban afuera vencían
-          # a los 10 días y la guarda de frescura los bloqueaba.
-          node scripts/social/generar-story-producto.mjs --produccion --marca "Cápsula Escarlata" --cantidad 40
+          # La cantidad tiene que cubrir TODO el catálogo publicado de la marca,
+          # porque el generador elige por fecha de alta (createdAt desc) y el
+          # carril diario (stories-diarias.json) programa 24 stories fijas: lo que
+          # queda afuera del corte no se regenera, su precio vence a los 10 días
+          # y la guarda de frescura lo bloquea. Pasó con 12 (agosto) y volvió a
+          # pasar con 40 el 25/9/2026: el 24/9 entraron 41 fichas nuevas de la
+          # marca, las 40 más nuevas eran todas ésas y 18 de las 24 programadas
+          # quedaron vencidas. Hoy la marca tiene 154 publicadas con stock.
+          node scripts/social/generar-story-producto.mjs --produccion --marca "Cápsula Escarlata" --cantidad 250
           node scripts/social/generar-producto.mjs --categoria "Sol" --id sol-seleccion --limite 3
           node scripts/social/generar-producto.mjs --categoria "Receta" --id receta-seleccion --titulo "Armazones *de receta* con firma propia" --limite 3 --saltear 3
           node scripts/social/generar-producto.mjs
