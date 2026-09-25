@@ -267,7 +267,12 @@ const nextConfig: NextConfig = {
       // Google Ads quedaron sin medir antes, y el día que esta política se
       // promueva a activa cortaría la conversión de verdad. Se agrega ahora, con
       // la política todavía en modo reporte, que es cuando sale gratis.
-      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://mercados.ambito.com${waOrigins}`,
+      // stats.g.doubleclick.net, www.google.com y ad.doubleclick.net: los pings de
+      // GA4 (`/g/collect`) y de conversión/remarketing de Google Ads (`/ccm/collect`,
+      // `/rmkt/collect`). Lighthouse del 25/9/2026 los contó como 149 + 48 + 48 + 48
+      // violaciones de esta Report-Only en 54 corridas: nada se bloqueaba, pero
+      // promoverla así habría dejado a Google Ads sin conversiones.
+      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://stats.g.doubleclick.net https://www.google.com https://ad.doubleclick.net https://mercados.ambito.com${waOrigins}`,
       // youtube-nocookie.com: mismo motivo que i.ytimg.com en imgSrc — el
       // iframe del video embebido en el blog. La activa ya permite cualquier
       // origen (https://*), así que hoy esto solo evita que la Report-Only

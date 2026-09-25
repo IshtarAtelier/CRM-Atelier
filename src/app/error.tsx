@@ -47,7 +47,7 @@ export default function GlobalError({
             href={`https://wa.me/${WHATSAPP_PHONE}?text=${waText}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1fb958] text-white text-[11px] font-black uppercase tracking-widest py-4 px-4 rounded-full transition-colors"
+            className="flex items-center justify-center gap-2 w-full bg-[#128C7E] hover:bg-[#075E54] text-white text-[11px] font-black uppercase tracking-widest py-4 px-4 rounded-full transition-colors"
           >
             <WhatsAppIcon className="w-4 h-4" />
             Hablar con un asesor

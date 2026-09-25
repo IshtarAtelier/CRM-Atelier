@@ -273,9 +273,9 @@ export function ProductFilters({
 
               {/* Sección Ordenar */}
               <div>
-                <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4">
+                <h2 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4">
                   Ordenar por
-                </h3>
+                </h2>
                 <div className="flex flex-col gap-3">
                   {/* A-23 (auditoría 2/9/26): acá figuraba "Forma del Armazón"
                       como criterio de ORDEN, y la forma también existe abajo
@@ -326,9 +326,9 @@ export function ProductFilters({
                   slider pide precisión que nadie tiene ("¿mi tope son 180 o
                   190 mil?") y en celular es el control más difícil de acertar. */}
               <div>
-                <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
+                <h2 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                   Precio
-                </h3>
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { id: '', etiqueta: 'Todos', min: '', max: '' },
@@ -363,9 +363,9 @@ export function ProductFilters({
 
               {/* Sección Género */}
               <div>
-                <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
+                <h2 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                   Género
-                </h3>
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => handleFilterChange('genero', '')}
@@ -399,9 +399,9 @@ export function ProductFilters({
               {/* Sección Forma */}
               {availableShapes.length > 0 && (
                 <div>
-                  <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
+                  <h2 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                     Forma
-                  </h3>
+                  </h2>
                   <div className="grid grid-cols-2 gap-2 pr-1">
                     {/* Opción Todas */}
                     <button
@@ -455,9 +455,9 @@ export function ProductFilters({
               {/* Sección Material */}
               {availableMaterials.length > 0 && (
                 <div>
-                  <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
+                  <h2 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                     Material
-                  </h3>
+                  </h2>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleFilterChange('material', '')}
@@ -502,9 +502,9 @@ export function ProductFilters({
                   deshabilitarla y mandarla al final. */}
               {availableColors.length > 0 && (
                 <div>
-                  <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
+                  <h2 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                     Color
-                  </h3>
+                  </h2>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleFilterChange('color', '')}
@@ -550,9 +550,9 @@ export function ProductFilters({
               {/* Sección Marca */}
               {availableBrands.length > 1 && (
                 <div>
-                  <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
+                  <h2 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                     Marca
-                  </h3>
+                  </h2>
                   <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                     {/* Opción Todas */}
                     <label className="flex items-center gap-3 cursor-pointer group min-h-11">

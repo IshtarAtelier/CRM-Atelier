@@ -140,7 +140,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
         {/* Section header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 md:mb-16">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-400 mb-3">Galería</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-600 mb-3">Galería</p>
             <h2 className="text-3xl md:text-5xl font-serif tracking-tight">
               Un Espacio Diseñado
               <br />
@@ -254,7 +254,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
         <div className="relative max-w-[1200px] mx-auto px-5 md:px-10">
           {/* Section header */}
           <div className="text-center mb-14 md:mb-20">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-400 mb-3">Lo Que Nos Hace Diferentes</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-600 mb-3">Lo Que Nos Hace Diferentes</p>
             <h2 className="text-3xl md:text-5xl font-serif tracking-tight">
               Tres Pilares
             </h2>
@@ -296,7 +296,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
       {/* ═══════════════════════════════════════════════════════ */}
       <section className="max-w-[1200px] mx-auto px-5 md:px-10 pb-20 md:pb-32">
         <div className="text-center mb-12">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-400 mb-3">Lo Que Dicen Nuestros Clientes</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-600 mb-3">Lo Que Dicen Nuestros Clientes</p>
           <h2 className="text-3xl md:text-5xl font-serif tracking-tight">
             Opiniones <span className="italic font-light text-stone-400">Reales</span>
           </h2>
