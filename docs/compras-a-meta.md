@@ -49,6 +49,23 @@ Cápsula Escarlata, no clientes que vinieron de un anuncio).
 - **"Meta la rechazó en firme"** → mirar `lastError` en la fila; suele ser un
   dato mal formado. Es un bug nuestro, no de Meta.
 
+## Recuperar las ventas que Meta rechazó antes del deploy
+
+`scripts/maintenance/meta-compras-recuperar.mjs` busca las ventas del local de
+los últimos 7 días cuyo presupuesto tenía más de una semana al convertirse
+(esas Meta seguro las rechazó) y las anota en la outbox con la fecha correcta
+para que el cron de producción las mande. Sin `--aplicar` solo muestra. No le
+habla a Meta desde la Mac: anota, y el cron manda. Requiere el deploy hecho
+(la tabla tiene que existir) y OK para leer producción.
+
+```bash
+node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/maintenance/meta-compras-recuperar.mjs --produccion
+```
+
+Las ventas cuyo presupuesto tenía menos de 7 días probablemente ya entraron
+(iban sin `event_id`, así que reenviarlas contaría doble): se saltean salvo
+`--tambien-las-dudosas`.
+
 ## Cómo verificar
 
 - `npm run check:capi` — sin red ni base: payload hasheado, `event_id`, fecha de
