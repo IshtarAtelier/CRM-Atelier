@@ -3,6 +3,10 @@ import { AccordionItem } from "@/components/Storefront/Accordion";
 import { CristalHero } from "@/components/cristales/CristalHero";
 import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
+import Image from "next/image";
+import Link from "next/link";
+import { GaleriaDiapositivas } from "@/components/cristales/GaleriaDiapositivas";
+import { MYOFIX } from "@/lib/cristales/smart-lens";
 
 export const metadata: Metadata = {
   alternates: { canonical: '/cristales-opticos/myofix' },
@@ -26,6 +30,12 @@ export default function MyoFixPage() {
         }
       />
 
+      <section className="px-6">
+        <div className="max-w-4xl mx-auto">
+          <Image src={MYOFIX.portada.src} alt={MYOFIX.portada.alt} width={1580} height={890} priority sizes="(min-width: 896px) 896px, 100vw" className="w-full h-auto rounded-2xl shadow-lg" />
+        </div>
+      </section>
+
       <CristalFeatures 
         features={[
           { icon: "🎯", title: "Desenfoque Periférico", subtitle: "Frena la elongación del ojo" },
@@ -42,6 +52,9 @@ export default function MyoFixPage() {
               Conocé la ciencia detrás del diseño óptico Freeform digital que está revolucionando la salud visual pediátrica.
             </p>
           </div>
+
+          <GaleriaDiapositivas diapositivas={MYOFIX.epidemia} credito="Láminas: Smart Lens." />
+          <GaleriaDiapositivas diapositivas={MYOFIX.tecnologia} />
 
           <AccordionItem 
             title="Defocus Technology: La ciencia del freno miópico" 
@@ -101,6 +114,13 @@ export default function MyoFixPage() {
               <li><strong>Luz Azul:</strong> Activar modos oscuros, agrandar textos y apagar todas las pantallas al menos 2 horas antes de dormir.</li>
             </ul>
           </AccordionItem>
+
+          <GaleriaDiapositivas diapositivas={[...MYOFIX.uso, ...MYOFIX.ventajas, ...MYOFIX.especificaciones]} />
+          <GaleriaDiapositivas diapositivas={[MYOFIX.consejos]} columnas={1} />
+          <p className="text-center text-stone-700 mt-6">
+            ¿Es para un adulto miope? Mirá <Link href="/cristales-opticos/myolens" className="underline font-bold">MyoLens</Link>, el monofocal de Smart Lens diseñado para miopes.
+            {" "}Y si querés leer más, está la <Link href="/blog/myofix" className="underline font-bold">nota completa en el blog</Link>.
+          </p>
         </div>
       </section>
 

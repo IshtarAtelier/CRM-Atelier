@@ -8,12 +8,19 @@ export function CristalesTabs() {
 
   const tabGroups = [
     {
+      label: "Tienda online",
+      tabs: [
+        { name: "Cristales con precio", path: "/cristales-opticos/tienda-online" },
+      ]
+    },
+    {
       label: "Monofocales",
       tabs: [
         { name: "Eyezen", path: "/cristales-opticos/eyezen" },
         { name: "Super Blue 1.60", path: "/cristales-opticos/super-blue" },
         { name: "Antirreflejo y Blue", path: "/cristales-opticos/antirreflejo" },
         { name: "HD 1.67 Poli", path: "/cristales-opticos/policarbonato" },
+        { name: "MyoLens", path: "/cristales-opticos/myolens" },
       ]
     },
     {

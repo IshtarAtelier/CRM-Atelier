@@ -9,6 +9,22 @@ export interface StaticBlogPost {
 
 export const staticPosts: StaticBlogPost[] = [
   {
+    slug: 'myofix',
+    title: 'MyoFix: el cristal que ayuda a frenar la miopía de los chicos',
+    excerpt: 'Cómo funciona la Defocus Technology de Smart Lens, desde qué edad se usa, cuántas horas por día y qué graduaciones cubre. Con las láminas oficiales.',
+    date: '2026-09-26',
+    category: 'Control de miopía',
+    imageUrl: '/images/smartlens/myofix-ventajas-esteticas.webp'
+  },
+  {
+    slug: 'myolens',
+    title: 'MyoLens: el monofocal pensado solo para miopes',
+    excerpt: 'Por qué un monofocal común sobrecorrige al miope en los bordes del cristal y cómo MyoLens de Smart Lens lo resuelve con inteligencia artificial.',
+    date: '2026-09-26',
+    category: 'Cristales',
+    imageUrl: '/images/smartlens/myolens-portada.webp'
+  },
+  {
     slug: 'stellest',
     title: 'Lentes Stellest: qué son, cómo funcionan y qué esperar de verdad',
     excerpt: 'Si el oftalmopediatra te nombró Stellest y saliste con la palabra anotada en un papel: qué tiene adentro ese cristal, de dónde sale el 67% y qué necesita para funcionar.',

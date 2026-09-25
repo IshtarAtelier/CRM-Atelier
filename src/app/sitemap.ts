@@ -33,6 +33,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/cristales-opticos/eyezen',
     '/cristales-opticos/stellest',
     '/cristales-opticos/myofix',
+    '/cristales-opticos/myolens',
+    '/cristales-opticos/tienda-online',
     '/cristales-opticos/policarbonato',
     '/cristales-opticos/kodak',
     '/cristales-opticos/xperio',
@@ -52,6 +54,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const physicalBlogRoutes = [
     '/blog/anteojos-obras-de-arte',
+    '/blog/myofix',
+    '/blog/myolens',
     '/blog/colores-cristales',
     '/blog/como-leer-receta-oftalmologica',
     '/blog/como-limpiar-anteojos-sin-rayar',
