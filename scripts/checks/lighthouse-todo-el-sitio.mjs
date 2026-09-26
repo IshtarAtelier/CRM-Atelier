@@ -59,8 +59,14 @@ for (const url of urls) {
     const slug = url.replace(BASE, '').replace(/^\/$/, 'home').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
     const json = path.join(OUT, `${slug}__${f.nombre}.json`);
     if (existsSync(json)) continue; // reanudable
+    // El beacon propio (/api/web/track) va bloqueado: cada carga le llegaba a
+    // Meta por el CAPI como una visita (81 el 24-25/9). Medido el 25/9: no
+    // agrega errores de consola ni mueve Buenas prácticas. El píxel y gtag NO
+    // se bloquean a propósito: su peso y sus cookies son parte de lo que se
+    // mide (el 77 de Buenas prácticas sale de ahí).
     const r = spawnSync('npx', ['--yes', 'lighthouse', url, '--output=json', `--output-path=${json}`, '--quiet',
-      '--chrome-flags=--headless=new --no-sandbox', '--only-categories=performance,accessibility,best-practices,seo', ...f.extra],
+      '--chrome-flags=--headless=new --no-sandbox', '--only-categories=performance,accessibility,best-practices,seo',
+      '--blocked-url-patterns=*/api/web/track*', ...f.extra],
       { stdio: ['ignore', 'ignore', 'pipe'], timeout: 180000 });
     if (r.status !== 0 || !existsSync(json)) { writeFileSync(resumenPath, `${url},${f.nombre},ERR,ERR,ERR,ERR,"${(r.stderr || '').toString().slice(0, 120).replace(/[\n",]/g, ' ')}"\n`, { flag: 'a' }); console.log(`✖ ${f.nombre} ${url}`); continue; }
     const lr = JSON.parse(readFileSync(json, 'utf8'));
