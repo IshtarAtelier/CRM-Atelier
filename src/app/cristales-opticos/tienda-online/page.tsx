@@ -5,6 +5,7 @@ import { mapaOpcionesPublico } from "@/services/cristales-web.service";
 import { opcionesDelGrupo, type GrupoCristal, type MapaOpciones } from "@/lib/cristales-web/claves";
 import { INFORMACION_OPCIONES } from "@/lib/cristales-web/informacion";
 import { precioConSigno } from "@/lib/format-precio";
+import { rethrowUnlessBuild } from "@/lib/db-guard";
 
 /**
  * Los cristales que se pueden comprar online en "Arma tus lentes", con su
@@ -12,10 +13,14 @@ import { precioConSigno } from "@/lib/format-precio";
  * configurador y el checkout (WebLensOption + el producto vinculado): lo que se
  * lee acá es lo que se cobra. Una opción no disponible no se muestra.
  *
- * ISR de 5 minutos, como /arma-tus-lentes. Si la base no responde, la página
- * sale igual con la explicación y sin precios (nunca un precio inventado).
+ * ISR de 1 minuto. El build de Railway no tiene base, así que la versión del
+ * build sale sin precios; con 60 s se reemplaza enseguida por la buena (con 300
+ * quedaba cinco minutos diciendo "Consultá los precios" después de cada deploy).
+ * Si la base falla en runtime, `rethrowUnlessBuild` lanza y Next conserva la
+ * última versión con precios en vez de cachear una vacía. Nunca un precio
+ * inventado.
  */
-export const revalidate = 300;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   alternates: { canonical: "/cristales-opticos/tienda-online" },
@@ -36,7 +41,7 @@ export default async function CristalesTiendaOnlinePage() {
   try {
     opciones = await mapaOpcionesPublico();
   } catch (err) {
-    console.error("[cristales/tienda-online] sin precios:", err);
+    rethrowUnlessBuild(err, "cristales/tienda-online");
   }
   const hayPrecios = Object.keys(opciones).length > 0;
 
