@@ -316,8 +316,14 @@ Reglas para que el proyecto escale sin volverse un mazacote.
   verificar algo en producción con un navegador — el del panel de Claude
   incluido — abrir `https://atelieroptica.com.ar/interno`**: una prueba sin
   marca le llega a Meta como un InitiateCheckout de verdad y ensucia la
-  campaña. Las compras NO miran la marca. Todo en `src/lib/trafico-interno.ts`;
-  lo fija `npm run check:interno` (sin red, también en CI).
+  campaña. Las compras NO miran la marca. **Las ópticas mayoristas tampoco le
+  cuentan su recorrido a Meta** (Ishtar, 25/9/2026: público B2B, mismo
+  criterio que sus compras), pero SÍ entran en la analítica propia y gtag les
+  carga: la sesión OPTICA lo decide en el servidor y `ate_mayorista` (login y
+  /api/auth/me) apaga el píxel. Los checks con navegador contestan el beacon
+  ellos mismos (`scripts/checks/_sin-ruido-propio.mjs`). Todo en
+  `src/lib/trafico-interno.ts`; lo fija `npm run check:interno` (sin red,
+  también en CI).
 - **Schema Prisma**: todo campo nuevo llega por migración commiteada, nunca
   editando la DB a mano. Borrar columnas: primero dejar de leerlas en el código,
   deploy, y recién después la migración que las borra (el deploy viejo sigue
