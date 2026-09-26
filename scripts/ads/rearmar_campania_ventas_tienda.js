@@ -138,6 +138,11 @@ async function main() {
   const refSets = await getAllPages('120251235949780023/adsets', { fields: 'targeting', limit: '5' });
   const excluirPublico = (refSets[0]?.targeting?.excluded_custom_audiences || []).filter((a) => /compradores web/i.test(a.name));
   const gruposExistentes = await getAllPages(`${CATALOGO}/product_sets`, { fields: 'id,name,product_count', limit: '100' });
+  // El título de cada tarjeta del carrusel es custom_label_3 (el nombre del
+  // modelo, "Onix Negro"; lo agrega src/lib/ads/product-feed.ts). Si Meta
+  // todavía no releyó el feed, la tarjeta saldría sin nombre: no se crea nada.
+  const productos = await getAllPages(`${CATALOGO}/products`, { fields: 'retailer_id,custom_label_3', limit: '100' });
+  const sinNombreCorto = productos.filter((p) => !String(p.custom_label_3 || '').trim());
 
   for (const g of GENEROS) for (const c of CATEGORIAS) {
     const archivo = path.join(__dirname, '..', '..', 'public', 'social', 'reels', `${reelDe(g, c)}.mp4`);
@@ -167,6 +172,7 @@ async function main() {
   }
   console.log(`\n4. Se pausan: ${setsActuales.filter((s) => CONJUNTOS_VIEJOS.includes(s.id)).map((s) => `"${s.name}"`).join(' y ')}`);
   console.log(`\nTexto (cuotas de business-info): "… ${cuotas}. Envío gratis a todo el país 🇦🇷"`);
+  console.log(`Nombre corto en las tarjetas (custom_label_3): ${productos.length - sinNombreCorto.length} de ${productos.length} productos del catálogo lo tienen.`);
 
   if (!EJECUTAR) {
     console.log('\nDRY RUN: no se tocó nada. Repetir con --yes (y META_ALLOW_WRITES=1 inline) para aplicar.');
@@ -174,6 +180,10 @@ async function main() {
   }
 
   // ── Escrituras ────────────────────────────────────────────────────────────
+  if (sinNombreCorto.length) {
+    throw new Error(`${sinNombreCorto.length} productos del catálogo todavía no tienen el nombre corto (custom_label_3). ` +
+      'Falta el deploy del feed o que Meta lo relea (Commerce Manager → Catálogo → Fuentes de datos → Actualizar). No se tocó nada.');
+  }
   const ok = { confirm: true };
 
   // 1. Grupos de productos
@@ -256,7 +266,7 @@ async function main() {
       await anuncio(`[venta${g.etiqueta}${c.slug}Carrusel] ${c.nombre} · ${g.etiqueta}`, {
         product_set_id: grupo[nombreGrupo(g, c)],
         object_story_spec: J({ ...identidad, template_data: {
-          link: areaDe(g, c), message: texto, name: '{{product.name}}',
+          link: areaDe(g, c), message: texto, name: '{{product.custom_label_3}}',
           call_to_action: { type: 'SHOP_NOW' }, multi_share_end_card: false, format_option: 'carousel_images_multi_items',
         } }),
         asset_feed_spec: J({ ad_formats: ['CAROUSEL', 'COLLECTION'], optimization_type: 'FORMAT_AUTOMATION' }),

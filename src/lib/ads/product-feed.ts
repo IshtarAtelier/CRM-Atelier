@@ -257,6 +257,16 @@ function highlights(
   return out.slice(0, 10);
 }
 
+/*
+ * custom_label_3 (solo Meta) = el nombre del modelo tal como lo muestra la
+ * tienda ("Onix Negro", "Vega C1"). Es el título de cada tarjeta en los
+ * carruseles de catálogo (`{{product.custom_label_3}}` en
+ * scripts/ads/rearmar_campania_ventas_tienda.js): con el título largo del feed,
+ * la tarjeta decía "Armazón para lentes recetados cuad…" y el modelo quedaba
+ * cortado. El título del feed no se acorta porque es el que matchea búsquedas
+ * (ver feedTitle).
+ */
+
 /** Franja de precio para segmentar las pujas sin tener que listar productos. */
 function franjaPrecio(precio: number): string {
   if (precio < 150000) return 'hasta-150k';
@@ -330,7 +340,8 @@ export async function buildProductFeed(platform: FeedPlatform): Promise<string> 
         .join('')}
       <g:custom_label_0>${esc(p.category || 'Anteojos')}</g:custom_label_0>
       <g:custom_label_1>${franjaPrecio(p.price)}</g:custom_label_1>${shape ? `
-      <g:custom_label_2>${esc(shape)}</g:custom_label_2>` : ''}
+      <g:custom_label_2>${esc(shape)}</g:custom_label_2>` : ''}${platform === 'meta' ? `
+      <g:custom_label_3>${esc(modeloSinMarca(p.brand, p.model))}</g:custom_label_3>` : ''}
       <g:shipping>
         <g:country>AR</g:country>
         <g:price>0.00 ARS</g:price>
