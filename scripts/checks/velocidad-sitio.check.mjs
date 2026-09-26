@@ -29,6 +29,7 @@
  */
 
 import { chromium } from 'playwright';
+import { sinRuidoPropio } from './_sin-ruido-propio.mjs';
 import { writeFileSync } from 'node:fs';
 
 const args = process.argv.slice(2);
@@ -199,6 +200,9 @@ for (const { area, ruta } of objetivos) {
         : undefined,
     });
     await ctx.addInitScript(SONDA);
+    // El píxel y gtag cargan igual (se mide su peso); solo el beacon propio se
+    // contesta acá, para que cada vuelta no le llegue a Meta como una visita.
+    await sinRuidoPropio(ctx);
     const pagina = await ctx.newPage();
     const cdp = await ctx.newCDPSession(pagina);
     if (MOVIL) {

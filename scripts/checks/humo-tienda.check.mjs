@@ -35,6 +35,7 @@
  */
 
 import { chromium } from 'playwright';
+import { sinRuidoPropio } from './_sin-ruido-propio.mjs';
 
 const BASE = (process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 const MOBILE = { width: 375, height: 812 };
@@ -54,6 +55,8 @@ const info = (t) => console.log(`  ·  ${t}`);
 async function main() {
   const navegador = await chromium.launch();
   const contexto = await navegador.newContext({ viewport: MOBILE });
+  // Contra producción, este recorrido era un visitante más para Meta.
+  await sinRuidoPropio(contexto);
   const page = await contexto.newPage();
 
   // Errores de consola POR PÁGINA, no acumulados.

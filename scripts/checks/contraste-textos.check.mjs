@@ -27,6 +27,7 @@
  */
 
 import { chromium } from 'playwright';
+import { sinRuidoPropio } from './_sin-ruido-propio.mjs';
 import { writeFileSync } from 'node:fs';
 
 const args = process.argv.slice(2);
@@ -276,6 +277,8 @@ for (const modo of ['claro', 'oscuro']) {
     viewport: VIEWPORT,
     colorScheme: modo === 'oscuro' ? 'dark' : 'light',
   });
+  // 66 páginas × 2 modos contra producción eran 132 visitas para Meta.
+  await sinRuidoPropio(contexto);
   // next-themes guarda la elección en localStorage; se fija antes de que
   // cargue cualquier script para que no haya un flash con el tema contrario.
   await contexto.addInitScript(
