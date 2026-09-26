@@ -78,16 +78,16 @@ const GENEROS = [
  * Carrusel editorial de Agostina (fotos de la sesión en el local, Ishtar
  * 25/9/26: "incluí estas imágenes en las campañas" y "cada foto debería llevar
  * a su anteojo correspondiente"). Solo en el conjunto de Mujeres: en los de
- * hombre no van fotos de Agostina. Anteojo identificado comparando con las
- * fotos de estudio; la 5 (de perfil, dentro del local) no se distingue y va al
- * área de receta para mujer hasta que Ishtar diga cuál es.
+ * hombre no van fotos de Agostina. Los modelos los confirmó Ishtar el 25/9:
+ * Dionisio, Vega y Onix. La 5, mirando la estantería, lleva a la tienda de
+ * mujer entera.
  */
 const EDITORIAL = [
   { foto: '01.jpg', nombre: 'Dionisio', detalle: 'Armazón de receta · carey', link: `${ORIGEN}/producto/dionisio-c2` },
-  { foto: '02.jpg', nombre: 'Antares', detalle: 'Lentes de sol', link: `${ORIGEN}/producto/antares-c1` },
+  { foto: '02.jpg', nombre: 'Vega', detalle: 'Lentes de sol · dorado', link: `${ORIGEN}/producto/vega-c1` },
   { foto: '03.jpg', nombre: 'Onix', detalle: 'Armazón de receta · negro', link: `${ORIGEN}/producto/capsula-escarlata-onix-tendencia-rectangular-negro-armazon-receta` },
   { foto: '04.jpg', nombre: 'Onix', detalle: 'Armazón de receta · negro', link: `${ORIGEN}/producto/capsula-escarlata-onix-tendencia-rectangular-negro-armazon-receta` },
-  { foto: '05.jpg', nombre: 'Elegí los tuyos', detalle: 'Armazones de receta', link: `${ORIGEN}/tienda?genero=femme&categoria=Receta` },
+  { foto: '05.jpg', nombre: 'Elegí los tuyos', detalle: 'Receta, sol y clip-on', link: `${ORIGEN}/tienda?genero=femme` },
 ];
 
 /** El reel de cada combinación. Clip-on es uno solo: los 10 modelos son unisex. */
