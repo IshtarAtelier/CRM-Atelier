@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decrypt } from '@/lib/auth'
-import { COOKIE_TRAFICO_INTERNO, opcionesCookieInterno } from '@/lib/trafico-interno'
+import { COOKIE_TRAFICO_INTERNO, opcionesCookieMarca } from '@/lib/trafico-interno'
 
 function safeCompare(a: string, b: string): boolean {
     if (a.length !== b.length) return false;
@@ -212,7 +212,7 @@ export async function middleware(request: NextRequest) {
         // alcanza con haber entrado una vez. Solo si falta, para no mandar un
         // Set-Cookie en cada request del panel.
         if (!request.cookies.has(COOKIE_TRAFICO_INTERNO)) {
-            adminResponse.cookies.set(COOKIE_TRAFICO_INTERNO, '1', opcionesCookieInterno());
+            adminResponse.cookies.set(COOKIE_TRAFICO_INTERNO, '1', opcionesCookieMarca());
         }
         return adminResponse;
     }

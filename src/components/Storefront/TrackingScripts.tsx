@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
-import { conGuardaInterno } from "@/lib/trafico-interno";
+import { conGuardaInterno, conGuardaSinMeta, navegadorSinMeta } from "@/lib/trafico-interno";
 
 interface TrackingScriptsProps {
   /** Medición de GA4 (G-XXXXXXXXXX). Lo resuelve el layout en el servidor. */
@@ -164,15 +164,19 @@ export function TrackingScripts({
     }
     if (ultimaRutaMedida.current === pathname) return;
     ultimaRutaMedida.current = pathname;
+    // Una óptica que se marcó en esta misma pestaña (el login o /api/auth/me
+    // ponen la cookie después de que el píxel ya cargó) no sigue sumando vistas.
+    if (navegadorSinMeta()) return;
     const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq;
     if (typeof fbq !== "function") return;
     fbq("track", "PageView");
   }, [pathname, pixelActivo]);
 
-  // Los dos snippets van envueltos en conGuardaInterno: en un navegador del
-  // equipo (cookie `ate_interno`, ver src/lib/trafico-interno.ts) no se carga
-  // ni gtag ni el píxel, así que ninguna prueba nuestra le llega a Meta ni a
-  // Google como visita, carrito o contacto. Se decide en el navegador al
+  // Los dos snippets van envueltos en una guarda: en un navegador del equipo
+  // (cookie `ate_interno`, ver src/lib/trafico-interno.ts) no se carga ni gtag
+  // ni el píxel, así que ninguna prueba nuestra le llega a Meta ni a Google
+  // como visita, carrito o contacto. El píxel tampoco carga en el de una óptica
+  // mayorista (`ate_mayorista`, conGuardaSinMeta): es un público B2B. Se decide en el navegador al
   // ejecutar, no acá al renderizar: estas páginas salen del HTML estático del
   // build, igual para todos. Las compras de alguien del equipo igual le llegan
   // a Meta por el servidor (registrarCompraWeb no mira la cookie).
@@ -200,7 +204,7 @@ export function TrackingScripts({
           teléfono y nombre hasheados por el Conversions API. */}
       {META_PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">
-          {conGuardaInterno(`
+          {conGuardaSinMeta(`
             !function(f,n)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
             n.callMethod.apply(n,arguments):n.queue.push(arguments)};

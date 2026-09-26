@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { encrypt } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { COOKIE_MAYORISTA, opcionesCookieMarca } from '@/lib/trafico-interno';
 
 export async function POST(request: Request) {
     try {
@@ -89,6 +90,12 @@ export async function POST(request: Request) {
             path: '/',
             maxAge: 60 * 60 * 24 * 1, // 1 day
         });
+        // Una óptica mayorista: su navegador deja de cargar el píxel de Meta
+        // (ver src/lib/trafico-interno.ts). Dura más que la sesión a propósito:
+        // sigue siendo el navegador de un cliente B2B aunque cierre sesión.
+        if (user.role === 'OPTICA') {
+            response.cookies.set(COOKIE_MAYORISTA, '1', opcionesCookieMarca());
+        }
 
         return response;
     } catch (error) {

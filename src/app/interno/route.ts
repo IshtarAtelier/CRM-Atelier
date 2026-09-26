@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   COOKIE_TRAFICO_INTERNO,
   esTraficoInterno,
-  opcionesCookieInterno,
+  opcionesCookieMarca,
 } from '@/lib/trafico-interno';
 
 /**
@@ -96,7 +96,7 @@ export async function GET(req: Request) {
     res.cookies.set(
       COOKIE_TRAFICO_INTERNO,
       quitar ? '0' : '1',
-      opcionesCookieInterno(quitar ? UN_DIA_S : undefined),
+      opcionesCookieMarca(quitar ? UN_DIA_S : undefined),
     );
   }
   return res;

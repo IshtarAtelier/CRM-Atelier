@@ -16,6 +16,9 @@
 //  - En un navegador marcado no se carga ni el píxel ni gtag.
 //  - Las compras no miran la marca: una compra real de alguien del equipo
 //    sigue yendo a Meta (MetaConversionService.registrarCompra*).
+//  - Una óptica mayorista (Ishtar, 25/9/2026) tampoco le cuenta su recorrido
+//    a Meta —es un público B2B—, pero SÍ entra en la analítica propia y gtag
+//    carga igual. La marcan el login y /api/auth/me.
 //
 // Correr:  npm run check:interno
 //   (node --experimental-strip-types --import ./scripts/checks/_alias.mjs
@@ -43,7 +46,9 @@ const asentar = () => new Promise((r) => setTimeout(r, 20));
 // ── Dobles: Prisma en memoria y fetch que anota todo ────────────────────────
 // src/lib/db.ts reusa `globalThis.prisma` si existe: se pone ANTES de importar.
 const registrados = [];
+const usuarios = new Map();
 globalThis.prisma = {
+  user: { findUnique: async ({ where }) => usuarios.get(where.email) ?? null },
   analyticsEvent: {
     createMany: async ({ data }) => {
       registrados.push(...data);
@@ -70,7 +75,10 @@ const log = console.log;
 const silenciar = () => { console.log = () => {}; };
 const restaurar = () => { console.log = log; };
 
-const { esTraficoInterno, conGuardaInterno, TRAFICO_INTERNO_MAX_AGE_S } = await import('../../src/lib/trafico-interno.ts');
+const { esTraficoInterno, esNavegadorMayorista, conGuardaInterno, conGuardaSinMeta, TRAFICO_INTERNO_MAX_AGE_S } =
+  await import('../../src/lib/trafico-interno.ts');
+const { encrypt } = await import('../../src/lib/auth.ts');
+const sesion = async (role) => encrypt({ id: `u-${role}`, email: 'x@x', name: `Prueba ${role}`, role });
 
 // ── 1. La decisión ──────────────────────────────────────────────────────────
 console.log('\nDecisión (lib/trafico-interno.ts)');
@@ -83,6 +91,9 @@ check('otra cookie que TERMINA en ate_interno no cuenta', !esTraficoInterno('xat
 check('valor que empieza con 1 no cuenta (ate_interno=10)', !esTraficoInterno('ate_interno=10'));
 check('la sesión del CRM sola no alcanza (la marca la pone el middleware)', !esTraficoInterno('session=eyJ...'));
 check('dura 400 días (el tope de Chrome)', TRAFICO_INTERNO_MAX_AGE_S === 400 * 86400);
+check('ate_mayorista=1 → mayorista', esNavegadorMayorista('_fbp=x; ate_mayorista=1'));
+check('ate_mayorista no es interno (sí entra en la analítica propia)', !esTraficoInterno('ate_mayorista=1'));
+check('ate_interno no es mayorista', !esNavegadorMayorista('ate_interno=1'));
 
 // ── 2. /api/web/track REAL ──────────────────────────────────────────────────
 console.log('\n/api/web/track (ruta real, Prisma y Meta simulados)');
@@ -136,16 +147,25 @@ check('equipo sin cookie del píxel: tampoco (el CAPI igual manda con IP + user-
 const desmarcado = await postear('_fbp=fb.1.1700000000.123; ate_interno=0', ['begin_checkout']);
 check('desmarcado (ate_interno=0): vuelve a medirse como cliente', desmarcado.aMeta.includes('InitiateCheckout') && desmarcado.registrados.length === 1);
 
-const sesionMayorista = await postear('_fbp=fb.1.1700000000.123; session=cualquiera', ['view_content']);
-check('una sesión sin la marca (p. ej. una óptica mayorista) se mide como antes', sesionMayorista.aMeta.includes('ViewContent'));
+const sesionTruchaTrack = await postear('_fbp=fb.1.1700000000.123; session=eyJhbGciOiJIUzI1NiJ9.e30.firma-falsa', ['view_content']);
+check('una sesión inválida o vencida se mide como cliente', sesionTruchaTrack.aMeta.includes('ViewContent') && sesionTruchaTrack.registrados.length === 1);
+
+const equipoConSesion = await postear(`_fbp=fb.1.1700000000.123; session=${await sesion('STAFF')}`, EMBUDO);
+check('equipo con sesión y SIN la cookie todavía: nada a Meta', equipoConSesion.aMeta.length === 0);
+check('equipo con sesión y SIN la cookie todavía: nada a la analítica propia', equipoConSesion.registrados.length === 0);
+
+const optica = await postear(`_fbp=fb.1.1700000000.123; session=${await sesion('OPTICA')}`, EMBUDO);
+check('óptica mayorista logueada: NADA le llega a Meta', optica.aMeta.length === 0);
+check('óptica mayorista logueada: SÍ entra a la analítica propia (los 4)', optica.registrados.length === 4);
+
+const opticaSinSesion = await postear('_fbp=fb.1.1700000000.123; ate_mayorista=1', ['begin_checkout']);
+check('navegador mayorista sin sesión (cerró sesión): nada a Meta, sí a la analítica', opticaSinSesion.aMeta.length === 0 && opticaSinSesion.registrados.length === 1);
 
 // ── 3. middleware REAL: el CRM marca solo ───────────────────────────────────
 console.log('\nmiddleware (el CRM marca el navegador)');
 const { NextRequest } = await import('next/server');
-const { encrypt } = await import('../../src/lib/auth.ts');
 const { middleware } = await import('../../src/middleware.ts');
 
-const sesion = async (role) => encrypt({ id: `u-${role}`, email: 'x@x', name: `Prueba ${role}`, role });
 const pedir = (ruta, cookie) =>
   middleware(new NextRequest(`https://atelieroptica.com.ar${ruta}`, { headers: cookie ? { cookie } : {} }));
 const setCookie = (res) => res.headers.get('set-cookie') ?? '';
@@ -166,8 +186,8 @@ check('ya marcado: no se manda Set-Cookie en cada request del panel', !/ate_inte
 const desmarcadoAdrede = await pedir('/admin', `session=${await sesion('ADMIN')}; ate_interno=0`);
 check('desmarcado a propósito (/interno?quitar=1): el CRM no lo vuelve a marcar', !/ate_interno/.test(setCookie(desmarcadoAdrede)));
 
-const optica = await pedir('/admin', `session=${await sesion('OPTICA')}`);
-check('una óptica mayorista (OPTICA) NO se marca: es un cliente', !/ate_interno/.test(setCookie(optica)));
+const opticaAdmin = await pedir('/admin', `session=${await sesion('OPTICA')}`);
+check('una óptica mayorista (OPTICA) NO se marca como equipo: es un cliente', !/ate_interno/.test(setCookie(opticaAdmin)));
 
 const sinSesion = await pedir('/admin', null);
 check('sin sesión: no se marca', !/ate_interno/.test(setCookie(sinSesion)));
@@ -177,6 +197,41 @@ check('sesión inválida: no se marca', !/ate_interno/.test(setCookie(sesionTruc
 
 const visitante = await pedir('/tienda', null);
 check('un visitante de la tienda no se marca', !/ate_interno/.test(setCookie(visitante)));
+
+// ── 3b. login y /api/auth/me REALES: la óptica queda marcada ────────────────
+console.log('\nLogin y /api/auth/me (marcan a la óptica mayorista)');
+const bcrypt = (await import('bcryptjs')).default;
+const clave = bcrypt.hashSync('clave-de-prueba', 4);
+usuarios.set('optica@prueba', { id: 'u1', email: 'optica@prueba', name: 'Óptica', role: 'OPTICA', password: clave });
+usuarios.set('staff@prueba', { id: 'u2', email: 'staff@prueba', name: 'Staff', role: 'STAFF', password: clave });
+const { POST: login } = await import('../../src/app/api/auth/login/route.ts');
+const entrar = (email) => login(new Request('https://atelieroptica.com.ar/api/auth/login', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', 'x-forwarded-for': `10.9.0.${++ipN}` },
+  body: JSON.stringify({ email, password: 'clave-de-prueba' }),
+}));
+/** El Set-Cookie de UNA cookie (el header junta todas, y el Expires trae comas). */
+const cookiePuesta = (res, nombre) => res.headers.getSetCookie().find((c) => c.startsWith(`${nombre}=`)) ?? '';
+const loginOptica = await entrar('optica@prueba');
+check('login de una óptica: entra', loginOptica.status === 200);
+const marcaOptica = cookiePuesta(loginOptica, 'ate_mayorista');
+check('login de una óptica: marca el navegador como mayorista por 400 días', /^ate_mayorista=1;/.test(marcaOptica) && /Max-Age=34560000/i.test(marcaOptica));
+check('la marca de mayorista no es HttpOnly (el navegador la lee para no cargar el píxel)', !/HttpOnly/i.test(marcaOptica));
+check('la sesión sigue siendo HttpOnly', /HttpOnly/i.test(cookiePuesta(loginOptica, 'session')));
+const loginStaff = await entrar('staff@prueba');
+check('login del equipo: NO lo marca como mayorista', loginStaff.status === 200 && !/ate_mayorista/.test(setCookie(loginStaff)));
+
+const { GET: yo } = await import('../../src/app/api/auth/me/route.ts');
+const preguntar = (cookie) => yo(new NextRequest('https://atelieroptica.com.ar/api/auth/me', { headers: cookie ? { cookie } : {} }));
+const meOptica = await preguntar(`session=${await sesion('OPTICA')}`);
+check('/api/auth/me con sesión de óptica: responde su rol', meOptica.status === 200 && (await meOptica.json()).role === 'OPTICA');
+check('/api/auth/me con sesión de óptica: marca el navegador (sesiones de antes del login nuevo)', /ate_mayorista=1;/.test(setCookie(meOptica)));
+const meOpticaMarcada = await preguntar(`session=${await sesion('OPTICA')}; ate_mayorista=1`);
+check('/api/auth/me ya marcado: no repite el Set-Cookie', !/ate_mayorista/.test(setCookie(meOpticaMarcada)));
+const meStaff = await preguntar(`session=${await sesion('STAFF')}`);
+check('/api/auth/me del equipo: no lo marca como mayorista', meStaff.status === 200 && !/ate_mayorista/.test(setCookie(meStaff)));
+const meSinSesion = await preguntar(null);
+check('/api/auth/me sin sesión: 401 y sin marca', meSinSesion.status === 401 && setCookie(meSinSesion) === '');
 
 // ── 4. /interno REAL ────────────────────────────────────────────────────────
 console.log('\n/interno (marcar un celular o una compu)');
@@ -214,14 +269,25 @@ check('script inline: en un navegador del equipo NO corre', !corre('_fbp=x; ate_
 check('script inline: en un cliente corre', corre('_fbp=x'));
 check('script inline: sin cookies corre', corre(''));
 check('script inline: desmarcado corre', corre('ate_interno=0'));
+check('gtag (guarda del equipo): en una óptica mayorista corre igual', corre('ate_mayorista=1'));
+const correPixel = (cookie) => {
+  const ctx = { document: { cookie }, corrio: false };
+  vm.runInNewContext(conGuardaSinMeta('corrio = true;'), ctx);
+  return ctx.corrio;
+};
+check('píxel: en una óptica mayorista NO corre', !correPixel('_fbp=x; ate_mayorista=1'));
+check('píxel: en el equipo NO corre', !correPixel('ate_interno=1'));
+check('píxel: en un cliente corre', correPixel('_fbp=x') && correPixel(''));
 
 // 5b. Cada <Script> de TrackingScripts pasa por la guarda (uno nuevo sin ella
 //     volvería a mandar el ruido del equipo).
 const trackingScripts = leer('src/components/Storefront/TrackingScripts.tsx');
 // Solo etiquetas reales (con atributos), no un "<Script>" nombrado en un comentario.
 const scripts = (trackingScripts.match(/<Script\s+\w+=/g) ?? []).length;
-const guardados = (trackingScripts.match(/\{conGuardaInterno\(/g) ?? []).length;
-check(`TrackingScripts: los ${scripts} <Script> pasan por conGuardaInterno`, scripts > 0 && scripts === guardados);
+const guardados = (trackingScripts.match(/\{conGuarda(?:Interno|SinMeta)\(/g) ?? []).length;
+check(`TrackingScripts: los ${scripts} <Script> pasan por una guarda`, scripts > 0 && scripts === guardados);
+check('TrackingScripts: el píxel de Meta usa la guarda que también frena a mayoristas',
+  /id="meta-pixel"[^>]*>\s*\{conGuardaSinMeta\(/.test(trackingScripts));
 check('TrackingScripts: gtag se cuelga de window (no una declaración dentro del if)', trackingScripts.includes('window.gtag = function gtag(') && !/"function gtag\(/.test(trackingScripts));
 
 // 5c. tracking.ts REAL con un window de mentira.
@@ -259,6 +325,13 @@ check('cliente: InitiateCheckout va al píxel', llamadas.some(([t, ev]) => t ===
 check('cliente: begin_checkout va a gtag', llamadas.some(([t, ev]) => t === 'gtag' && ev === 'begin_checkout'));
 check('cliente: el WhatsApp va al píxel como Contact', llamadas.some(([t, ev]) => t === 'fbq' && ev === 'Contact'));
 
+document.cookie = '_fbp=x; ate_mayorista=1';
+llamadas.length = 0;
+trackInitiateCheckout(carrito, 150000);
+trackWhatsAppClick('flotante');
+check('óptica mayorista: nada al píxel aunque ya estuviera cargado en la pestaña', !llamadas.some(([t]) => t === 'fbq'));
+check('óptica mayorista: gtag sí (la decisión fue sacarla de Meta)', llamadas.some(([t, ev]) => t === 'gtag' && ev === 'begin_checkout'));
+
 // ── 6. Las compras no miran la marca ────────────────────────────────────────
 console.log('\nCompras (una compra real del equipo sigue siendo una compra)');
 const CAMINO_DE_COMPRA = [
@@ -272,7 +345,7 @@ for (const archivo of CAMINO_DE_COMPRA) {
   check(`${archivo} no filtra por la marca del equipo`, !/trafico-interno|ate_interno|esTraficoInterno/.test(src));
 }
 
-console.log(`\n✅ ${passed} verificaciones OK: el equipo no le cuenta a Meta, los clientes sí, las compras siempre.\n`);
+console.log(`\n✅ ${passed} verificaciones OK: ni el equipo ni las mayoristas le cuentan a Meta, los clientes sí, las compras siempre.\n`);
 // rate-limiter.ts deja un setInterval de limpieza vivo a nivel de módulo: sin
 // esto el proceso no termina nunca y el CI queda colgado.
 process.exit(0);

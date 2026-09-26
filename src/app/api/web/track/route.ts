@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { recordEvents, sanitizeEvents, type AnalyticsEventInput } from '@/lib/analytics';
 import { AdsService } from '@/services/ads.service';
-import { esTraficoInterno } from '@/lib/trafico-interno';
+import { esNavegadorMayorista, esTraficoInterno } from '@/lib/trafico-interno';
+import { decrypt } from '@/lib/auth';
 
 /**
  * Ingesta de analítica propia. Público, liviano y no bloqueante.
@@ -31,6 +32,24 @@ function readCookie(req: Request, name: string): string | null {
   return null;
 }
 
+/**
+ * Quién navega, según la sesión del CRM (la cookie `session` es httpOnly y
+ * firmada: el navegador no la puede leer ni falsificar, este es el dato firme).
+ *  - equipo: una sesión que no es OPTICA. Cubre el navegador donde alguien del
+ *    equipo tiene sesión pero todavía no pasó por /admin para marcarse.
+ *  - mayorista: una óptica logueada, o un navegador que ya se marcó como tal.
+ * Sin sesión no se verifica nada: el costo es solo para quien la tiene.
+ */
+async function quienNavega(req: Request): Promise<'equipo' | 'mayorista' | 'cliente'> {
+  const token = readCookie(req, 'session');
+  if (token) {
+    const payload = await decrypt(token);
+    if (payload?.role === 'OPTICA') return 'mayorista';
+    if (payload?.role) return 'equipo';
+  }
+  return esNavegadorMayorista(req.headers.get('cookie')) ? 'mayorista' : 'cliente';
+}
+
 /** Eventos propios → nombre estándar del Conversions API de Meta. */
 const CAPI_EVENT: Record<string, 'ViewContent' | 'AddToCart' | 'InitiateCheckout' | 'Contact'> = {
   view_content: 'ViewContent',
@@ -50,8 +69,9 @@ const CAPI_EVENT: Record<string, 'ViewContent' | 'AddToCart' | 'InitiateCheckout
  * Corre para todo el tráfico: el cartel de cookies se retiró del sitio el
  * 13/8/2026 (decisión del dueño; la Ley 25.326 no lo exige en Argentina). El
  * gate anterior por la cookie `ate_consent` dejaba el espejo casi apagado —
- * los públicos de remarketing web juntaban ~20 personas. La única excepción
- * es el equipo, que se filtra antes de llegar acá (ver POST).
+ * los públicos de remarketing web juntaban ~20 personas. Las excepciones son
+ * el equipo y las ópticas mayoristas, que se filtran antes de llegar acá (ver
+ * POST y src/lib/trafico-interno.ts).
  */
 function mirrorToMetaCapi(events: AnalyticsEventInput[], req: Request) {
   const fbp = readCookie(req, '_fbp');
@@ -108,9 +128,13 @@ export async function POST(req: Request) {
 
     const events = sanitizeEvents(rawEvents, fallback).slice(0, MAX_EVENTS_PER_REQUEST);
     if (events.length) {
+      const quien = await quienNavega(req);
+      if (quien === 'equipo') return ended();
       // No await: responder ya, insertar en segundo plano.
       void recordEvents(events);
-      mirrorToMetaCapi(events, req);
+      // La óptica mayorista queda en la analítica propia pero no se le enseña
+      // a Meta: es un público B2B que ninguna campaña persigue.
+      if (quien === 'cliente') mirrorToMetaCapi(events, req);
     }
     return ended();
   } catch {

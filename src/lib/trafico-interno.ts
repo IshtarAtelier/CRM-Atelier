@@ -27,6 +27,14 @@
  * propia la registra igual (el `purchase` lo graba el checkout del lado del
  * servidor, no pasa por /api/web/track).
  *
+ * ÓPTICAS MAYORISTAS (Ishtar, 25/9/2026)
+ * Son clientes, pero B2B: su recorrido por la tienda no se le enseña a Meta,
+ * con el mismo criterio con que sus compras ya no se espejaban (ver
+ * `medirCompraWeb` en api/checkout/payway). A diferencia del equipo, SÍ entran
+ * en la analítica propia, que es donde se las quiere ver, y gtag carga igual.
+ * El servidor lo sabe por la sesión (OPTICA); el navegador, por la cookie
+ * `ate_mayorista=1` que ponen el login y /api/auth/me.
+ *
  * Sin dependencias a propósito: lo importan el middleware (edge), una ruta
  * (node) y el navegador.
  */
@@ -48,14 +56,32 @@ export function esTraficoInterno(cookieHeader: string | null | undefined): boole
   return Boolean(cookieHeader) && PATRON_COOKIE_INTERNO.test(cookieHeader as string);
 }
 
+export const COOKIE_MAYORISTA = 'ate_mayorista';
+const PATRON_COOKIE_MAYORISTA = /(?:^|;\s*)ate_mayorista=1(?:;|$)/;
+
+/** ¿El navegador de una óptica mayorista, por su cookie? (servidor) */
+export function esNavegadorMayorista(cookieHeader: string | null | undefined): boolean {
+  return Boolean(cookieHeader) && PATRON_COOKIE_MAYORISTA.test(cookieHeader as string);
+}
+
+function cookiesDelNavegador(): string {
+  if (typeof document === 'undefined') return '';
+  try {
+    return document.cookie;
+  } catch {
+    return '';
+  }
+}
+
 /** ¿Este navegador es del equipo? (cliente; en el servidor siempre false) */
 export function navegadorEsInterno(): boolean {
-  if (typeof document === 'undefined') return false;
-  try {
-    return PATRON_COOKIE_INTERNO.test(document.cookie);
-  } catch {
-    return false;
-  }
+  return PATRON_COOKIE_INTERNO.test(cookiesDelNavegador());
+}
+
+/** ¿Este navegador no le cuenta nada a Meta? El equipo o una óptica mayorista. */
+export function navegadorSinMeta(): boolean {
+  const c = cookiesDelNavegador();
+  return PATRON_COOKIE_INTERNO.test(c) || PATRON_COOKIE_MAYORISTA.test(c);
 }
 
 /**
@@ -68,11 +94,16 @@ export function conGuardaInterno(js: string): string {
   return `if(!${PATRON_COOKIE_INTERNO.toString()}.test(document.cookie)){\n${js}\n}`;
 }
 
+/** Como `conGuardaInterno`, pero tampoco corre para una óptica mayorista. Es la del píxel de Meta. */
+export function conGuardaSinMeta(js: string): string {
+  return `if(!${PATRON_COOKIE_INTERNO.toString()}.test(document.cookie)&&!${PATRON_COOKIE_MAYORISTA.toString()}.test(document.cookie)){\n${js}\n}`;
+}
+
 /**
- * Opciones del Set-Cookie. NO es httpOnly a propósito: el navegador la tiene
- * que poder leer para no cargar el píxel ni gtag.
+ * Opciones del Set-Cookie de las dos marcas. NO es httpOnly a propósito: el
+ * navegador la tiene que poder leer para no cargar el píxel.
  */
-export function opcionesCookieInterno(maxAge = TRAFICO_INTERNO_MAX_AGE_S) {
+export function opcionesCookieMarca(maxAge = TRAFICO_INTERNO_MAX_AGE_S) {
   return {
     httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
