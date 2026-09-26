@@ -74,6 +74,22 @@ const GENEROS = [
   { clave: 'hombre', tienda: 'homme', meta: [1], feed: ['male', 'unisex'], excluir: SOLO_MUJER, etiqueta: 'Hombres' },
 ];
 
+/**
+ * Carrusel editorial de Agostina (fotos de la sesión en el local, Ishtar
+ * 25/9/26: "incluí estas imágenes en las campañas" y "cada foto debería llevar
+ * a su anteojo correspondiente"). Solo en el conjunto de Mujeres: en los de
+ * hombre no van fotos de Agostina. Anteojo identificado comparando con las
+ * fotos de estudio; la 5 (de perfil, dentro del local) no se distingue y va al
+ * área de receta para mujer hasta que Ishtar diga cuál es.
+ */
+const EDITORIAL = [
+  { foto: '01.jpg', nombre: 'Dionisio', detalle: 'Armazón de receta · carey', link: `${ORIGEN}/producto/dionisio-c2` },
+  { foto: '02.jpg', nombre: 'Antares', detalle: 'Lentes de sol', link: `${ORIGEN}/producto/antares-c1` },
+  { foto: '03.jpg', nombre: 'Onix', detalle: 'Armazón de receta · negro', link: `${ORIGEN}/producto/capsula-escarlata-onix-tendencia-rectangular-negro-armazon-receta` },
+  { foto: '04.jpg', nombre: 'Onix', detalle: 'Armazón de receta · negro', link: `${ORIGEN}/producto/capsula-escarlata-onix-tendencia-rectangular-negro-armazon-receta` },
+  { foto: '05.jpg', nombre: 'Elegí los tuyos', detalle: 'Armazones de receta', link: `${ORIGEN}/tienda?genero=femme&categoria=Receta` },
+];
+
 /** El reel de cada combinación. Clip-on es uno solo: los 10 modelos son unisex. */
 const reelDe = (g, c) => (c.slug === 'clipon' ? 'desfile-tienda-clipon' : `desfile-${g.clave}-${c.slug}`);
 const areaDe = (g, c) => `${ORIGEN}/tienda?genero=${g.tienda}&categoria=${encodeURIComponent(c.clave)}`;
@@ -144,6 +160,11 @@ async function main() {
       console.log(`   [venta${g.etiqueta}${c.slug}Reel] reel ${reelDe(g, c)}.mp4 → ${areaDe(g, c)}`);
     }
   }
+  console.log(`\n   + en Mujeres: [ventaMujeresEditorial] carrusel con las ${EDITORIAL.length} fotos de Agostina:`);
+  for (const e of EDITORIAL) console.log(`     ${e.foto} ${e.nombre} → ${e.link}`);
+  for (const e of EDITORIAL) {
+    if (!fs.existsSync(path.join(__dirname, '..', '..', 'public', 'social', 'ads-agostina', e.foto))) throw new Error(`Falta la foto ${e.foto}.`);
+  }
   console.log(`\n4. Se pausan: ${setsActuales.filter((s) => CONJUNTOS_VIEJOS.includes(s.id)).map((s) => `"${s.name}"`).join(' y ')}`);
   console.log(`\nTexto (cuotas de business-info): "… ${cuotas}. Envío gratis a todo el país 🇦🇷"`);
 
@@ -209,6 +230,27 @@ async function main() {
       console.log(`  ✓ ${nombre} ${a.id}`);
     };
     const identidad = { page_id: spec.page_id, ...(spec.instagram_user_id ? { instagram_user_id: spec.instagram_user_id } : {}) };
+    if (g.clave === 'mujer') {
+      // Las fotos se suben por bytes (adimages): no hace falta que estén en la web.
+      const tarjetas = [];
+      for (const e of EDITORIAL) {
+        const nombre = `agostina-${e.foto}`;
+        const res = await post(`${ACT}/adimages`, { bytes: fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'social', 'ads-agostina', e.foto)).toString('base64'), name: nombre }, ok);
+        const subida = res.images?.[nombre] || Object.values(res.images || {})[0];
+        if (!subida?.hash) throw new Error(`Meta no devolvió hash para ${nombre}.`);
+        tarjetas.push({ link: e.link, image_hash: subida.hash, name: e.nombre, description: e.detalle, call_to_action: { type: 'SHOP_NOW', value: { link: e.link } } });
+      }
+      await anuncio('[ventaMujeresEditorial] Agostina en Atelier', {
+        object_story_spec: J({ ...identidad, link_data: {
+          link: `${ORIGEN}/tienda?genero=femme`,
+          message: `Elegí los tuyos en la tienda online 👓\n\n${cuotas}.\nEnvío gratis a todo el país 🇦🇷`,
+          child_attachments: tarjetas,
+          multi_share_optimized: false, // el orden de las fotos lo eligió Ishtar
+          multi_share_end_card: false,
+          call_to_action: { type: 'SHOP_NOW' },
+        } }),
+      });
+    }
     for (const c of CATEGORIAS) {
       const texto = `${c.nombre}, en la tienda online ${c.emoji}\n\n${cuotas}.\nEnvío gratis a todo el país 🇦🇷`;
       await anuncio(`[venta${g.etiqueta}${c.slug}Carrusel] ${c.nombre} · ${g.etiqueta}`, {
