@@ -132,8 +132,7 @@ INSTRUCCIONES:
 5. Detecta la fuente de contacto (contactSource). REGLAS ESTRICTAS:
    ${`- Solo asigna un origen si hay EVIDENCIA CLARA en la conversación. El tipo de id del chat NO es evidencia:
    - "Google Ads": SOLO si el cliente menciona haber visto un ANUNCIO en Google, o si la primera línea es exactamente "Hola! Vi su anuncio en Google y quiero recibir más información." Encontrarnos por Google o por Maps NO es "Google Ads".
-   - "Google Maps": Si el cliente menciona que los encontró por Maps / Google Maps.
-   - "Google orgánico": Si el cliente menciona que los buscó o encontró en Google, SIN mencionar un anuncio.
+   - "Google Maps": Si el cliente menciona que los encontró por Maps / Google Maps, o que los buscó o encontró en Google SIN mencionar un anuncio.
    - "Meta": Si el cliente menciona que vio un anuncio en Instagram o Facebook, o si hay un tag en corchetes que empiece con "meta" o "Meta" (ej: [metaFlor], [MetaAgos], [metaSofi], [metacursi], etc.).
    - "Referido": Si menciona que alguien lo recomendó, un amigo, conocido o familiar.
    - "Calle": Si dice que vio el local al pasar o pasó por la puerta.
@@ -215,7 +214,7 @@ INSTRUCCIONES:
             if (text.includes('maps')) {
                 sourceNorm = 'Google Maps';
             } else if (text.includes('google') || text.includes('búsqueda') || text.includes('busqueda')) {
-                sourceNorm = 'Google orgánico';
+                sourceNorm = 'Google Maps';
             } else if (text.includes('instagram') || text.includes('facebook')) {
                 sourceNorm = 'Meta';
             }

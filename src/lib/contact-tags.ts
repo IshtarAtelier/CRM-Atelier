@@ -65,7 +65,6 @@ export interface EtiquetaAdministrada {
 export const TAG_POR_CANAL: Record<ContactSource, EtiquetaAdministrada> = {
     // Google: tres azules distinguibles entre sí.
     'Google Ads': { name: 'Google Ads', color: '#1D4ED8' },          // 6,70:1
-    'Google orgánico': { name: 'Google orgánico', color: '#0369A1' },// 5,93:1
     'Google Maps': { name: 'Google Maps', color: '#0E7490' },        // 5,36:1
     // Meta: magenta.
     'Meta': { name: 'Meta Ads', color: '#C2185B' },                  // 5,87:1  ← nombre histórico
@@ -137,7 +136,7 @@ export function esEtiquetaAdministrada(name: string | null | undefined): boolean
  * no se hace es sacárselas a nadie.
  *
  * Las que sí se desconectan son las que nadie escribiría a mano con otro
- * sentido: "Meta Ads", "Google Ads", "Google Maps", "Google orgánico",
+ * sentido: "Meta Ads", "Google Ads", "Google Maps",
  * "Tienda online", "Ya es cliente" y todo lo que empieza con "Meta · " /
  * "Google · ". Con eso alcanza para el caso que motivó todo esto: el cliente que
  * pasa de Meta a Google Ads y quedaba con las dos pegadas.
@@ -155,8 +154,15 @@ const NO_DESCONECTABLES: ReadonlySet<string> = new Set(['Calle', 'Referido', 'Ot
 export function esEtiquetaDesconectable(name: string | null | undefined): boolean {
     if (!name) return false;
     if (NO_DESCONECTABLES.has(name)) return false;
-    return esEtiquetaAdministrada(name);
+    return esEtiquetaAdministrada(name) || ETIQUETAS_RETIRADAS.has(name);
 }
+
+/**
+ * Etiquetas de canales que ya no existen. El sync las saca cuando pasa por la
+ * ficha, para que no quede un "Google orgánico" colgado de un cliente que ahora
+ * es "Google Maps" (unificados el 28/9/2026).
+ */
+const ETIQUETAS_RETIRADAS: ReadonlySet<string> = new Set(['Google orgánico']);
 
 /**
  * Etiqueta del anuncio a partir del valor guardado en `Client.adTag`.

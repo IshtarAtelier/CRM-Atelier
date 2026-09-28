@@ -13,9 +13,12 @@
  * Reglas de atribución de Google (la grieta que motivó la separación):
  * - "Google Ads"      → SOLO señal determinística de pauta (el template del
  *                       anuncio, o mención explícita de un anuncio en Google).
- * - "Google Maps"     → el cliente los encontró por Maps. NO es pauta.
- * - "Google orgánico" → búsqueda genérica en Google sin mención de anuncio.
- *                       Tampoco es pauta.
+ * - "Google Maps"     → el cliente nos encontró en Google sin anuncio: por
+ *                       Maps o buscando. NO es pauta.
+ *
+ * "Google orgánico" se unificó con "Google Maps" (Ishtar, 28/9/2026): en el
+ * mostrador no hay forma de saber si alguien nos buscó en Google o en Maps, y
+ * en 7 meses solo 2 fichas lo usaron. Las variantes viejas caen en Maps.
  */
 
 /** Valor de presentación cuando la ficha no tiene canal cargado. NO se guarda en la base (ahí va null). */
@@ -29,7 +32,6 @@ export const SIN_ORIGEN = 'Sin origen';
 export const CONTACT_SOURCES = [
     'Google Ads',
     'Google Maps',
-    'Google orgánico',
     'Meta',
     'Calle',
     'Ya es Cliente',
@@ -97,14 +99,14 @@ const VARIANTES: Record<string, ContactSource> = {
     'gads': 'Google Ads',
     'adwords': 'Google Ads',
     'google adwords': 'Google Ads',
-    // Maps NO es pauta.
+    // Maps y la búsqueda genérica en Google NO son pauta: los dos son "Google Maps".
     'maps': 'Google Maps',
-    // Búsqueda genérica NO es pauta.
-    'google': 'Google orgánico',
-    'google organico': 'Google orgánico',
-    'busqueda': 'Google orgánico',
-    'búsqueda': 'Google orgánico',
-    'busqueda de google': 'Google orgánico',
+    'google': 'Google Maps',
+    'google organico': 'Google Maps',
+    'google orgánico': 'Google Maps',
+    'busqueda': 'Google Maps',
+    'búsqueda': 'Google Maps',
+    'busqueda de google': 'Google Maps',
     // Meta y sus redes. 'face' solo como valor completo (como substring daba falsos positivos).
     'instagram': 'Meta',
     'facebook': 'Meta',

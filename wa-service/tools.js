@@ -149,10 +149,10 @@ async function detectContactSourceFromChat(chatId) {
     }
     // Mencionar "google" o "búsqueda" NO es pauta: hasta el 16/9/26 esto devolvía
     // 'Google Ads' y sumaba a la plata de Google gente que buscó sola. Mismo
-    // criterio que el extractor del CRM: Maps es Maps, lo demás es orgánico.
-    if (text.includes('maps')) return 'Google Maps';
-    if (text.includes('google') || text.includes('busqueda') || text.includes('búsqueda')) {
-        return 'Google orgánico';
+    // criterio que el extractor del CRM. Desde el 28/9/26 buscar en Google y
+    // encontrarnos en Maps son lo mismo: "Google Maps".
+    if (text.includes('maps') || text.includes('google') || text.includes('busqueda') || text.includes('búsqueda')) {
+        return 'Google Maps';
     }
     if (
         text.includes('instagram') ||
