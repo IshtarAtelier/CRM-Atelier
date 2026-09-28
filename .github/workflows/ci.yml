@@ -94,6 +94,7 @@ jobs:
           npm run check:colores
           npm run check:color-lente
           npm run check:facetas
+          npm run check:busqueda-tienda
           npm run check:ficha
           npm run check:par-bonificado
           npm run check:go-lineas

@@ -65,6 +65,7 @@
     "check:promo2x1web": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1-armazones.check.mjs",
     "check:colores": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-normalizado.check.mjs",
     "check:facetas": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/facetas.check.mjs",
+    "check:busqueda-tienda": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/busqueda-tienda.check.mjs",
     "check:oferta": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/precio-oferta.check.mjs",
     "check:cristales": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cristales-web.check.mjs",
     "check:cristales-vinculos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cristales-web-vinculos.mjs",
