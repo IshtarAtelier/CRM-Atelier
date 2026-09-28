@@ -198,6 +198,10 @@ async function main() {
     console.log(`✓ grupo "${n}" ${leido.id} (${leido.product_count} productos)`);
   }
 
+  const todo = gruposExistentes.find((x) => x.name === 'All Products');
+  if (!todo) throw new Error('No encontré el grupo "All Products" del catálogo.');
+  const TODO_EL_CATALOGO = todo.id;
+
   // 2. Videos
   const video = {};
   for (const archivo of [...new Set(GENEROS.flatMap((g) => CATEGORIAS.map((c) => reelDe(g, c))))]) {
@@ -221,7 +225,10 @@ async function main() {
       campaign_id: CAMPANIA,
       billing_event: 'IMPRESSIONS',
       optimization_goal: 'OFFSITE_CONVERSIONS',
-      promoted_object: J({ pixel_id: PIXEL, custom_event_type: 'ADD_TO_CART', product_set_id: grupo[nombreGrupo(g, null)] }),
+      // El conjunto promociona el catálogo ENTERO: Meta no reconoce "Mujeres · Receta"
+      // como subconjunto de "Mujeres · todo" (error 100 del 28/9) y rechaza el carrusel.
+      // El género lo deciden el grupo de cada anuncio y la segmentación.
+      promoted_object: J({ pixel_id: PIXEL, custom_event_type: 'ADD_TO_CART', product_set_id: TODO_EL_CATALOGO }),
       targeting: J({
         geo_locations: { countries: ['AR'], location_types: ['home', 'recent'] },
         age_min: 25, age_max: 65, genders: g.meta,
@@ -266,7 +273,7 @@ async function main() {
       await anuncio(`[venta${g.etiqueta}${c.slug}Carrusel] ${c.nombre} · ${g.etiqueta}`, {
         product_set_id: grupo[nombreGrupo(g, c)],
         object_story_spec: J({ ...identidad, template_data: {
-          link: areaDe(g, c), message: texto, name: '{{product.custom_label_3}}',
+          link: areaDe(g, c), message: texto, name: '{{product.custom_label_3}}', description: '{{product.current_price}}',
           call_to_action: { type: 'SHOP_NOW' }, multi_share_end_card: false, format_option: 'carousel_images_multi_items',
         } }),
         asset_feed_spec: J({ ad_formats: ['CAROUSEL', 'COLLECTION'], optimization_type: 'FORMAT_AUTOMATION' }),
