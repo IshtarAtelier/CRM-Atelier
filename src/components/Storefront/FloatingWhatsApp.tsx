@@ -7,6 +7,7 @@ import { WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 import { BUSINESS_INFO } from "@/lib/business-info";
 import { trackPhoneClick } from "@/lib/tracking";
 import { usePathname } from "next/navigation";
+import { usePanelFiltrosAbierto } from "@/hooks/usePanelFiltrosAbierto";
 
 export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
   // Arranca en true (oculto) hasta comprobar si esta página declara un hero con
@@ -27,6 +28,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   const [isOptica, setIsOptica] = useState(false);
   const [tituloNota, setTituloNota] = useState<string | null>(null);
   const pathname = usePathname();
+  const panelFiltrosAbierto = usePanelFiltrosAbierto();
 
   // Una pantalla que trae su propio CTA a WhatsApp se marca con `data-hero`
   // (hoy: el hero de la home). Mientras ese bloque está a la vista, la burbuja
@@ -209,9 +211,14 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         {/* En celular el globo de arriba está oculto (hidden sm:block), así que
             el botón era un círculo verde sin decir para qué sirve. Esta etiqueta
             nombra lo que la gente viene a pedir. */}
-        <span className={`sm:hidden rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-stone-800 shadow-lg border border-stone-100 transition-opacity duration-300 ${etiquetaVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-          Presupuesto
-        </span>
+        {/* Con el panel de filtros de /tienda abierto se esconde: tapaba el
+            botón "Ver N modelos" (auditoría 25/9). Además se pliega al bajar
+            (29/9). El botón verde queda siempre. */}
+        {!panelFiltrosAbierto && (
+          <span className={`sm:hidden rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-stone-800 shadow-lg border border-stone-100 transition-opacity duration-300 ${etiquetaVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+            Presupuesto
+          </span>
+        )}
 
         {/* El pulso va relativo al botón, no al <a>: con la etiqueta al lado, un
             `inset-0` sobre el ancla estiraba el anillo verde detrás del texto. */}

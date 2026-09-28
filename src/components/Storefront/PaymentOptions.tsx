@@ -82,7 +82,10 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
       // `promo-cuotas.ts`, que es el único lugar donde se escribe; el importe
       // ya trae el recargo adentro.
       label: showCalculated ? textoCuotas12(cuota12Value) : TEXTO_MP_CUOTAS_LARGAS,
-      sub: "por Mercado Pago",
+      // Sin "por Mercado Pago" (regla del 31/8 en CLAUDE.md; seguía acá y lo
+      // marcó la auditoría del 25/9). Lo que el comprador necesita saber es
+      // con qué paga, no la pasarela.
+      sub: "con tarjeta de crédito",
       highlight: false,
     },
     {
