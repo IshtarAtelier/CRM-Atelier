@@ -1111,7 +1111,7 @@ export function TiendaClient({
                               {desde && (
                                 <span className="mt-2 block border-t border-stone-200 pt-2 text-xs text-stone-700">
                                   <span className="block font-bold">Anteojo completo desde {precioConSigno(desde.lista)}</span>
-                                  <span className="block text-stone-500">{precioConSigno(desde.transferencia)} por transferencia</span>
+                                  <span className="block text-stone-500">{precioConSigno(desde.transferencia)} transf.</span>
                                 </span>
                               )}
                             </p>

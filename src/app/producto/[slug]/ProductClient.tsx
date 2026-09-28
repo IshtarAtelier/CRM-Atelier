@@ -691,7 +691,7 @@ export function ProductClient({
                       {precioConSigno(desde.transferencia)} por transferencia
                     </p>
                     <p className="mt-1 text-xs text-stone-600">
-                      Incluye cristales {desde.cristal}. Podés elegir otros en el paso siguiente.
+                      Incluye cristales: {desde.cristal}. Podés elegir otros en el paso siguiente.
                     </p>
                   </div>
                 )}
