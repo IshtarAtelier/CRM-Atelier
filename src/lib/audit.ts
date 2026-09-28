@@ -6,7 +6,9 @@ export type AuditEntityType =
     | 'TASK' | 'PRESCRIPTION' | 'INVOICE' | 'EXPENSE' | 'DOCTOR_PAYMENT'
     | 'COUPON' | 'SETTING' | 'VENDOR_CASH' | 'POST_SALE_CASE'
     | 'CASH_HANDOVER' | 'CASH_COUNT' | 'CASH_MOVEMENT' | 'OPTICA_LEAD' | 'LAB_COST_ENTRY' | 'WEB_LENS_OPTION'
-    | 'LAB_ORDER_DRAFT' | 'OTHER';
+    | 'LAB_ORDER_DRAFT'
+    // Botón de arrepentimiento de la tienda online (entityId = código ARR-…).
+    | 'WITHDRAWAL_REQUEST' | 'OTHER';
 
 export async function logAudit(params: {
   userId?: string | null;
