@@ -1,0 +1,57 @@
+{
+  "id": "manifiesto-obras-de-arte",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "marca",
+  "caption": "Los anteojos son auténticas obras de arte.\n\nDetrás de cada par hay más de cien procesos que no se ven: el acetato que se corta, se pule y se termina a mano; el metal que se suelda y se ajusta al milímetro; el cristal que se talla y se calibra al eje exacto de tu mirada. Y el último, el que casi nadie ve: sentarte, mirarte y ajustar el anteojo hasta que es tuyo.\n\nPor eso en Atelier no elegimos por tendencia. Elegimos cada pieza como se elige una obra: por el detalle.\n\n\"El arte me enseñó a mirar el detalle. El comercio, que una cosa hermosa que no llega a nadie no sirve. Y la salud visual, que esto no es sobre objetos: es sobre personas que quieren ver bien y verse bien.\"\n— Ishtar Pissano, creadora de Atelier Óptica\n\nEl manifiesto completo está en nuestro blog: atelieroptica.com.ar/blog/anteojos-obras-de-arte\n\nTu visión es nuestra obra maestra. Cerro de las Rosas, sin turno previo.",
+  "temas": ["armazones", "local"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/arte-en-foco/01-monalisa.jpg",
+      "title": "Los anteojos son *auténticas obras de arte*",
+      "subtitle": "Manifiesto de Atelier Óptica."
+    },
+    {
+      "type": "number",
+      "dato": "+100",
+      "title": "Procesos detrás de cada par",
+      "body": "Casi ninguno se ve. Todos se notan cuando enfocás bien."
+    },
+    {
+      "type": "list",
+      "title": "Los que más *nos importan*",
+      "items": [
+        "El acetato: se corta, se pule y se termina a mano",
+        "El metal: se suelda y se ajusta al milímetro",
+        "El cristal: se talla y se calibra al eje de tu mirada",
+        "El ajuste: el último, el que lo vuelve tuyo"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/arte-en-foco/02-venus.jpg",
+      "title": "Cada anteojo es *una forma de ver el mundo*",
+      "items": [
+        "Elegir un armazón es elegir cómo mirás y cómo te miran",
+        "No elegimos por tendencia: elegimos por el detalle",
+        "Como se elige una obra"
+      ]
+    },
+    {
+      "type": "number",
+      "dato": "3",
+      "title": "Arte, comercio y salud visual",
+      "body": "\"Durante mucho tiempo las viví como mundos separados. Atelier nació el día que entendí que eran el mismo.\" — Ishtar Pissano"
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/arte-en-foco/03-perla.jpg",
+      "title": "Tu visión es *nuestra obra maestra*",
+      "body": "Leé el manifiesto completo en el blog. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}
