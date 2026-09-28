@@ -260,6 +260,18 @@ const PLANTILLAS = {
     number: (slide, id) => {
         const claseCompacta = slide.compacto ? `compacto ${!slide.dato && !slide.body ? 'sin-datos' : ''}` : '';
         const claseBomba = slide.bomba ? 'bomba' : '';
+        // encuadre: "fondo" — la foto cubre TODA la placa con el velo en
+        // degradé, como la portada (pedido de Ishtar 28/9: en una pieza
+        // editorial la franja marrón lisa abajo queda cortada).
+        if (slide.imagenResuelta && slide.encuadre === 'fondo') return `
+    ${fondoDeImagen(slide.imagenResuelta, slide.velo)}
+    <div class="contenido number ${claseBomba}">
+      <p class="rotulo">${resaltar(slide.title)}</p>
+      ${slide.dato ? `<p class="dato">${esc(slide.dato)}</p>` : ''}
+      ${slide.body ? `<p class="cuerpo">${resaltar(slide.body)}</p>` : ''}
+      ${slide.cta ? `<p class="llamado">${esc(slide.cta)}</p>` : ''}
+    </div>
+    ${pie(id)}`;
         return `
     ${slide.imagenResuelta ? `<div class="producto ${slide.encuadre === 'cover' ? 'llena' : ''} ${slide.fotoGrande ? 'grande' : ''} ${claseCompacta}" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
     <div class="contenido number ${claseCompacta} ${claseBomba}">

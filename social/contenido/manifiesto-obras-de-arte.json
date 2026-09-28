@@ -21,9 +21,8 @@
       "dato": "3",
       "title": "Arte, comercio y salud visual",
       "body": "\"Durante mucho tiempo las viví como mundos separados. Atelier nació el día que entendí que eran el mismo.\" — Ishtar Pissano",
-      "image": "blog/ishtar/ishtar-gucci-recorte.jpg",
-      "encuadre": "cover",
-      "fotoGrande": true
+      "image": "blog/ishtar/ishtar-gucci.jpg",
+      "encuadre": "fondo"
     },
     {
       "type": "number",
@@ -31,7 +30,7 @@
       "title": "Procesos detrás de cada par",
       "body": "Casi ninguno se ve. Todos se notan cuando enfocás bien.",
       "image": "blog/ishtar/ishtar-hollywood.jpg",
-      "encuadre": "cover"
+      "encuadre": "fondo"
     },
     {
       "type": "list",
