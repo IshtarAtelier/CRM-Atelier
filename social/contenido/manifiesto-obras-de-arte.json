@@ -41,7 +41,9 @@
         "El metal: se suelda y se ajusta al milímetro",
         "El cristal: se talla y se calibra al eje de tu mirada",
         "El ajuste: el último, el que lo vuelve tuyo"
-      ]
+      ],
+      "image": "blog/ishtar/anteojos-miami.jpg",
+      "encuadre": "cover"
     },
     {
       "type": "list",
