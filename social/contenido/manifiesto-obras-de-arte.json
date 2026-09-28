@@ -17,14 +17,13 @@
       "subtitle": "Manifiesto de Atelier Óptica."
     },
     {
-      "type": "list",
-      "image": "blog/ishtar/ishtar-gucci.jpg",
-      "title": "Detrás de Atelier *hay una historia*",
-      "items": [
-        "Estudié arte: escultura, grabado y pintura",
-        "Hace doce años me recibí de óptica contactóloga",
-        "En cada viaje entré a ópticas del mundo y me traje partecitas de todas"
-      ]
+      "type": "number",
+      "dato": "3",
+      "title": "Arte, comercio y salud visual",
+      "body": "\"Durante mucho tiempo las viví como mundos separados. Atelier nació el día que entendí que eran el mismo.\" — Ishtar Pissano",
+      "image": "blog/ishtar/ishtar-gucci-recorte.jpg",
+      "encuadre": "cover",
+      "fotoGrande": true
     },
     {
       "type": "number",
@@ -67,11 +66,14 @@
       "role": "bisagra"
     },
     {
-      "type": "number",
-      "dato": "3",
-      "title": "Arte, comercio y salud visual",
-      "body": "\"Durante mucho tiempo las viví como mundos separados. Atelier nació el día que entendí que eran el mismo.\" — Ishtar Pissano",
+      "type": "list",
       "image": "blog/ishtar/ishtar-miami-cadillac.jpg",
+      "title": "Detrás de Atelier *hay una historia*",
+      "items": [
+        "Estudié arte: escultura, grabado y pintura",
+        "Hace doce años me recibí de óptica contactóloga",
+        "En cada viaje entré a ópticas del mundo y me traje partecitas de todas"
+      ],
       "encuadre": "cover"
     },
     {
