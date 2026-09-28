@@ -17,6 +17,9 @@ import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
+import { anteojoCompletoDesde } from "@/lib/anteojo-completo";
+import { precioConSigno } from "@/lib/format-precio";
+import { useOpcionesCristal } from "@/hooks/useOpcionesCristal";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades } from "@/lib/constants/social-proof";
 import { track } from "@/lib/client-analytics";
 
@@ -250,6 +253,7 @@ export function TiendaClient({
 
   const [isWholesale, setIsWholesale] = useState(false);
   const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
+  const opcionesCristal = useOpcionesCristal();
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
@@ -1046,6 +1050,13 @@ export function TiendaClient({
                         // arriba, sobre la foto. Acá solo hace falta saber SI hay
                         // oferta, para tomar `salePrice` en vez del precio de lista.
                         const { enOferta: oferta } = precioConOferta(p);
+                        const desde = anteojoCompletoDesde({
+                          producto: p,
+                          categoriaWeb: p.category,
+                          esMayorista: isWholesale,
+                          opciones: opcionesCristal,
+                          descuentoTransferenciaPct: webSettings.web_promo_cash_discount || 15,
+                        });
 
                         return (
                           <div className="pt-1 flex items-center justify-between gap-2">
@@ -1091,6 +1102,18 @@ export function TiendaClient({
                               <span className="block text-xs text-stone-500">
                                 {installmentsCount} cuotas sin interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
                               </span>
+                              {/* El precio de arriba es el armazón solo. El de
+                                  receta casi siempre se lleva con cristales
+                                  (95,5% de la plata, auditoría 25/9): acá ve
+                                  cuánto le sale el anteojo que de verdad compra.
+                                  Mismo cálculo que el configurador; si los
+                                  precios de cristal no cargan, no se muestra. */}
+                              {desde && (
+                                <span className="mt-2 block border-t border-stone-200 pt-2 text-xs text-stone-700">
+                                  <span className="block font-bold">Anteojo completo desde {precioConSigno(desde.lista)}</span>
+                                  <span className="block text-stone-500">{precioConSigno(desde.transferencia)} por transferencia</span>
+                                </span>
+                              )}
                             </p>
                             {/* El cartel de oferta se mudó a la esquina
                                 superior derecha de la foto (7/9). Acá abajo

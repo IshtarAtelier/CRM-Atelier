@@ -1,6 +1,8 @@
 import { hasActive2x1Promo, pick2x1FrameDiscount, safePrice } from '@/lib/promo-utils';
 import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { esMpCuotasLargas } from '@/lib/payment-card';
+import { calcularConfiguracion } from '@/lib/cristales-web/calculo';
+import type { LensConfig, MapaOpciones } from '@/lib/cristales-web/claves';
 
 export interface CartItem {
     productId: string | null;
@@ -252,6 +254,32 @@ export class PricingService {
      * grillas, carrito, resumen del checkout, emails y CTAs leen de acá.
      * `cashDiscountPct` es el % de la promo web (setting web_promo_cash_discount).
      */
+    /**
+     * "Anteojo completo desde $X": armazón + un cristal elegido, con los mismos
+     * números que después dan el configurador y el checkout. El total del ítem
+     * sale de `calcularConfiguracion` (EL cálculo del ítem configurado, el que
+     * usa el checkout para cobrar) y el precio por transferencia, de
+     * `preciosVidriera`, igual que en el resto de la tienda.
+     *
+     * Devuelve null si el cristal no está disponible o la opción no se pudo
+     * resolver: sin precio real no se promete un "desde" (nunca un número de
+     * respaldo).
+     */
+    static anteojoCompletoDesde(opts: {
+        /** Lo que se cobra por el armazón (con oferta ya resuelta: `precioFinal`). */
+        precioArmazon: number;
+        lensConfig: LensConfig;
+        opciones: MapaOpciones;
+        /** % de la promo por transferencia (setting web_promo_cash_discount). */
+        descuentoTransferenciaPct: number;
+    }): { lista: number; transferencia: number } | null {
+        if (!(safePrice(opts.precioArmazon) > 0)) return null;
+        const r = calcularConfiguracion({ basePrice: opts.precioArmazon, lensConfig: opts.lensConfig, opciones: opts.opciones });
+        if (!r.ok || !r.cristal) return null;
+        const vidriera = PricingService.preciosVidriera(r.total, opts.descuentoTransferenciaPct);
+        return { lista: vidriera.lista, transferencia: vidriera.contado };
+    }
+
     static preciosVidriera(price: number, cashDiscountPct: number = 15) {
         const lista = Math.round(price || 0);
         const cuotasMp = PricingService.cuotasMpLargas(lista);
