@@ -628,12 +628,15 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             pantalla". Antes se iba con el cuerpo, así que en el momento de
             elegir un tratamiento el total ya no se veía y había que scrollear
             para saber cuánto costaba lo que se estaba por tocar.
-            De 640 px para arriba se queda en el flujo: ahí entra todo junto. */}
-        <div className="w-full flex flex-col items-center mb-2 sticky bottom-0 z-20 bg-[#fafafa]/95 backdrop-blur border-t border-[#e8e2db] pt-3 pb-2 -mx-5 px-5 sm:static sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:mx-0 sm:px-0 sm:pt-0">
-          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#78716c] mb-2">Tu anteojo completo</p>
+            De 640 px para arriba se queda en el flujo: ahí entra todo junto.
+            28/9/26: `fixed`, no `sticky`. Con sticky solo se anclaba cuando la
+            columna del resumen entraba en pantalla, y en celular esa columna
+            arranca abajo de todo: en el paso de la receta no se veía. */}
+        <div className="w-full flex flex-col items-center mb-2 fixed bottom-0 inset-x-0 z-20 bg-[#fafafa]/95 backdrop-blur border-t border-[#e8e2db] pt-3 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:inset-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:px-0 sm:pt-0 sm:pb-0">
+          <p className="hidden sm:block text-[10px] uppercase tracking-[0.3em] font-bold text-[#78716c] mb-2">Tu anteojo completo</p>
           <motion.p
             key={total}
-            className="text-4xl font-serif tracking-tight"
+            className="text-3xl sm:text-4xl font-serif tracking-tight"
           >
             ${formatearPrecio(total * (1 - discountRate))}
           </motion.p>
@@ -642,70 +645,75 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                 cobra en el local (el de Mercado Pago por Rapipago no lo lleva). */}
             por transferencia · {webSettings.web_promo_cash_discount}% OFF
           </p>
-          <div className="flex flex-col items-center gap-1 mt-3.5 text-center">
-            <p className="text-[11px] font-bold text-stone-700">
+          <div className="flex flex-col items-center gap-0.5 sm:gap-1 mt-2 sm:mt-3.5 text-center">
+            <p className="hidden sm:block text-[11px] font-bold text-stone-700">
               💳 ${formatearPrecio(total)} con tarjeta
             </p>
             <p className="text-[11px] font-bold text-stone-700">
               {promo.texto} de <span className="underline">${formatearPrecio(total / installmentsCount)}</span>
             </p>
           </div>
+          {/* 28/9/26: el botón va DENTRO del bloque anclado. En celular quedaba
+              abajo del desglose y había que scrollear para encontrarlo: de 11
+              personas que llegaron al paso de la receta en 30 días, terminó 1. */}
+          <button
+            disabled={!configuracionCompleta}
+            onClick={() => {
+              // Sin datos del producto no hay nada que agregar: se corta ANTES de
+              // medir para que el evento de cierre cuente carritos reales.
+              if (!cartItemId && !productInfo) return;
+              if (!calculoOk) return;
+
+              // Cierre del embudo: con este evento y `lens_config_start` sale la
+              // tasa de conversión del configurador, y con los del medio, en qué
+              // paso se cae la gente.
+              track("lens_config_complete", {
+                productId,
+                productName: nombreProducto,
+                value: total,
+                meta: {
+                  flujo: flowType,
+                  tipo: lensType,
+                  tratamiento: treatment,
+                  color: esSol && tintColor ? `${tintColor} (${tintStyle})` : null,
+                  modo: cartItemId ? "editar" : "nuevo",
+                },
+              });
+
+              if (cartItemId) {
+                updateItemLensConfig(cartItemId, lensConfig, total - basePrice);
+                if (onSuccess) onSuccess();
+              } else {
+                if (!productInfo) return;
+                addItem({
+                  productId: productId || "unknown",
+                  brand: productInfo.brand,
+                  model: productInfo.model,
+                  price: total,
+                  basePrice: basePrice,
+                  wholesaleBasePrice: wholesaleBasePrice || 0,
+                  image: productInfo.image,
+                  lensColor: esSol ? hexDeTono(tintColor) : null,
+                  lensConfig,
+                  quantity: 1
+                });
+                // Varilux 2x1: en vez de cerrar, pasar a elegir el segundo armazón
+                // sin cargo (si el contenedor lo soporta y el Varilux vinculado
+                // es un 2x1 de verdad).
+                if (!esSol && treatment === "VARILUX" && ofrece2x1 && onTwoForOne) onTwoForOne();
+                else if (onSuccess) onSuccess();
+              }
+            }}
+            className="mt-3 w-full py-4 sm:py-5 bg-black text-white font-bold uppercase tracking-[0.2em] text-[12px] hover:bg-black/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 rounded-full shadow-lg"
+          >
+            <span>{cartItemId ? "Confirmar Cristales" : "Agregar al Carrito"}</span>
+          </button>
         </div>
         
-        <button
-          disabled={!configuracionCompleta}
-          onClick={() => {
-            // Sin datos del producto no hay nada que agregar: se corta ANTES de
-            // medir para que el evento de cierre cuente carritos reales.
-            if (!cartItemId && !productInfo) return;
-            if (!calculoOk) return;
-
-            // Cierre del embudo: con este evento y `lens_config_start` sale la
-            // tasa de conversión del configurador, y con los del medio, en qué
-            // paso se cae la gente.
-            track("lens_config_complete", {
-              productId,
-              productName: nombreProducto,
-              value: total,
-              meta: {
-                flujo: flowType,
-                tipo: lensType,
-                tratamiento: treatment,
-                color: esSol && tintColor ? `${tintColor} (${tintStyle})` : null,
-                modo: cartItemId ? "editar" : "nuevo",
-              },
-            });
-
-            if (cartItemId) {
-              updateItemLensConfig(cartItemId, lensConfig, total - basePrice);
-              if (onSuccess) onSuccess();
-            } else {
-              if (!productInfo) return;
-              addItem({
-                productId: productId || "unknown",
-                brand: productInfo.brand,
-                model: productInfo.model,
-                price: total,
-                basePrice: basePrice,
-                wholesaleBasePrice: wholesaleBasePrice || 0,
-                image: productInfo.image,
-                lensColor: esSol ? hexDeTono(tintColor) : null,
-                lensConfig,
-                quantity: 1
-              });
-              // Varilux 2x1: en vez de cerrar, pasar a elegir el segundo armazón
-              // sin cargo (si el contenedor lo soporta y el Varilux vinculado
-              // es un 2x1 de verdad).
-              if (!esSol && treatment === "VARILUX" && ofrece2x1 && onTwoForOne) onTwoForOne();
-              else if (onSuccess) onSuccess();
-            }
-          }}
-          className="w-full py-5 bg-black text-white font-bold uppercase tracking-[0.2em] text-[12px] hover:bg-black/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 rounded-full shadow-lg"
-        >
-          <span>{cartItemId ? "Confirmar Cristales" : "Agregar al Carrito"}</span>
-        </button>
 
         <p className="text-xs uppercase font-bold tracking-[0.2em] text-[#78716c] text-center">Envío Asegurado sin cargo a todo el país</p>
+        {/* Lugar para la barra fija de abajo en celular: sin esto tapaba lo último. */}
+        <div aria-hidden="true" className="h-56 sm:hidden" />
       </motion.div>
     </div>
   );

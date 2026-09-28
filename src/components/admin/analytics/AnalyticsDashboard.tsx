@@ -21,7 +21,33 @@ type Analytics = {
   topProducts: { productId: string; productName: string; views: number }[];
   sources: { source: string; visitors: number }[];
   carts: { total: number; pending: number; emailSent: number; recovered: number; completed: number };
+  trabas?: {
+    pasos: string[];
+    porDispositivo: { dispositivo: string; sesiones: Record<string, number> }[];
+    errores: { motivo: string; veces: number; sesiones: number }[];
+  };
 };
+
+/** Nombre en criollo de cada paso de "Dónde se traban". */
+const PASO_LEGIBLE: Record<string, string> = {
+  lens_config_start: 'Abrieron el configurador de lentes',
+  lens_config_type: 'Eligieron tipo de visión',
+  lens_config_treatment: 'Eligieron tratamiento',
+  lens_config_prescription: 'Llegaron al paso de la receta',
+  lens_config_complete: 'Terminaron el configurador',
+  add_to_cart: 'Agregaron al carrito',
+  begin_checkout: 'Entraron al checkout',
+  add_contact: 'Dejaron sus datos',
+  checkout_submit: 'Tocaron "Pagar"',
+  purchase: 'Compraron',
+};
+
+/** Los errores que se guardan con un código (falta_email) dichos para una persona. */
+function motivoLegible(m: string): string {
+  if (m.startsWith('falta_')) return `Les faltó completar: ${m.slice(6)}`;
+  if (m.startsWith('mercado_pago_')) return `Mercado Pago: pago ${m.slice(13)}`;
+  return m;
+}
 
 const PRESETS = [
   { label: 'Hoy', days: 1 },
@@ -137,6 +163,38 @@ export default function AnalyticsDashboard() {
               Cada barra = visitantes únicos que llegaron a esa etapa. El % es respecto del total de visitantes.
             </p>
           </Section>
+
+          {/* Dónde se traban: configurador y checkout, celular vs compu */}
+          {data.trabas && (
+            <Section title="Dónde se traban" icon={<TrendingUp className="w-4 h-4" />}>
+              <div className="grid gap-6 md:grid-cols-2">
+                {data.trabas.porDispositivo.map((d) => {
+                  // Base = el paso con más gente: el que compra un armazón solo o un sol no
+                  // pasa por el configurador, así que el carrito puede superar al primer paso.
+                  const base = Math.max(0, ...Object.values(d.sesiones));
+                  return (
+                    <div key={d.dispositivo} className="space-y-2">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {d.dispositivo === 'mobile' ? 'Celular' : 'Computadora'}
+                      </h3>
+                      {data.trabas!.pasos.map((p) => (
+                        <FunnelBar key={p} label={PASO_LEGIBLE[p] || p} value={d.sesiones[p] || 0} base={Math.max(base, 1)} highlight={p === 'purchase'} />
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-5">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Errores que vio la gente en el checkout</h3>
+                {data.trabas.errores.length ? (
+                  <RankList items={data.trabas.errores.map((e) => ({ label: motivoLegible(e.motivo), value: e.sesiones }))} unit="personas" />
+                ) : <Empty />}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Personas distintas que llegaron a cada paso. El % es respecto del paso con más gente. El tráfico del equipo no cuenta.
+              </p>
+            </Section>
+          )}
 
           {/* Tráfico en el tiempo */}
           <Section title="Tráfico por día" icon={<Eye className="w-4 h-4" />}>
