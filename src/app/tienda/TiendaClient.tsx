@@ -225,8 +225,6 @@ export function TiendaClient({
       navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
     }, 500);
     return () => clearTimeout(t);
-    // navegarAFiltro y pathname no cambian entre tecla y tecla.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   // La categoría vivía en un useState suelto: la grilla cambiaba pero la URL

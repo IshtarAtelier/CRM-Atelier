@@ -158,8 +158,8 @@ export async function sendRecoveryEmailForSession(
     ? getClientItemsHtml(cartItems)
     : `<tr><td style="padding: 16px 0; color: #8f897c; font-family: ${SANS}; font-size: 14px;">Tu selección de la tienda</td></tr>`;
 
-  // Mail al cliente: el botón vuelve a la tienda pública, nunca a la URL de Railway.
-  const appUrl = STORE_ORIGIN;
+  // Mail al cliente: el botón vuelve a la tienda pública (linkDeRecupero usa
+  // STORE_ORIGIN), nunca a la URL de Railway.
   const customerName = session.firstName || 'Cliente';
 
   const subject = touch === 'EARLY'
