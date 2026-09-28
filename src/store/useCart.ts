@@ -37,6 +37,8 @@ interface CartState {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  /** Carga un carrito entero (el que repone el mail de recupero). No mide AddToCart: no es una acción nueva. */
+  reponerItems: (items: Omit<CartItem, 'id'>[]) => void;
   setIsOpen: (isOpen: boolean) => void;
   getCartTotal: (isWholesale?: boolean) => number;
   updateItemLensConfig: (id: string, lensConfig: any, additionalPrice: number) => void;
@@ -104,6 +106,10 @@ export const useCart = create<CartState>()(
       })),
       
       clearCart: () => set({ items: [] }),
+
+      reponerItems: (items) => set({
+        items: items.map((item, i) => ({ ...item, id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}` })),
+      }),
       
       setIsOpen: (isOpen) => set({ isOpen }),
 

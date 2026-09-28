@@ -299,6 +299,41 @@ export function CheckoutClient({
     };
   }, []);
 
+  // ── Vuelta desde el mail de recupero ──
+  // El mail de carrito abandonado trae ?recuperar=<id de sesión>. El carrito
+  // vive en el navegador, así que abierto en otro dispositivo el checkout
+  // decía "Tu carrito está vacío" (auditoría del 25/9/2026). Acá se repone
+  // desde la sesión guardada, SOLO si este navegador no tiene su propio
+  // carrito y la sesión no terminó en compra (lo decide el servidor).
+  const [reponiendoCarrito, setReponiendoCarrito] = useState(false);
+  const recuperoRef = useRef(false);
+  useEffect(() => {
+    if (!mounted || recuperoRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const sesionARecuperar = params.get('recuperar');
+    if (!sesionARecuperar) return;
+    recuperoRef.current = true;
+
+    // Sacar el parámetro: si la persona recarga, no se vuelve a reponer encima.
+    params.delete('recuperar');
+    const resto = params.toString();
+    window.history.replaceState({}, '', resto ? `/checkout?${resto}` : '/checkout');
+
+    if (useCart.getState().items.length > 0) return; // ya tiene su carrito en este navegador
+    setReponiendoCarrito(true);
+    fetch(`/api/checkout/recuperar?s=${encodeURIComponent(sesionARecuperar)}`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : { items: [] }))
+      .then((data: { items?: unknown[] }) => {
+        if (!Array.isArray(data?.items) || data.items.length === 0) return;
+        useCart.getState().reponerItems(data.items as Parameters<ReturnType<typeof useCart.getState>['reponerItems']>[0]);
+        // La MISMA sesión: lo que complete ahora actualiza el carrito abandonado
+        // en vez de abrir otro (el recupero y el panel de cierres siguen uno solo).
+        try { localStorage.setItem("atelier-checkout-session-id", sesionARecuperar); } catch {}
+      })
+      .catch(() => {})
+      .finally(() => setReponiendoCarrito(false));
+  }, [mounted]);
+
   // ── Vuelta desde Mercado Pago ──
   // Mercado Pago devuelve al comprador con ?mp=aprobado|pendiente|rechazado.
   // Esto es SOLO la pantalla que ve la persona: quien decide si la venta está
@@ -903,7 +938,7 @@ export function CheckoutClient({
             como páginas completas, y el carrito vacío es la que ve cualquiera
             que entre al checkout sin nada cargado (la que mide Lighthouse). */}
         <main className="text-center mt-32">
-          <h2 className="text-2xl font-light mb-4">Tu carrito está vacío</h2>
+          <h2 className="text-2xl font-light mb-4">{reponiendoCarrito ? "Recuperando tu carrito…" : "Tu carrito está vacío"}</h2>
           <Link href="/tienda" className="inline-block bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors">
             Volver a la Tienda
           </Link>

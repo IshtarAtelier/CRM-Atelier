@@ -32,6 +32,7 @@
     "check:prompt-bot": "node --experimental-strip-types scripts/checks/prompt-bot.check.mjs",
     "check:social": "node --experimental-strip-types scripts/checks/social-programacion.check.mjs",
     "check:outbox": "node scripts/checks/outbox.check.mjs",
+    "check:recupero-carrito": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/recupero-carrito.check.mjs",
     "check:politica": "node scripts/checks/politica.check.mjs",
     "check:bot-errores": "node scripts/checks/bot-error-transitorio.check.mjs",
     "check:venta": "ATELIER_SIN_ENVIOS=1 node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-blindada.check.mjs",
