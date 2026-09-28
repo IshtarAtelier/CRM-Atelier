@@ -65,7 +65,8 @@ export async function medirSaludTienda(): Promise<SaludTienda> {
       },
     }),
     prisma.checkoutSession.findMany({
-      where: { createdAt: { gte: hace30 } },
+      // Sin el robot de Google (src/lib/checkout/robots.ts): no es un carrito.
+      where: { createdAt: { gte: hace30 }, status: { not: 'BOT' } },
       select: { status: true },
     }),
     prisma.order.count({

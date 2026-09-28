@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SIN_ROBOTS } from '@/lib/checkout/robots';
 import { prisma } from '@/lib/db';
 import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
@@ -39,7 +40,8 @@ import { VENTANA_EMBUDO_DIAS } from '@/lib/leads-pipeline';
 
 const TAG_CAMPANA = 'Campaña Carrito WhatsApp';
 const PLANTILLA = 'seguimiento_carrito' as const;
-const ESTADOS_CERRADOS = ['COMPLETED', 'RECOVERED', 'FINALIZED'];
+// BOT: el robot de Google, no es un cliente (src/lib/checkout/robots.ts).
+const ESTADOS_CERRADOS = ['COMPLETED', 'RECOVERED', 'FINALIZED', 'BOT'];
 
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));
 const horaArgentina = () => (new Date().getUTCHours() + 24 - 3) % 24;
@@ -88,6 +90,7 @@ export async function GET(request: NextRequest) {
     const sesiones = await prisma.checkoutSession.findMany({
         where: {
             status: { notIn: ESTADOS_CERRADOS },
+            ...SIN_ROBOTS,
             phone: { not: null, notIn: [''] },
             updatedAt: { gte: desde },
         },

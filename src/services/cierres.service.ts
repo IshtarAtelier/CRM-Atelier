@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { SIN_ROBOTS } from '@/lib/checkout/robots';
 import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
 import { SOLO_CLIENTES_POSIBLES } from '@/lib/no-cliente';
@@ -182,6 +183,7 @@ async function carritos(): Promise<Oportunidad[]> {
             // los que no compran, sin este estado el panel no mostraba NINGÚN
             // carrito (medido el 10/9/2026: 11 en 30 días, cero visibles).
             status: { in: CARRITO_ABIERTO },
+            ...SIN_ROBOTS,
             createdAt: { lt: new Date(Date.now() - DIA_MS), gt: haceDias(DIAS_CARRITO) },
         },
         orderBy: { createdAt: 'desc' },
@@ -385,7 +387,7 @@ export const CierresService = {
             // checkout y generó otra, esa "reaparecía" lo que se creyó descartado.
             if (clientId) {
                 await prisma.checkoutSession.updateMany({
-                    where: { clientId, status: { in: CARRITO_ABIERTO } },
+                    where: { clientId, status: { in: CARRITO_ABIERTO }, ...SIN_ROBOTS },
                     data: { status: 'FINALIZED' },
                 });
             }
