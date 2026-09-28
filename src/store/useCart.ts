@@ -130,6 +130,20 @@ export const useCart = create<CartState>()(
     }),
     {
       name: 'atelier-cart-storage',
+      // Se guardan SOLO los productos. `isOpen` es estado de pantalla: si se
+      // persistía, el panel del carrito se volvía a abrir solo en la página
+      // siguiente — por ejemplo encima del formulario del checkout, apenas la
+      // persona tocaba "Finalizar compra" (auditoría del 25/9/2026).
+      partialize: (state) => ({ items: state.items }),
+      // Los navegadores que ya tenían guardado `isOpen: true` (de antes de
+      // este cambio) lo levantarían una vez más: del guardado se toman solo
+      // los productos.
+      merge: (guardado, actual) => ({
+        ...actual,
+        items: Array.isArray((guardado as { items?: unknown })?.items)
+          ? (guardado as { items: CartItem[] }).items
+          : actual.items,
+      }),
     }
   )
 );
