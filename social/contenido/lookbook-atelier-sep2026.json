@@ -1,0 +1,18 @@
+{
+  "id": "lookbook-atelier-sep2026",
+  "format": "4:5",
+  "pilar": "producto",
+  "nota": "Carrusel de fotos reales de la sesión en el local (sep-2026), sin placas ni precios. Los JPG ya están recortados a 1080x1350 en public/social/lookbook-atelier-sep2026/.",
+  "temas": ["armazones"],
+  "caption": "Una mañana en Atelier. ☀️\n\nAcetato negro, carey, metal dorado, un aviador en violeta y sol para cuando baja la luz. Cada armazón con su personalidad, y los cristales hechos en nuestro taller para tu receta.\n\n¿Cuál te llevás? Contanos en los comentarios 👇\n\n📍 Vení a probártelos al local en Cerro de las Rosas, o escribinos por WhatsApp y te los mostramos.",
+  "slides": [
+    { "title": "Modelo con anteojos de acetato negro frente a la vidriera de Atelier Óptica" },
+    { "title": "Primer plano de anteojos de acetato negro rectangulares" },
+    { "title": "Anteojos de sol hexagonales de metal dorado con cristales ámbar" },
+    { "title": "Modelo probándose un armazón violeta en el local" },
+    { "title": "Modelo eligiendo un armazón en la pared de exhibición del local" },
+    { "title": "Modelo comparando dos armazones en el local" },
+    { "title": "Modelo con anteojos de sol metálicos frente al exhibidor de sol" },
+    { "title": "Modelo con armazón carey frente al cartel de Óptica Atelier" }
+  ]
+}
