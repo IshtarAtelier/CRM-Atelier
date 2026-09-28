@@ -23,6 +23,7 @@ import { PRIVATE_ADMIN_EMAILS } from '@/lib/constants';
 import { formatearPrecio } from '@/lib/format-precio';
 import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
 import { buscarCobrosAprobados, isMercadoPagoEnabled, type MpCobroRecibido } from '@/services/mercadopago.service';
+import { RECARGO_MP_CUOTAS_LARGAS, TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 
 const CLAVE_DESDE = 'mp_cobros_aviso_desde';
 const PREFIJO_AVISADO = 'mp_cobro_avisado:';
@@ -85,6 +86,27 @@ async function desde(): Promise<Date> {
     return new Date(ahora);
 }
 
+/**
+ * Umbral de comisión en 12 cuotas a partir del cual el recargo deja de cubrir el
+ * precio en efectivo (Ishtar, 28/9/2026: "en el peor de los casos, el valor de
+ * efectivo"). Lo que queda es lista × (1 + recargo) × (1 − comisión) y tiene que
+ * ser ≥ lista × (1 − descuento efectivo), con el descuento MÁXIMO en efectivo (TOPE_VENDEDOR, el peor caso). Con 10% y 20%: 27,27%. Sale de las
+ * constantes: si cambia el recargo o el descuento, el umbral se mueve solo.
+ */
+export function umbralComisionDoce(): number {
+    const efectivo = 1 - TOPE_VENDEDOR.discountCash / 100;
+    return 1 - efectivo / (1 + RECARGO_MP_CUOTAS_LARGAS / 100);
+}
+
+export function comisionDoceSuperaElEfectivo(c: MpCobroRecibido): string | null {
+    if (c.medio !== 'credit_card' || c.cuotas !== 12 || c.bruto <= 0) return null;
+    const pct = c.comision / c.bruto;
+    const umbral = umbralComisionDoce();
+    if (pct <= umbral) return null;
+    const f = (x: number) => `${(x * 100).toFixed(1).replace('.', ',')}%`;
+    return `En el cobro de ${pesos(c.bruto)} en 12 cuotas (operación nº ${c.id}) Mercado Pago se quedó el ${f(pct)}. Con el recargo de ${RECARGO_MP_CUOTAS_LARGAS}% que se le cobra al cliente, lo que te deposita queda por DEBAJO del precio en efectivo (el límite es ${f(umbral)}; hasta ahora cobraba 25,2%). Hay que revisar el recargo de 12 cuotas.`;
+}
+
 export async function avisarCobrosNuevos(): Promise<{ revisados: number; avisados: number; motivo?: string }> {
     if (!isMercadoPagoEnabled()) return { revisados: 0, avisados: 0, motivo: 'Mercado Pago sin credenciales' };
     const inicio = await desde();
@@ -97,6 +119,14 @@ export async function avisarCobrosNuevos(): Promise<{ revisados: number; avisado
         if (!(await reservar(c.id))) continue;
         const { titulo, texto } = describirCobro(c);
         avisados++;
+        // ¿El 10% de las 12 cuotas sigue cubriendo al menos el precio en efectivo?
+        const alerta = comisionDoceSuperaElEfectivo(c);
+        if (alerta) {
+            await Promise.allSettled([
+                sendEmail({ to: PRIVATE_ADMIN_EMAILS, subject: '🚨 URGENTE: Mercado Pago subió la comisión de 12 cuotas', text: alerta, html: `<p style="font-size:16px"><strong>URGENTE.</strong> ${alerta}</p>` }),
+                prisma.notification.create({ data: { type: 'MP_COBRO', message: `🚨 ${alerta}`, requestedBy: 'Sistema (Mercado Pago)', status: 'PENDING' }, select: { id: true } }),
+            ]);
+        }
         // Los tres canales por separado: que falle uno no frena a los otros.
         await Promise.allSettled([
             sendEmail({ to: PRIVATE_ADMIN_EMAILS, subject: `💰 ${titulo}`, text: texto, html: `<p style="font-size:16px">${texto}</p>` }),
