@@ -17,11 +17,11 @@ import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
+import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades } from "@/lib/constants/social-proof";
+import { track } from "@/lib/client-analytics";
 import { anteojoCompletoDesde } from "@/lib/anteojo-completo";
 import { precioConSigno } from "@/lib/format-precio";
 import { useOpcionesCristal } from "@/hooks/useOpcionesCristal";
-import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades } from "@/lib/constants/social-proof";
-import { track } from "@/lib/client-analytics";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
 // devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
