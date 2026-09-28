@@ -798,6 +798,32 @@ export async function register() {
             }
         };
 
+        // ---- COBROS DE MERCADO PAGO, cada tick (10 min, las 24 h) ----
+        // Avisa cada cobro nuevo por mail, WhatsApp y la campanita (Ishtar,
+        // 28/9/26). Cada cobro se reserva en la base antes de avisarse, así que
+        // dos instancias a la vez no mandan el aviso dos veces.
+        let cobrosMpRunning = false;
+        const maybeRunCobrosMp = async () => {
+            if (cobrosMpRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            cobrosMpRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/cobros-mercadopago`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(2 * 60 * 1000),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) console.error(`[CRON cobros-mercadopago] HTTP ${res.status}: ${data.error || ''}`);
+                else if (data.avisados) console.log(`[CRON cobros-mercadopago] avisados ${data.avisados} de ${data.revisados}`);
+            } catch (err) {
+                console.error('[CRON cobros-mercadopago] Error (se reintenta):', err);
+            } finally {
+                cobrosMpRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
@@ -818,6 +844,7 @@ export async function register() {
             maybeRunSaldo().catch(err => console.error('[CRON recordatorio-saldo] maybeRunSaldo:', err));
             maybeRunCierreBot().catch(err => console.error('[Vigilante bot] maybeRunCierreBot:', err));
             maybeRunMetaConversiones().catch(err => console.error('[CRON meta-conversiones] maybeRunMetaConversiones:', err));
+            maybeRunCobrosMp().catch(err => console.error('[CRON cobros-mercadopago] maybeRunCobrosMp:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');

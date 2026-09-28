@@ -303,6 +303,69 @@ export async function getMerchantOrderPayments(merchantOrderId: string): Promise
  * webhook puede funcionar en sandbox antes de que la clave esté cargada sin que
  * eso se convierta en una puerta abierta en producción.
  */
+/** Un cobro aprobado de la cuenta, con lo que Mercado Pago se quedó. */
+export interface MpCobroRecibido {
+  id: string;
+  aprobado: string;
+  bruto: number;
+  comision: number;
+  neto: number;
+  cuotas: number;
+  medio: string;
+  tipoOperacion: string;
+  pagador: string | null;
+  descripcion: string | null;
+}
+
+/**
+ * Cobros APROBADOS de la cuenta desde una fecha (los más nuevos primero), para
+ * avisarle a la dueña cada uno (Ishtar, 28/9/2026: Mercado Pago no tiene una
+ * opción para mandar un mail por cada pago). Solo lectura.
+ */
+export async function buscarCobrosAprobados(desde: Date, maxPaginas = 10): Promise<MpCobroRecibido[]> {
+  // De a 50 por página: pidiendo 100 de una vez, MP devolvió 69 de 83 y se
+  // perdieron justo los cobros del posnet (medido el 28/9/2026).
+  const POR_PAGINA = 50;
+  const traidos: any[] = [];
+  for (let pagina = 0; pagina < maxPaginas; pagina++) {
+    const q = new URLSearchParams({
+      range: 'date_approved',
+      begin_date: desde.toISOString(),
+      end_date: new Date().toISOString(),
+      status: 'approved',
+      // Sin sort/criteria a propósito: ordenando por date_approved la búsqueda
+      // devolvió 3 de los 14 cobros del posnet (28/9/2026).
+      limit: String(POR_PAGINA),
+      offset: String(pagina * POR_PAGINA),
+    });
+    const data = await mpFetch(`/v1/payments/search?${q.toString()}`);
+    const lote: any[] = Array.isArray(data?.results) ? data.results : [];
+    traidos.push(...lote);
+    if (lote.length < POR_PAGINA || traidos.length >= Number(data?.paging?.total ?? 0)) break;
+  }
+  // La búsqueda trae también lo que la cuenta PAGÓ (transferencias enviadas,
+  // compras): solo cuentan los cobros donde la cuenta es la que recibe.
+  const yo = await mpFetch('/users/me');
+  const cuenta = String(yo?.id ?? '');
+  const resultados: any[] = traidos.filter((p: any) => cuenta && String(p.collector_id ?? '') === cuenta);
+  return resultados.map((p) => {
+    const comision = (p.fee_details || []).reduce((s: number, f: any) => s + Number(f.amount || 0), 0);
+    const nombre = [p.payer?.first_name, p.payer?.last_name].filter(Boolean).join(' ').trim();
+    return {
+      id: String(p.id),
+      aprobado: p.date_approved,
+      bruto: Number(p.transaction_amount || 0),
+      comision,
+      neto: Number(p.transaction_details?.net_received_amount ?? Number(p.transaction_amount || 0) - comision),
+      cuotas: Number(p.installments || 1),
+      medio: String(p.payment_type_id || ''),
+      tipoOperacion: String(p.operation_type || ''),
+      pagador: nombre || p.payer?.email || null,
+      descripcion: p.description || null,
+    };
+  });
+}
+
 export function verifyWebhookSignature(opts: {
   signatureHeader: string | null;
   requestIdHeader: string | null;
