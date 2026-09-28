@@ -12,7 +12,7 @@
     {
       "type": "cover",
       "role": "portada",
-      "image": "blog/arte-en-foco/01-monalisa.jpg",
+      "image": "blog/ishtar/hermanas-anteojos.jpg",
       "title": "Los anteojos son *auténticas obras de arte*",
       "subtitle": "Manifiesto de Atelier Óptica."
     },
@@ -30,11 +30,13 @@
       "type": "number",
       "dato": "+100",
       "title": "Procesos detrás de cada par",
-      "body": "Casi ninguno se ve. Todos se notan cuando enfocás bien."
+      "body": "Casi ninguno se ve. Todos se notan cuando enfocás bien.",
+      "image": "blog/ishtar/ishtar-hollywood.jpg",
+      "encuadre": "cover"
     },
     {
       "type": "list",
-      "title": "Los que más *nos importan*",
+      "title": "Los procesos que *más nos importan*",
       "items": [
         "El acetato: se corta, se pule y se termina a mano",
         "El metal: se suelda y se ajusta al milímetro",
@@ -44,14 +46,14 @@
     },
     {
       "type": "list",
-      "role": "bisagra",
-      "image": "blog/ishtar/hermanas-anteojos.jpg",
       "title": "Nació en *un papelito*",
       "items": [
         "Lo escribimos con mi hermana Yani, y todavía lo guardamos",
         "Ella sostuvo el primer año, el más difícil",
         "Nacimos en la Galería Gitana. Un día: \"Hermana, levantá el piso, que nos mudamos\""
-      ]
+      ],
+      "image": "blog/ishtar/hermanas-espejo.jpg",
+      "encuadre": "cover"
     },
     {
       "type": "list",
@@ -60,20 +62,25 @@
         "Elegir un armazón es elegir cómo mirás y cómo te miran",
         "No elegimos por tendencia: elegimos por el detalle",
         "Como se elige una obra"
-      ]
+      ],
+      "image": "blog/ishtar/ishtar-miami.jpg",
+      "role": "bisagra"
     },
     {
       "type": "number",
       "dato": "3",
       "title": "Arte, comercio y salud visual",
-      "body": "\"Durante mucho tiempo las viví como mundos separados. Atelier nació el día que entendí que eran el mismo.\" — Ishtar Pissano"
+      "body": "\"Durante mucho tiempo las viví como mundos separados. Atelier nació el día que entendí que eran el mismo.\" — Ishtar Pissano",
+      "image": "blog/ishtar/ishtar-miami-cadillac.jpg",
+      "encuadre": "cover"
     },
     {
       "type": "cta",
       "role": "cierre",
       "image": "blog/arte-en-foco/03-perla.jpg",
       "title": "Tu visión es *nuestra obra maestra*",
-      "body": "Leé el manifiesto completo en el blog. Cerro de las Rosas, sin turno previo."
+      "body": "Leé el manifiesto completo en el blog. Cerro de las Rosas."
     }
-  ]
+  ],
+  "images_waived": "Pedido de Ishtar (28/9/2026): pieza personal del manifiesto, quiere más fotos suyas de viaje que el 60% habitual."
 }
