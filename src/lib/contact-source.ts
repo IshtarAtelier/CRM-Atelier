@@ -56,13 +56,25 @@ const RETIRADOS = ['jemima', 'wave', 'salida'];
 const AUTOMATICOS: readonly ContactSource[] = ['Tienda online'];
 
 /**
+ * Primera opción del desplegable (Ishtar, 28/9/2026). En 9 semanas nadie eligió
+ * "Google Maps": a quien entra al local se lo cargaba como "Calle" aunque nos
+ * hubiera encontrado en Maps, y así no había forma de medir si la campaña de
+ * Maps trae gente. Arriba de todo para que se vea y se pregunte. No queda
+ * elegida sola: los cuatro lugares que la muestran arrancan en "Elegí una
+ * opción…".
+ */
+const PRIMERA_OPCION: ContactSource = 'Google Maps';
+
+/**
  * Lo que ve el staff en el desplegable "Origen / Canal" al cargar una ficha.
  * Es CONTACT_SOURCES menos los automáticos: ofrecerle "Tienda online" a quien
- * atiende el mostrador solo invita a elegir mal.
+ * atiende el mostrador solo invita a elegir mal. El orden de los reportes sigue
+ * siendo el de CONTACT_SOURCES; esto solo cambia lo que se ve primero.
  */
-export const CONTACT_SOURCES_SELECCIONABLES = CONTACT_SOURCES.filter(
-    s => !AUTOMATICOS.includes(s)
-);
+export const CONTACT_SOURCES_SELECCIONABLES: ContactSource[] = [
+    PRIMERA_OPCION,
+    ...CONTACT_SOURCES.filter(s => !AUTOMATICOS.includes(s) && s !== PRIMERA_OPCION),
+];
 
 /** trim + colapso de espacios internos ("visita  showroom " → "visita showroom"). */
 function limpiar(raw: string): string {
