@@ -7,22 +7,22 @@
     "local"
   ],
   "images_waived": "Pedido de Ishtar (28/9/2026): todas las láminas con foto de fondo y degradé transparente, ninguna con fondo liso.",
-  "caption": "Quienes te atienden: Milena y Matías.\n\nEstán en el local todos los días. Los dos tienen una trayectoria muy amplia en óptica, la certificación Essilor Expert y algo que no se enseña: aman lo que hacen.\n\nMilena te toma la receta, te ayuda a elegir el armazón y te explica qué cristal le va a cada uno, sin tecnicismos. Y cuando tu pedido viaja al laboratorio, es ella la que lo sigue uno por uno, para que vuelva exactamente como se pidió.\n\nMatías te acompaña desde el primer mensaje hasta el ajuste final del armazón en tu cara. Muchas de nuestras reseñas lo nombran a él.\n\nSon pacientes, saben muchísimo y analizan cada detalle antes de que haga falta preguntar. Cada compra sale con una confirmación ultra detallada de todo lo que llevás.\n\nConocé al equipo completo: atelieroptica.com.ar/quienes-somos\n\nTe esperamos con café y bombones. Cerro de las Rosas, Córdoba.",
+  "caption": "Quienes te atienden: Milena y Matías, dos profesionales de la óptica de primer nivel.\n\nEstán en el local todos los días. Los dos tienen una trayectoria muy amplia en óptica, la certificación Essilor Expert y algo que no se enseña: aman lo que hacen.\n\nMilena te toma la receta, te ayuda a elegir el armazón y te explica qué cristal le va a cada uno, sin tecnicismos. Y cuando tu pedido viaja al laboratorio, es ella la que lo sigue uno por uno, para que vuelva exactamente como se pidió.\n\nMatías es especialista en multifocales y toma medidas personalizadas avanzadas. Te acompaña desde el primer mensaje hasta el ajuste final del armazón en tu cara. Muchas de nuestras reseñas lo nombran a él.\n\nSon pacientes, saben muchísimo y analizan cada detalle antes de que haga falta preguntar. Cada compra sale con una confirmación ultra detallada de todo lo que llevás.\n\nConocé al equipo completo: atelieroptica.com.ar/quienes-somos\n\nTe esperamos con café y bombones. Cerro de las Rosas, Córdoba.",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
       "image": "equipo/milena-y-matias.jpg",
       "title": "Quienes *te atienden*",
-      "subtitle": "Milena y Matías, todos los días en el local."
+      "subtitle": "Milena y Matías: profesionales de la óptica, todos los días en el local."
     },
     {
       "type": "list",
       "image": "equipo/equipo-mostrador-vertical.jpg",
-      "title": "Milena y *Matías*",
+      "title": "Dos *profesionales* de primer nivel",
       "items": [
-        "Una trayectoria muy amplia en óptica",
-        "Los dos con la certificación Essilor Expert",
+        "Profesionales con una trayectoria muy amplia en óptica",
+        "Los dos certificados como Essilor Expert",
         "Y algo que no se enseña: aman lo que hacen"
       ]
     },
@@ -31,6 +31,7 @@
       "image": "equipo/retrato-mostrador.jpg",
       "title": "*Milena*",
       "items": [
+        "Profesional certificada Essilor Expert",
         "Te toma la receta y te ayuda a elegir el armazón",
         "Te explica qué cristal le va a cada uno, sin tecnicismos",
         "Sigue uno por uno los pedidos al laboratorio, para que vuelvan exactamente como se pidieron"
@@ -41,6 +42,7 @@
       "image": "equipo/retrato-guardapolvo.jpg",
       "title": "*Matías*",
       "items": [
+        "Especialista en multifocales, con medidas personalizadas avanzadas",
         "Te acompaña desde el primer mensaje hasta el ajuste final",
         "Explica cada paso con paciencia, el tiempo que haga falta",
         "Muchas de nuestras reseñas lo nombran a él"
