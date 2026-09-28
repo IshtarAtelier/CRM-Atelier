@@ -12,7 +12,7 @@ import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 import FileDropZone from '@/components/ui/FileDropZone';
 import type { CashMovement } from '@/types/orders';
 import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
-import { MERCADO_PAGO_ISH_METHODS } from '@/lib/constants';
+import { MERCADO_PAGO_ISH_METHODS, MERCADO_PAGO_YANI_METHODS } from '@/lib/constants';
 import { isCardMethod, type CardMode } from '@/lib/payment-card';
 
 // ── Types ─────────────────────────────────────
@@ -76,6 +76,9 @@ const ALL_METHODS: Record<string, { label: string; icon: any; color: string; lig
     'MERCADO_PAGO_3_ISH': { label: 'MP 3 Ish', icon: CreditCard, color: 'bg-sky-500', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-500' },
     'MERCADO_PAGO_6_ISH': { label: 'MP 6 Ish', icon: CreditCard, color: 'bg-sky-500', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-500' },
     'MERCADO_PAGO_12_ISH': { label: 'MP 12 Ish (+10%)', icon: CreditCard, color: 'bg-sky-600', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-600' },
+    'MERCADO_PAGO_3_YANI': { label: 'MP 3 Yani', icon: CreditCard, color: 'bg-cyan-600', lightBg: 'bg-cyan-50 dark:bg-cyan-950', textColor: 'text-cyan-700' },
+    'MERCADO_PAGO_6_YANI': { label: 'MP 6 Yani', icon: CreditCard, color: 'bg-cyan-600', lightBg: 'bg-cyan-50 dark:bg-cyan-950', textColor: 'text-cyan-700' },
+    'MERCADO_PAGO_12_YANI': { label: 'MP 12 Yani (+10%)', icon: CreditCard, color: 'bg-cyan-700', lightBg: 'bg-cyan-50 dark:bg-cyan-950', textColor: 'text-cyan-700' },
     // MERCADO_PAGO_18_ISH retirado el 27/8/26 — si hubiera un cobro histórico, getMethodInfo lo muestra con el fallback genérico.
 };
 
@@ -99,7 +102,7 @@ const FILTER_GROUPS = [
         lightBg: 'bg-indigo-50 dark:bg-indigo-950',
         textColor: 'text-indigo-500',
         borderColor: 'border-indigo-200 dark:border-indigo-800',
-        methods: ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI'],
+        methods: ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI', ...MERCADO_PAGO_YANI_METHODS],
     },
     {
         id: 'TRANSFERENCIAS',

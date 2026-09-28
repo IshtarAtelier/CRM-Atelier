@@ -62,9 +62,17 @@ const COLOR_STYLES: Record<string, { active: string; inactive: string; iconActiv
     }
 };
 
+/**
+ * Formas de pago agrupadas POR CUENTA, cada grupo con su título (Ishtar,
+ * 28/9/2026: "hay muchas formas de pago, que quede bien y sea fácil de usar").
+ * Antes eran 14 botones seguidos sin título y con letra de 9px; con Mercado
+ * Pago Yani iban a ser 17. El título dice de quién es la cuenta, así el botón
+ * solo dice las cuotas. Los ids no cambian: son los que se guardan en Payment.
+ */
 const PAYMENT_GROUPS = [
     {
         id: 'principales',
+        titulo: 'Efectivo y transferencias',
         items: [
             { id: 'EFECTIVO', label: 'Efectivo', icon: Banknote, color: 'emerald' },
             { id: 'TRANSFERENCIA_LUCIA', label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'violet' },
@@ -72,32 +80,44 @@ const PAYMENT_GROUPS = [
         ]
     },
     {
-        // Mercado Pago Ishtar: 3/6 sin interés (lista); 12 con costo financiero
-        // fijo del 10% — el cliente paga lista × 1,10 y el saldo divide por 1,10
-        // (PricingService). La etiqueta lo aclara SIEMPRE. El 18 se retiró el
-        // 27/8/26 por decisión de Ishtar (reevaluar más adelante).
+        // Mercado Pago (las dos cuentas): 3/6 sin interés (lista); 12 con costo
+        // financiero fijo del 10% — el cliente paga lista × 1,10 y el saldo divide
+        // por 1,10 (PricingService). La etiqueta lo aclara SIEMPRE. El 18 se
+        // retiró el 27/8/26 por decisión de Ishtar (reevaluar más adelante).
         id: 'mercadopago',
+        titulo: 'Mercado Pago · Ishtar',
         items: [
-            { id: 'MERCADO_PAGO_3_ISH', label: 'MP 3 Ish', icon: CreditCard, color: 'sky' },
-            { id: 'MERCADO_PAGO_6_ISH', label: 'MP 6 Ish', icon: CreditCard, color: 'sky' },
-            { id: 'MERCADO_PAGO_12_ISH', label: 'MP 12 Ish (+10%)', icon: CreditCard, color: 'sky' },
+            { id: 'MERCADO_PAGO_3_ISH', label: '3 cuotas', icon: CreditCard, color: 'sky' },
+            { id: 'MERCADO_PAGO_6_ISH', label: '6 cuotas', icon: CreditCard, color: 'sky' },
+            { id: 'MERCADO_PAGO_12_ISH', label: '12 cuotas (+10%)', icon: CreditCard, color: 'sky' },
+        ]
+    },
+    {
+        id: 'mercadopago-yani',
+        titulo: 'Mercado Pago · Yani',
+        items: [
+            { id: 'MERCADO_PAGO_3_YANI', label: '3 cuotas', icon: CreditCard, color: 'sky' },
+            { id: 'MERCADO_PAGO_6_YANI', label: '6 cuotas', icon: CreditCard, color: 'sky' },
+            { id: 'MERCADO_PAGO_12_YANI', label: '12 cuotas (+10%)', icon: CreditCard, color: 'sky' },
         ]
     },
     {
         id: 'ish',
+        titulo: 'Tarjetas · Ishtar',
         items: [
-            { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'rose' },
-            { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'rose' },
-            { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'rose' },
-            { id: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'rose' },
+            { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3', icon: CreditCard, color: 'rose' },
+            { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6', icon: CreditCard, color: 'rose' },
+            { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas', icon: CreditCard, color: 'rose' },
+            { id: 'NARANJA_Z_ISH', label: 'Naranja Z', icon: CreditCard, color: 'rose' },
         ]
     },
     {
         id: 'yani',
+        titulo: 'Tarjetas · Yani',
         items: [
-            { id: 'PAY_WAY_3_YANI', label: 'Pay Way 3 Yani', icon: CreditCard, color: 'orange' },
-            { id: 'PAY_WAY_6_YANI', label: 'Pay Way 6 Yani', icon: CreditCard, color: 'orange' },
-            { id: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'orange' },
+            { id: 'PAY_WAY_3_YANI', label: 'Pay Way 3', icon: CreditCard, color: 'orange' },
+            { id: 'PAY_WAY_6_YANI', label: 'Pay Way 6', icon: CreditCard, color: 'orange' },
+            { id: 'NARANJA_Z_YANI', label: 'Naranja Z', icon: CreditCard, color: 'orange' },
         ]
     },
     {
@@ -106,6 +126,7 @@ const PAYMENT_GROUPS = [
         // a un empleado—. Obliga a ESCRIBIR cuál fue: un "otro" sin explicación
         // es un agujero en la caja que después nadie puede reconstruir.
         id: 'especial',
+        titulo: 'Otra',
         items: [
             { id: METODO_ESPECIAL, label: 'Otra forma de pago', icon: Sparkles, color: 'stone' },
         ]
@@ -386,9 +407,11 @@ export default function AddPaymentModal({
                         <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
                             Método de Pago
                         </label>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {PAYMENT_GROUPS.map((group) => (
-                                <div key={group.id} className={`grid gap-3 ${group.items.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
+                                <fieldset key={group.id} className="space-y-2">
+                                <legend className="text-xs font-bold text-stone-600 dark:text-stone-300 pl-1 mb-2">{group.titulo}</legend>
+                                <div className={`grid gap-2 ${group.items.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : group.items.length === 1 ? 'grid-cols-1' : 'grid-cols-3'}`}>
                                     {group.items.map((m) => {
                                         const Icon = m.icon;
                                         const isSelected = method === m.id;
@@ -404,16 +427,19 @@ export default function AddPaymentModal({
                                                     // con nº de operación — nunca ticket de posnet.
                                                     if (m.id.includes('MERCADO_PAGO')) setCardMode('LINK');
                                                 }}
-                                                className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all gap-2 ${
+                                                aria-pressed={isSelected}
+                                                aria-label={`${group.titulo}: ${m.label}`}
+                                                className={`flex items-center justify-center min-h-[48px] px-3 py-2.5 rounded-xl border-2 transition-all gap-2 ${
                                                     isSelected ? style.active : style.inactive
                                                 }`}
                                             >
-                                                <Icon className={`w-5 h-5 ${isSelected ? style.iconActive : style.iconInactive}`} />
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-center">{m.label}</span>
+                                                <Icon className={`w-4 h-4 shrink-0 ${isSelected ? style.iconActive : style.iconInactive}`} />
+                                                <span className="text-xs font-bold text-center leading-tight">{m.label}</span>
                                             </button>
                                         );
                                     })}
                                 </div>
+                                </fieldset>
                             ))}
                         </div>
                     </div>
