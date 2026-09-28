@@ -134,6 +134,7 @@ INSTRUCCIONES:
    - "Google Ads": SOLO si el cliente menciona haber visto un ANUNCIO en Google, o si la primera línea es exactamente "Hola! Vi su anuncio en Google y quiero recibir más información." Encontrarnos por Google o por Maps NO es "Google Ads".
    - "Google Maps": Si el cliente menciona que los encontró por Maps / Google Maps, o que los buscó o encontró en Google SIN mencionar un anuncio.
    - "Meta": Si el cliente menciona que vio un anuncio en Instagram o Facebook, o si hay un tag en corchetes que empiece con "meta" o "Meta" (ej: [metaFlor], [MetaAgos], [metaSofi], [metacursi], etc.).
+   - "IA": Si el cliente menciona que los encontró o se los recomendó una inteligencia artificial (ChatGPT, Gemini, Copilot, Perplexity, "la IA", etc.).
    - "Referido": Si menciona que alguien lo recomendó, un amigo, conocido o familiar.
    - "Calle": Si dice que vio el local al pasar o pasó por la puerta.
    - "Ya es Cliente": Si se identifica como cliente existente.
@@ -211,7 +212,9 @@ INSTRUCCIONES:
             // inversión. 'Google Ads' solo sale de la señal determinística
             // del template del anuncio (deterministicSource, más arriba).
             const text = firstInbound.content.toLowerCase();
-            if (text.includes('maps')) {
+            if (/chat ?gpt|gemini|copilot|perplexity|inteligencia artificial|\bla ia\b/.test(text)) {
+                sourceNorm = 'IA';
+            } else if (text.includes('maps')) {
                 sourceNorm = 'Google Maps';
             } else if (text.includes('google') || text.includes('búsqueda') || text.includes('busqueda')) {
                 sourceNorm = 'Google Maps';

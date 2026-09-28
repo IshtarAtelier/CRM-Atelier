@@ -151,6 +151,9 @@ async function detectContactSourceFromChat(chatId) {
     // 'Google Ads' y sumaba a la plata de Google gente que buscó sola. Mismo
     // criterio que el extractor del CRM. Desde el 28/9/26 buscar en Google y
     // encontrarnos en Maps son lo mismo: "Google Maps".
+    // Nos encontró una IA (ChatGPT, Gemini…): va antes que Google porque
+    // "Gemini de Google" no es haber buscado en Google.
+    if (/chat ?gpt|gemini|copilot|perplexity|inteligencia artificial|\bla ia\b/.test(text)) return 'IA';
     if (text.includes('maps') || text.includes('google') || text.includes('busqueda') || text.includes('búsqueda')) {
         return 'Google Maps';
     }

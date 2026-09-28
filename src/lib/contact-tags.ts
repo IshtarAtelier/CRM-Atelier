@@ -70,6 +70,7 @@ export const TAG_POR_CANAL: Record<ContactSource, EtiquetaAdministrada> = {
     'Meta': { name: 'Meta Ads', color: '#C2185B' },                  // 5,87:1  ← nombre histórico
     // Presencial y boca a boca: tierra.
     'Calle': { name: 'Calle', color: '#92400E' },                    // 7,09:1
+    'IA': { name: 'IA', color: '#4338CA' },                          // 7,90:1
     'Referido': { name: 'Referido', color: '#B45309' },              // 5,02:1
     // Propios: la base y la tienda.
     'Ya es Cliente': { name: 'Ya es cliente', color: '#15803D' },    // 5,02:1  ← nombre histórico

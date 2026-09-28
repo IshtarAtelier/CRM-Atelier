@@ -33,6 +33,9 @@ export const CONTACT_SOURCES = [
     'Google Ads',
     'Google Maps',
     'Meta',
+    // Nos encontró preguntándole a una IA (ChatGPT, Gemini…). Pedido de Ishtar
+    // (28/9/2026): varios clientes lo cuentan y no tenía dónde cargarse.
+    'IA',
     'Calle',
     'Ya es Cliente',
     'Tienda online',
@@ -102,6 +105,16 @@ const VARIANTES: Record<string, ContactSource> = {
     // Maps y la búsqueda genérica en Google NO son pauta: los dos son "Google Maps".
     'maps': 'Google Maps',
     'google': 'Google Maps',
+    // Asistentes de IA: no son pauta ni búsqueda en Google.
+    'ia': 'IA',
+    'inteligencia artificial': 'IA',
+    'chatgpt': 'IA',
+    'chat gpt': 'IA',
+    'gpt': 'IA',
+    'gemini': 'IA',
+    'perplexity': 'IA',
+    'copilot': 'IA',
+    'claude': 'IA',
     'google organico': 'Google Maps',
     'google orgánico': 'Google Maps',
     'busqueda': 'Google Maps',
