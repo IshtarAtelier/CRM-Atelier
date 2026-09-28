@@ -71,6 +71,8 @@ import {
     parseTipoComprobante,
     plataformaDelMetodo,
     plataformaImpresa,
+    cuentaDelComprobante,
+    cuentaDelMetodo,
     type ReceiptReading
 } from '@/lib/receipt-references';
 import { cardVoucherKey } from '@/lib/payment-card';
@@ -145,7 +147,9 @@ export class ReceiptAgentService {
                 couponNumber: texto(parsed.coupon_number),
                 authNumber: texto(parsed.auth_number),
                 tipo: parseTipoComprobante(parsed.comprobante_tipo),
-                plataforma: texto(parsed.plataforma)
+                plataforma: texto(parsed.plataforma),
+                titular: texto(parsed.titular),
+                cuits: Array.isArray(parsed.cuits) ? parsed.cuits.map((c: unknown) => String(c)).filter(Boolean) : [],
             };
         } catch (e) {
             console.error(`[ReceiptAgent] No se pudo parsear el JSON del lector ${role}:`, e, text);
@@ -359,7 +363,9 @@ export class ReceiptAgentService {
                         admin: `El pago se cargó como TRANSFERENCIA pero el comprobante es ${visto}.`,
                         vendor: `Este pago figura como transferencia y el comprobante es ${visto}. ¿Revisan cuál corresponde?`
                     });
-                } else if (isCardTerminal && tipoLeido !== 'TICKET_TARJETA') {
+                } else if (isCardTerminal && !method.toUpperCase().includes('MERCADO_PAGO') && tipoLeido !== 'TICKET_TARJETA') {
+                    // Mercado Pago queda afuera: por link o QR el comprobante es
+                    // digital, no un ticket de posnet, y acusaría en falso.
                     findings.push({
                         admin: `El pago se cargó con tarjeta (${method}) pero el comprobante es ${visto}.`,
                         vendor: `Este pago figura con tarjeta y el comprobante es ${visto}. ¿Revisan cuál corresponde?`
@@ -377,6 +383,27 @@ export class ReceiptAgentService {
                 findings.push({
                     admin: `Medio de pago distinto: se cargó ${plataformaEsperada} (${method}) y el comprobante es de ${plataformaDelTicket}. Revisar el método del pago — la comisión y el tope del posnet dependen de cuál sea.`,
                     vendor: `El pago está cargado como ${plataformaEsperada} pero el ticket es de ${plataformaDelTicket}. ¿Lo corrigen al método que corresponde?`
+                });
+            }
+
+            // B ter) ¿La CUENTA del comprobante es la del método? (Ishtar, 28/9/26:
+            // "que sepa reconocer cada uno de los CUIT de Yani y mío"). Un cobro por
+            // el Mercado Pago de Yani cargado como MP Ishtar tiene todo bien menos
+            // esto, y factura por el CUIT equivocado. Se decide por los CUIT
+            // configurados y por el nombre del titular que leyeron LOS DOS lectores.
+            const cuentaEsperada = cuentaDelMetodo(method);
+            const cuentaImpresa = cuentaDelComprobante(extracted, {
+                ISH: getBillingAccountConfig('ISH').cuit || null,
+                YANI: getBillingAccountConfig('YANI').cuit || null,
+            });
+            if (cuentaEsperada && cuentaImpresa && cuentaEsperada !== cuentaImpresa) {
+                const nombre = (c: 'ISH' | 'YANI') => (c === 'ISH' ? 'Ishtar' : 'Yani');
+                // Lo que se vio, citado: el control final lo tiene que poder
+                // confirmar mirando el comprobante.
+                const visto = [extracted.titular && `titular "${extracted.titular}"`, extracted.cuits?.length ? `CUIT ${extracted.cuits.join(' / ')}` : extracted.cuit && `CUIT ${extracted.cuit}`].filter(Boolean).join(', ');
+                findings.push({
+                    admin: `Cuenta distinta: el pago se cargó a la cuenta de ${nombre(cuentaEsperada)} (${method}) y el comprobante es de la cuenta de ${nombre(cuentaImpresa)}${visto ? ` (figura ${visto})` : ''}. Revisar el método: la factura sale por el CUIT de la cuenta elegida.`,
+                    vendor: `El pago está cargado en la cuenta de ${nombre(cuentaEsperada)}, pero el comprobante es de la cuenta de ${nombre(cuentaImpresa)}. ¿Lo corrigen al método de ${nombre(cuentaImpresa)}?`
                 });
             }
 

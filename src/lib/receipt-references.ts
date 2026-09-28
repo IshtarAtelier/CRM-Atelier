@@ -29,6 +29,49 @@ export interface ReceiptReading {
     tipo: TipoComprobante | null;
     /** La marca impresa en el comprobante (MERCADO PAGO, PAY WAY, un banco…). */
     plataforma: string | null;
+    /** A nombre de quién está la cuenta que COBRÓ (titular, comercio o destinatario). */
+    titular?: string | null;
+    /** Todos los CUIT/CUIL impresos en el comprobante, solo dígitos. */
+    cuits?: string[];
+}
+
+export type CuentaDeCobro = 'ISH' | 'YANI';
+
+/**
+ * De quién es la cuenta que cobró, según lo IMPRESO en el comprobante (pedido
+ * de Ishtar, 28/9/2026: "que sepa reconocer cada uno de los CUIT de Yani y mío
+ * así corrobora que la forma de pago está bien seleccionada").
+ *
+ * Primero por CUIT (cualquiera de los impresos), después por el nombre del
+ * titular. El apellido es el mismo en las dos cuentas, así que el nombre solo
+ * decide por el NOMBRE de pila. Si aparecen las dos, o ninguna, devuelve null:
+ * sin certeza no se reclama nada.
+ */
+export function cuentaDelComprobante(
+    lectura: Pick<ReceiptReading, 'cuit' | 'cuits' | 'titular'>,
+    cuits: { ISH: string | number | null; YANI: string | number | null },
+): CuentaDeCobro | null {
+    const ish = digitsOnly(String(cuits.ISH ?? ''));
+    const yani = digitsOnly(String(cuits.YANI ?? ''));
+    const impresos = [lectura.cuit, ...(lectura.cuits ?? [])].filter(Boolean).map((c) => digitsOnly(String(c)));
+    const porCuitIsh = ish.length === 11 && impresos.some((c) => c.includes(ish));
+    const porCuitYani = yani.length === 11 && impresos.some((c) => c.includes(yani));
+    if (porCuitIsh !== porCuitYani) return porCuitIsh ? 'ISH' : 'YANI';
+    if (porCuitIsh && porCuitYani) return null;
+
+    const nombre = (lectura.titular || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const esIsh = /\bishtar\b/.test(nombre);
+    const esYani = /\byan(i|ina)\b/.test(nombre);
+    if (esIsh !== esYani) return esIsh ? 'ISH' : 'YANI';
+    return null;
+}
+
+/** De quién es la cuenta del MÉTODO cargado. null = el método no dice (efectivo, Lucía…). */
+export function cuentaDelMetodo(method: string): CuentaDeCobro | null {
+    const m = (method || '').toUpperCase();
+    if (m.endsWith('_YANI')) return 'YANI';
+    if (m.endsWith('_ISH') || m === 'TRANSFERENCIA_ISHTAR') return 'ISH';
+    return null;
 }
 
 /**
@@ -294,7 +337,7 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
     if (!supervisor) {
         disagreements.push('El segundo lector OCR no pudo leer el comprobante: se revisó con una sola lectura y no se le reclamó nada a nadie.');
         return {
-            values: { amount: null, amountRaw: null, cuit: null, date: null, dateRaw: null, ids, batchNumber: null, couponNumber: null, authNumber: null, tipo: null, plataforma: null },
+            values: { amount: null, amountRaw: null, cuit: null, date: null, dateRaw: null, ids, batchNumber: null, couponNumber: null, authNumber: null, tipo: null, plataforma: null, titular: null, cuits: [] as string[] },
             disagreements,
             bothListedIds: false
         };
@@ -363,6 +406,15 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
             // DOS lectores vieron lo mismo: sobre esto se le reclama a una
             // persona que cargó mal el método, así que no se adivina.
             tipo: primary.tipo && supervisor.tipo && primary.tipo === supervisor.tipo ? primary.tipo : null,
+            // La cuenta (Ishtar o Yani) se decide en el service con los CUIT
+            // configurados; acá se cruzan los datos crudos: titular solo si los
+            // dos lo leyeron igual, CUITs solo los que leyeron los dos.
+            titular: (() => {
+                const n = (s?: string | null) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+                const a = n(primary.titular), b = n(supervisor.titular);
+                return a && b && a === b ? primary.titular ?? null : null;
+            })(),
+            cuits: (primary.cuits ?? []).map(digitsOnly).filter((c) => c && (supervisor.cuits ?? []).map(digitsOnly).includes(c)),
             plataforma: (() => {
                 const a = plataformaImpresa(primary.plataforma);
                 const b = plataformaImpresa(supervisor.plataforma);
@@ -386,7 +438,11 @@ const CAMPOS_JSON = `{
   "reference_ids": ["TODOS los identificadores que figuran en el comprobante, uno por elemento, transcriptos tal cual: número de operación, código de identificación, número de comprobante, ID de transacción, número de lote, número de cupón y número/código de autorización. Un mismo comprobante suele traer DOS o MÁS y hay que listarlos todos. NO incluyas CBU, CVU, alias, CUIT/CUIL, número de establecimiento o terminal, número de serie del posnet (SMARTPOS...), el AID de la tarjeta (empieza con A0000000 y es igual en todos los tickets de la misma marca), el DNI del titular aunque esté escrito a mano, importes, fechas ni números de tarjeta. Si no hay ninguno, []"],
   "batch_number": "si es un ticket de posnet, el Nro. de lote transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"011\\"). Si no aparece, null",
   "coupon_number": "si es un ticket de posnet, el Nro. de cupón transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"0172\\"). Si no aparece, null",
-  "auth_number": "si es un ticket de posnet, el Nro. de autorización transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"007956\\"). Si no aparece, null"
+  "auth_number": "si es un ticket de posnet, el Nro. de autorización transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"007956\\"). Si no aparece, null",
+  "comprobante_tipo": "qué clase de comprobante es, una sola de estas palabras: MANUSCRITO (recibo escrito a mano), TRANSFERENCIA (comprobante de transferencia de un banco o billetera), TICKET_TARJETA (ticket de una terminal o posnet de tarjeta, o comprobante de un cobro con tarjeta) u OTRO. Si no estás seguro, OTRO",
+  "plataforma": "la marca de la plataforma de cobro impresa en el comprobante, tal cual (por ejemplo 'Mercado Pago', 'Payway', 'Naranja', 'Go Cuotas' o el nombre del banco). OJO: 'PAYWAVE' al pie de un ticket de Visa NO es una plataforma, es el pago sin contacto de Visa. Si no aparece, null",
+  "titular": "el nombre de la persona o comercio que COBRÓ (el titular de la cuenta que recibe la plata, el comercio del ticket o el destinatario de la transferencia), tal como está impreso. No el de quien pagó. Si no aparece, null",
+  "cuits": ["TODOS los CUIT o CUIL impresos en el comprobante, solo dígitos, uno por elemento. Si no hay ninguno, []"]
 }`;
 
 /**
