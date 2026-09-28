@@ -3,8 +3,11 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "marca",
-  "caption": "Los anteojos son auténticas obras de arte.\n\nDetrás de cada par hay más de cien procesos que no se ven: el acetato que se corta, se pule y se termina a mano; el metal que se suelda y se ajusta al milímetro; el cristal que se talla y se calibra al eje exacto de tu mirada. Y el último, el que casi nadie ve: sentarte, mirarte y ajustar el anteojo hasta que es tuyo.\n\nPor eso en Atelier no elegimos por tendencia. Elegimos cada pieza como se elige una obra: por el detalle.\n\n\"El arte me enseñó a mirar el detalle. El comercio, que una cosa hermosa que no llega a nadie no sirve. Y la salud visual, que esto no es sobre objetos: es sobre personas que quieren ver bien y verse bien.\"\n— Ishtar Pissano, creadora de Atelier Óptica\n\nEl manifiesto completo está en nuestro blog: atelieroptica.com.ar/blog/anteojos-obras-de-arte\n\nTu visión es nuestra obra maestra. Cerro de las Rosas, sin turno previo.",
-  "temas": ["armazones", "local"],
+  "caption": "Los anteojos son auténticas obras de arte.\n\nAtelier nació de tres cosas que durante mucho tiempo viví como mundos separados: el arte, el comercio y la salud visual. Estudié escultura, grabado y pintura. Hace doce años me recibí de óptica contactóloga. Y en cada viaje entré a ópticas del mundo y me traje partecitas de todas.\n\nUn día lo escribimos con mi hermana Yani en un papelito que todavía guardamos. Ella sostuvo el primer año, el más difícil. Nacimos en la Galería Gitana, y un día le dije: \"Hermana, levantá el piso, que nos mudamos\".\n\nHoy cada anteojo que elegimos pasa por más de cien procesos que no se ven: el acetato que se pule a mano, el metal que se ajusta al milímetro, el cristal que se calibra al eje de tu mirada, y el último ajuste, el que lo vuelve tuyo.\n\n— Ishtar Pissano, creadora de Atelier Óptica\n\nEl manifiesto completo está en nuestro blog: atelieroptica.com.ar/blog/anteojos-obras-de-arte\n\nTu visión es nuestra obra maestra. Cerro de las Rosas, sin turno previo.",
+  "temas": [
+    "armazones",
+    "local"
+  ],
   "slides": [
     {
       "type": "cover",
@@ -12,6 +15,16 @@
       "image": "blog/arte-en-foco/01-monalisa.jpg",
       "title": "Los anteojos son *auténticas obras de arte*",
       "subtitle": "Manifiesto de Atelier Óptica."
+    },
+    {
+      "type": "list",
+      "image": "blog/ishtar/ishtar-gucci.jpg",
+      "title": "Detrás de Atelier *hay una historia*",
+      "items": [
+        "Estudié arte: escultura, grabado y pintura",
+        "Hace doce años me recibí de óptica contactóloga",
+        "En cada viaje entré a ópticas del mundo y me traje partecitas de todas"
+      ]
     },
     {
       "type": "number",
@@ -32,7 +45,16 @@
     {
       "type": "list",
       "role": "bisagra",
-      "image": "blog/arte-en-foco/02-venus.jpg",
+      "image": "blog/ishtar/hermanas-anteojos.jpg",
+      "title": "Nació en *un papelito*",
+      "items": [
+        "Lo escribimos con mi hermana Yani, y todavía lo guardamos",
+        "Ella sostuvo el primer año, el más difícil",
+        "Nacimos en la Galería Gitana. Un día: \"Hermana, levantá el piso, que nos mudamos\""
+      ]
+    },
+    {
+      "type": "list",
       "title": "Cada anteojo es *una forma de ver el mundo*",
       "items": [
         "Elegir un armazón es elegir cómo mirás y cómo te miran",
