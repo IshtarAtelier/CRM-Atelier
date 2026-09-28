@@ -107,6 +107,31 @@ export function comisionDoceSuperaElEfectivo(c: MpCobroRecibido): string | null 
     return `En el cobro de ${pesos(c.bruto)} en 12 cuotas (operación nº ${c.id}) Mercado Pago se quedó el ${f(pct)}. Con el recargo de ${RECARGO_MP_CUOTAS_LARGAS}% que se le cobra al cliente, lo que te deposita queda por DEBAJO del precio en efectivo (el límite es ${f(umbral)}; hasta ahora cobraba 25,2%). Hay que revisar el recargo de 12 cuotas.`;
 }
 
+const PREFIJO_COMISION = 'mp_comision_vista:';
+/** Diferencia mínima (en puntos) para considerar que la comisión cambió: descarta redondeos. */
+const TOLERANCIA_PUNTOS = 0.3;
+
+/**
+ * Compara la comisión de este cobro con la última vista para las mismas cuotas
+ * y la guarda. Devuelve el texto del aviso si cambió. Solo tarjeta de crédito:
+ * ahí es donde la comisión depende de las cuotas. El primer cobro de cada
+ * cantidad de cuotas solo anota la referencia.
+ */
+async function cambioDeComision(c: MpCobroRecibido): Promise<string | null> {
+    if (c.medio !== 'credit_card' || c.bruto <= 0) return null;
+    const pct = (100 * c.comision) / c.bruto;
+    // Por canal y cuotas: en 3 cuotas el posnet cobra 8,1% y el link 10,1%.
+    const clave = `${PREFIJO_COMISION}${c.tipoOperacion}:${c.cuotas}`;
+    const fila = await prisma.systemSetting.findUnique({ where: { key: clave }, select: { value: true } });
+    await prisma.systemSetting.upsert({ where: { key: clave }, update: { value: String(pct) }, create: { key: clave, value: String(pct) }, select: { key: true } });
+    if (!fila) return null;
+    const antes = Number(fila.value);
+    if (!Number.isFinite(antes) || Math.abs(pct - antes) < TOLERANCIA_PUNTOS) return null;
+    const f = (x: number) => `${x.toFixed(2).replace('.', ',')}%`;
+    const cuotas = `${c.cuotas === 1 ? 'un pago' : `${c.cuotas} cuotas`}${ORIGEN[c.tipoOperacion] ? ` (${ORIGEN[c.tipoOperacion]})` : ''}`;
+    return `Mercado Pago cambió la comisión de ${cuotas}: antes se quedaba el ${f(antes)} y en el cobro de ${pesos(c.bruto)} (operación nº ${c.id}) se quedó el ${f(pct)}. ${pct > antes ? 'Subió' : 'Bajó'} ${f(Math.abs(pct - antes))}.${c.cuotas === 12 ? ` En 12 cuotas el límite para no quedar por debajo del efectivo es ${f(100 * umbralComisionDoce())}.` : ''}`;
+}
+
 export async function avisarCobrosNuevos(): Promise<{ revisados: number; avisados: number; motivo?: string }> {
     if (!isMercadoPagoEnabled()) return { revisados: 0, avisados: 0, motivo: 'Mercado Pago sin credenciales' };
     const inicio = await desde();
@@ -119,6 +144,15 @@ export async function avisarCobrosNuevos(): Promise<{ revisados: number; avisado
         if (!(await reservar(c.id))) continue;
         const { titulo, texto } = describirCobro(c);
         avisados++;
+        // ¿Cambió la comisión de Mercado Pago para estas cuotas? (Ishtar, 28/9:
+        // "apenas cambie que avise").
+        const cambio = await cambioDeComision(c);
+        if (cambio) {
+            await Promise.allSettled([
+                sendEmail({ to: PRIVATE_ADMIN_EMAILS, subject: `⚠️ Mercado Pago cambió la comisión de ${c.cuotas === 1 ? '1 pago' : `${c.cuotas} cuotas`}`, text: cambio, html: `<p style="font-size:16px">${cambio}</p>` }),
+                prisma.notification.create({ data: { type: 'MP_COBRO', message: `⚠️ ${cambio}`, requestedBy: 'Sistema (Mercado Pago)', status: 'PENDING' }, select: { id: true } }),
+            ]);
+        }
         // ¿El 10% de las 12 cuotas sigue cubriendo al menos el precio en efectivo?
         const alerta = comisionDoceSuperaElEfectivo(c);
         if (alerta) {
