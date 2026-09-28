@@ -26,6 +26,7 @@
     "check:crons": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/crons-solo-produccion.check.mjs",
     "check:interno": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/trafico-interno.check.mjs",
     "check:businessinfo": "node --experimental-strip-types scripts/checks/business-info-paridad.check.mjs",
+    "check:arrepentimiento": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/arrepentimiento.check.mjs",
     "check:garantia": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/garantia-en-confirmacion.check.mjs",
     "check:receta": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/tipo-de-lente.check.mjs",
     "check:contrato-bot": "node scripts/checks/contrato-tools-bot.check.mjs",

@@ -97,6 +97,7 @@ jobs:
           npm run check:color-lente
           npm run check:facetas
           npm run check:ficha
+          npm run check:arrepentimiento
           npm run check:par-bonificado
           npm run check:go-lineas
           npm run check:lab-modulos
