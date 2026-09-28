@@ -114,3 +114,100 @@ export async function avisarCobrosNuevos(): Promise<{ revisados: number; avisado
     }
     return { revisados: cobros.length, avisados };
 }
+
+// ── Alerta URGENTE: cobro en 12 cuotas cargado de otra forma ────────────────
+//
+// Pedido de Ishtar (28/9/2026, caso Cecilia Olmos): en 12 cuotas el cliente
+// paga lista × 1,10 (RECARGO_MP_CUOTAS_LARGAS). Si el cobro se hizo en 12 y en
+// el CRM quedó como 3, 6, Pay Way o cualquier otra cosa, el saldo de la venta
+// queda MAL: no se ve que faltó cobrar el 10%. 3 contra 6 no importa (las dos
+// van a precio de lista), así que la alerta es solo por las 12.
+
+const CLAVE_CUOTAS_DESDE = 'mp_cuotas_control_desde';
+const PREFIJO_CUOTAS = 'mp_cuotas_alertado:';
+/** Hasta cuántos días después del cobro se espera que alguien lo cargue en el CRM. */
+const DIAS_PARA_CARGAR = 14;
+
+/** Cuotas del método cargado: "MERCADO_PAGO_12_ISH" → 12. null si el método no dice. */
+export function cuotasDelMetodo(method: string): number | null {
+    const m = (method || '').toUpperCase().match(/_(\d{1,2})(_|$)/);
+    return m ? Number(m[1]) : null;
+}
+
+/** ¿Hay que alertar? Solo cuando uno de los dos lados es 12 y el otro no. */
+export function cuotasMalCargadas(cuotasMp: number, method: string): boolean {
+    const crm = cuotasDelMetodo(method);
+    const es12 = (n: number | null) => n === 12;
+    const esMp12 = (method || '').toUpperCase().includes('MERCADO_PAGO') && es12(crm);
+    return (cuotasMp === 12 && !esMp12) || (cuotasMp !== 12 && esMp12);
+}
+
+async function desdeControlCuotas(): Promise<Date> {
+    const fila = await prisma.systemSetting.findUnique({ where: { key: CLAVE_CUOTAS_DESDE }, select: { value: true } });
+    if (fila) return new Date(fila.value);
+    const ahora = new Date().toISOString();
+    await prisma.systemSetting.upsert({ where: { key: CLAVE_CUOTAS_DESDE }, update: {}, create: { key: CLAVE_CUOTAS_DESDE, value: ahora }, select: { key: true } });
+    return new Date(ahora);
+}
+
+export async function alertarCuotasMalCargadas(opts: { desde?: Date; soloMostrar?: boolean } = {}) {
+    if (!isMercadoPagoEnabled()) return { revisados: 0, alertados: 0, hallazgos: [] as string[] };
+    const inicio = opts.desde ?? (await desdeControlCuotas());
+    const consultaDesde = new Date(Math.max(inicio.getTime(), Date.now() - DIAS_PARA_CARGAR * 864e5));
+    const cobros = (await buscarCobrosAprobados(consultaDesde)).filter((c) => c.medio === 'credit_card');
+    if (!cobros.length) return { revisados: 0, alertados: 0, hallazgos: [] as string[] };
+
+    // Pagos con tarjeta del CRM en la misma ventana, para encontrar la pareja.
+    const pagos = await prisma.payment.findMany({
+        where: {
+            date: { gte: new Date(consultaDesde.getTime() - 4 * 864e5) },
+            OR: [{ method: { contains: 'MERCADO_PAGO' } }, { method: { contains: 'PAY_WAY' } }],
+            order: { isDeleted: false },
+        },
+        select: { id: true, amount: true, method: true, date: true, notes: true, orderId: true, createdByName: true, order: { select: { client: { select: { name: true } } } } },
+    });
+
+    const usados = new Set<string>();
+    const hallazgos: string[] = [];
+    let alertados = 0;
+    for (const c of cobros) {
+        // Pareja: primero por nº de operación en las notas, después por monto y fecha.
+        let pago = pagos.find((p) => !usados.has(p.id) && (p.notes || '').includes(c.id));
+        if (!pago) {
+            pago = pagos
+                .filter((p) => !usados.has(p.id) && Math.abs(p.amount - c.bruto) <= 1 && Math.abs(p.date.getTime() - new Date(c.aprobado).getTime()) < 4 * 864e5)
+                .sort((a, b) => Math.abs(a.date.getTime() - new Date(c.aprobado).getTime()) - Math.abs(b.date.getTime() - new Date(c.aprobado).getTime()))[0];
+        }
+        if (!pago) continue; // todavía no lo cargaron: se vuelve a mirar en la próxima corrida
+        usados.add(pago.id);
+        if (!cuotasMalCargadas(c.cuotas, pago.method)) continue;
+
+        const cliente = pago.order?.client?.name || 'cliente';
+        const link = `https://atelieroptica.com.ar/admin/ventas?id=${pago.orderId}`;
+        const texto =
+            c.cuotas === 12
+                ? `El cobro de ${pesos(c.bruto)} a ${cliente} se hizo en 12 CUOTAS en Mercado Pago, pero en el CRM está cargado como ${pago.method}${pago.createdByName ? ` (lo cargó ${pago.createdByName})` : ''}. En 12 cuotas el cliente paga el 10% más: con este error el saldo de la venta está MAL y no se ve si faltó cobrar el recargo. Revisá la venta: ${link}`
+                : `El cobro de ${pesos(c.bruto)} a ${cliente} se hizo en ${c.cuotas} cuotas en Mercado Pago, pero en el CRM está cargado como 12 cuotas (${pago.method}). El saldo de la venta está MAL: el sistema cree que se cobró con el 10% de recargo. Revisá la venta: ${link}`;
+        hallazgos.push(texto);
+        if (opts.soloMostrar) continue;
+        try {
+            await prisma.systemSetting.create({ data: { key: PREFIJO_CUOTAS + c.id, value: new Date().toISOString() }, select: { key: true } });
+        } catch {
+            continue; // ya alertado (otra corrida u otra instancia)
+        }
+        alertados++;
+        await Promise.allSettled([
+            sendEmail({
+                to: PRIVATE_ADMIN_EMAILS,
+                subject: `🚨 URGENTE: cobro en 12 cuotas mal cargado — ${cliente}`,
+                text: texto,
+                html: `<p style="font-size:16px"><strong>URGENTE.</strong> ${texto.replace(link, `<a href="${link}">abrir la venta</a>`)}</p>`,
+            }),
+            prisma.notification.create({
+                data: { type: 'MP_COBRO', message: `🚨 ${texto}`, orderId: pago.orderId, requestedBy: 'Sistema (Mercado Pago)', status: 'PENDING' },
+                select: { id: true },
+            }),
+        ]).then((r) => r.forEach((x) => x.status === 'rejected' && console.error('[mp-cuotas] aviso falló:', x.reason)));
+    }
+    return { revisados: cobros.length, alertados, hallazgos };
+}

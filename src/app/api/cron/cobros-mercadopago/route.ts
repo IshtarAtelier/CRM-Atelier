@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { avisarCobrosNuevos } from '@/services/mp-cobros-aviso.service';
+import { alertarCuotasMalCargadas, avisarCobrosNuevos } from '@/services/mp-cobros-aviso.service';
 
 /**
  * Cada 10 minutos: avisa por mail, WhatsApp y la campanita cada cobro nuevo de
@@ -16,7 +16,9 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
     try {
-        return NextResponse.json({ ok: true, ...(await avisarCobrosNuevos()) });
+        const cobros = await avisarCobrosNuevos();
+        const cuotas = await alertarCuotasMalCargadas();
+        return NextResponse.json({ ok: true, ...cobros, cuotasRevisadas: cuotas.revisados, cuotasAlertadas: cuotas.alertados });
     } catch (err: any) {
         console.error('[CRON cobros-mercadopago]', err);
         return NextResponse.json({ ok: false, error: err?.message || String(err) }, { status: 500 });
