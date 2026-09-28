@@ -72,6 +72,9 @@ type FiltrosUrl = {
   /** A-08: rango de precio. Van juntos y pueden estar vacíos los dos. */
   precioMin: string;
   precioMax: string;
+  /** Lo buscado (?q=). En la URL para poder compartirlo y para que "atrás"
+   *  desde una ficha vuelva a la misma búsqueda (auditoría del 25/9/2026). */
+  q: string;
 };
 
 // useSearchParams fuerza render en cliente hasta el <Suspense> más cercano; lo
@@ -100,6 +103,7 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void
       sort: searchParams.get('orden') || 'recientes',
       precioMin: searchParams.get('precioMin') || '',
       precioMax: searchParams.get('precioMax') || '',
+      q: searchParams.get('q') || '',
     });
   }, [searchParams, onChange]);
 
@@ -180,6 +184,7 @@ export function TiendaClient({
   };
   const [visibleCount, setVisibleCount] = useState(24);
 
+
   const [urlFilters, setUrlFilters] = useState<FiltrosUrl>({
     // Llega resuelta del servidor: si arrancara en 'Todo' y cambiara al
     // hidratar, la grilla —que se anima con key={activeCategory} en modo
@@ -193,7 +198,36 @@ export function TiendaClient({
     sort: 'recientes',
     precioMin: '',
     precioMax: '',
+    q: '',
   });
+
+  // ── La búsqueda en la URL (?q=) ──
+  // Antes lo tipeado vivía solo en memoria: al volver de una ficha se perdía y
+  // una búsqueda no se podía compartir. `searchQuery` sigue siendo lo que se
+  // ve en el campo (y lo que dispara la consulta); la URL se escribe un rato
+  // después de dejar de tipear. `ultimoQEscrito` evita que el eco de esa
+  // escritura pise lo que la persona siguió tipeando mientras tanto.
+  const ultimoQEscrito = useRef<string>('');
+  useEffect(() => {
+    const q = urlFilters.q;
+    if (q === ultimoQEscrito.current) return; // es nuestro propio eco
+    ultimoQEscrito.current = q;
+    setSearchQuery(q);
+  }, [urlFilters.q]);
+  useEffect(() => {
+    const valor = searchQuery.trim();
+    if (valor === ultimoQEscrito.current) return;
+    const t = setTimeout(() => {
+      ultimoQEscrito.current = valor;
+      const params = new URLSearchParams(window.location.search);
+      if (valor) params.set('q', valor); else params.delete('q');
+      const qs = params.toString();
+      navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
+    }, 500);
+    return () => clearTimeout(t);
+    // navegarAFiltro y pathname no cambian entre tecla y tecla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   // La categoría vivía en un useState suelto: la grilla cambiaba pero la URL
   // seguía siendo /tienda, así que "la tienda filtrada en sol" no tenía
