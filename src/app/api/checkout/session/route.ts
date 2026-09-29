@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { ESTADO_ROBOT, esCompradorRobot } from '@/lib/checkout/robots';
 
 // Formato de email razonable: evita inyectar direcciones basura/malformadas que
 // después el cron de carritos abandonados usaría para mandar emails brandeados.
@@ -37,7 +38,8 @@ export async function POST(req: Request) {
         phone: phone || '',
         cartData: cartData || {},
         total: data.total || 0,
-        status: 'PENDING'
+        // El robot de Google se guarda aparte: ver src/lib/checkout/robots.ts.
+        status: esCompradorRobot(email) ? ESTADO_ROBOT : 'PENDING'
       }
     });
 
@@ -77,6 +79,11 @@ export async function PUT(req: Request) {
     if (shippingData !== undefined) updateData.shippingData = shippingData;
     if (total !== undefined) updateData.total = total;
     if (status !== undefined) updateData.status = status;
+
+    // Un checkout del robot de Google no pasa a carrito de persona, ni aunque
+    // el navegador mande otro estado (ver src/lib/checkout/robots.ts).
+    const actual = await prisma.checkoutSession.findUnique({ where: { id: sessionId }, select: { status: true, email: true } });
+    if (actual?.status === ESTADO_ROBOT || esCompradorRobot(email ?? actual?.email)) updateData.status = ESTADO_ROBOT;
 
     const session = await prisma.checkoutSession.update({
       where: { id: sessionId },

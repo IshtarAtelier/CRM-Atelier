@@ -69,6 +69,7 @@ const CORPUS = [
 
   // Cliente que declara el origen en texto libre.
   'Hola, los vi en Meta y quería saber de los multifocales',
+  'Los vi en un anuncio de Instagram. Hola',
   'LOS VI EN META',
   'los vi en metadona',                  // borde de palabra → null
   'vi en meta',                          // frase incompleta → null

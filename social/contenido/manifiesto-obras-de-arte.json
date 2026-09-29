@@ -3,7 +3,7 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "marca",
-  "caption": "Los anteojos son auténticas obras de arte.\n\nAtelier nació de tres cosas que durante mucho tiempo viví como mundos separados: el arte, el comercio y la salud visual. Estudié escultura, grabado y pintura. Hace doce años me recibí de óptica contactóloga. Y en cada viaje entré a ópticas del mundo y me traje partecitas de todas.\n\nUn día lo escribimos con mi hermana Yani en un papelito que todavía guardamos. Ella sostuvo el primer año, el más difícil. Nacimos en la Galería Gitana, y un día le dije: \"Hermana, levantá el piso, que nos mudamos\".\n\nHoy cada anteojo que elegimos pasa por más de cien procesos que no se ven: el acetato que se pule a mano, el metal que se ajusta al milímetro, el cristal que se calibra al eje de tu mirada, y el último ajuste, el que lo vuelve tuyo.\n\n— Ishtar Pissano, creadora de Atelier Óptica\n\nEl manifiesto completo está en nuestro blog: atelieroptica.com.ar/blog/anteojos-obras-de-arte\n\nTu visión es nuestra obra maestra. Cerro de las Rosas, sin turno previo.",
+  "caption": "Los anteojos son auténticas obras de arte.\n\nAtelier nació de tres cosas que durante mucho tiempo viví como mundos separados: el arte, el comercio y la salud visual. Estudié escultura, grabado y pintura. Hace doce años me recibí de óptica contactóloga. Y en cada viaje entré a ópticas del mundo y me traje partecitas de todas.\n\nUn día lo escribimos con mi hermana Yani en un papelito que todavía guardamos. Ella sostuvo el primer año, el más difícil. Nacimos en la Galería Gitana, y un día le dije: \"Hermana, levantá el piso, que nos mudamos\".\n\nHoy cada anteojo que elegimos pasa por más de cien procesos que no se ven: el acetato que se pule a mano, el metal que se ajusta al milímetro, el cristal que se calibra al eje de tu mirada, y el último ajuste, el que lo vuelve tuyo.\n\n— Ishtar Pissano, creadora de Atelier Óptica\n\nEl manifiesto completo está en nuestro blog: atelieroptica.com.ar/blog/anteojos-obras-de-arte\n\nTu visión es nuestra obra maestra. Cerro de las Rosas.",
   "temas": [
     "armazones",
     "local"
@@ -12,46 +12,55 @@
     {
       "type": "cover",
       "role": "portada",
-      "image": "blog/arte-en-foco/01-monalisa.jpg",
+      "image": "blog/ishtar/hermanas-anteojos.jpg",
       "title": "Los anteojos son *auténticas obras de arte*",
       "subtitle": "Manifiesto de Atelier Óptica."
     },
     {
-      "type": "list",
+      "type": "number",
+      "dato": "3",
+      "title": "Arte, comercio y salud visual",
+      "body": "\"Durante mucho tiempo las viví como mundos separados. Atelier nació el día que entendí que eran el mismo.\" — Ishtar Pissano",
       "image": "blog/ishtar/ishtar-gucci.jpg",
-      "title": "Detrás de Atelier *hay una historia*",
-      "items": [
-        "Estudié arte: escultura, grabado y pintura",
-        "Hace doce años me recibí de óptica contactóloga",
-        "En cada viaje entré a ópticas del mundo y me traje partecitas de todas"
-      ]
+      "encuadre": "fondo"
     },
     {
       "type": "number",
       "dato": "+100",
       "title": "Procesos detrás de cada par",
-      "body": "Casi ninguno se ve. Todos se notan cuando enfocás bien."
+      "body": "Casi ninguno se ve. Todos se notan cuando enfocás bien.",
+      "image": "blog/ishtar/ishtar-hollywood.jpg",
+      "encuadre": "fondo"
     },
     {
       "type": "list",
-      "title": "Los que más *nos importan*",
+      "title": "Los procesos que *más nos importan*",
       "items": [
         "El acetato: se corta, se pule y se termina a mano",
         "El metal: se suelda y se ajusta al milímetro",
         "El cristal: se talla y se calibra al eje de tu mirada",
         "El ajuste: el último, el que lo vuelve tuyo"
-      ]
+      ],
+      "image": "blog/ishtar/anteojos-miami.jpg",
+      "encuadre": "cover"
     },
     {
       "type": "list",
-      "role": "bisagra",
-      "image": "blog/ishtar/hermanas-anteojos.jpg",
       "title": "Nació en *un papelito*",
       "items": [
         "Lo escribimos con mi hermana Yani, y todavía lo guardamos",
+        "Los sueños, cuando se escriben, se vuelven fuertes y tangibles",
         "Ella sostuvo el primer año, el más difícil",
         "Nacimos en la Galería Gitana. Un día: \"Hermana, levantá el piso, que nos mudamos\""
-      ]
+      ],
+      "image": "blog/ishtar/hermanas-espejo.jpg",
+      "encuadre": "cover"
+    },
+    {
+      "type": "cover",
+      "title": "Dejarse dominar por *los pequeños sueños*",
+      "subtitle": "Esos que resultan fuertes y atenuantes.",
+      "image": "blog/ishtar/local-ate.jpg"
     },
     {
       "type": "list",
@@ -60,20 +69,28 @@
         "Elegir un armazón es elegir cómo mirás y cómo te miran",
         "No elegimos por tendencia: elegimos por el detalle",
         "Como se elige una obra"
-      ]
+      ],
+      "image": "blog/ishtar/ishtar-miami.jpg",
+      "role": "bisagra"
     },
     {
-      "type": "number",
-      "dato": "3",
-      "title": "Arte, comercio y salud visual",
-      "body": "\"Durante mucho tiempo las viví como mundos separados. Atelier nació el día que entendí que eran el mismo.\" — Ishtar Pissano"
+      "type": "list",
+      "image": "blog/ishtar/ishtar-miami-cadillac.jpg",
+      "title": "Detrás de Atelier *hay una historia*",
+      "items": [
+        "Estudié arte: escultura, grabado y pintura",
+        "Hace doce años me recibí de óptica contactóloga",
+        "En cada viaje entré a ópticas del mundo y me traje partecitas de todas"
+      ],
+      "encuadre": "cover"
     },
     {
       "type": "cta",
       "role": "cierre",
       "image": "blog/arte-en-foco/03-perla.jpg",
       "title": "Tu visión es *nuestra obra maestra*",
-      "body": "Leé el manifiesto completo en el blog. Cerro de las Rosas, sin turno previo."
+      "body": "Leé el manifiesto completo en el blog. Cerro de las Rosas."
     }
-  ]
+  ],
+  "images_waived": "Pedido de Ishtar (28/9/2026): pieza personal del manifiesto, quiere más fotos suyas de viaje que el 60% habitual."
 }

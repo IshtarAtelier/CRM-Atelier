@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { esCompradorRobot } from '@/lib/checkout/robots';
 import { sendEmail } from '@/lib/email';
 import { getAbandonedCartHtml, getClientItemsHtml } from '@/lib/checkout/checkout-emails';
 import { hasClosedOrder } from '@/lib/checkout/purchase-guard';
@@ -136,6 +137,8 @@ export async function sendRecoveryEmailForSession(
   opts: { touch?: RecoveryTouch } = {}
 ): Promise<RecoveryResult> {
   if (!session.email) return { sent: false, skipped: 'no_email' };
+  // El robot de Google no es un cliente: no se le escribe (ver robots.ts).
+  if (esCompradorRobot(session.email)) return { sent: false, skipped: 'no_email' };
 
   // CANDADO: no reenviar a quien ya compró. Reconcilia la sesión colgada en PENDING.
   if (await hasClosedOrder(session.email, session.phone)) {

@@ -354,8 +354,25 @@ export function CheckoutClient({
       return;
     }
 
+    try { track('checkout_error', { value: totalConPromo2x1, meta: { motivo: 'mercado_pago_' + estado, metodo: 'MERCADO_PAGO' } }); } catch { /* nunca frena */ }
     toast.error("El pago no se completó. Tu carrito sigue acá: podés reintentar o elegir otro medio de pago.", { duration: 10000 });
   }, [mounted]);
+
+  // Pasos del checkout (checkout_shipping / checkout_payment): se mide cuando la
+  // persona CAMBIA la opción, no el valor por defecto con el que abre la página.
+  const ultimoInvalidoRef = useRef(0);
+  const envioInicialRef = useRef<string | null>(null);
+  const pagoInicialRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!mounted) return;
+    if (envioInicialRef.current === null) { envioInicialRef.current = formData.shippingMethod; return; }
+    try { track('checkout_shipping', { value: totalConPromo2x1, meta: { envio: formData.shippingMethod } }); } catch { /* nunca frena */ }
+  }, [mounted, formData.shippingMethod]);
+  useEffect(() => {
+    if (!mounted) return;
+    if (pagoInicialRef.current === null) { pagoInicialRef.current = formData.paymentMethod; return; }
+    try { track('checkout_payment', { value: totalConPromo2x1, meta: { metodo: formData.paymentMethod } }); } catch { /* nunca frena */ }
+  }, [mounted, formData.paymentMethod]);
 
   // Si el respaldo se apagó mientras alguien tenía el checkout a medio llenar,
   // su borrador guardado en el navegador sigue diciendo MERCADO_PAGO y al pagar
@@ -452,13 +469,26 @@ export function CheckoutClient({
 
 
 
+  // Todo error que ve el comprador queda medido (checkout_error): con esto se
+  // sabe si la gente se va por la tarjeta rechazada, por la pasarela o por un
+  // dato mal cargado, en vez de adivinarlo.
+  const avisarError = (mensaje: string, opts?: Parameters<typeof toast.error>[1]) => {
+    try {
+      track('checkout_error', { value: totalConPromo2x1, meta: { motivo: String(mensaje).slice(0, 160), metodo: formData.paymentMethod } });
+    } catch { /* la medición nunca frena el checkout */ }
+    return toast.error(mensaje, opts);
+  };
+
   const handlePaywaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      track('checkout_submit', { value: totalConPromo2x1, meta: { metodo: formData.paymentMethod, envio: formData.shippingMethod } });
+    } catch { /* la medición nunca frena el checkout */ }
     // Pedido mayorista: mínimo de piezas (el backend además lo re-valida).
     if (isWholesale) {
       const totalPiezas = items.reduce((acc, i) => acc + i.quantity, 0);
       if (totalPiezas < WHOLESALE_MIN_PIECES) {
-        toast.error(`Los pedidos mayoristas requieren un mínimo de ${WHOLESALE_MIN_PIECES} piezas. Tu pedido tiene ${totalPiezas}.`);
+        avisarError(`Los pedidos mayoristas requieren un mínimo de ${WHOLESALE_MIN_PIECES} piezas. Tu pedido tiene ${totalPiezas}.`);
         return;
       }
     }
@@ -515,7 +545,7 @@ export function CheckoutClient({
         }
 
         if (res.status !== 409) clearIdempotencyKey();
-        toast.error(data?.error || "No pudimos abrir el pago con Mercado Pago. Probá con otro medio de pago.");
+        avisarError(data?.error || "No pudimos abrir el pago con Mercado Pago. Probá con otro medio de pago.");
         return;
       }
 
@@ -574,14 +604,14 @@ export function CheckoutClient({
           // Respuesta terminal del server: rotar la key para que el próximo intento
           // sea un intento nuevo. El 409 (pedido aún procesándose) conserva la key.
           if (res.status !== 409) clearIdempotencyKey();
-          toast.error(formData.paymentMethod.includes('MAYORISTA') ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
+          avisarError(formData.paymentMethod.includes('MAYORISTA') ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
         }
         return;
       }
 
       // PAYWAY LOGIC
       if (!paywayConfig || !(window as any).Decidir) {
-        toast.error("La pasarela de pagos aún se está cargando. Por favor intentá en unos segundos.");
+        avisarError("La pasarela de pagos aún se está cargando. Por favor intentá en unos segundos.");
         setIsProcessing(false);
         return;
       }
@@ -602,7 +632,7 @@ export function CheckoutClient({
       }
 
       if (!decidir) {
-        toast.error("Error al inicializar la pasarela de pagos. Por favor refrescá la página.");
+        avisarError("Error al inicializar la pasarela de pagos. Por favor refrescá la página.");
         setIsProcessing(false);
         return;
       }
@@ -612,7 +642,7 @@ export function CheckoutClient({
       const [expMonth, expYear] = formData.cardExp.split('/').map(s => s.trim());
       
       if (!cleanedCardNumber || !expMonth || !expYear || !formData.cardCvc || !formData.cardName) {
-         toast.error("Por favor completá todos los datos de la tarjeta.");
+         avisarError("Por favor completá todos los datos de la tarjeta.");
          setIsProcessing(false);
          return;
       }
@@ -642,7 +672,7 @@ export function CheckoutClient({
               const errorDetails = response.error.map((e: any) => e.param || e.message || 'error desconocido').join(', ');
               tokenErrorMsg = `Error en los datos de la tarjeta: ${errorDetails}`;
             }
-            toast.error(tokenErrorMsg);
+            avisarError(tokenErrorMsg);
             setIsProcessing(false);
             return;
           }
@@ -707,7 +737,7 @@ export function CheckoutClient({
               // Rechazo terminal: rotar la key para que el reintento (otra tarjeta)
               // no choque contra la orden CANCELED que retiene la key vieja.
               clearIdempotencyKey();
-              toast.error(data.error || "El pago fue rechazado por la tarjeta.");
+              avisarError(data.error || "El pago fue rechazado por la tarjeta.");
             }
           } else {
             const errorData = await res.json();
@@ -715,11 +745,11 @@ export function CheckoutClient({
             // terminal (pago rechazado, validación) rota la key para desbloquear
             // el próximo intento.
             if (res.status !== 409) clearIdempotencyKey();
-            toast.error(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
+            avisarError(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
           }
         } catch (callbackError: any) {
           console.error("Error en callback de PayWay:", callbackError);
-          toast.error("Error procesando el pago: " + (callbackError.message || "Intente nuevamente."));
+          avisarError("Error procesando el pago: " + (callbackError.message || "Intente nuevamente."));
         } finally {
           setIsProcessing(false);
         }
@@ -733,7 +763,7 @@ export function CheckoutClient({
 
     } catch (error: any) {
       console.error(error);
-      toast.error("Error de sistema: " + (error.message || JSON.stringify(error)));
+      avisarError("Error de sistema: " + (error.message || JSON.stringify(error)));
       setIsProcessing(false);
     }
   };
@@ -800,7 +830,7 @@ export function CheckoutClient({
                 onClick={() => {
                   navigator.clipboard?.writeText('atelieroptica.arq')
                     .then(() => toast.success('Alias copiado'))
-                    .catch(() => toast.error('No se pudo copiar el alias'));
+                    .catch(() => avisarError('No se pudo copiar el alias'));
                 }}
                 className="w-full mb-4 border border-stone-300 px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-stone-100 transition-colors"
               >
@@ -909,7 +939,19 @@ export function CheckoutClient({
             descuentoTransferenciaPct={descuentoTransferenciaPct}
           />
 
-          <form onSubmit={handlePaywaySubmit}>
+          <form
+            onSubmit={handlePaywaySubmit}
+            // El navegador frena el pago si falta un campo ("Completá este
+            // campo") y eso no pasaba por ningún lado: quien se trababa acá se
+            // iba sin dejar rastro. Se mide el PRIMER campo que falta por intento.
+            onInvalidCapture={(e) => {
+              const campo = (e.target as HTMLInputElement)?.name || 'desconocido';
+              const ahora = Date.now();
+              if (ahora - ultimoInvalidoRef.current < 1500) return;
+              ultimoInvalidoRef.current = ahora;
+              try { track('checkout_error', { value: totalConPromo2x1, meta: { motivo: `falta_${campo}`, metodo: formData.paymentMethod } }); } catch { /* nunca frena */ }
+            }}
+          >
             <fieldset disabled={isProcessing} className="flex flex-col gap-10 border-0 p-0 m-0 disabled:opacity-75 transition-opacity">
               <CheckoutContactForm formData={formData} handleChange={handleChange} />
               

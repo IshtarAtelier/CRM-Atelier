@@ -63,6 +63,9 @@ const METHOD_LABELS: Record<string, string> = {
     'MERCADO_PAGO_6_ISH': 'MP 6c',
     'MERCADO_PAGO_12_ISH': 'MP 12c (+10%)',
     'MERCADO_PAGO_18_ISH': 'MP 18c (+10%)',
+    'MERCADO_PAGO_3_YANI': 'MP 3c Yani',
+    'MERCADO_PAGO_6_YANI': 'MP 6c Yani',
+    'MERCADO_PAGO_12_YANI': 'MP 12c Yani (+10%)',
 };
 
 export function SalesDetailSection({ salesDetail }: { salesDetail: SaleDetail[] }) {

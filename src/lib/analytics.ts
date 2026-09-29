@@ -40,6 +40,14 @@ export const ANALYTICS_EVENT_TYPES = [
   'lens_config_prescription', // llegó al paso de la receta
   'lens_config_prescription_whatsapp', // tocó el botón para mandar la receta por WhatsApp
   'lens_config_complete', // confirmó los cristales (agregar al carrito / confirmar)
+  // Checkout paso a paso (28/9/26). Hasta acá entre "entró al checkout" y
+  // "compró" había una caja negra: no se sabía si la gente se iba en el envío,
+  // en el medio de pago o con el pago rechazado. No van a Meta (no están en
+  // CAPI_EVENT): son solo para la analítica propia.
+  'checkout_shipping', // eligió o cambió la forma de envío
+  'checkout_payment', // eligió o cambió el medio de pago
+  'checkout_submit', // tocó el botón de pagar / confirmar
+  'checkout_error', // el checkout le mostró un error (meta.motivo)
 ] as const;
 
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];

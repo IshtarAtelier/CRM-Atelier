@@ -26,7 +26,7 @@ export function NotificationBell() {
     const panelRef = useRef<HTMLDivElement>(null);
 
     // Tipos de notificación que solo puede ver el ADMIN (ishtar)
-    const ADMIN_ONLY_TYPES = ['DELETE_REQUEST', 'INVOICE_REQUEST', 'CASH_OUTFLOW', 'HIGH_CASH_BALANCE', 'ISH_THRESHOLD_REACHED'];
+    const ADMIN_ONLY_TYPES = ['DELETE_REQUEST', 'INVOICE_REQUEST', 'CASH_OUTFLOW', 'HIGH_CASH_BALANCE', 'ISH_THRESHOLD_REACHED', 'MP_COBRO'];
     // Tipos de notificación que solo puede ver el VENDEDOR (no el admin)
     const SELLER_ONLY_TYPES = ['LAB_READY'];
 
@@ -137,6 +137,7 @@ export function NotificationBell() {
         if (type === "LAB_READY") return <Factory className="w-4 h-4 text-emerald-500" />;
         if (type === "LAB_CHECK") return <Factory className="w-4 h-4 text-amber-500" />;
         if (type === "WEB_SALE") return <ShoppingCart className="w-4 h-4 text-emerald-600" />;
+        if (type === "MP_COBRO") return <ShoppingCart className="w-4 h-4 text-sky-600" />;
         return <Bell className="w-4 h-4" />;
     };
 
@@ -147,6 +148,7 @@ export function NotificationBell() {
         if (type === "LAB_READY") return "Pedido Fabricado";
         if (type === "LAB_CHECK") return "Corroborar con Laboratorio";
         if (type === "WEB_SALE") return "Nueva Venta Web";
+        if (type === "MP_COBRO") return "Cobro en Mercado Pago";
         return "Notificación";
     };
 

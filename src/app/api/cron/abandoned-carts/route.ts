@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { avisarCarritosAbandonados } from '@/lib/checkout/aviso-equipo';
+import { SIN_ROBOTS } from '@/lib/checkout/robots';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { runRecoveryTouch, RECOVERY_STAGE, type RecoveryTouch } from '@/lib/checkout/recovery';
@@ -40,7 +42,9 @@ const TOQUE_TARDIO_HS = 24;
 const VENTANA_MAXIMA_HS = 72;
 
 /** Con casilla utilizable: `not: null` no alcanza, en la base hay strings vacíos. */
-const CON_EMAIL: Prisma.CheckoutSessionWhereInput = { email: { not: null, notIn: [''] } };
+// Con mail y sin el robot de Google (src/lib/checkout/robots.ts), que dejaba
+// uno de storebotmail.joonix.net todas las mañanas y recibía los recordatorios.
+const CON_EMAIL: Prisma.CheckoutSessionWhereInput = { email: { not: null, notIn: [''] }, ...SIN_ROBOTS };
 
 export async function GET(request: Request) {
   try {
@@ -151,6 +155,15 @@ export async function GET(request: Request) {
       }
     }
 
+    // Aviso al equipo por la mensajería interna: una vez por carrito de una
+    // persona real (src/lib/checkout/aviso-equipo.ts). Nunca rompe el cron.
+    let avisados = 0;
+    try {
+      avisados = (await avisarCarritosAbandonados()).avisados;
+    } catch (err: any) {
+      console.error('[Cron Abandoned Cart] No se pudo avisar al equipo:', err.message);
+    }
+
     const processed = tempranos.length + tardios.length;
     console.log(
       `[Cron Abandoned Cart] ${stats.early} recordatorios (1h), ${stats.late} emails (24h), ` +
@@ -166,6 +179,7 @@ export async function GET(request: Request) {
       // cuando esto mandaba un solo mail.
       sent: stats.early + stats.late,
       ...stats,
+      avisados,
     });
   } catch (error: any) {
     console.error('[Cron Abandoned Cart] Error:', error);

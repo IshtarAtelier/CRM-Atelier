@@ -23,6 +23,10 @@ check('"Vi su anuncio en Google" → Google Ads', o('Hola! Vi su anuncio en Goog
 check('"Los vi en Google Ads." (sitio con gclid) → Google Ads', o('Los vi en la nueva web de Atelier. Los vi en Google Ads.') === 'Google Ads');
 check('"Los vi en Meta." (sitio con fbclid) → Meta', o('Los vi en la nueva web de Atelier. Los vi en Meta.') === 'Meta');
 console.log('Textos del sitio → Tienda online (no Google Ads)');
+check('frase nueva de Google (29/9)', o('Los vi en un anuncio de Google. ¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.') === 'Google Ads');
+check('frase nueva de Meta (29/9)', o('Los vi en un anuncio de Instagram. ¡Hola! Quiero comprar el anteojo Onix') === 'Meta');
+check('botón flotante nuevo (29/9)', o('¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.') === 'Tienda online');
+check('ficha de producto (link)', o('¡Hola! Tengo dudas sobre el modelo Vega C1.\n\nhttps://atelieroptica.com.ar/producto/vega-c1') === 'Tienda online');
 check('botón flotante', o('Los vi en la nueva web de Atelier, quisiera que me asesoren.') === 'Tienda online');
 check('tienda', o('¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento. https://atelieroptica.com.ar/tienda') === 'Tienda online');
 check('reel', o('Hola, entré a la web de Atelier y me gustaría recibir asesoramiento.') === 'Tienda online');

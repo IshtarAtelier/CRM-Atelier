@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { SIN_ROBOTS } from '@/lib/checkout/robots';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getActorValidated } from '@/lib/session-revalidation';
@@ -69,6 +70,35 @@ export async function GET(request: Request) {
       sessionsAtStage('purchase'),
     ]);
 
+    // Dónde se traban (28/9/26): los pasos del configurador de lentes y del
+    // checkout, separados celular / compu, y los errores que vio la gente. En
+    // 30 días de celular, 11 llegaron al paso de la receta y 1 terminó: sin
+    // esta vista eso era invisible.
+    const PASOS_TRABA = [
+      'lens_config_start', 'lens_config_type', 'lens_config_treatment', 'lens_config_prescription', 'lens_config_complete',
+      'add_to_cart', 'begin_checkout', 'add_contact', 'checkout_submit', 'purchase',
+    ];
+    const trabasRaw = await prisma.$queryRaw<Array<{ device: string | null; type: string; sesiones: bigint }>>(
+      Prisma.sql`SELECT device, type, count(DISTINCT "sessionId") AS sesiones
+                 FROM "AnalyticsEvent"
+                 WHERE "createdAt" BETWEEN ${from} AND ${to} AND type IN (${Prisma.join(PASOS_TRABA)})
+                 GROUP BY 1, 2`
+    );
+    const erroresRaw = await prisma.$queryRaw<Array<{ motivo: string | null; veces: bigint; sesiones: bigint }>>(
+      Prisma.sql`SELECT meta->>'motivo' AS motivo, count(*) AS veces, count(DISTINCT "sessionId") AS sesiones
+                 FROM "AnalyticsEvent"
+                 WHERE "createdAt" BETWEEN ${from} AND ${to} AND type = 'checkout_error'
+                 GROUP BY 1 ORDER BY 2 DESC LIMIT 8`
+    );
+    const trabas = {
+      pasos: PASOS_TRABA,
+      porDispositivo: ['mobile', 'desktop'].map((d) => ({
+        dispositivo: d,
+        sesiones: Object.fromEntries(PASOS_TRABA.map((t) => [t, Number(trabasRaw.find((r) => r.device === d && r.type === t)?.sesiones ?? 0)])),
+      })),
+      errores: erroresRaw.map((e) => ({ motivo: e.motivo || 'sin detalle', veces: Number(e.veces), sesiones: Number(e.sesiones) })),
+    };
+
     // Ingresos de compras registradas
     const revenueAgg = await prisma.analyticsEvent.aggregate({
       where: { createdAt: range, type: 'purchase' },
@@ -118,7 +148,8 @@ export async function GET(request: Request) {
     // Carritos (CheckoutSession) por estado
     const cartsByStatus = await prisma.checkoutSession.groupBy({
       by: ['status'],
-      where: { createdAt: range },
+      // Sin el robot de Google (src/lib/checkout/robots.ts): no es un carrito.
+      where: { createdAt: range, ...SIN_ROBOTS },
       _count: { _all: true },
     });
     const cartCount = (s: string) => cartsByStatus.find((r) => r.status === s)?._count._all ?? 0;
@@ -154,6 +185,7 @@ export async function GET(request: Request) {
           purchase: countOf('purchase'),
         },
       },
+      trabas,
       revenue: {
         orders: revenueAgg._count._all,
         total: revenueAgg._sum.value ?? 0,

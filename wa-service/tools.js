@@ -136,15 +136,15 @@ async function detectContactSourceFromChat(chatId) {
     // Espejo de src/lib/origen-deterministico.ts (si tocás una, tocá la otra).
     // 1) Etiqueta del anuncio: prueba canal y anuncio.
     if (/\[\s*google[^\]]*\]/i.test(firstMessage.content)) return 'Google Ads';
-    if (/\[\s*(meta|clipsjav)[^\]]*\]/i.test(firstMessage.content) || /los vi en meta\b/i.test(firstMessage.content)) {
+    if (/\[\s*(meta|clipsjav)[^\]]*\]/i.test(firstMessage.content) || /los vi en meta\b|los vi en un anuncio de (instagram|facebook)/i.test(firstMessage.content)) {
         return 'Meta';
     }
     // 2) Frase precargada de los anuncios de Google.
-    if (/vi su anuncio en google|los vi en google ads|encontr[ée] este producto en google|share\.google/i.test(firstMessage.content)) {
+    if (/vi su anuncio en google|los vi en google ads|los vi en un anuncio de google|encontr[ée] este producto en google|share\.google/i.test(firstMessage.content)) {
         return 'Google Ads';
     }
     // 3) Texto del botón de WhatsApp del sitio: llegó a la web, no a un anuncio.
-    if (/nueva web de atelier|recorriendo la tienda online|entr[eé] a la web de atelier|vi sus anteojos en la web/i.test(firstMessage.content)) {
+    if (/nueva web de atelier|recorriendo la tienda online|entr[eé] a la web de atelier|vi sus anteojos en la web|estoy en la web de atelier|armando mis lentes en la web|atelieroptica\.com\.ar\/(producto|arma-tus-lentes|tienda)/i.test(firstMessage.content)) {
         return 'Tienda online';
     }
     // Mencionar "google" o "búsqueda" NO es pauta: hasta el 16/9/26 esto devolvía

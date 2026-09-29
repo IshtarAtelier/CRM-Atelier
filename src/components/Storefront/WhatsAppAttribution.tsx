@@ -45,7 +45,7 @@ export default function WhatsAppAttribution() {
         // de cero y meterle una frase que no tipeó sería inventarle el mensaje.
         if (!texto) return;
         // Ya viene con origen (doble clic, o el link lo traía): no duplicar.
-        if (/^Los vi en (Google Ads|Meta)\./i.test(texto.trim())) return;
+        if (/^Los vi en (Google Ads|Meta|un anuncio de (Google|Instagram))\./i.test(texto.trim())) return;
 
         // Se reescribe a mano en vez de usar searchParams.set: ese serializa los
         // espacios como "+" y el resto del sitio los manda como %20. No mezclamos

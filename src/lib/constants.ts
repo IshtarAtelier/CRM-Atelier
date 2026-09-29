@@ -103,6 +103,10 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
     'MERCADO_PAGO_3_ISH': 0.10,
     'MERCADO_PAGO_6_ISH': 0.20,
     'MERCADO_PAGO_12_ISH': 0.25,
+    // ── Mercado Pago Yani: mismas condiciones que la cuenta de Ishtar (Ishtar, 28/9/26) ──
+    'MERCADO_PAGO_3_YANI': 0.10,
+    'MERCADO_PAGO_6_YANI': 0.20,
+    'MERCADO_PAGO_12_YANI': 0.25,
 
     // ── Sin comisión ──
     // Cuenta especial: lo que no entra en ninguna forma de pago del listado
@@ -181,6 +185,9 @@ export const METHOD_LABELS: Record<string, string> = {
     MERCADO_PAGO_3_ISH: 'MP 3c Ish',
     MERCADO_PAGO_6_ISH: 'MP 6c Ish',
     MERCADO_PAGO_12_ISH: 'MP 12c Ish (+10%)',
+    MERCADO_PAGO_3_YANI: 'MP 3c Yani',
+    MERCADO_PAGO_6_YANI: 'MP 6c Yani',
+    MERCADO_PAGO_12_YANI: 'MP 12c Yani (+10%)',
     // Retirado del selector el 27/8/26 (decisión de Ishtar); el label queda por
     // si existiera algún cobro histórico con ese método.
     MERCADO_PAGO_18_ISH: 'MP 18c Ish (+10%)',
@@ -198,6 +205,17 @@ export const MERCADO_PAGO_ISH_METHODS = [
     'MERCADO_PAGO_3_ISH',
     'MERCADO_PAGO_6_ISH',
     'MERCADO_PAGO_12_ISH',
+];
+
+/**
+ * Mercado Pago de la cuenta de Yani (agregado el 28/9/26): mismas cuotas y
+ * condiciones que la de Ishtar, 12 con el 10% fijo incluido (esMpCuotasLargas
+ * reconoce cualquier MERCADO_PAGO_12). Factura por el CUIT de Yani.
+ */
+export const MERCADO_PAGO_YANI_METHODS = [
+    'MERCADO_PAGO_3_YANI',
+    'MERCADO_PAGO_6_YANI',
+    'MERCADO_PAGO_12_YANI',
 ];
 
 // Shared Product Categories

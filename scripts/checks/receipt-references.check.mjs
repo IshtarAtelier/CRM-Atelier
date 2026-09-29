@@ -22,6 +22,9 @@ import {
     esConstanteDeComprobante,
     plataformaDelMetodo,
     plataformaImpresa,
+    cuentaDelComprobante,
+    cuentaDelMetodo,
+    readerSystemPrompt,
     parseTipoComprobante
 } from '../../src/lib/receipt-references.ts';
 import { cardVoucherKey, describeCardVoucher, isCardMethod, esPointPresencial } from '../../src/lib/payment-card.ts';
@@ -235,6 +238,28 @@ console.log('\nImporte impreso (blindaje del falso positivo de "Monto difiere")'
 }
 
 console.log('');
+
+console.log('\nCuenta del comprobante: Ishtar o Yani (28/9/2026)');
+{
+    const CUITS = { ISH: '27111111118', YANI: '27222222229' };
+    const leer = (x) => cuentaDelComprobante({ cuit: null, cuits: [], titular: null, ...x }, CUITS);
+    check('CUIT de Ishtar impreso → Ishtar', leer({ cuits: ['27-11111111-8'] }) === 'ISH');
+    check('CUIT de Yani impreso → Yani', leer({ cuit: '27222222229' }) === 'YANI');
+    check('los dos CUIT impresos → no decide', leer({ cuits: ['27111111118', '27222222229'] }) === null);
+    check('sin CUIT, titular "ISHTAR PISANO" → Ishtar', leer({ titular: 'ISHTAR PISANO' }) === 'ISH');
+    check('titular "Yanina Pissano" → Yani', leer({ titular: 'Yanina Pissano' }) === 'YANI');
+    check('solo el apellido no decide (es el mismo)', leer({ titular: 'PISSANO' }) === null);
+    check('el nombre del comercio no decide', leer({ titular: 'ATELIER OPTICA' }) === null);
+    check('el CUIT de Mercado Pago no decide', leer({ cuits: ['30703088534'] }) === null);
+    check('CUIT sin configurar no inventa nada', cuentaDelComprobante({ cuit: '27111111118', cuits: [], titular: null }, { ISH: null, YANI: null }) === null);
+    check('MP 6 Yani es de Yani', cuentaDelMetodo('MERCADO_PAGO_6_YANI') === 'YANI');
+    check('Pay Way 3 Ish es de Ishtar', cuentaDelMetodo('PAY_WAY_3_ISH') === 'ISH');
+    check('la transferencia a Ishtar es de Ishtar', cuentaDelMetodo('TRANSFERENCIA_ISHTAR') === 'ISH');
+    check('el efectivo no es de ninguna cuenta', cuentaDelMetodo('EFECTIVO') === null);
+    check('la consigna le PIDE a la IA el tipo, la plataforma, el titular y los CUIT',
+        ['"comprobante_tipo"', '"plataforma"', '"titular"', '"cuits"'].every((k) => readerSystemPrompt('principal').includes(k) && readerSystemPrompt('supervisor').includes(k)));
+}
+
 if (fallos > 0) {
     console.error(`${fallos} chequeo(s) fallaron\n`);
     process.exit(1);

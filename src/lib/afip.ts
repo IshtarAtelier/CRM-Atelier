@@ -1,5 +1,5 @@
 import Afip from '@afipsdk/afip.js';
-import { MERCADO_PAGO_ISH_METHODS } from '@/lib/constants';
+import { MERCADO_PAGO_ISH_METHODS, MERCADO_PAGO_YANI_METHODS } from '@/lib/constants';
 
 /**
  * Billing accounts — cada monotributo es una cuenta independiente.
@@ -116,7 +116,7 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
  * Métodos de pago que corresponden a cada cuenta.
  */
 const ISH_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', ...MERCADO_PAGO_ISH_METHODS];
-const YANI_METHODS = ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI'];
+const YANI_METHODS = ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI', ...MERCADO_PAGO_YANI_METHODS];
 
 /**
  * Detecta la cuenta de facturación a partir de los métodos de pago de una orden.
