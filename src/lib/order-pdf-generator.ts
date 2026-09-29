@@ -17,7 +17,8 @@ import { GARANTIA_UNA_LINEA, pedidoTieneGarantiaDeAdaptacion } from '@/lib/garan
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { colorLineaLabel } from '@/lib/crystal-color';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
-import { pick2x1FrameDiscount } from '@/lib/promo-utils';
+import { pick2x1FrameDiscount, isMultifocal2x1 } from '@/lib/promo-utils';
+import { esVentaDeOrden } from '@/lib/order-type';
 import { cristalesPorArmazon } from '@/lib/order-frames';
 import { armazonesPorPar, tipoDeItem } from '@/lib/armazon-por-par';
 import fs from 'fs';
@@ -61,9 +62,9 @@ function resolveVendorName(order: any, vendorName?: string): string | null {
  * PDF dependa de la red (y un timeout lo tira al fallback sin foto ni pie).
  */
 const MIME_FOTO: Record<string, string> = { avif: 'image/avif', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
-/** Venta = SALE o MAYORISTA (igual que el mensaje de WhatsApp). Todo lo demás es presupuesto. */
-function esVentaDeOrden(order: any): boolean {
-    return order?.orderType === 'SALE' || order?.orderType === 'MAYORISTA';
+/** El número que ve el cliente, el mismo en la cabecera y en el pie de cada hoja. */
+function numeroDeDocumento(order: any): string {
+    return String(order?.id || '').slice(-6).toUpperCase();
 }
 
 function imagenDeArmazon(it: any): string {
@@ -101,9 +102,12 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     }
     // "Válido hasta" con fecha concreta: "15 días corridos" obligaba al
     // cliente a contar desde una fecha que estaba en otro renglón.
+    // Si el presupuesto se reenvía vencido, no se imprime una fecha pasada
+    // (el bloque se omite); la vigencia contractual no cambia.
     let validoHasta = '';
     try {
-        validoHasta = formatDateLong(addDays(new Date(order.createdAt || Date.now()), VIGENCIA_PRESUPUESTO_DIAS));
+        const vence = addDays(new Date(order.createdAt || Date.now()), VIGENCIA_PRESUPUESTO_DIAS);
+        if (vence.getTime() >= Date.now()) validoHasta = formatDateLong(vence);
     } catch {
         validoHasta = '';
     }
@@ -140,7 +144,8 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     const promoFrameInflated = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
     const specialDiscount = order.specialDiscount || 0;
     const hayDesglose = promoFrameInflated > 0 || specialDiscount > 0;
-    const numeroDoc = order.id.slice(-6).toUpperCase();
+    const lab = describeLabFrameDetails(order);
+    const numeroDoc = numeroDeDocumento(order);
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -309,16 +314,15 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     // CLIPO ON METAL"), y el ítem del armazón vendido se ubica
                     // debajo de sus cristales — antes "Clip-on Classic" caía en
                     // la bolsa del final y nadie sabía de qué par era.
-                    const resumenPdf = describeLabFrameDetails(order);
                     const esArmazonPdf = (it: any) =>
                         /Armazón|Sol/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`);
     // ↑ `includes` y no igualdad: la categoría real del catálogo es
     // "Armazón de Receta" — el filtro exacto no matcheaba ningún producto.
                     const armazonDelParPdf = armazonesPorPar(
-                        (order.items || []).filter(esArmazonPdf), resumenPdf.pairs);
+                        (order.items || []).filter(esArmazonPdf), lab.pairs);
                     for (const [par, lista] of [...porPar.entries()].sort((a, b) => a[0] - b[0])) {
                         if (!lista.length) continue; // un encabezado sin filas confunde más que nada
-                        const info = resumenPdf.pairs.find(p => p.pair === par);
+                        const info = lab.pairs.find(p => p.pair === par);
                         const cual = (info?.details || info?.shape || '').trim();
                         // Debajo del título van las medidas de ESE armazón:
                         // antes vivían en un cuadro aparte al final y el lector
@@ -331,9 +335,12 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                         // "SIN CARGO" sin decir por qué confundía: si todos los
                         // cristales del par van a $0, el separador explica el 2x1.
                         const parSinCargo = lista.every((it: any) => Math.round((it.price || 0) * markupFactor) === 0);
+                        // Sin cargo por OTRO motivo (cortesía, garantía) no es el 2x1.
+                        const parDel2x1 = parSinCargo && lista.every((it: any) => isMultifocal2x1(it.product || it));
+                        const notaSinCargo = parDel2x1 ? 'Promo 2x1: los cristales de este par van sin cargo' : parSinCargo ? 'Cristales sin cargo' : '';
                         conSeparador.push({
                             __separador: `${par}º PAR${cual ? ` — ${cual.toUpperCase()}` : ''}`,
-                            __sub: [parSinCargo ? 'Promo 2x1: los cristales de este par van sin cargo' : '', medidasDe].filter(Boolean).join('  ·  '),
+                            __sub: [notaSinCargo, medidasDe].filter(Boolean).join('  ·  '),
                         });
                         const orden = (it: any) => (it.eye === 'RIGHT' || it.eye === 'OD') ? 0 : 1;
                         [...lista].sort((a, b) => orden(a) - orden(b)).forEach(it => { conSeparador.push(it); asignadosPdf.add(it); });
@@ -392,6 +399,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 // redacción que la pantalla y el mensaje al cliente.
                 const colorLinea = colorLineaLabel(it) || '';
                 const colorDeLente = colorDeLenteEnPedido(it, order.items || []) || '';
+                const tipo = tipoDeItem(it) || '';
                 return `
                 <tr>
                     <td>
@@ -410,7 +418,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                             return escapeHtml(marca && !nombreP.toLowerCase().includes(marca.toLowerCase())
                                 ? `${marca} ${nombreP}` : nombreP || marca);
                         })()}</div>
-                        ${tipoDeItem(it) ? `<div class="item-sub">${escapeHtml(String(tipoDeItem(it)))}</div>` : ''}
+                        ${tipo ? `<div class="item-sub">${escapeHtml(String(tipo))}</div>` : ''}
                         ${colorDeLente ? `<div class="item-sub">Color de la lente: ${escapeHtml(colorDeLente)}</div>` : ''}
                         ${colorLinea ? `<div class="item-sub">Color: ${escapeHtml(colorLinea)}</div>` : ''}
                         ${refIndex ? `<div class="item-sub">Índice de refracción ${escapeHtml(String(refIndex))}</div>` : ''}
@@ -571,11 +579,11 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     ` : ''}
 
     ${(() => {
-        const lab = describeLabFrameDetails(order);
         if (lab.isEmpty) return '';
-        // En un presupuesto de solo armazón nada va al laboratorio.
-        const hayCristales = (order.items || []).some((it: any) => /cristal/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`));
-        if (esPresupuesto && !hayCristales) return '';
+        // En un presupuesto de solo armazón nada va al laboratorio; un teñido
+        // o tratamiento sí, aunque no haya línea de cristal.
+        const vaAlLaboratorio = !!lab.tint || (order.items || []).some((it: any) => /cristal|tratamiento/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`));
+        if (esPresupuesto && !vaAlLaboratorio) return '';
         const filas: string[] = [];
         if (lab.origin) filas.push(`<div><div style="font-size: 8px; font-weight: 700; color: ${brandSand};">ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.origin)}</div></div>`);
         // Con VARIOS pares, las medidas de cada uno ya viven arriba, junto a
@@ -694,7 +702,7 @@ export async function generateOrderPDF(order: any, contact: any, vendorName?: st
 
         // Si va en más de una hoja, cada hoja dice de quién es y cuántas son.
         const variasHojas = alto > A4_ALTO_PX && scale === 1;
-        const pieCorrido = `<div style="width:100%; text-align:center; font-family:Inter, Arial, sans-serif; font-size:8px; color:#78716c;">${isSale ? 'Orden de venta' : 'Presupuesto'} N.º ${escapeHtml(order.id.slice(-6).toUpperCase())} · ${escapeHtml(String(contact?.name || ''))} · hoja <span class="pageNumber"></span> de <span class="totalPages"></span></div>`;
+        const pieCorrido = `<div style="width:100%; text-align:center; font-family:Inter, Arial, sans-serif; font-size:8px; color:#78716c;">${isSale ? 'Orden de venta' : 'Presupuesto'} N.º ${escapeHtml(numeroDeDocumento(order))} · ${escapeHtml(String(contact?.name || ''))} · hoja <span class="pageNumber"></span> de <span class="totalPages"></span></div>`;
         const pdfBuffer = await page.pdf({
             format: 'A4',
             margin: { top: '0mm', right: '0mm', bottom: variasHojas ? '9mm' : '0mm', left: '0mm' },

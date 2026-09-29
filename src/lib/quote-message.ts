@@ -11,6 +11,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { PricingService } from '@/services/PricingService';
+import { esVentaDeOrden } from '@/lib/order-type';
 
 const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
 
@@ -21,7 +22,7 @@ const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
  * @param clientName  nombre del cliente, como se lo saluda.
  */
 export function buildQuoteMessage(order: any, clientName: string): string {
-    const esVenta = order?.orderType === 'SALE' || order?.orderType === 'MAYORISTA';
+    const esVenta = esVentaDeOrden(order);
     const f = PricingService.calculateOrderFinancials(order);
 
     // Una línea por producto distinto: dos cristales del mismo modelo (OD y OI)
