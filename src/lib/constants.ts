@@ -17,6 +17,10 @@ export const WHOLESALE_WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHOLESALE_WHATSA
 // si el área mayorista cambia de número, los avisos internos no se mueven.
 export const ADMIN_WHATSAPP_PHONE = process.env.ADMIN_WHATSAPP_PHONE || '5493541215971';
 
+// Redes del negocio, como las ve el cliente (pie de PDFs, mails).
+export const INSTAGRAM_URL = 'https://www.instagram.com/atelieroptica_';
+export const YOUTUBE_URL = 'https://www.youtube.com/@AtelierOptica';
+
 // Origen público de la tienda: TODO link que vea un cliente (mails de checkout,
 // carrito abandonado, fichas de producto) tiene que salir con el dominio propio,
 // nunca con la URL interna de Railway. Los links de gestión (CRM) van aparte.
