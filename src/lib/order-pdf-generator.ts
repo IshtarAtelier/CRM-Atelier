@@ -1,4 +1,4 @@
-import { WHATSAPP_PHONE, WHATSAPP_PHONE_DISPLAY, INSTAGRAM_URL, YOUTUBE_URL } from '@/lib/constants';
+import { WHATSAPP_PHONE, WHATSAPP_PHONE_DISPLAY, INSTAGRAM_URL, YOUTUBE_URL, GOOGLE_MAPS_URL, STORE_ORIGIN } from '@/lib/constants';
 import { VIGENCIA_PRESUPUESTO_DIAS } from '@/lib/constants';
 
 import { addDays, format } from 'date-fns';
@@ -109,11 +109,12 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         @page { margin: 0; size: auto; }
         body { padding: 30px 40px; color: ${tinta}; font-size: 12px; line-height:1.45; background: white; }
 
-        .letterhead { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:14px; border-bottom:1px solid ${brandBeige}; margin-bottom:16px; }
+        .letterhead { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:10px; border-bottom:1px solid ${brandBeige}; margin-bottom:12px; }
         .letterhead-logo { height: 34px; width: auto; max-width: 220px; object-fit: contain; }
         .letterhead-right { text-align:right; font-size:10px; color:${gris}; line-height:1.5; }
         .address-bold { font-weight:600; color:${brandSand}; }
-        .tagline { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:${brandSand}; margin-top:4px; }
+        .tagline { display:inline-block; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:${brandSand}; margin-top:4px; text-decoration:none; }
+        .tagline .ver { display:inline-block; margin-left:4px; padding:1px 6px; border-radius:3px; background:${verdeSuave}; color:white; font-size:8px; font-weight:700; letter-spacing:.06em; vertical-align:middle; }
 
         .doc-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px; }
         .doc-title { font-size:24px; font-weight:700; color:${tinta}; letter-spacing:-0.01em; }
@@ -122,15 +123,15 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .doc-valid b { color:${tinta}; font-weight:600; }
 
         .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:14px; }
-        .info-box { border:1px solid ${linea}; border-radius:6px; padding:12px 14px; background:${crema}; }
+        .info-box { border:1px solid ${linea}; border-radius:6px; padding:10px 14px; background:${crema}; }
         .info-box h3 { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${brandSand}; margin-bottom:8px; }
         .info-row { display:flex; justify-content:space-between; margin-bottom:3px; font-size:12px; }
         .info-label { color:${gris}; }
         .info-value { font-weight:600; }
 
         table { width:100%; border-collapse:collapse; margin-bottom:6px; border-radius:6px; overflow:hidden; border:1px solid ${linea}; }
-        th { background:${crema}; color:${brandSand}; padding:9px 14px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; border-bottom:1px solid ${linea}; }
-        td { padding:8px 14px; border-bottom:1px solid ${linea}; font-size:12px; vertical-align:top; }
+        th { background:${crema}; color:${brandSand}; padding:7px 14px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; border-bottom:1px solid ${linea}; }
+        td { padding:7px 14px; border-bottom:1px solid ${linea}; font-size:12px; vertical-align:top; }
         td.num { text-align:right; font-variant-numeric: tabular-nums; }
         tr { break-inside: avoid; page-break-inside: avoid; }
         .par-sep td { background:${crema}; padding:7px 14px; font-size:10px; font-weight:700; color:${brandSand}; letter-spacing:.06em; }
@@ -140,7 +141,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .item-sub { font-size:10px; color:${gris}; margin-top:1px; }
         .bonif { font-size:10px; color:${verdeSuave}; font-weight:600; margin-top:2px; }
 
-        .total-row { display:flex; justify-content:space-between; align-items:baseline; margin-top:12px; padding:0 2px; }
+        .total-row { display:flex; justify-content:space-between; align-items:baseline; margin-top:8px; padding:0 2px; }
         .total-label { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:${brandSand}; font-weight:600; }
         .total-amount { font-size:26px; font-weight:700; letter-spacing:-0.01em; }
         .total-hint { font-size:10px; color:${gris}; padding:0 2px; margin-top:2px; }
@@ -149,7 +150,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
            corte de página, la fila de 12 cuotas caía sola en la hoja 2 dentro
            de una tarjeta cortada y el cliente no la veía. */
         .payment-methods { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:12px; align-items:start; break-inside: avoid; page-break-inside: avoid; }
-        .payment-card { border-radius:6px; padding:14px 16px; border:1px solid ${linea}; }
+        .payment-card { border-radius:6px; padding:12px 16px; border:1px solid ${linea}; }
         .p-title { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${gris}; margin-bottom:6px; display:block; }
         .p-amount { font-size:18px; font-weight:700; display:block; }
         .p-saldo { font-size:12px; font-weight:600; background:${crema}; display:inline-block; padding:4px 10px; border-radius:4px; margin-top:8px; }
@@ -160,6 +161,16 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .inst-quota { font-size:13px; font-weight:700; }
         .inst-note { font-size:9px; color:${gris}; }
 
+        /* Las 12 cuotas van APARTE de la tarjeta de crédito: tienen su propio
+           total y, metidas ahí, parecían contradecir el precio de lista. */
+        .cuotas-largas { margin-top:8px; border:1px solid ${linea}; border-radius:6px; padding:10px 16px; background:${crema}; display:flex; justify-content:space-between; align-items:center; gap:16px; break-inside: avoid; page-break-inside: avoid; }
+        .cl-title { font-size:12px; font-weight:700; }
+        .cl-hint { font-size:9.5px; color:${gris}; margin-top:1px; }
+        .cl-cuota { font-size:18px; font-weight:700; white-space:nowrap; }
+        .cl-cuota span { font-size:10px; font-weight:400; color:${gris}; }
+        .cl-total { text-align:right; font-size:15px; font-weight:700; white-space:nowrap; }
+        .cl-total span { display:block; font-size:8.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${gris}; margin-bottom:1px; }
+
         .totals-summary { margin-top:18px; padding:16px 22px; border-radius:6px; background:${crema}; display:flex; justify-content:space-between; align-items:center; border:1px solid ${linea}; break-inside: avoid; page-break-inside: avoid; }
         .tot-col { text-align:center; padding:0 15px; border-right:1px solid ${brandBeige}; }
         .tot-col:last-of-type { border-right:none; }
@@ -169,11 +180,12 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .paid-value { font-size:22px; font-weight:700; }
 
         .cierre { break-inside: avoid; page-break-inside: avoid; }
-        .firma { display:flex; justify-content:flex-end; margin-top:12px; }
+        .firma { display:flex; justify-content:flex-end; margin-top:8px; }
         .footer { margin-top:10px; padding-top:8px; border-top:1px solid ${linea}; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:${gris}; }
         .footer-links { display:flex; gap:14px; }
         .footer-links a { display:inline-flex; align-items:center; gap:4px; color:${brandSand}; text-decoration:none; font-weight:500; }
         .footer-links svg { width:11px; height:11px; }
+        .footer-links a.ver-tienda { background:${verdeSuave}; color:white; padding:2px 8px; border-radius:3px; font-weight:700; }
 
         @media print { body { padding: 22px 30px; } }
     </style>
@@ -184,7 +196,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         <div class='letterhead-right'>
             <div class='address-bold'>José Luis de Tejeda 4380 · Cerro de las Rosas, Córdoba</div>
             <div>WhatsApp ${WHATSAPP_PHONE_DISPLAY}</div>
-            <div class='tagline'>La óptica mejor calificada en Córdoba · ★★★★★</div>
+            <a class='tagline' href='${GOOGLE_MAPS_URL}'>La óptica mejor calificada en Córdoba · ★★★★★ <span class='ver'>Ver</span></a>
         </div>
     </div>
 
@@ -451,15 +463,18 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     <span>6 cuotas sin interés de</span>
                     <span class='inst-quota'>$${formatearPrecio(financials.installment6)}</span>
                 </div>
-                ${esPresupuesto || financials.paidReal <= 0 ? `
-                <div class='inst-row'>
-                    <span>12 cuotas fijas de</span>
-                    <span class='inst-quota'>$${formatearPrecio(financials.installment12)}</span>
-                </div>
-                <div class='inst-note'>En 12 cuotas pagás $${formatearPrecio(financials.totalCardFinanced)} en total</div>` : ''}
             </div>
         </div>
     </div>
+    ${esPresupuesto || financials.paidReal <= 0 ? `
+    <div class='cuotas-largas'>
+        <div>
+            <div class='cl-title'>12 cuotas fijas</div>
+            <div class='cl-hint'>Con tarjeta de crédito · tiene su propio total, distinto del precio de lista</div>
+        </div>
+        <div class='cl-cuota'>$${formatearPrecio(financials.installment12)} <span>por mes</span></div>
+        <div class='cl-total'><span>Total en 12 cuotas</span>$${formatearPrecio(financials.totalCardFinanced)}</div>
+    </div>` : ''}
 
     ${esPresupuesto ? '' : `<div class='totals-summary'>
         <div class='tot-col'>
@@ -542,6 +557,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     <div class='footer'>
         <div>Atelier Óptica · Tejeda 4380, Cerro de las Rosas · Profesionalismo, ética y diseño · ${format(new Date(), "yyyy")}</div>
         <div class='footer-links'>
+            <a class='ver-tienda' href="${STORE_ORIGIN}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Ver tienda</a>
             <a href="${INSTAGRAM_URL}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>@${INSTAGRAM_URL.replace(/\/$/, '').split('/').pop()}</a>
             <a href="${YOUTUBE_URL}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .6 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5A3 3 0 0 0 23 16.8 31 31 0 0 0 23.4 12 31 31 0 0 0 23 7.2zM9.8 15.1V8.9L15.7 12l-5.9 3.1z"/></svg>YouTube</a>
             <a href="https://wa.me/${WHATSAPP_PHONE}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c1.7.7 2 .6 2.7.5a2.3 2.3 0 0 0 1.5-1.1 1.9 1.9 0 0 0 .1-1.1c0-.1-.2-.2-.5-.3z"/></svg>${WHATSAPP_PHONE_DISPLAY}</a>
@@ -814,14 +830,23 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         
         drawCard(m, emerald, `EFECTIVO (-${financials.discountCash}%)`, financials.totalCash, financials.remainingCash);
         drawCard(m + cardW + 4, violet, `TRANSFERENCIA (-${financials.discountTransfer}%)`, financials.totalTransfer, financials.remainingTransfer);
-        drawCard(m + (cardW + 4) * 2, orange, 'TARJETAS (LISTA)', financials.totalCard, financials.remainingCard, [
+        drawCard(m + (cardW + 4) * 2, orange, 'TARJETA DE CRÉDITO', financials.totalCard, financials.remainingCard, [
             `3 cuotas s/int: $${formatearPrecio(financials.installment3)}`,
             `6 cuotas s/int: $${formatearPrecio(financials.installment6)}`,
-            // En una venta con pagos ya no se ofrece financiación larga (27/8)
-            ...(esPresupuesto || financials.paidReal <= 0 ? [`12 cuotas fijas: $${formatearPrecio(financials.installment12)}`] : [])
         ]);
-        
+
         y = cy + ch + 8;
+
+        // Las 12 cuotas aparte, con su propio total (en una venta con pagos ya
+        // no se ofrece financiación larga, 27/8).
+        if (esPresupuesto || financials.paidReal <= 0) {
+            doc.setDrawColor(...brandBeige); doc.setLineWidth(0.3);
+            doc.roundedRect(m, y, cw, 12, 2, 2);
+            doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
+            doc.text(`12 cuotas fijas de $${formatearPrecio(financials.installment12)}`, m + 4, y + 7.5);
+            doc.text(`Total en 12 cuotas: $${formatearPrecio(financials.totalCardFinanced)}`, pw - m - 4, y + 7.5, { align: 'right' });
+            y += 18;
+        }
         
         if (!esPresupuesto) {
         // Totals bar (Light background, beige border)

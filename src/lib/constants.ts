@@ -20,6 +20,9 @@ export const ADMIN_WHATSAPP_PHONE = process.env.ADMIN_WHATSAPP_PHONE || '5493541
 // Redes del negocio, como las ve el cliente (pie de PDFs, mails).
 export const INSTAGRAM_URL = 'https://www.instagram.com/atelieroptica_';
 export const YOUTUBE_URL = 'https://www.youtube.com/@AtelierOptica';
+// La ficha del local en Google Maps (con las reseñas): es el link de "la óptica
+// mejor calificada". El de ESCRIBIR reseña es otro (g.page/r/.../review).
+export const GOOGLE_MAPS_URL = 'https://www.google.com/maps?cid=14830223812501661125';
 
 // Origen público de la tienda: TODO link que vea un cliente (mails de checkout,
 // carrito abandonado, fichas de producto) tiene que salir con el dominio propio,
