@@ -4,7 +4,6 @@ import { VIGENCIA_PRESUPUESTO_DIAS } from '@/lib/constants';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
-import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
 // El PDF escribe plata por el MISMO helper que la tienda. Tenía 38
 // `toLocaleString()` sin idioma: en la Mac se ven bien, pero el contenedor de
 // producción (node:22-slim) resuelve en en-US, así que al cliente le llegaba
@@ -287,8 +286,6 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 }
 
                 const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
-                const origin = lensOriginLabel(lensOriginFromItem(it));
-
                 // El COLOR del cristal en la línea que lo lleva, con la misma
                 // redacción que la pantalla y el mensaje al cliente.
                 const colorLinea = colorLineaLabel(it) || '';
@@ -310,7 +307,6 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                         ${tipoDeItem(it) ? `<div style="font-size:10px; color:#78716c; font-weight:700; margin-top:1px;">${tipoDeItem(it)}</div>` : ''}
                         ${refIndex ? `<div style="font-size:10px; color:#c2410c; font-weight: 700; margin-top: 1px;">Índice de Refracción: ${refIndex}</div>` : ''}
                         ${colorDeLenteEnPedido(it, order.items || []) ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Color de la lente: ${colorDeLenteEnPedido(it, order.items || [])}</div>` : ''}
-                        ${origin ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Origen: ${origin}</div>` : ''}
                         ${colorLinea ? `<div style="font-size:10px; color:#6d28d9; font-weight: 800; margin-top: 1px;">Color: ${colorLinea}</div>` : ''}
                         ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">* Bonificado por Promoción</div>` : ''}
                         ${notaBonificacion}
@@ -666,8 +662,6 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         if (refIndex) itemName += `\n   Índice: ${refIndex}`;
         const colorLente = colorDeLenteEnPedido(it, order.items || []);
         if (colorLente) itemName += `\n   Color de la lente: ${colorLente}`;
-        const origin = lensOriginLabel(lensOriginFromItem(it));
-        if (origin) itemName += `\n   Origen: ${origin}`;
         
         let priceLabel = `$${formatearPrecio(ip)}`;
         let totalLabel = `$${formatearPrecio((ip * it.quantity))}`;
