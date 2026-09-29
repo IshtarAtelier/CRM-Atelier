@@ -6,6 +6,7 @@ import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percen
 import Link from "next/link";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
+import { BillingCard } from "@/components/dashboard/BillingCard";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface AbandonedCart {
@@ -221,7 +222,7 @@ export default function Home() {
     } catch { }
   }, []);
 
-  const isAdmin = userRole === 'ADMIN';
+  const isAdmin = userRole === 'OPTICA' || userRole === 'ADMIN';
 
   useEffect(() => {
     // Fetch abandoned carts
@@ -307,6 +308,16 @@ export default function Home() {
 
       {/* Nuevos contactos subidos al sistema — contador destacado (todos los roles) */}
       <NewContactsHero nc={d.newContacts} loading={loading} />
+
+      {/* Facturación clara — Solo para Admin */}
+      {isAdmin && (
+        <BillingCard
+          todaySold={d.todaySold || 0}
+          weekSold={d.weekSold || 0}
+          monthSold={d.totalSoldMonth || 0}
+          isLoading={loading}
+        />
+      )}
 
       {/* 1. Reporte General de Ventas / Métricas — Only for Admin */}
       {isAdmin && (
