@@ -116,6 +116,7 @@ function fallbackAdTag(text) {
   if (!t) return null;
   if (PREFILLS_GENERICOS.has(t)) return 'generico';
   if (/\blos vi en meta\b/.test(t)) return 'generico';
+  if (/\blos vi en un anuncio de (instagram|facebook)\b/.test(t)) return 'generico';
   return null;
 }
 

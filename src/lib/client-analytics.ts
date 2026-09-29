@@ -234,13 +234,17 @@ export function adPlatform(): 'Google Ads' | 'Meta' | null {
 
 /**
  * La frase que se agrega al mensaje de WhatsApp para que el origen viaje con la
- * consulta. La lee el portero (detectContactSourceFromChat) y la ve el vendedor
+ * consulta. La lee la detección de origen (src/lib/origen-deterministico.ts) y la ve el vendedor
  * en el buzón: el dato queda a la vista, no escondido en un código.
  */
 export function adPlatformSentence(): string {
   const p = adPlatform();
-  if (p === 'Google Ads') return 'Los vi en Google Ads.';
-  if (p === 'Meta') return 'Los vi en Meta.';
+  // 29/9/26: frases que diría una persona. Antes salía "Los vi en Google Ads." /
+  // "Los vi en Meta.": jerga de pauta, y pegada al botón flotante quedaba
+  // "Los vi en Google Ads. Los vi en la nueva web…". Las viejas se siguen
+  // reconociendo en src/lib/origen-deterministico.ts (chats de antes).
+  if (p === 'Google Ads') return 'Los vi en un anuncio de Google.';
+  if (p === 'Meta') return 'Los vi en un anuncio de Instagram.';
   return '';
 }
 

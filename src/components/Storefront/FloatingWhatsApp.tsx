@@ -96,7 +96,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     return null;
   }
 
-  let defaultText = "Los vi en la nueva web de Atelier, quisiera que me asesoren.";
+  let defaultText = "¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.";
 
   if (isOptica) {
     // Óptica en la tienda mayorista: tono y marca Cápsula Escarlata.
