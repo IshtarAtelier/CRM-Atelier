@@ -12,12 +12,12 @@ import { PricingService } from '@/services/PricingService';
 // estaba salteando. De paso redondea: una cuota de 23833.333 salía con tres
 // decimales.
 import { formatearPrecio } from '@/lib/format-precio';
-import { formatDate, formatDateLong } from '@/lib/format-date';
+import { formatDateLong } from '@/lib/format-date';
 import { GARANTIA_UNA_LINEA, pedidoTieneGarantiaDeAdaptacion } from '@/lib/garantia';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { colorLineaLabel } from '@/lib/crystal-color';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
-import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
+import { pick2x1FrameDiscount } from '@/lib/promo-utils';
 import { cristalesPorArmazon } from '@/lib/order-frames';
 import { armazonesPorPar, tipoDeItem } from '@/lib/armazon-por-par';
 import fs from 'fs';
@@ -25,7 +25,7 @@ import path from 'path';
 
 // A4 en píxeles CSS (96 dpi), que es como Chromium pagina al imprimir.
 const A4_ANCHO_PX = 794;
-const A4_ALTO_PX = 1123;
+const A4_ALTO_PX = 1122; // 297 mm son 1122,5 px: con 1123 un documento justo sumaba una hoja en blanco
 // Hasta acá se achica para que entre en una hoja; más chico ya no se lee.
 const ESCALA_MINIMA_UNA_HOJA = 0.7;
 
@@ -57,31 +57,39 @@ function resolveVendorName(order: any, vendorName?: string): string | null {
 /**
  * La foto del armazón, incrustada en base64 para que el PDF no dependa de la
  * red (igual que el logo). Solo armazones y anteojos de sol: los cristales no
- * tienen foto propia. Si el archivo no está en `public/`, se apunta a la tienda.
+ * tienen foto propia. Solo archivos de `public/`: una URL externa haría que el
+ * PDF dependa de la red (y un timeout lo tira al fallback sin foto ni pie).
  */
+const MIME_FOTO: Record<string, string> = { avif: 'image/avif', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+/** Venta = SALE o MAYORISTA (igual que el mensaje de WhatsApp). Todo lo demás es presupuesto. */
+function esVentaDeOrden(order: any): boolean {
+    return order?.orderType === 'SALE' || order?.orderType === 'MAYORISTA';
+}
+
 function imagenDeArmazon(it: any): string {
     const categoria = `${it.product?.category || it.productCategorySnapshot || ''}`;
     if (!/Armazón|Sol/i.test(categoria)) return '';
     const src: string = it.product?.imagenesCatalogo?.[0] || it.product?.rawImageUrls?.[0] || '';
-    if (!src) return '';
-    if (/^https?:\/\//.test(src)) return src;
+    if (!src || /^https?:\/\//.test(src)) return '';
     try {
-        const local = path.join(process.cwd(), 'public', src.replace(/^\//, ''));
-        if (fs.existsSync(local)) {
-            const ext = path.extname(local).slice(1).toLowerCase();
-            const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext || 'png'}`;
+        // Resuelto y verificado dentro de public/: un "../" en la ruta no sale de ahí.
+        const raiz = path.join(process.cwd(), 'public');
+        const local = path.resolve(raiz, src.replace(/^\//, ''));
+        if (!local.startsWith(raiz + path.sep)) return '';
+        const mime = MIME_FOTO[path.extname(local).slice(1).toLowerCase()];
+        if (mime && fs.existsSync(local)) {
             return `data:${mime};base64,${fs.readFileSync(local).toString('base64')}`;
         }
     } catch (e) {
         console.error('Error al leer la foto del armazón para el PDF:', e);
     }
-    return `${STORE_ORIGIN}${src.startsWith('/') ? '' : '/'}${src}`;
+    return '';
 }
 
 function getOrderHtml(order: any, client: any, vendorName?: string): string {
-    const isSale = order.orderType === 'SALE';
+    const isSale = esVentaDeOrden(order);
     // Un presupuesto es una cotización: no habla de pagos ni de saldos.
-    const esPresupuesto = (order.orderType || 'QUOTE') === 'QUOTE';
+    const esPresupuesto = !isSale;
     
     let dateStr = '';
     try {
@@ -95,7 +103,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     // cliente a contar desde una fecha que estaba en otro renglón.
     let validoHasta = '';
     try {
-        validoHasta = formatDate(addDays(new Date(order.createdAt || Date.now()), VIGENCIA_PRESUPUESTO_DIAS));
+        validoHasta = formatDateLong(addDays(new Date(order.createdAt || Date.now()), VIGENCIA_PRESUPUESTO_DIAS));
     } catch {
         validoHasta = '';
     }
@@ -132,12 +140,13 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     const promoFrameInflated = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
     const specialDiscount = order.specialDiscount || 0;
     const hayDesglose = promoFrameInflated > 0 || specialDiscount > 0;
+    const numeroDoc = order.id.slice(-6).toUpperCase();
 
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>${isSale ? 'Venta' : 'Presupuesto'} - ${client?.name || 'Cliente'} - Atelier Óptica</title>
+    <title>${isSale ? 'Venta' : 'Presupuesto'} - ${escapeHtml(String(client?.name || 'Cliente'))} - Atelier Óptica</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',sans-serif; }
@@ -169,6 +178,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         td { padding:7px 14px; border-bottom:1px solid ${linea}; font-size:12px; vertical-align:top; }
         td.num { text-align:right; font-variant-numeric: tabular-nums; }
         tr { break-inside: avoid; page-break-inside: avoid; }
+        .par-sep { break-after: avoid; page-break-after: avoid; }
         .par-sep td { background:${crema}; padding:7px 14px; font-size:10px; font-weight:700; color:${brandSand}; letter-spacing:.06em; }
         .par-sub { font-size:10px; color:${gris}; font-weight:400; letter-spacing:0; margin-top:1px; }
         .ojo { display:inline-block; border:1px solid ${brandBeige}; border-radius:4px; padding:1px 6px; font-size:8.5px; font-weight:600; letter-spacing:.06em; color:${brandSand}; margin-bottom:3px; }
@@ -249,7 +259,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     <div class='doc-header'>
         <div>
             <div class='doc-title'>${isSale ? 'Orden de venta' : 'Presupuesto'}</div>
-            <div class='doc-meta'>N.º ${order.id.slice(-6).toUpperCase()} · ${dateStr}</div>
+            <div class='doc-meta'>N.º ${numeroDoc} · ${dateStr}</div>
         </div>
         ${esPresupuesto && validoHasta ? `<div class='doc-valid'>Válido hasta el <b>${validoHasta}</b></div>` : ''}
     </div>
@@ -283,7 +293,6 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 // venta; el localizador es el mismo módulo que calculó la plata.
                 const promoGuardada = (order.appliedPromoDiscount || 0) > 0 ? pick2x1FrameDiscount(order.items || []) : null;
                 const itemBonificado = promoGuardada?.item || null;
-                const modoBonif = modoBonificacionGuardada(order.appliedPromoName);
 
                 // AGRUPADO POR PAR, con separador. Antes esto mapeaba los items
                 // en el orden de carga: un 2x1 mostraba cuatro Varilux idénticos
@@ -332,15 +341,20 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                         if (arm) { conSeparador.push(arm); asignadosPdf.add(arm); }
                     }
                     const sueltos = (order.items || []).filter((it: any) => !asignadosPdf.has(it));
-                    if (sueltos.length) conSeparador.push({ __separador: 'APARTE DE TUS ANTEOJOS' }, ...sueltos);
+                    // Si lo suelto son armazones, la banda lo dice; "aparte de
+                    // tus anteojos" sonaba a estuches y líquidos.
+                    if (sueltos.length) conSeparador.push({ __separador: sueltos.every(esArmazonPdf) ? 'ARMAZONES' : 'OTROS ÍTEMS' }, ...sueltos);
                 } else {
                     conSeparador.push(...(order.items || []));
                 }
+                // Con bandas por par, el 2x1 ya está explicado en la banda: no
+                // se repite "bonificado" en cada renglón.
+                const hayBandas = porPar.size > 1;
 
                 return conSeparador.map((it: any) => {
                 if (it.__separador) return `
                     <tr class="par-sep"><td colspan="4">
-                      ${it.__separador}
+                      ${escapeHtml(it.__separador)}
                       ${it.__sub ? `<div class="par-sub">${escapeHtml(it.__sub)}</div>` : ''}
                     </td></tr>`;
                 const itemPrice = Math.round(it.price * markupFactor);
@@ -367,19 +381,22 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     const descuentoInflado = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
                     const brutoLinea = itemPrice * (it.quantity || 1);
                     const netoLinea = Math.max(0, brutoLinea - descuentoInflado);
+                    priceDisplay = `<span style="text-decoration: line-through; color:#a8a29e;">$${formatearPrecio(itemPrice)}</span>`;
                     totalDisplay = `<span style="text-decoration: line-through; color:#a8a29e; font-size:10px;">$${formatearPrecio(brutoLinea)}</span><br/><span style="color:#4d7c5f; font-weight:700;">${netoLinea === 0 ? 'SIN CARGO' : '$' + formatearPrecio(netoLinea)}</span>`;
-                    notaBonificacion = `<div style="font-size:9px; color:#4d7c5f; margin-top:2px; font-weight:bold; ;">${etiquetaBonificacion2x1(modoBonif)} — descuento de $${formatearPrecio(descuentoInflado)}</div>`;
+                    notaBonificacion = `<div class="bonif">Armazón bonificado por el 2x1 · descuento de $${formatearPrecio(descuentoInflado)}</div>`;
                 }
 
                 const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
+                const foto = imagenDeArmazon(it);
                 // El COLOR del cristal en la línea que lo lleva, con la misma
                 // redacción que la pantalla y el mensaje al cliente.
                 const colorLinea = colorLineaLabel(it) || '';
+                const colorDeLente = colorDeLenteEnPedido(it, order.items || []) || '';
                 return `
                 <tr>
                     <td>
                         <div class="item-row">
-                        ${imagenDeArmazon(it) ? `<img class="item-img" src="${imagenDeArmazon(it)}" alt="" />` : ''}
+                        ${foto ? `<img class="item-img" src="${foto}" alt="" />` : ''}
                         <div>
                         ${eyeLabel ? `<div><span class="ojo">${eyeLabel}</span></div>` : ''}
                         <div class="item-name">${(() => {
@@ -390,14 +407,14 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                             const nombreP = (it.product?.name || it.productNameSnapshot || '').trim();
                             // `includes` y no igualdad: "Vulk" ya vive dentro de
                             // "Anteojo de sol - Vulk" y anteponerla repetía la marca.
-                            return marca && !nombreP.toLowerCase().includes(marca.toLowerCase())
-                                ? `${marca} ${nombreP}` : nombreP || marca;
+                            return escapeHtml(marca && !nombreP.toLowerCase().includes(marca.toLowerCase())
+                                ? `${marca} ${nombreP}` : nombreP || marca);
                         })()}</div>
-                        ${tipoDeItem(it) ? `<div class="item-sub">${tipoDeItem(it)}</div>` : ''}
-                        ${colorDeLenteEnPedido(it, order.items || []) ? `<div class="item-sub">Color de la lente: ${colorDeLenteEnPedido(it, order.items || [])}</div>` : ''}
-                        ${colorLinea ? `<div class="item-sub">Color: ${colorLinea}</div>` : ''}
-                        ${refIndex ? `<div class="item-sub">Índice de refracción ${refIndex}</div>` : ''}
-                        ${itemPrice === 0 ? `<div class="bonif">Bonificado por promoción</div>` : ''}
+                        ${tipoDeItem(it) ? `<div class="item-sub">${escapeHtml(String(tipoDeItem(it)))}</div>` : ''}
+                        ${colorDeLente ? `<div class="item-sub">Color de la lente: ${escapeHtml(colorDeLente)}</div>` : ''}
+                        ${colorLinea ? `<div class="item-sub">Color: ${escapeHtml(colorLinea)}</div>` : ''}
+                        ${refIndex ? `<div class="item-sub">Índice de refracción ${escapeHtml(String(refIndex))}</div>` : ''}
+                        ${itemPrice === 0 && !hayBandas ? `<div class="bonif">Bonificado por promoción</div>` : ''}
                         ${notaBonificacion}
                         </div>
                         </div>
@@ -470,7 +487,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     </div>` : ''}
     ${esPresupuesto ? `<div class='total-hint' style="margin-top:${hayDesglose ? '10px' : '2px'};">Elegí cómo pagarlo:</div>` : ''}
     <div class='payment-methods'>
-        <div class='payment-card p-efective'>
+        <div class='payment-card'>
             <span class='p-title'>Efectivo (−${financials.discountCash}%)</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalCash)}</span>
             ${esPresupuesto ? '' : `<div class='p-saldo'>
@@ -478,7 +495,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 <span>$${formatearPrecio(financials.remainingCash)}</span>
             </div>`}
         </div>
-        <div class='payment-card p-transfer'>
+        <div class='payment-card'>
             <span class='p-title'>Transferencia (−${financials.discountTransfer}%)</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalTransfer)}</span>
             ${esPresupuesto ? '' : `<div class='p-saldo'>
@@ -486,7 +503,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 <span>$${formatearPrecio(financials.remainingTransfer)}</span>
             </div>`}
         </div>
-        <div class='payment-card p-card'>
+        <div class='payment-card'>
             <span class='p-title'>Cuotas sin interés</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalCard)}</span>
             ${esPresupuesto ? '' : `<div class='p-saldo'>
@@ -506,7 +523,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             </div>
         </div>
         ${esPresupuesto || financials.paidReal <= 0 ? `
-        <div class='payment-card p-card12'>
+        <div class='payment-card'>
             <span class='p-title'>12 cuotas fijas</span>
             <span class='p-amount'>$${formatearPrecio(financials.installment12)} <small>por mes</small></span>
             <div class='installments'>
@@ -514,7 +531,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     <span>Total</span>
                     <span class='inst-quota'>$${formatearPrecio(financials.totalCardFinanced)}</span>
                 </div>
-                <div class='inst-note'>Con tarjeta de crédito · es un total propio, distinto del precio de lista</div>
+                <div class='inst-note'>Con tarjeta de crédito · el total en 12 cuotas no es el precio de lista</div>
             </div>
         </div>` : ''}
     </div>
@@ -544,11 +561,11 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         <div style="margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div style="border: 1px solid ${brandBeige}; border-radius: 6px; padding: 12px;">
                 <div style="font-size: 8px; font-weight: 700; color: ${brandSand}; margin-bottom: 5px;">OD</div>
-                <div style="font-size: 14px; font-weight: 600;">${order.prescription.sphereOD || '0'} / ${order.prescription.cylinderOD || '0'} x ${order.prescription.axisOD || '0'}°</div>
+                <div style="font-size: 14px; font-weight: 600;">${escapeHtml(`${order.prescription.sphereOD || '0'} / ${order.prescription.cylinderOD || '0'} x ${order.prescription.axisOD || '0'}`)}°</div>
             </div>
             <div style="border: 1px solid ${brandBeige}; border-radius: 6px; padding: 12px;">
                 <div style="font-size: 8px; font-weight: 700; color: ${brandSand}; margin-bottom: 5px;">OI</div>
-                <div style="font-size: 14px; font-weight: 600;">${order.prescription.sphereOI || '0'} / ${order.prescription.cylinderOI || '0'} x ${order.prescription.axisOI || '0'}°</div>
+                <div style="font-size: 14px; font-weight: 600;">${escapeHtml(`${order.prescription.sphereOI || '0'} / ${order.prescription.cylinderOI || '0'} x ${order.prescription.axisOI || '0'}`)}°</div>
             </div>
         </div>
     ` : ''}
@@ -556,6 +573,9 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     ${(() => {
         const lab = describeLabFrameDetails(order);
         if (lab.isEmpty) return '';
+        // En un presupuesto de solo armazón nada va al laboratorio.
+        const hayCristales = (order.items || []).some((it: any) => /cristal/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`));
+        if (esPresupuesto && !hayCristales) return '';
         const filas: string[] = [];
         if (lab.origin) filas.push(`<div><div style="font-size: 8px; font-weight: 700; color: ${brandSand};">ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.origin)}</div></div>`);
         // Con VARIOS pares, las medidas de cada uno ya viven arriba, junto a
@@ -612,7 +632,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
 }
 
 export async function generateOrderPDF(order: any, contact: any, vendorName?: string): Promise<{ base64: string, filename: string }> {
-    const isSale = order.orderType === 'SALE';
+    const isSale = esVentaDeOrden(order);
     const safeName = (contact?.name || 'Cliente').replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
     const filename = `${isSale ? 'Venta' : 'Presupuesto'}_${order.id.slice(-4).toUpperCase()}_${safeName}.pdf`;
 
@@ -636,13 +656,7 @@ export async function generateOrderPDF(order: any, contact: any, vendorName?: st
         // `load` no espera a las fuentes del @import: a veces el PDF salía en
         // Arial. Se espera a que estén listas, con tope para no colgarse si
         // Google Fonts no responde (en ese caso sale con la fuente de sistema).
-        await page.evaluate(() => Promise.race([
-            (async () => {
-                for (let i = 0; i < 30 && document.fonts.size === 0; i++) await new Promise(r => setTimeout(r, 100));
-                await document.fonts.ready;
-            })(),
-            new Promise(r => setTimeout(r, 5000)),
-        ]));
+        await page.evaluate(() => Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 5000))]));
 
         // Que entre en UNA hoja salvo que sea realmente largo (Ishtar, 29/9):
         // se mide el alto del documento y, si se pasa de la hoja por poco, se
@@ -678,11 +692,17 @@ export async function generateOrderPDF(order: any, contact: any, vendorName?: st
         }
         console.log(`[order-pdf] ${filename} alto=${altoInicial}px escala=${scale} (${medidas.join(' ')})`);
 
+        // Si va en más de una hoja, cada hoja dice de quién es y cuántas son.
+        const variasHojas = alto > A4_ALTO_PX && scale === 1;
+        const pieCorrido = `<div style="width:100%; text-align:center; font-family:Inter, Arial, sans-serif; font-size:8px; color:#78716c;">${isSale ? 'Orden de venta' : 'Presupuesto'} N.º ${escapeHtml(order.id.slice(-6).toUpperCase())} · ${escapeHtml(String(contact?.name || ''))} · hoja <span class="pageNumber"></span> de <span class="totalPages"></span></div>`;
         const pdfBuffer = await page.pdf({
             format: 'A4',
-            margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+            margin: { top: '0mm', right: '0mm', bottom: variasHojas ? '9mm' : '0mm', left: '0mm' },
             printBackground: true,
             scale,
+            displayHeaderFooter: variasHojas,
+            headerTemplate: '<span></span>',
+            footerTemplate: pieCorrido,
         });
         
         const base64String = pdfBuffer.toString('base64');
@@ -707,9 +727,9 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     const autoTable = (await import('jspdf-autotable')).default;
     
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const isSale = order.orderType === 'SALE';
+    const isSale = esVentaDeOrden(order);
     // Un presupuesto es una cotización: no habla de pagos ni de saldos.
-    const esPresupuesto = (order.orderType || 'QUOTE') === 'QUOTE';
+    const esPresupuesto = !isSale;
     const financials = PricingService.calculateOrderFinancials(order);
     const markupFactor = 1 + ((order.markup || 0) / 100);
     
@@ -790,7 +810,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
     doc.text('Cerro de las Rosas', bx2 + 4, y + 13);
     doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
-    doc.text('Vigencia: 15 dias corridos', bx2 + 4, y + 18);
+    if (esPresupuesto) doc.text(`Vigencia: ${VIGENCIA_PRESUPUESTO_DIAS} dias corridos`, bx2 + 4, y + 18);
     
     y += bh + 6;
     

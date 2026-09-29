@@ -71,13 +71,15 @@ export function buildQuoteMessage(order: any, clientName: string): string {
 
     // En una venta con pagos hechos, el saldo va en el mismo mensaje: sin esto
     // el cliente ve el total y cree que debe todo.
-    if (esVenta && f.hasBalance && (order?.paid || 0) > 0) {
+    // `paidReal` y no `order.paid`: hay ventas con filas de Payment y paid=0,
+    // y el PDF ya usa paidReal — las dos piezas tienen que decir lo mismo.
+    if (esVenta && f.hasBalance && f.paidReal > 0) {
         lineas.push(``);
-        lineas.push(`Ya abonaste: ${money(order.paid)}`);
+        lineas.push(`Ya abonaste: ${money(f.paidReal)}`);
         lineas.push(`Saldo en efectivo: ${money(f.remainingCash)}`);
         lineas.push(`Saldo por transferencia: ${money(f.remainingTransfer)}`);
         lineas.push(`Saldo con tarjeta/lista: ${money(f.remainingCard)}`);
-    } else if (esVenta && !f.hasBalance && (order?.paid || 0) > 0) {
+    } else if (esVenta && !f.hasBalance && f.paidReal > 0) {
         lineas.push(``);
         lineas.push(`Estado: totalmente abonado ✅`);
     }
