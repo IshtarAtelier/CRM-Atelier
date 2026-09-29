@@ -116,8 +116,12 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         th { background:${brandSand}; color:white; padding:12px 14px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:1.5px; }
         td { padding:12px 14px; border-bottom:1px solid #f5f5f4; font-size:12px; }
         tr:nth-child(even) { background:#fffcf9; }
+        tr { break-inside: avoid; page-break-inside: avoid; }
 
-        .payment-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
+        /* Las tres tarjetas de pago van ENTERAS en una hoja: partidas por el
+           corte de página, la fila de 12 cuotas caía sola en la hoja 2 dentro
+           de una tarjeta cortada y el cliente no la veía. */
+        .payment-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; break-inside: avoid; page-break-inside: avoid; }
         .payment-card { border-radius: 18px; padding: 18px; border: 1.5px solid ${brandBeige}; position: relative; overflow: hidden; }
         .payment-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; }
         .p-efective::before { background: ${systemEmerald}; }
@@ -135,7 +139,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .inst-total { font-size: 8px; color: #a8a29e; font-weight: 700; text-align: right; text-transform: uppercase; display: block; }
         .p-tag { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color:#a8a29e; margin-bottom: 4px; display: block; }
 
-        .totals-summary { margin-top: 25px; padding: 20px 25px; border-radius: 16px; background: #fffcf9; color: #1c1917; display: flex; justify-content: space-between; align-items: center; border: 1.5px solid ${brandBeige}; }
+        .totals-summary { margin-top: 25px; padding: 20px 25px; border-radius: 16px; background: #fffcf9; color: #1c1917; display: flex; justify-content: space-between; align-items: center; border: 1.5px solid ${brandBeige}; break-inside: avoid; page-break-inside: avoid; }
         .tot-amount { font-size: 34px; font-weight: 900; color: #047857; letter-spacing: -1px; }
         .tot-col { text-align: center; padding: 0 15px; border-right: 1px solid ${brandBeige}; }
         .tot-col:last-of-type { border-right: none; }
@@ -255,10 +259,13 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                       ${it.__sub ? `<div style="font-size:10px;color:#57534e;margin-top:2px;font-weight:700">${escapeHtml(it.__sub)}</div>` : ''}
                     </td></tr>`;
                 const itemPrice = Math.round(it.price * markupFactor);
+                // El ojo va ARRIBA del nombre y en mayúsculas: OD y OI son dos
+                // líneas con el mismo título, y como quinta línea gris el
+                // cliente no distinguía cuál era cuál.
                 let eyeLabel = '';
-                if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'Ojo Derecho (OD)';
-                else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'Ojo Izquierdo (OI)';
-                else if (it.eye) eyeLabel = it.eye;
+                if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'OJO DERECHO (OD)';
+                else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'OJO IZQUIERDO (OI)';
+                else if (it.eye) eyeLabel = String(it.eye).toUpperCase();
 
                 let priceDisplay = `$${formatearPrecio(itemPrice)}`;
                 let totalDisplay = `$${formatearPrecio((itemPrice * it.quantity))}`;
@@ -288,6 +295,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 return `
                 <tr>
                     <td>
+                        ${eyeLabel ? `<div style="font-size:9px; letter-spacing:1.5px; font-weight:900; color:${brandSand}; margin-bottom:2px;">${eyeLabel}</div>` : ''}
                         <div style="font-weight: 900;">${(() => {
                             // "Carolina emanuel Carolina Emanuel": la marca y el
                             // nombre del producto suelen decir lo mismo, y
@@ -304,7 +312,6 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                         ${colorDeLenteEnPedido(it, order.items || []) ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Color de la lente: ${colorDeLenteEnPedido(it, order.items || [])}</div>` : ''}
                         ${origin ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Origen: ${origin}</div>` : ''}
                         ${colorLinea ? `<div style="font-size:10px; color:#6d28d9; font-weight: 800; margin-top: 1px;">Color: ${colorLinea}</div>` : ''}
-                        ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
                         ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">* Bonificado por Promoción</div>` : ''}
                         ${notaBonificacion}
                     </td>
@@ -649,18 +656,18 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         const ip = Math.round(it.price * markupFactor);
         
         let eyeLabel = '';
-        if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'Ojo Derecho (OD)';
-        else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'Ojo Izquierdo (OI)';
-        else if (it.eye) eyeLabel = it.eye;
-        
+        if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'OJO DERECHO (OD)';
+        else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'OJO IZQUIERDO (OI)';
+        else if (it.eye) eyeLabel = String(it.eye).toUpperCase();
+
         let itemName = `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim();
+        if (eyeLabel) itemName = `${eyeLabel}\n${itemName}`;
         const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
         if (refIndex) itemName += `\n   Índice: ${refIndex}`;
         const colorLente = colorDeLenteEnPedido(it, order.items || []);
         if (colorLente) itemName += `\n   Color de la lente: ${colorLente}`;
         const origin = lensOriginLabel(lensOriginFromItem(it));
         if (origin) itemName += `\n   Origen: ${origin}`;
-        if (eyeLabel) itemName += `\n   Lado: ${eyeLabel}`;
         
         let priceLabel = `$${formatearPrecio(ip)}`;
         let totalLabel = `$${formatearPrecio((ip * it.quantity))}`;
@@ -769,7 +776,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
             `3 cuotas s/int: $${formatearPrecio(financials.installment3)}`,
             `6 cuotas s/int: $${formatearPrecio(financials.installment6)}`,
             // 12 cuotas solo al cotizar: con pagos, el pedido está en etapa de saldo
-            ...(financials.paidReal <= 0 ? [`12 cuotas: $${formatearPrecio(financials.installment12)} (+10%)`] : [])
+            ...(financials.paidReal <= 0 ? [`12 cuotas fijas: $${formatearPrecio(financials.installment12)}`] : [])
         ]);
         
         y = cy + ch + 8;
