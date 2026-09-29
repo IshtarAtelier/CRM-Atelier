@@ -50,6 +50,8 @@ function resolveVendorName(order: any, vendorName?: string): string | null {
 
 function getOrderHtml(order: any, client: any, vendorName?: string): string {
     const isSale = order.orderType === 'SALE';
+    // Un presupuesto es una cotización: no habla de pagos ni de saldos.
+    const esPresupuesto = (order.orderType || 'QUOTE') === 'QUOTE';
     
     let dateStr = '';
     try {
@@ -356,7 +358,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         `;
     })()}
 
-    ${!financials.hasBalance ? `
+    ${!esPresupuesto && !financials.hasBalance ? `
     <div style="margin-top: 30px; padding: 28px 35px; border-radius: 20px; background: #f0fdf4; border: 2px solid #10b981; color: #065f46;">
         <h2 style="font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px; text-align: center;">✅ Orden pagada en su totalidad</h2>
         <p style="font-size: 14px; font-weight: 700; margin: 0 0 18px; text-align: center;">No queda saldo pendiente. Al retirar el pedido no tenés que abonar nada más.</p>
@@ -384,30 +386,36 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         })()}
     </div>
     ` : `
+    ${esPresupuesto ? `
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:22px; padding:0 4px;">
+        <span style="font-size:10px; letter-spacing:2px; font-weight:900; text-transform:uppercase; color:${brandSand};">Total · precio de lista</span>
+        <span style="font-size:22px; font-weight:900; color:#1c1917;">$${formatearPrecio(financials.listPrice)}</span>
+    </div>
+    <div style="font-size:10px; color:#78716c; font-weight:700; padding:0 4px; margin-top:2px;">Elegí cómo pagarlo:</div>` : ''}
     <div class='payment-methods'>
         <div class='payment-card p-efective'>
             <span class='p-title'>💵 Efectivo (-${financials.discountCash}%)</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalCash)}</span>
-            <div class='p-saldo'>
+            ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${formatearPrecio(financials.remainingCash)}</span>
-            </div>
+            </div>`}
         </div>
         <div class='payment-card p-transfer'>
             <span class='p-title'>🏦 Transferencia (-${financials.discountTransfer}%)</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalTransfer)}</span>
-            <div class='p-saldo'>
+            ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${formatearPrecio(financials.remainingTransfer)}</span>
-            </div>
+            </div>`}
         </div>
         <div class='payment-card p-card'>
             <span class='p-title'>💳 Tarjetas (Lista)</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalCard)}</span>
-            <div class='p-saldo'>
+            ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Listado</span>
                 <span>$${formatearPrecio(financials.remainingCard)}</span>
-            </div>
+            </div>`}
             <div class='installments'>
                 <div class='inst-row'>
                     <span style="font-size:10px; font-weight:700;">3 Cuotas sin interés de</span>
@@ -417,7 +425,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     <span style="font-size:10px; font-weight:700;">6 Cuotas sin interés de</span>
                     <span class='inst-quota'>$${formatearPrecio(financials.installment6)}</span>
                 </div>
-                ${financials.paidReal <= 0 ? `
+                ${esPresupuesto || financials.paidReal <= 0 ? `
                 <div class='inst-row' style="margin-top: 8px;">
                     <span style="font-size:10px; font-weight:700;">12 Cuotas fijas de</span>
                     <span class='inst-quota'>$${formatearPrecio(financials.installment12)}</span>
@@ -429,7 +437,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         </div>
     </div>
 
-    <div class='totals-summary'>
+    ${esPresupuesto ? '' : `<div class='totals-summary'>
         <div class='tot-col'>
             <span class='tot-label' style="color: #047857;">💵 Efectivo</span>
             <span class='tot-val' style="color: #047857;">$${formatearPrecio(financials.totalCash)}</span>
@@ -442,12 +450,12 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             <span class='tot-label' style="color: #c2410c;">💳 Tarjeta</span>
             <span class='tot-val' style="color: #c2410c;">$${formatearPrecio(financials.totalCard)}</span>
         </div>
-        
+
         <div class='tot-paid'>
             <span class='tot-label' style="color: #78716c;">Abonado Real</span>
             <span class='paid-value' style="color: #1c1917;">$${formatearPrecio(financials.paidReal)}</span>
         </div>
-    </div>
+    </div>`}
     `}
 
     ${order.prescription ? `
@@ -563,6 +571,8 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const isSale = order.orderType === 'SALE';
+    // Un presupuesto es una cotización: no habla de pagos ni de saldos.
+    const esPresupuesto = (order.orderType || 'QUOTE') === 'QUOTE';
     const financials = PricingService.calculateOrderFinancials(order);
     const markupFactor = 1 + ((order.markup || 0) / 100);
     
@@ -747,7 +757,14 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     }
 
     // --- PAYMENT CARDS ---
-    if (financials.hasBalance) {
+    if (esPresupuesto || financials.hasBalance) {
+        if (esPresupuesto) {
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+            doc.text('TOTAL · PRECIO DE LISTA', m, y + 4);
+            doc.setFontSize(14); doc.setTextColor(...darkText);
+            doc.text(`$${formatearPrecio(financials.listPrice)}`, pw - m, y + 5, { align: 'right' });
+            y += 10;
+        }
         const cardW = (cw - 8) / 3;
         const cy = y;
         const ch = 32;
@@ -760,7 +777,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
             doc.text(title, x + 3, cy + 7);
             doc.setFontSize(13); doc.text(`$${formatearPrecio(amount)}`, x + 3, cy + 15);
             doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
-            doc.text(`Saldo: $${formatearPrecio(saldo)}`, x + 3, cy + 21);
+            if (!esPresupuesto) doc.text(`Saldo: $${formatearPrecio(saldo)}`, x + 3, cy + 21);
             if (extra) extra.forEach((l, i) => { doc.setFontSize(6); doc.text(l, x + 3, cy + 25 + i * 4); });
         };
         
@@ -769,14 +786,15 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         drawCard(m + (cardW + 4) * 2, orange, 'TARJETAS (LISTA)', financials.totalCard, financials.remainingCard, [
             `3 cuotas s/int: $${formatearPrecio(financials.installment3)}`,
             `6 cuotas s/int: $${formatearPrecio(financials.installment6)}`,
-            // 12 cuotas solo al cotizar: con pagos, el pedido está en etapa de saldo
-            ...(financials.paidReal <= 0 ? [`12 cuotas fijas: $${formatearPrecio(financials.installment12)}`] : [])
+            // En una venta con pagos ya no se ofrece financiación larga (27/8)
+            ...(esPresupuesto || financials.paidReal <= 0 ? [`12 cuotas fijas: $${formatearPrecio(financials.installment12)}`] : [])
         ]);
         
         y = cy + ch + 8;
         
+        if (!esPresupuesto) {
         // Totals bar (Light background, beige border)
-        doc.setFillColor(255, 252, 249); 
+        doc.setFillColor(255, 252, 249);
         doc.setDrawColor(212, 195, 181); // brandBeige
         doc.setLineWidth(0.5);
         doc.roundedRect(m, y, cw, 20, 3, 3, 'FD'); // Fill and stroke
@@ -800,6 +818,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         drawCol(m + colW * 2 + 4, 'TARJETA', `$${formatearPrecio(financials.totalCard)}`, darkOrange, darkOrange);
         drawCol(m + colW * 3 + 4, 'ABONADO REAL', `$${formatearPrecio(financials.paidReal)}`, darkGray, darkStone);
         y += 26;
+        }
     } else {
         doc.setFillColor(240, 253, 244); doc.setDrawColor(...emerald); doc.setLineWidth(0.5);
         doc.roundedRect(m, y, cw, 18, 3, 3, 'FD');

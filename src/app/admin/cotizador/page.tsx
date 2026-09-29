@@ -58,7 +58,7 @@ import {
 } from 'lucide-react';
 import type { Product } from '@/types/orders';
 import { precioConOferta } from '@/lib/precio-oferta';
-import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
+import { normalizeLensOrigin } from '@/lib/lens-origin';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import TablaCotizador from './TablaCotizador';
 
@@ -840,10 +840,9 @@ function CotizadorPageContent() {
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
         quoteItems.forEach(it => {
-            const origin = lensOriginSuffix(lensOriginFromItem(it));
             // El par gratis del 2x1 se dice con todas las letras, no "$0".
             const precioLinea = it.isPromo && it.customPrice === 0 ? 'SIN CARGO (2x1)' : `$${it.customPrice.toLocaleString()}`;
-            msg += `- ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''}${origin} ${it.eye ? '['+it.eye+']' : ''}: ${precioLinea}\n`;
+            msg += `- ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''} ${it.eye ? '['+it.eye+']' : ''}: ${precioLinea}\n`;
         });
         // El descuento del armazón bonificado, explícito: sin este renglón los
         // ítems no cierran contra el total y el cliente hace la resta a mano.
@@ -891,8 +890,7 @@ function CotizadorPageContent() {
     const handleCopy = () => {
         let text = `PRESUPUESTO ATELIER\n\n`;
         quoteItems.forEach(it => {
-            const origin = lensOriginSuffix(lensOriginFromItem(it));
-            text += `• ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''}${origin} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
+            text += `• ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
         });
         text += `\nTotal Lista: $${Math.round(totalWithMarkup).toLocaleString()}\n`;
         text += `Promo Efectivo: $${Math.round(totalCash).toLocaleString()}\n`;
