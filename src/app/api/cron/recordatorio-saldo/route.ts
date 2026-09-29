@@ -70,9 +70,20 @@ export async function GET(request: Request) {
     const corte = new Date(Date.now() - DIAS_PARA_RECORDAR * 24 * 3600 * 1000);
 
     // Pedidos listos, avisados hace más de 7 días, sin recordatorio previo.
-    // "Avisado" = Meta confirmó que salió (SENT/DELIVERED/READ). Un mensaje
-    // RECHAZADO no cuenta: a ese cliente todavía le debemos el primer aviso, y
-    // el recordatorio de saldo llegaría sin contexto.
+    //
+    // "Avisado" = la interacción que deja `notifyOrderReady` en la ficha, que
+    // se escribe SOLO si el aviso salió por algún canal (WhatsApp o mail).
+    // Hasta el 29/9/2026 esto miraba la plantilla `pedido_listo_saldo%` y por
+    // eso no encontraba a nadie: el aviso puede haber salido por mail, por el
+    // bot viejo, o con la variante `pedido_listo` (sin saldo) porque en ese
+    // momento la venta no lo tenía y después se corrigió. Lo que importa es
+    // que le avisamos y HOY debe — y el saldo de hoy lo decide PricingService
+    // más abajo, no el texto del aviso.
+    //
+    // La interacción tiene que ser posterior al pase a fábrica de ESTA venta:
+    // sin eso, un cliente con un pedido anterior ya retirado calificaría por el
+    // aviso viejo. Y el recordatorio se marca por pedido (el nº va en la
+    // interacción que deja este mismo cron), así que sale una sola vez.
     const candidatos = await prisma.$queryRawUnsafe<any[]>(`
         SELECT o.id AS "orderId", c.id AS "clientId", c.name, c.phone
           FROM "Order" o
@@ -81,17 +92,15 @@ export async function GET(request: Request) {
            AND o."labStatus" = 'READY'
            AND c.phone IS NOT NULL
            AND EXISTS (
-                 SELECT 1 FROM "WhatsAppMessage" m
-                   JOIN "WhatsAppChat" ch ON ch.id = m."chatId"
-                  WHERE ch."clientId" = c.id
-                    AND m."templateName" LIKE 'pedido_listo_saldo%'
-                    AND m.status IN ('SENT','DELIVERED','READ')
-                    AND m."createdAt" < $1)
+                 SELECT 1 FROM "Interaction" i
+                  WHERE i."clientId" = c.id
+                    AND i.content LIKE '🤖 Notificación automática enviada%Listo para retirar%'
+                    AND i."createdAt" >= COALESCE(o."labSentAt", o."createdAt")
+                    AND i."createdAt" < $1)
            AND NOT EXISTS (
-                 SELECT 1 FROM "WhatsAppMessage" m
-                   JOIN "WhatsAppChat" ch ON ch.id = m."chatId"
-                  WHERE ch."clientId" = c.id
-                    AND m."templateName" = 'recordatorio_saldo')
+                 SELECT 1 FROM "Interaction" i
+                  WHERE i."clientId" = c.id
+                    AND i.content LIKE '%Recordatorio automático de saldo pendiente del pedido #' || UPPER(RIGHT(o.id, 4)) || '%')
     `, corte);
 
     const enviados: any[] = [];

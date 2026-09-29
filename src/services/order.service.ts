@@ -5,7 +5,7 @@ import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
 import { codigosCrizal, crizalPermitidoEn2x1, esCrizalValido, ventaExigeCrizal } from '@/lib/constants/crizal';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
-import { calculateQuoteTotals } from '@/services/PricingService';
+import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
 import { TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 import { z } from 'zod';
@@ -2683,6 +2683,27 @@ export class OrderService {
 
             if (!existingTask) {
                 await ContactService.addReviewRequest(order.clientId, taskDescription);
+            }
+        }
+
+        // ── Entregado con saldo: alerta URGENTE a la administración ──
+        // Pedido de Ishtar (29/9/2026): un pedido que sale del local sin
+        // cobrarse entero tiene que sonar en el momento, no aparecer en un
+        // cuadro días después. Solo al PASAR a entregado (re-guardar una venta
+        // ya entregada no vuelve a avisar) y solo a los ADMIN: es plata, no
+        // operación. El saldo lo decide PricingService, nunca total − paid.
+        if (labStatus === 'DELIVERED' && prevState?.labStatus !== 'DELIVERED') {
+            const f = PricingService.calculateOrderFinancials(order);
+            if (f.hasBalance) {
+                const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
+                const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '');
+                avisarAlEquipo({
+                    asunto: `🔴 URGENTE: ${order.client.name} se llevó el pedido ${nro} con saldo sin cobrar`,
+                    cuerpo: `Se marcó como entregado y quedan sin pagar ${formatearPrecio(f.remainingCash)} en efectivo (${formatearPrecio(f.remainingTransfer)} por transferencia, ${formatearPrecio(f.remainingCard)} con tarjeta). Lo entregó ${userName || 'alguien sin identificar'}.\nVenta: ${base}/admin/ventas?id=${order.id}`,
+                    urgente: true,
+                    soloAdmins: true,
+                    porWhatsApp: true,
+                }).catch(err => console.error('[Entregado con saldo] No se pudo avisar:', err));
             }
         }
 

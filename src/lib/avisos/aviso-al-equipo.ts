@@ -44,6 +44,10 @@ export interface AvisoAlEquipo {
     dedupePrefijo?: string;
     /** Tapa la pantalla hasta que lo lean. Reservado para lo que no puede esperar. */
     urgente?: boolean;
+    /** Solo a los ADMIN: para lo que es plata o decisión de la dueña, no operación. */
+    soloAdmins?: boolean;
+    /** Además, copia al celular de cada destinatario que tenga `whatsappPhone` cargado. */
+    porWhatsApp?: boolean;
 }
 
 /**
@@ -57,7 +61,8 @@ export async function avisarAlEquipo(aviso: AvisoAlEquipo): Promise<number> {
     try {
         // Los mismos colaboradores que ve el selector de la mensajería: una sola
         // definición de "el equipo" (antes estaba copiada acá).
-        const equipo = await InternalMessagingService.listarColaboradores();
+        const todos = await InternalMessagingService.listarColaboradores();
+        const equipo = aviso.soloAdmins ? todos.filter(p => p.role === 'ADMIN') : todos;
         if (!equipo.length) {
             console.warn('[Aviso al equipo] No hay usuarios internos a quién avisar:', aviso.asunto);
             return 0;
@@ -73,6 +78,7 @@ export async function avisarAlEquipo(aviso: AvisoAlEquipo): Promise<number> {
                     asunto: aviso.asunto,
                     cuerpo,
                     urgent: aviso.urgente,
+                    copiaWhatsapp: aviso.porWhatsApp,
                     dedupePrefijo: aviso.dedupePrefijo || aviso.asunto,
                 });
                 if (enviado) llegaron++;

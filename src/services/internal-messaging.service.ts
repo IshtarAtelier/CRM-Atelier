@@ -717,6 +717,8 @@ export class InternalMessagingService {
      */
     static async mensajeDeIA(params: {
         paraUserId: string; cuerpo: string; asunto?: string; urgent?: boolean;
+        /** Copia al celular del destinatario (si tiene `whatsappPhone`), como una nota del equipo. */
+        copiaWhatsapp?: boolean;
         /**
          * Marca de "esto ya lo mandé". Si en las últimas 20 h la IA le escribió
          * a esta persona un mensaje que empieza igual, no repite.
@@ -749,6 +751,7 @@ export class InternalMessagingService {
         return this.escribirEnDirecto({
             deId: ia.id, paraId: params.paraUserId, cuerpo: params.cuerpo,
             asunto: params.asunto || 'Resumen del día', urgent: params.urgent,
+            copiaWhatsapp: params.copiaWhatsapp,
         });
     }
 
