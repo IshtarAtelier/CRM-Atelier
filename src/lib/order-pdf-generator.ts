@@ -23,6 +23,12 @@ import { armazonesPorPar, tipoDeItem } from '@/lib/armazon-por-par';
 import fs from 'fs';
 import path from 'path';
 
+// A4 en píxeles CSS (96 dpi), que es como Chromium pagina al imprimir.
+const A4_ANCHO_PX = 794;
+const A4_ALTO_PX = 1123;
+// Hasta acá se achica para que entre en una hoja; más chico ya no se lee.
+const ESCALA_MINIMA_UNA_HOJA = 0.7;
+
 /**
  * La observación del vendedor es texto libre que va a parar al HTML del PDF:
  * se escapa para que un "<" o un "&" no rompan el documento.
@@ -46,6 +52,30 @@ function resolveVendorName(order: any, vendorName?: string): string | null {
     const name = (order?.labSentBy || vendorName || '').trim();
     if (!name || ['Sistema', 'Bot', 'CRM'].includes(name)) return null;
     return name;
+}
+
+/**
+ * La foto del armazón, incrustada en base64 para que el PDF no dependa de la
+ * red (igual que el logo). Solo armazones y anteojos de sol: los cristales no
+ * tienen foto propia. Si el archivo no está en `public/`, se apunta a la tienda.
+ */
+function imagenDeArmazon(it: any): string {
+    const categoria = `${it.product?.category || it.productCategorySnapshot || ''}`;
+    if (!/Armazón|Sol/i.test(categoria)) return '';
+    const src: string = it.product?.imagenesCatalogo?.[0] || it.product?.rawImageUrls?.[0] || '';
+    if (!src) return '';
+    if (/^https?:\/\//.test(src)) return src;
+    try {
+        const local = path.join(process.cwd(), 'public', src.replace(/^\//, ''));
+        if (fs.existsSync(local)) {
+            const ext = path.extname(local).slice(1).toLowerCase();
+            const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext || 'png'}`;
+            return `data:${mime};base64,${fs.readFileSync(local).toString('base64')}`;
+        }
+    } catch (e) {
+        console.error('Error al leer la foto del armazón para el PDF:', e);
+    }
+    return `${STORE_ORIGIN}${src.startsWith('/') ? '' : '/'}${src}`;
 }
 
 function getOrderHtml(order: any, client: any, vendorName?: string): string {
@@ -97,6 +127,11 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
 
     const financials = PricingService.calculateOrderFinancials(order);
     const markupFactor = 1 + ((order.markup || 0) / 100);
+    // Con un descuento (armazón bonificado o especial) el total se muestra
+    // como desglose; sin descuento, como una sola línea. Nunca los dos.
+    const promoFrameInflated = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
+    const specialDiscount = order.specialDiscount || 0;
+    const hayDesglose = promoFrameInflated > 0 || specialDiscount > 0;
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -138,6 +173,8 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .par-sub { font-size:10px; color:${gris}; font-weight:400; letter-spacing:0; margin-top:1px; }
         .ojo { display:inline-block; border:1px solid ${brandBeige}; border-radius:4px; padding:1px 6px; font-size:8.5px; font-weight:600; letter-spacing:.06em; color:${brandSand}; margin-bottom:3px; }
         .item-name { font-weight:600; }
+        .item-row { display:flex; gap:12px; align-items:flex-start; }
+        .item-img { flex:none; width:84px; height:56px; object-fit:contain; border:1px solid ${linea}; border-radius:4px; background:white; }
         .item-sub { font-size:10px; color:${gris}; margin-top:1px; }
         .bonif { font-size:10px; color:${verdeSuave}; font-weight:600; margin-top:2px; }
 
@@ -149,7 +186,8 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         /* Las tres tarjetas de pago van ENTERAS en una hoja: partidas por el
            corte de página, la fila de 12 cuotas caía sola en la hoja 2 dentro
            de una tarjeta cortada y el cliente no la veía. */
-        .payment-methods { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:12px; align-items:start; break-inside: avoid; page-break-inside: avoid; }
+        .payment-methods { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:8px; margin-top:12px; align-items:start; break-inside: avoid; page-break-inside: avoid; }
+        .p-amount small { font-size:10px; font-weight:400; color:${gris}; }
         .payment-card { border-radius:6px; padding:12px 16px; border:1px solid ${linea}; }
         .p-title { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${gris}; margin-bottom:6px; display:block; }
         .p-amount { font-size:18px; font-weight:700; display:block; }
@@ -161,15 +199,6 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .inst-quota { font-size:13px; font-weight:700; }
         .inst-note { font-size:9px; color:${gris}; }
 
-        /* Las 12 cuotas van APARTE de la tarjeta de crédito: tienen su propio
-           total y, metidas ahí, parecían contradecir el precio de lista. */
-        .cuotas-largas { margin-top:8px; border:1px solid ${linea}; border-radius:6px; padding:10px 16px; background:${crema}; display:flex; justify-content:space-between; align-items:center; gap:16px; break-inside: avoid; page-break-inside: avoid; }
-        .cl-title { font-size:12px; font-weight:700; }
-        .cl-hint { font-size:9.5px; color:${gris}; margin-top:1px; }
-        .cl-cuota { font-size:18px; font-weight:700; white-space:nowrap; }
-        .cl-cuota span { font-size:10px; font-weight:400; color:${gris}; }
-        .cl-total { text-align:right; font-size:15px; font-weight:700; white-space:nowrap; }
-        .cl-total span { display:block; font-size:8.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${gris}; margin-bottom:1px; }
 
         .totals-summary { margin-top:18px; padding:16px 22px; border-radius:6px; background:${crema}; display:flex; justify-content:space-between; align-items:center; border:1px solid ${linea}; break-inside: avoid; page-break-inside: avoid; }
         .tot-col { text-align:center; padding:0 15px; border-right:1px solid ${brandBeige}; }
@@ -187,7 +216,24 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .footer-links svg { width:11px; height:11px; }
         .footer-links a.ver-tienda { background:${verdeSuave}; color:white; padding:2px 8px; border-radius:3px; font-weight:700; }
 
-        @media print { body { padding: 22px 30px; } }
+        /* Modo compacto: lo prende el generador solo cuando el documento no
+           entra en una hoja, antes de recurrir a achicar la escala. */
+        body.compacto { padding: 22px 32px; font-size: 11.5px; }
+        body.compacto .letterhead { margin-bottom: 10px; padding-bottom: 8px; }
+        body.compacto .doc-header { margin-bottom: 8px; }
+        body.compacto .info-grid { margin-bottom: 10px; }
+        body.compacto .info-box { padding: 8px 12px; }
+        body.compacto td { padding: 5px 12px; }
+        body.compacto .par-sep td { padding: 5px 12px; }
+        body.compacto .item-sub { display: inline; }
+        body.compacto .item-sub + .item-sub::before { content: ' · '; }
+        body.compacto .item-img { width: 64px; height: 42px; }
+        body.compacto .payment-card { padding: 10px 12px; }
+        body.compacto .installments { margin-top: 6px; padding-top: 6px; }
+        body.compacto .firma { margin-top: 6px; }
+        body.compacto .footer { margin-top: 8px; padding-top: 6px; }
+
+        @media print { body { padding: 22px 30px; } body.compacto { padding: 18px 26px; } }
     </style>
 </head>
 <body>
@@ -332,6 +378,9 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 return `
                 <tr>
                     <td>
+                        <div class="item-row">
+                        ${imagenDeArmazon(it) ? `<img class="item-img" src="${imagenDeArmazon(it)}" alt="" />` : ''}
+                        <div>
                         ${eyeLabel ? `<div><span class="ojo">${eyeLabel}</span></div>` : ''}
                         <div class="item-name">${(() => {
                             // "Carolina emanuel Carolina Emanuel": la marca y el
@@ -350,6 +399,8 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                         ${refIndex ? `<div class="item-sub">Índice de refracción ${refIndex}</div>` : ''}
                         ${itemPrice === 0 ? `<div class="bonif">Bonificado por promoción</div>` : ''}
                         ${notaBonificacion}
+                        </div>
+                        </div>
                     </td>
                     <td class="num" style='text-align:center; font-weight:500;'>${it.quantity}</td>
                     <td class="num">${priceDisplay}</td>
@@ -361,39 +412,27 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     </table>
 
     ${(() => {
+        if (!hayDesglose) return '';
         const rawSubtotalInflated = (order.items || []).reduce((sum: number, it: any) => sum + (Math.round(it.price * markupFactor) * (it.quantity || 1)), 0);
-        const promoFrameDiscount = order.appliedPromoDiscount || 0;
-        const promoFrameInflated = Math.round(promoFrameDiscount * markupFactor);
-        const specialDiscount = order.specialDiscount || 0;
-
-        if (promoFrameInflated === 0 && specialDiscount === 0) return '';
-
+        // El nombre de la promo guardada a veces trae la marca repetida
+        // ("Atelier Atelier Premium"): se colapsa la palabra doble.
+        const nombrePromo = String(order.appliedPromoName || 'Armazón bonificado').replace(/^(\S+)\s+\1\b/i, '$1');
+        const fila = (label: string, valor: string, color = tinta) => `
+                <div style="display:flex; justify-content:space-between; padding:3px 0; font-size:11px; color:${color};">
+                    <span>${label}</span><span style="font-weight:600;">${valor}</span>
+                </div>`;
         return `
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 25px;">
-            <div style="width: 320px; background: #fffcf9; border: 1px solid ${brandBeige}; border-radius: 14px; padding: 16px;">
-                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px;">
-                    <span style="color: #78716c; font-weight: 600;">Subtotal Items:</span>
-                    <span style="font-weight: 600;">$${formatearPrecio(rawSubtotalInflated)}</span>
-                </div>
-                ${promoFrameInflated > 0 ? `
-                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #4d7c5f;">
-                    <span style="font-weight: 600;">${order.appliedPromoName || 'Bonificación Armazón'}:</span>
-                    <span style="font-weight: 600;">-$${formatearPrecio(promoFrameInflated)}</span>
-                </div>
-                ` : ''}
-                ${specialDiscount > 0 ? `
-                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #4d7c5f;">
-                    <span style="font-weight: 600;">⭐ Descuento excepcional para vos:</span>
-                    <span style="font-weight: 600;">-$${formatearPrecio(specialDiscount)}</span>
-                </div>
-                ` : ''}
-                <div style="display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px; border-top: 1px solid ${brandBeige}; font-size: 14px; font-weight: 700; color: ${brandSand};">
-                    <span>PRECIO DE LISTA FINAL:</span>
-                    <span>$${formatearPrecio(financials.listPrice)}</span>
+        <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+            <div style="width:340px; background:${crema}; border:1px solid ${linea}; border-radius:6px; padding:12px 16px;">
+                ${fila('Subtotal', `$${formatearPrecio(rawSubtotalInflated)}`, gris)}
+                ${promoFrameInflated > 0 ? fila(`${escapeHtml(nombrePromo)} (2x1)`, `−$${formatearPrecio(promoFrameInflated)}`, verdeSuave) : ''}
+                ${specialDiscount > 0 ? fila('Descuento especial para vos', `−$${formatearPrecio(specialDiscount)}`, verdeSuave) : ''}
+                <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:8px; margin-top:6px; border-top:1px solid ${brandBeige};">
+                    <span class="total-label">Precio total (lista)</span>
+                    <span style="font-size:20px; font-weight:700;">$${formatearPrecio(financials.listPrice)}</span>
                 </div>
             </div>
-        </div>
-        `;
+        </div>`;
     })()}
 
     ${!esPresupuesto && !financials.hasBalance ? `
@@ -424,12 +463,12 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         })()}
     </div>
     ` : `
-    ${esPresupuesto ? `
+    ${esPresupuesto && !hayDesglose ? `
     <div class='total-row'>
         <span class='total-label'>Precio total (lista)</span>
         <span class='total-amount'>$${formatearPrecio(financials.listPrice)}</span>
-    </div>
-    <div class='total-hint'>Elegí cómo pagarlo:</div>` : ''}
+    </div>` : ''}
+    ${esPresupuesto ? `<div class='total-hint' style="margin-top:${hayDesglose ? '10px' : '2px'};">Elegí cómo pagarlo:</div>` : ''}
     <div class='payment-methods'>
         <div class='payment-card p-efective'>
             <span class='p-title'>Efectivo (−${financials.discountCash}%)</span>
@@ -448,7 +487,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             </div>`}
         </div>
         <div class='payment-card p-card'>
-            <span class='p-title'>Tarjeta de crédito</span>
+            <span class='p-title'>Cuotas sin interés</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalCard)}</span>
             ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Listado</span>
@@ -456,25 +495,29 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             </div>`}
             <div class='installments'>
                 <div class='inst-row'>
-                    <span>3 cuotas sin interés de</span>
+                    <span>3 cuotas de</span>
                     <span class='inst-quota'>$${formatearPrecio(financials.installment3)}</span>
                 </div>
                 <div class='inst-row'>
-                    <span>6 cuotas sin interés de</span>
+                    <span>6 cuotas de</span>
                     <span class='inst-quota'>$${formatearPrecio(financials.installment6)}</span>
                 </div>
+                <div class='inst-note'>Con tarjeta de crédito</div>
             </div>
         </div>
+        ${esPresupuesto || financials.paidReal <= 0 ? `
+        <div class='payment-card p-card12'>
+            <span class='p-title'>12 cuotas fijas</span>
+            <span class='p-amount'>$${formatearPrecio(financials.installment12)} <small>por mes</small></span>
+            <div class='installments'>
+                <div class='inst-row'>
+                    <span>Total</span>
+                    <span class='inst-quota'>$${formatearPrecio(financials.totalCardFinanced)}</span>
+                </div>
+                <div class='inst-note'>Con tarjeta de crédito · es un total propio, distinto del precio de lista</div>
+            </div>
+        </div>` : ''}
     </div>
-    ${esPresupuesto || financials.paidReal <= 0 ? `
-    <div class='cuotas-largas'>
-        <div>
-            <div class='cl-title'>12 cuotas fijas</div>
-            <div class='cl-hint'>Con tarjeta de crédito · tiene su propio total, distinto del precio de lista</div>
-        </div>
-        <div class='cl-cuota'>$${formatearPrecio(financials.installment12)} <span>por mes</span></div>
-        <div class='cl-total'><span>Total en 12 cuotas</span>$${formatearPrecio(financials.totalCardFinanced)}</div>
-    </div>` : ''}
 
     ${esPresupuesto ? '' : `<div class='totals-summary'>
         <div class='tot-col'>
@@ -587,12 +630,59 @@ export async function generateOrderPDF(order: any, contact: any, vendorName?: st
         const context = await browser.newContext();
         const page = await context.newPage();
         
+        await page.setViewportSize({ width: A4_ANCHO_PX, height: A4_ALTO_PX });
+        await page.emulateMedia({ media: 'print' });
         await page.setContent(html, { waitUntil: 'load', timeout: 8000 });
-        
+        // `load` no espera a las fuentes del @import: a veces el PDF salía en
+        // Arial. Se espera a que estén listas, con tope para no colgarse si
+        // Google Fonts no responde (en ese caso sale con la fuente de sistema).
+        await page.evaluate(() => Promise.race([
+            (async () => {
+                for (let i = 0; i < 30 && document.fonts.size === 0; i++) await new Promise(r => setTimeout(r, 100));
+                await document.fonts.ready;
+            })(),
+            new Promise(r => setTimeout(r, 5000)),
+        ]));
+
+        // Que entre en UNA hoja salvo que sea realmente largo (Ishtar, 29/9):
+        // se mide el alto del documento y, si se pasa de la hoja por poco, se
+        // achica la escala hasta que entre. Si se pasa por mucho, va en dos
+        // hojas a tamaño normal antes que en una ilegible.
+        // Chromium imprime con `scale` maquetando la hoja a (ancho ÷ scale) px, así
+        // que el contenido se reacomoda más ancho y más corto: por eso se prueba
+        // cada escala midiendo de verdad, en vez de dividir alturas.
+        const altoDelDocumento = () => page.evaluate(() => document.documentElement.scrollHeight);
+        let scale = 1;
+        const altoInicial = await altoDelDocumento();
+        const medidas: string[] = [`1:${altoInicial}`];
+        let alto = altoInicial;
+        if (alto > A4_ALTO_PX) {
+            // Primero el modo compacto (misma letra, menos aire); si con eso
+            // entra, no se achica nada.
+            await page.evaluate(() => document.body.classList.add('compacto'));
+            alto = await altoDelDocumento();
+            medidas.push(`compacto:${alto}`);
+        }
+        if (alto > A4_ALTO_PX) {
+            for (let s = 0.95; s >= ESCALA_MINIMA_UNA_HOJA - 1e-9; s = Math.round((s - 0.05) * 100) / 100) {
+                await page.setViewportSize({ width: Math.round(A4_ANCHO_PX / s), height: Math.round(A4_ALTO_PX / s) });
+                const alto = await altoDelDocumento();
+                medidas.push(`${s}:${alto}/${Math.round(A4_ALTO_PX / s)}`);
+                if (alto <= A4_ALTO_PX / s) { scale = s; break; }
+            }
+            if (scale === 1) {
+                // Realmente largo: va en dos hojas, y a tamaño normal.
+                await page.setViewportSize({ width: A4_ANCHO_PX, height: A4_ALTO_PX });
+                await page.evaluate(() => document.body.classList.remove('compacto'));
+            }
+        }
+        console.log(`[order-pdf] ${filename} alto=${altoInicial}px escala=${scale} (${medidas.join(' ')})`);
+
         const pdfBuffer = await page.pdf({
             format: 'A4',
             margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
-            printBackground: true
+            printBackground: true,
+            scale,
         });
         
         const base64String = pdfBuffer.toString('base64');
@@ -830,7 +920,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         
         drawCard(m, emerald, `EFECTIVO (-${financials.discountCash}%)`, financials.totalCash, financials.remainingCash);
         drawCard(m + cardW + 4, violet, `TRANSFERENCIA (-${financials.discountTransfer}%)`, financials.totalTransfer, financials.remainingTransfer);
-        drawCard(m + (cardW + 4) * 2, orange, 'TARJETA DE CRÉDITO', financials.totalCard, financials.remainingCard, [
+        drawCard(m + (cardW + 4) * 2, orange, 'CUOTAS SIN INTERÉS', financials.totalCard, financials.remainingCard, [
             `3 cuotas s/int: $${formatearPrecio(financials.installment3)}`,
             `6 cuotas s/int: $${formatearPrecio(financials.installment6)}`,
         ]);
