@@ -53,9 +53,24 @@ const ventas = await prisma.order.findMany({
         discountCash: true, discountTransfer: true,
         labStatus: true, labSentAt: true, labSentBy: true, createdAt: true,
         client: { select: { id: true, name: true } },
-        payments: { select: { amount: true, method: true, date: true } },
+        payments: { select: { amount: true, method: true, date: true, createdByName: true }, orderBy: { date: 'asc' } },
     },
 });
+
+// --detalle: cada venta con saldo, con sus pagos uno por uno, para ver de
+// dónde sale el número antes de reclamarlo.
+if (args.includes('--detalle')) {
+    const p = (n) => formatearPrecio(n);
+    const lista = ventas.map(o => ({ o, f: PricingService.calculateOrderFinancials(o) })).filter(x => x.f.hasBalance)
+        .sort((a, b) => new Date(a.o.labSentAt || 0) - new Date(b.o.labSentAt || 0));
+    for (const { o, f } of lista) {
+        console.log(`\n${(o.client?.name || '').trim()} — ${o.labStatus} — pase a venta ${o.labSentAt ? formatDate(o.labSentAt) : '—'} — ${APP}/admin/ventas?id=${o.id}`);
+        console.log(`  Lista ${p(f.listPrice)} · efectivo ${p(f.totalCash)} (−${f.discountCash}%) · transf ${p(f.totalTransfer)} (−${f.discountTransfer}%) · campo paid=${p(o.paid)}`);
+        if (o.payments.length === 0) console.log('  Pagos: NINGUNO cargado');
+        for (const pg of o.payments) console.log(`  Pago ${formatDate(pg.date)} · ${pg.method} · ${p(pg.amount)} · cargó ${pg.createdByName || '?'}`);
+        console.log(`  Pagado ${p(f.paidReal)} = ${p(f.listEquivalentPaid)} de lista → SALDO lista ${p(f.remainingList)} · efectivo ${p(f.remainingCash)} · transf ${p(f.remainingTransfer)}`);
+    }
+}
 
 const conSaldo = ventas
     .map(o => ({ o, f: PricingService.calculateOrderFinancials(o) }))
