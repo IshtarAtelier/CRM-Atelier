@@ -59,7 +59,11 @@ function writeToken() {
   // así que toda escritura fallaba con "falta el token" aunque el token
   // estuviera ahí. Antes que renombrar a mano en cada entorno (y que el próximo
   // se olvide), se soportan los dos.
-  const t = process.env.META_ADS_WRITE_TOKEN || process.env.META_ADS_TOKEN_WRITE;
+  // 29/9/26: primero META_ADS_TOKEN_WRITE. En el .env local los dos son del
+  // mismo usuario del sistema con los mismos permisos, pero META_ADS_WRITE_TOKEN
+  // vence el 9/10/2026 y META_ADS_TOKEN_WRITE no vence: con el orden viejo, el
+  // 9/10 todas las escrituras empezaban a fallar habiendo una clave válida.
+  const t = process.env.META_ADS_TOKEN_WRITE || process.env.META_ADS_WRITE_TOKEN;
   if (!t) {
     throw new MetaApiError('Falta META_ADS_WRITE_TOKEN: la escritura usa un token dedicado.', {
       fatal: true,
