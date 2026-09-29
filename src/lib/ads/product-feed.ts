@@ -275,6 +275,20 @@ function franjaPrecio(precio: number): string {
   return '210k-mas';
 }
 
+type ProductoMapeado = Awaited<ReturnType<typeof getMappedWebCatalog>>['products'][number];
+
+/**
+ * Qué productos van a los catálogos. Una sola regla para el feed de productos
+ * y para el inventario local: si divergieran, Merchant tendría inventario de
+ * productos que no conoce (o productos sin inventario en el local).
+ * Solo armazones/sol con precio e imagen (los cristales no van al catálogo).
+ */
+function vaAlCatalogo(p: ProductoMapeado): p is ProductoMapeado & { price: number } {
+  if (p.category === 'Cristal') return false;
+  if (!p.price || p.price <= 0) return false;
+  return feedImages(p.imagenesCatalogo).length > 0;
+}
+
 /** Arma el XML completo del feed para la plataforma pedida. */
 export async function buildProductFeed(platform: FeedPlatform): Promise<string> {
   const cfg = PLATFORMS[platform];
@@ -284,12 +298,8 @@ export async function buildProductFeed(platform: FeedPlatform): Promise<string> 
     const { products } = await getMappedWebCatalog();
 
     for (const p of products) {
-      // Solo armazones/sol con precio e imagen (los cristales no van al catálogo).
-      if (p.category === 'Cristal') continue;
-      if (!p.price || p.price <= 0) continue;
-      const imgs = feedImages(p.imagenesCatalogo);
-      if (imgs.length === 0) continue;
-      const [img, ...extra] = imgs;
+      if (!vaAlCatalogo(p)) continue;
+      const [img, ...extra] = feedImages(p.imagenesCatalogo);
 
       const shape = formaVisible(p.shape) || null;
       const material = p.material || null;
@@ -360,6 +370,31 @@ export async function buildProductFeed(platform: FeedPlatform): Promise<string> 
     <description>Catálogo de anteojos de Atelier Óptica</description>${items}
   </channel>
 </rss>`;
+}
+
+/**
+ * Inventario LOCAL para Google Merchant Center (fichas locales gratuitas): los
+ * mismos productos del feed, declarados en el local (código de tienda del
+ * Perfil de Empresa), con la misma disponibilidad y el mismo precio que online.
+ * Merchant lo baja cada 24 h desde /api/web/feed/google-local, así el stock
+ * del local se mantiene igual al de la tienda sin cargar nada a mano.
+ *
+ * Formato: texto separado por tabulaciones, una fila por producto.
+ */
+export async function buildLocalInventoryFeed(storeCode: string): Promise<string> {
+  const filas = ['store_code\tid\tavailability\tprice\tsale_price'];
+  try {
+    const { products } = await getMappedWebCatalog();
+    for (const p of products) {
+      if (!vaAlCatalogo(p)) continue;
+      const disponible = (p.stock ?? 0) > 0 ? 'in_stock' : 'out_of_stock';
+      const oferta = p.salePrice && p.salePrice > 0 && p.salePrice < p.price ? priceStr(p.salePrice) : '';
+      filas.push([storeCode, p.id, disponible, priceStr(p.price), oferta].map((v) => String(v).replace(/[\t\n]/g, ' ')).join('\t'));
+    }
+  } catch (err) {
+    captureError(err, { scope: 'feed.google-local' });
+  }
+  return filas.join('\n') + '\n';
 }
 
 /** Response XML cacheada 1h a nivel CDN. */

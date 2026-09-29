@@ -24,3 +24,12 @@ export const ADS_MONTHLY_CAP_SETTING_KEY = 'ads_monthly_cap_ars';
  * ya levanta la mano el día 3.
  */
 export const ADS_CAP_UMBRAL_ATENCION = 0.85;
+
+/**
+ * Código de tienda del local en el Perfil de Empresa de Google. Lo usa el
+ * inventario local que se manda a Merchant Center (fichas locales gratuitas):
+ * cada fila dice "este producto está en la tienda ATELIER01". Tiene que ser
+ * IDÉNTICO al cargado en el perfil (Configuración avanzada → Código de tienda),
+ * donde se dio de alta el 25/9/2026. No es visible para el público.
+ */
+export const GOOGLE_STORE_CODE = 'ATELIER01';
