@@ -1128,7 +1128,14 @@ export function ProductClient({
           )}
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-bold uppercase tracking-wide text-stone-900 truncate">{product.model}</p>
-            <p className="text-[13px] font-black text-stone-900">${formatearPrecio(effectivePrice)}</p>
+            {/* 29/9/26: el grande es el de transferencia, como en la ficha (arriba).
+                Con el de lista acá, el primer número que se veía en celular era
+                el más caro. Mismo cálculo que el precio grande de la ficha. */}
+            <p className="text-[13px] font-black text-stone-900">
+              ${formatearPrecio(Math.round(effectivePrice * (1 - cashDiscount / 100)))}
+              <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">por transferencia</span>
+            </p>
+            <p className="text-[10px] font-medium text-stone-500">${formatearPrecio(effectivePrice)} con tarjeta</p>
           </div>
           <button
             disabled={product.stock !== undefined && product.stock <= 0}

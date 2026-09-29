@@ -12,6 +12,15 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   // Arranca en true (oculto) hasta comprobar si esta página declara un hero con
   // su propio CTA: es mejor tardar un tick que pisar el botón principal.
   const [heroTapando, setHeroTapando] = useState(true);
+  // 29/9/26: en celular la etiqueta "Presupuesto" tapaba texto de la ficha
+  // (el círculo + la pastilla ocupan media fila). Se muestra al llegar y se
+  // pliega cuando la persona empieza a bajar: ya vio para qué sirve el botón.
+  const [etiquetaVisible, setEtiquetaVisible] = useState(true);
+  useEffect(() => {
+    const plegar = () => { if (window.scrollY > 250) setEtiquetaVisible(false); };
+    window.addEventListener('scroll', plegar, { passive: true });
+    return () => window.removeEventListener('scroll', plegar);
+  }, []);
   // Óptica logueada (mayorista): el botón usa el número y el tono de Cápsula
   // Escarlata, no los de Atelier. Señal = localStorage 'user' (la cookie es
   // httpOnly). Ver el patrón en StorefrontNavbar.
@@ -200,7 +209,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         {/* En celular el globo de arriba está oculto (hidden sm:block), así que
             el botón era un círculo verde sin decir para qué sirve. Esta etiqueta
             nombra lo que la gente viene a pedir. */}
-        <span className="sm:hidden rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-stone-800 shadow-lg border border-stone-100">
+        <span className={`sm:hidden rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-stone-800 shadow-lg border border-stone-100 transition-opacity duration-300 ${etiquetaVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
           Presupuesto
         </span>
 
