@@ -196,7 +196,9 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .item-sub { font-size:10px; color:${gris}; margin-top:1px; }
         .bonif { font-size:10px; color:${verdeSuave}; font-weight:600; margin-top:2px; }
 
-        .total-row { display:flex; justify-content:space-between; align-items:baseline; margin-top:8px; padding:0 2px; }
+        .total-row { display:flex; justify-content:space-between; align-items:baseline; gap:14px; margin-top:8px; padding:0 2px; }
+        .total-promo { flex:1; text-align:center; font-size:10.5px; font-weight:700; color:${verdeSuave}; letter-spacing:.02em; white-space:nowrap; }
+        .total-promo .oro { color:#c8a55c; margin-right:4px; }
         .total-label { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:${brandSand}; font-weight:600; }
         .total-amount { font-size:26px; font-weight:700; letter-spacing:-0.01em; }
         .total-hint { font-size:10px; color:${gris}; padding:0 2px; margin-top:2px; }
@@ -231,7 +233,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .footer { margin-top:10px; padding-top:8px; border-top:1px solid ${linea}; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:${gris}; }
         .footer-links { display:flex; gap:14px; }
         .footer-links a { display:inline-flex; align-items:center; gap:4px; color:${brandSand}; text-decoration:none; font-weight:500; }
-        .footer-links svg { width:11px; height:11px; }
+        .footer-links svg { width:12px; height:12px; }
         .footer-links a.ver-tienda { background:${verdeSuave}; color:white; padding:2px 8px; border-radius:3px; font-weight:700; }
 
         /* Modo compacto: lo prende el generador solo cuando el documento no
@@ -494,9 +496,10 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     ${esPresupuesto && !hayDesglose ? `
     <div class='total-row'>
         <span class='total-label'>Precio total (lista)</span>
+        <span class='total-promo'><span class='oro'>★</span>3 y 6 cuotas sin interés, y hasta 12 cuotas fijas</span>
         <span class='total-amount'>$${formatearPrecio(financials.listPrice)}</span>
     </div>` : ''}
-    ${esPresupuesto ? `<div class='total-hint' style="margin-top:${hayDesglose ? '10px' : '2px'};">Elegí cómo pagarlo:</div>` : ''}
+    ${esPresupuesto ? `<div class='total-hint' style="margin-top:${hayDesglose ? '10px' : '2px'};">Elegí cómo pagarlo:${hayDesglose ? ` <span style="color:${verdeSuave}; font-weight:700;"><span style="color:#c8a55c;">★</span> 3 y 6 cuotas sin interés, y hasta 12 cuotas fijas</span>` : ''}</div>` : ''}
     <div class='payment-methods'>
         <div class='payment-card'>
             <span class='p-title'>Efectivo (−${financials.discountCash}%)</span>
@@ -632,9 +635,9 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         <div>Atelier Óptica · Tejeda 4380, Cerro de las Rosas · Profesionalismo, ética y diseño · ${format(new Date(), "yyyy")}</div>
         <div class='footer-links'>
             <a class='ver-tienda' href="${STORE_ORIGIN}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Ver tienda</a>
-            <a href="${INSTAGRAM_URL}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>@${INSTAGRAM_URL.replace(/\/$/, '').split('/').pop()}</a>
-            <a href="${YOUTUBE_URL}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .6 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5A3 3 0 0 0 23 16.8 31 31 0 0 0 23.4 12 31 31 0 0 0 23 7.2zM9.8 15.1V8.9L15.7 12l-5.9 3.1z"/></svg>YouTube</a>
-            <a href="https://wa.me/${WHATSAPP_PHONE}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c1.7.7 2 .6 2.7.5a2.3 2.3 0 0 0 1.5-1.1 1.9 1.9 0 0 0 .1-1.1c0-.1-.2-.2-.5-.3z"/></svg>${WHATSAPP_PHONE_DISPLAY}</a>
+            <a href="${INSTAGRAM_URL}"><svg viewBox="0 0 24 24" fill="none" stroke="#E1306C" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#E1306C"/></svg>@${INSTAGRAM_URL.replace(/\/$/, '').split('/').pop()}</a>
+            <a href="${YOUTUBE_URL}"><svg viewBox="0 0 24 24" fill="#FF0000"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .6 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5A3 3 0 0 0 23 16.8 31 31 0 0 0 23.4 12 31 31 0 0 0 23 7.2zM9.8 15.1V8.9L15.7 12l-5.9 3.1z"/></svg>YouTube</a>
+            <a href="https://wa.me/${WHATSAPP_PHONE}"><svg viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c1.7.7 2 .6 2.7.5a2.3 2.3 0 0 0 1.5-1.1 1.9 1.9 0 0 0 .1-1.1c0-.1-.2-.2-.5-.3z"/></svg>${WHATSAPP_PHONE_DISPLAY}</a>
         </div>
     </div>
     </div>
