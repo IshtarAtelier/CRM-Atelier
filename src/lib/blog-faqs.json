@@ -846,5 +846,75 @@
       "question": "¿Dónde consigo lentes Eyezen en Córdoba?",
       "answer": "En Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas. Somos Centro Essilor Expert: hacemos la toma de medidas digital para que el refuerzo quede alineado con tu pupila. Sin turno previo."
     }
+  ],
+  "cristales-hoya-en-cordoba-atelier": [
+    {
+      "question": "¿Dónde comprar cristales Hoya en Córdoba?",
+      "answer": "En Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas. Trabajamos todo el catálogo Hoya y Pentax a través de Vitolen, su distribuidor: multifocales, monofocales, ocupacionales y fotocromáticos."
+    },
+    {
+      "question": "¿Hoya reemplaza a Varilux en Atelier?",
+      "answer": "No. Seguimos trabajando Varilux y Kodak de Essilor. Hoya se suma para tener dos catálogos completos y elegir el cristal que mejor resuelve cada receta y cada rutina."
+    },
+    {
+      "question": "¿Qué diferencia hay entre Hoya y Varilux?",
+      "answer": "Son los dos fabricantes de referencia, uno japonés y otro francés, con diseños de tallado digital comparables. La elección depende de tu receta, tu armazón y tu forma de mirar; en el mostrador te mostramos las dos opciones para tu caso."
+    }
+  ],
+  "hoya-id-lifestyle-4-multifocal-indoor-urban-outdoor": [
+    {
+      "question": "¿Qué diferencia hay entre iD LifeStyle 4 Indoor, Urban y Outdoor?",
+      "answer": "La graduación es la misma; cambia cómo se reparte el cristal. Indoor prioriza cerca e intermedio, Outdoor prioriza lejos, y Urban es el equilibrio para quien cambia de distancia todo el tiempo."
+    },
+    {
+      "question": "¿Cuánto tarda la adaptación a un Hoya iD LifeStyle 4?",
+      "answer": "Depende de cada persona y de la medición. El diseño de visión binocular 3D de Hoya busca reducir el efecto balanceo en la periferia de la zona de cerca, que es lo que más cuesta al principio. Con un cristal bien centrado, la mayoría se acostumbra en pocos días."
+    },
+    {
+      "question": "¿Sirve cualquier armazón para un iD LifeStyle 4?",
+      "answer": "Necesita una altura mínima de montaje de 14 mm. Lo revisamos con el armazón elegido antes de pedir el cristal."
+    }
+  ],
+  "hoya-sync-iii-lentes-para-pantallas": [
+    {
+      "question": "¿Sync III es un multifocal?",
+      "answer": "No. Es un monofocal con tu graduación de lejos y una zona de refuerzo suave en la parte inferior, sin línea ni salto. Está pensado para personas de 13 a 45 años con fatiga visual por pantallas, no para la presbicia."
+    },
+    {
+      "question": "¿Qué nivel de Sync III me corresponde?",
+      "answer": "Hay tres: Sync III 5 (+0,57), 9 (+0,95) y 13 (+1,32). Se elige según tu edad, tu receta y tus horas de pantalla, siempre partiendo de la receta de tu oftalmólogo."
+    },
+    {
+      "question": "¿Puedo usar Sync III si no tengo graduación?",
+      "answer": "Consultalo con tu oftalmólogo. Si te lo indica, se puede pedir sin corrección de lejos, solo con la zona de refuerzo."
+    }
+  ],
+  "hoya-sensity-2-lentes-fotocromaticos": [
+    {
+      "question": "¿Los Sensity 2 se oscurecen dentro del auto?",
+      "answer": "Como todo fotocromático activado por rayos UV, dentro del auto se oscurecen poco, porque el parabrisas filtra buena parte del UV. Para manejar con oscuridad plena conviene un lente polarizado."
+    },
+    {
+      "question": "¿Cuánto tardan en aclararse los Sensity 2?",
+      "answer": "Según Hoya, la vuelta a transparente de Sensity 2 es casi dos veces más rápida que la de la generación anterior. El tiempo exacto depende de la temperatura y de la luz."
+    },
+    {
+      "question": "¿En qué cristales Hoya puedo pedir Sensity 2?",
+      "answer": "En casi todo el catálogo: multifocales iD LifeStyle 4, Array 2, Summit y Argos, Mi Primer Hoya, monofocales Nulux, Sync III y Visión Simple, y el ocupacional Tact."
+    }
+  ],
+  "mi-primer-hoya-primer-multifocal": [
+    {
+      "question": "¿Qué adición cubre Mi Primer Hoya?",
+      "answer": "De 0,75 a 1,75 dioptrías de adición, el rango habitual de los primeros años de presbicia. Con adiciones mayores, el camino es un multifocal de la línea completa."
+    },
+    {
+      "question": "¿Mi Primer Hoya es un multifocal de menor calidad?",
+      "answer": "No. Son los mismos diseños Array 2 o Summit de Hoya, con tallado digital, ofrecidos a precio de entrada para quien estrena multifocales."
+    },
+    {
+      "question": "¿Qué conviene: Mi Primer Hoya o Mi Primer Varilux?",
+      "answer": "Son propuestas parecidas de los dos fabricantes que trabajamos. La versión de Essilor cubre adiciones de hasta 1,50 y la de Hoya hasta 1,75. Según tu receta, armazón y presupuesto, te mostramos las dos."
+    }
   ]
 }

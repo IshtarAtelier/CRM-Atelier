@@ -1,0 +1,56 @@
+{
+  "fecha": "2026-09-30",
+  "notas": "Cinco notas de lanzamiento de Hoya/Pentax (Vitolen). Los datos de producto salen de la lista L96 (scripts/maintenance/precios-vitolen) y de las páginas oficiales de Hoya; nada de precios, de garantía de adaptación ni de 2x1 hasta que Ishtar lo decida.",
+  "posts": [
+    {
+      "slug": "cristales-hoya-en-cordoba-atelier",
+      "title": "Cristales Hoya en Córdoba: la óptica japonesa llega a Atelier",
+      "excerpt": "Sumamos Hoya y Pentax a nuestro mostrador. Te contamos quién es Hoya, qué multifocales, monofocales y tratamientos trae, y cómo elegimos entre Hoya y Varilux para cada receta.",
+      "metaTitle": "Cristales Hoya en Córdoba | Atelier Óptica",
+      "metaDescription": "Atelier Óptica incorpora los cristales japoneses Hoya y Pentax: multifocales iD LifeStyle 4, Array 2, Summit y Argos, monofocales Sync III y Nulux, fotocromáticos Sensity 2. Cerro de las Rosas, Córdoba.",
+      "category": "Cristales",
+      "imageUrl": "/images/blog/mostrador-marmol.webp",
+      "archivo": "cristales-hoya-en-cordoba-atelier.html"
+    },
+    {
+      "slug": "hoya-id-lifestyle-4-multifocal-indoor-urban-outdoor",
+      "title": "Hoya iD LifeStyle 4: el multifocal que se elige según cómo vivís",
+      "excerpt": "Indoor, Urban u Outdoor: el progresivo de gama alta de Hoya se pide en tres variantes según tu rutina, con visión binocular 3D para una adaptación más fácil. Ya en Atelier Óptica.",
+      "metaTitle": "Hoya iD LifeStyle 4 en Córdoba | Multifocales | Atelier Óptica",
+      "metaDescription": "Conocé el multifocal Hoya iD LifeStyle 4 y sus tres variantes Indoor, Urban y Outdoor. Tallado digital y visión binocular 3D para menos efecto balanceo. Atelier Óptica, Córdoba.",
+      "category": "Multifocales",
+      "imageUrl": "/images/blog/mujer-oficina-multifocal.webp",
+      "archivo": "hoya-id-lifestyle-4-multifocal-indoor-urban-outdoor.html"
+    },
+    {
+      "slug": "hoya-sync-iii-lentes-para-pantallas",
+      "title": "Hoya Sync III: el monofocal con refuerzo para quienes viven frente a pantallas",
+      "excerpt": "Entre los 13 y los 45 años, más de dos horas de pantalla por día cansan la vista. Sync III suma un refuerzo de enfoque en tres niveles (+0,57, +0,95 y +1,32) sin ser un multifocal.",
+      "metaTitle": "Hoya Sync III en Córdoba | Lentes para pantallas | Atelier Óptica",
+      "metaDescription": "Fatiga visual por pantallas: conocé Hoya Sync III, el monofocal con zona de refuerzo en tres niveles para relajar el enfoque de cerca. Disponible en Atelier Óptica, Cerro de las Rosas, Córdoba.",
+      "category": "Salud Visual",
+      "imageUrl": "/images/blog/blog2_homeoffice.webp",
+      "archivo": "hoya-sync-iii-lentes-para-pantallas.html"
+    },
+    {
+      "slug": "hoya-sensity-2-lentes-fotocromaticos",
+      "title": "Hoya Sensity 2: fotocromáticos que aclaran casi el doble de rápido",
+      "excerpt": "El fotocromático de Hoya oscurece con el sol, vuelve a transparente casi dos veces más rápido que la generación anterior y bloquea el 100 % del UV. En qué cristales viene y cuándo conviene.",
+      "metaTitle": "Lentes fotocromáticos Hoya Sensity 2 en Córdoba | Atelier Óptica",
+      "metaDescription": "Sensity 2, el fotocromático de Hoya: más rápido para aclarar, estable con frío y calor, 100 % de protección UV. Disponible en multifocales y monofocales Hoya en Atelier Óptica, Córdoba.",
+      "category": "Cristales",
+      "imageUrl": "/images/blog/pareja-multifocales-exterior.webp",
+      "archivo": "hoya-sensity-2-lentes-fotocromaticos.html"
+    },
+    {
+      "slug": "mi-primer-hoya-primer-multifocal",
+      "title": "Mi Primer Hoya: tu primer multifocal, con tallado digital y precio de entrada",
+      "excerpt": "Para adiciones de 0,75 a 1,75, Hoya ofrece sus diseños Array 2 y Summit a precio de entrada. Qué es, cómo se elige y en qué se diferencia de Mi Primer Varilux.",
+      "metaTitle": "Mi Primer Hoya en Córdoba | Primer multifocal | Atelier Óptica",
+      "metaDescription": "Estrenás multifocales? Mi Primer Hoya trae los diseños Array 2 y Summit con tallado digital para adiciones de 0,75 a 1,75. Comparalo con Mi Primer Varilux en Atelier Óptica, Córdoba.",
+      "category": "Multifocales",
+      "imageUrl": "/images/blog/multifocal-mujer-lectura.webp",
+      "archivo": "mi-primer-hoya-primer-multifocal.html"
+    }
+  ]
+}
