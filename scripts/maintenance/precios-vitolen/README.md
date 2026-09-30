@@ -67,10 +67,11 @@ modelo: Lifestyle 4 (Urban / Indoor / Outdoor), Tact (40 / 60), Sync III
 
 1. **Calibrado e IVA de Vitolen:** $23.000 y 21%, confirmados por Ishtar el
    30/9/2026 (igual que Optovisión).
-2. **Promos del laboratorio.** Hoya regala el segundo par en Lifestyle, Array,
-   Summit y Argos; Pentax da 80% en el segundo par. Por ahora todo se sube SIN
-   2x1 (Ishtar, 30/9/2026); cuando lleguen las bases, se decide si esas cuatro
-   líneas se marcan `is2x1` como los Varilux.
+2. **Promos del laboratorio.** Las bases llegaron el 30/9/2026 y NO es un
+   2x1: el segundo par de Lifestyle 4, Array 2, Summit, Argos (y Pentax
+   Allfocus) se factura al **20 % de lista** más calibrado. El 2x1 del CRM
+   asume segundo par en $0 y acusaría sobrecosto; todo sigue SIN `is2x1`
+   hasta decidir cómo se modela. Detalle en `docs/vitolen-pedidos-y-promos.md`.
 3. **Terminados:** fuera de la carga hasta averiguar el calibrado (ver arriba).
 
 ## Lo que el sistema todavía no hace para este laboratorio

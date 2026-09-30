@@ -5,15 +5,15 @@
   "condiciones": {
     "precios": "Por par, SIN IVA. Todos incluyen antirreflejo (Ultra Hi-Vision / Spectrum Sky+ en Hoya, Spectrum en Pentax), salvo Visión Simple SIN AR.",
     "sinAntirreflejo": "Pedido SIN AR: descontar $43.000 (Mi Primer Hoya: $22.000).",
-    "promoHoya": "Comprá un par de lentes HOYA y llevate otro de regalo: Lifestyle 4, Array 2, Summit y Argos. Bases y condiciones a consultar con el laboratorio.",
-    "promoPentax": "Progresivos Pentax: segundo par con 80% de descuento. Bases y condiciones a consultar.",
+    "promoHoya": "Bases (Vitolen, 30/9/2026): comprando un par de progresivos Hoya (Lifestyle 4, Array 2, Summit, Argos) con AR, el 2º par del mismo diseño y graduación (o un Tact) se paga al 20% del precio de lista base de lente + tratamiento. NO es sin cargo. 60 días para pedirlo; primer par siempre con AR; pedidos cargados por la óptica en el sistema online. Garantía total 60 días, AR 18 meses, seguro de reposición 24 meses solo 1er par.",
+    "promoPentax": "Progresivos Pentax Allfocus: segundo par al 20% de lista, mismas condiciones que Hoya.",
     "miPrimerHoya": "Precios finales netos ya bonificados. Adiciones de 0.75 a 1.75. No participa en promociones.",
     "garantia": "Garantía total y seguro de reposición en lentes Hoya, excepto Visión Simple."
   },
   "lineas": [
     {
       "clave": "lifestyle-4", "marca": "Hoya", "modelo": "Lifestyle 4", "variantes": "Urban / Indoor / Outdoor",
-      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.0], "promoLab": "2x1", "pagina": 2,
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.0], "promoLab": "2º par al 20% de lista", "pagina": 2,
       "renglones": [
         { "material": "1.50 Clear", "precio": 514200, "esf": [-6, 4], "cil": 5, "codigos": "11000 / 11050 / 11100" },
         { "material": "1.50 Sensity 2", "precio": 726800, "esf": [-6, 3], "cil": 4, "codigos": "11002 / 11052 / 11102" }
@@ -21,7 +21,7 @@
     },
     {
       "clave": "array-2", "marca": "Hoya", "modelo": "Array 2",
-      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2x1", "pagina": 2,
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2º par al 20% de lista", "pagina": 2,
       "renglones": [
         { "material": "1.50 Clear Blue Filter", "precio": 428000, "esf": [-10, 6], "cil": 5, "codigos": "10050" },
         { "material": "1.50 Sensity 2", "precio": 612600, "esf": [-8, 6], "cil": 5, "codigos": "10052" },
@@ -39,7 +39,7 @@
     },
     {
       "clave": "summit", "marca": "Hoya", "modelo": "Summit",
-      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2x1", "pagina": 2,
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2º par al 20% de lista", "pagina": 2,
       "renglones": [
         { "material": "1.50 Clear Blue Filter", "precio": 373800, "esf": [-10, 6], "cil": 5, "codigos": "10150" },
         { "material": "1.50 Sensity 2", "precio": 544000, "esf": [-8, 6], "cil": 5, "codigos": "10152" },
@@ -58,7 +58,7 @@
     },
     {
       "clave": "argos", "marca": "Hoya", "modelo": "Argos",
-      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2x1", "pagina": 2,
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2º par al 20% de lista", "pagina": 2,
       "renglones": [
         { "material": "1.50 Clear", "precio": 292800, "esf": [-10, 6], "cil": 5, "codigos": "10000" },
         { "material": "1.50 Clear Blue Filter", "precio": 326400, "esf": [-10, 6], "cil": 5, "codigos": "10002" },
@@ -201,7 +201,7 @@
     },
     {
       "clave": "allfocus-pro", "marca": "Pentax", "modelo": "Allfocus Pro", "prefijoNombre": "PENTAX ALLFOCUS PRO",
-      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": null, "promoLab": "segundo par 80% off", "pagina": 4,
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": null, "promoLab": "2º par al 20% de lista", "pagina": 4,
       "renglones": [
         { "material": "1.50 Orgánico Clear", "precio": 240000, "codigos": "20000" },
         { "material": "1.50 Sensity Foto Grey", "precio": 325200, "codigos": "20005" },
@@ -211,7 +211,7 @@
     },
     {
       "clave": "allfocus-flex", "marca": "Pentax", "modelo": "Allfocus Flex", "prefijoNombre": "PENTAX ALLFOCUS FLEX",
-      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": null, "promoLab": "segundo par 80% off", "pagina": 4,
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": null, "promoLab": "2º par al 20% de lista", "pagina": 4,
       "renglones": [
         { "material": "1.50 Orgánico Clear", "precio": 214200, "codigos": "20040" },
         { "material": "1.50 Sensity Foto Grey", "precio": 299600, "codigos": "20045" },
