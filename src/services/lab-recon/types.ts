@@ -5,7 +5,7 @@
  * ajustar para sumar un laboratorio nuevo o cambiar un umbral vive acá.
  */
 
-export type LabName = 'OPTOVISION' | 'GRUPO_OPTICO' | 'LA_CAMARA';
+export type LabName = 'OPTOVISION' | 'GRUPO_OPTICO' | 'LA_CAMARA' | 'VITOLEN';
 
 /**
  * Un comprobante de un pedido de laboratorio: qué es, cuánto le cobra A ESTE
@@ -213,6 +213,9 @@ export const LAB_ITEM_PATTERNS: Record<string, RegExp> = {
     // la venta (30/9/2026: tres facturas con el bifocal Blue Cut a $114.841
     // contra $23.100 cargados en el sistema, y nadie lo veía).
     LA_CAMARA: /c[aá]mara/i,
+    // Vitolen (Hoya + Pentax), desde el 30/9/2026: su portal lo lee el módulo
+    // de src/services/lab-modules/vitolen.
+    VITOLEN: /vitolen/i,
 };
 
 /**
@@ -234,6 +237,7 @@ export const LAB_LABELS: Record<string, string> = {
     OPTOVISION: 'Optovision',
     GRUPO_OPTICO: 'Grupo Óptico',
     LA_CAMARA: 'La Cámara',
+    VITOLEN: 'Vitolen',
 };
 
 /** Importe comparable de una entrada según cómo factura su laboratorio.

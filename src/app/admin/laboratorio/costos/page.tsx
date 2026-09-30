@@ -194,6 +194,7 @@ const LAB_LABELS: Record<string, string> = {
     OPTOVISION: 'Optovision',
     GRUPO_OPTICO: 'Grupo Óptico',
     LA_CAMARA: 'La Cámara',
+    VITOLEN: 'Vitolen',
 };
 
 // Laboratorios con portal o correo que el sistema barre solo. La Cámara no

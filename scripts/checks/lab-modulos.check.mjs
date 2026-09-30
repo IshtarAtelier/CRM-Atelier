@@ -21,6 +21,8 @@ import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasad
 import { transicionValida, borradorVivo, puedeAprobar } from '../../src/services/lab-modules/carga/borrador.ts';
 import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
+import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
+import { labKeyDeNombre } from '../../src/services/lab-recon/types.ts';
 import { armarCatalogo } from '../maintenance/precios-vitolen/generar-catalogo-ts.mjs';
 import { leerLista } from '../maintenance/precios-vitolen/subir-catalogo-vitolen.mjs';
 
@@ -280,6 +282,27 @@ ok('el segundo par lleva el pedido origen del primero', () => {
     assert.equal(r.ok, true);
     assert.equal(r.payload.pedidoOrigen, '5001234');
     assert.equal(r.payload.armazon.largo, 50);
+});
+
+console.log('\n— Vitolen: el 2º par al 20 % y el cruce lo reconoce —');
+ok('el cruce reconoce VITOLEN por el nombre del producto', () => {
+    assert.equal(labKeyDeNombre('VITOLEN'), 'VITOLEN');
+    assert.equal(labKeyDeNombre('Vitolen (Hoya)'), 'VITOLEN');
+    assert.equal(labKeyDeNombre('OPTOVISION'), 'OPTOVISION');
+});
+ok('2º par = 20 % de lista + calibrado, con IVA (Array 2 1.50 Blue Filter: $428.000 → $131.406)', () => {
+    assert.equal(importeEsperadoSegundoPar(428000, { calibrado: 23000, iva: 21 }), Math.round((85600 + 23000) * 1.21));
+    assert.equal(importeEsperadoSegundoParDe('HOYA ARRAY 2 - 1.50 CLEAR BLUE FILTER', 428000, { calibrado: 23000, iva: 21 }), 131406);
+});
+ok('sin pelado o si no es de Vitolen, no hay esperado', () => {
+    assert.equal(importeEsperadoSegundoParDe('HOYA ARRAY 2 - 1.50 CLEAR BLUE FILTER', null, { calibrado: 23000, iva: 21 }), null);
+    assert.equal(importeEsperadoSegundoParDe('VARILUX COMFORT - ORMA + CRIZAL 2x1', 439340, { calibrado: 23000, iva: 21 }), null);
+});
+ok('cobrado de más solo por encima del 5 % de tolerancia', () => {
+    assert.equal(segundoParCobradoDeMas(131406, 131406), false);
+    assert.equal(segundoParCobradoDeMas(137000, 131406), false);
+    assert.equal(segundoParCobradoDeMas(140000, 131406), true);
+    assert.equal(segundoParCobradoDeMas(545710, 131406), true);
 });
 
 console.log(fallas === 0 ? '\n✅ Marco de módulos de laboratorio: todo en orden.\n' : `\n❌ ${fallas} falla(s).\n`);
