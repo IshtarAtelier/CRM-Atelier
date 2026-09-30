@@ -36,6 +36,10 @@ Sync > Nulux, y Visión Simple con AR = sin AR + $41.500.
   en códigos ni en rangos. Está en el JSON marcado `aConfirmar` y no se carga.
 - **Array Wrap** tiene códigos y rangos, pero la página de precios no trae su
   columna. No se carga.
+- **Los dos terminados** (Hoya 1.50 Clear + Super Hi-Vision, $26.800, y Pentax
+  Asférico 1.60 Sensity Grey + Innocare, $93.700) vienen "con pegatinas para
+  su calibrado", o sea sin calibrar. Hasta saber si Vitolen cobra el calibrado
+  y quién lo hace, están marcados `aConfirmar` y no se cargan (Ishtar, 30/9/2026).
 - **Mi Primer Hoya** no tiene rangos propios en la lista: se le copian los de
   Array 2 y Summit del mismo material, porque son esos diseños (marca de agua
   AA / Y). La adición sí es propia: 0.75 a 1.75.
@@ -61,14 +65,13 @@ modelo: Lifestyle 4 (Urban / Indoor / Outdoor), Tact (40 / 60), Sync III
 
 ## Decisiones que faltan antes de producción
 
-1. **Calibrado e IVA de Vitolen.** En la base local están en $23.000 y 21%,
-   copiados de Optovisión como supuesto. Todos los costos y precios dependen
-   de esos dos números.
+1. **Calibrado e IVA de Vitolen:** $23.000 y 21%, confirmados por Ishtar el
+   30/9/2026 (igual que Optovisión).
 2. **Promos del laboratorio.** Hoya regala el segundo par en Lifestyle, Array,
-   Summit y Argos; Pentax da 80% en el segundo par. Falta conocer las bases y
-   decidir si esas líneas se venden como 2x1.
-3. **Terminados.** Se cargaron con la misma fórmula (con calibrado); falta
-   confirmar si Vitolen lo cobra en un terminado.
+   Summit y Argos; Pentax da 80% en el segundo par. Por ahora todo se sube SIN
+   2x1 (Ishtar, 30/9/2026); cuando lleguen las bases, se decide si esas cuatro
+   líneas se marcan `is2x1` como los Varilux.
+3. **Terminados:** fuera de la carga hasta averiguar el calibrado (ver arriba).
 
 ## Lo que el sistema todavía no hace para este laboratorio
 

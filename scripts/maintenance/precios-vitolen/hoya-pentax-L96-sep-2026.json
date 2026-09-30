@@ -189,14 +189,14 @@
       "tipo": "Cristal Monofocal", "origen": "STOCK", "adicion": null, "promoLab": null, "pagina": 3,
       "nota": "Se entrega con pegatinas para su calibrado.",
       "renglones": [
-        { "material": "1.50 Clear", "precio": 26800, "esf": [-4, 4], "cil": 2 }
+        { "material": "1.50 Clear", "precio": 26800, "esf": [-4, 4], "cil": 2, "aConfirmar": "Viene sin calibrar (con pegatinas): falta saber si Vitolen cobra el calibrado y quién lo hace. Ishtar, 30/9/2026: no subir hasta averiguarlo." }
       ]
     },
     {
       "clave": "terminado-pentax", "marca": "Pentax", "modelo": "Monofocal Terminado Pentax", "prefijoNombre": "PENTAX MONOFOCAL TERMINADO", "sufijoNombre": "+ INNOCARE",
       "tipo": "Cristal Monofocal", "origen": "STOCK", "adicion": null, "promoLab": null, "pagina": 3,
       "renglones": [
-        { "material": "1.60 Asférico Sensity Grey", "precio": 93700, "esf": [-4, 4], "cil": 2 }
+        { "material": "1.60 Asférico Sensity Grey", "precio": 93700, "esf": [-4, 4], "cil": 2, "aConfirmar": "Viene sin calibrar (con pegatinas): falta saber si Vitolen cobra el calibrado y quién lo hace. Ishtar, 30/9/2026: no subir hasta averiguarlo." }
       ]
     },
     {
