@@ -484,6 +484,9 @@ export async function GET(request: Request) {
                 }
             },
             payments: { select: { id: true, amount: true, method: true, date: true, notes: true, receiptUrl: true } },
+            // Comprobantes del laboratorio (el cruce de costos): la venta muestra
+            // qué le facturó el lab por cada pedido y si cerró con el costo cargado.
+            labCostEntries: { select: { id: true, lab: true, labOrderNumber: true, status: true, difference: true, billedNet: true, billedTotal: true, invoiceDate: true, invoiceRefs: true, source: true } },
             invoices: { select: { id: true, cae: true, voucherNumber: true, pointOfSale: true, totalAmount: true, status: true, billingAccount: true, createdAt: true } },
             prescription: { select: { id: true, sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true, axisOD: true, axisOI: true, additionOD: true, additionOI: true, distanceOD: true, distanceOI: true, heightOD: true, heightOI: true, pd: true, addition: true, prescriptionType: true, notes: true, imageUrl: true, prismOD: true, prismOI: true, nearSphereOD: true, nearSphereOI: true, nearCylinderOD: true, nearAxisOD: true, nearCylinderOI: true, nearAxisOI: true } },
             // Lab fields

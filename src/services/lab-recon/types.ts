@@ -5,7 +5,7 @@
  * ajustar para sumar un laboratorio nuevo o cambiar un umbral vive acá.
  */
 
-export type LabName = 'OPTOVISION' | 'GRUPO_OPTICO';
+export type LabName = 'OPTOVISION' | 'GRUPO_OPTICO' | 'LA_CAMARA';
 
 /**
  * Un comprobante de un pedido de laboratorio: qué es, cuánto le cobra A ESTE
@@ -208,12 +208,32 @@ export const UNMATCHED_GRACE_MS = 60 * 60 * 1000;
 export const LAB_ITEM_PATTERNS: Record<string, RegExp> = {
     OPTOVISION: /optovision/i,
     GRUPO_OPTICO: /grupo[\s\-]?[oó]ptico/i,
+    // Fideicomiso Cámara de Ópticas de Córdoba (LabCOC): los bifocales Flat Top.
+    // Sin portal ni correo parseable: sus comprobantes se cargan a mano desde
+    // la venta (30/9/2026: tres facturas con el bifocal Blue Cut a $114.841
+    // contra $23.100 cargados en el sistema, y nadie lo veía).
+    LA_CAMARA: /c[aá]mara/i,
 };
+
+/**
+ * Clave del cruce a partir del nombre del laboratorio tal como está en el
+ * producto ("GRUPO OPTICO", "La Cámara", "Optovision"). Es la ÚNICA traducción:
+ * la venta guarda el nombre del producto y el cruce indexa por clave.
+ */
+export function labKeyDeNombre(nombre: string | null | undefined): LabName | null {
+    const n = String(nombre || '');
+    if (!n.trim()) return null;
+    for (const [key, pattern] of Object.entries(LAB_ITEM_PATTERNS)) {
+        if (pattern.test(n)) return key as LabName;
+    }
+    return null;
+}
 
 /** Nombre legible de cada laboratorio, para emails y pantallas. */
 export const LAB_LABELS: Record<string, string> = {
     OPTOVISION: 'Optovision',
     GRUPO_OPTICO: 'Grupo Óptico',
+    LA_CAMARA: 'La Cámara',
 };
 
 /** Importe comparable de una entrada según cómo factura su laboratorio.

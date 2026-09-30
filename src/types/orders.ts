@@ -98,6 +98,19 @@ export interface OrderClient {
     status?: string;
 }
 
+export interface LabCostEntryResumen {
+    id: string;
+    lab: string;
+    labOrderNumber: string;
+    status: string;
+    difference?: number | null;
+    billedNet?: number | null;
+    billedTotal?: number | null;
+    invoiceDate?: string | null;
+    source?: string;
+    invoiceRefs?: { comprobante: string; importe: number | null; url: string | null; tipo?: string }[] | null;
+}
+
 export interface Order {
     id: string;
     clientId: string;
@@ -113,6 +126,8 @@ export interface Order {
     /** Observación del vendedor que sale en el PDF del cliente. */
     clientNote?: string;
     labOrderNumber?: string;
+    /** Lo que el laboratorio facturó por cada pedido de esta venta (cruce de costos). */
+    labCostEntries?: LabCostEntryResumen[];
     frameSource?: string | null;
     userFrameBrand?: string | null;
     userFrameModel?: string | null;

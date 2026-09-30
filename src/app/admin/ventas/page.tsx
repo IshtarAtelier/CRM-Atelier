@@ -17,6 +17,7 @@ import { webPaymentGatewayLabel } from '@/lib/checkout/payment-gateway';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
+import ComprobanteLab from '@/components/orders/ComprobanteLab';
 import { itemsDeTenido, colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
@@ -1609,6 +1610,14 @@ export default function VentasPage() {
                                                 )}
                                             </button>
                                         )}
+                                        {/* Factura / remito del laboratorio por este pedido (sale del cruce de costos) */}
+                                        <ComprobanteLab
+                                            orderId={order.id}
+                                            labOrderNumber={order.labOrderNumber}
+                                            entries={(order as any).labCostEntries}
+                                            isAdmin={isAdmin}
+                                            onSaved={fetchOrders}
+                                        />
                                     </div>
 
                                     {/* Total on Desktop */}

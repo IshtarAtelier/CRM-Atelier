@@ -315,7 +315,8 @@ export async function upsertEntry(input: LabCostInput) {
     // Comparable por laboratorio: Optovision discrimina IVA y Atelier es
     // monotributo (no lo recupera) → el costo real es el TOTAL c/IVA.
     // Grupo Óptico factura a consumidor final → neto y total coinciden.
-    const billedComparable = input.lab === 'OPTOVISION'
+    // La Cámara emite Factura A (IVA discriminado), mismo caso que Optovisión.
+    const billedComparable = input.lab === 'OPTOVISION' || input.lab === 'LA_CAMARA'
         ? (billedTotal ?? billedNet ?? null)
         : (billedNet ?? billedTotal ?? null);
     // El calibrado real del lab viaja con la orden: systemCostForLab es sync y
