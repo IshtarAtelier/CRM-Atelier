@@ -18,6 +18,11 @@ import { leerTurno, turnoVigente, debeEsperar } from '../../src/services/lab-mod
 import { decidirAlertaDeCaida, debeAvisarRecuperacion, UMBRAL_CAIDA_MS, REPETIR_ALERTA_MS } from '../../src/services/lab-modules/portal/salud.ts';
 import { transicionDeVenta, estadoConjunto, numeroProvisorio } from '../../src/services/lab-modules/estados.ts';
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
+import { transicionValida, borradorVivo, puedeAprobar } from '../../src/services/lab-modules/carga/borrador.ts';
+import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
+import { armarCatalogo } from '../maintenance/precios-vitolen/generar-catalogo-ts.mjs';
+import { leerLista } from '../maintenance/precios-vitolen/subir-catalogo-vitolen.mjs';
 
 const ahora = new Date('2026-10-01T12:00:00Z');
 const hace = (ms) => new Date(ahora.getTime() - ms);
@@ -150,6 +155,131 @@ ok('atrasado = fecha estimada vencida y sin terminar', () => {
     ], ahora);
     assert.deepEqual(r.map(x => x.portalNumber), ['a']);
     assert.equal(r[0].diasDeAtraso, 3);
+});
+
+console.log('\n— Carga asistida: el OK es humano —');
+ok('el camino feliz: preparado → en revisión → aprobado → cargado', () => {
+    assert.equal(transicionValida('PREPARADO', 'EN_REVISION'), true);
+    assert.equal(transicionValida('EN_REVISION', 'APROBADO'), true);
+    assert.equal(transicionValida('APROBADO', 'CARGADO'), true);
+});
+ok('no se carga sin pasar por la revisión ni sin aprobación', () => {
+    assert.equal(transicionValida('PREPARADO', 'CARGADO'), false);
+    assert.equal(transicionValida('PREPARADO', 'APROBADO'), false);
+    assert.equal(transicionValida('EN_REVISION', 'CARGADO'), false);
+    assert.equal(transicionValida('RECHAZADO', 'APROBADO'), false);
+    assert.equal(transicionValida('CARGADO', 'ERROR'), false);
+});
+ok('un borrador vivo bloquea otro; uno cerrado no', () => {
+    assert.equal(borradorVivo('EN_REVISION'), true);
+    assert.equal(borradorVivo('APROBADO'), true);
+    assert.equal(borradorVivo('CARGADO'), false);
+    assert.equal(borradorVivo('RECHAZADO'), false);
+    assert.equal(borradorVivo('ERROR'), false);
+});
+ok('aprueba una persona identificada; ni el robot, ni "Sistema", ni un anónimo', () => {
+    assert.equal(puedeAprobar({ id: 'u1', name: 'Milena', role: 'STAFF' }), true);
+    assert.equal(puedeAprobar({ id: null, name: 'Sistema', role: null }), false);
+    assert.equal(puedeAprobar({ id: 'u2', name: 'Robot Vitolen', role: null }), false);
+    assert.equal(puedeAprobar({ id: null, name: 'Milena', role: null }), false);
+    assert.equal(puedeAprobar(null), false);
+});
+
+console.log('\n— Vitolen: catálogo generado y armado del pedido —');
+ok('catalogo.ts coincide con la lista L96 (si falla: regenerar con generar-catalogo-ts.mjs)', () => {
+    const esperado = armarCatalogo(leerLista());
+    assert.deepEqual(CATALOGO_VITOLEN, esperado);
+    assert.equal(CATALOGO_VITOLEN.length, 114);
+});
+ok('cada cristal del catálogo se encuentra por su nombre exacto, sin importar la caja', () => {
+    assert.equal(cristalVitolenPorNombre('hoya array 2 - 1.50 clear blue filter')?.codigos[0], '10050');
+    assert.equal(cristalVitolenPorNombre('HOYA LIFESTYLE 4 - 1.50 CLEAR')?.variantes.length, 3);
+    assert.equal(cristalVitolenPorNombre('nada'), null);
+});
+ok('el tipo de receta sale del tipo del cristal', () => {
+    assert.equal(tipoRecetaDe('Cristal Multifocal'), 'Progresivo');
+    assert.equal(tipoRecetaDe('Cristal Ocupacional'), 'Ocupacional');
+    assert.equal(tipoRecetaDe('Cristal Monofocal'), 'Monofocal');
+    assert.equal(tipoRecetaDe('Armazón'), null);
+});
+ok('un diseño con variantes exige elegir una; sin variantes va el único código', () => {
+    const lifestyle = cristalVitolenPorNombre('HOYA LIFESTYLE 4 - 1.50 CLEAR');
+    assert.equal(codigoDeCristal(lifestyle, null).codigo, null);
+    assert.equal(codigoDeCristal(lifestyle, 'urban').codigo, '11000');
+    assert.equal(codigoDeCristal(lifestyle, 'Outdoor').codigo, '11100');
+    const array = cristalVitolenPorNombre('HOYA ARRAY 2 - 1.59 SENSITY 2');
+    assert.equal(codigoDeCristal(array, null).codigo, '10062');
+});
+const ventaBase = () => ({
+    id: 'cm00000000000000000ab12',
+    clienteNombre: 'Ana Pérez',
+    labNotes: 'sin apuro',
+    labFrameType: 'Metálico',
+    userFrameBrand: 'Vulk', userFrameModel: 'Roma', labFrameDetails: 'color rojo',
+    frames: [{ position: 1, shape: null, a: '52', b: '40', dbl: '18', edc: '56', details: null, heightOD: 24, heightOI: 24 }],
+    prescription: { sphereOD: 1.25, cylinderOD: 0.75, axisOD: 5, sphereOI: 1.25, cylinderOI: 0.5, axisOI: 70, addition: 2.25, additionOD: null, additionOI: null, pd: null, distanceOD: 32, distanceOI: 31, heightOD: null, heightOI: null },
+    items: [
+        { eye: 'OD', productNameSnapshot: 'HOYA ARRAY 2 - 1.60 CLEAR', productTypeSnapshot: 'Cristal Multifocal', laboratorySnapshot: 'VITOLEN', productCategorySnapshot: 'Cristal', sphereVal: 1.25, cylinderVal: 0.75, axisVal: 5, additionVal: 2.25, pdVal: 32, heightVal: 28, crystalColor: null, framePosition: 1, price: 100 },
+        { eye: 'OI', productNameSnapshot: 'HOYA ARRAY 2 - 1.60 CLEAR', productTypeSnapshot: 'Cristal Multifocal', laboratorySnapshot: 'VITOLEN', productCategorySnapshot: 'Cristal', sphereVal: 1.25, cylinderVal: 0.5, axisVal: 70, additionVal: 2.25, pdVal: 31, heightVal: 28, crystalColor: null, framePosition: 1, price: 100 },
+        { eye: null, productNameSnapshot: 'Vulk Roma', productTypeSnapshot: 'Armazón', laboratorySnapshot: null, productCategorySnapshot: 'Armazón', sphereVal: null, cylinderVal: null, axisVal: null, additionVal: null, pdVal: null, heightVal: null, crystalColor: null, framePosition: 1, price: 50 },
+    ],
+});
+ok('una venta completa arma el pedido igual al ejemplo del video de Vitolen', () => {
+    const r = armarFormulario(ventaBase(), { forma: 'Forma 7' });
+    assert.deepEqual(r.faltantes, []);
+    assert.equal(r.ok, true);
+    const p = r.payload;
+    assert.equal(p.nroCasoInterno, '#AB12');
+    assert.equal(p.tipoReceta, 'Progresivo');
+    assert.equal(p.diseno, 'Array 2');
+    assert.equal(p.ojos, 'AMBOS');
+    assert.deepEqual([p.od.esferico, p.od.cilindrico, p.od.eje, p.od.adicion, p.od.dnp, p.od.altura, p.od.codigo], [1.25, 0.75, 5, 2.25, 32, 28, '10070']);
+    assert.deepEqual([p.oi.esferico, p.oi.cilindrico, p.oi.eje, p.oi.adicion, p.oi.dnp, p.oi.altura], [1.25, 0.5, 70, 2.25, 31, 28]);
+    assert.deepEqual([p.armazon.largo, p.armazon.alto, p.armazon.diagonalMayor, p.armazon.puente, p.armazon.forma], [52, 40, 56, 18, 'Forma 7']);
+    assert.equal(p.armazon.caracteristicas, 'Vulk Roma color rojo');
+    assert.equal(p.montajes.calibrado, true);
+    assert.equal(p.tratamientos.antirreflejo, true);
+    assert.equal(p.distanciaVertice, 14);
+    assert.equal(p.anguloPantoscopico, 6);
+});
+ok('la receta cae a la ficha cuando el ítem no la tiene; la DNP a la mitad de la DP', () => {
+    const v = ventaBase();
+    v.items[0].sphereVal = null; v.items[0].pdVal = null; v.items[1].pdVal = null;
+    v.prescription.distanceOD = null; v.prescription.distanceOI = null; v.prescription.pd = 63;
+    const r = armarFormulario(v, { forma: 'Forma 1' });
+    assert.equal(r.ok, true);
+    assert.equal(r.payload.od.esferico, 1.25);
+    assert.equal(r.payload.od.dnp, 31.5);
+});
+ok('lo que falta se dice, y no se prepara: forma, DNP, adición y variante', () => {
+    const v = ventaBase();
+    v.items[0].pdVal = null; v.items[1].pdVal = null; v.prescription.distanceOD = null; v.prescription.distanceOI = null;
+    v.items[0].additionVal = null; v.items[1].additionVal = null; v.prescription.addition = null;
+    const r = armarFormulario(v);
+    assert.equal(r.ok, false);
+    assert.ok(r.faltantes.some(f => /forma del armazón/.test(f)));
+    assert.ok(r.faltantes.some(f => /DNP OD/.test(f)));
+    assert.ok(r.faltantes.some(f => /adición OD/.test(f)));
+    const l = ventaBase();
+    l.items[0].productNameSnapshot = l.items[1].productNameSnapshot = 'HOYA LIFESTYLE 4 - 1.50 CLEAR';
+    assert.ok(armarFormulario(l, { forma: 'Forma 2' }).faltantes.some(f => /variante/.test(f)));
+    assert.equal(armarFormulario(l, { forma: 'Forma 2', variante: 'Indoor' }).payload.od.codigo, '11050');
+});
+ok('sin cristales de Vitolen para ese par, no arma nada', () => {
+    const v = ventaBase();
+    v.items.forEach(i => { i.laboratorySnapshot = 'OPTOVISION'; });
+    const r = armarFormulario(v, { forma: 'Forma 1' });
+    assert.equal(r.ok, false);
+    assert.equal(r.payload, null);
+});
+ok('el segundo par lleva el pedido origen del primero', () => {
+    const v = ventaBase();
+    v.items.forEach(i => { i.framePosition = 2; });
+    v.frames = [{ position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
+    const r = armarFormulario(v, { pair: 2, forma: 'Forma 3', pedidoOrigen: '5001234' });
+    assert.equal(r.ok, true);
+    assert.equal(r.payload.pedidoOrigen, '5001234');
+    assert.equal(r.payload.armazon.largo, 50);
 });
 
 console.log(fallas === 0 ? '\n✅ Marco de módulos de laboratorio: todo en orden.\n' : `\n❌ ${fallas} falla(s).\n`);

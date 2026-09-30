@@ -889,6 +889,29 @@ export async function register() {
             } catch (err) {
                 console.error('[CRON SmartLab] Error de conexión:', err);
             }
+
+            // ---- Módulos de laboratorio (src/services/lab-modules), mismo tick ----
+            // Corre DESPUÉS del pase de SmartLab, nunca en paralelo: cada módulo
+            // abre su propio Chromium y el contenedor no aguanta dos a la vez.
+            // Un módulo caído no frena a los demás (lo aísla correrSeguimiento).
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/lab-modulos?secret=${process.env.CRON_SECRET}`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(15 * 60 * 1000),
+                });
+                if (!res.ok) {
+                    console.error(`[CRON lab-modulos] HTTP ${res.status}: ${await res.text()}`);
+                } else {
+                    const data = await res.json();
+                    for (const r of data.resultados || []) {
+                        console.log(`[CRON lab-modulos] ${r.lab}: ${r.skipped ? `omitido (${r.reason})` : r.ok
+                            ? `${r.seguimiento?.vistos ?? 0} vistos, ${r.seguimiento?.avanzados ?? 0} ventas avanzadas`
+                            : `falló: ${r.error}`}`);
+                    }
+                }
+            } catch (err) {
+                console.error('[CRON lab-modulos] Error de conexión:', err);
+            }
         };
 
         // Esperar 30 segundos después del inicio para el primer sync

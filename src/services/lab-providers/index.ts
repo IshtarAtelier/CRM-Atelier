@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/db';
 import { LabCostReconciliationService } from '../lab-cost-reconciliation.service';
 import { GrupoOpticoProvider } from './grupo-optico.provider';
+import { REGISTRO_MODULOS } from '../lab-modules/registro';
 
 /**
  * Capa de proveedores de la conciliación de costos de laboratorio.
@@ -31,6 +32,14 @@ export const LAB_PROVIDERS: LabProvider[] = [
         // ver grupo-optico.provider.ts.
         collect: () => GrupoOpticoProvider.collect({ esperarTurno: true }),
     },
+    // Los módulos de laboratorio (src/services/lab-modules) que leen costos
+    // entran acá solos: la diaria, el backfill silencioso, la salud y el
+    // semanal los tratan como a cualquier proveedor.
+    ...REGISTRO_MODULOS.filter(m => m.capacidades.costos).map(m => ({
+        name: m.clave,
+        description: `Pedidos y comprobantes del portal de ${m.nombre} (módulo)`,
+        collect: () => m.recolectarCostos({ esperarTurno: true }),
+    })),
 ];
 
 /**
