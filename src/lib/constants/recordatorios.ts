@@ -15,6 +15,7 @@ export interface Recordatorio {
   id: string;
   texto: string;
   activo: boolean;
+  soloParaUsuarios?: string[]; // Si está vacío o no existe, aparece para todos
 }
 
 export const RECORDATORIOS_DIARIOS: Recordatorio[] = [
@@ -22,5 +23,6 @@ export const RECORDATORIOS_DIARIOS: Recordatorio[] = [
     id: "stories-ig-a-wsp-2026-09",
     texto: "Descargar las stories publicadas en Instagram y compartirlas en el Estado de WhatsApp.",
     activo: true,
+    soloParaUsuarios: ["matias"], // Solo aparece para Matías
   },
 ];

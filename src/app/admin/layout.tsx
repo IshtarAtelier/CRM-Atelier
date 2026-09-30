@@ -39,7 +39,7 @@ export default async function AdminLayout({
             mismo día caen las dos cosas, primero se lee la novedad —que es
             puntual— y atrás queda el briefing, que vuelve todos los días. */}
         <BriefingDiario />
-        <RecordatorioDiario />
+        <RecordatorioDiario userName={userName} />
         <LeadToastNotifications />
         <CopilotChat userName={userName} userRole={userRole} />
         {/* WhatsApp sin salir de la pantalla en la que estás. Se esconde solo

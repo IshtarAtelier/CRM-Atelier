@@ -17,15 +17,24 @@ import { RECORDATORIOS_DIARIOS } from '@/lib/constants/recordatorios';
 
 const CLAVE = (id: string) => `recordatorio-visto:${id}`;
 
-export function RecordatorioDiario() {
+interface Props {
+  userName?: string;
+}
+
+export function RecordatorioDiario({ userName }: Props) {
   const [pendiente, setPendiente] = useState<{ id: string; texto: string } | null>(null);
 
   useEffect(() => {
     const hoy = new Date().toDateString();
-    // El primero de la lista que no se haya cerrado hoy. Mostrar más de uno a
-    // la vez sería ruido; si algún día hace falta, se apila por separado.
+    // El primero de la lista que no se haya cerrado hoy y sea para este usuario.
     const proximo = RECORDATORIOS_DIARIOS.find((r) => {
       if (!r.activo) return false;
+      // Si hay filtro de usuarios, verificar que este usuario esté en la lista
+      if (r.soloParaUsuarios && r.soloParaUsuarios.length > 0) {
+        if (!userName || !r.soloParaUsuarios.some(u => userName.toLowerCase().includes(u.toLowerCase()))) {
+          return false;
+        }
+      }
       try {
         return localStorage.getItem(CLAVE(r.id)) !== hoy;
       } catch {
@@ -34,7 +43,7 @@ export function RecordatorioDiario() {
       }
     });
     if (proximo) setPendiente({ id: proximo.id, texto: proximo.texto });
-  }, []);
+  }, [userName]);
 
   if (!pendiente) return null;
 
