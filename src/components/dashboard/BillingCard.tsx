@@ -1,6 +1,7 @@
 'use client';
 
-import { DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import { DollarSign, Eye, EyeOff } from 'lucide-react';
 
 interface BillingCardProps {
   todaySold: number;
@@ -10,6 +11,8 @@ interface BillingCardProps {
 }
 
 export function BillingCard({ todaySold, weekSold, monthSold, isLoading }: BillingCardProps) {
+  const [isVisible, setIsVisible] = useState(true);
+
   // Números formateados en argentino (con separadores de mil)
   const formatPeso = (amount: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -20,16 +23,39 @@ export function BillingCard({ todaySold, weekSold, monthSold, isLoading }: Billi
     }).format(amount);
   };
 
+  if (!isVisible) {
+    return (
+      <div className="flex justify-center py-4">
+        <button
+          onClick={() => setIsVisible(true)}
+          className="p-3 rounded-2xl bg-stone-100 dark:bg-stone-800 text-stone-400 hover:text-amber-600 dark:hover:text-amber-500 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
+          title="Mostrar facturación"
+        >
+          <EyeOff className="w-5 h-5 stroke-[2.5]" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className={`bg-white dark:bg-stone-900 rounded-3xl p-6 lg:p-8 shadow-md border border-stone-200/60 dark:border-stone-800/60 hover:shadow-lg transition-all ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
-      {/* Header con icono */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="bg-stone-100 dark:bg-stone-800 p-3 rounded-2xl text-amber-600 dark:text-amber-500 shadow-sm">
-          <DollarSign className="w-6 h-6 stroke-[2.5]" />
+      {/* Header con icono y botón ocultar */}
+      <div className="flex items-center gap-3 mb-8 justify-between">
+        <div className="flex items-center gap-3">
+          <div className="bg-stone-100 dark:bg-stone-800 p-3 rounded-2xl text-amber-600 dark:text-amber-500 shadow-sm">
+            <DollarSign className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">
+            Facturación del Día
+          </h3>
         </div>
-        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">
-          Facturación del Día
-        </h3>
+        <button
+          onClick={() => setIsVisible(false)}
+          className="p-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-400 hover:text-amber-600 dark:hover:text-amber-500 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
+          title="Ocultar facturación"
+        >
+          <Eye className="w-5 h-5 stroke-[2.5]" />
+        </button>
       </div>
 
       {/* Número principal: HOY — GRANDE Y CLARO */}
