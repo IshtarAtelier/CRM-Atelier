@@ -1,0 +1,235 @@
+{
+  "laboratorio": "VITOLEN",
+  "lista": "L96 - V28 - ARG 09/2026",
+  "fuente": "LISTA_DE_PRECIOS_HOYA_PENTAX_96-original.pdf (6 páginas)",
+  "condiciones": {
+    "precios": "Por par, SIN IVA. Todos incluyen antirreflejo (Ultra Hi-Vision / Spectrum Sky+ en Hoya, Spectrum en Pentax), salvo Visión Simple SIN AR.",
+    "sinAntirreflejo": "Pedido SIN AR: descontar $43.000 (Mi Primer Hoya: $22.000).",
+    "promoHoya": "Comprá un par de lentes HOYA y llevate otro de regalo: Lifestyle 4, Array 2, Summit y Argos. Bases y condiciones a consultar con el laboratorio.",
+    "promoPentax": "Progresivos Pentax: segundo par con 80% de descuento. Bases y condiciones a consultar.",
+    "miPrimerHoya": "Precios finales netos ya bonificados. Adiciones de 0.75 a 1.75. No participa en promociones.",
+    "garantia": "Garantía total y seguro de reposición en lentes Hoya, excepto Visión Simple."
+  },
+  "lineas": [
+    {
+      "clave": "lifestyle-4", "marca": "Hoya", "modelo": "Lifestyle 4", "variantes": "Urban / Indoor / Outdoor",
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.0], "promoLab": "2x1", "pagina": 2,
+      "renglones": [
+        { "material": "1.50 Clear", "precio": 514200, "esf": [-6, 4], "cil": 5, "codigos": "11000 / 11050 / 11100" },
+        { "material": "1.50 Sensity 2", "precio": 726800, "esf": [-6, 3], "cil": 4, "codigos": "11002 / 11052 / 11102" }
+      ]
+    },
+    {
+      "clave": "array-2", "marca": "Hoya", "modelo": "Array 2",
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2x1", "pagina": 2,
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 428000, "esf": [-10, 6], "cil": 5, "codigos": "10050" },
+        { "material": "1.50 Sensity 2", "precio": 612600, "esf": [-8, 6], "cil": 5, "codigos": "10052" },
+        { "material": "1.59 Clear Blue Filter", "precio": 432800, "esf": [-11, 6], "cil": 6, "codigos": "10060" },
+        { "material": "1.59 Sensity 2", "precio": 663000, "esf": [-10, 6], "cil": 6, "codigos": "10062" },
+        { "material": "1.59 Polarized", "precio": 500800, "esf": [-10, 6], "cil": 6, "codigos": "10064/66/68" },
+        { "material": "1.60 Clear", "precio": 432800, "esf": [-10, 6], "cil": 6, "codigos": "10070" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 457200, "esf": [-10, 6], "cil": 6, "codigos": "10072" },
+        { "material": "1.60 Sensity 2", "precio": 694600, "esf": [-10, 6], "cil": 6, "codigos": "10074/76/78" },
+        { "material": "1.67 Clear", "precio": 466200, "esf": [-13, 8], "cil": 7, "codigos": "10080" },
+        { "material": "1.67 Clear Blue Filter", "precio": 505600, "esf": [-13, 8], "cil": 7, "codigos": "10082" },
+        { "material": "1.67 Sensity 2", "precio": 751000, "esf": [-13, 6], "cil": 7, "codigos": "10084" },
+        { "material": "1.74 Clear", "precio": 608000, "esf": [-15, 10], "cil": 7, "codigos": "10086" }
+      ]
+    },
+    {
+      "clave": "summit", "marca": "Hoya", "modelo": "Summit",
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2x1", "pagina": 2,
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 373800, "esf": [-10, 6], "cil": 5, "codigos": "10150" },
+        { "material": "1.50 Sensity 2", "precio": 544000, "esf": [-8, 6], "cil": 5, "codigos": "10152" },
+        { "material": "1.50 Polarized", "precio": 407800, "esf": [-8, 5], "cil": 5, "codigos": "10154/56" },
+        { "material": "1.59 Clear Blue Filter", "precio": 383600, "esf": [-11, 6], "cil": 6, "codigos": "10160" },
+        { "material": "1.59 Sensity 2", "precio": 584000, "esf": [-10, 6], "cil": 6, "codigos": "10162" },
+        { "material": "1.59 Polarized", "precio": 445800, "esf": [-10, 6], "cil": 6, "codigos": "10164/66/68" },
+        { "material": "1.60 Clear", "precio": 383600, "esf": [-10, 6], "cil": 6, "codigos": "10170" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 404000, "esf": [-10, 6], "cil": 6, "codigos": "10172" },
+        { "material": "1.60 Sensity 2", "precio": 607600, "esf": [-10, 6], "cil": 6, "codigos": "10174/76/78" },
+        { "material": "1.67 Clear", "precio": 393600, "esf": [-13, 8], "cil": 7, "codigos": "10180" },
+        { "material": "1.67 Clear Blue Filter", "precio": 450200, "esf": [-13, 8], "cil": 7, "codigos": "10182" },
+        { "material": "1.67 Sensity 2", "precio": 651200, "esf": [-13, 6], "cil": 7, "codigos": "10184" },
+        { "material": "1.74 Clear", "precio": 560200, "esf": [-15, 10], "cil": 7, "codigos": "10186" }
+      ]
+    },
+    {
+      "clave": "argos", "marca": "Hoya", "modelo": "Argos",
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": "2x1", "pagina": 2,
+      "renglones": [
+        { "material": "1.50 Clear", "precio": 292800, "esf": [-10, 6], "cil": 5, "codigos": "10000" },
+        { "material": "1.50 Clear Blue Filter", "precio": 326400, "esf": [-10, 6], "cil": 5, "codigos": "10002" },
+        { "material": "1.50 Sensity 2", "precio": 492800, "esf": [-8, 6], "cil": 5, "codigos": "10004" },
+        { "material": "1.50 Polarized", "precio": 385800, "esf": [-8, 5], "cil": 5, "codigos": "10006/08" },
+        { "material": "1.59 Clear", "precio": 296000, "esf": [-11, 6], "cil": 6, "codigos": "10010" },
+        { "material": "1.59 Clear Blue Filter", "precio": 342000, "esf": [-11, 6], "cil": 6, "codigos": "10012" },
+        { "material": "1.59 Sensity 2", "precio": 524800, "esf": [-10, 6], "cil": 6, "codigos": "10014" },
+        { "material": "1.60 Clear", "precio": 342000, "esf": [-10, 6], "cil": 6, "codigos": "10022" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 360200, "esf": [-10, 6], "cil": 6, "codigos": "10024" },
+        { "material": "1.60 Sensity 2", "precio": 553800, "esf": [-10, 6], "cil": 6, "codigos": "10026/28/30" }
+      ]
+    },
+    {
+      "clave": "mph-array-2", "marca": "Mi primer Hoya", "modelo": "Mi Primer Hoya Array 2", "prefijoNombre": "MI PRIMER HOYA ARRAY 2",
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 1.75], "promoLab": null, "pagina": 2,
+      "rangoHeredadoDe": "array-2",
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 214600 },
+        { "material": "1.50 Sensity 2", "precio": 307000 },
+        { "material": "1.59 Clear Blue Filter", "precio": 217000 },
+        { "material": "1.59 Sensity 2", "precio": 332200 },
+        { "material": "1.59 Polarized", "precio": 251000 },
+        { "material": "1.60 Clear", "precio": 217000 },
+        { "material": "1.60 Blue Filter UV-420", "precio": 229200 },
+        { "material": "1.60 Sensity 2", "precio": 348000 }
+      ]
+    },
+    {
+      "clave": "mph-summit", "marca": "Mi primer Hoya", "modelo": "Mi Primer Hoya Summit", "prefijoNombre": "MI PRIMER HOYA SUMMIT",
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": [0.75, 1.75], "promoLab": null, "pagina": 2,
+      "rangoHeredadoDe": "summit",
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 187600 },
+        { "material": "1.50 Sensity 2", "precio": 272600 },
+        { "material": "1.59 Clear Blue Filter", "precio": 192400 },
+        { "material": "1.59 Sensity 2", "precio": 292600 },
+        { "material": "1.59 Polarized", "precio": 223600 },
+        { "material": "1.60 Clear", "precio": 192400 },
+        { "material": "1.60 Blue Filter UV-420", "precio": 202600 },
+        { "material": "1.60 Sensity 2", "precio": 304400 }
+      ]
+    },
+    {
+      "clave": "tact", "marca": "Hoya", "modelo": "Tact BKS", "variantes": "40 / 60",
+      "tipo": "Cristal Ocupacional", "origen": "LABORATORIO", "adicion": [0.75, 3.5], "promoLab": null, "pagina": 3,
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 197000, "esf": [-10, 6], "cil": 5, "codigos": "10200 / 10250" },
+        { "material": "1.50 Sensity 2", "precio": 346800, "esf": [-8, 6], "cil": 5, "codigos": "10202 / 10252" },
+        { "material": "1.59 Clear Blue Filter", "precio": 200800, "esf": [-11, 7], "cil": 6, "codigos": "10206 / 10256" },
+        { "material": "1.59 Sensity 2", "precio": 386000, "esf": [-10, 6], "cil": 6, "codigos": "10208 / 10258" },
+        { "material": "1.60 Clear", "precio": 200800, "esf": [-10, 9], "cil": 6, "codigos": "10210 / 10260" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 216600, "esf": [-10, 9], "cil": 6, "codigos": "10212 / 10262" },
+        { "material": "1.60 Sensity 2", "precio": 409000, "esf": [-10, 8], "cil": 6, "codigos": "10214/16/18 / 10264/66/68" },
+        { "material": "1.67 Clear", "precio": 281600, "esf": [-13, 10], "cil": 7, "codigos": "10219 / 10269" },
+        { "material": "1.67 Clear Blue Filter", "precio": 318400, "esf": [-13, 8], "cil": 7, "codigos": "10220 / 10270" }
+      ]
+    },
+    {
+      "clave": "nulux", "marca": "Hoya", "modelo": "Nulux Identity V+",
+      "tipo": "Cristal Monofocal", "origen": "LABORATORIO", "adicion": null, "promoLab": null, "pagina": 3,
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 142800, "esf": [-10, 7], "cil": 5, "codigos": "10450" },
+        { "material": "1.50 Sensity 2", "precio": 246600, "esf": [-8, 7], "cil": 5, "codigos": "10452" },
+        { "material": "1.50 Polarized", "precio": 208400, "esf": [-8, 7], "cil": 5, "codigos": "10454/56" },
+        { "material": "1.59 Clear Blue Filter", "precio": 145800, "esf": [-11, 7], "cil": 6, "codigos": "10460" },
+        { "material": "1.59 Sensity 2", "precio": 295600, "esf": [-10, 7], "cil": 6, "codigos": "10462" },
+        { "material": "1.59 Polarized", "precio": 255800, "esf": [-10, 7], "cil": 6, "codigos": "10464/66/68" },
+        { "material": "1.60 Clear", "precio": 143800, "esf": [-10, 9], "cil": 6, "codigos": "10470" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 151200, "esf": [-10, 9], "cil": 6, "codigos": "10472" },
+        { "material": "1.60 Sensity 2", "precio": 319400, "esf": [-10, 8], "cil": 6, "codigos": "10474/76/78" },
+        { "material": "1.67 Clear", "precio": 218200, "esf": [-13, 10], "cil": 7, "codigos": "10479" },
+        { "material": "1.67 Clear Blue Filter", "precio": 232800, "esf": [-13, 10], "cil": 7, "codigos": "10480" },
+        { "material": "1.67 Sensity 2", "precio": 418400, "esf": [-13, 8], "cil": 7, "codigos": "10482" },
+        { "material": "1.74 Clear", "precio": 381000, "esf": [-15, 15], "cil": 7, "codigos": "10484" }
+      ]
+    },
+    {
+      "clave": "sync-iii", "marca": "Hoya", "modelo": "Sync III", "variantes": "5 / 9 / 13 (refuerzo 0.57 / 0.95 / 1.32)",
+      "tipo": "Cristal Monofocal", "origen": "LABORATORIO", "adicion": null, "promoLab": null, "pagina": 3,
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 149800, "esf": [-10, 6], "cil": 5, "codigos": "10302 / 10352 / 10402" },
+        { "material": "1.50 Sensity 2", "precio": 257600, "esf": [-8, 6], "cil": 5, "codigos": "10304 / 10354 / 10404" },
+        { "material": "1.59 Clear Blue Filter", "precio": 154600, "esf": [-11, 7], "cil": 6, "codigos": "10308 / 10358 / 10408" },
+        { "material": "1.59 Sensity 2", "precio": 310200, "esf": [-10, 6], "cil": 6, "codigos": "10310 / 10360 / 10410" },
+        { "material": "1.60 Clear", "precio": 150000, "esf": [-10, 9], "cil": 6, "codigos": "10318 / 10368 / 10418" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 162600, "esf": [-10, 9], "cil": 6, "codigos": "10320 / 10370 / 10420" },
+        { "material": "1.60 Sensity 2", "precio": 335400, "esf": [-10, 8], "cil": 6, "codigos": "10322/24/26 / 10372/74/76 / 10422/24/26" },
+        { "material": "1.67 Clear", "precio": 228200, "esf": [-13, 10], "cil": 7, "codigos": "10327 / 10377 / 10427" },
+        { "material": "1.67 Clear Blue Filter", "precio": 243000, "esf": [-13, 10], "cil": 7, "codigos": "10328 / 10378 / 10428" },
+        { "material": "1.67 Sensity 2", "precio": 438000, "esf": [-13, 8], "cil": 7, "codigos": "10330 / 10380 / 10430" }
+      ]
+    },
+    {
+      "clave": "vision-simple-sin-ar", "marca": "Hoya", "modelo": "Visión Simple Digital (sin AR)", "prefijoNombre": "HOYA VISIÓN SIMPLE DIGITAL", "sufijoNombre": "— SIN ANTIRREFLEJO",
+      "tipo": "Cristal Monofocal", "origen": "LABORATORIO", "adicion": null, "promoLab": null, "pagina": 3,
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 42400, "esf": [-10, 7], "cil": 5, "codigos": "10552" },
+        { "material": "1.50 Sensity 2", "precio": 180000, "esf": [-10, 7], "cil": 5, "codigos": "10554" },
+        { "material": "1.50 Polarized", "precio": 100600, "esf": [-10, 7], "cil": 5, "codigos": "10556/58" },
+        { "material": "1.59 Clear Blue Filter", "precio": 49300, "esf": [-12, 7], "cil": 6, "codigos": "10564" },
+        { "material": "1.59 Sensity 2", "precio": 212800, "esf": [-10, 7], "cil": 6, "codigos": "10566" },
+        { "material": "1.59 Polarized", "precio": 139900, "aConfirmar": "Tiene precio en la página 3 pero no figura ni en códigos (pág. 5) ni en rangos (pág. 6)." },
+        { "material": "1.60 Clear", "precio": 63800, "esf": [-12, 9], "cil": 6, "codigos": "10574" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 76600, "esf": [-12, 9], "cil": 6, "codigos": "10576" },
+        { "material": "1.67 Clear", "precio": 129100, "esf": [-14, 10], "cil": 7, "codigos": "10584" },
+        { "material": "1.67 Clear Blue Filter", "precio": 163800, "esf": [-14, 10], "cil": 7, "codigos": "10586" }
+      ]
+    },
+    {
+      "clave": "vision-simple-con-ar", "marca": "Hoya", "modelo": "Visión Simple Digital (con AR)", "prefijoNombre": "HOYA VISIÓN SIMPLE DIGITAL", "sufijoNombre": "— CON ANTIRREFLEJO",
+      "tipo": "Cristal Monofocal", "origen": "LABORATORIO", "adicion": null, "promoLab": null, "pagina": 3,
+      "renglones": [
+        { "material": "1.50 Clear Blue Filter", "precio": 83900, "esf": [-10, 7], "cil": 5, "codigos": "10552" },
+        { "material": "1.50 Sensity 2", "precio": 221500, "esf": [-10, 7], "cil": 5, "codigos": "10554" },
+        { "material": "1.50 Polarized", "precio": 142100, "esf": [-10, 7], "cil": 5, "codigos": "10556/58" },
+        { "material": "1.59 Clear Blue Filter", "precio": 90800, "esf": [-12, 7], "cil": 6, "codigos": "10564" },
+        { "material": "1.59 Sensity 2", "precio": 254300, "esf": [-10, 7], "cil": 6, "codigos": "10566" },
+        { "material": "1.59 Polarized", "precio": 181400, "aConfirmar": "Tiene precio en la página 3 pero no figura ni en códigos (pág. 5) ni en rangos (pág. 6)." },
+        { "material": "1.60 Clear", "precio": 105300, "esf": [-12, 9], "cil": 6, "codigos": "10574" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 118100, "esf": [-12, 9], "cil": 6, "codigos": "10576" },
+        { "material": "1.67 Clear", "precio": 170600, "esf": [-14, 10], "cil": 7, "codigos": "10584" },
+        { "material": "1.67 Clear Blue Filter", "precio": 205300, "esf": [-14, 10], "cil": 7, "codigos": "10586" }
+      ]
+    },
+    {
+      "clave": "terminado-hoya", "marca": "Hoya", "modelo": "Monofocal Terminado Hoya", "prefijoNombre": "HOYA MONOFOCAL TERMINADO", "sufijoNombre": "+ SUPER HI-VISION",
+      "tipo": "Cristal Monofocal", "origen": "STOCK", "adicion": null, "promoLab": null, "pagina": 3,
+      "nota": "Se entrega con pegatinas para su calibrado.",
+      "renglones": [
+        { "material": "1.50 Clear", "precio": 26800, "esf": [-4, 4], "cil": 2 }
+      ]
+    },
+    {
+      "clave": "terminado-pentax", "marca": "Pentax", "modelo": "Monofocal Terminado Pentax", "prefijoNombre": "PENTAX MONOFOCAL TERMINADO", "sufijoNombre": "+ INNOCARE",
+      "tipo": "Cristal Monofocal", "origen": "STOCK", "adicion": null, "promoLab": null, "pagina": 3,
+      "renglones": [
+        { "material": "1.60 Asférico Sensity Grey", "precio": 93700, "esf": [-4, 4], "cil": 2 }
+      ]
+    },
+    {
+      "clave": "allfocus-pro", "marca": "Pentax", "modelo": "Allfocus Pro", "prefijoNombre": "PENTAX ALLFOCUS PRO",
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": null, "promoLab": "segundo par 80% off", "pagina": 4,
+      "renglones": [
+        { "material": "1.50 Orgánico Clear", "precio": 240000, "codigos": "20000" },
+        { "material": "1.50 Sensity Foto Grey", "precio": 325200, "codigos": "20005" },
+        { "material": "1.59 Policarbonato Clear", "precio": 260000, "codigos": "20010" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 297000, "codigos": "20015" }
+      ]
+    },
+    {
+      "clave": "allfocus-flex", "marca": "Pentax", "modelo": "Allfocus Flex", "prefijoNombre": "PENTAX ALLFOCUS FLEX",
+      "tipo": "Cristal Multifocal", "origen": "LABORATORIO", "adicion": null, "promoLab": "segundo par 80% off", "pagina": 4,
+      "renglones": [
+        { "material": "1.50 Orgánico Clear", "precio": 214200, "codigos": "20040" },
+        { "material": "1.50 Sensity Foto Grey", "precio": 299600, "codigos": "20045" },
+        { "material": "1.59 Policarbonato Clear", "precio": 232400, "codigos": "20050" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 267600, "codigos": "20055" }
+      ]
+    },
+    {
+      "clave": "pentax-office", "marca": "Pentax", "modelo": "Pentax Office", "variantes": "DP40 / SP60", "prefijoNombre": "PENTAX OFFICE",
+      "tipo": "Cristal Ocupacional", "origen": "LABORATORIO", "adicion": null, "promoLab": null, "pagina": 4,
+      "renglones": [
+        { "material": "1.50 Orgánico Clear", "precio": 120400, "codigos": "20060 / 20080" },
+        { "material": "1.59 Policarbonato Clear", "precio": 133800, "codigos": "20065 / 20085" },
+        { "material": "1.60 Blue Filter UV-420", "precio": 162000, "codigos": "20070 / 20090" }
+      ]
+    }
+  ],
+  "sinPrecioEnLaLista": [
+    "Array Wrap: tiene códigos (pág. 5) y rangos (pág. 6) pero la página de precios no trae su columna."
+  ]
+}
