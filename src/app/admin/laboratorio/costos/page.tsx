@@ -188,10 +188,18 @@ const previousMonth = () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
+// Espejo de LAB_LABELS de src/services/lab-recon/types.ts (ese módulo trae
+// utilidades de servidor; acá solo hacen falta los nombres).
 const LAB_LABELS: Record<string, string> = {
     OPTOVISION: 'Optovision',
     GRUPO_OPTICO: 'Grupo Óptico',
+    LA_CAMARA: 'La Cámara',
 };
+
+// Laboratorios con portal o correo que el sistema barre solo. La Cámara no
+// tiene: sus comprobantes se cargan a mano desde la venta, así que no hay
+// "cobertura del portal" que mostrar.
+const LABS_CON_PORTAL = new Set(['OPTOVISION', 'GRUPO_OPTICO']);
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
     OVERCOST: { label: 'Sobrecosto', badge: 'bg-red-100 text-red-700' },
@@ -589,7 +597,7 @@ export default function LabCostosPage() {
                         );
                     })}
                     {Object.entries(cobertura)
-                        .filter(([labName]) => !statements.some(s => s.lab === labName))
+                        .filter(([labName]) => LABS_CON_PORTAL.has(labName) && !statements.some(s => s.lab === labName))
                         .map(([labName, c]) => (
                             <div key={labName} className="bg-white rounded-xl border border-indigo-200 p-4">
                                 <div className="flex items-center gap-2 text-indigo-700 text-sm font-medium">
@@ -636,7 +644,7 @@ export default function LabCostosPage() {
                 <span className="text-xs text-gray-400">mostrando {periodoLabel} — tarjetas, cobertura y listado</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                {(['OPTOVISION', 'GRUPO_OPTICO'] as const).map(labName => (
+                {Object.keys(LAB_LABELS).map(labName => (
                     <div key={labName} className="bg-white rounded-xl border border-gray-200 p-4">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2 text-gray-900 font-semibold">
@@ -926,8 +934,7 @@ export default function LabCostosPage() {
 
                 <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white">
                     <option value="">Todos los labs</option>
-                    <option value="OPTOVISION">Optovision</option>
-                    <option value="GRUPO_OPTICO">Grupo Óptico</option>
+                    {Object.entries(LAB_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white">
                     <option value="">Todos los estados</option>
