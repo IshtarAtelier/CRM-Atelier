@@ -97,6 +97,7 @@ jobs:
           npm run check:ficha
           npm run check:par-bonificado
           npm run check:go-lineas
+          npm run check:lab-modulos
 
       # Los datos que el auto-respondedor de WhatsApp le manda a un cliente
       # (horarios, dirección, formas de pago) están duplicados en wa-service/

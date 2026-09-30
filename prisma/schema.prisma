@@ -488,6 +488,8 @@ model Order {
   invoices             Invoice[]
   notifications        Notification[]
   labCostEntries       LabCostEntry[]
+  labPortalOrders      LabPortalOrder[]
+  labOrderDrafts       LabOrderDraft[]
   client               Client             @relation(fields: [clientId], references: [id])
   prescription         Prescription?      @relation(fields: [prescriptionId], references: [id])
   user                 User               @relation(fields: [userId], references: [id])
@@ -1150,6 +1152,64 @@ model AuditLog {
 
 // Conciliación de costos de laboratorio: qué nos cobró el lab por cada número
 // de pedido vs. el costo de lista cargado en el CRM. Una fila por (lab, nº pedido).
+// ── Módulos de laboratorio (src/services/lab-modules) ─────────────────────
+// Un pedido tal como lo vio el portal del laboratorio la última vez. Lo escribe
+// el seguimiento de cada módulo; es lo que permite detectar ventas enviadas
+// sin pedido en el portal y pedidos atrasados contra la fecha del lab.
+model LabPortalOrder {
+  id           String    @id @default(cuid())
+  lab          String // clave del módulo: VITOLEN
+  portalNumber String
+  internalRef  String? // "Nro de Caso Interno": lo que el vendedor cargó para identificar la venta
+  orderId      String?
+  pair         Int? // 1 | 2 en una promo de segundo par
+  statusRaw    String? // el estado tal cual lo muestra el portal
+  status       String    @default("DESCONOCIDO") // EstadoEnPortal normalizado
+  cliente      String?
+  enteredAt    DateTime?
+  estimatedAt  DateTime?
+  finishedAt   DateTime?
+  dispatchedAt DateTime?
+  invoices     Json? // InvoiceRef[] como en LabCostEntry
+  raw          Json?
+  firstSeenAt  DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  lastChangeAt DateTime  @default(now())
+  order        Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([lab, portalNumber])
+  @@index([orderId])
+  @@index([lab, status])
+  @@index([internalRef])
+}
+
+// Carga asistida de un pedido en el portal: el robot arma y llena, una persona
+// aprueba mirando la captura, el robot confirma. PREPARADO → EN_REVISION →
+// APROBADO → CARGADO, o RECHAZADO / ERROR.
+model LabOrderDraft {
+  id                 String    @id @default(cuid())
+  lab                String
+  orderId            String
+  pair               Int       @default(1)
+  status             String    @default("PREPARADO")
+  payload            Json // exactamente lo que se carga en el portal
+  resumenPortal      Json? // lo que el portal mostró en su pantalla de resumen
+  screenshotUrl      String?
+  screenshotFinalUrl String?
+  portalNumber       String?
+  preparedBy         String?
+  approvedBy         String?
+  approvedAt         DateTime?
+  loadedAt           DateTime?
+  error              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  order              Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, pair])
+  @@index([lab, status])
+}
+
 model LabCostEntry {
   id             String    @id @default(cuid())
   lab            String // OPTOVISION | GRUPO_OPTICO | otro
