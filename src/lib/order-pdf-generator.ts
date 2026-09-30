@@ -162,8 +162,11 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .letterhead-logo { height: 34px; width: auto; max-width: 220px; object-fit: contain; }
         .letterhead-right { text-align:right; font-size:10px; color:${gris}; line-height:1.5; }
         .address-bold { font-weight:600; color:${brandSand}; }
-        .tagline { display:inline-block; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:${brandSand}; margin-top:4px; text-decoration:none; }
-        .tagline .ver { display:inline-block; margin-left:4px; padding:1px 6px; border-radius:3px; background:${verdeSuave}; color:white; font-size:8px; font-weight:700; letter-spacing:.06em; vertical-align:middle; }
+        /* El eslogan como sello: píldora oscura con las estrellas en el dorado de
+           la marca sobre fondo oscuro (--dorado) y el "Ver" verde como botón. */
+        .tagline { display:inline-flex; align-items:center; gap:8px; margin-top:7px; padding:5px 5px 5px 13px; border-radius:999px; background:linear-gradient(135deg, #1c1917 0%, #3b312a 100%); color:#fff; text-decoration:none; font-size:8.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
+        .tagline .estrellas { color:#c8a55c; font-size:12px; letter-spacing:1.5px; line-height:1; text-shadow:0 0 3px rgba(200,165,92,.55); }
+        .tagline .ver { display:inline-block; padding:3px 9px; border-radius:999px; background:${verdeSuave}; color:#fff; font-size:8px; font-weight:700; letter-spacing:.08em; }
 
         .doc-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px; }
         .doc-title { font-size:24px; font-weight:700; color:${tinta}; letter-spacing:-0.01em; }
@@ -257,7 +260,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         <div class='letterhead-right'>
             <div class='address-bold'>José Luis de Tejeda 4380 · Cerro de las Rosas, Córdoba</div>
             <div>WhatsApp ${WHATSAPP_PHONE_DISPLAY}</div>
-            <a class='tagline' href='${GOOGLE_MAPS_URL}'>La óptica mejor calificada en Córdoba · ★★★★★ <span class='ver'>Ver</span></a>
+            <a class='tagline' href='${GOOGLE_MAPS_URL}'><span class='estrellas'>★★★★★</span> La óptica mejor calificada en Córdoba <span class='ver'>Ver</span></a>
         </div>
     </div>
 
