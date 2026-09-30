@@ -38,64 +38,55 @@ export function BillingCard({ todaySold, weekSold, monthSold, isLoading }: Billi
   }
 
   return (
-    <div className={`bg-white dark:bg-stone-900 rounded-3xl p-6 lg:p-8 shadow-md border border-stone-200/60 dark:border-stone-800/60 hover:shadow-lg transition-all ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
+    <div className={`bg-white dark:bg-stone-900 rounded-3xl p-4 lg:p-6 shadow-md border border-stone-200/60 dark:border-stone-800/60 hover:shadow-lg transition-all ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
       {/* Header con icono y botón ocultar */}
-      <div className="flex items-center gap-3 mb-8 justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-stone-100 dark:bg-stone-800 p-3 rounded-2xl text-amber-600 dark:text-amber-500 shadow-sm">
-            <DollarSign className="w-6 h-6 stroke-[2.5]" />
+      <div className="flex items-center gap-2 mb-4 justify-between">
+        <div className="flex items-center gap-2">
+          <div className="bg-stone-100 dark:bg-stone-800 p-2 rounded-xl text-amber-600 dark:text-amber-500 shadow-sm">
+            <DollarSign className="w-4 h-4 stroke-[2.5]" />
           </div>
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">
-            Facturación del Día
+          <h3 className="text-[9px] font-black uppercase tracking-[0.15em] text-stone-400">
+            Facturación
           </h3>
         </div>
         <button
           onClick={() => setIsVisible(false)}
-          className="p-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-400 hover:text-amber-600 dark:hover:text-amber-500 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
+          className="p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-400 hover:text-amber-600 dark:hover:text-amber-500 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
           title="Ocultar facturación"
         >
-          <Eye className="w-5 h-5 stroke-[2.5]" />
+          <Eye className="w-4 h-4 stroke-[2.5]" />
         </button>
       </div>
 
-      {/* Número principal: HOY — GRANDE Y CLARO */}
-      <div className="mb-10 pb-8 border-b border-stone-200/50 dark:border-stone-800/50">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-2">
-          💰 HOY
-        </p>
-        <p className="text-5xl lg:text-6xl font-black tracking-tighter text-amber-600 dark:text-amber-500 break-words">
-          {formatPeso(todaySold)}
-        </p>
-        <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mt-3">
-          Facturación de hoy
-        </p>
-      </div>
+      {/* Tres columnas: HOY, SEMANA, MES — TODO EN UNA LÍNEA */}
+      <div className="grid grid-cols-3 gap-4 lg:gap-6">
+        {/* HOY */}
+        <div className="space-y-1">
+          <p className="text-[8px] font-black uppercase tracking-[0.1em] text-stone-400">
+            💰 Hoy
+          </p>
+          <p className="text-2xl lg:text-3xl font-black tracking-tighter text-amber-600 dark:text-amber-500 truncate">
+            {formatPeso(todaySold)}
+          </p>
+        </div>
 
-      {/* Semana y Mes — SECUNDARIOS */}
-      <div className="grid grid-cols-2 gap-6 lg:gap-8">
         {/* SEMANA */}
-        <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">
-            📅 Esta Semana
+        <div className="space-y-1">
+          <p className="text-[8px] font-black uppercase tracking-[0.1em] text-stone-400">
+            📅 Semana
           </p>
-          <p className="text-2xl lg:text-3xl font-black tracking-tighter text-stone-800 dark:text-stone-100">
+          <p className="text-xl lg:text-2xl font-black tracking-tighter text-stone-800 dark:text-stone-100 truncate">
             {formatPeso(weekSold)}
-          </p>
-          <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest">
-            Últimos 7 días
           </p>
         </div>
 
         {/* MES */}
-        <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">
-            📊 Este Mes
+        <div className="space-y-1">
+          <p className="text-[8px] font-black uppercase tracking-[0.1em] text-stone-400">
+            📊 Mes
           </p>
-          <p className="text-2xl lg:text-3xl font-black tracking-tighter text-stone-800 dark:text-stone-100">
+          <p className="text-xl lg:text-2xl font-black tracking-tighter text-stone-800 dark:text-stone-100 truncate">
             {formatPeso(monthSold)}
-          </p>
-          <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest">
-            Desde el 1° del mes
           </p>
         </div>
       </div>
