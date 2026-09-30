@@ -208,6 +208,10 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
            de una tarjeta cortada y el cliente no la veía. */
         .payment-methods { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:8px; margin-top:12px; align-items:start; break-inside: avoid; page-break-inside: avoid; }
         .p-amount small { font-size:10px; font-weight:400; color:${gris}; }
+        .cuota-grande { font-size:11px; color:${gris}; margin-top:3px; white-space:nowrap; }
+        .cuota-grande b { font-size:15px; font-weight:700; color:${tinta}; }
+        .cuota-grande span { font-size:15px; font-weight:700; color:${tinta}; }
+        .cuota-total { font-size:9px; color:${gris}; margin-top:6px; padding-top:5px; border-top:1px solid ${linea}; }
         .payment-card { border-radius:6px; padding:12px 16px; border:1px solid ${linea}; }
         .p-title { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${gris}; margin-bottom:6px; display:block; }
         .p-amount { font-size:18px; font-weight:700; display:block; }
@@ -519,34 +523,19 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         </div>
         <div class='payment-card'>
             <span class='p-title'>Cuotas sin interés</span>
-            <span class='p-amount'>$${formatearPrecio(financials.totalCard)}</span>
+            <div class='cuota-grande'><b>3</b> cuotas de <span>$${formatearPrecio(financials.installment3)}</span></div>
+            <div class='cuota-grande'><b>6</b> cuotas de <span>$${formatearPrecio(financials.installment6)}</span></div>
+            <div class='cuota-total'>Total $${formatearPrecio(financials.totalCard)}</div>
             ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Listado</span>
                 <span>$${formatearPrecio(financials.remainingCard)}</span>
             </div>`}
-            <div class='installments'>
-                <div class='inst-row'>
-                    <span>3 cuotas de</span>
-                    <span class='inst-quota'>$${formatearPrecio(financials.installment3)}</span>
-                </div>
-                <div class='inst-row'>
-                    <span>6 cuotas de</span>
-                    <span class='inst-quota'>$${formatearPrecio(financials.installment6)}</span>
-                </div>
-                <div class='inst-note'>Con tarjeta de crédito</div>
-            </div>
         </div>
         ${esPresupuesto || financials.paidReal <= 0 ? `
         <div class='payment-card'>
             <span class='p-title'>12 cuotas fijas</span>
-            <span class='p-amount'>$${formatearPrecio(financials.installment12)} <small>por mes</small></span>
-            <div class='installments'>
-                <div class='inst-row'>
-                    <span>Total</span>
-                    <span class='inst-quota'>$${formatearPrecio(financials.totalCardFinanced)}</span>
-                </div>
-                <div class='inst-note'>Con tarjeta de crédito · el total en 12 cuotas no es el precio de lista</div>
-            </div>
+            <div class='cuota-grande'><b>12</b> cuotas de <span>$${formatearPrecio(financials.installment12)}</span></div>
+            <div class='cuota-total'>Total $${formatearPrecio(financials.totalCardFinanced)}</div>
         </div>` : ''}
     </div>
 
