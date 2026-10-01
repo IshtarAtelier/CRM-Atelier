@@ -1,0 +1,39 @@
+{
+  "id": "story-agos-venice",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Venice",
+    "color": "",
+    "familia": "clip"
+  },
+  "caption": "Venice · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "sinclip",
+      "image": "social/story-agos-venice/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-venice/02.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-venice/03.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "anteojo",
+      "image": "social/story-agos-venice/04.jpg"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "story-agos-frida-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Frida",
+    "color": "C1",
+    "familia": "receta"
+  },
+  "caption": "Frida C1 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-frida-c1/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-frida-c1/02.jpg"
+    }
+  ]
+}

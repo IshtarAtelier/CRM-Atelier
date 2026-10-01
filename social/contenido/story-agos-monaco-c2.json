@@ -1,0 +1,39 @@
+{
+  "id": "story-agos-monaco-c2",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Monaco",
+    "color": "C2",
+    "familia": "clip"
+  },
+  "caption": "Monaco C2 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "sinclip",
+      "image": "social/story-agos-monaco-c2/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-monaco-c2/02.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-monaco-c2/03.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "anteojo",
+      "image": "social/story-agos-monaco-c2/04.jpg"
+    }
+  ]
+}

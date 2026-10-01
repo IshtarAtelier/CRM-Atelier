@@ -1,0 +1,34 @@
+{
+  "id": "story-agos-gala-c8",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Gala",
+    "color": "C8",
+    "familia": "receta"
+  },
+  "caption": "Gala C8 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-gala-c8/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-gala-c8/02.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "anteojo",
+      "image": "social/story-agos-gala-c8/03.jpg"
+    }
+  ]
+}

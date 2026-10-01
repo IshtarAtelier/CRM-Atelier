@@ -1,0 +1,34 @@
+{
+  "id": "story-agos-victoria-c5",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Victoria",
+    "color": "C5",
+    "familia": "receta"
+  },
+  "caption": "Victoria C5 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-victoria-c5/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-victoria-c5/02.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "anteojo",
+      "image": "social/story-agos-victoria-c5/03.jpg"
+    }
+  ]
+}

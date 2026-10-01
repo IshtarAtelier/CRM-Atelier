@@ -1,0 +1,29 @@
+{
+  "id": "story-agos-milano-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Milano",
+    "color": "C1",
+    "familia": "clip"
+  },
+  "caption": "Milano C1 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "sinclip",
+      "image": "social/story-agos-milano-c1/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-milano-c1/02.jpg"
+    }
+  ]
+}
