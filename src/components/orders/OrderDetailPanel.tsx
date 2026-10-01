@@ -1179,8 +1179,8 @@ export function OrderDetailPanel({
                         </div>
                     </div>
 
-                    {/* SmartLab Live Status */}
-                    {!isOptovision && (
+                    {/* SmartLab Live Status (Grupo Óptico). Vitolen tiene su propio bloque. */}
+                    {!isOptovision && !isVitolen && (
                         <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 p-5 shadow-sm">
                             <div className="flex items-center justify-between mb-4">
                                 <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
