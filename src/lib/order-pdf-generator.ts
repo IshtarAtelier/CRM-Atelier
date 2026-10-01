@@ -196,12 +196,10 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .item-sub { font-size:10px; color:${gris}; margin-top:1px; }
         .bonif { font-size:10px; color:${verdeSuave}; font-weight:600; margin-top:2px; }
 
-        .total-row { display:flex; justify-content:space-between; align-items:baseline; gap:14px; margin-top:8px; padding:0 2px; }
-        .total-promo { flex:1; text-align:center; font-size:10.5px; font-weight:700; color:${verdeSuave}; letter-spacing:.02em; white-space:nowrap; }
+        .total-promo { font-size:10.5px; font-weight:700; color:${verdeSuave}; letter-spacing:.02em; white-space:nowrap; margin-left:6px; }
         .total-promo .oro { color:#c8a55c; margin-right:4px; }
         .total-label { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:${brandSand}; font-weight:600; }
-        .total-amount { font-size:26px; font-weight:700; letter-spacing:-0.01em; }
-        .total-hint { font-size:10px; color:${gris}; padding:0 2px; margin-top:2px; }
+        .total-hint { font-size:11px; color:${gris}; padding:0 2px; margin-top:16px; }
 
         /* Las tres tarjetas de pago van ENTERAS en una hoja: partidas por el
            corte de página, la fila de 12 cuotas caía sola en la hoja 2 dentro
@@ -212,7 +210,11 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .cuota-grande b { font-size:15px; font-weight:700; color:${tinta}; }
         .cuota-grande span { font-size:15px; font-weight:700; color:${tinta}; }
         .cuota-total { font-size:9px; color:${gris}; margin-top:6px; padding-top:5px; border-top:1px solid ${linea}; }
-        .payment-card { border-radius:6px; padding:12px 16px; border:1px solid ${linea}; }
+        .payment-card { position:relative; border-radius:6px; padding:12px 16px; border:1px solid ${linea}; }
+        .p-desc { position:absolute; top:9px; right:10px; background:${verdeSuave}; color:#fff; font-size:9px; font-weight:700; padding:2px 7px; border-radius:999px; letter-spacing:.04em; }
+        .p-ahorro { font-size:9px; color:${gris}; margin-top:6px; padding-top:5px; border-top:1px solid ${linea}; white-space:nowrap; }
+        .p-ahorro s { color:#a8a29e; }
+        .p-ahorro b { color:${verdeSuave}; }
         .p-title { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${gris}; margin-bottom:6px; display:block; }
         .p-amount { font-size:18px; font-weight:700; display:block; }
         .p-saldo { font-size:12px; font-weight:600; background:${crema}; display:inline-block; padding:4px 10px; border-radius:4px; margin-top:8px; }
@@ -497,25 +499,21 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         })()}
     </div>
     ` : `
-    ${esPresupuesto && !hayDesglose ? `
-    <div class='total-row'>
-        <span class='total-label'>Precio total (lista)</span>
-        <span class='total-promo'><span class='oro'>★</span>3 y 6 cuotas sin interés, y hasta 12 cuotas fijas</span>
-        <span class='total-amount'>$${formatearPrecio(financials.listPrice)}</span>
-    </div>` : ''}
-    ${esPresupuesto ? `<div class='total-hint' style="margin-top:${hayDesglose ? '10px' : '2px'};">Elegí cómo pagarlo:${hayDesglose ? ` <span style="color:${verdeSuave}; font-weight:700;"><span style="color:#c8a55c;">★</span> 3 y 6 cuotas sin interés, y hasta 12 cuotas fijas</span>` : ''}</div>` : ''}
+    ${esPresupuesto ? `<div class='total-hint'>Elegí cómo pagarlo: <span class='total-promo'><span class='oro'>★</span>3 y 6 cuotas sin interés, y hasta 12 cuotas fijas</span></div>` : ''}
     <div class='payment-methods'>
         <div class='payment-card'>
-            <span class='p-title'>Efectivo (−${financials.discountCash}%)</span>
+            <span class='p-title'>Efectivo</span><span class='p-desc'>−${financials.discountCash}%</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalCash)}</span>
+            <div class='p-ahorro'><s>$${formatearPrecio(financials.listPrice)}</s> · Ahorrás <b>$${formatearPrecio(financials.listPrice - financials.totalCash)}</b></div>
             ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${formatearPrecio(financials.remainingCash)}</span>
             </div>`}
         </div>
         <div class='payment-card'>
-            <span class='p-title'>Transferencia (−${financials.discountTransfer}%)</span>
+            <span class='p-title'>Transferencia</span><span class='p-desc'>−${financials.discountTransfer}%</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalTransfer)}</span>
+            <div class='p-ahorro'><s>$${formatearPrecio(financials.listPrice)}</s> · Ahorrás <b>$${formatearPrecio(financials.listPrice - financials.totalTransfer)}</b></div>
             ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${formatearPrecio(financials.remainingTransfer)}</span>
@@ -525,7 +523,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             <span class='p-title'>Cuotas sin interés</span>
             <div class='cuota-grande'><b>3</b> cuotas de <span>$${formatearPrecio(financials.installment3)}</span></div>
             <div class='cuota-grande'><b>6</b> cuotas de <span>$${formatearPrecio(financials.installment6)}</span></div>
-            <div class='cuota-total'>Total $${formatearPrecio(financials.totalCard)}</div>
+            <div class='cuota-total'>Total $${formatearPrecio(financials.totalCard)} · precio de lista</div>
             ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Listado</span>
                 <span>$${formatearPrecio(financials.remainingCard)}</span>
