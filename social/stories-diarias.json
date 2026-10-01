@@ -1,23 +1,30 @@
 {
   "_comentario": [
-    "Dos carriles. El cron publica SEIS stories por día en dos tandas:",
-    "  mañana (10:00 ART) → 2 de contenido + 2 de producto = 4",
-    "  tarde  (17:00 ART) → 2 de contenido            = 2",
-    "La tarde es solo de contenido a propósito: las de producto llevan precio",
-    "adentro y su catálogo es chico (24), así que subirlas a 3 por día las",
-    "quemaría en 8 días. El pedido de la dueña era \"mucho contenido\", no más",
-    "repetición de producto.",
+    "Dos carriles. El cron publica SIETE stories por día en dos tandas, INTERCALADAS",
+    "(contenido, Agostina, contenido, Agostina):",
+    "  mañana (8:00 ART)  → 2 de contenido + 2 modelos de Agostina",
+    "  tarde  (18:05 ART) → 2 de contenido + 1 modelo  de Agostina",
+    "Cada modelo de Agostina son 2 a 4 stories seguidas (frente, perfil, anteojo en",
+    "manos; los clip-on suman la foto sin clip), así que un día son ~13 stories.",
+    "",
+    "EL CARRIL `agostina` REEMPLAZA AL DE PRODUCTO (Ishtar, 1/10/2026): las stories",
+    "de \"anteojo suelto + precio\" no atraían; lo que funcionó fueron las fotos de",
+    "Agostina con el nombre abajo. NO se edita a mano: lo escribe entero",
+    "`node scripts/social/generar-stories-agostina.mjs`, que también renderiza las",
+    "placas (public/social/story-agos-*/NN.jpg). Dar de alta o baja un modelo es",
+    "tocar la lista de ese script y volver a correrlo. Sus piezas no llevan precio,",
+    "así que no vencen (fuente: \"fotos-agostina\", no \"base\").",
     "",
     "La elección es determinística: índice = díasDesde(1/1/2026) × loQueSaleporDía",
     "% cantidad del carril. NO es al azar: se sabe de antemano qué sale mañana y",
     "un problema se puede reproducir. OJO CON EL MULTIPLICADOR: contenido consume",
-    "4 por día y producto 2, así que el índice de contenido avanza de a 4 y el de",
-    "producto de a 2. La tanda de la tarde no recalcula nada — toma las 2",
+    "4 por día y Agostina 3, así que el índice de contenido avanza de a 4 y el de",
+    "Agostina de a 3. La tanda de la tarde no recalcula nada — toma las 2",
     "SIGUIENTES a las que ya salieron a la mañana (desplazamiento dentro del mismo",
     "día). Si avanzara de a 2 como antes, la tarde repetiría exactamente lo de la",
     "mañana. El PLAN del cron es la única fuente de esos números.",
     "",
-    "Ciclos: contenido 66 piezas ÷ 4 = 16,5 días. Producto 24 ÷ 2 = 12 días.",
+    "Ciclos: contenido 66 piezas ÷ 4 = 16,5 días. Agostina ~90 modelos ÷ 3 = 30 días.",
     "Ninguno es múltiplo exacto de lo que consume el día, así que los grupos",
     "diarios rotan entre vueltas — es deseado, no un bug: la misma pieza no cae",
     "siempre en la misma compañía.",
@@ -39,10 +46,6 @@
     "micro-lentes tienen cada una su placa larga y su placa de dato suelto) están",
     "separadas ~27 posiciones a propósito.",
     "",
-    "El orden del carril de producto intercala Sol / Clip-On / Receta a",
-    "propósito, para que no salgan 5 clip-on seguidos. Al agregar productos",
-    "nuevos, mantener la alternancia y separar variantes del mismo modelo.",
-    "",
     "FUERA DEL AIRE por falta de ficha del fabricante (28/8/26):",
     "story-lente-myofix. La pieza afirma control de la progresión de la miopía",
     "infantil sin citar a ningún fabricante — los MyoFix de la base son",
@@ -50,11 +53,6 @@
     "miopía. Vuelve al carril cuando aparezca la ficha oficial de MyoFix y su",
     "dato esté citado en la placa. Mismo motivo para el reel lente-myofix, que",
     "se bajó del feed (estaba programado el 18/11).",
-    "",
-    "FUERA DEL AIRE por falta de stock (27/8/26): capri-c5-g5929 y",
-    "verona-g5959-c1 — sus productos dejaron la tienda y la regeneración ya no",
-    "los refresca, así que la guarda de frescura los bloquearía para siempre.",
-    "Si vuelven a tener stock, el viernes los regenera y se los puede sumar acá.",
     "",
     "Para sacar algo del aire se lo borra de su lista. Para agregar: renderizar",
     "en 9:16, commitear el JPEG y sumarlo acá.",
@@ -68,18 +66,7 @@
     "Reseñas (31/8/26): story-resena-anita, story-resena-claudia,",
     "story-resena-silvia y story-700-resenas son prueba social con reseñas",
     "REALES de Google (regla R7: cita textual + autor + fuente + fecha).",
-    "Van separadas ~10 posiciones para que no caigan dos el mismo día.",
-    "",
-    "Las de producto se regeneran desde la base con:",
-    "  node scripts/social/generar-story-producto.mjs --produccion --cantidad 20",
-    "Eso las actualiza con los precios y las fotos vigentes.",
-    "",
-    "Esa misma corrida es la que les pone la llamada a la acción (campo `cta` de",
-    "la slide: «Pedí tu presupuesto 👉 WhatsApp»). Las de producto que ya están",
-    "en esta lista se generaron ANTES de que existiera el campo, así que salen",
-    "sin CTA hasta que se las regenere y se las vuelva a renderizar.",
-    "El texto se cambia con --cta y se saca con --sin-cta; nunca puede llevar un",
-    "importe adentro — el precio sale de la base (regla R6)."
+    "Van separadas ~10 posiciones para que no caigan dos el mismo día."
   ],
   "carriles": {
     "contenido": [
@@ -348,102 +335,456 @@
         "tipo": "educacion"
       }
     ],
-    "producto": [
+    "agostina": [
       {
-        "id": "story-producto-adhara-c4",
-        "tipo": "producto"
+        "id": "story-agos-atenea-c3",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-clip-on-palermo-c3",
-        "tipo": "producto"
+        "id": "story-agos-victoria-c5",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-deneb-c1",
-        "tipo": "producto"
+        "id": "story-agos-dionisio-c2",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-helena-c4",
-        "tipo": "producto"
+        "id": "story-agos-antares-c1",
+        "tipo": "sol",
+        "slides": 3
       },
       {
-        "id": "story-producto-mizar-c2",
-        "tipo": "producto"
+        "id": "story-agos-frida-c5",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-lentes-sol-clip-on-florence-tr12173",
-        "tipo": "producto"
+        "id": "story-agos-polaris-c7",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-sirio-c1",
-        "tipo": "producto"
+        "id": "story-agos-gala-c7",
+        "tipo": "receta",
+        "slides": 2
       },
       {
-        "id": "story-producto-clipon-sol-ateliers-venice-7018",
-        "tipo": "producto"
+        "id": "story-agos-venice",
+        "tipo": "clip",
+        "slides": 4
       },
       {
-        "id": "story-producto-vega-c1",
-        "tipo": "producto"
+        "id": "story-agos-gala-c1",
+        "tipo": "receta",
+        "slides": 2
       },
       {
-        "id": "story-producto-rigel-c1",
-        "tipo": "producto"
+        "id": "story-agos-pegaso-c2",
+        "tipo": "receta",
+        "slides": 2
       },
       {
-        "id": "story-producto-antares-c1",
-        "tipo": "producto"
+        "id": "story-agos-polaris-c2",
+        "tipo": "receta",
+        "slides": 2
       },
       {
-        "id": "story-producto-clip-on-torino-8125s-c3-lentes-de-sol",
-        "tipo": "producto"
+        "id": "story-agos-sirio-c1",
+        "tipo": "sol",
+        "slides": 3
       },
       {
-        "id": "story-producto-fenix-c1",
-        "tipo": "producto"
+        "id": "story-agos-helena-c4",
+        "tipo": "receta",
+        "slides": 2
       },
       {
-        "id": "story-producto-deneb-c2",
-        "tipo": "producto"
+        "id": "story-agos-frida-c1",
+        "tipo": "receta",
+        "slides": 2
       },
       {
-        "id": "story-producto-orion-c1",
-        "tipo": "producto"
+        "id": "story-agos-frida-c3",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-canopo-c2",
-        "tipo": "producto"
+        "id": "story-agos-torino-c4",
+        "tipo": "clip",
+        "slides": 4
       },
       {
-        "id": "story-producto-lentes-de-sol-clip-on-riviera-g5970-c1-armazon",
-        "tipo": "producto"
+        "id": "story-agos-victoria-c1",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-sirio-c2",
-        "tipo": "producto"
+        "id": "story-agos-polaris-c6",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-lentes-sol-clipon-milano-mlt25026-c1",
-        "tipo": "producto"
+        "id": "story-agos-victoria-c6",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-lentes-de-sol-clip-on-monaco-a12183-c2",
-        "tipo": "producto"
+        "id": "story-agos-sirio-c2",
+        "tipo": "sol",
+        "slides": 3
       },
       {
-        "id": "story-producto-rigel-c3",
-        "tipo": "producto"
+        "id": "story-agos-roma",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-vega-c2",
-        "tipo": "producto"
+        "id": "story-agos-hera",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-nashira-c3",
-        "tipo": "producto"
+        "id": "story-agos-onix-negro",
+        "tipo": "receta",
+        "slides": 3
       },
       {
-        "id": "story-producto-lentes-sol-clip-on-torino-8125s-c4",
-        "tipo": "producto"
+        "id": "story-agos-torino-c3",
+        "tipo": "clip",
+        "slides": 4
+      },
+      {
+        "id": "story-agos-frida-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-andromeda-c6",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-olimpia",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-deneb-c2",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-andromeda-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-gala-c8",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-helena-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-palermo-c3",
+        "tipo": "clip",
+        "slides": 4
+      },
+      {
+        "id": "story-agos-victoria-c7",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-helena-c5",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-andromeda-c7",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-vega-c2",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-gala-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-gala-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-helena-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-verona-c1",
+        "tipo": "clip",
+        "slides": 4
+      },
+      {
+        "id": "story-agos-andromeda-c4",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-altair-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-minerva-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-adhara-c4",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-aquiles-c4",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-pandora-c5",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-ariadne-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-capri-c5",
+        "tipo": "clip",
+        "slides": 4
+      },
+      {
+        "id": "story-agos-hermes-c4",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-ariadne-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-teseo-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-deneb-c1",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-diana-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-aquiles-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-venus-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-monaco-c2",
+        "tipo": "clip",
+        "slides": 4
+      },
+      {
+        "id": "story-agos-hermes-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-poseidon-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-teseo-c4",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-vega-c1",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-orfeo-c4",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-cronos-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-cronos-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-riviera-c1",
+        "tipo": "clip",
+        "slides": 4
+      },
+      {
+        "id": "story-agos-orfeo-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-orfeo-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-hermes-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-mizar-c2",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-poseidon-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-pandora-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-hermes-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-milano-c1",
+        "tipo": "clip",
+        "slides": 2
+      },
+      {
+        "id": "story-agos-orfeo-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-diana-c4",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-diana-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-fenix-c1",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-venus-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-hestia-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-hestia-c2",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-florence-c2",
+        "tipo": "clip",
+        "slides": 4
+      },
+      {
+        "id": "story-agos-selene-c4",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-selene-c5",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-rigel-c3",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-canopo-c2",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-rigel-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-orion-c1",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-electra-c5",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-nashira-c3",
+        "tipo": "sol",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-electra-c4",
+        "tipo": "receta",
+        "slides": 3
+      },
+      {
+        "id": "story-agos-minerva-c3",
+        "tipo": "receta",
+        "slides": 3
       }
     ]
   }
