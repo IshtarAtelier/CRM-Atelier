@@ -16,6 +16,7 @@ import { normalizeLensOrigin, LENS_ORIGIN, llevaOrigen } from '@/lib/lens-origin
 import { breakdownLensCost, findLabConfig } from '@/lib/lens-cost';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import { puedeEntrarEn2x1 } from '@/lib/promo-utils';
+import FiltrosDeCategoria from '@/components/inventory/FiltrosDeCategoria';
 const PRODUCT_CATEGORIES = [
     { id: 'ALL', label: 'Todos' },
     ...SHARED_CATEGORIES
@@ -631,40 +632,18 @@ export default function InventarioPage() {
             {/* Filters Area */}
             <div className="flex flex-col gap-4 mb-8">
                 {/* Category filters */}
-                <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 no-scrollbar">
-                    {PRODUCT_CATEGORIES.map((cat) => {
-                        const isActive = selectedCategory === cat.id && !selectedSubtype;
-                        return (
-                            <button
-                                key={cat.id}
-                                onClick={() => {
-                                    setSelectedCategory(cat.id);
-                                    setSelectedSubtype('');
-                                    setSelectedOrigin('');
-                                    setSelectedBrand('');
-                                    setSelectedLab('');
-                                }}
-                                className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border flex items-center justify-center ${
-                                    isActive
-                                    ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-md scale-105'
-                                    : 'bg-transparent border border-stone-200 dark:border-stone-800 text-stone-500 hover:border-stone-300 dark:hover:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-800/50'
-                                }`}
-                            >
-                                {cat.label}
-                            </button>
-                        );
-                    })}
-                    <button
-                        onClick={() => setOnlyWeb(!onlyWeb)}
-                        className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border flex items-center gap-1.5 ${
-                            onlyWeb
-                            ? 'bg-violet-600 text-white border-violet-600 shadow-md scale-105 hover:bg-violet-750'
-                            : 'bg-transparent border border-violet-200 text-violet-600 hover:border-violet-350 hover:bg-violet-50/50 dark:border-violet-900/50 dark:text-violet-400'
-                        }`}
-                    >
-                        🌐 Solo Web
-                    </button>
-                </div>
+                <FiltrosDeCategoria
+                    seleccionada={selectedSubtype ? '' : selectedCategory}
+                    onSeleccionar={(id) => {
+                        setSelectedCategory(id);
+                        setSelectedSubtype('');
+                        setSelectedOrigin('');
+                        setSelectedBrand('');
+                        setSelectedLab('');
+                    }}
+                    soloWeb={onlyWeb}
+                    onSoloWeb={setOnlyWeb}
+                />
 
                 {/* Subtype filters — only when Cristal or Tratamiento is selected */}
                 {(selectedCategory === 'Cristal' || selectedCategory === 'Tratamiento') && (activeCategory as any)?.subtypes && (
