@@ -1,0 +1,86 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { Borradores } from '@/services/lab-modules/carga/borrador';
+import { armarFormulario, leerVentaParaCarga } from '@/services/lab-modules/vitolen/carga';
+import { cristalVitolenPorNombre } from '@/services/lab-modules/vitolen/catalogo';
+
+export const dynamic = 'force-dynamic';
+
+/**
+ * Carga asistida de un pedido en el portal del laboratorio.
+ *
+ *  GET  /api/lab-modulos/borradores?orderId=…  → borradores de la venta + lo que
+ *       el portal muestra de ella (espejo) + qué necesita cada par para armarse.
+ *  POST /api/lab-modulos/borradores { orderId, pair, variante?, forma?, pedidoOrigen? }
+ *       → arma el pedido desde la venta; si falta un dato, lo dice y no crea nada;
+ *       si está completo, crea el borrador PREPARADO. El robot lo llena en el
+ *       portal y lo deja EN_REVISION; una persona lo aprueba (PATCH en [id]).
+ *
+ * Hoy solo Vitolen tiene carga asistida.
+ */
+const FORMAS_PORTAL = ['Forma 1', 'Forma 2', 'Forma 3', 'Forma 4', 'Forma 5', 'Forma 6', 'Forma 7', 'Forma 8'];
+
+export async function GET(request: Request) {
+    const orderId = new URL(request.url).searchParams.get('orderId') || '';
+    if (!orderId) return NextResponse.json({ error: 'Falta orderId.' }, { status: 400 });
+
+    const venta = await leerVentaParaCarga(orderId);
+    if (!venta) return NextResponse.json({ error: 'Venta no encontrada.' }, { status: 404 });
+
+    const [borradores, espejo] = await Promise.all([
+        Borradores.deVenta(orderId),
+        prisma.labPortalOrder.findMany({ where: { orderId }, orderBy: { portalNumber: 'asc' } }),
+    ]);
+
+    // Qué pares de Vitolen tiene la venta y qué le falta a cada uno para armarse
+    // (sin forma ni variante elegidas todavía: eso lo decide quien prepara).
+    const pares = [...new Set(venta.items
+        .filter(i => /vitolen/i.test(i.laboratorySnapshot || '') && /cristal/i.test(i.productCategorySnapshot || ''))
+        .map(i => i.framePosition ?? 1))].sort();
+    const analisis = pares.map(pair => {
+        const r = armarFormulario(venta, { pair, forma: 'Forma 1' });
+        const cristal = cristalVitolenPorNombre(venta.items.find(i => (i.framePosition ?? 1) === pair && /vitolen/i.test(i.laboratorySnapshot || ''))?.productNameSnapshot);
+        return {
+            pair,
+            diseno: cristal?.diseno ?? null,
+            variantes: cristal?.variantes ?? [],
+            faltantes: r.faltantes.filter(f => !/variante|forma del armazón/.test(f)),
+            avisos: r.avisos,
+        };
+    });
+
+    return NextResponse.json({ borradores, espejo, pares: analisis, formas: FORMAS_PORTAL });
+}
+
+export async function POST(request: Request) {
+    try {
+        const actor = getActor(request);
+        const body = await request.json().catch(() => ({}));
+        const orderId = String(body.orderId || '');
+        const pair = Number(body.pair) || 1;
+        if (!orderId) return NextResponse.json({ error: 'Falta orderId.' }, { status: 400 });
+        const forma = body.forma ? String(body.forma) : null;
+        if (forma && !FORMAS_PORTAL.includes(forma)) return NextResponse.json({ error: 'La forma tiene que ser Forma 1 a Forma 8.' }, { status: 400 });
+
+        const venta = await leerVentaParaCarga(orderId);
+        if (!venta) return NextResponse.json({ error: 'Venta no encontrada.' }, { status: 404 });
+
+        const r = armarFormulario(venta, {
+            pair, forma,
+            variante: body.variante ? String(body.variante) : null,
+            pedidoOrigen: body.pedidoOrigen ? String(body.pedidoOrigen) : null,
+        });
+        if (!r.ok) {
+            return NextResponse.json({ error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos }, { status: 422 });
+        }
+
+        const borrador = await Borradores.preparar({ lab: 'VITOLEN', orderId, pair, payload: r.payload, actor });
+        return NextResponse.json({ ok: true, borrador, avisos: r.avisos });
+    } catch (error: any) {
+        const msg = error?.message || 'No se pudo preparar el pedido.';
+        const status = /Ya hay un borrador/.test(msg) ? 409 : 500;
+        if (status === 500) console.error('[lab-modulos/borradores] POST:', error);
+        return NextResponse.json({ error: msg }, { status });
+    }
+}

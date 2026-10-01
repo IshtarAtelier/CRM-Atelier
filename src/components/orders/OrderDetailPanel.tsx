@@ -23,6 +23,7 @@ import type { OrderFinancials } from '@/services/PricingService';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
+import VitolenCarga from '@/components/orders/VitolenCarga';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 
 export const LAB_STEPS = [
@@ -146,6 +147,8 @@ export function OrderDetailPanel({
         const labName = (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase();
         return labName.includes('OPTOVISION');
     }) || false;
+    const isVitolen = order.items?.some((it: any) =>
+        (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase().includes('VITOLEN')) || false;
 
     const [fullImageOpen, setFullImageOpen] = useState(false);
     // Los campos del caso los maneja PostSaleServiceForm; acá solo se sigue la
@@ -1239,6 +1242,12 @@ export function OrderDetailPanel({
                                 </div>
                             )}
                         </div>
+                    )}
+
+                    {/* Vitolen: espejo del portal y carga asistida con OK humano
+                        (src/services/lab-modules). Solo si la venta lleva sus cristales. */}
+                    {isVitolen && (
+                        <VitolenCarga orderId={order.id} onChanged={() => onRefresh?.()} />
                     )}
 
                     {/* Post Venta — desde el tablero de post venta va arriba de todo,
