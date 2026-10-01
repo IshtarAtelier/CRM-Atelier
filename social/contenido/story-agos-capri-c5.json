@@ -1,0 +1,39 @@
+{
+  "id": "story-agos-capri-c5",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Capri",
+    "color": "C5",
+    "familia": "clip"
+  },
+  "caption": "Capri C5 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "sinclip",
+      "image": "social/story-agos-capri-c5/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-capri-c5/02.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-capri-c5/03.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "anteojo",
+      "image": "social/story-agos-capri-c5/04.jpg"
+    }
+  ]
+}

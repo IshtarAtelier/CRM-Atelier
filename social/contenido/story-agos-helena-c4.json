@@ -1,0 +1,29 @@
+{
+  "id": "story-agos-helena-c4",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Helena",
+    "color": "C4",
+    "familia": "receta"
+  },
+  "caption": "Helena C4 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-helena-c4/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-helena-c4/02.jpg"
+    }
+  ]
+}

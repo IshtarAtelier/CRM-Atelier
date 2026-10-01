@@ -1,0 +1,39 @@
+{
+  "id": "story-agos-palermo-c3",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Palermo",
+    "color": "C3",
+    "familia": "clip"
+  },
+  "caption": "Palermo C3 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "sinclip",
+      "image": "social/story-agos-palermo-c3/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-palermo-c3/02.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-palermo-c3/03.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "anteojo",
+      "image": "social/story-agos-palermo-c3/04.jpg"
+    }
+  ]
+}

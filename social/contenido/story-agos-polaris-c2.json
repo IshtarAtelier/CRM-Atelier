@@ -1,0 +1,29 @@
+{
+  "id": "story-agos-polaris-c2",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Polaris",
+    "color": "C2",
+    "familia": "receta"
+  },
+  "caption": "Polaris C2 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-polaris-c2/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-polaris-c2/02.jpg"
+    }
+  ]
+}
