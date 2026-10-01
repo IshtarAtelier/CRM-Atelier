@@ -513,6 +513,11 @@ function CotizadorPageContent() {
             || n.match(/MI PRIMER (VARILUX|KODAK)[\s-]*([A-Z0-9.]+(?:\s+MAX)?)?/)
             || n.match(/VARILUX\s+(XR DESIGN|COMFORT MAX|COMFORT|PHYSIO 3\.0|PHYSIO|LIBERTY|DIGITIME)/)
             || n.match(/KODAK\s+(UNIQUE DRO|PRECISE|SOFTWEAR|SV DIGITAL)/)
+            // Vitolen (30/9/2026): sin esto los 114 Hoya/Pentax caían en tres
+            // bloques por marca, la misma pared de filas que se evitó con Smart.
+            || n.match(/MI PRIMER HOYA\s+(ARRAY 2|SUMMIT)/)
+            || n.match(/HOYA\s+(LIFESTYLE 4|ARRAY 2|SUMMIT|ARGOS|TACT BKS|NULUX IDENTITY V\+|SYNC III|VISIÓN SIMPLE DIGITAL|MONOFOCAL TERMINADO)/)
+            || n.match(/PENTAX\s+(ALLFOCUS PRO|ALLFOCUS FLEX|OFFICE|MONOFOCAL TERMINADO)/)
             || n.match(/(NEW EDITIONS|EYEZEN [A-Z]+|MYOPILUX [A-Z]+|STELLEST|INTERVIEW|ESPACE PLUS|KRIPTOCK|MYOFIX|MYOLENS)/);
         if (m) return m[0].replace(/\s+/g, ' ').trim();
         return (p.brand?.trim() || 'Otros');

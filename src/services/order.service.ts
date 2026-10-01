@@ -192,6 +192,10 @@ export class OrderService {
             select: {
                 id: true,
                 clientId: true,
+                // El vendedor. Sin él, /admin/ventas?id=… (el link de todos los
+                // avisos) le traía la venta a un STAFF y el filtro por vendedor
+                // la escondía: la pantalla quedaba vacía (visto el 1/10/2026).
+                userId: true,
                 status: true,
                 orderType: true,
                 isLocked: true,
