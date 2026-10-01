@@ -8,6 +8,7 @@ import {
 import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/ui/FileDropZone';
 import { isCardMethod, esMercadoPago, METODO_ESPECIAL, type CardMode } from '@/lib/payment-card';
+import { GRUPOS_FORMAS_DE_PAGO, type IconoFormaDePago } from '@/lib/constants/formas-de-pago';
 
 interface AddPaymentModalProps {
     orderId: string;
@@ -62,76 +63,15 @@ const COLOR_STYLES: Record<string, { active: string; inactive: string; iconActiv
     }
 };
 
-/**
- * Formas de pago agrupadas POR CUENTA, cada grupo con su título (Ishtar,
- * 28/9/2026: "hay muchas formas de pago, que quede bien y sea fácil de usar").
- * Antes eran 14 botones seguidos sin título y con letra de 9px; con Mercado
- * Pago Yani iban a ser 17. El título dice de quién es la cuenta, así el botón
- * solo dice las cuotas. Los ids no cambian: son los que se guardan en Payment.
- */
-const PAYMENT_GROUPS = [
-    {
-        id: 'principales',
-        titulo: 'Efectivo y transferencias',
-        items: [
-            { id: 'EFECTIVO', label: 'Efectivo', icon: Banknote, color: 'emerald' },
-            { id: 'TRANSFERENCIA_LUCIA', label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'violet' },
-            { id: 'TRANSFERENCIA_ISHTAR', label: 'Transf. Ishtar', icon: ArrowRightLeft, color: 'pink' },
-        ]
-    },
-    {
-        // Mercado Pago (las dos cuentas): 3/6 sin interés (lista); 12 con costo
-        // financiero fijo del 10% — el cliente paga lista × 1,10 y el saldo divide
-        // por 1,10 (PricingService). La etiqueta lo aclara SIEMPRE. El 18 se
-        // retiró el 27/8/26 por decisión de Ishtar (reevaluar más adelante).
-        id: 'mercadopago',
-        titulo: 'Mercado Pago · Ishtar',
-        items: [
-            { id: 'MERCADO_PAGO_3_ISH', label: '3 cuotas', icon: CreditCard, color: 'sky' },
-            { id: 'MERCADO_PAGO_6_ISH', label: '6 cuotas', icon: CreditCard, color: 'sky' },
-            { id: 'MERCADO_PAGO_12_ISH', label: '12 cuotas (+10%)', icon: CreditCard, color: 'sky' },
-        ]
-    },
-    {
-        id: 'mercadopago-yani',
-        titulo: 'Mercado Pago · Yani',
-        items: [
-            { id: 'MERCADO_PAGO_3_YANI', label: '3 cuotas', icon: CreditCard, color: 'sky' },
-            { id: 'MERCADO_PAGO_6_YANI', label: '6 cuotas', icon: CreditCard, color: 'sky' },
-            { id: 'MERCADO_PAGO_12_YANI', label: '12 cuotas (+10%)', icon: CreditCard, color: 'sky' },
-        ]
-    },
-    {
-        id: 'ish',
-        titulo: 'Tarjetas · Ishtar',
-        items: [
-            { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3', icon: CreditCard, color: 'rose' },
-            { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6', icon: CreditCard, color: 'rose' },
-            { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas', icon: CreditCard, color: 'rose' },
-            { id: 'NARANJA_Z_ISH', label: 'Naranja Z', icon: CreditCard, color: 'rose' },
-        ]
-    },
-    {
-        id: 'yani',
-        titulo: 'Tarjetas · Yani',
-        items: [
-            { id: 'PAY_WAY_3_YANI', label: 'Pay Way 3', icon: CreditCard, color: 'orange' },
-            { id: 'PAY_WAY_6_YANI', label: 'Pay Way 6', icon: CreditCard, color: 'orange' },
-            { id: 'NARANJA_Z_YANI', label: 'Naranja Z', icon: CreditCard, color: 'orange' },
-        ]
-    },
-    {
-        // Cuenta especial, al final de todo (pedido de Ishtar 14/9/26): lo que
-        // no entra en ninguna forma de pago de arriba —canje, cheque, descuento
-        // a un empleado—. Obliga a ESCRIBIR cuál fue: un "otro" sin explicación
-        // es un agujero en la caja que después nadie puede reconstruir.
-        id: 'especial',
-        titulo: 'Otra',
-        items: [
-            { id: METODO_ESPECIAL, label: 'Otra forma de pago', icon: Sparkles, color: 'stone' },
-        ]
-    }
-];
+// La lista vive en src/lib/constants/formas-de-pago.ts (la comparte el
+// calculador de pagos); acá solo se le pone el ícono a cada forma.
+const ICONO_FORMA: Record<IconoFormaDePago, React.ComponentType<{ className?: string }>> = {
+    efectivo: Banknote, transferencia: ArrowRightLeft, tarjeta: CreditCard, especial: Sparkles,
+};
+const PAYMENT_GROUPS = GRUPOS_FORMAS_DE_PAGO.map(g => ({
+    ...g,
+    items: g.items.map(i => ({ ...i, icon: ICONO_FORMA[i.icono] })),
+}));
 
 export default function AddPaymentModal({
     orderId,

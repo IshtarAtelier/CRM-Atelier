@@ -28,6 +28,7 @@ import { armazonesPorPar, esArmazonItem, nombreDeArmazon } from '@/lib/armazon-p
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
+import CalculadorPagos from '@/components/pagos/CalculadorPagos';
 import InvoiceModal from '@/components/billing/InvoiceModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 
@@ -76,6 +77,7 @@ export default function QuoteSummary({
 }: QuoteSummaryProps) {
     const [showCheckout, setShowCheckout] = React.useState(false);
     const [showPayment, setShowPayment] = React.useState(false);
+    const [showCalculador, setShowCalculador] = React.useState(false);
     const [showIshAlert, setShowIshAlert] = React.useState(false);
     // Cartel obligatorio después de mandar a fábrica: que el vendedor verifique
     // con sus ojos que la confirmación de compra salió, y que se lo explique al
@@ -1244,9 +1246,16 @@ export default function QuoteSummary({
                             sola línea abajo. */}
                         <button
                             onClick={() => setShowPayment(true)}
-                            className="sm:col-span-4 py-4 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            className="sm:col-span-3 py-4 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
                             <Banknote className="w-5 h-5" /> ABONAR
+                        </button>
+                        <button
+                            onClick={() => setShowCalculador(true)}
+                            className="sm:col-span-1 py-4 bg-white dark:bg-stone-800 text-amber-600 border-2 border-amber-300 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-50 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            title="Simular cómo paga y cuánto le queda (no registra nada)"
+                        >
+                            <Calculator className="w-5 h-5" /> Calcular
                         </button>
 
                         {/* ── FACTURACIÓN (solo ventas) ──
@@ -1360,6 +1369,16 @@ export default function QuoteSummary({
                         setInvoiceOrder(null);
                         if (onRefreshContact) await onRefreshContact();
                     }}
+                />
+            )}
+
+            {showCalculador && (
+                <CalculadorPagos
+                    isOpen={showCalculador}
+                    onClose={() => setShowCalculador(false)}
+                    orders={[order]}
+                    initialOrderId={order.id}
+                    clientName={contact?.name}
                 />
             )}
 
