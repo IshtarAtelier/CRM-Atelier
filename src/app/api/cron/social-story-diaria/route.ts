@@ -10,13 +10,23 @@ import { evaluarFrescura, leerPieza } from '@/lib/social/frescura';
  *
  * DOS TANDAS: `?tanda=manana` (default) y `?tanda=tarde`. Horarios fijados
  * por Ishtar (28/8), ver .github/workflows/social-crons.yml:
- *   mañana —  8:00 ART — 2 de contenido + 2 de producto = 4 stories
- *   tarde  — 18:05 ART — 2 de contenido                 = 2 stories
+ *   mañana —  8:00 ART — 2 de contenido + 2 modelos de Agostina
+ *   tarde  — 18:05 ART — 2 de contenido + 1 modelo  de Agostina
  * Las stories duran 24 h pero se consumen en el momento: una sola tanda a la
  * mañana deja toda la tarde sin nada nuevo arriba, que es cuando la gente
- * vuelve a mirar. La tarde es SOLO contenido a propósito: las de producto
- * llevan precio adentro y el carril tiene 24 piezas — subirlas a 3 por día las
- * quemaría en 8 días, y lo que se pidió fue más contenido, no más producto.
+ * vuelve a mirar.
+ *
+ * EL CARRIL `agostina` (1/10/2026) REEMPLAZA AL DE PRODUCTO. Las stories de
+ * "anteojo suelto + precio" no atraían (Ishtar); lo que funcionó fueron las
+ * fotos de Agostina con el nombre abajo, que se subieron a mano el 29/9. Cada
+ * pieza de ese carril es UN MODELO con varias slides (`slides: 3` → 01, 02 y
+ * 03.jpg: frente, perfil, anteojo en manos) y se publican seguidas, así el
+ * que mira ve el modelo entero. No llevan precio, así que no vencen.
+ *
+ * ALTERNADAS: las piezas de los carriles se publican intercaladas (contenido,
+ * Agostina, contenido, Agostina), no todas las de un carril y después las del
+ * otro. Un bloque de cuatro placas de texto seguidas se saltea con el dedo;
+ * una cara entre medio frena.
  *
  * QUÉ SALE CADA DÍA
  * La elección es determinística, no al azar: se recorre `social/stories-diarias.json`
@@ -77,8 +87,8 @@ function indiceDelDia(cantidad: number, porDia = 1): number {
  * El ORDEN de las claves importa: define el desplazamiento de cada tanda.
  */
 const PLAN = {
-    manana: { contenido: 2, producto: 2 },
-    tarde: { contenido: 2 },
+    manana: { contenido: 2, agostina: 2 },
+    tarde: { contenido: 2, agostina: 1 },
 } as const satisfies Record<string, Record<string, number>>;
 
 type Tanda = keyof typeof PLAN;
@@ -158,7 +168,7 @@ export async function GET(request: Request) {
         // siga donde quedó, sin saltear piezas. El índice arranca del día
         // completo y se desplaza por lo que ya sacó la tanda anterior.
         const sinPlan: string[] = [];
-        const elegidas = Object.entries(carriles).flatMap(([carril, lista]) => {
+        const porCarril = Object.entries(carriles).map(([carril, lista]) => {
             if (!lista?.length) return [];
             if (porDiaDelCarril(carril) === 0) { sinPlan.push(carril); return []; }
             const pide = (PLAN[tanda] as Record<string, number>)[carril] ?? 0;
@@ -173,6 +183,12 @@ export async function GET(request: Request) {
                 ...lista[(base + desplazamiento + k) % lista.length],
             }));
         });
+        // Intercaladas entre carriles: la 1ª de cada uno, después la 2ª de
+        // cada uno… Así una cara de Agostina queda entre dos placas de texto.
+        const elegidas: Array<{ carril: string; id: string; tipo?: string; slides?: number }> = [];
+        for (let k = 0; porCarril.some(l => k < l.length); k++) {
+            for (const l of porCarril) if (k < l.length) elegidas.push(l[k]);
+        }
 
         if (sinPlan.length) {
             console.warn(`[cron social-story-diaria] Carriles sin línea en PLAN, no publican: ${sinPlan.join(', ')}`);
@@ -182,7 +198,14 @@ export async function GET(request: Request) {
             return NextResponse.json({ ok: false, tanda, sinPlan, motivo: 'No hay nada para publicar en esta tanda.' });
         }
 
-        const conUrl = elegidas.map(e => ({ ...e, url: `${origenPublico()}/social/${e.id}/01.jpg` }));
+        // Una pieza es 1 slide salvo que el carril diga `slides: n`; entonces
+        // son /social/<id>/01.jpg … 0n.jpg, publicadas seguidas y en orden.
+        const conUrl = elegidas.map(e => {
+            const n = Math.max(1, Math.floor(e.slides ?? 1));
+            const urls = Array.from({ length: n }, (_, i) =>
+                `${origenPublico()}/social/${e.id}/${String(i + 1).padStart(2, '0')}.jpg`);
+            return { ...e, slides: n, url: urls[0], urls };
+        });
 
         // `dryRun` sirve para probar la elección sin publicar: útil al dar de
         // alta el cron y para ver qué saldría mañana.
@@ -211,7 +234,7 @@ export async function GET(request: Request) {
         // En serie y no en paralelo: dos publicaciones simultáneas contra la
         // misma cuenta es la forma más rápida de que Meta empiece a limitar.
         const resultados: Array<{
-            carril: string; id: string; tipo?: string; url: string;
+            carril: string; id: string; tipo?: string; url: string; urls: string[]; slides: number;
             ok: boolean; storyId?: string; error?: string;
         }> = [];
         /** Piezas con precio vencido: se avisan juntas al final, no una por una. */
@@ -235,15 +258,25 @@ export async function GET(request: Request) {
                     continue;
                 }
             }
-            const r = await publicarStory(e.url, e.id);
-            resultados.push({ ...e, ...r });
-            if (r.ok) {
+            // Las slides de una pieza salen una tras otra. Si una falla, se
+            // corta ahí: media secuencia es mejor que una secuencia con hueco,
+            // y el error queda registrado para esa pieza.
+            const storyIds: string[] = [];
+            let error: string | undefined;
+            for (const url of e.urls) {
+                const r = await publicarStory(url, e.id);
+                if (!r.ok) { error = `${r.error} (${path.basename(url)})`; break; }
+                storyIds.push(r.storyId!);
+            }
+            const ok = !error && storyIds.length === e.urls.length;
+            resultados.push({ ...e, ok, storyId: storyIds.join(','), error });
+            if (storyIds.length) {
                 await registrarEnBitacora({
                     pieza: e.id,
                     tanda,
                     plataformas: ['Instagram (story)'],
-                    slides: 1,
-                    urls: { instagram: r.storyId },
+                    slides: storyIds.length,
+                    urls: { instagram: storyIds.join(',') },
                 });
             }
         }
