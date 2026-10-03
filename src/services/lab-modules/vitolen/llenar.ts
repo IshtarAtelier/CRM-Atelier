@@ -2,6 +2,7 @@ import type { Page } from 'playwright';
 import type { GraduacionOjo, PayloadVitolen } from './carga';
 import { BASE_VITOLEN } from './pedidos';
 import { NOMBRE_VITOLEN } from './portal';
+import { idDeBorradorDeUrl, numeroDeTrabajoDe } from './resumen';
 
 /**
  * EL ROBOT LLENA EL FORMULARIO "Pedido de Laboratorio" del portal de Vitolen
@@ -152,7 +153,7 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     if (payload.oi) await llenarOjo(page, pasos, 1, payload.oi, payload);
 
     if (payload.pedidoOrigen) {
-        pendientes.push(`promo del 2º par: asociar el pedido origen ${payload.pedidoOrigen} y la promoción HOYALUX a mano en el portal antes de confirmar (el robot todavía no lo hace)`);
+        pendientes.push(`promo del 2º par: antes de aprobar, abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen} con la promoción HOYALUX (el robot todavía no lo hace)`);
     }
 
     // Armazón
@@ -204,15 +205,18 @@ export interface ResumenDelPortal {
     url: string;
     texto: string;
     captura: Buffer;
+    /** Id del borrador que el portal creó (`/ventas/pedidos_laboratorio/<id>`); null si lo rechazó. */
+    portalDraftId: string | null;
     /** Lo que el portal objetó (líneas con el error y su campo); null si aceptó. */
     rechazo: string[] | null;
 }
 
 /**
- * Aprieta "Crear" y lee lo que el portal muestra después (el resumen del
- * video: receta, armazón, forma, trabajos), o el formulario con los errores
- * si lo rechazó. NO confirma. Devuelve siempre la captura: un rechazo también
- * se mira.
+ * Aprieta "Crear". Comprobado el 3/10/2026: el portal CREA un borrador con id
+ * propio ("Nro de Trabajo: Por Asignar", estado Confirmación, no figura en el
+ * listado) y muestra su resumen con Modificar / Cancelar / Confirmar. Si
+ * rechaza (un campo vacío), vuelve al formulario con los errores y no crea
+ * nada. NO confirma. Devuelve siempre la captura: un rechazo también se mira.
  */
 export async function crearYLeerResumen(page: Page): Promise<ResumenDelPortal> {
     const boton = page.locator('input[type=submit][value="Crear"], button:has-text("Crear")').first();
@@ -221,20 +225,57 @@ export async function crearYLeerResumen(page: Page): Promise<ResumenDelPortal> {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
     const texto = (await page.innerText('body').catch(() => '')) || '';
+    const portalDraftId = idDeBorradorDeUrl(page.url());
     const lineas = texto.split('\n').map(l => l.trim()).filter(Boolean);
-    const rechazo = lineas.filter(l => /no puede estar en blanco|es obligatorio|inv[aá]lid|no es v[aá]lid|debe ser|error/i.test(l)).slice(0, 12);
-    return { url: page.url(), texto, captura: await page.screenshot({ fullPage: true }), rechazo: rechazo.length ? rechazo : null };
+    const rechazo = portalDraftId ? [] : lineas.filter(l => /no puede estar en blanco|es obligatorio|inv[aá]lid|no es v[aá]lid|debe ser|error/i.test(l)).slice(0, 12);
+    return { url: page.url(), texto, captura: await page.screenshot({ fullPage: true }), portalDraftId, rechazo: rechazo.length ? rechazo : null };
 }
 
-/** Confirma el pedido ya revisado y devuelve el nº de trabajo que asignó el portal. */
-export async function confirmar(page: Page): Promise<{ portalNumber: string; url: string; captura: Buffer }> {
-    const boton = page.locator('input[type=submit][value="Confirmar"], button:has-text("Confirmar"), a:has-text("Confirmar")').first();
-    if (await boton.count() === 0) throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el botón "Confirmar".`);
+const urlBorrador = (portalDraftId: string) => `${BASE_VITOLEN}/ventas/pedidos_laboratorio/${portalDraftId}`;
+
+/** Abre el borrador y comprueba que siga sin confirmar ("Por Asignar"). */
+async function abrirBorrador(page: Page, portalDraftId: string): Promise<string> {
+    await page.goto(urlBorrador(portalDraftId), { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+    const texto = (await page.innerText('body').catch(() => '')) || '';
+    if (!/Pedido de Laboratorio/i.test(texto)) throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el borrador ${portalDraftId} (${page.url()}).`);
+    return texto;
+}
+
+/**
+ * Confirma el borrador ya aprobado por una persona (`PUT …/confirmar`) y
+ * devuelve el nº de trabajo que asignó el portal. Si el borrador ya tenía
+ * número, no vuelve a confirmar: lo devuelve.
+ */
+export async function confirmar(page: Page, portalDraftId: string): Promise<{ portalNumber: string; url: string; captura: Buffer; yaEstaba: boolean }> {
+    const antes = await abrirBorrador(page, portalDraftId);
+    const previo = numeroDeTrabajoDe(antes);
+    if (previo) return { portalNumber: previo, url: page.url(), captura: await page.screenshot({ fullPage: true }), yaEstaba: true };
+
+    const boton = page.locator('form[action$="/confirmar"] input[type=submit], form[action$="/confirmar"] button').first();
+    if (await boton.count() === 0) throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el botón "Confirmar".`);
     await boton.click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
     const texto = (await page.innerText('body').catch(() => '')) || '';
-    const m = texto.match(/Pedido de Laboratorio\s+(\d{5,}L?)/i);
-    if (!m) throw new Error(`El portal de ${NOMBRE_VITOLEN} no mostró el nº de trabajo después de confirmar (${page.url()}).`);
-    return { portalNumber: m[1], url: page.url(), captura: await page.screenshot({ fullPage: true }) };
+    const portalNumber = numeroDeTrabajoDe(texto);
+    if (!portalNumber) throw new Error(`El portal de ${NOMBRE_VITOLEN} no mostró el nº de trabajo después de confirmar el borrador ${portalDraftId} (${page.url()}).`);
+    return { portalNumber, url: page.url(), captura: await page.screenshot({ fullPage: true }), yaEstaba: false };
+}
+
+/**
+ * Cancela un borrador que una persona rechazó: el link "Cancelar" del portal
+ * (DELETE con diálogo de confirmación). Se niega si ya tiene nº de trabajo:
+ * un pedido confirmado se anula hablando con el laboratorio, no desde acá.
+ */
+export async function cancelarBorrador(page: Page, portalDraftId: string): Promise<{ url: string; captura: Buffer }> {
+    const texto = await abrirBorrador(page, portalDraftId);
+    if (numeroDeTrabajoDe(texto)) throw new Error(`El pedido ${portalDraftId} de ${NOMBRE_VITOLEN} ya está confirmado: no se cancela desde el sistema.`);
+    const link = page.locator('a[data-method="delete"]:has-text("Cancelar")').first();
+    if (await link.count() === 0) throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el link "Cancelar".`);
+    page.once('dialog', d => { d.accept().catch(() => null); });
+    await link.click();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2500);
+    return { url: page.url(), captura: await page.screenshot({ fullPage: true }) };
 }

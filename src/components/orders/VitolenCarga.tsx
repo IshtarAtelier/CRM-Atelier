@@ -18,7 +18,7 @@ import { formatDate } from '@/lib/format-date';
 
 interface Borrador {
     id: string; pair: number; status: string; payload: any; screenshotUrl: string | null;
-    resumenPortal: { pasos?: { campo: string; valor: string }[]; pendientes?: string[] } | null;
+    resumenPortal: { portalDraftId?: string; url?: string; pasos?: { campo: string; valor: string }[]; pendientes?: string[] } | null;
     screenshotFinalUrl: string | null; portalNumber: string | null; preparedBy: string | null;
     approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; createdAt: string;
 }
@@ -89,7 +89,7 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
                 body: JSON.stringify({ accion, motivo: motivo[id] || '' }),
             });
             const json = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(json.error || 'No se pudo guardar la decisión.'); return; }
+            if (!res.ok) { setError(json.error || 'No se pudo guardar la decisión.'); if (json.borradorId) await cargar(); return; }
             await cargar(); onChanged?.();
         } finally { setOcupado(null); }
     };
@@ -185,14 +185,14 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
 
                         {b && (
                             <div className="space-y-2">
-                                {b.status === 'PREPARADO' && <p className="text-[11px] text-stone-500">El robot está llenando el portal; en unos segundos deja la captura para revisar. Preparado por {b.preparedBy}.</p>}
-                                {b.status === 'APROBADO' && <p className="text-[11px] text-stone-500">Aprobado por {b.approvedBy}. Por ahora el pedido se confirma a mano en el portal (el robot todavía no aprieta &quot;Crear&quot;); el nº de pedido lo trae el seguimiento solo.</p>}
+                                {b.status === 'PREPARADO' && <p className="text-[11px] text-stone-500">El robot está cargando el pedido en el portal; en unos segundos deja el resumen para revisar. Preparado por {b.preparedBy}.</p>}
+                                {b.status === 'APROBADO' && <p className="text-[11px] text-stone-500">Aprobado por {b.approvedBy}. El robot está confirmando en el portal; al terminar escribe el nº de pedido en la venta.</p>}
                                 {b.status === 'EN_REVISION' && (
                                     <>
-                                        <p className="text-[11px] text-stone-600 dark:text-stone-300">Así quedó el formulario en el portal, <strong>antes de &quot;Crear&quot;</strong>. Revisá que coincida con la venta y aprobá o rechazá.</p>
+                                        <p className="text-[11px] text-stone-600 dark:text-stone-300">El pedido ya está en el portal como <strong>borrador sin confirmar</strong> (así lo muestra Vitolen). Revisá que coincida con la venta: <strong>Aprobar</strong> lo confirma y trae el nº de pedido; <strong>Rechazar</strong> lo cancela en el portal.{b.resumenPortal?.url ? <> Para corregir algo antes, <a href={b.resumenPortal.url} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> (Modificar).</> : null}</p>
                                         {b.screenshotUrl && (
                                             <a href={b.screenshotUrl} target="_blank" rel="noreferrer" className="block">
-                                                <img src={b.screenshotUrl} alt="Formulario del pedido llenado en el portal de Vitolen" className="w-full rounded-lg border border-stone-200" />
+                                                <img src={b.screenshotUrl} alt="Resumen del borrador del pedido en el portal de Vitolen" className="w-full rounded-lg border border-stone-200" />
                                             </a>
                                         )}
                                         {!!b.resumenPortal?.pendientes?.length && (

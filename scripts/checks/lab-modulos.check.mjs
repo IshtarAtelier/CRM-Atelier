@@ -20,6 +20,7 @@ import { transicionDeVenta, estadoConjunto, numeroProvisorio } from '../../src/s
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
 import { transicionValida, borradorVivo, puedeAprobar } from '../../src/services/lab-modules/carga/borrador.ts';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
+import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera } from '../../src/services/lab-modules/vitolen/resumen.ts';
 import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
@@ -492,6 +493,19 @@ ok('el pedido del portal se vincula a la venta por el código corto que el vende
     const fila = { id: '9', numero: '7000001L', fecha: '01/10/2026 10:00', nroCaso: '#s3ep', estado: 'Confirmación', despachoEstimado: '08/10/2026', pdfPedido: null, pdfFactura: null, codigoFactura: null };
     const venta = ventaDelPedido(normalizarPedido(fila), [{ id: 'cmupti2m00005bva8sqrls3ep', labOrderNumber: null, postSaleNumbers: [], clientName: 'Prueba' }]);
     assert.equal(venta?.id, 'cmupti2m00005bva8sqrls3ep');
+});
+
+console.log('\n— Vitolen: la pantalla del borrador del portal —');
+ok('"Crear" redirige al borrador con id propio; el formulario rechazado se queda sin id', () => {
+    assert.equal(idDeBorradorDeUrl('https://gestion.vitolen.com/ventas/pedidos_laboratorio/10441994'), '10441994');
+    assert.equal(idDeBorradorDeUrl('https://gestion.vitolen.com/ventas/pedidos_laboratorio/10441994/edit'), '10441994');
+    assert.equal(idDeBorradorDeUrl('https://gestion.vitolen.com/ventas/pedidos_laboratorio'), null);
+    assert.equal(idDeBorradorDeUrl('https://gestion.vitolen.com/ventas/pedidos_laboratorio/new'), null);
+});
+ok('el nº de trabajo aparece recién al confirmar ("Por Asignar" antes)', () => {
+    assert.equal(numeroDeTrabajoDe('Pedido de Laboratorio\nNro de Trabajo\tPor Asignar\tFecha\t03/10/2026 12:24'), null);
+    assert.equal(numeroDeTrabajoDe('Nro de Trabajo\t6981382L\tFecha\t18/10/2024 14:24'), '6981382L');
+    assert.equal(estadoDeCabecera('Cliente\t11302\nEstado\tConfirmación\nObservaciones\tx'), 'Confirmación');
 });
 
 console.log('\n— Vitolen: cuenta corriente —');

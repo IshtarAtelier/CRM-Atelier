@@ -181,7 +181,25 @@ devuelve JS e inyecta la sección siguiente:
 3. Elegir material (select2) → `POST /ventas/pedidos_laboratorio/seleccion_modelo`
    + `cargar_trabajos_disponibles` + `cargar_promos_especiales` → aparece el
    resto del formulario (graduación, promos, prismas, armazón, trabajos).
-4. `commit=Crear` (**el robot no lo manda hasta que una persona aprueba**).
+4. `commit=Crear` → `POST /ventas/pedidos_laboratorio`. **Comprobado el
+   3/10/2026 con un pedido de prueba**: si falta un campo obligatorio (p. ej.
+   "Armazón: Eje no puede estar en blanco"), vuelve al formulario con el error
+   y no crea nada; si está completo, **crea un borrador con id propio** y
+   redirige a `/ventas/pedidos_laboratorio/<id>`: cabecera "Nro de Trabajo:
+   Por Asignar", estado "Confirmación", y el resumen (receta con el código de
+   lista del cristal —"10070 - Array 2 1.60 Hilux MR-8 Clear"—, armazón,
+   forma, trabajos). El borrador **no figura en el listado de pedidos**.
+5. Desde el borrador: **Modificar** (`GET …/<id>/edit`), **Cancelar** (link
+   `data-method="delete"` a `…/<id>`, con diálogo "¿Está seguro que desea
+   cancelar su pedido?") y **Confirmar** (form `POST …/<id>/confirmar` con
+   `_method=put`). Al confirmar, el portal asigna el nº de trabajo. Cancelar
+   (comprobado el 3/10/2026 con el borrador de prueba) redirige a
+   `/ventas/pedidos` y el borrador pasa a responder 404.
+
+Flujo del robot (`vitolen/borrador-portal.ts`): llena + Crear → captura del
+resumen → EN_REVISION; una persona aprueba → Confirmar → nº de trabajo →
+CARGADO y a la venta; rechaza → Cancelar. Campos que el CRM no guarda y pone
+quien prepara: la forma (1‑12) y el **eje de la diagonal mayor** (0‑180).
 
 Campos (nombres exactos):
 
