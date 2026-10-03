@@ -177,6 +177,10 @@ const SECUENCIA = {
     [SOL]: ['frente', 'perfil', 'anteojo'],
     [CLIP]: ['sinclip', 'frente', 'perfil', 'anteojo'],
 };
+// La foto del anteojo en manos SE RENDERIZA pero NO SALE (Ishtar, 3/10/2026:
+// el fondo desenfocado se ve como "un cuerpo estirado fantasma"). El carril
+// cuenta solo las slides anteriores; el archivo queda por si se rediseña.
+const SLIDES_QUE_SALEN = (secuencia) => secuencia.filter(t => t !== 'anteojo').length;
 /** Milano solo tiene "sin clip" y perfil. */
 const SECUENCIA_CORTA = { [CLIP]: ['sinclip', 'perfil'], [RECETA]: ['frente', 'perfil'], [SOL]: ['frente', 'perfil'] };
 
@@ -396,7 +400,7 @@ if (!soloUno) {
     const porFamilia = { [RECETA]: [], [SOL]: [], [CLIP]: [] };
     for (const [slug, , , familia, numeros] of M) {
         const secuencia = (numeros.length === 2 ? SECUENCIA_CORTA : SECUENCIA)[familia];
-        porFamilia[familia].push({ id: `story-agos-${slug}`, tipo: familia, slides: secuencia.length });
+        porFamilia[familia].push({ id: `story-agos-${slug}`, tipo: familia, slides: SLIDES_QUE_SALEN(secuencia) });
     }
     const otras = [];
     for (let i = 0; porFamilia[SOL].length || porFamilia[CLIP].length; i++) {
