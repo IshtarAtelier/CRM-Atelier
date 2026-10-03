@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic';
 /**
  * Chequeo EN VIVO del nº de operación mientras se tipea: dice si ese número ya
  * está usado en otra venta o en un reproceso de postventa, antes de guardar.
- * El bloqueo de verdad vive en el servidor (order.service / smartlab-submit);
+ * El bloqueo de verdad vive en el servidor (order.service al cargar a mano;
+ * lab-modules/estados.ts cuando el nº lo trae un robot desde el portal);
  * esto es para que la vendedora se entere en el momento y no después.
  *
  * GET /api/orders/check-lab-number?numero=588049&orderId=<el que se edita>

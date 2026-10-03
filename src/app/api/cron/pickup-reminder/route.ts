@@ -3,8 +3,20 @@ import { prisma } from '@/lib/db';
 import { BotService } from '@/services/bot.service';
 import { REGISTRO_MODULOS } from '@/services/lab-modules/registro';
 import { retiroAutomaticoPermitido } from '@/services/lab-modules/retiro';
+import { avisarAlEquipo } from '@/lib/avisos/aviso-al-equipo';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * `Notification` no tiene un campo libre (solo `message`, `status`,
+ * `requestedBy` y `resolvedBy`), así que las dos marcas de proceso de este cron
+ * viven en el TEXTO del mensaje. Son constantes para que el "¿ya pasó?" se
+ * compare contra exactamente lo que se escribió; agregar un campo al modelo
+ * sería una migración por dos banderas, y las notificaciones viejas ya están
+ * escritas así.
+ */
+const MARCA_CLIENTE_NOTIFICADO = '🛍️ Cliente notificado (Listo para Retirar)';
+const MARCA_EQUIPO_AVISADO = ' · equipo avisado';
 
 export async function GET(request: Request) {
     try {
@@ -48,7 +60,7 @@ export async function GET(request: Request) {
 
         for (const notif of pendingNotifications) {
             const order = notif.order;
-            
+
             // Si el pedido fue eliminado, simplemente resolvemos la notificación
             if (!order || order.isDeleted) {
                 await prisma.notification.update({
@@ -63,10 +75,10 @@ export async function GET(request: Request) {
             if (order.labStatus !== 'FINISHED') {
                  // Si el cron ya lo pasó a READY ayer, dejamos la notificación PENDING en la campanita
                  // para que el vendedor lo pueda pasar a Entregado desde ahí, pero no volvemos a procesarlo.
-                 if (order.labStatus === 'READY' && notif.message.includes('Cliente notificado')) {
+                 if (order.labStatus === 'READY' && notif.message.includes(MARCA_CLIENTE_NOTIFICADO)) {
                      continue;
                  }
-                 
+
                  await prisma.notification.update({
                     where: { id: notif.id },
                     data: { status: 'RESOLVED', resolvedBy: 'Cron Pickup - Estado Inválido o Ya Procesado' }
@@ -108,7 +120,13 @@ export async function GET(request: Request) {
 
                 // Modificar la notificación en lugar de resolverla para que el vendedor
                 // sepa que el cliente ya fue avisado y lo pase a entregado cuando venga.
-                const updatedMessage = notif.message.replace('Pedido finalizado en laboratorio', '🛍️ Cliente notificado (Listo para Retirar)');
+                // El mensaje lo escriben dos lugares ("…en laboratorio" desde
+                // smartlab.service, "…en <lab>" desde lab-modules/estados): se
+                // reemplaza la cabecera entera y, si no tiene esa forma, se antepone,
+                // para que la marca quede SIEMPRE y el guard de arriba la encuentre.
+                const updatedMessage = /Pedido finalizado en .+? —/.test(notif.message)
+                    ? notif.message.replace(/🏭?\s*Pedido finalizado en .+? —/, `${MARCA_CLIENTE_NOTIFICADO} —`)
+                    : `${MARCA_CLIENTE_NOTIFICADO} — ${notif.message}`;
                 await prisma.notification.update({
                     where: { id: notif.id },
                     data: { message: updatedMessage }
@@ -119,7 +137,28 @@ export async function GET(request: Request) {
                 // No se persiste READY: la orden sigue FINISHED y la notificación
                 // PENDING, así el próximo cron vuelve a intentar el aviso.
                 console.error(`[Cron Pickup Reminder] No se pudo avisar al cliente de la orden ${order.id}; queda FINISHED para reintentar.`);
-                results.push({ orderId: order.id, status: 'Failed to send — queda pendiente para reintentar' });
+
+                // Y el equipo se entera UNA vez (no cada hora): un cliente sin
+                // teléfono ni mail, o con WhatsApp caído, no se arregla
+                // reintentando — alguien tiene que llamarlo. Hasta el 3/10/2026
+                // esto era solo un console.error que nadie leía.
+                let equipoAvisado = notif.message.includes(MARCA_EQUIPO_AVISADO);
+                if (!equipoAvisado) {
+                    const pedido = `#${order.id.slice(-4).toUpperCase()}`;
+                    const quien = order.client?.name?.trim() || 'el cliente';
+                    const llegaron = await avisarAlEquipo({
+                        asunto: `⚠️ No salió el aviso de retiro ${pedido}`,
+                        cuerpo: `El pedido ${pedido} de ${quien} está terminado en el laboratorio, pero el aviso automático de "listo para retirar" NO salió (cliente sin teléfono ni mail, o WhatsApp caído).\n\nHay que avisarle a mano que puede pasar a retirarlo y marcar la venta como "Listo p/ Retirar" en /admin/ventas?id=${order.id}.`,
+                    });
+                    if (llegaron > 0) {
+                        await prisma.notification.update({
+                            where: { id: notif.id },
+                            data: { message: notif.message + MARCA_EQUIPO_AVISADO },
+                        });
+                        equipoAvisado = true;
+                    }
+                }
+                results.push({ orderId: order.id, status: `Failed to send — queda pendiente para reintentar${equipoAvisado ? ' (equipo avisado)' : ''}` });
             }
         }
 
