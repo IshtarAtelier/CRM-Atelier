@@ -1,6 +1,7 @@
 import type { Page } from 'playwright';
 import { conNavegador, esperarLogin, CredencialRechazadaError, type OpcionesNavegador } from '../portal/navegador';
 import { BASE_VITOLEN, extraerHtmlDeRespuestaJs, leerPaginador, parsearListado, urlListado, type FilaListado, type PeriodoListado } from './pedidos';
+import { leerPaginadorCuenta, parsearCuentaCorriente, urlCuentaCorriente, type MovimientoCuenta } from './cuenta-corriente';
 
 /**
  * SESIÓN EN EL PORTAL DE VITOLEN (docs/vitolen-portal.md): abrir Chromium,
@@ -93,4 +94,34 @@ export async function leerListado(page: Page, periodo: PeriodoListado): Promise<
         for (const p of pag.paginas) if (!vistas.has(p)) pendientes.push(p);
     }
     return { filas, paginasLeidas: vistas.size, total };
+}
+
+export interface CuentaLeida {
+    movimientos: MovimientoCuenta[];
+    paginasLeidas: number;
+    total: number | null;
+}
+
+/**
+ * La cuenta corriente desde una fecha, todas las páginas (20 por página). Es
+ * una página HTML común: pedirla como text/javascript devuelve 406.
+ */
+export async function leerCuentaCorriente(page: Page, desde: Date): Promise<CuentaLeida> {
+    const movimientos: MovimientoCuenta[] = [];
+    const vistas = new Set<number>();
+    const pendientes = [1];
+    let total: number | null = null;
+    while (pendientes.length) {
+        const n = pendientes.shift()!;
+        if (vistas.has(n)) continue;
+        vistas.add(n);
+        const r = await pedirDesdeLaPagina(page, urlCuentaCorriente(desde, null, n), 'text/html');
+        if (r.status !== 200) throw new Error(`La cuenta corriente de ${NOMBRE_VITOLEN} respondió ${r.status} en la página ${n}.`);
+        if (!/id="movimientos"/.test(r.cuerpo)) throw new Error(`La cuenta corriente de ${NOMBRE_VITOLEN} (página ${n}) no trajo la tabla de movimientos.`);
+        movimientos.push(...parsearCuentaCorriente(r.cuerpo));
+        const pag = leerPaginadorCuenta(r.cuerpo);
+        if (pag.total !== null) total = pag.total;
+        for (const p of pag.paginas) if (!vistas.has(p)) pendientes.push(p);
+    }
+    return { movimientos, paginasLeidas: vistas.size, total };
 }

@@ -25,6 +25,7 @@ import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobra
 import { estadoDe } from '../../src/services/lab-modules/vitolen/estados.ts';
 import { materialDelPortal, disenoDelPortal, colorDe } from '../../src/services/lab-modules/vitolen/materiales.ts';
 import { DISENOS_PORTAL } from '../../src/services/lab-modules/vitolen/portal-materiales.ts';
+import { parsearCuentaCorriente, leerPaginadorCuenta, importeArgentino, facturasVigentes, urlCuentaCorriente, tipoDeComprobante } from '../../src/services/lab-modules/vitolen/cuenta-corriente.ts';
 import { extraerHtmlDeRespuestaJs, parsearListado, leerPaginador, fechaArgentina, normalizarPedido, periodoDeListado, urlListado } from '../../src/services/lab-modules/vitolen/pedidos.ts';
 import { labKeyDeNombre } from '../../src/services/lab-recon/types.ts';
 import { armarCatalogo } from '../maintenance/precios-vitolen/generar-catalogo-ts.mjs';
@@ -480,6 +481,54 @@ ok('el pedido del portal se vincula a la venta por el código corto que el vende
     const fila = { id: '9', numero: '7000001L', fecha: '01/10/2026 10:00', nroCaso: '#s3ep', estado: 'Confirmación', despachoEstimado: '08/10/2026', pdfPedido: null, pdfFactura: null, codigoFactura: null };
     const venta = ventaDelPedido(normalizarPedido(fila), [{ id: 'cmupti2m00005bva8sqrls3ep', labOrderNumber: null, postSaleNumbers: [], clientName: 'Prueba' }]);
     assert.equal(venta?.id, 'cmupti2m00005bva8sqrls3ep');
+});
+
+console.log('\n— Vitolen: cuenta corriente —');
+// Markup real del portal (3/10/2026), recortado: encabezado de cuenta, una
+// factura, su nota de crédito, un recibo sin link y el paginador suelto.
+const CUENTA_HTML = `<div id="page-movimientos-index"><table class="datatable mbn" id="movimientos">
+      <thead><tr><th>Fecha</th><th>Comprobante</th><th>Estado</th><th>Vencimiento</th><th>Cancela a</th><th class="right">Debe</th><th class="right">Haber</th><th class="right">Saldo</th></tr></thead>
+      <tbody>
+          <tr><td colspan="10" class="strong">11302 - ATELIER OPTICA- CORDOBA</td></tr>
+          <tr><td>19/08/2024</td><td><span title="Total: $195.294,00"><a class="silentprint" href="/ventas/comprobantes/8230155.pdf">FA 0067-01186779</a></span></td><td>Cancelado</td><td>30/08/2024</td><td></td><td class="right">$195.294,00</td><td class="right"></td><td class="right">$635.791,59</td></tr>
+          <tr><td>19/08/2024</td><td><span title="Total: $195.294,00"><a class="silentprint" href="/ventas/comprobantes/8230156.pdf">NCA 0067-00012681</a></span></td><td>Cancelado</td><td>30/08/2024</td><td><a class="silentprint" href="/ventas/comprobantes/8230155.pdf">FA 0067-01186779</a></td><td class="right"></td><td class="right">$195.294,00</td><td class="right">$440.497,59</td></tr>
+          <tr><td>30/07/2024</td><td><span title="Total: $159.359,90"><a class="silentprint" href="/ventas/comprobantes/8182860.pdf">FA 0067-01168210</a></span></td><td>Cancelado</td><td>09/08/2024</td><td></td><td class="right">$159.359,90</td><td class="right"></td><td class="right">$159.359,90</td></tr>
+          <tr><td>06/09/2024</td><td>REC 00890360</td><td>Cancelado</td><td>06/09/2024</td><td><a class="silentprint" href="/ventas/comprobantes/8182860.pdf">FA 0067-01168210</a></td><td class="right"></td><td class="right">$159.359,90</td><td class="right">$281.137,69</td></tr>
+      </tbody></table>
+  Mostrando registros <b>1&nbsp;-&nbsp;20</b> de <b>22</b> en total <span class="previous_page disabled">« Anterior</span> <em class="current">1</em> <a rel="next" href="/contabilidad/movimientos?commit=Buscar&amp;page=2&amp;q%5Bdesde%5D=01%2F01%2F2024">2</a> <a class="next_page" rel="next" href="/contabilidad/movimientos?commit=Buscar&amp;page=2">Siguiente »</a></div>`;
+ok('cada movimiento trae cuenta, fecha, comprobante con tipo, estado, cancela a, importes, total y PDF', () => {
+    const m = parsearCuentaCorriente(CUENTA_HTML);
+    assert.equal(m.length, 4);
+    assert.deepEqual({ ...m[0], fecha: m[0].fecha.toISOString(), vencimiento: m[0].vencimiento.toISOString() }, {
+        cuenta: '11302 - ATELIER OPTICA- CORDOBA', fecha: '2024-08-19T03:00:00.000Z', comprobante: 'FA 0067-01186779', tipo: 'FA', numero: '0067-01186779',
+        estado: 'Cancelado', vencimiento: '2024-08-30T03:00:00.000Z', cancelaA: null, debe: 195294, haber: null, saldo: 635791.59, total: 195294, pdf: '/ventas/comprobantes/8230155.pdf',
+    });
+    assert.equal(m[1].tipo, 'NCA');
+    assert.equal(m[1].cancelaA, 'FA 0067-01186779');
+    assert.equal(m[1].haber, 195294);
+    assert.equal(m[3].tipo, 'REC');
+    assert.equal(m[3].pdf, null);
+    assert.equal(m[3].total, null);
+    assert.equal(parsearCuentaCorriente('<html>sin tabla</html>').length, 0);
+});
+ok('importes argentinos: miles con punto, decimales con coma', () => {
+    assert.equal(importeArgentino('$159.359,90'), 159359.9);
+    assert.equal(importeArgentino('$5.183,64'), 5183.64);
+    assert.equal(importeArgentino('$0,00'), 0);
+    assert.equal(importeArgentino(''), null);
+    assert.equal(tipoDeComprobante('ND 0001-00000001'), 'OTRO');
+});
+ok('el paginador suelto de la cuenta corriente también se lee', () => {
+    assert.deepEqual(leerPaginadorCuenta(CUENTA_HTML), { desde: 1, hasta: 20, total: 22, paginas: [2] });
+});
+ok('una factura anulada entera por su nota de crédito no es costo; la cancelada por recibo sí', () => {
+    const vigentes = facturasVigentes(parsearCuentaCorriente(CUENTA_HTML));
+    assert.deepEqual(vigentes.map(f => f.comprobante), ['FA 0067-01168210']);
+});
+ok('la URL de la cuenta corriente pide "Todos" desde la fecha, en las dos cuentas', () => {
+    const u = urlCuentaCorriente(new Date(2024, 0, 1));
+    assert.ok(u.startsWith('/contabilidad/movimientos?utf8=%E2%9C%93&q%5Bcondicion_eq%5D=&q%5Bdesde%5D=01%2F01%2F2024&q%5Bhasta%5D=&q%5Bcuentas_ids%5D=12019%2C12020&q%5Bcuentas_ids_mode%5D=include&commit=Buscar'), u);
+    assert.ok(urlCuentaCorriente(new Date(2024, 0, 1), null, 2).endsWith('&page=2'));
 });
 
 console.log(fallas === 0 ? '\n✅ Marco de módulos de laboratorio: todo en orden.\n' : `\n❌ ${fallas} falla(s).\n`);

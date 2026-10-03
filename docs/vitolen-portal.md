@@ -142,9 +142,31 @@ pedido) y `Factura`. No hace falta abrirlo para el seguimiento.
 
 Filtros: `q[condicion_eq]` (vacío = Todos, `Pendientes`, `Vencidos`,
 `A Vencer`), `q[desde]` / `q[hasta]` (dd/mm/aaaa), `q[cuentas_ids]`
-(`12019,12020`) con `q[cuentas_ids_mode]=include`. Exporta `format=pdf` y
-`format=xlsx` con los mismos parámetros. Con el período por defecto (desde hoy)
-no hay movimientos; el histórico no se pidió todavía.
+(`12019,12020` = las cuentas 11302 y 11303) con `q[cuentas_ids_mode]=include`.
+Es una página HTML común (pedida como `text/javascript` da 406), paginada de
+a 20 con el paginador suelto ("Mostrando registros 1 - 20 de 22 en total",
+links `page=N`). Exporta `format=pdf` y `format=xlsx` con los mismos
+parámetros (no se usan). El módulo la lee con
+`portal.ts: leerCuentaCorriente` y la parsea `cuenta-corriente.ts`.
+
+Tabla `#movimientos`, con una fila `colspan` por cuenta y luego una por
+comprobante:
+
+| Columna | Ejemplo | Nota |
+|---|---|---|
+| Fecha | `30/07/2024` | |
+| Comprobante | `FA 0067-01168210` / `NCA 0067-00012681` / `REC 00890360` | FA y NCA linkean al PDF `/ventas/comprobantes/<id>.pdf` y traen `title="Total: $159.359,90"`; los recibos no tienen link |
+| Estado | `Cancelado` | (no se vieron otros; "Pendiente"/"Vencido" según el filtro) |
+| Vencimiento | `09/08/2024` | |
+| Cancela a | `FA 0067-01186779` | en NCA y REC: qué factura cancelan |
+| Debe / Haber / Saldo | `$159.359,90` | miles con punto, decimales con coma |
+
+Histórico 2024: 22 movimientos — 8 facturas, 2 notas de crédito que anulan
+enteras a dos facturas del 19 y 20/8 (ida y vuelta de $195.294) y recibos.
+**La cuenta corriente no dice a qué pedido pertenece cada factura**: ese
+vínculo está en el PDF de cada pedido (`facturacion_automatica.pdf?codigo=…`,
+~80 KB, `inline`) o en el PDF del comprobante (~74 KB). Hasta leer uno, el
+módulo no puede imputar importes a pedidos.
 
 ## Formulario de carga (`/ventas/pedidos_laboratorio/new`) — para la carga asistida
 

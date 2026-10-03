@@ -91,13 +91,17 @@ export function parsearListado(html: string): FilaListado[] {
     return filas;
 }
 
-/** "Mostrando registros 1 - 7 de 7 en total" y los links `page=N` del paginador. Puro. */
+/**
+ * "Mostrando registros 1 - 7 de 7 en total" y los links `page=N` del paginador.
+ * Si no hay `div.paginator` (la cuenta corriente lo pone suelto), se busca en
+ * toda la página. Puro.
+ */
 export function leerPaginador(html: string): Paginador {
-    const bloque = html.match(/<div class="paginator[^"]*"[^>]*>([\s\S]*?)<\/div>/);
-    const texto = bloque ? sinTags(bloque[1]) : '';
+    const bloque = html.match(/<div class="paginator[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? html;
+    const texto = sinTags(bloque);
     const m = texto.match(/registros\s+(\d+)\s*-\s*(\d+)\s+de\s+(\d+)/i);
     const paginas = new Set<number>();
-    if (bloque) for (const p of bloque[1].matchAll(/[?&;]page=(\d+)/g)) paginas.add(Number(p[1]));
+    for (const p of bloque.matchAll(/[?&;](?:amp;)?page=(\d+)/g)) paginas.add(Number(p[1]));
     return {
         desde: m ? Number(m[1]) : null,
         hasta: m ? Number(m[2]) : null,
