@@ -259,6 +259,17 @@ export function ProductClient({
   const { lista: listPrice, final: effectivePrice, enOferta: hasSale, descuentoPct: pctOff } =
     precioConOferta(product as any);
 
+  // La ficha abre ARRIBA, siempre. Ishtar (3/10/2026): entrando desde la
+  // grilla ya scrolleada, en el celular la ficha aparecía por el final. Next
+  // debería llevar al tope en cada navegación, pero en Safari con la grilla
+  // larga no siempre lo hace; esto no depende de él. No se toca si la URL
+  // trae un ancla (#cambios, etc.).
+  useEffect(() => {
+    if (!product?.id) return;
+    if (window.location.hash) return;
+    window.scrollTo(0, 0);
+  }, [product?.id]);
+
   // Analítica propia: vista de ficha de producto (una vez por producto cargado).
   useEffect(() => {
     if (!product?.id) return;
