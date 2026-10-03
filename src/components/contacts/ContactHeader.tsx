@@ -4,7 +4,7 @@ import React from 'react';
 import { 
     User, Heart, Pencil, Calculator, Star, X, 
     Phone, Mail, FileText, MapPin, Building2, Tag,
-    History, CheckCircle2, Receipt, Trash2, Cake, LifeBuoy
+    History, CheckCircle2, Receipt, Trash2, Cake, LifeBuoy, Coins
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { OrigenBanner } from './ContactOrigin';
@@ -23,6 +23,7 @@ interface ContactHeaderProps {
     onRevertStatus: () => void;
     onDeleteContact?: (id: string) => void;
     onRegisterVisit?: () => void;
+    onOpenCalculador?: () => void;
     onStopFollowUp?: () => void;
     onReactivateFollowUp?: () => void;
 }
@@ -40,6 +41,7 @@ export default function ContactHeader({
     onRevertStatus,
     onDeleteContact,
     onRegisterVisit,
+    onOpenCalculador,
     onStopFollowUp,
     onReactivateFollowUp
 }: ContactHeaderProps) {
@@ -117,6 +119,16 @@ export default function ContactHeader({
                                         title="Registrar Visita al Local"
                                     >
                                         <MapPin className="w-5 h-5" />
+                                    </button>
+                                )}
+
+                                {onOpenCalculador && (
+                                    <button
+                                        onClick={onOpenCalculador}
+                                        className="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest shadow hover:scale-105 active:scale-95 transition-all"
+                                        title="Simular cómo paga y cuánto le queda (no registra nada)"
+                                    >
+                                        <Coins className="w-4 h-4" /> Calculador de pagos
                                     </button>
                                 )}
 

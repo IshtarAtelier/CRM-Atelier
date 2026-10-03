@@ -34,7 +34,6 @@ import QuoteSummary from '@/components/quotes/QuoteSummary';
 import FrameRecapReadOnly from '@/components/orders/FrameRecapReadOnly';
 import {
     isCrystal,
-    getCategoryKey,
     safePrice,
     recalculateCrystalPrices,
     applyTeñidoPromoDiscount,
@@ -45,45 +44,13 @@ import { calculateQuoteTotals, PricingService } from '@/services/PricingService'
 // 31/8 noche). La redacción única vive en promo-cuotas.ts: acá nunca se
 // escribe el texto a mano. Los labels de MÉTODO DE PAGO tipo "MP 12c Ish
 // (+10%)" son otra cosa: documentan un cobro y conservan su recargo.
-import {
-    Glasses,
-    Sun,
-    Eye,
-    Activity,
-    Box,
-    Watch,
-    Droplets,
-    Gem,
-    FlaskConical
-} from 'lucide-react';
 import type { Product } from '@/types/orders';
 import { precioConOferta } from '@/lib/precio-oferta';
 import { normalizeLensOrigin } from '@/lib/lens-origin';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import TablaCotizador from './TablaCotizador';
-
-// Recibe la CLAVE ya resuelta (p.ej. 'Cristal', 'Tratamiento') — no la vuelve a
-// derivar. `getTypeConfig(cat)` reinvocaba getCategoryKey tratando la clave como
-// si fuera un `type` crudo; funcionaba de casualidad para claves que también
-// matchean por substring de tipo (Cristal, Armazón, Sol...) pero rompía para
-// 'Tratamiento', que solo se detecta por `category`, no por texto de `type`.
-// Un solo tratamiento visual para todos los chips de categoría (antes cada
-// una tenía su propio color pastel, sin sistema). El color ahora lo da SOLO
-// el estado (activo/inactivo), acá solo queda el ícono + etiqueta.
-const getTypeConfigByKey = (key: string) => {
-    switch (key) {
-        case 'Armazón': return { icon: Glasses, label: 'Armazones' };
-        case 'Cristal': return { icon: Eye, label: 'Cristales' };
-        case 'Lente de sol': return { icon: Sun, label: 'Sol' };
-        case 'Lente de contacto': return { icon: Activity, label: 'Contactología' };
-        case 'Accesorio': return { icon: Box, label: 'Accesorios' };
-        case 'Reloj': return { icon: Watch, label: 'Relojería' };
-        case 'Líquido / Solución': return { icon: Droplets, label: 'Líquidos' };
-        case 'Joyería': return { icon: Gem, label: 'Joyería' };
-        case 'Tratamiento': return { icon: FlaskConical, label: 'Tratamientos' };
-        default: return { icon: Box, label: 'Otros' };
-    }
-};
+import FiltrosDeCategoria, { CATEGORIA_TODAS, coincideCategoria, etiquetaCategoria } from '@/components/inventory/FiltrosDeCategoria';
+import { PRODUCT_CATEGORIES } from '@/lib/constants';
 
 // Chips de la barra de filtros. Estaban con la clase copiada cuatro veces, y con
 // `border-sidebar-border` — un tono que NO existe: sin color declarado el borde cae a
@@ -392,9 +359,12 @@ function CotizadorPageContent() {
     }, [quoteItems, tintStylePrices, editingIsSale]);
 
     // Filter logic
-    const availableCategories = useMemo(() => {
-        const types = new Set(products.map(p => getCategoryKey(p.type, p.category)));
-        return Array.from(types).sort() as string[];
+    const contadoresPorCategoria = useMemo(() => {
+        const c: Record<string, number> = { [CATEGORIA_TODAS]: products.length };
+        for (const p of products) {
+            for (const cat of PRODUCT_CATEGORIES) if (coincideCategoria(p, cat.id)) c[cat.id] = (c[cat.id] || 0) + 1;
+        }
+        return c;
     }, [products]);
 
     const baseFilteredForBrandsAndLabs = useMemo(() => {
@@ -404,7 +374,7 @@ function CotizadorPageContent() {
             
             if (activeType === 'NONE') return true;
             if (activeType) {
-                if (getCategoryKey(p.type, p.category) !== activeType) return false;
+                if (!coincideCategoria(p, activeType)) return false;
             }
             
             if (activeType === 'Cristal' && selectedSubtype) {
@@ -542,7 +512,7 @@ function CotizadorPageContent() {
             
             if (activeType === 'NONE') return matchesSearch && matchesWeb;
             if (activeType) {
-                if (getCategoryKey(p.type, p.category) !== activeType) return false;
+                if (!coincideCategoria(p, activeType)) return false;
             }
 
             if (activeType === 'Cristal' && selectedSubtype) {
@@ -968,7 +938,7 @@ function CotizadorPageContent() {
                     <p className="text-[10px] font-semibold text-foreground/55 uppercase tracking-wider mt-0.5 truncate">
                         {loading ? 'Cargando catálogo…' : `${filtered.length.toLocaleString('es-AR')} producto${filtered.length === 1 ? '' : 's'}`}
                         {selectedLab && ` · Laboratorio ${selectedLab}`}
-                        {!selectedLab && activeType && ` · ${getTypeConfigByKey(activeType).label}`}
+                        {!selectedLab && activeType && ` · ${etiquetaCategoria(activeType)}`}
                     </p>
                 </div>
                 {/* Claro u oscuro es del que mira, no de la pantalla: el cotizador
@@ -1086,42 +1056,6 @@ function CotizadorPageContent() {
                     )}
 
                     <div className="flex-1 flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {/* Chips de categoría: un solo tratamiento visual — neutro en
-                            reposo, dorado/oscuro el activo, contador en badge aparte. */}
-                        <button
-                            onClick={() => setActiveType(null)}
-                            aria-pressed={activeType === null}
-                            className={`${chipBase} pl-3 pr-2 ${activeType === null ? chipActivo : chipInactivo}`}
-                        >
-                            Todos
-                            <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${activeType === null ? 'bg-black/15' : 'bg-sidebar/[0.06]'}`}>{products.length}</span>
-                        </button>
-                        <button
-                            onClick={() => setOnlyWeb(!onlyWeb)}
-                            aria-pressed={onlyWeb}
-                            className={`${chipBase} px-3 ${onlyWeb ? chipActivo : chipInactivo}`}
-                        >
-                            Web
-                        </button>
-                        {availableCategories.map(cat => {
-                            const config = getTypeConfigByKey(cat);
-                            const count = products.filter(p => getCategoryKey(p.type, p.category) === cat).length;
-                            const Icon = config.icon;
-                            const active = activeType === cat;
-                            return (
-                                <button
-                                    key={cat}
-                                    onClick={() => setActiveType(cat)}
-                                    aria-pressed={active}
-                                    className={`${chipBase} pl-2.5 pr-2 ${active ? chipActivo : chipInactivo}`}
-                                >
-                                    <Icon className="w-3 h-3" />
-                                    {config.label}
-                                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${active ? 'bg-black/15' : 'bg-sidebar/[0.06]'}`}>{count}</span>
-                                </button>
-                            );
-                        })}
-
                         {/* Filtros secundarios: colapsados en un popover propio. */}
                         {hasSecondaryFilters && (
                             <div className="relative ml-1" ref={moreFiltersRef}>
@@ -1239,6 +1173,17 @@ function CotizadorPageContent() {
                         )}
                     </div>
                 </div>
+
+                {/* Las mismas píldoras que Stock (componente compartido), en su
+                    propia fila debajo de la barra, como en Stock. */}
+                <FiltrosDeCategoria
+                    className="-mb-2"
+                    seleccionada={activeType || CATEGORIA_TODAS}
+                    onSeleccionar={(id) => setActiveType(id === CATEGORIA_TODAS ? null : id)}
+                    soloWeb={onlyWeb}
+                    onSoloWeb={setOnlyWeb}
+                    contadores={contadoresPorCategoria}
+                />
 
                 {/* Tags de filtros activos: removibles con un click, sin abrir el popover */}
                 {activeFilterTags.length > 0 && (
