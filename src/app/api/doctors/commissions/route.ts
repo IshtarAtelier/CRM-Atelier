@@ -87,7 +87,7 @@ export async function GET(request: Request) {
                 orderTotal: order.subtotalWithMarkup || order.total || 0,
                 paidTotal: orderPaidTotal,
                 platformFee: orderPlatformFee,
-                specialDiscount: specialDesc,
+                specialDiscount: order.specialDiscount || 0,
                 netAmount,
                 commission,
                 date: order.createdAt,
