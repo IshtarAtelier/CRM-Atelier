@@ -74,6 +74,11 @@ export interface LabModule {
     /** Reconoce el `Product.laboratory` de sus cristales (igual que LAB_ITEM_PATTERNS). */
     patronProducto: RegExp;
     capacidades: { seguimiento: boolean; costos: boolean; carga: boolean };
+    /**
+     * Mínimo de minutos entre dos pases rápidos. El tick llama cada 10 min; un
+     * portal con pocos pedidos no necesita 70 logins por día. Sin valor = cada tick.
+     */
+    cadenciaRapidaMin?: number;
     seguirPedidos(opts?: OpcionesCorrida): Promise<ResultadoSeguimiento>;
     recolectarCostos(opts?: OpcionesCorrida): Promise<Record<string, unknown>>;
 }

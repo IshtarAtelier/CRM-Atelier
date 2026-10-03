@@ -70,6 +70,7 @@ export const MODULO_VITOLEN: LabModule = {
     nombre: NOMBRE_VITOLEN,
     patronProducto: PATRON_VITOLEN,
     capacidades: { seguimiento: true, costos: false, carga: false },
+    cadenciaRapidaMin: 30,
     seguirPedidos,
     recolectarCostos: async () => ({ skipped: true, reason: 'los costos de Vitolen llegan en la etapa 4 (docs/lab-modulos.md)' }),
 };

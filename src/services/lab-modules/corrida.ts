@@ -7,7 +7,7 @@ import type { LabModule, OpcionesCorrida, ResultadoSeguimiento } from './contrat
 import { claveDeModulo } from './contrato';
 import { conTurno } from './portal/turno';
 import { CredencialRechazadaError } from './portal/navegador';
-import { formatearCorte, marcarAlertado, registrarExito, registrarFalla } from './portal/salud';
+import { estadoDeSalud, formatearCorte, marcarAlertado, registrarExito, registrarFalla } from './portal/salud';
 
 /**
  * UNA CORRIDA DE SEGUIMIENTO de un módulo, con todo lo que la rodea: el turno
@@ -48,12 +48,24 @@ async function avisarUnaVezPorDia(lab: string, clave: string, firma: string, env
 
 const linkVenta = (orderId: string) => `${appUrl()}/admin/ventas?id=${orderId}`;
 
+/** ¿Ya pasó la cadencia del módulo desde la última corrida buena? Sin cadencia o sin corrida previa, siempre. Puro. */
+export function tocaPaseRapido(ultimaOkAt: Date | null, cadenciaMin: number | undefined, ahora: Date): boolean {
+    if (!cadenciaMin || !ultimaOkAt) return true;
+    return ahora.getTime() - ultimaOkAt.getTime() >= cadenciaMin * 60_000;
+}
+
 export async function correrSeguimiento(modulo: LabModule, opts: OpcionesCorrida = {}): Promise<ResultadoCorrida> {
     const avisos: string[] = [];
     const lab = modulo.clave;
     if (!modulo.capacidades.seguimiento) return { lab, ok: true, skipped: true, reason: 'el módulo no hace seguimiento', avisos };
 
     const pasada = opts.sinceDays ? 'rapida' : 'completa';
+    if (pasada === 'rapida') {
+        const salud = await estadoDeSalud(lab);
+        if (!tocaPaseRapido(salud.ultimaOkAt, modulo.cadenciaRapidaMin, new Date())) {
+            return { lab, ok: true, skipped: true, reason: `pase rápido cada ${modulo.cadenciaRapidaMin} min; la última corrida buena fue hace menos`, avisos };
+        }
+    }
     let resultado: ResultadoSeguimiento | { skipped: true; reason: string };
     try {
         resultado = await conTurno(lab, pasada, () => modulo.seguirPedidos(opts), { esperar: opts.esperarTurno });

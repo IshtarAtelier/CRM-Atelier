@@ -26,7 +26,7 @@ El robot nunca confirma un pedido que nadie miró.
 - `espejo.ts` — `LabPortalOrder` y la vinculación pedido ↔ venta: por nº de pedido, por el código corto de la venta (`#A1B2`) o por nombre del cliente, **solo si la llave da una única venta**.
 - `estados.ts` — la única función que mueve una venta desde un portal. Nunca baja un estado, nunca toca READY/DELIVERED (los pone una persona), no afirma nada sobre un estado que no entendió.
 - `carga/borrador.ts` — `LabOrderDraft`: PREPARADO → EN_REVISION → APROBADO → CARGADO (o RECHAZADO / ERROR). Aprueba solo una persona identificada.
-- `corrida.ts` — una corrida de seguimiento con turno, salud y avisos. Los avisos van a `PRIVATE_ADMIN_EMAILS`, una vez por día y por conjunto.
+- `corrida.ts` — una corrida de seguimiento con turno, salud y avisos. Los avisos van a `PRIVATE_ADMIN_EMAILS`, una vez por día y por conjunto. Un módulo puede declarar `cadenciaRapidaMin` (Vitolen: 30): el tick sigue siendo cada 10 min, pero el pase rápido se saltea mientras la última corrida buena sea más reciente que eso — un portal con pocos pedidos no necesita 70 logins por día.
 
 Toda escritura del robot queda en el historial del cliente y en el AuditLog
 con el nombre `Robot <laboratorio>`.

@@ -19,6 +19,7 @@ import { decidirAlertaDeCaida, debeAvisarRecuperacion, UMBRAL_CAIDA_MS, REPETIR_
 import { transicionDeVenta, estadoConjunto, numeroProvisorio } from '../../src/services/lab-modules/estados.ts';
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
 import { transicionValida, borradorVivo, puedeAprobar } from '../../src/services/lab-modules/carga/borrador.ts';
+import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
@@ -398,6 +399,14 @@ ok('cobrado de más solo por encima del 5 % de tolerancia', () => {
     assert.equal(segundoParCobradoDeMas(137000, 131406), false);
     assert.equal(segundoParCobradoDeMas(140000, 131406), true);
     assert.equal(segundoParCobradoDeMas(545710, 131406), true);
+});
+
+console.log('\n— Cadencia del pase rápido —');
+ok('sin cadencia o sin corrida previa corre siempre; con cadencia, recién pasado el plazo', () => {
+    assert.equal(tocaPaseRapido(null, 30, ahora), true);
+    assert.equal(tocaPaseRapido(hace(5 * 60000), undefined, ahora), true);
+    assert.equal(tocaPaseRapido(hace(5 * 60000), 30, ahora), false);
+    assert.equal(tocaPaseRapido(hace(30 * 60000), 30, ahora), true);
 });
 
 console.log('\n— Vitolen: estados del portal —');
