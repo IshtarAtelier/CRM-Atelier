@@ -11,7 +11,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { PricingService } from '@/services/PricingService';
-import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
+import { esVentaDeOrden } from '@/lib/order-type';
 
 const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
 
@@ -22,21 +22,20 @@ const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
  * @param clientName  nombre del cliente, como se lo saluda.
  */
 export function buildQuoteMessage(order: any, clientName: string): string {
-    const esVenta = order?.orderType === 'SALE' || order?.orderType === 'MAYORISTA';
+    const esVenta = esVentaDeOrden(order);
     const f = PricingService.calculateOrderFinancials(order);
 
     // Una línea por producto distinto: dos cristales del mismo modelo (OD y OI)
     // son UNA línea, como siempre se le mostró al cliente.
-    const agrupados: Record<string, { brand: string; name: string; origin: string }> = {};
+    const agrupados: Record<string, { brand: string; name: string }> = {};
     for (const it of order?.items || []) {
         const brand = it.product?.brand || it.productBrandSnapshot || '';
         const name = it.product?.name || it.productNameSnapshot || 'Producto';
-        const origin = lensOriginSuffix(lensOriginFromItem(it));
         const key = `${brand}|${name}`;
-        if (!agrupados[key]) agrupados[key] = { brand, name, origin };
+        if (!agrupados[key]) agrupados[key] = { brand, name };
     }
     const itemLines = Object.values(agrupados)
-        .map(g => `• ${g.brand ? g.brand + ' · ' : ''}${g.name}${g.origin}`)
+        .map(g => `• ${g.brand ? g.brand + ' · ' : ''}${g.name}`)
         .join('\n');
 
     const lineas: string[] = [
@@ -63,23 +62,25 @@ export function buildQuoteMessage(order: any, clientName: string): string {
     lineas.push(`💳 *Tarjeta (Lista): ${money(f.totalCard)}*`);
     lineas.push(`   ↳ 3 cuotas sin interés: ${money(f.installment3)} c/u`);
     lineas.push(`   ↳ 6 cuotas sin interés: ${money(f.installment6)} c/u`);
-    // Las 12 cuotas fijas se ofrecen SOLO al cotizar: un pedido que ya tiene
-    // pagos está en etapa de saldo y no se le ofrece financiación larga (regla
-    // de Ishtar, 27/8/26). El importe ya trae el recargo adentro; la leyenda
-    // del % no se escribe (decisión de Ishtar, 31/8 noche).
-    if (f.paidReal <= 0) {
+    // Un PRESUPUESTO es una cotización y no mira pagos: las 12 cuotas van
+    // siempre (Ishtar, 29/9/26). En una VENTA que ya tiene pagos no se ofrece
+    // financiación larga (27/8/26). El importe ya trae el recargo adentro; la
+    // leyenda del % no se escribe (31/8 noche).
+    if (!esVenta || f.paidReal <= 0) {
         lineas.push(`   ↳ 12 cuotas fijas: ${money(f.installment12)} c/u`);
     }
 
-    // Si ya hay pagos hechos, el saldo va en el mismo mensaje: sin esto el
-    // cliente ve el total y cree que debe todo.
-    if (f.hasBalance && (order?.paid || 0) > 0) {
+    // En una venta con pagos hechos, el saldo va en el mismo mensaje: sin esto
+    // el cliente ve el total y cree que debe todo.
+    // `paidReal` y no `order.paid`: hay ventas con filas de Payment y paid=0,
+    // y el PDF ya usa paidReal — las dos piezas tienen que decir lo mismo.
+    if (esVenta && f.hasBalance && f.paidReal > 0) {
         lineas.push(``);
-        lineas.push(`Ya abonaste: ${money(order.paid)}`);
+        lineas.push(`Ya abonaste: ${money(f.paidReal)}`);
         lineas.push(`Saldo en efectivo: ${money(f.remainingCash)}`);
         lineas.push(`Saldo por transferencia: ${money(f.remainingTransfer)}`);
         lineas.push(`Saldo con tarjeta/lista: ${money(f.remainingCard)}`);
-    } else if (!f.hasBalance && (order?.paid || 0) > 0) {
+    } else if (esVenta && !f.hasBalance && f.paidReal > 0) {
         lineas.push(``);
         lineas.push(`Estado: totalmente abonado ✅`);
     }
