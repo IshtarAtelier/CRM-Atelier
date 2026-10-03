@@ -169,6 +169,7 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][largo]', 'Largo (A)', medida(payload.armazon.largo));
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][altura]', 'Altura (B)', medida(payload.armazon.alto));
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][diagonal_mayor]', 'Diagonal mayor (ED)', medida(payload.armazon.diagonalMayor));
+    await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][eje]', 'Eje de la diagonal', entero(payload.armazon.ejeDiagonal));
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][puente]', 'Puente (DBL)', medida(payload.armazon.puente));
     const tipo = TIPO_ARMAZON.find(([re]) => re.test(payload.armazon.tipo || ''));
     if (tipo) await marcarRadio(page, pasos, 'pedido[armazones_attributes][0][tipo_armazon_id]', tipo[1], 'Tipo de armazón', tipo[2]);
@@ -199,13 +200,19 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     return { url: page.url(), pasos, pendientes, captura };
 }
 
-export interface ResumenDelPortal { url: string; texto: string; captura: Buffer }
+export interface ResumenDelPortal {
+    url: string;
+    texto: string;
+    captura: Buffer;
+    /** Lo que el portal objetó (líneas con el error y su campo); null si aceptó. */
+    rechazo: string[] | null;
+}
 
 /**
  * Aprieta "Crear" y lee lo que el portal muestra después (el resumen del
- * video: receta, armazón, forma, trabajos). NO confirma. Pendiente de
- * comprobar con Vitolen si "Crear" ya deja un registro o solo muestra el
- * resumen (docs/vitolen-portal.md).
+ * video: receta, armazón, forma, trabajos), o el formulario con los errores
+ * si lo rechazó. NO confirma. Devuelve siempre la captura: un rechazo también
+ * se mira.
  */
 export async function crearYLeerResumen(page: Page): Promise<ResumenDelPortal> {
     const boton = page.locator('input[type=submit][value="Crear"], button:has-text("Crear")').first();
@@ -214,9 +221,9 @@ export async function crearYLeerResumen(page: Page): Promise<ResumenDelPortal> {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
     const texto = (await page.innerText('body').catch(() => '')) || '';
-    const errores = texto.match(/(?:error|no puede|obligatorio|inv[aá]lido)[^\n]{0,120}/gi);
-    if (errores?.length) throw new Error(`El portal de ${NOMBRE_VITOLEN} rechazó el pedido: ${errores.join(' · ')}`);
-    return { url: page.url(), texto, captura: await page.screenshot({ fullPage: true }) };
+    const lineas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+    const rechazo = lineas.filter(l => /no puede estar en blanco|es obligatorio|inv[aá]lid|no es v[aá]lid|debe ser|error/i.test(l)).slice(0, 12);
+    return { url: page.url(), texto, captura: await page.screenshot({ fullPage: true }), rechazo: rechazo.length ? rechazo : null };
 }
 
 /** Confirma el pedido ya revisado y devuelve el nº de trabajo que asignó el portal. */

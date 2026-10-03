@@ -51,6 +51,8 @@ export interface PayloadVitolen {
         largo: number | null;      // A
         alto: number | null;       // B
         diagonalMayor: number | null; // ED
+        /** Ángulo de la diagonal mayor (0 a 180). El portal lo exige y el CRM no lo guarda: lo pone quien prepara. */
+        ejeDiagonal: number | null;
         puente: number | null;     // DBL
         tipo: string | null;       // Metálico, Acetato…
         caracteristicas: string;   // marca, modelo, color
@@ -148,7 +150,7 @@ export function codigoDeCristal(cristal: CristalVitolen, variante: string | null
  */
 export function armarFormulario(
     venta: VentaParaCarga,
-    opts: { pair?: number; variante?: string | null; pedidoOrigen?: string | null; forma?: string | null } = {},
+    opts: { pair?: number; variante?: string | null; pedidoOrigen?: string | null; forma?: string | null; ejeDiagonal?: number | null } = {},
 ): ResultadoArmado {
     const faltantes: string[] = [];
     const avisos: string[] = [];
@@ -211,6 +213,9 @@ export function armarFormulario(
     }
     const forma = opts.forma ?? null;
     if (!forma) faltantes.push('forma del armazón en el portal (Forma 1 a 12): se elige al preparar');
+    // El portal rechaza el pedido sin este ángulo ("Armazón: Eje no puede estar en blanco", visto el 3/10/2026).
+    const ejeDiagonal = num(opts.ejeDiagonal);
+    if (ejeDiagonal === null || ejeDiagonal < 0 || ejeDiagonal > 180) faltantes.push('eje de la diagonal mayor del armazón (0 a 180): se carga al preparar');
 
     const caracteristicas = [venta.userFrameBrand, venta.userFrameModel, frame?.details || venta.labFrameDetails].filter(Boolean).join(' ').trim();
 
@@ -228,7 +233,7 @@ export function armarFormulario(
         distanciaVertice: VERTICE_POR_DEFECTO,
         anguloPantoscopico: PANTOSCOPICO_POR_DEFECTO,
         armazon: {
-            forma, largo, alto, diagonalMayor: diagonal, puente,
+            forma, largo, alto, diagonalMayor: diagonal, ejeDiagonal, puente,
             tipo: venta.labFrameType || null,
             caracteristicas,
             funcionalidad: 'Receta',

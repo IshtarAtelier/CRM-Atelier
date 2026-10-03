@@ -241,7 +241,7 @@ const ventaBase = () => ({
     ],
 });
 ok('una venta completa arma el pedido igual al ejemplo del video de Vitolen', () => {
-    const r = armarFormulario(ventaBase(), { forma: 'Forma 7' });
+    const r = armarFormulario(ventaBase(), { forma: 'Forma 7', ejeDiagonal: 15 });
     assert.deepEqual(r.faltantes, []);
     assert.equal(r.ok, true);
     const p = r.payload;
@@ -254,7 +254,7 @@ ok('una venta completa arma el pedido igual al ejemplo del video de Vitolen', ()
     assert.deepEqual(p.od.portalMaterial, { id: '1644', texto: 'Array 2 1.60 Hilux MR-8 Clear' });
     assert.deepEqual(p.oi.portalMaterial, p.od.portalMaterial);
     assert.deepEqual([p.oi.esferico, p.oi.cilindrico, p.oi.eje, p.oi.adicion, p.oi.dnp, p.oi.altura], [1.25, 0.5, 70, 2.25, 31, 28]);
-    assert.deepEqual([p.armazon.largo, p.armazon.alto, p.armazon.diagonalMayor, p.armazon.puente, p.armazon.forma], [52, 40, 56, 18, 'Forma 7']);
+    assert.deepEqual([p.armazon.largo, p.armazon.alto, p.armazon.diagonalMayor, p.armazon.puente, p.armazon.forma, p.armazon.ejeDiagonal], [52, 40, 56, 18, 'Forma 7', 15]);
     assert.equal(p.armazon.caracteristicas, 'Vulk Roma color rojo');
     assert.equal(p.montajes.calibrado, true);
     assert.equal(p.tratamientos.antirreflejo, true);
@@ -265,7 +265,7 @@ ok('la receta cae a la ficha cuando el ítem no la tiene; la DNP a la mitad de l
     const v = ventaBase();
     v.items[0].sphereVal = null; v.items[0].pdVal = null; v.items[1].pdVal = null;
     v.prescription.distanceOD = null; v.prescription.distanceOI = null; v.prescription.pd = 63;
-    const r = armarFormulario(v, { forma: 'Forma 1' });
+    const r = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
     assert.equal(r.ok, true);
     assert.equal(r.payload.od.esferico, 1.25);
     assert.equal(r.payload.od.dnp, 31.5);
@@ -277,12 +277,14 @@ ok('lo que falta se dice, y no se prepara: forma, DNP, adición y variante', () 
     const r = armarFormulario(v);
     assert.equal(r.ok, false);
     assert.ok(r.faltantes.some(f => /forma del armazón/.test(f)));
+    assert.ok(r.faltantes.some(f => /eje de la diagonal/.test(f)));
+    assert.ok(armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 200 }).faltantes.some(f => /eje de la diagonal/.test(f)));
     assert.ok(r.faltantes.some(f => /DNP OD/.test(f)));
     assert.ok(r.faltantes.some(f => /adición OD/.test(f)));
     const l = ventaBase();
     l.items[0].productNameSnapshot = l.items[1].productNameSnapshot = 'HOYA LIFESTYLE 4 - 1.50 CLEAR';
-    assert.ok(armarFormulario(l, { forma: 'Forma 2' }).faltantes.some(f => /variante/.test(f)));
-    const indoor = armarFormulario(l, { forma: 'Forma 2', variante: 'Indoor' });
+    assert.ok(armarFormulario(l, { forma: 'Forma 2', ejeDiagonal: 0 }).faltantes.some(f => /variante/.test(f)));
+    const indoor = armarFormulario(l, { forma: 'Forma 2', variante: 'Indoor', ejeDiagonal: 0 });
     assert.equal(indoor.payload.od.codigo, '11050');
     assert.deepEqual(indoor.payload.od.portalMaterial, { id: '2260', texto: 'IDLS4 INDOOR 1.50 Hilux Clear' });
 });
@@ -290,7 +292,7 @@ ok('un cristal cuyo diseño no está relevado en el portal no se prepara: se dic
     const v = ventaBase();
     v.items[0].productNameSnapshot = v.items[1].productNameSnapshot = 'HOYA NULUX IDENTITY V+ - 1.60 CLEAR';
     v.items[0].productTypeSnapshot = v.items[1].productTypeSnapshot = 'Cristal Monofocal';
-    const r = armarFormulario(v, { forma: 'Forma 1' });
+    const r = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
     assert.equal(r.ok, false);
     assert.ok(r.faltantes.some(f => /material OD en el portal: .*no está relevado/.test(f)), r.faltantes.join(' | '));
 });
@@ -366,7 +368,7 @@ ok('si el portal ofreciera dos opciones iguales, no se elige ninguna', () => {
 ok('sin cristales de Vitolen para ese par, no arma nada', () => {
     const v = ventaBase();
     v.items.forEach(i => { i.laboratorySnapshot = 'OPTOVISION'; });
-    const r = armarFormulario(v, { forma: 'Forma 1' });
+    const r = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
     assert.equal(r.ok, false);
     assert.equal(r.payload, null);
 });
@@ -374,7 +376,7 @@ ok('el segundo par lleva el pedido origen del primero', () => {
     const v = ventaBase();
     v.items.forEach(i => { i.framePosition = 2; });
     v.frames = [{ position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
-    const r = armarFormulario(v, { pair: 2, forma: 'Forma 3', pedidoOrigen: '5001234' });
+    const r = armarFormulario(v, { pair: 2, forma: 'Forma 3', ejeDiagonal: 20, pedidoOrigen: '5001234' });
     assert.equal(r.ok, true);
     assert.equal(r.payload.pedidoOrigen, '5001234');
     assert.equal(r.payload.armazon.largo, 50);

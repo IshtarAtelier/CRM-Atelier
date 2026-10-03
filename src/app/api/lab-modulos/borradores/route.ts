@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  *
  *  GET  /api/lab-modulos/borradores?orderId=…  → borradores de la venta + lo que
  *       el portal muestra de ella (espejo) + qué necesita cada par para armarse.
- *  POST /api/lab-modulos/borradores { orderId, pair, variante?, forma?, pedidoOrigen? }
+ *  POST /api/lab-modulos/borradores { orderId, pair, variante?, forma?, ejeDiagonal?, pedidoOrigen? }
  *       → arma el pedido desde la venta; si falta un dato, lo dice y no crea nada;
  *       si está completo, crea el borrador PREPARADO. El robot lo llena en el
  *       portal y lo deja EN_REVISION; una persona lo aprueba (PATCH en [id]).
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
         .filter(i => /vitolen/i.test(i.laboratorySnapshot || '') && /cristal/i.test(i.productCategorySnapshot || ''))
         .map(i => i.framePosition ?? 1))].sort();
     const analisis = pares.map(pair => {
-        const r = armarFormulario(venta, { pair, forma: 'Forma 1' });
+        const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0 });
         const cristal = cristalVitolenPorNombre(venta.items.find(i => (i.framePosition ?? 1) === pair && /vitolen/i.test(i.laboratorySnapshot || ''))?.productNameSnapshot);
         return {
             pair,
@@ -68,8 +68,12 @@ export async function POST(request: Request) {
         const venta = await leerVentaParaCarga(orderId);
         if (!venta) return NextResponse.json({ error: 'Venta no encontrada.' }, { status: 404 });
 
+        const ejeDiagonal = body.ejeDiagonal === undefined || body.ejeDiagonal === null || body.ejeDiagonal === '' ? null : Number(body.ejeDiagonal);
+        if (ejeDiagonal !== null && !(Number.isFinite(ejeDiagonal) && ejeDiagonal >= 0 && ejeDiagonal <= 180)) {
+            return NextResponse.json({ error: 'El eje de la diagonal mayor va de 0 a 180.' }, { status: 400 });
+        }
         const r = armarFormulario(venta, {
-            pair, forma,
+            pair, forma, ejeDiagonal,
             variante: body.variante ? String(body.variante) : null,
             pedidoOrigen: body.pedidoOrigen ? String(body.pedidoOrigen) : null,
         });

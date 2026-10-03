@@ -43,6 +43,7 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
     const [error, setError] = useState('');
     const [ocupado, setOcupado] = useState<string | null>(null);
     const [forma, setForma] = useState<Record<number, string>>({});
+    const [ejeDiagonal, setEjeDiagonal] = useState<Record<number, string>>({});
     const [variante, setVariante] = useState<Record<number, string>>({});
     const [motivo, setMotivo] = useState<Record<string, string>>({});
 
@@ -68,7 +69,7 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
             const primero = datos?.borradores.find(b => b.pair === 1 && b.status === 'CARGADO')?.portalNumber || null;
             const res = await fetch('/api/lab-modulos/borradores', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, pair, forma: forma[pair] || null, variante: variante[pair] || null, pedidoOrigen: pair === 2 ? primero : null }),
+                body: JSON.stringify({ orderId, pair, forma: forma[pair] || null, ejeDiagonal: ejeDiagonal[pair] ?? null, variante: variante[pair] || null, pedidoOrigen: pair === 2 ? primero : null }),
             });
             const json = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -170,7 +171,10 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
                                             {datos.formas.map(f => <option key={f} value={f}>{f}</option>)}
                                         </select>
                                     </label>
-                                    <button type="button" disabled={ocupado !== null || !forma[par.pair] || (par.variantes.length > 1 && !variante[par.pair])}
+                                    <label className="text-[10px] text-stone-500" title="Ángulo de la diagonal mayor del aro, como lo pide el portal (botón “¿Cómo tomar las medidas?”)">Eje de la diagonal (0‑180)
+                                        <input type="number" min={0} max={180} step={1} value={ejeDiagonal[par.pair] ?? ''} onChange={e => setEjeDiagonal(v => ({ ...v, [par.pair]: e.target.value }))} placeholder="0" className="block mt-0.5 w-20 text-[11px] rounded border border-stone-300 bg-white dark:bg-stone-900 px-2 py-1" />
+                                    </label>
+                                    <button type="button" disabled={ocupado !== null || !forma[par.pair] || ejeDiagonal[par.pair] === undefined || ejeDiagonal[par.pair] === '' || (par.variantes.length > 1 && !variante[par.pair])}
                                         onClick={() => preparar(par.pair)}
                                         className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-red-600 text-white disabled:opacity-40">
                                         {ocupado === `preparar-${par.pair}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bot className="w-3 h-3" />} Preparar en Vitolen
@@ -233,7 +237,7 @@ function ResumenPayload({ payload }: { payload: any }) {
             <dt className="text-stone-400">Diseño</dt><dd>{payload.tipoReceta} · {payload.diseno}{payload.variante ? ` ${payload.variante}` : ''}</dd>
             <dt className="text-stone-400">OD</dt><dd>{ojo(payload.od)}</dd>
             <dt className="text-stone-400">OI</dt><dd>{ojo(payload.oi)}</dd>
-            <dt className="text-stone-400">Armazón</dt><dd>{payload.armazon?.forma} · A {payload.armazon?.largo} B {payload.armazon?.alto} DBL {payload.armazon?.puente} ED {payload.armazon?.diagonalMayor ?? '—'} · {payload.armazon?.caracteristicas}</dd>
+            <dt className="text-stone-400">Armazón</dt><dd>{payload.armazon?.forma} · A {payload.armazon?.largo} B {payload.armazon?.alto} DBL {payload.armazon?.puente} ED {payload.armazon?.diagonalMayor ?? '—'} eje {payload.armazon?.ejeDiagonal ?? '—'}° · {payload.armazon?.caracteristicas}</dd>
             <dt className="text-stone-400">Trabajos</dt><dd>{payload.tratamientos?.antirreflejo ? 'AR' : 'sin AR'} · {payload.montajes?.calibrado ? 'calibrado' : 'sin calibrar'}{payload.pedidoOrigen ? ` · 2º par de ${payload.pedidoOrigen}` : ''}</dd>
         </dl>
     );
