@@ -15,12 +15,26 @@ export function idDeBorradorDeUrl(url: string): string | null {
  * de confirmar dice "Por Asignar": null.
  */
 export function numeroDeTrabajoDe(texto: string): string | null {
-    const m = String(texto || '').match(/Nro de Trabajo\s+(\d{5,}L?)\b/i);
+    const m = String(texto || '').match(/Nro de Trabajo\s*:?\s*(\d{5,}L?)\b/i);
     return m ? m[1] : null;
 }
 
 /** El estado de la cabecera del borrador/pedido ("Estado Confirmación"). */
 export function estadoDeCabecera(texto: string): string | null {
-    const m = String(texto || '').match(/\bEstado\s+([^\n\t]+?)(?:\t|\n|$)/);
+    const m = String(texto || '').match(/\bEstado\s*:?\s*([^\n\t]+?)(?:\t|\n|$)/);
     return m ? m[1].trim() : null;
+}
+
+/**
+ * Lo que de verdad se aprueba del resumen: desde "Receta" hasta el pie,
+ * sin la cabecera (fecha, nº "Por Asignar") ni el menú, con espacios
+ * normalizados. Si al confirmar esto cambió, alguien tocó el pedido con
+ * "Modificar" y la aprobación ya no vale. Puro.
+ */
+export function resumenComparable(texto: string): string {
+    const t = String(texto || '').replace(/\r/g, '');
+    const desde = t.search(/\bReceta\b/);
+    const hasta = t.search(/©\s*\d{4}\s*Vitolen|Confirmar\s*$/);
+    const recorte = t.slice(desde >= 0 ? desde : 0, hasta > desde ? hasta : undefined);
+    return recorte.replace(/\s+/g, ' ').trim();
 }

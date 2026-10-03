@@ -32,7 +32,12 @@ export interface MovimientoCuenta {
     pdf: string | null;         // "/ventas/comprobantes/8182860.pdf"
 }
 
-const fechaDdMmYyyy = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+/** dd/mm/aaaa en hora de Argentina (el contenedor corre en UTC: a la noche el día local cambia antes). */
+const fechaDdMmYyyy = (d: Date) => {
+    const p = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(d);
+    const v = (t: string) => p.find(x => x.type === t)?.value ?? '';
+    return `${v('day')}/${v('month')}/${v('year')}`;
+};
 
 /** URL (relativa) de la cuenta corriente con "Todos" desde una fecha, tal como la arma el formulario. Puro. */
 export function urlCuentaCorriente(desde: Date, hasta: Date | null = null, pagina = 1): string {

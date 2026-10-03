@@ -5,6 +5,8 @@ import { clasificarHuerfanos } from './alerts';
 import { detectarDobleCobro } from './dos-por-uno';
 import { esFacturaSinNumero, estaResuelta } from '../../lib/lab-factura';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
+import { REGISTRO_MODULOS } from '../lab-modules/registro';
+import { leerHallazgos } from '../lab-modules/corrida';
 
 /**
  * REPORTES y LIBRO DE AUDITORÍA de la conciliación: la foto del estado del
@@ -414,6 +416,10 @@ export async function weeklyReport(from: Date, to: Date) {
         sinNombrePortal, resueltosSemana,
         salud: { fuentes, corridasSemana, ultimaCorrida },
         cuentaCorriente,
+        // Lo último que vio cada módulo de laboratorio (src/services/lab-modules):
+        // ventas enviadas sin pedido en su portal y pedidos atrasados. Van acá
+        // y no en un mail propio (de laboratorio salen dos mails y nada más).
+        modulos: await Promise.all(REGISTRO_MODULOS.map(async m => ({ lab: m.clave, nombre: m.nombre, hallazgos: await leerHallazgos(m.clave) }))),
     };
 }
 

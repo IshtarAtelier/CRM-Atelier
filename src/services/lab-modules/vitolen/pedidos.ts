@@ -134,7 +134,8 @@ export function normalizarPedido(fila: FilaListado): PedidoEnPortal {
         estimatedAt: fechaArgentina(fila.despachoEstimado),
         finishedAt: null,
         dispatchedAt: null,
-        invoices: [],
+        // Sin `invoices`: el seguimiento no sabe de comprobantes y no debe pisar
+        // lo que la etapa de costos escriba en el espejo.
         raw: {
             id: fila.id,
             pdfPedido: fila.pdfPedido ? `${BASE_VITOLEN}${fila.pdfPedido}` : null,

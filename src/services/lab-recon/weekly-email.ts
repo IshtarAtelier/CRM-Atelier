@@ -339,6 +339,19 @@ export function armarEmailSemanal(rep: any, appUrl: string): { subject: string; 
             <li>La conciliación corrió <strong>${salud.corridasSemana}</strong> veces esta semana${salud.ultimaCorrida ? ` (última ${fmtFecha(salud.ultimaCorrida.runAt)}${salud.ultimaCorrida.staleSources?.length ? `, con fuentes caídas: ${salud.ultimaCorrida.staleSources.join(', ')}` : ''})` : ''}.</li>
         </ul>`;
 
+    // ── 9 · PORTALES CON MÓDULO (Vitolen): lo que el robot vio en su última pasada ──
+    const modulos: any[] = rep.modulos || [];
+    const bloqueModulos = modulos.map((m: any) => {
+        const h = m.hallazgos;
+        if (!h) return `<li style="color:${GRIS}">${m.nombre}: el robot todavía no corrió.</li>`;
+        const sinPedido = (h.sinPedidoEnPortal || []).map((v: any) => `<li>Venta enviada sin pedido en el portal: <a href="${appUrl}/admin/ventas?id=${v.orderId}">${v.cliente}</a> — hace ${v.enviadaHace} día(s). O no se cargó, o se cargó sin el código de la venta.</li>`).join('');
+        const atrasados = (h.atrasados || []).map((p: any) => `<li>Pedido ${p.portalNumber}${p.cliente ? ` — ${p.cliente}` : ''}: prometido para ${fmtFecha(p.estimatedAt)}, ${p.diasDeAtraso} día(s) de atraso.</li>`).join('');
+        return `<li><strong>${m.nombre}</strong> (última pasada ${fmtFecha(h.en)}): ${sinPedido || atrasados ? `<ul style="margin:2px 0 6px">${sinPedido}${atrasados}</ul>` : 'nada para reclamar.'}</li>`;
+    }).join('');
+    const bloquePortales = modulos.length ? `
+        <h3 style="margin:26px 0 4px;font-size:15px;color:#111">9 · Portales con robot</h3>
+        <ul style="margin:4px 0;font-size:13px;line-height:1.6">${bloqueModulos}</ul>` : '';
+
     const html = `
         <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;color:#1f2937">
             <h2 style="color:#b45309;margin-bottom:2px">Laboratorios — semana ${rango}</h2>
@@ -357,6 +370,7 @@ export function armarEmailSemanal(rep: any, appUrl: string): { subject: string; 
             ${bloqueSinNombre}
             ${bloqueResueltos}
             ${bloqueSalud}
+            ${bloquePortales}
             <p style="margin-top:16px;font-size:12px;color:${GRIS}">${ACLARACION_LINKS}</p>
             <p style="margin-top:8px;font-size:13px"><a href="${pantalla}">Ver la conciliación completa en el CRM</a></p>
             <p style="font-size:11px;color:#9ca3af;border-top:1px solid #f3f4f6;padding-top:12px;margin-top:16px">Atelier Óptica — reporte semanal de laboratorios. Sale los viernes a las 9:30.</p>

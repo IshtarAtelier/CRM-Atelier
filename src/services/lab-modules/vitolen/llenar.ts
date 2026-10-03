@@ -2,7 +2,7 @@ import type { Page } from 'playwright';
 import type { GraduacionOjo, PayloadVitolen } from './carga';
 import { BASE_VITOLEN } from './pedidos';
 import { NOMBRE_VITOLEN } from './portal';
-import { idDeBorradorDeUrl, numeroDeTrabajoDe } from './resumen';
+import { idDeBorradorDeUrl, numeroDeTrabajoDe, resumenComparable } from './resumen';
 
 /**
  * EL ROBOT LLENA EL FORMULARIO "Pedido de Laboratorio" del portal de Vitolen
@@ -132,9 +132,9 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
         const deshabilitado = await page.$eval(sel, s => (s as HTMLSelectElement).disabled).catch(() => true);
         if (deshabilitado) {
             // Con "Ambos Ojos" el portal copia el OD al OI: solo vale si son iguales.
+            // Si no, se corta: nada que cambie el producto sigue como "pendiente".
             if (idx === 1 && payload.od?.portalMaterial?.id === ojo.portalMaterial.id) continue;
-            pendientes.push(`el portal no dejó elegir el material del ${idx === 0 ? 'OD' : 'OI'} (${ojo.portalMaterial.texto}): revisar en el resumen`);
-            continue;
+            throw new Error(`El portal de ${NOMBRE_VITOLEN} no deja elegir el material del ${idx === 0 ? 'OD' : 'OI'} (${ojo.portalMaterial.texto}): se carga a mano.`);
         }
         const texto = await page.$eval(sel, (s, id) => Array.from((s as HTMLSelectElement).options).find(o => o.value === id)?.textContent?.trim() ?? null, ojo.portalMaterial.id);
         if (texto !== ojo.portalMaterial.texto) {
@@ -180,19 +180,21 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
 
     // Trabajos: por etiqueta, porque el orden lo decide el material.
     // (Rails pone un input hidden con el mismo nombre delante de cada checkbox.)
+    // Lo que cambia el producto (antirreflejo, calibrado) se marca o se corta;
+    // nunca queda como "pendiente" que alguien puede no leer.
     const ar = await checkboxPorEtiqueta(page, /recomendado|hi-?vision|antirreflejo/);
     if (ar) {
         await page.setChecked(`input[type=checkbox][name="${ar}"]`, payload.tratamientos.antirreflejo);
         pasos.push({ campo: 'Antirreflejo', valor: payload.tratamientos.antirreflejo ? 'sí (el recomendado del portal)' : 'no' });
-    } else {
-        pendientes.push('antirreflejo: no se encontró el casillero, verificar en el resumen');
+    } else if (payload.tratamientos.antirreflejo) {
+        throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el casillero del antirreflejo para este material: se carga a mano.`);
     }
     const calibrado = await checkboxPorEtiqueta(page, /^calibrado$/);
     if (calibrado) {
         await page.setChecked(`input[type=checkbox][name="${calibrado}"]`, payload.montajes.calibrado);
         pasos.push({ campo: 'Calibrado', valor: payload.montajes.calibrado ? 'sí' : 'no' });
-    } else {
-        pendientes.push('calibrado: no se encontró el casillero, verificar en el resumen');
+    } else if (payload.montajes.calibrado) {
+        throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el casillero "Calibrado": se carga a mano.`);
     }
 
     await llenarCampo(page, pasos, 'pedido[observaciones]', 'Observaciones', payload.observaciones);
@@ -242,15 +244,34 @@ async function abrirBorrador(page: Page, portalDraftId: string): Promise<string>
     return texto;
 }
 
+/** El borrador del portal ya no muestra lo que la persona aprobó (alguien usó "Modificar"). */
+export class ResumenCambiadoError extends Error {
+    readonly texto: string;
+    readonly captura: Buffer;
+    readonly url: string;
+    constructor(texto: string, captura: Buffer, url: string) {
+        super(`El pedido en el portal de ${NOMBRE_VITOLEN} cambió después de la aprobación: hay que revisarlo de nuevo.`);
+        this.name = 'ResumenCambiadoError';
+        this.texto = texto;
+        this.captura = captura;
+        this.url = url;
+    }
+}
+
 /**
  * Confirma el borrador ya aprobado por una persona (`PUT …/confirmar`) y
  * devuelve el nº de trabajo que asignó el portal. Si el borrador ya tenía
- * número, no vuelve a confirmar: lo devuelve.
+ * número (una confirmación anterior que no se alcanzó a leer), no vuelve a
+ * confirmar: lo devuelve. Si `resumenAprobado` viene, se compara con lo que
+ * el portal muestra HOY y, si difiere, no se confirma (ResumenCambiadoError).
  */
-export async function confirmar(page: Page, portalDraftId: string): Promise<{ portalNumber: string; url: string; captura: Buffer; yaEstaba: boolean }> {
+export async function confirmar(page: Page, portalDraftId: string, resumenAprobado?: string | null): Promise<{ portalNumber: string; url: string; captura: Buffer; yaEstaba: boolean }> {
     const antes = await abrirBorrador(page, portalDraftId);
     const previo = numeroDeTrabajoDe(antes);
     if (previo) return { portalNumber: previo, url: page.url(), captura: await page.screenshot({ fullPage: true }), yaEstaba: true };
+    if (resumenAprobado && resumenComparable(antes) !== resumenComparable(resumenAprobado)) {
+        throw new ResumenCambiadoError(antes, await page.screenshot({ fullPage: true }), page.url());
+    }
 
     const boton = page.locator('form[action$="/confirmar"] input[type=submit], form[action$="/confirmar"] button').first();
     if (await boton.count() === 0) throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el botón "Confirmar".`);
@@ -277,5 +298,13 @@ export async function cancelarBorrador(page: Page, portalDraftId: string): Promi
     await link.click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
-    return { url: page.url(), captura: await page.screenshot({ fullPage: true }) };
+    const captura = await page.screenshot({ fullPage: true });
+    // No se da por cancelado hasta verlo: el borrador tiene que haber dejado de existir.
+    const res = await page.goto(urlBorrador(portalDraftId), { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1000);
+    const despues = (await page.innerText('body').catch(() => '')) || '';
+    if (res?.status() !== 404 && /Pedido de Laboratorio/i.test(despues) && /Por Asignar/i.test(despues)) {
+        throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} sigue en el portal después de "Cancelar".`);
+    }
+    return { url: page.url(), captura };
 }

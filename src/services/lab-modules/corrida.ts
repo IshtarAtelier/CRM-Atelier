@@ -2,7 +2,6 @@ import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
 import { PRIVATE_ADMIN_EMAILS } from '../../lib/constants';
 import { emailsEnabled } from '../lab-recon/backfill';
-import { appUrl } from '../lab-recon/types';
 import type { LabModule, OpcionesCorrida, ResultadoSeguimiento } from './contrato';
 import { claveDeModulo } from './contrato';
 import { conTurno } from './portal/turno';
@@ -17,10 +16,10 @@ import { estadoDeSalud, formatearCorte, marcarAlertado, registrarExito, registra
  * Avisos (solo en producción, o con FORCE_LAB_ALERTS=1):
  *  · caída del módulo: a las 12 h, repetido cada 12 h; credencial rechazada
  *    en el acto (portal/salud.ts);
- *  · restablecido: solo si el corte se había alertado;
- *  · ventas enviadas sin pedido en el portal y pedidos atrasados: UNA vez por
- *    día y por conjunto (misma regla que el aviso de fuentes caídas del cron
- *    diario: cinco mails iguales terminan en la papelera).
+ *  · restablecido: solo si el corte se había alertado.
+ * Son los mismos avisos de salud que ya tiene SmartLab. Las ventas sin pedido
+ * en el portal y los pedidos atrasados NO mandan mail: van al reporte semanal
+ * (CLAUDE.md: de laboratorio salen dos mails y nada más).
  * Todo va a PRIVATE_ADMIN_EMAILS: es operación de laboratorio, no del local.
  */
 export interface ResultadoCorrida {
@@ -32,21 +31,6 @@ export interface ResultadoCorrida {
     seguimiento?: ResultadoSeguimiento;
     avisos: string[];
 }
-
-const hoyArg = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-
-async function avisarUnaVezPorDia(lab: string, clave: string, firma: string, enviar: () => Promise<{ success?: boolean } | void>): Promise<boolean> {
-    const key = claveDeModulo(lab, clave);
-    const valor = `${hoyArg()}:${firma}`;
-    const previo = await prisma.systemSetting.findUnique({ where: { key } }).catch(() => null);
-    if (previo?.value === valor) return false;
-    const r = await enviar();
-    if (r && r.success === false) return false;
-    await prisma.systemSetting.upsert({ where: { key }, update: { value: valor }, create: { key, value: valor } }).catch(() => null);
-    return true;
-}
-
-const linkVenta = (orderId: string) => `${appUrl()}/admin/ventas?id=${orderId}`;
 
 /** ¿Ya pasó la cadencia del módulo desde la última corrida buena? Sin cadencia o sin corrida previa, siempre. Puro. */
 export function tocaPaseRapido(ultimaOkAt: Date | null, cadenciaMin: number | undefined, ahora: Date): boolean {
@@ -107,24 +91,58 @@ export async function correrSeguimiento(modulo: LabModule, opts: OpcionesCorrida
         avisos.push('restablecido');
     }
 
-    if (emailsEnabled() && (seguimiento.sinPedidoEnPortal.length || seguimiento.atrasados.length)) {
-        const firma = [
-            ...seguimiento.sinPedidoEnPortal.map(v => `s:${v.orderId}`),
-            ...seguimiento.atrasados.map(p => `a:${p.portalNumber}`),
-        ].sort().join(',');
-        const enviado = await avisarUnaVezPorDia(lab, 'avisoDiario', firma, () => sendEmail({
-            to: PRIVATE_ADMIN_EMAILS,
-            subject: `🏭 ${modulo.nombre}: ${seguimiento.sinPedidoEnPortal.length} venta(s) sin pedido en el portal, ${seguimiento.atrasados.length} atrasado(s)`,
-            html: `<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
-                ${seguimiento.sinPedidoEnPortal.length ? `<h3 style="color:#d97706">Ventas enviadas al laboratorio que NO aparecen en el portal</h3>
-                <p>Están marcadas como enviadas en el CRM, pero ${modulo.nombre} no tiene un pedido con su número ni con su código. O no se cargaron, o se cargaron sin identificar la venta.</p>
-                <ul style="line-height:1.7">${seguimiento.sinPedidoEnPortal.map(v => `<li><a href="${linkVenta(v.orderId)}">${v.cliente}</a> — enviada hace ${v.enviadaHace} día(s)</li>`).join('')}</ul>` : ''}
-                ${seguimiento.atrasados.length ? `<h3 style="color:#d32f2f">Pedidos con la fecha del laboratorio vencida</h3>
-                <ul style="line-height:1.7">${seguimiento.atrasados.map(p => `<li>Pedido ${p.portalNumber}${p.cliente ? ` — ${p.cliente}` : ''}: prometido para ${p.estimatedAt.toLocaleDateString('es-AR')}, ${p.diasDeAtraso} día(s) de atraso</li>`).join('')}</ul>` : ''}
-                <p style="color:#888;font-size:12px">Este aviso sale una vez por día mientras la lista no cambie.</p></div>`,
-        }));
-        if (enviado) avisos.push('aviso-diario');
-    }
+    // Las ventas sin pedido en el portal y los pedidos atrasados NO mandan un
+    // mail propio (CLAUDE.md: de laboratorio salen DOS mails y nada más). Se
+    // guardan por módulo y el reporte semanal los muestra (weekly-email.ts).
+    await guardarHallazgos(lab, {
+        en: new Date().toISOString(),
+        sinPedidoEnPortal: seguimiento.sinPedidoEnPortal,
+        atrasados: seguimiento.atrasados.map(p => ({ ...p, estimatedAt: p.estimatedAt.toISOString() })),
+    });
+    if (pasada === 'completa') await marcarPasadaCompleta(lab);
 
     return { lab, ok: true, seguimiento, avisos };
+}
+
+export interface HallazgosDeModulo {
+    en: string;
+    sinPedidoEnPortal: { orderId: string; cliente: string; enviadaHace: number }[];
+    atrasados: { portalNumber: string; cliente: string | null; estimatedAt: string; diasDeAtraso: number }[];
+}
+
+async function guardarHallazgos(lab: string, h: HallazgosDeModulo) {
+    const key = claveDeModulo(lab, 'hallazgos');
+    const value = JSON.stringify(h);
+    await prisma.systemSetting.upsert({ where: { key }, update: { value }, create: { key, value } }).catch(err => console.error('[lab-modulos] hallazgos:', err));
+}
+
+/** Lo último que cada módulo vio (para el reporte semanal). */
+export async function leerHallazgos(lab: string): Promise<HallazgosDeModulo | null> {
+    const fila = await prisma.systemSetting.findUnique({ where: { key: claveDeModulo(lab, 'hallazgos') } }).catch(() => null);
+    if (!fila?.value) return null;
+    try { return JSON.parse(fila.value) as HallazgosDeModulo; } catch { return null; }
+}
+
+/**
+ * La pasada COMPLETA (todo el historial) la decide el propio cron: si la última
+ * completa buena tiene más de HORAS_ENTRE_COMPLETAS, el tick corre completa en
+ * vez de rápida. Así un pedido que salió de la ventana del pase rápido no se
+ * congela en el espejo. Puro.
+ */
+export const HORAS_ENTRE_COMPLETAS = 20;
+export function tocaPasadaCompleta(ultimaCompleta: Date | null, ahora: Date, horas = HORAS_ENTRE_COMPLETAS): boolean {
+    if (!ultimaCompleta) return true;
+    return ahora.getTime() - ultimaCompleta.getTime() >= horas * 3600_000;
+}
+
+async function marcarPasadaCompleta(lab: string) {
+    const key = claveDeModulo(lab, 'ultimaCompleta');
+    const value = new Date().toISOString();
+    await prisma.systemSetting.upsert({ where: { key }, update: { value }, create: { key, value } }).catch(err => console.error('[lab-modulos] ultimaCompleta:', err));
+}
+
+export async function ultimaPasadaCompleta(lab: string): Promise<Date | null> {
+    const fila = await prisma.systemSetting.findUnique({ where: { key: claveDeModulo(lab, 'ultimaCompleta') } }).catch(() => null);
+    const d = fila?.value ? new Date(fila.value) : null;
+    return d && !Number.isNaN(d.getTime()) ? d : null;
 }

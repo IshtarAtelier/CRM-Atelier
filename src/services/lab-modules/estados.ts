@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/db';
 import { logAudit } from '../../lib/audit';
 import { enviarAvisoProcesado } from '../../lib/avisos/aviso-procesado';
+import { parseLabNumbers } from '../../lib/lab-order-numbers';
 import type { EstadoEnPortal } from './contrato';
 
 /**
@@ -49,6 +50,14 @@ export interface AplicacionDeEstado {
     nombreLab: string;
     robot: string; // 'Robot Vitolen'
     pedidos: { portalNumber: string; status: EstadoEnPortal; statusRaw: string }[];
+    /** La persona cuya aprobación disparó esto (carga asistida): firma la mutación junto al robot. */
+    aprobadoPor?: { id: string | null; name: string } | null;
+}
+
+/** Los números de pedido que faltan en el campo de la venta (un 2º par confirmado después del 1º). Puro. */
+export function numerosQueFaltan(labOrderNumber: string | null | undefined, numeros: string[]): string[] {
+    const actuales = new Set(parseLabNumbers(labOrderNumber));
+    return numeros.filter(n => !parseLabNumbers(n).every(d => actuales.has(d)));
 }
 
 export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ labStatus: string | null; numeroAsignado: boolean; notificado: boolean }> {
@@ -61,15 +70,21 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
     const conjunto = estadoConjunto(a.pedidos.map(p => p.status));
     const nuevo = transicionDeVenta(order.labStatus, conjunto);
     const numeros = a.pedidos.map(p => p.portalNumber);
-    const asignarNumero = numeroProvisorio(order.labOrderNumber) && numeros.length > 0;
+    // El nº se escribe si la venta tiene uno provisorio, o si al campo le falta
+    // uno de los pedidos (el 2º par confirmado después del 1º se AGREGA).
+    const faltan = numeroProvisorio(order.labOrderNumber) ? numeros : numerosQueFaltan(order.labOrderNumber, numeros);
+    const asignarNumero = faltan.length > 0;
+    const numeroNuevo = numeroProvisorio(order.labOrderNumber) ? numeros.join(', ') : [order.labOrderNumber, ...faltan].filter(Boolean).join(', ');
     const codigo = `#${order.id.slice(-4).toUpperCase()}`;
     const detalle = a.pedidos.map(p => `${p.portalNumber}: ${p.statusRaw}`).join(' | ');
+    const firma = a.aprobadoPor ? `${a.robot} (aprobó ${a.aprobadoPor.name})` : a.robot;
+    const firmaId = a.aprobadoPor?.id ?? null;
 
     if (!nuevo && !asignarNumero) return { labStatus: order.labStatus, numeroAsignado: false, notificado: false };
 
     const data: Record<string, unknown> = {};
     if (nuevo) data.labStatus = nuevo;
-    if (asignarNumero) data.labOrderNumber = numeros.join(', ');
+    if (asignarNumero) data.labOrderNumber = numeroNuevo;
     await prisma.order.update({ where: { id: order.id }, data });
 
     let notificado = false;
@@ -79,7 +94,7 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
                 type: 'LAB_READY',
                 message: `🏭 Pedido finalizado en ${a.nombreLab} — ${order.client?.name || 'Cliente'} (${numeros.join(', ')})`,
                 orderId: order.id,
-                requestedBy: a.robot,
+                requestedBy: firma,
                 status: 'PENDING',
             },
         });
@@ -88,21 +103,21 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
 
     const lineas = [
         nuevo === 'FINISHED'
-            ? `🏭 ${a.robot}: el pedido ${codigo} está TERMINADO en ${a.nombreLab}`
+            ? `🏭 ${firma}: el pedido ${codigo} está TERMINADO en ${a.nombreLab}`
             : nuevo === 'IN_PROGRESS'
-                ? `🏭 ${a.robot}: ${a.nombreLab} recibió el pedido ${codigo} y está en proceso`
-                : `🏭 ${a.robot}: ${a.nombreLab} asignó el nº de pedido a la venta ${codigo}`,
-        asignarNumero ? `Nº de pedido ${a.nombreLab}: ${numeros.join(', ')}` : null,
+                ? `🏭 ${firma}: ${a.nombreLab} recibió el pedido ${codigo} y está en proceso`
+                : `🏭 ${firma}: ${a.nombreLab} asignó el nº de pedido a la venta ${codigo}`,
+        asignarNumero ? `Nº de pedido ${a.nombreLab}: ${numeroNuevo}` : null,
         `Estado en el portal: ${detalle}`,
     ].filter(Boolean).join('\n');
 
     await prisma.interaction.create({
-        data: { clientId: order.clientId, type: 'LAB_STATUS', content: lineas, userId: null, userName: a.robot },
+        data: { clientId: order.clientId, type: 'LAB_STATUS', content: lineas, userId: firmaId, userName: firma },
     }).catch(err => console.error('[lab-modulos] No se pudo registrar la interacción:', err));
 
     logAudit({
-        userId: null, userName: a.robot, action: 'STATUS_CHANGE', entityType: 'ORDER', entityId: order.id,
-        details: { lab: a.lab, de: order.labStatus, a: nuevo ?? order.labStatus, pedidos: a.pedidos, numeroAsignado: asignarNumero },
+        userId: firmaId, userName: firma, action: 'STATUS_CHANGE', entityType: 'ORDER', entityId: order.id,
+        details: { lab: a.lab, de: order.labStatus, a: nuevo ?? order.labStatus, pedidos: a.pedidos, numeroAsignado: asignarNumero, labOrderNumber: asignarNumero ? numeroNuevo : undefined },
     }).catch(err => console.error('[lab-modulos] audit:', err));
 
     // El nº llegó con la venta todavía en SENT: es el mismo momento en que el
@@ -113,7 +128,7 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
             include: { client: true, items: { include: { product: true } } },
         });
         if (completa) {
-            enviarAvisoProcesado(completa, { labOrderNumber: numeros.join(', ') })
+            enviarAvisoProcesado(completa, { labOrderNumber: numeroNuevo })
                 .catch(err => console.error('[lab-modulos] aviso procesado:', err));
         }
     }

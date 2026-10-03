@@ -103,8 +103,14 @@ export async function leerListado(page: Page, periodo: PeriodoListado): Promise<
         if (r.status !== 200) throw new Error(`El listado de ${NOMBRE_VITOLEN} respondió ${r.status} en la página ${n}.`);
         const html = extraerHtmlDeRespuestaJs(r.cuerpo);
         if (html === null) throw new Error(`La respuesta del listado de ${NOMBRE_VITOLEN} (página ${n}) no trajo la tabla de pedidos.`);
-        filas.push(...parsearListado(html));
+        const nuevas = parsearListado(html);
         const pag = leerPaginador(html);
+        // Una tabla con registros que se parsea en cero filas es el portal
+        // cambiado, no un período vacío: se corta en vez de sellar "0 vistos".
+        if (nuevas.length === 0 && ((pag.total ?? 0) > 0 || /<tr[^>]*class="kb-row"/.test(html))) {
+            throw new Error(`El listado de ${NOMBRE_VITOLEN} (página ${n}) tiene registros pero no se pudo leer ninguna fila: cambió el HTML del portal.`);
+        }
+        filas.push(...nuevas);
         if (pag.total !== null) total = pag.total;
         for (const p of pag.paginas) if (!vistas.has(p)) pendientes.push(p);
     }

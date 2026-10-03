@@ -43,7 +43,6 @@ export interface PayloadVitolen {
     variante: string | null;   // Urban/Indoor/Outdoor, 40/60, 5/9/13, DP40/SP60
     od: GraduacionOjo | null;
     oi: GraduacionOjo | null;
-    campoPreferente: 'Balanceado' | 'Lejos' | 'Intermedio' | 'Cerca';
     distanciaVertice: number;  // 10 a 20
     anguloPantoscopico: number; // 0 a 30
     armazon: {
@@ -56,7 +55,7 @@ export interface PayloadVitolen {
         puente: number | null;     // DBL
         tipo: string | null;       // Metálico, Acetato…
         caracteristicas: string;   // marca, modelo, color
-        funcionalidad: 'Receta';
+        funcionalidad: 'Aro Convencional'; // lo que el robot marca en el portal
     };
     tratamientos: { antirreflejo: boolean };
     montajes: { calibrado: boolean };
@@ -76,6 +75,8 @@ export interface ResultadoArmado {
 export interface VentaParaCarga {
     id: string;
     clienteNombre: string;
+    /** labStatus de la venta: solo se carga en el portal una venta ENVIADA a fábrica. */
+    labStatus?: string | null;
     labNotes?: string | null;
     labFrameShape?: string | null;
     labFrameType?: string | null;
@@ -156,9 +157,10 @@ export function armarFormulario(
     const avisos: string[] = [];
     const pair = opts.pair ?? 1;
 
+    // Un ítem sin posición de armazón es del par 1: no puede "prestarse" al par 2.
     const cristales = venta.items.filter(i =>
         /cristal/i.test(i.productCategorySnapshot || '') && /vitolen/i.test(i.laboratorySnapshot || '')
-        && (i.framePosition == null || i.framePosition === pair));
+        && (i.framePosition ?? 1) === pair);
     if (cristales.length === 0) {
         return { ok: false, payload: null, faltantes: [`la venta no tiene cristales de Vitolen para el par ${pair}`], avisos };
     }
@@ -229,14 +231,13 @@ export function armarFormulario(
         portalDiseno: (() => { const d = cristalBase ? disenoDelPortal(cristalBase) : null; return d ? { dataId: d.dataId, nombre: d.nombre } : null; })(),
         variante: eleccion.variante ?? null,
         od, oi,
-        campoPreferente: 'Balanceado',
         distanciaVertice: VERTICE_POR_DEFECTO,
         anguloPantoscopico: PANTOSCOPICO_POR_DEFECTO,
         armazon: {
             forma, largo, alto, diagonalMayor: diagonal, ejeDiagonal, puente,
             tipo: venta.labFrameType || null,
             caracteristicas,
-            funcionalidad: 'Receta',
+            funcionalidad: 'Aro Convencional',
         },
         tratamientos: { antirreflejo: !(cristalBase?.sinAntirreflejo) },
         montajes: { calibrado: true },
@@ -252,7 +253,7 @@ export async function leerVentaParaCarga(orderId: string): Promise<VentaParaCarg
     const o = await prisma.order.findUnique({
         where: { id: orderId },
         select: {
-            id: true, labNotes: true, labFrameShape: true, labFrameType: true, labFrameDetails: true,
+            id: true, labStatus: true, labNotes: true, labFrameShape: true, labFrameType: true, labFrameDetails: true,
             userFrameBrand: true, userFrameModel: true, labPdOd: true, labPdOi: true, labHeightOD: true, labHeightOI: true,
             frameA: true, frameB: true, frameDbl: true, frameEdc: true,
             frames: { select: { position: true, shape: true, a: true, b: true, dbl: true, edc: true, details: true, heightOD: true, heightOI: true } },

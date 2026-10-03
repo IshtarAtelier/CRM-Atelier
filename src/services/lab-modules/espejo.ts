@@ -48,9 +48,12 @@ export interface VentaActiva {
  * Dos ventas candidatas = no se vincula: mejor sin vínculo que mal vinculado.
  */
 export function ventaDelPedido(pedido: PedidoEnPortal, ventas: VentaActiva[]): VentaActiva | null {
-    const porNumero = ventas.filter(v =>
+    // Se compara dígitos contra dígitos: el nº de Vitolen lleva una L
+    // ("6981382L") y el campo de la venta se lee con parseLabNumbers.
+    const digitos = parseLabNumbers(pedido.portalNumber);
+    const porNumero = digitos.length === 0 ? [] : ventas.filter(v =>
         [...parseLabNumbers(v.labOrderNumber || ''), ...v.postSaleNumbers.flatMap(n => parseLabNumbers(n))]
-            .includes(pedido.portalNumber));
+            .some(n => digitos.includes(n)));
     if (porNumero.length === 1) return porNumero[0];
     if (porNumero.length > 1) return null;
 
@@ -171,11 +174,14 @@ export function pedidosAtrasados(
     ahora: Date,
     ventanaDias = VENTANA_ATRASOS_DIAS,
 ): { portalNumber: string; cliente: string | null; estimatedAt: Date; diasDeAtraso: number }[] {
+    // Un DESCONOCIDO no cuenta: no se afirma "atrasado" sobre un estado que no
+    // se entendió (si el portal renombra "Despachado", todo saldría atrasado).
+    // El día prometido todavía no es atraso: recién desde el día siguiente.
     return pedidos
-        .filter(p => p.estimatedAt && p.estimatedAt < ahora && !['TERMINADO', 'DESPACHADO', 'ANULADO'].includes(p.status))
+        .filter(p => p.estimatedAt && p.estimatedAt < ahora && ['INGRESADO', 'EN_PROCESO'].includes(p.status))
         .map(p => ({
             portalNumber: p.portalNumber, cliente: p.cliente, estimatedAt: p.estimatedAt!,
             diasDeAtraso: Math.floor((ahora.getTime() - p.estimatedAt!.getTime()) / 86400000),
         }))
-        .filter(p => p.diasDeAtraso <= ventanaDias);
+        .filter(p => p.diasDeAtraso >= 1 && p.diasDeAtraso <= ventanaDias);
 }

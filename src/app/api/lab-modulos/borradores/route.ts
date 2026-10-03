@@ -60,13 +60,21 @@ export async function POST(request: Request) {
         const actor = getActor(request);
         const body = await request.json().catch(() => ({}));
         const orderId = String(body.orderId || '');
-        const pair = Number(body.pair) || 1;
+        const pair = body.pair === undefined ? 1 : Number(body.pair);
         if (!orderId) return NextResponse.json({ error: 'Falta orderId.' }, { status: 400 });
+        if (!Number.isInteger(pair) || pair < 1 || pair > 2) return NextResponse.json({ error: 'El par tiene que ser 1 o 2.' }, { status: 400 });
         const forma = body.forma ? String(body.forma) : null;
         if (forma && !FORMAS_PORTAL.includes(forma)) return NextResponse.json({ error: 'La forma tiene que ser Forma 1 a Forma 12.' }, { status: 400 });
 
         const venta = await leerVentaParaCarga(orderId);
         if (!venta) return NextResponse.json({ error: 'Venta no encontrada.' }, { status: 404 });
+        // Al laboratorio va solo una venta ENVIADA a fábrica: así queda quién la
+        // envió (vendedor = labSentBy), la fecha, y el seguimiento la vincula.
+        if (venta.labStatus !== 'SENT') {
+            return NextResponse.json({ error: `La venta tiene que estar enviada a fábrica antes de cargarla en el portal (hoy está ${venta.labStatus || 'sin enviar'}).` }, { status: 409 });
+        }
+        const paresDeLaVenta = new Set(venta.items.filter(i => /vitolen/i.test(i.laboratorySnapshot || '') && /cristal/i.test(i.productCategorySnapshot || '')).map(i => i.framePosition ?? 1));
+        if (!paresDeLaVenta.has(pair)) return NextResponse.json({ error: `La venta no tiene cristales de Vitolen para el par ${pair}.` }, { status: 400 });
 
         const ejeDiagonal = body.ejeDiagonal === undefined || body.ejeDiagonal === null || body.ejeDiagonal === '' ? null : Number(body.ejeDiagonal);
         if (ejeDiagonal !== null && !(Number.isFinite(ejeDiagonal) && ejeDiagonal >= 0 && ejeDiagonal <= 180)) {
@@ -82,9 +90,9 @@ export async function POST(request: Request) {
         }
 
         const preparado = await Borradores.preparar({ lab: 'VITOLEN', orderId, pair, payload: r.payload, actor });
-        // El robot entra al portal, llena hasta antes de "Crear" y deja la
-        // captura para revisar. Tarda unos segundos; si falla, el borrador queda
-        // en ERROR con el motivo y la respuesta lo dice.
+        // El robot entra al portal, llena, aprieta "Crear" (borrador en el
+        // portal) y deja la captura del resumen para revisar. Tarda unos
+        // segundos; si falla, el borrador queda en ERROR con el motivo.
         try {
             const borrador = await llenarBorradorEnPortal(preparado.id);
             return NextResponse.json({ ok: true, borrador, avisos: r.avisos });
@@ -93,7 +101,7 @@ export async function POST(request: Request) {
         }
     } catch (error: any) {
         const msg = error?.message || 'No se pudo preparar el pedido.';
-        const status = /Ya hay un borrador/.test(msg) ? 409 : 500;
+        const status = /Ya hay un borrador|dejó el pedido/.test(msg) ? 409 : 500;
         if (status === 500) console.error('[lab-modulos/borradores] POST:', error);
         return NextResponse.json({ error: msg }, { status });
     }

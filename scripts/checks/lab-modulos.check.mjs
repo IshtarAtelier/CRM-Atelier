@@ -16,11 +16,12 @@
 import assert from 'node:assert/strict';
 import { leerTurno, turnoVigente, debeEsperar } from '../../src/services/lab-modules/portal/turno.ts';
 import { decidirAlertaDeCaida, debeAvisarRecuperacion, UMBRAL_CAIDA_MS, REPETIR_ALERTA_MS } from '../../src/services/lab-modules/portal/salud.ts';
-import { transicionDeVenta, estadoConjunto, numeroProvisorio } from '../../src/services/lab-modules/estados.ts';
+import { transicionDeVenta, estadoConjunto, numeroProvisorio, numerosQueFaltan } from '../../src/services/lab-modules/estados.ts';
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
-import { transicionValida, borradorVivo, puedeAprobar } from '../../src/services/lab-modules/carga/borrador.ts';
+import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados } from '../../src/services/lab-modules/carga/borrador.ts';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
-import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera } from '../../src/services/lab-modules/vitolen/resumen.ts';
+import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
+import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
 import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
@@ -167,6 +168,14 @@ ok('atrasado = fecha estimada vencida y sin terminar', () => {
     ], ahora);
     assert.deepEqual(r.map(x => x.portalNumber), ['a']);
     assert.equal(r[0].diasDeAtraso, 3);
+});
+ok('el día prometido no es atraso, y un DESCONOCIDO no se afirma atrasado', () => {
+    const r = pedidosAtrasados([
+        { portalNumber: 'hoy', cliente: null, status: 'EN_PROCESO', estimatedAt: hace(6 * 3600000) },
+        { portalNumber: 'raro', cliente: null, status: 'DESCONOCIDO', estimatedAt: hace(5 * 86400000) },
+        { portalNumber: 'si', cliente: null, status: 'INGRESADO', estimatedAt: hace(2 * 86400000) },
+    ], ahora);
+    assert.deepEqual(r.map(x => x.portalNumber), ['si']);
 });
 ok('un atraso de más de 30 días es historia, no aviso (los pedidos de Vitolen de 2024)', () => {
     const r = pedidosAtrasados([
@@ -324,7 +333,7 @@ ok('Array 2: cada material del CRM cae en UNA opción del portal (y nunca en Arr
         'HOYA ARRAY 2 - 1.74 CLEAR': '1652',
     };
     for (const [nombre, id] of Object.entries(esperado)) {
-        const r = materialDelPortal(cristal(nombre));
+        const r = materialDelPortal(cristal(nombre), { color: /POLARIZED|SENSITY/.test(nombre) ? 'Gris' : null });
         assert.equal(r.opcion?.id, id, `${nombre}: ${r.motivo ?? r.opcion?.texto}`);
         assert.ok(!/wrap/i.test(r.opcion.texto));
     }
@@ -334,13 +343,13 @@ ok('todo el catálogo progresivo de Hoya resuelve a una opción (Lifestyle con v
     for (const c of CATALOGO_VITOLEN) {
         if (!disenoDelPortal(c)) continue;
         for (const variante of (c.variantes.length > 1 ? c.variantes : [null])) {
-            const r = materialDelPortal(c, { variante });
+            const r = materialDelPortal(c, { variante, color: /sensity|polari/i.test(c.material) ? 'Gris' : null });
             if (!r.opcion) sinResolver.push(`${c.nombre}${variante ? ` (${variante})` : ''}: ${r.motivo}`);
         }
     }
     assert.deepEqual(sinResolver, []);
 });
-ok('el color de la venta elige el Sensity / Polarized; sin color, gris; un color que no existe se dice', () => {
+ok('el color de la venta elige el Sensity / Polarized; con varios colores y sin color no se inventa; un color que no existe se dice', () => {
     assert.equal(colorDe('Marrón'), 'Brown');
     assert.equal(colorDe('gris'), 'Grey');
     assert.equal(colorDe('G15'), 'Green');
@@ -348,7 +357,10 @@ ok('el color de la venta elige el Sensity / Polarized; sin color, gris; un color
     const pol = cristal('HOYA ARRAY 2 - 1.59 POLARIZED');
     assert.equal(materialDelPortal(pol, { color: 'Marrón' }).opcion.id, '1642');
     assert.equal(materialDelPortal(pol, { color: 'verde' }).opcion.id, '1643');
-    assert.equal(materialDelPortal(pol, { color: null }).opcion.id, '1641');
+    const sinColor = materialDelPortal(pol, { color: null });
+    assert.equal(sinColor.opcion, null, 'tres colores: hay que elegir');
+    assert.match(sinColor.motivo, /necesita el color/);
+    assert.equal(materialDelPortal(cristal('HOYA ARRAY 2 - 1.50 SENSITY 2'), { color: null }).opcion?.id, '1637', 'un solo color: no hay nada que elegir');
     const r = materialDelPortal(cristal('HOYA ARRAY 2 - 1.50 SENSITY 2'), { color: 'Marrón' });
     assert.equal(r.opcion, null);
     assert.match(r.motivo, /no viene en Brown/);
@@ -404,6 +416,42 @@ ok('cobrado de más solo por encima del 5 % de tolerancia', () => {
     assert.equal(segundoParCobradoDeMas(137000, 131406), false);
     assert.equal(segundoParCobradoDeMas(140000, 131406), true);
     assert.equal(segundoParCobradoDeMas(545710, 131406), true);
+});
+
+console.log('\n— Carga asistida: lo que la auditoría del 3/10 pidió —');
+ok('APROBADO nunca va a ERROR (el portal puede haber confirmado); puede volver a revisión', () => {
+    assert.equal(transicionValida('APROBADO', 'ERROR'), false);
+    assert.equal(transicionValida('APROBADO', 'EN_REVISION'), true);
+    assert.equal(transicionValida('PREPARADO', 'ERROR'), true);
+});
+ok('un borrador que dejó un pedido en el portal bloquea preparar otro hasta cancelarlo o confirmarlo', () => {
+    assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { portalDraftId: '10441994' } }), true);
+    assert.equal(portalSinResolver({ status: 'RECHAZADO', resumenPortal: { portalDraftId: '10441994', canceladoEl: '2026-10-03' } }), false);
+    assert.equal(portalSinResolver({ status: 'CARGADO', resumenPortal: { portalDraftId: '10441994' } }), false);
+    assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: null }), false);
+    assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { pasos: [] } }), false);
+});
+ok('un PREPARADO colgado 20 min va a ERROR; un APROBADO colgado se reintenta, nunca ERROR', () => {
+    const r = colgados([
+        { id: 'p-viejo', status: 'PREPARADO', updatedAt: hace(25 * 60000) },
+        { id: 'p-nuevo', status: 'PREPARADO', updatedAt: hace(5 * 60000) },
+        { id: 'a-viejo', status: 'APROBADO', updatedAt: hace(25 * 60000) },
+        { id: 'r', status: 'EN_REVISION', updatedAt: hace(500 * 60000) },
+    ], ahora);
+    assert.deepEqual(r, { aError: ['p-viejo'], aReintentar: ['a-viejo'] });
+});
+ok('lo que se aprueba es el resumen del portal: si cambia, no se confirma', () => {
+    const a = 'Pedidos\nModificar | Cancelar\nPedido de Laboratorio\nNro de Trabajo\tPor Asignar\tFecha\t03/10/2026 12:24\nReceta\nOD\tProgresivo\t10070 - Array 2 1.60 Hilux MR-8 Clear\nArmazón\nForma OD - 3\nTrabajos\nMontajes\tCalibrado\n© 2026 Vitolen S.A';
+    const b = a.replace('12:24', '13:00');
+    const c = a.replace('Forma OD - 3', 'Forma OD - 4');
+    assert.equal(resumenComparable(a), resumenComparable(b), 'la hora de la cabecera no cuenta');
+    assert.notEqual(resumenComparable(a), resumenComparable(c), 'la forma sí');
+    assert.ok(!resumenComparable(a).includes('Por Asignar'));
+});
+ok('la pasada completa se decide sola cada 20 h', () => {
+    assert.equal(tocaPasadaCompleta(null, ahora), true);
+    assert.equal(tocaPasadaCompleta(hace(2 * 3600000), ahora), false);
+    assert.equal(tocaPasadaCompleta(hace(21 * 3600000), ahora), true);
 });
 
 console.log('\n— Cadencia del pase rápido —');
@@ -490,6 +538,14 @@ ok('el pase rápido pide 30 días; la pasada completa, todo el historial', () =>
     assert.equal(periodoDeListado(400), 'all_history');
     assert.equal(urlListado('all_history'), '/ventas/pedidos?utf8=%E2%9C%93&q%5Bcargado_en_periodo%5D=all_history&q%5Bvista%5D=lista&commit=Buscar');
     assert.ok(urlListado('last_30_days', 2).endsWith('&page=2'));
+});
+ok('el nº de Vitolen lleva L y vincula igual contra el campo de la venta', () => {
+    const fila = { id: '9', numero: '6981382L', fecha: '01/10/2026 10:00', nroCaso: '', estado: 'En Proceso', despachoEstimado: '08/10/2026', pdfPedido: null, pdfFactura: null, codigoFactura: null };
+    const ventas = [{ id: 'cm1', labOrderNumber: '6981382L', postSaleNumbers: [], clientName: 'A' }, { id: 'cm2', labOrderNumber: '6981382L, 6981390L', postSaleNumbers: [], clientName: 'B' }];
+    assert.equal(ventaDelPedido(normalizarPedido(fila), [ventas[0]])?.id, 'cm1');
+    assert.equal(ventaDelPedido(normalizarPedido(fila), ventas), null, 'dos ventas con el mismo nº: no se vincula');
+    assert.deepEqual(numerosQueFaltan('6981382L', ['6981382L', '6981390L']), ['6981390L']);
+    assert.deepEqual(numerosQueFaltan('6981382L, 6981390L', ['6981390L']), []);
 });
 ok('el pedido del portal se vincula a la venta por el código corto que el vendedor carga como caso', () => {
     const fila = { id: '9', numero: '7000001L', fecha: '01/10/2026 10:00', nroCaso: '#s3ep', estado: 'Confirmación', despachoEstimado: '08/10/2026', pdfPedido: null, pdfFactura: null, codigoFactura: null };

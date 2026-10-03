@@ -88,12 +88,22 @@ export function materialDelPortal(
     else return { opcion: null, motivo: `no hay regla para el material "${cristal.material}" en el portal`, candidatos: cand };
 
     if (esSensity || esPolar) {
-        const color = colorDe(opts.color) ?? 'Grey';
-        const conColor = cand.filter(o => new RegExp(`\\b${color}\\b`, 'i').test(o.texto));
-        if (conColor.length === 0) {
-            return { opcion: null, motivo: `${diseno.nombre} ${cristal.material} no viene en ${color} en el portal (hay: ${cand.map(c => c.texto).join(' | ') || 'nada'})`, candidatos: cand };
+        // Nada se inventa: si el portal ofrece más de un color, el fotocromático
+        // o polarizado necesita el color elegido en la venta; no se pide en gris
+        // por defecto. Con una sola opción no hay nada que elegir, pero un color
+        // pedido que no existe igual se dice.
+        const color = colorDe(opts.color);
+        const colores = [...new Set(cand.map(c => c.texto.match(/\b(Grey|Brown|Green)\b/i)?.[1]).filter(Boolean))];
+        if (!color && (cand.length > 1 || opts.color)) {
+            return { opcion: null, motivo: `${cristal.material} necesita el color del cristal en la venta (${opts.color ? `"${opts.color}" no es uno del portal; ` : ''}hay: ${colores.join(' / ') || 'ninguno'})`, candidatos: cand };
         }
-        cand = conColor;
+        if (color) {
+            const conColor = cand.filter(o => new RegExp(`\\b${color}\\b`, 'i').test(o.texto));
+            if (conColor.length === 0) {
+                return { opcion: null, motivo: `${diseno.nombre} ${cristal.material} no viene en ${color} en el portal (hay: ${cand.map(c => c.texto).join(' | ') || 'nada'})`, candidatos: cand };
+            }
+            cand = conColor;
+        }
     }
 
     if (cand.length === 1) return { opcion: cand[0], candidatos: cand };

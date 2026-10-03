@@ -18,7 +18,7 @@ import { formatDate } from '@/lib/format-date';
 
 interface Borrador {
     id: string; pair: number; status: string; payload: any; screenshotUrl: string | null;
-    resumenPortal: { portalDraftId?: string; url?: string; pasos?: { campo: string; valor: string }[]; pendientes?: string[] } | null;
+    resumenPortal: { portalDraftId?: string; url?: string; canceladoEl?: string; pasos?: { campo: string; valor: string }[]; pendientes?: string[] } | null;
     screenshotFinalUrl: string | null; portalNumber: string | null; preparedBy: string | null;
     approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; createdAt: string;
 }
@@ -81,7 +81,7 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
         } finally { setOcupado(null); }
     };
 
-    const decidir = async (id: string, accion: 'aprobar' | 'rechazar') => {
+    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal') => {
         setOcupado(`${accion}-${id}`); setError('');
         try {
             const res = await fetch(`/api/lab-modulos/borradores/${id}`, {
@@ -148,6 +148,15 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
                         {ultimo && !b && ultimo.status !== 'CARGADO' && ultimo.error && (
                             <p className="text-[11px] text-rose-700 dark:text-rose-400 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {ultimo.error}</p>
                         )}
+                        {ultimo && !b && ultimo.status !== 'CARGADO' && ultimo.resumenPortal?.portalDraftId && !ultimo.resumenPortal?.canceladoEl && (
+                            <div className="text-[11px] text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2 space-y-1">
+                                <p><strong>Quedó un pedido sin confirmar en el portal</strong> ({ultimo.resumenPortal.portalDraftId}{ultimo.resumenPortal.url ? <>, <a href={ultimo.resumenPortal.url} target="_blank" rel="noreferrer" className="underline">verlo</a></> : null}). Hasta cancelarlo no se puede preparar otro.</p>
+                                <button type="button" disabled={ocupado !== null} onClick={() => decidir(ultimo.id, 'cancelar-portal')}
+                                    className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-amber-600 text-white disabled:opacity-40">
+                                    {ocupado === `cancelar-portal-${ultimo.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />} Cancelar en el portal
+                                </button>
+                            </div>
+                        )}
 
                         {!b && !cargado && (
                             par.faltantes.length > 0 ? (
@@ -186,10 +195,19 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
                         {b && (
                             <div className="space-y-2">
                                 {b.status === 'PREPARADO' && <p className="text-[11px] text-stone-500">El robot está cargando el pedido en el portal; en unos segundos deja el resumen para revisar. Preparado por {b.preparedBy}.</p>}
-                                {b.status === 'APROBADO' && <p className="text-[11px] text-stone-500">Aprobado por {b.approvedBy}. El robot está confirmando en el portal; al terminar escribe el nº de pedido en la venta.</p>}
+                                {b.status === 'APROBADO' && !b.error && <p className="text-[11px] text-stone-500">Aprobado por {b.approvedBy}. El robot está confirmando en el portal; al terminar escribe el nº de pedido en la venta.</p>}
+                                {b.status === 'APROBADO' && b.error && (
+                                    <div className="text-[11px] text-rose-700 dark:text-rose-400 space-y-1">
+                                        <p className="flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {b.error}</p>
+                                        <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')}
+                                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-emerald-600 text-white disabled:opacity-40">
+                                            {ocupado === `reintentar-${b.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reintentar la confirmación
+                                        </button>
+                                    </div>
+                                )}
                                 {b.status === 'EN_REVISION' && (
                                     <>
-                                        <p className="text-[11px] text-stone-600 dark:text-stone-300">El pedido ya está en el portal como <strong>borrador sin confirmar</strong> (así lo muestra Vitolen). Revisá que coincida con la venta: <strong>Aprobar</strong> lo confirma y trae el nº de pedido; <strong>Rechazar</strong> lo cancela en el portal.{b.resumenPortal?.url ? <> Para corregir algo antes, <a href={b.resumenPortal.url} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> (Modificar).</> : null}</p>
+                                        <p className="text-[11px] text-stone-600 dark:text-stone-300">El pedido ya está en el portal como <strong>borrador sin confirmar</strong> (así lo muestra Vitolen). Revisá que coincida con la venta: <strong>Aprobar</strong> lo confirma, trae el nº de pedido y le avisa al cliente que su pedido fue procesado (como cuando se carga el nº a mano); <strong>Rechazar</strong> lo cancela en el portal.{b.error ? <> <span className="text-rose-700 dark:text-rose-400">{b.error}</span></> : null}{b.resumenPortal?.url ? <> Para corregir algo antes, <a href={b.resumenPortal.url} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> (Modificar).</> : null}</p>
                                         {b.screenshotUrl && (
                                             <a href={b.screenshotUrl} target="_blank" rel="noreferrer" className="block">
                                                 <img src={b.screenshotUrl} alt="Resumen del borrador del pedido en el portal de Vitolen" className="w-full rounded-lg border border-stone-200" />

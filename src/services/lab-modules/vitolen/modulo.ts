@@ -28,8 +28,9 @@ async function seguirPedidos(opts: OpcionesCorrida = {}): Promise<ResultadoSegui
     const pedidos = listado.filas.map(normalizarPedido).filter(p => p.portalNumber);
     if (listado.total !== null && listado.total > pedidos.length) {
         // Nunca se da por entero un listado al que le faltan filas: el paginador
-        // dijo más de lo que se leyó. Se registra lo leído y se avisa por log.
-        console.warn(`[lab-modulos] ${NOMBRE_VITOLEN}: el portal dice ${listado.total} pedidos y se leyeron ${pedidos.length} en ${listado.paginasLeidas} página(s).`);
+        // dijo más de lo que se leyó. Con un listado parcial, las ventas de las
+        // filas que faltan saldrían como "sin pedido en el portal".
+        throw new Error(`${NOMBRE_VITOLEN}: el portal dice ${listado.total} pedidos y se leyeron ${pedidos.length} en ${listado.paginasLeidas} página(s).`);
     }
 
     const ventas = await ventasActivasDelLab(PATRON_VITOLEN);
@@ -58,6 +59,13 @@ async function seguirPedidos(opts: OpcionesCorrida = {}): Promise<ResultadoSegui
     }
 
     const enPortal = new Set(porVenta.keys());
+    // Los atrasos se miran en el ESPEJO, no solo en el listado de esta lectura:
+    // el pase rápido pide 30 días, y el pedido más atrasado es justo el que ya
+    // salió de esa ventana.
+    const abiertos = await prisma.labPortalOrder.findMany({
+        where: { lab: LAB_VITOLEN, status: { in: ['INGRESADO', 'EN_PROCESO'] }, estimatedAt: { not: null } },
+        select: { portalNumber: true, cliente: true, status: true, estimatedAt: true },
+    });
     return {
         vistos: pedidos.length,
         nuevos,
@@ -66,7 +74,7 @@ async function seguirPedidos(opts: OpcionesCorrida = {}): Promise<ResultadoSegui
         avanzados,
         terminados,
         sinPedidoEnPortal: ventasSinPedidoEnPortal(ventas, enPortal, ahora),
-        atrasados: pedidosAtrasados(pedidos.map(p => ({ portalNumber: p.portalNumber, cliente: p.cliente ?? null, status: p.status, estimatedAt: p.estimatedAt ?? null })), ahora),
+        atrasados: pedidosAtrasados(abiertos.map(p => ({ portalNumber: p.portalNumber, cliente: p.cliente, status: p.status as EstadoEnPortal, estimatedAt: p.estimatedAt })), ahora),
     };
 }
 

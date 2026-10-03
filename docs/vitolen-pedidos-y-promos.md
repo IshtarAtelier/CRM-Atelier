@@ -39,7 +39,7 @@ la pieza de mostrador "+amplitude" (`vitolen.pdf`, lista LB96).
 8. **Pedido origen / Promos disponibles**: acá se engancha el segundo par de
    una promo con el pedido del primer par. El portal muestra las promos que
    aplican (en el video: "Promo SEGURO DE REPOSICIÓN 24…").
-9. **Armazón**: elegir la **forma** más parecida (Forma 1 a 8), y cargar
+9. **Armazón**: elegir la **forma** más parecida (Forma 1 a 12), y cargar
    **DNP-L** (20 a 80), **altura pupilar de lejos** (14 a 50), distancia de
    vértice (10 a 20), ángulo pantoscópico (0 a 30), y del aro: largo, alto,
    diagonal mayor (30 a 90), eje, puente. Tipo de armazón (metálico, etc.),
