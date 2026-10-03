@@ -45,7 +45,12 @@ aprueba. Nada se manda al laboratorio sin esa aprobación.
 
 - Cada media hora mira el portal: cuando Vitolen pasa el pedido a "En
   Proceso" la venta queda **en proceso**; cuando llega a "En Oficina" o
-  "Despachado", **terminado**, con el aviso de pedido listo de siempre.
+  "Despachado", **Finalizado (Lab)**, con la campanita de "pedido fabricado".
+- **Diferencia con Grupo Óptico**: con GO, a las 24 h de terminado el sistema
+  le avisa solo al cliente y pasa la venta a "Listo p/ Retirar". Con Vitolen
+  **todavía no** (no sabemos cuánto tarda en llegar al local): cuando el
+  pedido llega, el vendedor lo marca "Listo p/ Retirar" y ahí sale el aviso
+  al cliente, como siempre.
 - Si un pedido se cargó a mano en el portal, poné el **código corto de la
   venta** (el `#XXXX` que muestra el CRM) en "Nro de Caso Interno": así el
   sistema lo reconoce igual.

@@ -20,6 +20,7 @@ import { transicionDeVenta, estadoConjunto, numeroProvisorio, numerosQueFaltan }
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
 import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados } from '../../src/services/lab-modules/carga/borrador.ts';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
+import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
 import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
@@ -453,6 +454,15 @@ ok('la pasada completa se decide sola cada 20 h', () => {
     assert.equal(tocaPasadaCompleta(null, ahora), true);
     assert.equal(tocaPasadaCompleta(hace(2 * 3600000), ahora), false);
     assert.equal(tocaPasadaCompleta(hace(21 * 3600000), ahora), true);
+});
+
+console.log('\n— Aviso de retiro a las 24 h —');
+ok('Grupo Óptico (sin módulo) avisa solo; Vitolen deja el aviso al vendedor', () => {
+    const modulos = [{ nombre: 'Vitolen', patronProducto: /vitolen/i, avisoDeRetiroAutomatico: false }, { nombre: 'Otro', patronProducto: /otro/i }];
+    assert.deepEqual(retiroAutomaticoPermitido([{ laboratorySnapshot: 'GRUPO OPTICO' }], modulos), { permitido: true, modulo: null });
+    assert.deepEqual(retiroAutomaticoPermitido([{ laboratorySnapshot: 'VITOLEN' }, { laboratorySnapshot: null }], modulos), { permitido: false, modulo: 'Vitolen' });
+    assert.deepEqual(retiroAutomaticoPermitido([{ product: { laboratory: 'Otro lab' } }], modulos), { permitido: true, modulo: 'Otro' });
+    assert.deepEqual(retiroAutomaticoPermitido([], modulos), { permitido: true, modulo: null });
 });
 
 console.log('\n— Cadencia del pase rápido —');

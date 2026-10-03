@@ -176,6 +176,9 @@ export const MODULO_VITOLEN: LabModule = {
     patronProducto: PATRON_VITOLEN,
     capacidades: { seguimiento: true, costos: true, carga: true },
     cadenciaRapidaMin: 30,
+    // Todavía no se sabe cuánto tarda un pedido terminado en llegar al local:
+    // el aviso de retiro al cliente lo manda el vendedor, no el cron.
+    avisoDeRetiroAutomatico: false,
     seguirPedidos,
     recolectarCostos,
 };

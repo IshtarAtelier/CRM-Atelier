@@ -79,6 +79,13 @@ export interface LabModule {
      * portal con pocos pedidos no necesita 70 logins por día. Sin valor = cada tick.
      */
     cadenciaRapidaMin?: number;
+    /**
+     * ¿El cron de retiro puede avisarle al cliente solo, 24 h después de que el
+     * lab marcó terminado, y pasar la venta a "Listo p/ Retirar"? Sin valor =
+     * sí (el circuito de Grupo Óptico). `false` = el aviso queda para el
+     * vendedor (Vitolen hasta conocer el tiempo de transporte; Ishtar, 3/10/2026).
+     */
+    avisoDeRetiroAutomatico?: boolean;
     seguirPedidos(opts?: OpcionesCorrida): Promise<ResultadoSeguimiento>;
     recolectarCostos(opts?: OpcionesCorrida): Promise<Record<string, unknown>>;
 }

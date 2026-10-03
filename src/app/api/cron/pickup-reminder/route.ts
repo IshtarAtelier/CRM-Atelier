@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { BotService } from '@/services/bot.service';
+import { REGISTRO_MODULOS } from '@/services/lab-modules/registro';
+import { retiroAutomaticoPermitido } from '@/services/lab-modules/retiro';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,6 +71,16 @@ export async function GET(request: Request) {
                     where: { id: notif.id },
                     data: { status: 'RESOLVED', resolvedBy: 'Cron Pickup - Estado Inválido o Ya Procesado' }
                 });
+                continue;
+            }
+
+            // Un laboratorio con módulo puede pedir que el aviso NO sea automático
+            // (Vitolen: todavía no se sabe cuánto tarda en llegar al local). La
+            // notificación queda PENDING en la campanita y el vendedor avisa al
+            // marcar "Listo p/ Retirar" a mano.
+            const retiro = retiroAutomaticoPermitido(order.items as any[], REGISTRO_MODULOS);
+            if (!retiro.permitido) {
+                results.push({ orderId: order.id, status: `Sin aviso automático (${retiro.modulo}): lo avisa el vendedor` });
                 continue;
             }
 
