@@ -123,9 +123,13 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
     // lab no puede quedar esperando acá un pedido que nunca va a llegar (I5).
     const patron = LAB_ITEM_PATTERNS[a.lab];
     const esCristal = (i: (typeof order.items)[number]) => /cristal|lens/i.test(i.productCategorySnapshot || i.product?.category || '');
-    const itemsDelLab = patron
-        ? order.items.filter(i => !esCristal(i) || patron.test(i.laboratorySnapshot || i.product?.laboratory || ''))
-        : order.items;
+    // Solo se descartan los cristales de OTRO laboratorio conocido: uno sin
+    // laboratorio cargado cuenta, para no dar por terminado un 2x1 con un par.
+    const deOtroLab = (i: (typeof order.items)[number]) => {
+        const lab = i.laboratorySnapshot || i.product?.laboratory || '';
+        return !!lab.trim() && !patron!.test(lab);
+    };
+    const itemsDelLab = patron ? order.items.filter(i => !esCristal(i) || !deOtroLab(i)) : order.items;
     const paresEsperados = cantidadDeArmazones({ ...order, items: itemsDelLab as any });
     const pedidosVivos = a.pedidos.filter(p => p.status !== 'ANULADO').length;
     const faltaOtroPar = !paresCompletos(paresEsperados, pedidosVivos);

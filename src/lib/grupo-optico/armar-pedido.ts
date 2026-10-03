@@ -26,7 +26,7 @@
 // Módulo PURO: sin prisma, sin React, sin fetch, sin fechas ni plata.
 // ────────────────────────────────────────────────────────────────────────────
 
-import { cristalesPorArmazon, framesDeLaOrden } from '../order-frames';
+import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../order-frames';
 import { itemsDeTenido, tintItemLabel } from '../crystal-color';
 
 /** Lo que el favorito lee del hash. Las claves son las que espera el bookmarklet: no se renombran. */
@@ -180,6 +180,20 @@ function recetaDePostventa(order: VentaParaSmartLab, pairNum: number): Record<st
     } catch {
         return null;
     }
+}
+
+/**
+ * El "Código interno" del pedido en SmartLab: el código corto de la venta
+ * (#AB12), el nombre del cliente y, con más de un par, CUÁL ("2°par"). Lo usan
+ * el favorito y el robot por igual: con el mismo código para los dos pares, el
+ * robot no tenía cómo saber de qué par era un pedido cargado a mano
+ * (auditoría del 3/10/2026, N1). Puro.
+ */
+export function codigoInternoSmartLab(order: VentaParaSmartLab, pairNum: number): string {
+    const codigo = `#${String(order.id).slice(-4).toUpperCase()}`;
+    const cliente = texto(order.client?.name);
+    const pares = cantidadDeArmazones(order as any);
+    return `${codigo} ${cliente}${pares > 1 ? ` ${pairNum}°par` : ''}`.replace(/\s+/g, ' ').trim();
 }
 
 export function armarPedidoSmartLab(order: VentaParaSmartLab, pairNum: number = 1): ResultadoArmadoSmartLab {
@@ -395,7 +409,7 @@ export function armarPedidoSmartLab(order: VentaParaSmartLab, pairNum: number = 
         labType,
         // El código corto de la venta: es lo que `espejo.ts` usa para vincular
         // el pedido del portal con certeza. El nombre va aparte, en paciente_*.
-        codigoInterno: `#${String(order.id).slice(-4).toUpperCase()}`,
+        codigoInterno: codigoInternoSmartLab(order, pairNum),
         paciente_nombre: nombre,
         paciente_apellido: apellido,
         paciente_fullname: clientName,

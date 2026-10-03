@@ -50,12 +50,12 @@ const ventaBase = () => ({
 });
 
 console.log('\n— Venta monofocal completa —');
-ok('arma el pedido con el código corto de la venta, no con el nombre', () => {
+ok('arma el pedido con el código corto de la venta adelante (el nombre solo para leerlo)', () => {
     const r = armarPedidoSmartLab(ventaBase(), 1);
     assert.deepEqual(r.faltantes, []);
     assert.equal(r.ok, true);
     const p = r.payload;
-    assert.equal(p.codigoInterno, '#AB12');
+    assert.equal(p.codigoInterno, '#AB12 Ana María Pérez');
     assert.equal(p.paciente_fullname, 'Ana María Pérez');
     assert.equal(p.paciente_nombre, 'Ana María');
     assert.equal(p.paciente_apellido, 'Pérez');
@@ -121,7 +121,8 @@ ok('el par 2 va con el multifocal, SU receta, SU altura y el armazón 2 (antes m
     const r = armarPedidoSmartLab(venta2x1(), 2);
     assert.equal(r.ok, true, r.faltantes.join(' | '));
     const p = r.payload;
-    assert.equal(p.codigoInterno, '#AB12');
+    // Con dos pares el código dice cuál: el robot distingue así lo cargado a mano (N1).
+    assert.match(p.codigoInterno, /^#AB12 .+ 2°par$/);
     assert.equal(p.tipo_lente, 'Multifocal');
     assert.equal(p.material, 'Policarbonato');
     assert.deepEqual([p.od_esfera, p.oi_esfera, p.od_adicion, p.oi_adicion], ['+1.00', '+1.25', '+2.00', '+2.00']);

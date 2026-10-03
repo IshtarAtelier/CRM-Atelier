@@ -7,8 +7,11 @@ import { aplicarEstadoEnVenta } from '../estados';
 import { conTurno } from '../portal/turno';
 import { conSesionSmartLab, LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO, ROBOT_GRUPO_OPTICO } from './portal';
 import { payloadCreateUpdate, planDeCarga, type OpcionesCarga, type PlanDeCarga, type ResueltoEnPortal } from './carga';
-import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
+import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
 import { leerVentaParaCargaGO } from './venta';
+import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
+import { cantidadDeArmazones } from '../../../lib/order-frames';
+import type { EstadoEnPortal } from '../contrato';
 
 /**
  * LA CARGA ASISTIDA DE GRUPO ÓPTICO sobre el borrador del CRM (LabOrderDraft).
@@ -51,12 +54,16 @@ export interface RastroGO extends RastroPortal {
     /** La huella del producto vendido al preparar (huellaDelPlan). */
     huella?: string;
     adoptadoDelPortal?: boolean;
+    /** Cuándo salió el POST de creación (antes de saber la respuesta). */
+    envioIniciadoEl?: string;
 }
 
 const ESPERA_TURNO_MS = 4 * 60_000;
+/** Tras un POST sin respuesta, cuánto esperar antes de volver a crear (el portal puede guardarlo tarde). */
+const ESPERA_TRAS_ENVIO_INCIERTO_MS = 15 * 60_000;
 
 async function enElPortal<T>(tarea: () => Promise<T>): Promise<T> {
-    const r = await conTurno(LAB_GRUPO_OPTICO, 'robot', tarea, { esperar: true, esperaMaxMs: ESPERA_TURNO_MS });
+    const r = await conTurno(LAB_GRUPO_OPTICO, 'robot', tarea, { esperar: true, esperaMaxMs: ESPERA_TURNO_MS, obligatorio: true });
     if (r && typeof r === 'object' && 'skipped' in (r as any) && (r as any).skipped) {
         throw new Error(`El portal de ${NOMBRE_GRUPO_OPTICO} está ocupado por otra pasada; volvé a intentar en unos minutos.`);
     }
@@ -171,7 +178,7 @@ async function numerosDeOtrosPares(orderId: string, pair: number): Promise<Set<s
 export async function confirmarBorradorAprobado(borradorId: string) {
     const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, payload: true, resumenPortal: true, approvedBy: true } });
     if (!b) throw new Error('El borrador no existe.');
-    if (b.status === 'CARGADO') return b;
+    if (b.status === 'CARGADO') return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo carga los APROBADOS.`);
     const rastro0 = (b.resumenPortal || {}) as RastroGO;
     if (!rastro0.payloadPortal || !rastro0.resuelto) throw new Error('El borrador no tiene el pedido preparado: hay que volver a prepararlo.');
@@ -196,12 +203,23 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             let adoptado = false;
 
             if (!numero) {
-                // 2. ¿Ya existe ese pedido en el portal?
-                const pares = (guardado.plan?.codigoOptica || '').match(/\b([12])°par\b/) ? b.pair : null;
-                numero = await buscarPedidoYaCreado(page, codigoVenta, pares, await numerosDeOtrosPares(b.orderId, b.pair));
+                // 2a. ¿El par ya tiene pedido por otro camino (carga a mano, seguimiento)
+                //     mientras este borrador esperaba revisión? (auditoría 2, N2)
+                const pares = cantidadDeArmazones((await leerVentaParaCargaGO(b.orderId)) as any);
+                const existente = await pedidoExistenteDelPar(b.orderId, b.pair, pares);
+                if (existente) throw new AprobacionInvalidaError(`${mensajeExistente(existente, b.pair)} No se creó nada.`);
+                // 2b. ¿Ya existe ese pedido en el portal con el código de la venta?
+                numero = await buscarPedidoYaCreado(page, codigoVenta, pares > 1 ? b.pair : null, await numerosDeOtrosPares(b.orderId, b.pair));
                 adoptado = !!numero;
             }
             if (!numero) {
+                // Un envío anterior salió y no volvió la respuesta: el portal puede
+                // haberlo guardado tarde. No se reenvía a ciegas hasta que pase un rato
+                // y el listado siga sin mostrarlo (auditoría 2, I2).
+                const iniciado = ((actual.resumenPortal || {}) as RastroGO).envioIniciadoEl;
+                if (iniciado && Date.now() - Date.parse(iniciado) < ESPERA_TRAS_ENVIO_INCIERTO_MS) {
+                    throw new Error(`un envío anterior (${new Date(iniciado).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}) quedó sin respuesta; el robot no reenvía hasta comprobar que el portal no lo guardó. Reintentá en 15 minutos`);
+                }
                 // 3. ¿La venta de hoy sigue dando EXACTAMENTE lo aprobado?
                 const r = await planActual(b.orderId, b.pair, guardado.opciones);
                 if (!r.ok) throw new AprobacionInvalidaError(`La venta ya no arma el pedido (${r.faltantes.join(' · ')}): volvé a prepararlo.`);
@@ -210,15 +228,17 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 }
                 const cambios = cambiosEntrePayloads(payloadAprobado, payloadCreateUpdate(r.plan, rastro0.resuelto!));
                 if (cambios.length) throw new AprobacionInvalidaError(`La venta cambió después de aprobar (${cambios.join(', ')}): volvé a prepararlo para revisar el pedido nuevo. No se mandó nada.`);
-                // 4. Crear.
+                // 4. Crear: se anota ANTES que salió el envío, y el nº apenas vuelve.
+                await mezclar(b.id, { envioIniciadoEl: new Date().toISOString() });
                 numero = (await crearPedidoEnPortal(page, payloadAprobado)).numero;
             }
             // Anotado en el acto: de acá en más un reintento no vuelve a crear.
             await mezclar(b.id, { numeroCreado: numero, portalDraftId: numero, ...(adoptado ? { adoptadoDelPortal: true } : {}) } as RastroGO);
             const guardadoPortal = await leerPedido(page, numero).catch(() => null);
+            const comparado = guardadoPortal ? diferenciasConLoAprobado(guardadoPortal, payloadAprobado as any) : ['no se pudo leer el pedido guardado para comprobarlo'];
             const diferencias = adoptado
-                ? ['el pedido ya estaba en el portal (cargado antes, a mano o por un intento anterior): se tomó ese nº sin crear otro; revisá que coincida con la venta']
-                : guardadoPortal ? diferenciasConLoAprobado(guardadoPortal, payloadAprobado as any) : ['no se pudo leer el pedido guardado para comprobarlo'];
+                ? [`el pedido ya estaba en el portal (cargado antes, a mano o por un intento anterior): se tomó ese nº sin crear otro${comparado.length ? `, y NO coincide con lo aprobado (${comparado.join('; ')}): hablá con Grupo Óptico` : ''}`]
+                : comparado;
             const pdf = await bajarPdfDelPedido(page, numero);
             return { numero, diferencias, pdf };
         }));
@@ -234,9 +254,19 @@ export async function confirmarBorradorAprobado(borradorId: string) {
 
         // Primero la venta (nº, estado, aviso al cliente), después el borrador.
         const aprobadoPor = b.approvedBy ? { id: rastro0.aprobadoPorId ?? null, name: b.approvedBy } : null;
+        // Con TODOS los pedidos de la venta (el del otro par incluido): si no, al
+        // cargar el 2º par el historial diría "falta el pedido del otro par".
+        const [espejo, otros] = await Promise.all([
+            prisma.labPortalOrder.findMany({ where: { orderId: b.orderId, lab: LAB_GRUPO_OPTICO }, select: { portalNumber: true, status: true, statusRaw: true } }),
+            prisma.labOrderDraft.findMany({ where: { orderId: b.orderId, lab: LAB_GRUPO_OPTICO, status: 'CARGADO', id: { not: b.id } }, select: { portalNumber: true } }),
+        ]);
+        const pedidos = new Map<string, { portalNumber: string; status: EstadoEnPortal; statusRaw: string }>();
+        for (const e of espejo) pedidos.set(e.portalNumber, { portalNumber: e.portalNumber, status: e.status as EstadoEnPortal, statusRaw: e.statusRaw ?? '' });
+        for (const o of otros) if (o.portalNumber && !pedidos.has(o.portalNumber)) pedidos.set(o.portalNumber, { portalNumber: o.portalNumber, status: 'INGRESADO', statusRaw: 'Pedido en proceso de validación' });
+        if (!pedidos.has(resultado.numero)) pedidos.set(resultado.numero, { portalNumber: resultado.numero, status: 'INGRESADO', statusRaw: 'Pedido en proceso de validación' });
         await aplicarEstadoEnVenta({
             orderId: b.orderId, lab: LAB_GRUPO_OPTICO, nombreLab: NOMBRE_GRUPO_OPTICO, robot: ROBOT_GRUPO_OPTICO,
-            pedidos: [{ portalNumber: resultado.numero, status: 'INGRESADO', statusRaw: 'Pedido en proceso de validación' }],
+            pedidos: [...pedidos.values()],
             aprobadoPor,
         });
         const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_GRUPO_OPTICO, { portalNumber: resultado.numero, screenshotFinalUrl: pdfUrl });
@@ -246,8 +276,10 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         return cargado;
     } catch (err: any) {
         if (err instanceof YaCargadoError) return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
-        if (err instanceof AprobacionInvalidaError) {
-            await Borradores.invalidarSinPedido(b.id, ROBOT_ACTOR_GRUPO_OPTICO, err.message);
+        if (err instanceof AprobacionInvalidaError || err instanceof PedidoAmbiguoError) {
+            // No se creó nada: la aprobación ya no vale y hay que mirar la venta de nuevo.
+            await Borradores.invalidarSinPedido(b.id, ROBOT_ACTOR_GRUPO_OPTICO, err.message)
+                .catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador GO (queda APROBADO):', e));
             throw err;
         }
         const motivo = (err?.message || String(err)).replace(/\.+$/, '');

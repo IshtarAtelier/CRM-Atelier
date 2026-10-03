@@ -16,6 +16,7 @@ import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/servic
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
+import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
 import { huellaDelPlan, cambiosEntrePayloads } from '../../src/services/lab-modules/grupo-optico/borrador-portal.ts';
 
 let fallas = 0;
@@ -166,13 +167,28 @@ ok('reintento o carga a mano: adopta el pedido de ESE par por el código de la v
         { IdPedido: '80560002', CodigoOptica: '#L4AU Laura Santucho 2°par', Anulado: '1' },
         { IdPedido: '80560009', CodigoOptica: '#XL4AU otro', Anulado: '0' },
     ];
-    assert.equal(pedidoYaCreado(filas, '#L4AU', 1), '80560001');
-    assert.equal(pedidoYaCreado(filas, '#L4AU', 2), '80560003');
+    assert.deepEqual(pedidoYaCreado(filas, '#L4AU', 1), { numero: '80560001', ambiguo: false });
+    assert.deepEqual(pedidoYaCreado(filas, '#L4AU', 2), { numero: '80560003', ambiguo: false });
     assert.equal(pedidoYaCreado(filas, '#L4AU', 2, new Set(['80560003'])), null, 'un nº que ya es de otro par no se adopta');
-    // venta de un solo par cargada a mano con el favorito (código sin par)
-    assert.equal(pedidoYaCreado([{ IdPedido: '80561111', CodigoOptica: '#S3EP', Anulado: '0' }], '#S3EP', null), '80561111');
-    // un pedido sin par marcado no se toma como el 2º
-    assert.equal(pedidoYaCreado([{ IdPedido: '80561111', CodigoOptica: '#S3EP Ana', Anulado: '0' }], '#S3EP', 2), null);
+    // venta de un solo par cargada a mano con el favorito
+    assert.deepEqual(pedidoYaCreado([{ IdPedido: '80561111', CodigoOptica: '#S3EP Ana', Anulado: '0' }], '#S3EP', null), { numero: '80561111', ambiguo: false });
+});
+ok('N1: en una venta de dos pares, un pedido con el código y sin par marcado es AMBIGUO (ni se adopta ni se crea)', () => {
+    const filas = [{ IdPedido: '80562222', CodigoOptica: '#S3EP Ana', Observacion: 'anteojo de sol', Anulado: '0' }];
+    assert.deepEqual(pedidoYaCreado(filas, '#S3EP', 1), { numero: '80562222', ambiguo: true });
+    // si la observación dice el par, ya no es ambiguo
+    assert.equal(pedidoYaCreado([{ ...filas[0], Observacion: 'Promo 2x1 - 2do par' }], '#S3EP', 1), null);
+});
+ok('N2/C5: un par con pedido (robot, seguimiento o nº tipeado) no se vuelve a cargar; un anulado no cuenta; un nº sin par es ambiguo', () => {
+    const base = { pair: 1, pares: 2, cargadosPorPar: [], espejo: [], numerosEnVenta: [] };
+    assert.equal(decidirExistente(base), null);
+    assert.deepEqual(decidirExistente({ ...base, cargadosPorPar: [{ pair: 1, numero: '80570001' }] }), { numero: '80570001', ambiguo: false });
+    assert.equal(decidirExistente({ ...base, pair: 2, cargadosPorPar: [{ pair: 1, numero: '80570001' }], numerosEnVenta: ['80570001'] }), null, 'el nº del par 1 no bloquea el par 2');
+    assert.deepEqual(decidirExistente({ ...base, numerosEnVenta: ['80570009'] }), { numero: '80570009', ambiguo: true }, 'tipeado a mano sin saber de qué par');
+    assert.equal(decidirExistente({ ...base, espejo: [{ numero: '80570009', pair: 1, anulado: true }], numerosEnVenta: ['80570009'] }), null, 'anulado no bloquea');
+    assert.deepEqual(decidirExistente({ ...base, pair: 2, espejo: [{ numero: '80570005', pair: 2, anulado: false }] }), { numero: '80570005', ambiguo: false });
+    assert.deepEqual(decidirExistente({ ...base, pares: 1, numerosEnVenta: ['80570007'] }), { numero: '80570007', ambiguo: false });
+    assert.equal(decidirExistente({ ...base, cargadosPorPar: [{ pair: 1, numero: '80570001' }], excluir: '80570001' }), null, 'el propio nº no cuenta');
 });
 ok('el par de una fila del portal: la observación del 2º par nombra al 1º y tiene que ganar el 2', () => {
     assert.equal(parDeFila({ CodigoOptica: 'Nestor Bocco', Observacion: 'Promo 2x1 Smart Free - 2° par SIN CARGO - 1° par n° 80547989' }), 2);
@@ -217,6 +233,11 @@ ok('C3: con dos pares, el código interno lleva el par aunque no sea 2x1', () =>
 ok('I7: un teñido asignado a un armazón que no existe frena', () => {
     const v = venta2x1(true, 3);
     assert.equal(planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' }).ok, false);
+});
+ok('I8: la 2x1 del lab también se reconoce por la promo aplicada aunque el cristal no diga "2x1"', () => {
+    const v = venta2x1(); v.items = v.items.map(i => i.product?.category === 'Cristal' ? { ...i, product: { ...i.product, name: 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Essential' } } : i);
+    assert.equal(esVenta2x1(v), true);
+    assert.equal(esVenta2x1({ ...v, appliedPromoName: '' }), false);
 });
 ok('I8: una promo 2x1 que no es de dos cristales Grupo Óptico de la misma familia no es la 2x1 del laboratorio', () => {
     const v = venta2x1(); v.items = v.items.map(i => i.product?.category === 'Cristal' && i.framePosition === 2 ? { ...i, product: { ...i.product, name: 'Multifocal Smart ONE · Orgánico Blue Light 1.56 · Essential 2x1' } } : i);

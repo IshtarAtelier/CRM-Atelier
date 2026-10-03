@@ -25,7 +25,7 @@ interface Borrador {
     resumenPortal: { etiquetas?: Etiquetas; pdfUrl?: string; diferencias?: string[] } | null;
 }
 interface PedidoEspejo { portalNumber: string; status: string; statusRaw: string | null; lastSeenAt: string }
-interface ParAnalisis { pair: number; producto: string | null; faltantes: string[]; avisos: string[]; esperaPrimerPar: boolean; pedidoOrigen: string | null; yaCargado: string | null }
+interface ParAnalisis { pair: number; producto: string | null; faltantes: string[]; avisos: string[]; esperaPrimerPar: boolean; pedidoOrigen: string | null; yaCargado: string | null; yaCargadoMensaje: string | null }
 interface Datos { borradores: Borrador[]; espejo: PedidoEspejo[]; pares: ParAnalisis[]; es2x1: boolean; tiposArmazon: { value: string; label: string }[]; tiposAro: { value: string; label: string }[] }
 
 const ESTADO: Record<string, { texto: string; clase: string }> = {
@@ -155,7 +155,7 @@ export default function GrupoOpticoCarga({ orderId, onChanged }: { orderId: stri
                         )}
 
                         {!b && !cargado && par.yaCargado && (
-                            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Ya tiene pedido en el laboratorio: nº {par.yaCargado}. No se carga otro (si hay que rehacerlo, es una postventa).</p>
+                            <p className="text-xs text-emerald-800 dark:text-emerald-400 font-bold">{par.yaCargadoMensaje || `Ya tiene pedido en el laboratorio: nº ${par.yaCargado}.`}</p>
                         )}
                         {!b && !cargado && !par.yaCargado && (
                             par.esperaPrimerPar ? (
@@ -204,7 +204,7 @@ export default function GrupoOpticoCarga({ orderId, onChanged }: { orderId: stri
                             </div>
                         )}
                         {b?.status === 'EN_REVISION' && (
-                            <Revision borrador={b} ocupado={ocupado} motivo={motivo[b.id] || ''}
+                            <Revision borrador={b} ocupado={ocupado} motivo={motivo[b.id] || ''} bloqueo={par.yaCargado ? (par.yaCargadoMensaje || `Ya tiene pedido: nº ${par.yaCargado}.`) : null}
                                 onMotivo={m => setMotivo(x => ({ ...x, [b.id]: m }))}
                                 onAprobar={() => decidir(b.id, 'aprobar')} onRechazar={() => decidir(b.id, 'rechazar')} />
                         )}
@@ -218,8 +218,8 @@ export default function GrupoOpticoCarga({ orderId, onChanged }: { orderId: stri
 }
 
 /** Lo que se va a mandar, renglón por renglón, con los nombres del portal. Letra grande: se compara con la venta. */
-function Revision({ borrador, ocupado, motivo, onMotivo, onAprobar, onRechazar }: {
-    borrador: Borrador; ocupado: string | null; motivo: string;
+function Revision({ borrador, ocupado, motivo, bloqueo, onMotivo, onAprobar, onRechazar }: {
+    borrador: Borrador; ocupado: string | null; motivo: string; bloqueo: string | null;
     onMotivo: (m: string) => void; onAprobar: () => void; onRechazar: () => void;
 }) {
     const e = borrador.resumenPortal?.etiquetas;
@@ -258,8 +258,11 @@ function Revision({ borrador, ocupado, motivo, onMotivo, onAprobar, onRechazar }
                 {fila('Código interno', plan?.codigoOptica ?? '—')}
                 {fila('Observación', plan?.observacion || '—')}
             </dl>
+            {bloqueo && (
+                <p className="text-xs font-bold text-rose-700 dark:text-rose-400 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {bloqueo} Rechazá este borrador (no se mandó nada).</p>
+            )}
             <div className="flex flex-wrap items-center gap-2">
-                <button type="button" disabled={ocupado !== null} onClick={onAprobar}
+                <button type="button" disabled={ocupado !== null || !!bloqueo} onClick={onAprobar}
                     className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-40">
                     {ocupado === `aprobar-${borrador.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Aprobar y cargar
                 </button>

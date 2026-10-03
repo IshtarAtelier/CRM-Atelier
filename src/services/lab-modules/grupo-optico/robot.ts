@@ -2,7 +2,7 @@ import type { Page } from 'playwright';
 import { API_BASE, clientIdSmartLab, NOMBRE_GRUPO_OPTICO, pedirJsonDesdeLaPagina, urlListadoApi } from './portal';
 import { elegirArticulo, TENIDO_TIPO, TIPO_ARO, type ArticuloPortal } from './catalogo';
 import type { OjoPlan, PlanDeCarga, ResueltoEnPortal } from './carga';
-import { numeroDeFila, parDelCodigo, type FilaApiSmartLab } from './pedidos';
+import { numeroDeFila, parDeFila, type FilaApiSmartLab } from './pedidos';
 import { hostDeLaBase } from '../../../lib/cron-scheduler';
 
 /**
@@ -143,40 +143,52 @@ export async function resolverEnPortal(page: Page, plan: PlanDeCarga): Promise<{
     };
 }
 
+/** Hay un pedido con el código de la venta y no se sabe de qué par es: no se adopta ni se crea otro. */
+export class PedidoAmbiguoError extends Error {
+    constructor(numero: string) {
+        super(`En el portal hay un pedido de esta venta (nº ${numero}) que no dice de qué par es (¿cargado a mano?): no se adopta ni se crea otro. Revisalo en el portal y cargá el nº en la venta; el par que falte se prepara después.`);
+        this.name = 'PedidoAmbiguoError';
+    }
+}
+
 /**
  * ¿Ya existe en el portal el pedido de ESTE par de ESTA venta? (Una carga que
- * se cortó después del POST, o uno cargado a mano con el favorito.) Se busca
- * por el código de la venta (#XXXX) en el "Código interno" y por el par que
- * dice ese mismo código; sin ventana de fecha, porque lo cargado a mano antes
- * también cuenta. Se descartan anulados y números que ya son de otro par. Puro.
+ * se cortó después del POST, o una a mano con el favorito.) Se busca por el
+ * código de la venta (#XXXX) en el "Código interno"; el par sale del código y
+ * si no, de la observación (`parDeFila`). Sin ventana de fecha: lo cargado a
+ * mano antes también cuenta. Se descartan anulados y nº de otro par. En una
+ * venta de varios pares, uno sin par marcado es AMBIGUO (auditoría 2, N1). Puro.
  */
-export function pedidoYaCreado(filas: FilaApiSmartLab[], codigoVenta: string, par: number | null, excluir: Set<string> = new Set()): string | null {
+export function pedidoYaCreado(filas: FilaApiSmartLab[], codigoVenta: string, par: number | null, excluir: Set<string> = new Set()): { numero: string; ambiguo: boolean } | null {
     const codigo = codigoVenta.toUpperCase().replace(/^#?/, '#');
-    const re = new RegExp(`(^|\\s)${codigo}(\\s|$)`, "i");
+    const re = new RegExp(`(^|\\s)${codigo}(\\s|$)`, 'i');
+    let ambiguo: string | null = null;
     for (const f of filas) {
-        const cod = String(f.CodigoOptica || '');
-        if (!re.test(cod)) continue;
+        if (!re.test(String(f.CodigoOptica || ''))) continue;
         if (String(f.Anulado ?? '0') === '1') continue;
         const num = numeroDeFila(f);
         if (!num || excluir.has(num)) continue;
-        const parDeEse = parDelCodigo(cod);
-        // Con varios pares, el código dice cuál; uno sin par marcado no se adopta para el 2º.
-        if (par !== null && parDeEse !== null && parDeEse !== par) continue;
-        if (par !== null && par > 1 && parDeEse === null) continue;
-        return num;
+        if (par === null) return { numero: num, ambiguo: false };
+        const parDeEse = parDeFila(f);
+        if (parDeEse === par) return { numero: num, ambiguo: false };
+        if (parDeEse === null && !ambiguo) ambiguo = num;
     }
-    return null;
+    return ambiguo ? { numero: ambiguo, ambiguo: true } : null;
 }
 
 export async function buscarPedidoYaCreado(page: Page, codigoVenta: string, par: number | null, excluir: Set<string> = new Set()): Promise<string | null> {
-    // Las dos primeras páginas (200 pedidos, de más nuevo a más viejo) cubren de sobra
-    // lo que pudo cargarse para una venta que todavía está esperando su pedido.
+    // Las dos primeras páginas (200 pedidos, de más nuevo a más viejo) cubren lo
+    // que pudo cargarse para una venta que todavía espera su pedido.
     for (let current = 1; current <= 2; current++) {
         const res = await pedirJsonDesdeLaPagina<{ rows?: FilaApiSmartLab[] }>(page, urlListadoApi(current));
-        const filas = Array.isArray(res?.rows) ? res.rows : [];
-        const n = pedidoYaCreado(filas, codigoVenta, par, excluir);
-        if (n) return n;
-        if (filas.length < 100) break;
+        // Una respuesta sin filas NO es "no existe": es la sesión o la API rota. Se corta.
+        if (!Array.isArray(res?.rows) || (current === 1 && res.rows.length === 0)) {
+            throw new Error(`${NOMBRE_GRUPO_OPTICO}: el listado del portal vino vacío o roto; no se puede comprobar si el pedido ya existe, así que no se crea nada.`);
+        }
+        const r = pedidoYaCreado(res.rows, codigoVenta, par, excluir);
+        if (r?.ambiguo) throw new PedidoAmbiguoError(r.numero);
+        if (r) return r.numero;
+        if (res.rows.length < 100) break;
     }
     return null;
 }

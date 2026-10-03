@@ -92,7 +92,7 @@ export async function conTurno<T>(
     lab: string,
     pasada: Pasada,
     tarea: () => Promise<T>,
-    opts: { esperar?: boolean; esperaMaxMs?: number } = {},
+    opts: { esperar?: boolean; esperaMaxMs?: number; obligatorio?: boolean } = {},
 ): Promise<T | { skipped: true; reason: string }> {
     let turno: string | null;
     try {
@@ -100,6 +100,9 @@ export async function conTurno<T>(
             ? await esperarTurno(lab, pasada, opts.esperaMaxMs ?? 8 * 60_000)
             : await tomarTurno(lab, pasada);
     } catch (err) {
+        // Lo que crea cosas en un portal (la carga de un pedido) NO corre sin
+        // turno: dos cargas a la vez son dos pedidos. Leer, sí: mejor datos que silencio.
+        if (opts.obligatorio) throw new Error(`No se pudo tomar el turno del portal de ${lab} (¿base caída?): no se carga nada sin turno. Reintentá en un rato.`);
         console.error(`[lab-modulos] No se pudo tomar el turno de ${lab} (se corre igual):`, err);
         turno = 'sin-turno';
     }
