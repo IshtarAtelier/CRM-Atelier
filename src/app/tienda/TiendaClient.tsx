@@ -106,6 +106,47 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void
   return null;
 }
 
+// ── Memoria de la lista para la vuelta atrás ──────────────────────────────
+//
+// Ishtar, 3/10/2026: "cuando salgo del producto me lleva arriba del todo en
+// vez de dejarme situado". Pasaba por dos cosas que el navegador no puede
+// arreglar solo: (1) /tienda?categoria=… llega del servidor con la vitrina
+// ENTERA y la grilla se recorta en el cliente (ver tienda/page.tsx), así que
+// al volver el contenido cambia debajo del visitante; (2) "Cargar más" vive
+// en estado de React y al volver arranca de nuevo en 24, con lo que el modelo
+// que estaba mirando ya no está en la página.
+//
+// Antes de abrir una ficha se guarda en sessionStorage la lista tal cual se
+// ve (productos, página, conteos) y la posición del scroll, con la URL como
+// clave. Al volver se restaura ESA lista sin volver a pedirla y recién
+// después se vuelve al mismo punto. sessionStorage muere con la pestaña:
+// nunca queda una lista vieja para otra visita.
+const CLAVE_MEMORIA_LISTA = 'tienda:lista';
+type MemoriaLista = {
+  url: string;
+  products: any[];
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  conteos: any;
+  scrollY: number;
+  guardadoEn: number;
+};
+function leerMemoriaLista(): MemoriaLista | null {
+  try {
+    const crudo = sessionStorage.getItem(CLAVE_MEMORIA_LISTA);
+    if (!crudo) return null;
+    const m = JSON.parse(crudo) as MemoriaLista;
+    if (m.url !== window.location.pathname + window.location.search) return null;
+    if (!Array.isArray(m.products) || !m.products.length) return null;
+    // Media hora: más que eso y el precio o el stock pueden haber cambiado.
+    if (Date.now() - m.guardadoEn > 30 * 60 * 1000) return null;
+    return m;
+  } catch {
+    return null;
+  }
+}
+
 export function TiendaClient({ 
   initialCategory = 'Todo',
   initialProducts,
@@ -333,11 +374,83 @@ export function TiendaClient({
   // sin este ref, el early-return dejaba la pestaña "Todo" mostrando solo
   // los productos del filtro anterior.
   const isFirstEffectRunRef = useRef(true);
+  /** URL (ruta + query) para la que ya se restauró la lista desde sessionStorage: ese fetch se saltea. */
+  const listaRestauradaParaRef = useRef<string | null>(null);
+  const [scrollARestaurar, setScrollARestaurar] = useState<number | null>(null);
+
+  // Al montar: si venimos de una ficha de esta misma lista, se repone la lista
+  // guardada y se marca la URL para que el efecto de carga no la pise.
+  useEffect(() => {
+    const m = leerMemoriaLista();
+    if (!m) return;
+    listaRestauradaParaRef.current = m.url;
+    setProducts(m.products);
+    setCurrentPage(m.currentPage);
+    setTotalPages(m.totalPages);
+    setTotalCount(m.totalCount);
+    setConteos(m.conteos ?? null);
+    setScrollARestaurar(m.scrollY);
+    sessionStorage.removeItem(CLAVE_MEMORIA_LISTA);
+  }, []);
+
+  // Volver al punto exacto, recién cuando la página ya es tan alta como para
+  // tenerlo (la grilla restaurada tarda un pintado en medir).
+  useEffect(() => {
+    if (scrollARestaurar === null) return;
+    let intentos = 0;
+    let cancelado = false;
+    const intentar = () => {
+      if (cancelado) return;
+      const alcanza = document.documentElement.scrollHeight - window.innerHeight >= scrollARestaurar - 2;
+      if (alcanza || intentos >= 30) {
+        window.scrollTo(0, scrollARestaurar);
+        setScrollARestaurar(null);
+        return;
+      }
+      intentos++;
+      requestAnimationFrame(intentar);
+    };
+    requestAnimationFrame(intentar);
+    return () => { cancelado = true; };
+  }, [scrollARestaurar, products.length]);
+
+  /** Antes de abrir una ficha: la lista como se ve y dónde estaba el scroll. */
+  const guardarMemoriaLista = () => {
+    try {
+      const m: MemoriaLista = {
+        url: window.location.pathname + window.location.search,
+        products,
+        currentPage,
+        totalPages,
+        totalCount,
+        conteos,
+        scrollY: window.scrollY,
+        guardadoEn: Date.now(),
+      };
+      sessionStorage.setItem(CLAVE_MEMORIA_LISTA, JSON.stringify(m));
+    } catch {
+      // Sin sessionStorage (modo privado estricto) se navega como antes.
+    }
+  };
+
   useEffect(() => {
     let active = true;
 
     const isFirstRun = isFirstEffectRunRef.current;
     isFirstEffectRunRef.current = false;
+
+    // Lista restaurada desde la memoria para ESTA URL: ya está en pantalla
+    // tal cual la dejó el visitante; pedirla de nuevo la reemplazaría por la
+    // página 1 y se perdería el lugar. Vale una sola vez: cualquier cambio de
+    // filtro posterior cambia la URL y vuelve a pedir normalmente.
+    if (listaRestauradaParaRef.current &&
+        listaRestauradaParaRef.current === window.location.pathname + window.location.search) {
+      listaRestauradaParaRef.current = null;
+      filtrosDelUltimoFetch.current = [activeCategory, filterBrand, filterShape,
+        filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax,
+        sortParam, searchQuery, currentPage].join('|');
+      return;
+    }
 
     // Check if it's the initial server load (page 1, no filters, not wholesale)
     const isFirstRenderWithInitialData =
@@ -855,6 +968,7 @@ export function TiendaClient({
                     key={p.id}
                     href={`/producto/${p.slug || p.id}`}
                     className="group block"
+                    onClick={guardarMemoriaLista}
                   >
                     {/* Imagen */}
                     <div className="bg-white aspect-square overflow-hidden mb-4 relative">

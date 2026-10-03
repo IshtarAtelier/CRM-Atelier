@@ -229,14 +229,19 @@ function describe(
         ? `${name}: armazón para lentes recetados con clip-on de sol magnético${polarizado ? ' de lentes polarizados' : ''}.`
         : `${name}: armazón para anteojos recetados.`;
 
+  // Cada dato con su etiqueta, como lo busca Google. El 3/10/2026 Merchant
+  // Center marcaba 73 fichas como "faltan Forma, Color, Material del marco"
+  // aunque la frase "Marco de forma cuadrada, color negro, material del marco
+  // titanio" ya los tenía: su lector espera "Forma: …", "Color: …",
+  // "Material del marco: …" como oraciones propias.
   const specs: string[] = [];
   // formaFemenina() ya devuelve la palabra como se escribe ("cuadrada", "XL"):
   // bajarla a minúsculas acá dejaba "forma xl".
   const forma = formaFemenina(shape);
-  if (forma) specs.push(`forma ${forma}`);
-  if (color) specs.push(`color ${color.toLowerCase()}`);
-  if (material) specs.push(`material del marco ${material.toLowerCase()}`);
-  const ficha = specs.length ? ` Marco de ${specs.join(', ')}.` : '';
+  if (forma) specs.push(`Forma: ${forma}.`);
+  if (color) specs.push(`Color: ${color.toLowerCase()}.`);
+  if (material) specs.push(`Material del marco: ${material.toLowerCase()}.`);
+  const ficha = specs.length ? ` ${specs.join(' ')}` : '';
 
   const uso =
     tipo === 'sol'
