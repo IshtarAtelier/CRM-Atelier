@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Bot, Check, X, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Bot, Check, X, Loader2, RefreshCw, AlertTriangle, Maximize2 } from 'lucide-react';
 import { formatDate } from '@/lib/format-date';
 
 /**
@@ -46,6 +46,8 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
     const [ejeDiagonal, setEjeDiagonal] = useState<Record<number, string>>({});
     const [variante, setVariante] = useState<Record<number, string>>({});
     const [motivo, setMotivo] = useState<Record<string, string>>({});
+    /** La captura del portal abierta a pantalla completa (null = cerrada). */
+    const [ampliada, setAmpliada] = useState<string | null>(null);
 
     const cargar = useCallback(async () => {
         setCargando(true); setError('');
@@ -209,9 +211,20 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
                                     <>
                                         <p className="text-[11px] text-stone-600 dark:text-stone-300">El pedido ya está en el portal como <strong>borrador sin confirmar</strong> (así lo muestra Vitolen). Revisá que coincida con la venta: <strong>Aprobar</strong> lo confirma, trae el nº de pedido y le avisa al cliente que su pedido fue procesado (como cuando se carga el nº a mano); <strong>Rechazar</strong> lo cancela en el portal.{b.error ? <> <span className="text-rose-700 dark:text-rose-400">{b.error}</span></> : null}{b.resumenPortal?.url ? <> Para corregir algo antes, <a href={b.resumenPortal.url} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> (Modificar).</> : null}</p>
                                         {b.screenshotUrl && (
-                                            <a href={b.screenshotUrl} target="_blank" rel="noreferrer" className="block">
-                                                <img src={b.screenshotUrl} alt="Resumen del borrador del pedido en el portal de Vitolen" className="w-full rounded-lg border border-stone-200" />
-                                            </a>
+                                            <div className="space-y-1">
+                                                {/* La captura es una página entera del portal: en la columna se ve
+                                                    chica. Un clic (o doble clic) la abre a pantalla completa para
+                                                    comprobar cada dato; el link la abre en otra pestaña. */}
+                                                <img src={b.screenshotUrl} alt="Resumen del borrador del pedido en el portal de Vitolen"
+                                                    onClick={() => setAmpliada(b.screenshotUrl)} onDoubleClick={() => setAmpliada(b.screenshotUrl)}
+                                                    className="w-full rounded-lg border border-stone-200 cursor-zoom-in hover:ring-2 hover:ring-red-400" />
+                                                <div className="flex items-center gap-3 text-[10px]">
+                                                    <button type="button" onClick={() => setAmpliada(b.screenshotUrl)} className="inline-flex items-center gap-1 font-black uppercase tracking-widest text-red-600 hover:underline">
+                                                        <Maximize2 className="w-3 h-3" /> Ver grande
+                                                    </button>
+                                                    <a href={b.screenshotUrl} target="_blank" rel="noreferrer" className="text-stone-500 underline">Abrir la captura en otra pestaña</a>
+                                                </div>
+                                            </div>
                                         )}
                                         {!!b.resumenPortal?.pendientes?.length && (
                                             <div className="text-[11px] text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
@@ -241,6 +254,19 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
             })}
 
             {error && <p className="mt-3 text-[11px] text-rose-600 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {error}</p>}
+
+            {/* La captura del portal a pantalla completa: se cierra con la X, con Esc o clickeando afuera. */}
+            {ampliada && (
+                <div role="dialog" aria-label="Captura del pedido en el portal de Vitolen" className="fixed inset-0 z-[200] bg-black/85 flex items-start justify-center p-4 overflow-auto cursor-zoom-out"
+                    onClick={() => setAmpliada(null)} onKeyDown={e => { if (e.key === 'Escape') setAmpliada(null); }} tabIndex={-1} ref={el => el?.focus()}>
+                    <button type="button" aria-label="Cerrar" onClick={() => setAmpliada(null)}
+                        className="fixed top-4 right-4 z-[201] inline-flex items-center gap-1 bg-white text-stone-900 text-[11px] font-black uppercase tracking-widest px-3 py-2 rounded-lg shadow">
+                        <X className="w-4 h-4" /> Cerrar
+                    </button>
+                    <img src={ampliada} alt="Captura del pedido en el portal de Vitolen, ampliada" onClick={e => e.stopPropagation()}
+                        className="max-w-[1400px] w-full h-auto rounded-lg shadow-2xl bg-white cursor-default" />
+                </div>
+            )}
         </div>
     );
 }
