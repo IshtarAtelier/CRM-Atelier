@@ -63,6 +63,21 @@ export async function pedirDesdeLaPagina(page: Page, ruta: string, accept = 'tex
     }, { url, accept });
 }
 
+/** GET de un archivo (PDF) con la sesión del navegador, como bytes. Viaja en base64 desde la página. */
+export async function pedirBytesDesdeLaPagina(page: Page, ruta: string): Promise<Buffer> {
+    const url = ruta.startsWith('http') ? ruta : `${BASE_VITOLEN}${ruta}`;
+    const r = await page.evaluate(async (u) => {
+        const res = await fetch(u, { credentials: 'include' });
+        if (!res.ok) return { status: res.status, b64: null as string | null };
+        const buf = new Uint8Array(await res.arrayBuffer());
+        let s = '';
+        for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + 0x8000)));
+        return { status: res.status, b64: btoa(s) };
+    }, url);
+    if (!r.b64) throw new Error(`El portal de ${NOMBRE_VITOLEN} respondió ${r.status} al pedir ${ruta}.`);
+    return Buffer.from(r.b64, 'base64');
+}
+
 export interface ListadoLeido {
     filas: FilaListado[];
     paginasLeidas: number;
@@ -117,7 +132,12 @@ export async function leerCuentaCorriente(page: Page, desde: Date): Promise<Cuen
         vistas.add(n);
         const r = await pedirDesdeLaPagina(page, urlCuentaCorriente(desde, null, n), 'text/html');
         if (r.status !== 200) throw new Error(`La cuenta corriente de ${NOMBRE_VITOLEN} respondió ${r.status} en la página ${n}.`);
-        if (!/id="movimientos"/.test(r.cuerpo)) throw new Error(`La cuenta corriente de ${NOMBRE_VITOLEN} (página ${n}) no trajo la tabla de movimientos.`);
+        if (!/id="movimientos"/.test(r.cuerpo)) {
+            // Sin movimientos en el período el portal no dibuja la tabla, pero sí
+            // el formulario de búsqueda; si tampoco está, es otra pantalla (login).
+            if (/q\[condicion_eq\]/.test(r.cuerpo)) break;
+            throw new Error(`La cuenta corriente de ${NOMBRE_VITOLEN} (página ${n}) no trajo la tabla de movimientos.`);
+        }
         movimientos.push(...parsearCuentaCorriente(r.cuerpo));
         const pag = leerPaginadorCuenta(r.cuerpo);
         if (pag.total !== null) total = pag.total;

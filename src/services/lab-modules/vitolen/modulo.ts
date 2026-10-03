@@ -3,8 +3,13 @@ import { LAB_ITEM_PATTERNS } from '../../lab-recon/types';
 import type { EstadoEnPortal, LabModule, OpcionesCorrida, ResultadoSeguimiento } from '../contrato';
 import { pedidosAtrasados, reflejar, ventasActivasDelLab, ventasSinPedidoEnPortal } from '../espejo';
 import { aplicarEstadoEnVenta } from '../estados';
-import { normalizarPedido, periodoDeListado } from './pedidos';
-import { conSesionVitolen, LAB_VITOLEN, leerListado, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './portal';
+import { LabCostReconciliationService } from '../../lab-cost-reconciliation.service';
+import { conTurno } from '../portal/turno';
+import { BASE_VITOLEN, normalizarPedido, periodoDeListado, type FilaListado } from './pedidos';
+import { conSesionVitolen, LAB_VITOLEN, leerCuentaCorriente, leerListado, NOMBRE_VITOLEN, pedirBytesDesdeLaPagina, ROBOT_VITOLEN } from './portal';
+import { facturasVigentes } from './cuenta-corriente';
+import { costoFacturadoDelPedido, parsearFacturasDelPedido } from './comprobantes';
+import { textoPorPagina } from './pdf';
 
 /**
  * EL MÓDULO DE VITOLEN. Seguimiento: una entrada al portal por corrida, el
@@ -65,12 +70,84 @@ async function seguirPedidos(opts: OpcionesCorrida = {}): Promise<ResultadoSegui
     };
 }
 
+/** Cuántos días hacia atrás mira la diaria de costos (como los 35 de Optovisión, con margen para facturas tardías). */
+const VENTANA_COSTOS_DIAS = 90;
+
+/**
+ * COSTOS: una entrada al portal; el listado del período, la cuenta corriente
+ * (para saber qué facturas anuló una nota de crédito) y, por cada pedido, el
+ * PDF con TODAS sus facturas (`facturacion_automatica.pdf?codigo=…`). Cada
+ * pedido se registra en el cruce con la suma de sus facturas vigentes; sin
+ * facturas queda "esperando factura". Lo dispara la diaria de las 8:30 vía
+ * LAB_PROVIDERS, con el turno del portal (no pisa un seguimiento en curso).
+ */
+async function recolectarCostos(opts: OpcionesCorrida = {}): Promise<Record<string, unknown>> {
+    const ahora = new Date();
+    const periodo = periodoDeListado(opts.sinceDays ?? VENTANA_COSTOS_DIAS);
+    const desdeCuenta = new Date(ahora.getTime() - (opts.sinceDays ?? VENTANA_COSTOS_DIAS) * 86400000);
+
+    const corrida = await conTurno(LAB_VITOLEN, 'completa', async () => conSesionVitolen(async (page) => {
+        const listado = await leerListado(page, periodo);
+        const cuenta = await leerCuentaCorriente(page, desdeCuenta);
+        const vigentes = new Set(facturasVigentes(cuenta.movimientos).map(f => f.comprobante));
+        const anuladas = new Set(cuenta.movimientos.filter(m => m.tipo === 'FA' && !vigentes.has(m.comprobante)).map(m => m.comprobante));
+
+        const pedidos: { fila: FilaListado; paginas: string[] | null; error?: string }[] = [];
+        for (const fila of listado.filas) {
+            if (!fila.pdfFactura) { pedidos.push({ fila, paginas: null, error: 'sin link de factura' }); continue; }
+            try {
+                const bytes = await pedirBytesDesdeLaPagina(page, fila.pdfFactura);
+                pedidos.push({ fila, paginas: await textoPorPagina(bytes) });
+            } catch (err: any) {
+                pedidos.push({ fila, paginas: null, error: err?.message || String(err) });
+            }
+        }
+        return { listado, anuladas, pedidos };
+    }), { esperar: opts.esperarTurno });
+    if ('skipped' in corrida) return { skipped: true, reason: corrida.reason };
+    const { listado, anuladas, pedidos } = corrida;
+
+    let conFactura = 0, sinFactura = 0, registrados = 0;
+    const errores: string[] = [];
+    const descartadas: string[] = [];
+    for (const p of pedidos) {
+        const numero = p.fila.numero.trim();
+        if (!numero) continue;
+        if (p.error) errores.push(`${numero}: ${p.error}`);
+        const facturas = p.paginas ? parsearFacturasDelPedido(p.paginas) : [];
+        const costo = costoFacturadoDelPedido(numero, facturas, anuladas, p.fila.pdfFactura ? `${BASE_VITOLEN}${p.fila.pdfFactura}` : null);
+        descartadas.push(...costo.descartadas.map(d => `${numero}: ${d}`));
+        const tieneImporte = costo.billedTotal !== null;
+        if (tieneImporte) conFactura++; else sinFactura++;
+        const entrada = await LabCostReconciliationService.upsertEntry({
+            lab: LAB_VITOLEN,
+            labOrderNumber: numero,
+            billedNet: tieneImporte ? costo.billedNet : null,
+            billedTotal: tieneImporte ? costo.billedTotal : null,
+            source: 'SCRAPER',
+            sourceFile: p.fila.pdfFactura ? `facturacion_automatica.pdf?codigo=${p.fila.codigoFactura}` : null,
+            invoiceDate: costo.invoiceDate ?? undefined,
+            invoiceRefs: tieneImporte ? costo.invoiceRefs : undefined,
+            notes: [
+                p.fila.nroCaso ? `Caso: ${p.fila.nroCaso}` : null,
+                p.fila.estado ? `Estado en el portal: ${p.fila.estado}` : null,
+                facturas.some(f => !f.lineasCompletas) ? 'Alguna línea del PDF no se pudo leer entera (los importes salen de los totales).' : null,
+            ].filter(Boolean).join(' · ') || null,
+        });
+        if (entrada) registrados++;
+    }
+    if (listado.total !== null && listado.total > pedidos.length) {
+        errores.push(`el portal dice ${listado.total} pedidos y se leyeron ${pedidos.length}`);
+    }
+    return { pedidos: pedidos.length, registrados, conFactura, sinFactura, anuladas: anuladas.size, descartadas, errores, error: errores.length ? errores.join(' | ') : undefined };
+}
+
 export const MODULO_VITOLEN: LabModule = {
     clave: LAB_VITOLEN,
     nombre: NOMBRE_VITOLEN,
     patronProducto: PATRON_VITOLEN,
-    capacidades: { seguimiento: true, costos: false, carga: false },
+    capacidades: { seguimiento: true, costos: true, carga: true },
     cadenciaRapidaMin: 30,
     seguirPedidos,
-    recolectarCostos: async () => ({ skipped: true, reason: 'los costos de Vitolen llegan en la etapa 4 (docs/lab-modulos.md)' }),
+    recolectarCostos,
 };

@@ -160,6 +160,13 @@ export function costoPorLaboratorioDeVenta(order: any): Map<string, number> {
 const REWORK_MARK = '⚠️ REPROCESO DE GARANTÍA FACTURADO CON CARGO';
 
 /**
+ * Laboratorios que emiten Factura A con IVA discriminado: Atelier es
+ * monotributo y no recupera ese IVA, así que su costo real es el TOTAL.
+ * Grupo Óptico factura a consumidor final (neto = total) y no está acá.
+ */
+export const LABS_FACTURA_A = new Set(['OPTOVISION', 'LA_CAMARA', 'VITOLEN']);
+
+/**
  * La config del laboratorio (calibrado e IVA) para valuar el par bonificado de
  * un 2x1. El nombre no coincide entre las dos puntas: acá el lab se llama
  * 'GRUPO_OPTICO' con guión bajo (LabCostEntry.lab) y en LaboratoryConfig es
@@ -315,8 +322,11 @@ export async function upsertEntry(input: LabCostInput) {
     // Comparable por laboratorio: Optovision discrimina IVA y Atelier es
     // monotributo (no lo recupera) → el costo real es el TOTAL c/IVA.
     // Grupo Óptico factura a consumidor final → neto y total coinciden.
-    // La Cámara emite Factura A (IVA discriminado), mismo caso que Optovisión.
-    const billedComparable = input.lab === 'OPTOVISION' || input.lab === 'LA_CAMARA'
+    // La Cámara y Vitolen emiten Factura A (IVA discriminado), mismo caso que
+    // Optovisión. La misma regla vale para los hermanos de la venta (abajo):
+    // hasta el 3/10/2026 ahí solo entraba Optovisión y La Cámara sumaba neto.
+    const comparaTotal = LABS_FACTURA_A.has(String(input.lab));
+    const billedComparable = comparaTotal
         ? (billedTotal ?? billedNet ?? null)
         : (billedNet ?? billedTotal ?? null);
     // El calibrado real del lab viaja con la orden: systemCostForLab es sync y
@@ -346,7 +356,7 @@ export async function upsertEntry(input: LabCostInput) {
     // que comparten orderId no cuentan como pedidos de la venta). Y cuántos
     // pedidos de la venta ya tienen factura, para saber si está completa.
     const billedForLab = (e: { billedNet: number | null; billedTotal: number | null }) =>
-        input.lab === 'OPTOVISION' ? (e.billedTotal ?? e.billedNet ?? null) : (e.billedNet ?? e.billedTotal ?? null);
+        comparaTotal ? (e.billedTotal ?? e.billedNet ?? null) : (e.billedNet ?? e.billedTotal ?? null);
     let saleBilled = billedComparable;
     let facturadosEnVenta = billedComparable !== null ? 1 : 0;
     // Lo facturado por CADA pedido de la venta (este y sus hermanos): la regla

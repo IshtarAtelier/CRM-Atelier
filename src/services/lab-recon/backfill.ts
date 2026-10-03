@@ -18,7 +18,7 @@ import { prisma } from '../../lib/db';
  * SUMAR UN LABORATORIO = agregarlo a BACKFILL_LABS y su primer barrido entra
  * solo, en silencio, sin tocar nada más.
  */
-export const BACKFILL_LABS = ['OPTOVISION', 'GRUPO_OPTICO'] as const;
+export const BACKFILL_LABS = ['OPTOVISION', 'GRUPO_OPTICO', 'VITOLEN'] as const;
 
 export function backfillKey(lab: string) {
     return `lab_recon_backfill_done:${lab}`;

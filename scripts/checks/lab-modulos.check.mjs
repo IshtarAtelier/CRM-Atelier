@@ -28,6 +28,8 @@ import { estadoDe } from '../../src/services/lab-modules/vitolen/estados.ts';
 import { materialDelPortal, disenoDelPortal, colorDe } from '../../src/services/lab-modules/vitolen/materiales.ts';
 import { DISENOS_PORTAL } from '../../src/services/lab-modules/vitolen/portal-materiales.ts';
 import { parsearCuentaCorriente, leerPaginadorCuenta, importeArgentino, facturasVigentes, urlCuentaCorriente, tipoDeComprobante } from '../../src/services/lab-modules/vitolen/cuenta-corriente.ts';
+import { parsearFacturaVitolen, parsearFacturasDelPedido, pedidoDeCodigo, codigoDePedido, costoFacturadoDelPedido } from '../../src/services/lab-modules/vitolen/comprobantes.ts';
+import { LABS_FACTURA_A } from '../../src/services/lab-recon/cost-matching.ts';
 import { extraerHtmlDeRespuestaJs, parsearListado, leerPaginador, fechaArgentina, normalizarPedido, periodoDeListado, urlListado } from '../../src/services/lab-modules/vitolen/pedidos.ts';
 import { labKeyDeNombre } from '../../src/services/lab-recon/types.ts';
 import { armarCatalogo } from '../maintenance/precios-vitolen/generar-catalogo-ts.mjs';
@@ -554,6 +556,85 @@ ok('la URL de la cuenta corriente pide "Todos" desde la fecha, en las dos cuenta
     const u = urlCuentaCorriente(new Date(2024, 0, 1));
     assert.ok(u.startsWith('/contabilidad/movimientos?utf8=%E2%9C%93&q%5Bcondicion_eq%5D=&q%5Bdesde%5D=01%2F01%2F2024&q%5Bhasta%5D=&q%5Bcuentas_ids%5D=12019%2C12020&q%5Bcuentas_ids_mode%5D=include&commit=Buscar'), u);
     assert.ok(urlCuentaCorriente(new Date(2024, 0, 1), null, 2).endsWith('&page=2'));
+});
+
+console.log('\n— Vitolen: las facturas de un pedido (PDF) —');
+// Texto REAL de una página del PDF facturacion_automatica.pdf del pedido
+// 6981382L tal como lo entrega pdf2json (3/10/2026): el orden es el inverso
+// al visual, con \r\n. El parser ancla por etiqueta, no por posición.
+const PAGINA_FACTURA = [
+    'Tribunales de la Provincia de Santa Fe, en la ciudad de Rafaela, renunciando a otros fueros inclusive el federal.',
+    'TOTAL  $44.986,59',
+    'Comprobante Autorizado',
+    'IVA 21,0%  $7.807,59',
+    'Gravado 21.0%  $37.179,00',
+    'Vencimiento CAEA31/10/2024',
+    'TOTALES',
+    '(1) 24093IC05000715S ESTADOS UNIDOS',
+    '00000001 Recargo Operativo                             2 21,0%  $364,50  $729,00',
+    '00005150 Descuento L241 - 25% Amplitude Dual Blue Stock Rango Extendido       2 21,0% -$6.075,00 -$12.150,00',
+    '209168521 Amplitude HD Dual Blue Stock Rango Extendido | Esf -7.00, Cil +2.50, Eje 90(1)  2 21,0% $24.300,00 $48.600,00',
+    'CÓDIGO                     DESCRIPCIÓN                   CANT. IVA PRECIO UNIT. PRECIO TOTAL',
+    'VENCIMIENTO CBTE 25/10/2024                               CONDICIÓN DE VTA Cuenta Corriente',
+    'RAZÓN SOCIAL   PISSANO ISHTAR                             REMITO/CASO Nº  Burban Nahuel -',
+    'SEÑOR(ES)    ATELIER OPTICA- CORDOBA                        CUENTA      11302',
+    'Código 01',
+    '698138200',
+    'Ing. Brutos (C.M.): 92130521189203',
+    'CUIT: 30-52118920-3',
+    'Fecha de Emisión: 18/10/2024',
+    'A',
+    'Factura',
+    'INNER - CORDOBA 17:00hs, COR - T2Nº 0067-01243373',
+].join('\r\n');
+const PAGINA_CALIBRADO = PAGINA_FACTURA
+    .replace('Nº 0067-01243373', 'Nº 0032-00179696').replace('Fecha de Emisión: 18/10/2024', 'Fecha de Emisión: 21/10/2024')
+    .replace('TOTAL  $44.986,59', 'TOTAL   $5.183,64').replace('Gravado 21.0%  $37.179,00', 'Gravado 21.0%  $4.284,00').replace('IVA 21,0%  $7.807,59', 'IVA 21,0%   $899,64')
+    .replace(/^00000001 .*$/m, '00000001 Recargo Operativo   2 21,0%  $42,00  $84,00')
+    .replace(/^00005150 .*$/m, '98009724 Descuento L241 - 30% Calibrados Stock   2 21,0%  -$900,00  -$1.800,00')
+    .replace(/^209168521 .*$/m, '00007062 Calib. MonoStockOtrosMat   2 21,0%  $3.000,00  $6.000,00');
+ok('una página del PDF es una factura: nº, fecha, código y nº de pedido, caso, líneas y totales', () => {
+    const f = parsearFacturaVitolen(PAGINA_FACTURA);
+    assert.equal(f.tipo, 'FA');
+    assert.equal(f.numero, '0067-01243373');
+    assert.equal(f.fecha.toISOString(), '2024-10-18T03:00:00.000Z');
+    assert.equal(f.codigoPedido, '698138200');
+    assert.equal(f.pedido, '6981382L');
+    assert.equal(f.caso, 'Burban Nahuel -');
+    assert.deepEqual(f.lineas.map(l => [l.codigo, l.cantidad, l.unitario, l.total]), [['00000001', 2, 364.5, 729], ['00005150', 2, -6075, -12150], ['209168521', 2, 24300, 48600]]);
+    assert.equal(f.lineas[2].descripcion, 'Amplitude HD Dual Blue Stock Rango Extendido | Esf -7.00, Cil +2.50, Eje 90');
+    assert.deepEqual([f.gravado, f.iva, f.total, f.lineasCompletas], [37179, 7807.59, 44986.59, true]);
+    assert.equal(parsearFacturaVitolen('Las partes pactan que …'), null);
+});
+ok('el código del PDF es el nº de trabajo sin la L y con 00; y al revés', () => {
+    assert.equal(pedidoDeCodigo('698138200'), '6981382L');
+    assert.equal(pedidoDeCodigo('682240800'), '6822408L');
+    assert.equal(pedidoDeCodigo('12'), null);
+    assert.equal(codigoDePedido('6981382L'), '698138200');
+    assert.equal(codigoDePedido('6981382'), '698138200');
+});
+ok('el pedido cuesta la suma de sus facturas vigentes: cristales + calibrado, con IVA', () => {
+    const facturas = parsearFacturasDelPedido([PAGINA_FACTURA, PAGINA_CALIBRADO, 'página sin comprobante']);
+    assert.equal(facturas.length, 2);
+    const c = costoFacturadoDelPedido('6981382L', facturas, new Set(), 'https://x/f.pdf');
+    assert.equal(c.billedNet, 41463);
+    assert.equal(Math.round(c.billedTotal * 100) / 100, 50170.23);
+    assert.equal(c.invoiceDate.toISOString(), '2024-10-18T03:00:00.000Z');
+    assert.deepEqual(c.invoiceRefs.map(r => [r.comprobante, r.importe, r.tipo]), [['0067-01243373', 44986.59, 'factura'], ['0032-00179696', 5183.64, 'factura']]);
+    assert.deepEqual(c.descartadas, []);
+});
+ok('una factura anulada por nota de crédito, o de otro pedido, no suma y se dice', () => {
+    const facturas = parsearFacturasDelPedido([PAGINA_FACTURA, PAGINA_CALIBRADO]);
+    const anulada = costoFacturadoDelPedido('6981382L', facturas, new Set(['FA 0032-00179696']), null);
+    assert.equal(anulada.billedTotal, 44986.59);
+    assert.deepEqual(anulada.descartadas, ['FA 0032-00179696 anulada por nota de crédito']);
+    const ajena = costoFacturadoDelPedido('7000000L', facturas, new Set(), null);
+    assert.equal(ajena.billedTotal, null);
+    assert.equal(ajena.descartadas.length, 2);
+});
+ok('Vitolen compara el TOTAL con IVA, como Optovisión y La Cámara (Factura A, monotributo)', () => {
+    assert.ok(LABS_FACTURA_A.has('VITOLEN') && LABS_FACTURA_A.has('OPTOVISION') && LABS_FACTURA_A.has('LA_CAMARA'));
+    assert.ok(!LABS_FACTURA_A.has('GRUPO_OPTICO'));
 });
 
 console.log(fallas === 0 ? '\n✅ Marco de módulos de laboratorio: todo en orden.\n' : `\n❌ ${fallas} falla(s).\n`);
