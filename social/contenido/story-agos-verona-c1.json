@@ -1,0 +1,39 @@
+{
+  "id": "story-agos-verona-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Verona",
+    "color": "C1",
+    "familia": "clip"
+  },
+  "caption": "Verona C1 · Cápsula Escarlata",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "sinclip",
+      "image": "social/story-agos-verona-c1/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-agos-verona-c1/02.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-verona-c1/03.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "anteojo",
+      "image": "social/story-agos-verona-c1/04.jpg"
+    }
+  ]
+}
