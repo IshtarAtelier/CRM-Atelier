@@ -22,6 +22,8 @@ import { transicionValida, borradorVivo, puedeAprobar } from '../../src/services
 import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
+import { estadoDe } from '../../src/services/lab-modules/vitolen/estados.ts';
+import { extraerHtmlDeRespuestaJs, parsearListado, leerPaginador, fechaArgentina, normalizarPedido, periodoDeListado, urlListado } from '../../src/services/lab-modules/vitolen/pedidos.ts';
 import { labKeyDeNombre } from '../../src/services/lab-recon/types.ts';
 import { armarCatalogo } from '../maintenance/precios-vitolen/generar-catalogo-ts.mjs';
 import { leerLista } from '../maintenance/precios-vitolen/subir-catalogo-vitolen.mjs';
@@ -154,9 +156,17 @@ ok('atrasado = fecha estimada vencida y sin terminar', () => {
         { portalNumber: 'b', cliente: null, status: 'TERMINADO', estimatedAt: hace(3 * 86400000) },
         { portalNumber: 'c', cliente: null, status: 'EN_PROCESO', estimatedAt: en(86400000) },
         { portalNumber: 'd', cliente: null, status: 'EN_PROCESO', estimatedAt: null },
+        { portalNumber: 'viejo', cliente: null, status: 'INGRESADO', estimatedAt: hace(779 * 86400000) },
     ], ahora);
     assert.deepEqual(r.map(x => x.portalNumber), ['a']);
     assert.equal(r[0].diasDeAtraso, 3);
+});
+ok('un atraso de más de 30 días es historia, no aviso (los pedidos de Vitolen de 2024)', () => {
+    const r = pedidosAtrasados([
+        { portalNumber: 'limite', cliente: null, status: 'EN_PROCESO', estimatedAt: hace(30 * 86400000) },
+        { portalNumber: 'fuera', cliente: null, status: 'EN_PROCESO', estimatedAt: hace(31 * 86400000) },
+    ], ahora);
+    assert.deepEqual(r.map(x => x.portalNumber), ['limite']);
 });
 
 console.log('\n— Carga asistida: el OK es humano —');
@@ -303,6 +313,89 @@ ok('cobrado de más solo por encima del 5 % de tolerancia', () => {
     assert.equal(segundoParCobradoDeMas(137000, 131406), false);
     assert.equal(segundoParCobradoDeMas(140000, 131406), true);
     assert.equal(segundoParCobradoDeMas(545710, 131406), true);
+});
+
+console.log('\n— Vitolen: estados del portal —');
+ok('la barra del detalle, en orden: Confirmación → En Proceso → Tránsito a OF → En Oficina → Despachado', () => {
+    assert.equal(estadoDe('Confirmación'), 'INGRESADO');
+    assert.equal(estadoDe('  En Proceso\n'), 'EN_PROCESO');
+    assert.equal(estadoDe('Tránsito a OF'), 'EN_PROCESO');
+    assert.equal(estadoDe('En Oficina'), 'TERMINADO');
+    assert.equal(estadoDe('Despachado'), 'DESPACHADO');
+});
+ok('un estado que no conoce no se afirma; un anulado no frena a los demás', () => {
+    assert.equal(estadoDe('Demorado'), 'DESCONOCIDO');
+    assert.equal(estadoDe(''), 'DESCONOCIDO');
+    assert.equal(estadoDe(null), 'DESCONOCIDO');
+    assert.equal(estadoDe('Anulado'), 'ANULADO');
+});
+
+console.log('\n— Vitolen: lectura del listado —');
+// Respuesta real del portal (3/10/2026), recortada a dos pedidos.
+const RESPUESTA_JS = String.raw`$("#pedidos-container").html("  \n<table class=\"datatable kb-table\" id=\"pedidos\"><thead><tr><th class=\"nro_trabajo right\">#<\/th><\/tr><\/thead><tbody><tr class=\"kb-row\" id=\"pedido_laboratorio_8669159\"><td class=\"nro_trabajo right\"><a href=\"/ventas/pedidos_laboratorio/8669159\">6981382L<\/a><\/td><td class=\"fecha\">18/10/2024 14:24<\/td><td class=\"nro_caso\">Burban Nahuel - padre Juan carlos<\/td><td class=\"estado\">        Despachado\n<\/td><td class=\"frd center\">22/10/2024<\/td><td class=\"actions\"><div class=\"actions \"><a class=\"silentprint\" href=\"/ventas/pedidos_laboratorio/8669159.pdf\">Imprimir<\/a> | <a class=\"silentprint\" href=\"/ventas/facturacion_automatica.pdf?codigo=698138200\">Factura<\/a><\/div><\/td><\/tr><tr class=\"kb-row\" id=\"pedido_laboratorio_8469745\"><td class=\"nro_trabajo right\"><a href=\"/ventas/pedidos_laboratorio/8469745\">6822439L<\/a><\/td><td class=\"fecha\">26/07/2024 13:35<\/td><td class=\"nro_caso\">Tarcisio Granadillo Martinez 2do par<\/td><td class=\"estado\">        Confirmación\n<\/td><td class=\"frd center\">15/08/2024<\/td><td class=\"actions\"><div class=\"actions \"><a class=\"silentprint\" href=\"/ventas/pedidos_laboratorio/8469745.pdf\">Imprimir<\/a> | <a class=\"silentprint\" href=\"/ventas/facturacion_automatica.pdf?codigo=682243900\">Factura<\/a><\/div><\/td><\/tr><\/tbody><\/table>\n\n  <div class=\"paginator apple_pagination ajax\">\n    Mostrando registros <b>1&nbsp;-&nbsp;2<\/b> de <b>2<\/b> en total\n    \n  <\/div>\n");
+$(":input:focus").select();
+$('.export-link').attr('href', "/ventas/pedidos?format=xlsx&amp;q%5Bcargado_en_periodo%5D=all_history");`;
+ok('de la respuesta JS sale el HTML de la tabla, sin los escapes de Rails', () => {
+    const html = extraerHtmlDeRespuestaJs(RESPUESTA_JS);
+    assert.ok(html.includes('<table class="datatable kb-table" id="pedidos">'));
+    assert.ok(html.includes('</td>'));
+    assert.equal(extraerHtmlDeRespuestaJs('$("#flash-container").html("");'), null);
+});
+ok('cada fila trae nº de trabajo, fecha, caso, estado, despacho estimado y los dos PDFs', () => {
+    const filas = parsearListado(extraerHtmlDeRespuestaJs(RESPUESTA_JS));
+    assert.equal(filas.length, 2);
+    assert.deepEqual(filas[0], {
+        id: '8669159', numero: '6981382L', fecha: '18/10/2024 14:24', nroCaso: 'Burban Nahuel - padre Juan carlos',
+        estado: 'Despachado', despachoEstimado: '22/10/2024',
+        pdfPedido: '/ventas/pedidos_laboratorio/8669159.pdf',
+        pdfFactura: '/ventas/facturacion_automatica.pdf?codigo=698138200', codigoFactura: '698138200',
+    });
+    assert.equal(filas[1].estado, 'Confirmación');
+});
+ok('el paginador dice cuántos hay en total y qué páginas faltan', () => {
+    const pag = leerPaginador(extraerHtmlDeRespuestaJs(RESPUESTA_JS));
+    assert.deepEqual(pag, { desde: 1, hasta: 2, total: 2, paginas: [] });
+    const conPaginas = leerPaginador('<div class="paginator apple_pagination ajax"> Mostrando registros <b>1&nbsp;-&nbsp;25</b> de <b>60</b> en total <a href="/ventas/pedidos?page=2&amp;q=1">2</a> <a href="/ventas/pedidos?page=3">3</a> <a href="/ventas/pedidos?page=2">›</a></div>');
+    assert.deepEqual(conPaginas, { desde: 1, hasta: 25, total: 60, paginas: [2, 3] });
+});
+ok('las fechas del portal son hora de Argentina (−03:00)', () => {
+    assert.equal(fechaArgentina('18/10/2024 14:24').toISOString(), '2024-10-18T17:24:00.000Z');
+    assert.equal(fechaArgentina('22/10/2024').toISOString(), '2024-10-22T03:00:00.000Z');
+    assert.equal(fechaArgentina(''), null);
+    assert.equal(fechaArgentina('Martes 22 de Octubre'), null);
+});
+ok('el pedido normalizado: nº, caso como referencia y cliente, estado, fechas, segundo par', () => {
+    const [p1, p2] = parsearListado(extraerHtmlDeRespuestaJs(RESPUESTA_JS)).map(normalizarPedido);
+    assert.equal(p1.portalNumber, '6981382L');
+    assert.equal(p1.internalRef, 'Burban Nahuel - padre Juan carlos');
+    assert.equal(p1.cliente, p1.internalRef);
+    assert.equal(p1.status, 'DESPACHADO');
+    assert.equal(p1.statusRaw, 'Despachado');
+    assert.equal(p1.pair, null);
+    assert.equal(p1.enteredAt.toISOString(), '2024-10-18T17:24:00.000Z');
+    assert.equal(p1.estimatedAt.toISOString(), '2024-10-22T03:00:00.000Z');
+    assert.equal(p1.raw.pdfFactura, 'https://gestion.vitolen.com/ventas/facturacion_automatica.pdf?codigo=698138200');
+    assert.equal(p2.pair, 2);
+    assert.equal(p2.status, 'INGRESADO');
+});
+ok('un caso vacío no inventa referencia ni cliente', () => {
+    const p = normalizarPedido({ id: '1', numero: '1L', fecha: '', nroCaso: '  ', estado: 'Despachado', despachoEstimado: '', pdfPedido: null, pdfFactura: null, codigoFactura: null });
+    assert.equal(p.internalRef, null);
+    assert.equal(p.cliente, null);
+    assert.equal(p.enteredAt, null);
+});
+ok('el pase rápido pide 30 días; la pasada completa, todo el historial', () => {
+    assert.equal(periodoDeListado(21), 'last_30_days');
+    assert.equal(periodoDeListado(60), 'last_90_days');
+    assert.equal(periodoDeListado(undefined), 'all_history');
+    assert.equal(periodoDeListado(400), 'all_history');
+    assert.equal(urlListado('all_history'), '/ventas/pedidos?utf8=%E2%9C%93&q%5Bcargado_en_periodo%5D=all_history&q%5Bvista%5D=lista&commit=Buscar');
+    assert.ok(urlListado('last_30_days', 2).endsWith('&page=2'));
+});
+ok('el pedido del portal se vincula a la venta por el código corto que el vendedor carga como caso', () => {
+    const fila = { id: '9', numero: '7000001L', fecha: '01/10/2026 10:00', nroCaso: '#s3ep', estado: 'Confirmación', despachoEstimado: '08/10/2026', pdfPedido: null, pdfFactura: null, codigoFactura: null };
+    const venta = ventaDelPedido(normalizarPedido(fila), [{ id: 'cmupti2m00005bva8sqrls3ep', labOrderNumber: null, postSaleNumbers: [], clientName: 'Prueba' }]);
+    assert.equal(venta?.id, 'cmupti2m00005bva8sqrls3ep');
 });
 
 console.log(fallas === 0 ? '\n✅ Marco de módulos de laboratorio: todo en orden.\n' : `\n❌ ${fallas} falla(s).\n`);

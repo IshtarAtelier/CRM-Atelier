@@ -156,15 +156,26 @@ export function ventasSinPedidoEnPortal(
         .filter(v => v.enviadaHace >= graciaDias);
 }
 
-/** Pedidos con fecha estimada vencida que no terminaron. Puro. */
+/**
+ * Pedidos con fecha estimada vencida que no terminaron. Puro.
+ *
+ * Con ventana: un atraso de más de `ventanaDias` ya no es algo para reclamar
+ * hoy, es historia (los dos pedidos de Vitolen de 2024 clavados en
+ * "Confirmación" habrían salido en el aviso con 779 días). Misma regla que el
+ * cruce de costos: los avisos miran 30 días y lo viejo no se repite.
+ */
+export const VENTANA_ATRASOS_DIAS = 30;
+
 export function pedidosAtrasados(
     pedidos: { portalNumber: string; cliente: string | null; status: EstadoEnPortal; estimatedAt: Date | null }[],
     ahora: Date,
+    ventanaDias = VENTANA_ATRASOS_DIAS,
 ): { portalNumber: string; cliente: string | null; estimatedAt: Date; diasDeAtraso: number }[] {
     return pedidos
         .filter(p => p.estimatedAt && p.estimatedAt < ahora && !['TERMINADO', 'DESPACHADO', 'ANULADO'].includes(p.status))
         .map(p => ({
             portalNumber: p.portalNumber, cliente: p.cliente, estimatedAt: p.estimatedAt!,
             diasDeAtraso: Math.floor((ahora.getTime() - p.estimatedAt!.getTime()) / 86400000),
-        }));
+        }))
+        .filter(p => p.diasDeAtraso <= ventanaDias);
 }

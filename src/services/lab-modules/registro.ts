@@ -1,13 +1,11 @@
 import type { LabModule } from './contrato';
+import { MODULO_VITOLEN } from './vitolen/modulo';
 
 /**
  * Los módulos activos. Sumar un laboratorio = agregar su módulo acá; el cron,
  * el espejo, la salud y las pantallas lo toman solos.
- *
- * Vitolen se registra cuando su módulo (lab-modules/vitolen) exista: primero
- * hay que relevar su portal (docs/vitolen-pedidos-y-promos.md).
  */
-export const REGISTRO_MODULOS: LabModule[] = [];
+export const REGISTRO_MODULOS: LabModule[] = [MODULO_VITOLEN];
 
 export function moduloPorClave(clave: string | null | undefined): LabModule | null {
     const k = String(clave || '').trim().toUpperCase();

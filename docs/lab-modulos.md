@@ -38,8 +38,12 @@ con el nombre `Robot <laboratorio>`.
 
 ## Vitolen
 
-- Portal: `gestion.vitolen.com`. Credenciales: `VITOLEN_USER` / `VITOLEN_PASSWORD` (Railway y `.env`; nunca en el código).
+- Portal: `gestion.vitolen.com`. Credenciales: `VITOLEN_USER` / `VITOLEN_PASSWORD` (Railway y `.env`; nunca en el código). Sin ellas el módulo avisa en el acto como si la clave estuviera rechazada.
+- **Todo lo que el robot sabe del portal** (login, listado y sus filtros, estados reales, detalle, cuenta corriente, nombres de los campos del formulario, ids de diseños y materiales): `docs/vitolen-portal.md`. Si el portal cambia, primero se corrige ahí.
 - Cómo se carga un pedido a mano y las promos: `docs/vitolen-pedidos-y-promos.md`.
+- Módulo (`lab-modules/vitolen/`): `portal.ts` (sesión; las páginas se piden desde adentro del navegador porque el certificado viene sin la cadena intermedia), `pedidos.ts` (parseo puro del listado JS), `estados.ts` (Confirmación → INGRESADO, En Proceso / Tránsito a OF → EN_PROCESO, En Oficina → TERMINADO, Despachado → DESPACHADO), `modulo.ts` (seguimiento; costos y carga apagados hasta su etapa).
+- Ensayado el 3/10/2026 contra el portal real con la base local: 7 pedidos históricos de 2024 al espejo, ninguno vinculado, ninguna venta tocada; pase rápido 3 s, completa 4 s.
+- Vitolen **no está en `BACKFILL_LABS`** a propósito: `isQuietLab()` silencia a todo lab de esa lista hasta que su proveedor de costos corra bien una vez, y el proveedor de Vitolen todavía no existe. Entra con la etapa de costos.
 - Catálogo con códigos del portal: `lab-modules/vitolen/catalogo.ts`, GENERADO desde la lista L96 con `node scripts/maintenance/precios-vitolen/generar-catalogo-ts.mjs`. No se edita a mano.
 - El vendedor pone el **código corto de la venta** (`#A1B2`, el que muestra el CRM) en "Nro de Caso Interno" del portal: es lo que permite vincular sin tipear el nº de pedido.
 

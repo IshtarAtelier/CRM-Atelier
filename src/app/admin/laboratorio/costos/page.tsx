@@ -199,8 +199,9 @@ const LAB_LABELS: Record<string, string> = {
 
 // Laboratorios con portal o correo que el sistema barre solo. La Cámara no
 // tiene: sus comprobantes se cargan a mano desde la venta, así que no hay
-// "cobertura del portal" que mostrar.
-const LABS_CON_PORTAL = new Set(['OPTOVISION', 'GRUPO_OPTICO']);
+// "cobertura del portal" que mostrar. Vitolen entra por su módulo
+// (src/services/lab-modules/vitolen).
+const LABS_CON_PORTAL = new Set(['OPTOVISION', 'GRUPO_OPTICO', 'VITOLEN']);
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
     OVERCOST: { label: 'Sobrecosto', badge: 'bg-red-100 text-red-700' },
