@@ -610,9 +610,12 @@ ok('una factura anulada entera por su nota de crédito no es costo; la cancelada
     assert.deepEqual(vigentes.map(f => f.comprobante), ['FA 0067-01168210']);
 });
 ok('la URL de la cuenta corriente pide "Todos" desde la fecha, en las dos cuentas', () => {
-    const u = urlCuentaCorriente(new Date(2024, 0, 1));
+    // Fecha al mediodía UTC: en hora argentina sigue siendo el mismo día (el CI corre en UTC).
+    const u = urlCuentaCorriente(new Date('2024-01-01T12:00:00Z'));
     assert.ok(u.startsWith('/contabilidad/movimientos?utf8=%E2%9C%93&q%5Bcondicion_eq%5D=&q%5Bdesde%5D=01%2F01%2F2024&q%5Bhasta%5D=&q%5Bcuentas_ids%5D=12019%2C12020&q%5Bcuentas_ids_mode%5D=include&commit=Buscar'), u);
-    assert.ok(urlCuentaCorriente(new Date(2024, 0, 1), null, 2).endsWith('&page=2'));
+    assert.ok(urlCuentaCorriente(new Date('2024-01-01T12:00:00Z'), null, 2).endsWith('&page=2'));
+    // Y a las 23:00 de Argentina (02:00 UTC del día siguiente) el "desde" sigue siendo el día argentino.
+    assert.ok(urlCuentaCorriente(new Date('2024-01-02T02:00:00Z')).includes('q%5Bdesde%5D=01%2F01%2F2024'));
 });
 
 console.log('\n— Vitolen: las facturas de un pedido (PDF) —');
