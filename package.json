@@ -82,6 +82,7 @@
     "check:par-bonificado": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/par-bonificado-2x1.check.mjs",
     "check:go-lineas": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/go-lineas-por-pedido.check.mjs",
     "check:lab-modulos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/lab-modulos.check.mjs",
+    "check:armado-go": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/grupo-optico-armado.check.mjs",
     "check:meta-anuncios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/meta-anuncios-identificados.mjs",
     "check:referral": "node scripts/checks/referral-anuncio.check.cjs",
     "check:meta-compras": "node scripts/checks/compras-informadas-a-meta.mjs"
