@@ -98,12 +98,21 @@ export function observacionDelPedido(opts: { es2x1: boolean; par: number; produc
     return partes.join(' | ');
 }
 
-/** ¿La venta es una promo 2x1? (dos pares y el producto o la promo lo dicen). Puro. */
+/**
+ * ¿La venta es una 2x1 DEL LABORATORIO? Los dos primeros pares tienen que ser
+ * cristales de Grupo Óptico vendidos como 2x1 y de la misma familia. Una promo
+ * 2x1 propia de la óptica (armazones) o un 2º par de otro laboratorio no es la
+ * promo de Grupo Óptico, y escribir "2° par SIN CARGO" ahí confundiría al lab. Puro.
+ */
 export function esVenta2x1(venta: VentaParaSmartLab): boolean {
-    const items = venta.items || [];
-    const promo = /2\s*x\s*1/i.test(texto(venta.appliedPromoName))
-        || items.some(i => /2\s*x\s*1/i.test(texto(i.product?.name ?? i.productNameSnapshot)));
-    return promo && cantidadDeArmazones(venta as any) >= 2;
+    if (cantidadDeArmazones(venta as any) < 2) return false;
+    const porPar = cristalesPorArmazon(venta);
+    const nombreDe = (i: any) => texto(i?.product?.name ?? i?.productNameSnapshot);
+    const esGO2x1 = (i: any) => /grupo[\s-]?[oó]ptico/i.test(texto(i?.laboratorySnapshot ?? i?.product?.laboratory) || 'grupo optico') && /2\s*x\s*1/i.test(nombreDe(i));
+    const familia = (i: any) => nombreDe(i).split('·')[0].trim().toLowerCase();
+    const p1 = ((porPar.get(1) || []) as any[]).filter(esGO2x1);
+    const p2 = ((porPar.get(2) || []) as any[]).filter(esGO2x1);
+    return p1.length > 0 && p2.length > 0 && familia(p1[0]) === familia(p2[0]);
 }
 
 export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: OpcionesCarga = {}): ResultadoPlan {
@@ -125,6 +134,8 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     if (pares > 1 && tenidos.some((i: any) => i.framePosition == null)) {
         faltantes.push('hay un teñido sin armazón asignado: indicá en la venta a qué par va (el de sol)');
     }
+    const huerfano = tenidos.find((i: any) => i.framePosition != null && (i.framePosition < 1 || i.framePosition > pares));
+    if (huerfano) faltantes.push(`hay un teñido asignado al armazón ${huerfano.framePosition}, que la venta no tiene: reasignalo`);
     const lineaTenido = tenidos.find((i: any) => (pares > 1 ? i.framePosition : (i.framePosition ?? 1)) === par);
     let tenido: Tenido | null = null;
     if (lineaTenido) {
@@ -182,6 +193,12 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     const od = ojo('od');
     const oi = ojo('oi');
     if (p && !od && !oi) faltantes.push('ningún ojo con graduación');
+    // La altura es del ARMAZÓN: en el 2º par no vale la de la ficha (suele ser la del 1º).
+    const frameDelPar = framesDeLaOrden(venta).find(f => f.position === par) ?? null;
+    if (multifocal && par > 1) {
+        if (od && frameDelPar?.heightOD == null) faltantes.push(`altura pupilar OD del armazón ${par} (la de la ficha es la del 1er armazón)`);
+        if (oi && frameDelPar?.heightOI == null) faltantes.push(`altura pupilar OI del armazón ${par} (la de la ficha es la del 1er armazón)`);
+    }
     if (multifocal) for (const [lado, o] of [['OD', od], ['OI', oi]] as const) {
         if (o && !o.altura) faltantes.push(`altura pupilar ${lado} del par ${par} (el multifocal no se calibra sin ella)`);
         if (o && !o.dnp) faltantes.push(`DNP ${lado} del par ${par}`);
@@ -204,8 +221,9 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
         plan: {
             par, pares, producto, especificacion: esp, lensTypeId, od, oi, tenido,
             // Código + nombre: el código vincula con certeza (espejo.ts), el
-            // nombre es lo que lee el laboratorio. En un 2x1, el par.
-            codigoOptica: `${codigo} ${cliente}${es2x1 ? ` ${par}°par` : ''}`.trim(),
+            // nombre es lo que lee el laboratorio. Con más de un par, cuál: es lo
+            // que distingue un pedido del otro al buscar si ya se creó.
+            codigoOptica: `${codigo} ${cliente}${pares > 1 ? ` ${par}°par` : ''}`.trim(),
             observacion: observacionDelPedido({ es2x1, par, producto, pedidoOrigen, notas: p?.observaciones, tenido }),
             paciente: cliente,
             armazon: {

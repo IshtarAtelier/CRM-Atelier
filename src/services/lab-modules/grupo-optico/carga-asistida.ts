@@ -25,11 +25,30 @@ const esCristalGO = (i: any) => /cristal/i.test(i.productCategorySnapshot || i.p
 async function numeroDelPrimerPar(orderId: string): Promise<string | null> {
     const cargado = await prisma.labOrderDraft.findFirst({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair: 1, status: 'CARGADO' }, orderBy: { loadedAt: 'desc' }, select: { portalNumber: true } });
     if (cargado?.portalNumber) return cargado.portalNumber;
-    const espejo = await prisma.labPortalOrder.findFirst({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair: 1 }, select: { portalNumber: true } });
-    if (espejo?.portalNumber) return espejo.portalNumber;
+    const espejo = await prisma.labPortalOrder.findMany({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair: 1, status: { not: 'ANULADO' } }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
+    if (espejo.length === 1) return espejo[0].portalNumber;
     const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true } });
     const nums = parseLabNumbers(venta?.labOrderNumber).filter(n => /^80\d{6}$/.test(n));
     return nums.length === 1 ? nums[0] : null;
+}
+
+/**
+ * ¿Este par YA tiene pedido en el laboratorio? Cargado por el robot, visto por
+ * el seguimiento, o con el nº tipeado en la venta (carga a mano con el
+ * favorito). Si sí, no se prepara otro: en SmartLab un pedido de más se
+ * fabrica y se cobra, y la óptica no lo puede anular (auditoría del 3/10/2026, C5).
+ */
+async function pedidoExistenteDelPar(orderId: string, pair: number, pares: number): Promise<string | null> {
+    const cargado = await prisma.labOrderDraft.findFirst({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair, status: 'CARGADO' }, select: { portalNumber: true } });
+    if (cargado?.portalNumber) return cargado.portalNumber;
+    const espejo = await prisma.labPortalOrder.findMany({ where: { orderId, lab: LAB_GRUPO_OPTICO, status: { not: 'ANULADO' } }, select: { portalNumber: true, pair: true } });
+    const delPar = espejo.find(e => e.pair === pair) ?? (pares === 1 ? espejo[0] : null);
+    if (delPar) return delPar.portalNumber;
+    const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true } });
+    const nums = parseLabNumbers(venta?.labOrderNumber).filter(n => /^80\d{6}$/.test(n));
+    // Sin saber de qué par es cada nº tipeado: con tantos nº como el par pedido, se asume cargado.
+    if (nums.length >= pair) return nums[pair - 1];
+    return null;
 }
 
 function opcionesDelBody(body: Record<string, unknown>): OpcionesCarga {
@@ -52,7 +71,11 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
         const venta = await leerVentaParaCargaGO(orderId);
         if (!venta) return null;
         const porPar = cristalesPorArmazon(venta);
-        const pares = [...porPar.entries()].filter(([, items]) => (items as any[]).some(esCristalGO)).map(([p]) => p).sort();
+        // La carga asistida va hasta 2 pares (un 3º se carga a mano).
+        const pares = [...porPar.entries()].filter(([p, items]) => p <= 2 && (items as any[]).some(esCristalGO)).map(([p]) => p).sort();
+        const totalPares = cantidadDeArmazones(venta as any);
+        const yaCargados = new Map<number, string | null>();
+        for (const p of pares) yaCargados.set(p, await pedidoExistenteDelPar(orderId, p, totalPares));
         const es2x1 = esVenta2x1(venta as any);
         const origen = es2x1 ? await numeroDelPrimerPar(orderId) : null;
         return {
@@ -70,6 +93,8 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                     // El 2º par del 2x1 espera al 1º.
                     esperaPrimerPar: es2x1 && pair === 2 && !origen,
                     pedidoOrigen: pair === 2 ? origen : null,
+                    // Ya tiene pedido en el laboratorio (robot, seguimiento o nº tipeado): no se ofrece preparar otro.
+                    yaCargado: yaCargados.get(pair) ?? null,
                 };
             }),
             tiposArmazon: [{ value: 'PLASTICO', label: 'Plástico' }, { value: 'METALICO', label: 'Metálico' }],
@@ -81,9 +106,15 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
     async preparar(orderId, pair, body, actor) {
         const venta = await leerVentaParaCargaGO(orderId);
         if (!venta) return { ok: false, status: 404, error: 'Venta no encontrada.' };
-        if (venta.labStatus !== 'SENT') {
+        // SENT, o IN_PROGRESS: al cargar el 1er par de un 2x1 la venta ya pasa a
+        // "en proceso" y el 2º par tiene que poder prepararse igual (C4).
+        if (venta.labStatus !== 'SENT' && venta.labStatus !== 'IN_PROGRESS') {
             return { ok: false, status: 409, error: `La venta tiene que estar enviada a fábrica antes de cargarla en el portal (hoy está ${venta.labStatus || 'sin enviar'}).` };
         }
+        const cristalesDelPar = ((cristalesPorArmazon(venta).get(pair) || []) as any[]).filter(esCristalGO);
+        if (cristalesDelPar.length === 0) return { ok: false, status: 400, error: `La venta no tiene cristales de Grupo Óptico para el par ${pair}.` };
+        const existente = await pedidoExistenteDelPar(orderId, pair, cantidadDeArmazones(venta as any));
+        if (existente) return { ok: false, status: 409, error: `El par ${pair} ya tiene pedido en el laboratorio (nº ${existente}): no se carga otro. Si hay que rehacerlo, es una postventa.` };
         const opciones = opcionesDelBody(body);
         if (opciones.forma !== null && opciones.forma !== undefined && !(Number.isInteger(opciones.forma) && opciones.forma >= 1 && opciones.forma <= 9)) {
             return { ok: false, status: 400, error: 'La forma del armazón va de 1 a 9.' };

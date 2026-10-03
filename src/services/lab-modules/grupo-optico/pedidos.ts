@@ -109,15 +109,28 @@ export function estadoDeFila(row: FilaApiSmartLab): EstadoEnPortal {
     return 'INGRESADO';
 }
 
+/** El par que dice un texto ("1°par", "2° par", "2do par", "primer/segundo par"). null si no dice. Puro. */
+function parEnTexto(texto: string): 1 | 2 | null {
+    const t = texto.toLowerCase();
+    const dos = /(?:^|\D)2\s*(?:[°ºo]|do)?\s*par\b|segundo\s+par/.test(t);
+    const uno = /(?:^|\D)1\s*(?:[°ºo]|er|ro)?\s*par\b|primer\s+par/.test(t);
+    if (dos) return 2; // la observación del 2º par nombra al 1º ("1° par n° 80…"): manda el 2
+    if (uno) return 1;
+    return null;
+}
+
+/** El par que dice el "Código interno" (es lo que escribe el robot: "#XXXX Nombre 2°par"). Puro. */
+export function parDelCodigo(codigoOptica: string | null | undefined): 1 | 2 | null {
+    return parEnTexto(String(codigoOptica || ''));
+}
+
 /**
- * Qué par es, si el vendedor lo escribió en el código interno o en la
- * observación ("1°par", "2° par", "1º par", "primer par"). null si no dice. Puro.
+ * Qué par es, si el vendedor lo escribió. Primero el código interno; si no
+ * dice, la observación, donde "2° par" gana: la del 2º par nombra al 1º
+ * ("2° par SIN CARGO - 1° par n° 80…", "vincular al 1°par pedido 80…"). Puro.
  */
 export function parDeFila(row: Pick<FilaApiSmartLab, 'CodigoOptica' | 'Observacion'>): 1 | 2 | null {
-    const texto = `${row.CodigoOptica || ''} ${row.Observacion || ''}`.toLowerCase();
-    if (/(?:^|\D)1\s*[°ºo]?\s*par\b|primer\s+par/.test(texto)) return 1;
-    if (/(?:^|\D)2\s*[°ºo]?\s*par\b|segundo\s+par/.test(texto)) return 2;
-    return null;
+    return parDelCodigo(row.CodigoOptica) ?? parEnTexto(String(row.Observacion || ''));
 }
 
 /**

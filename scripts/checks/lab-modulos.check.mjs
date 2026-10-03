@@ -820,7 +820,10 @@ ok('qué par es, si el vendedor lo escribió (1°par, 2° par, 1º par, primer p
     assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho 1°par' }), 1);
     assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho 2° par' }), 2);
     assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho', Observacion: '1º par' }), 1);
-    assert.equal(parDeFila({ CodigoOptica: 'Pérez 2do par' }), null, 'una forma que no se conoce no se adivina');
+    // "2do par" / "1er par" son como lo escribe el equipo en el portal (auditoría del 3/10/2026).
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez 2do par' }), 2);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez 1er par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez', Observacion: 'urgente' }), null, 'lo que no dice par no se adivina');
     assert.equal(parDeFila({ CodigoOptica: 'Pérez segundo par' }), 2);
     assert.equal(parDeFila({ CodigoOptica: 'Pérez 1 par' }), 1);
     assert.equal(parDeFila({ CodigoOptica: 'Pérez' }), null);

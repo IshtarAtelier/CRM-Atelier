@@ -125,7 +125,7 @@ export const MATERIALES_LAB: MaterialLab[] = [
     { crm: /fotocrom[aá]tico.*espejado|foto espejado/i, materialId: 24, etiqueta: 'ORG FOTO ESPEJADO 1.56', colorId: null, colores: [COLOR.AZUL, COLOR.DORADO, COLOR.VERDE, COLOR.PURPURA, COLOR.ROJO, COLOR.PLATEADO] },
     { crm: /fotocrom[aá]tico smart color/i, materialId: 16, etiqueta: 'ORG FOTO 1.56', colorId: null, colores: [COLOR.AZUL, COLOR.PURPURA, COLOR.ROSA, COLOR.SEPIA, COLOR.VERDE] },
     { crm: /policarbonato fotocrom[aá]tico/i, materialId: 21, etiqueta: 'POLI FOTO 1.59', colorId: COLOR.GRIS },
-    { crm: /fotocrom[aá]tico (blue|blue light)\b.*1\.56|fotocrom[aá]tico blue/i, materialId: 33, etiqueta: 'ORG FOTO BLUE 1.56', colorId: COLOR.GRIS },
+    { crm: /fotocrom[aá]tico.*\bblue\b.*1\.56/i, materialId: 33, etiqueta: 'ORG FOTO BLUE 1.56', colorId: COLOR.GRIS },
     { crm: /fotocrom[aá]tico.*(alto [ií]ndice 1\.60|1\.60)/i, materialId: 36, etiqueta: 'ORG FOTO ALTO INDICE 1.6', colorId: COLOR.GRIS },
     { crm: /fotocrom[aá]tico.*1\.67/i, materialId: 17, etiqueta: 'ORG FOTO 1.67', colorId: COLOR.GRIS },
     { crm: /fotocrom[aá]tico.*1\.56/i, materialId: 16, etiqueta: 'ORG FOTO 1.56', colorId: COLOR.GRIS },
@@ -141,7 +141,7 @@ export const MATERIALES_LAB: MaterialLab[] = [
     { crm: /(alto [ií]ndice|stylis blanco)\s*1\.67/i, materialId: 5, etiqueta: 'ORG ALTO INDICE 1.67', colorId: COLOR.BLANCO, articuloNo: /\bBLUE\b/ },
     { crm: /stylis blue light 1\.67/i, materialId: 31, etiqueta: 'ORG BLUE ALTO INDICE 1.67', colorId: COLOR.BLANCO, articulo: /\bBLUE\b/ },
     { crm: /blanco alto [ií]ndice 1\.60/i, materialId: 35, etiqueta: 'ORG ALTO INDICE 1.60', colorId: COLOR.BLANCO },
-    { crm: /mineral/i, materialId: 1, etiqueta: 'MINERAL CROWN 1.53', colorId: COLOR.BLANCO },
+    { crm: /mineral blanco/i, materialId: 1, etiqueta: 'MINERAL CROWN 1.53', colorId: COLOR.BLANCO },
     { crm: /org[aá]nico blanco( hasta di[aá]m\. 70)? 1\.49|org[aá]nico blanco 1\.5\b/i, materialId: 3, etiqueta: 'ORG BLANCO 1.49', colorId: COLOR.BLANCO },
 ];
 
@@ -161,14 +161,14 @@ export interface MaterialStock {
 
 /** Stock: relevado el 3/10/2026 consultando article/list con una graduación común. */
 export const MATERIALES_STOCK: MaterialStock[] = [
-    { crm: /super blue/i, materialId: 14, etiqueta: 'Org S.Blue c/Ar 1.60', codigoArticulos: 34, debe: /^ORG SUPER BLUE ASF C\/AR\.? 1\.60\b/ },
-    { crm: /fotocrom[aá]tico/i, materialId: 26, etiqueta: 'Org Foto C/ar 1.56', codigoArticulos: 35, debe: /^ORG FOTO GRIS C\/AR 1\.56\b/ },
+    { crm: /super blue.*1\.60/i, materialId: 14, etiqueta: 'Org S.Blue c/Ar 1.60', codigoArticulos: 34, debe: /^ORG SUPER BLUE ASF C\/AR\.? 1\.60\b/ },
+    { crm: /fotocrom[aá]tico.*1\.56/i, materialId: 26, etiqueta: 'Org Foto C/ar 1.56', codigoArticulos: 35, debe: /^ORG FOTO GRIS C\/AR 1\.56\b/ },
     { crm: /blue c\/ar 1\.56/i, materialId: 8, etiqueta: 'Org Blue c/Ar 1.56', codigoArticulos: 33, debe: /^ORG BLUE C\/AR 1\.56\b/ },
     { crm: /blanco c\/ar 1\.56/i, materialId: 19, etiqueta: 'Org c/Ar 1.56', codigoArticulos: 32, debe: /^ORG C\/AR BLANCO 1\.56\b/ },
     { crm: /policarbonato( blanco)? 1\.59 \(sin antirreflejo\)/i, materialId: 6, etiqueta: 'Poli Blanco 1.59', codigoArticulos: 40, debe: /^POLI BLANCO 1\.59\b/ },
     { crm: /policarbonato c\/ar/i, materialId: 7, etiqueta: 'Poli Blanco C/ar', codigoArticulos: 41, debe: /^POLI C\/AR BLANCO 1\.59\b/ },
     { crm: /org[aá]nico blanco 1\.49/i, materialId: 3, etiqueta: 'Org Blanco 1.49', codigoArticulos: 31, debe: /^ORG BLANCO 1\.49\b/ },
-    { crm: /mineral/i, materialId: 1, etiqueta: 'Mineral Blanco', codigoArticulos: 57, debe: /^MINERAL BLANCO\b/ },
+    { crm: /mineral blanco/i, materialId: 1, etiqueta: 'Mineral Blanco', codigoArticulos: 57, debe: /^MINERAL BLANCO\b/ },
 ];
 
 export interface EspecificacionLab {

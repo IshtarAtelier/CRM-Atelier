@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/db';
 import { logAudit } from '../../lib/audit';
 import { enviarAvisoProcesado } from '../../lib/avisos/aviso-procesado';
+import { LAB_ITEM_PATTERNS } from '../lab-recon/types';
 import { parseLabNumbers, findLabNumberConflicts, duplicateMessage } from '../../lib/lab-order-numbers';
 import { alertDuplicateLabOrderNumber } from '../../lib/duplicate-lab-order-alert';
 import { cantidadDeArmazones } from '../../lib/order-frames';
@@ -102,15 +103,30 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
             items: {
                 select: {
                     eye: true, quantity: true, framePosition: true,
-                    productCategorySnapshot: true, productNameSnapshot: true, productTypeSnapshot: true,
-                    product: { select: { category: true, name: true, type: true } },
+                    productCategorySnapshot: true, productNameSnapshot: true, productTypeSnapshot: true, laboratorySnapshot: true,
+                    product: { select: { category: true, name: true, type: true, laboratory: true } },
                 },
             },
+            postSaleCases: { where: { newOrderNumber: { not: null } }, select: { newOrderNumber: true } },
         },
     });
     if (!order) return { labStatus: null, numeroAsignado: false, notificado: false };
 
-    const paresEsperados = cantidadDeArmazones(order);
+    // Los pedidos de un REPROCESO (postventa) no son pares de la venta: ni se
+    // suman a su nº (el costo se cruzaría dos veces) ni cuentan para "llegaron
+    // los dos pares" (auditoría del 3/10/2026, I4).
+    const deReprocesos = new Set(order.postSaleCases.flatMap(c => parseLabNumbers(c.newOrderNumber)));
+    a = { ...a, pedidos: a.pedidos.filter(p => !parseLabNumbers(p.portalNumber).some(n => deReprocesos.has(n))) };
+    if (a.pedidos.length === 0) return { labStatus: order.labStatus, numeroAsignado: false, notificado: false };
+
+    // Los pares que se esperan de ESTE laboratorio: un 2x1 con el 2º par en otro
+    // lab no puede quedar esperando acá un pedido que nunca va a llegar (I5).
+    const patron = LAB_ITEM_PATTERNS[a.lab];
+    const esCristal = (i: (typeof order.items)[number]) => /cristal|lens/i.test(i.productCategorySnapshot || i.product?.category || '');
+    const itemsDelLab = patron
+        ? order.items.filter(i => !esCristal(i) || patron.test(i.laboratorySnapshot || i.product?.laboratory || ''))
+        : order.items;
+    const paresEsperados = cantidadDeArmazones({ ...order, items: itemsDelLab as any });
     const pedidosVivos = a.pedidos.filter(p => p.status !== 'ANULADO').length;
     const faltaOtroPar = !paresCompletos(paresEsperados, pedidosVivos);
     const conjunto = estadoConjuntoDeVenta(a.pedidos.map(p => p.status), paresEsperados);

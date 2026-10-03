@@ -2,7 +2,8 @@ import type { Page } from 'playwright';
 import { API_BASE, clientIdSmartLab, NOMBRE_GRUPO_OPTICO, pedirJsonDesdeLaPagina, urlListadoApi } from './portal';
 import { elegirArticulo, TENIDO_TIPO, TIPO_ARO, type ArticuloPortal } from './catalogo';
 import type { OjoPlan, PlanDeCarga, ResueltoEnPortal } from './carga';
-import { fechaDelPortal, numeroDeFila, type FilaApiSmartLab } from './pedidos';
+import { numeroDeFila, parDelCodigo, type FilaApiSmartLab } from './pedidos';
+import { hostDeLaBase } from '../../../lib/cron-scheduler';
 
 /**
  * EL ROBOT DE CARGA DE GRUPO ÓPTICO sobre la API del portal SmartLab.
@@ -143,34 +144,59 @@ export async function resolverEnPortal(page: Page, plan: PlanDeCarga): Promise<{
 }
 
 /**
- * ¿Ya existe en el portal el pedido de este borrador? (Una confirmación que se
- * cortó después del POST.) Se busca por el código de la venta en el "Código
- * interno" entre los pedidos cargados desde que se aprobó. Puro sobre las filas.
+ * ¿Ya existe en el portal el pedido de ESTE par de ESTA venta? (Una carga que
+ * se cortó después del POST, o uno cargado a mano con el favorito.) Se busca
+ * por el código de la venta (#XXXX) en el "Código interno" y por el par que
+ * dice ese mismo código; sin ventana de fecha, porque lo cargado a mano antes
+ * también cuenta. Se descartan anulados y números que ya son de otro par. Puro.
  */
-export function pedidoYaCreado(filas: FilaApiSmartLab[], codigoOptica: string, desde: Date): string | null {
-    const buscado = codigoOptica.toUpperCase().replace(/\s+/g, ' ').trim();
-    const encontrados = filas.filter(f => {
-        const cod = String(f.CodigoOptica || '').toUpperCase().replace(/\s+/g, ' ').trim();
-        const fecha = fechaDelPortal(f.FechaRegistro);
-        return cod === buscado && String(f.Anulado ?? '0') !== '1' && fecha && fecha.getTime() >= desde.getTime() - 5 * 60_000;
-    });
-    return encontrados.length ? numeroDeFila(encontrados[0]) : null;
+export function pedidoYaCreado(filas: FilaApiSmartLab[], codigoVenta: string, par: number | null, excluir: Set<string> = new Set()): string | null {
+    const codigo = codigoVenta.toUpperCase().replace(/^#?/, '#');
+    const re = new RegExp(`(^|\\s)${codigo}(\\s|$)`, "i");
+    for (const f of filas) {
+        const cod = String(f.CodigoOptica || '');
+        if (!re.test(cod)) continue;
+        if (String(f.Anulado ?? '0') === '1') continue;
+        const num = numeroDeFila(f);
+        if (!num || excluir.has(num)) continue;
+        const parDeEse = parDelCodigo(cod);
+        // Con varios pares, el código dice cuál; uno sin par marcado no se adopta para el 2º.
+        if (par !== null && parDeEse !== null && parDeEse !== par) continue;
+        if (par !== null && par > 1 && parDeEse === null) continue;
+        return num;
+    }
+    return null;
 }
 
-export async function buscarPedidoYaCreado(page: Page, codigoOptica: string, desde: Date): Promise<string | null> {
-    const res = await pedirJsonDesdeLaPagina<{ rows?: FilaApiSmartLab[] }>(page, urlListadoApi(1));
-    return pedidoYaCreado(Array.isArray(res?.rows) ? res.rows : [], codigoOptica, desde);
+export async function buscarPedidoYaCreado(page: Page, codigoVenta: string, par: number | null, excluir: Set<string> = new Set()): Promise<string | null> {
+    // Las dos primeras páginas (200 pedidos, de más nuevo a más viejo) cubren de sobra
+    // lo que pudo cargarse para una venta que todavía está esperando su pedido.
+    for (let current = 1; current <= 2; current++) {
+        const res = await pedirJsonDesdeLaPagina<{ rows?: FilaApiSmartLab[] }>(page, urlListadoApi(current));
+        const filas = Array.isArray(res?.rows) ? res.rows : [];
+        const n = pedidoYaCreado(filas, codigoVenta, par, excluir);
+        if (n) return n;
+        if (filas.length < 100) break;
+    }
+    return null;
 }
 
 /**
- * ¿Este server puede crear pedidos REALES en el laboratorio? Solo producción.
- * Un `npm run dev` con la credencial real (para probar la ficha) tiene que
- * poder preparar —que solo lee— pero nunca mandar un pedido a fabricar. Para
- * habilitarlo a propósito fuera de producción: SMARTLAB_PERMITIR_CARGA=1. Puro.
+ * ¿Este server puede crear pedidos REALES en el laboratorio? Misma señal que
+ * los crons (lib/cron-scheduler.ts): producción Y la base fuera de esta
+ * máquina. Un `npm run dev` —o un `npm start` local, que corre con
+ * NODE_ENV=production— con la credencial real tiene que poder preparar (que
+ * solo lee) pero nunca mandar un pedido a fabricar. Para probar a propósito
+ * fuera de producción: SMARTLAB_PERMITIR_CARGA=1. Puro.
  */
 export function puedeCrearPedidosReales(env: Record<string, string | undefined> = process.env): boolean {
-    return env.NODE_ENV === 'production' || env.SMARTLAB_PERMITIR_CARGA === '1';
+    if (env.SMARTLAB_PERMITIR_CARGA === '1') return true;
+    if (env.NODE_ENV !== 'production') return false;
+    const host = hostDeLaBase(env.DATABASE_URL);
+    return !!host && !HOSTS_LOCALES.has(host);
 }
+
+const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '[::1]', '::1', '0.0.0.0', 'host.docker.internal']);
 
 /** EL ÚNICO POST: crea el pedido. Devuelve el nº que asignó el portal. */
 export async function crearPedidoEnPortal(page: Page, payload: Record<string, unknown>): Promise<{ numero: string; mensaje: string }> {

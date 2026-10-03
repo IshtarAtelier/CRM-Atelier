@@ -25,7 +25,7 @@ interface Borrador {
     resumenPortal: { etiquetas?: Etiquetas; pdfUrl?: string; diferencias?: string[] } | null;
 }
 interface PedidoEspejo { portalNumber: string; status: string; statusRaw: string | null; lastSeenAt: string }
-interface ParAnalisis { pair: number; producto: string | null; faltantes: string[]; avisos: string[]; esperaPrimerPar: boolean; pedidoOrigen: string | null }
+interface ParAnalisis { pair: number; producto: string | null; faltantes: string[]; avisos: string[]; esperaPrimerPar: boolean; pedidoOrigen: string | null; yaCargado: string | null }
 interface Datos { borradores: Borrador[]; espejo: PedidoEspejo[]; pares: ParAnalisis[]; es2x1: boolean; tiposArmazon: { value: string; label: string }[]; tiposAro: { value: string; label: string }[] }
 
 const ESTADO: Record<string, { texto: string; clase: string }> = {
@@ -154,7 +154,10 @@ export default function GrupoOpticoCarga({ orderId, onChanged }: { orderId: stri
                             <p className="text-xs text-rose-700 dark:text-rose-400 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {ultimo.error}</p>
                         )}
 
-                        {!b && !cargado && (
+                        {!b && !cargado && par.yaCargado && (
+                            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Ya tiene pedido en el laboratorio: nº {par.yaCargado}. No se carga otro (si hay que rehacerlo, es una postventa).</p>
+                        )}
+                        {!b && !cargado && !par.yaCargado && (
                             par.esperaPrimerPar ? (
                                 <p className="text-xs text-stone-500">Es el 2º par del 2x1: se prepara cuando el 1er par esté cargado (lleva su nº en la observación, para que el laboratorio no lo cobre).</p>
                             ) : par.faltantes.length > 0 ? (

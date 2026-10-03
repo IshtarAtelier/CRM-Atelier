@@ -202,6 +202,27 @@ export const Borradores = {
         return cambiarEstado(id, 'ERROR', { error: motivo }, robot, { motivo });
     },
 
+    /**
+     * La ÚNICA salida de APROBADO a ERROR: la aprobación ya no vale (la venta
+     * cambió después de aprobar) y el robot COMPROBÓ en el portal que no hay
+     * pedido creado. Sin esa comprobación no se llama: un APROBADO puede tener
+     * un pedido en el laboratorio y por eso, en general, nunca va a ERROR.
+     * Atómico: solo si sigue APROBADO y sin nº creado anotado.
+     */
+    async invalidarSinPedido(id: string, robot: Actor, motivo: string) {
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, resumenPortal: true, orderId: true, lab: true, pair: true } });
+        if (!b) throw new Error('El borrador no existe.');
+        const r = (b.resumenPortal || {}) as RastroPortal & { numeroCreado?: string };
+        if (b.status !== 'APROBADO' || r.numeroCreado || r.portalDraftId) throw new Error(`El borrador está ${b.status}${r.numeroCreado ? ` con el pedido ${r.numeroCreado}` : ''}: no se puede invalidar.`);
+        const u = await prisma.labOrderDraft.updateMany({ where: { id, status: 'APROBADO' }, data: { status: 'ERROR', error: motivo } });
+        if (u.count !== 1) throw new Error('El borrador cambió de estado mientras tanto: volvé a cargar la ficha.');
+        await logAudit({
+            userId: robot.id, userName: robot.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
+            details: { lab: b.lab, orderId: b.orderId, pair: b.pair, de: 'APROBADO', a: 'ERROR', motivo, sinPedidoEnElPortal: true },
+        });
+        return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
+    },
+
     /** Falló algo sin cambiar de estado (la confirmación, el cancelado): se anota para reintentar. */
     anotarFalla(id: string, motivo: string) {
         return prisma.labOrderDraft.update({ where: { id }, data: { error: motivo } });
