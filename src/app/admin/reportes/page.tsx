@@ -67,6 +67,12 @@ export interface SaleDetail {
 interface ReportData {
     summary: {
         totalRevenue: number;
+        /** A precio de lista (referencia). */
+        totalBilledList?: number;
+        /** Sin costo financiero: tarjeta a valor de transferencia. */
+        totalBilledReal?: number;
+        totalCollectedReal?: number;
+        totalCostoFinanciero?: number;
         totalCosts: number;
         totalCostFrames: number;
         totalCostLenses: number;
@@ -269,16 +275,16 @@ export default function ReportsDashboard() {
                     {/* ── KPIs Principales ── */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                         <KPICard
-                            title="Facturación Total"
-                            value={formatCurrency(data.summary.totalRevenue + data.summary.totalPending)}
-                            sub={`Cobrado ${formatCurrency(data.summary.totalRevenue)} · Pendiente ${formatCurrency(data.summary.totalPending)}`}
+                            title="Facturado SIN costo financiero"
+                            value={formatCurrency(data.summary.totalBilledReal ?? 0)}
+                            sub={`Tarjeta a valor de transferencia · A precio de lista ${formatCurrency(data.summary.totalBilledList ?? 0)}`}
                             icon={FileText}
                             color="amber"
                         />
                         <KPICard
-                            title="Ingreso Real (Cobrado)"
+                            title="Cobrado tal cual (CON costo financiero)"
                             value={formatCurrency(data.summary.totalRevenue)}
-                            sub={`Pendiente de cobro: ${formatCurrency(data.summary.totalPending)}`}
+                            sub={`Costo financiero ${formatCurrency(data.summary.totalCostoFinanciero ?? 0)} · Pendiente ${formatCurrency(data.summary.totalPending)}`}
                             icon={DollarSign}
                             color="blue"
                         />

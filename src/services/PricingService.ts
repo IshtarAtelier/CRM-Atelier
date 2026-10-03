@@ -266,6 +266,70 @@ export class PricingService {
     }
 
     /**
+     * Valor REAL de una venta, sin costo financiero. Regla de Ishtar (3/10/2026):
+     * lo cobrado con tarjeta (3, 6 o 12 cuotas, Payway, MP, Naranja...) vale lo
+     * que esa parte hubiera valido POR TRANSFERENCIA; lo cobrado en efectivo y
+     * por transferencia vale lo que se cobró. El saldo todavía no cobrado se
+     * valúa también a precio de transferencia. Los objetivos del mes se miden
+     * contra este número: el recargo de tarjeta lo paga la óptica, no es venta.
+     *
+     * ÚNICO lugar del cálculo: reporte financiero, objetivos y cierre leen de acá.
+     * `costoFinanciero` = cobrado nominal − valor real de lo cobrado: cuánto del
+     * dinero que entró se va en tarjeta. Si los objetivos se miden con `real`,
+     * NO se le resta además la comisión de plataforma (sería doble descuento).
+     */
+    static valorSinCostoFinanciero(order: any): {
+        /** Facturado real del mes, independiente de cuánto se cobró. */
+        real: number;
+        /** Lo cobrado tal cual entró (con costo financiero adentro). */
+        cobradoNominal: number;
+        /** Valor real de lo cobrado (tarjeta a precio de transferencia). */
+        cobradoReal: number;
+        /** cobradoNominal − cobradoReal. */
+        costoFinanciero: number;
+        /** Saldo pendiente valuado a precio de transferencia. */
+        saldoReal: number;
+    } {
+        const discCash = order.discountCash ?? 20;
+        const discTrans = order.discountTransfer ?? 15;
+        const factorTrans = 1 - discTrans / 100;
+        const payments: Array<{ method?: string | null; amount?: number | null }> = order.payments || [];
+
+        let cobradoNominal = 0;
+        let cobradoReal = 0;
+        for (const p of payments) {
+            const amount = p.amount || 0;
+            cobradoNominal += amount;
+            const method = (p.method || '').toUpperCase().trim();
+            const isCash = ['CASH', 'EFECTIVO', 'EFVO'].includes(method);
+            const isTrans = ['TRANSFER', 'TRANSFERENCIA', 'TRANSF', 'DEPOSITO'].some(m => method.includes(m));
+            if (isCash || isTrans) { cobradoReal += amount; continue; }
+            // Tarjeta: primero a lista (MP 12 trae el +10% adentro), después a transferencia.
+            const enLista = PricingService.listEquivalentOfPayments([p], discCash, discTrans);
+            cobradoReal += enLista * factorTrans;
+        }
+
+        // Failsafe (mismo que calculateOrderFinancials): venta con `paid` pero sin
+        // filas de Payment. No se sabe cómo se cobró: se toma como está.
+        if (payments.length === 0 && (order.paid || 0) > 0) {
+            cobradoNominal = order.paid;
+            cobradoReal = order.paid;
+        }
+
+        const { remainingList } = PricingService.calculateOrderFinancials(order);
+        const saldoReal = remainingList * factorTrans;
+        const real = cobradoReal + saldoReal;
+        const r = (n: number) => Math.round(n);
+        return {
+            real: r(real),
+            cobradoNominal: r(cobradoNominal),
+            cobradoReal: r(cobradoReal),
+            costoFinanciero: r(cobradoNominal - cobradoReal),
+            saldoReal: r(saldoReal),
+        };
+    }
+
+    /**
      * Calcula el desglose financiero completo (Totales y Saldos) para una orden existente.
      */
     static calculateOrderFinancials(order: any): OrderFinancials {

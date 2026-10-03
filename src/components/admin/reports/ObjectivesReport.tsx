@@ -7,8 +7,13 @@ export interface MonthObjective {
     label: string;
     year: number;
     month: number;
+    /** A precio de lista (referencia). */
     billed: number;
+    /** Sin costo financiero: tarjeta a valor de transferencia. Contra esto se mide el objetivo. */
+    billedReal: number;
+    /** Cobrado tal cual entró, con costo financiero adentro. */
     collected: number;
+    costoFinanciero: number;
     orders: number;
     grossProfit: number;
     netProfit: number;
@@ -18,7 +23,7 @@ export interface MonthObjective {
         currency: string; rate: number | null; isCustom: boolean;
     };
     reachedLevel: 0 | 1 | 2 | 3;
-    vendors: { name: string; billed: number; orders: number }[];
+    vendors: { name: string; billed: number; billedReal: number; orders: number }[];
 }
 
 const LEVELS = [
@@ -89,9 +94,9 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
                     const level = LEVELS[m.reachedLevel];
                     const LevelIcon = level.icon;
                     const { target1, target2, target3, usd1, usd2, usd3, isCustom } = m.targets;
-                    const scale = Math.max(target3, m.billed, 1);
-                    const barPct = Math.min((m.billed / scale) * 100, 100);
-                    const billedUSD = toUSD(m.billed);
+                    const scale = Math.max(target3, m.billedReal, 1);
+                    const barPct = Math.min((m.billedReal / scale) * 100, 100);
+                    const billedUSD = toUSD(m.billedReal);
                     const profitUSD = toUSD(m.netProfit);
                     const nextTarget = m.reachedLevel === 0 ? target1 : m.reachedLevel === 1 ? target2 : m.reachedLevel === 2 ? target3 : null;
 
@@ -115,15 +120,22 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
                             </div>
 
                             {/* Metrics grid */}
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-                                <div className="bg-stone-50 dark:bg-stone-800/40 rounded-xl p-3.5">
-                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Facturado</p>
-                                    <p className="text-base font-black text-stone-800 dark:text-white">{fmtARS(m.billed)}</p>
+                            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
+                                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/50 rounded-xl p-3.5">
+                                    <p className="text-[8px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1">Facturado SIN costo financiero</p>
+                                    <p className="text-base font-black text-stone-800 dark:text-white">{fmtARS(m.billedReal)}</p>
                                     {billedUSD !== null && <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">≈ {fmtUSD(billedUSD)}</p>}
+                                    <p className="text-[9px] font-medium text-stone-500 dark:text-stone-400 mt-1 leading-snug">Tarjeta a valor de transferencia. Contra esto se mide el objetivo.</p>
                                 </div>
                                 <div className="bg-stone-50 dark:bg-stone-800/40 rounded-xl p-3.5">
-                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Cobrado</p>
+                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Cobrado tal cual (CON costo financiero)</p>
                                     <p className="text-base font-black text-stone-800 dark:text-white">{fmtARS(m.collected)}</p>
+                                    <p className="text-[9px] font-medium text-stone-500 dark:text-stone-400 mt-1 leading-snug">Lo que entró, con el recargo de tarjeta adentro.</p>
+                                </div>
+                                <div className="bg-stone-50 dark:bg-stone-800/40 rounded-xl p-3.5">
+                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Costo financiero</p>
+                                    <p className="text-base font-black text-red-500">{fmtARS(m.costoFinanciero)}</p>
+                                    <p className="text-[9px] font-medium text-stone-500 dark:text-stone-400 mt-1 leading-snug">De lo cobrado, lo que se va en tarjeta. Lista: {fmtARS(m.billed)}.</p>
                                 </div>
                                 <div className="bg-stone-50 dark:bg-stone-800/40 rounded-xl p-3.5">
                                     <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Ganancia del Mes</p>
@@ -135,7 +147,7 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
                                     {nextTarget ? (
                                         <>
                                             <p className="text-base font-black text-stone-800 dark:text-white">{fmtARS(nextTarget)}</p>
-                                            <p className="text-[11px] font-bold text-stone-400 mt-0.5">Faltan {fmtARS(Math.max(nextTarget - m.billed, 0))}</p>
+                                            <p className="text-[11px] font-bold text-stone-400 mt-0.5">Faltan {fmtARS(Math.max(nextTarget - m.billedReal, 0))}</p>
                                         </>
                                     ) : (
                                         <p className="text-base font-black text-amber-500">Elite superado 🏆</p>
@@ -183,7 +195,7 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {m.vendors.map((v) => {
-                                        const share = m.billed > 0 ? (v.billed / m.billed) * 100 : 0;
+                                        const share = m.billedReal > 0 ? (v.billedReal / m.billedReal) * 100 : 0;
                                         return (
                                             <div key={v.name} className="bg-stone-50 dark:bg-stone-800/40 rounded-xl p-3">
                                                 <div className="flex items-center justify-between mb-1.5">
@@ -194,7 +206,7 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
                                                     <div className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
                                                         <div className="h-full bg-gradient-to-r from-violet-400 to-fuchsia-500 rounded-full" style={{ width: `${share}%` }} />
                                                     </div>
-                                                    <span className="text-sm font-black text-violet-600 dark:text-violet-400 whitespace-nowrap">{fmtARS(v.billed)}</span>
+                                                    <span className="text-sm font-black text-violet-600 dark:text-violet-400 whitespace-nowrap" title={`A precio de lista: ${fmtARS(v.billed)}`}>{fmtARS(v.billedReal)}</span>
                                                 </div>
                                             </div>
                                         );
@@ -207,7 +219,7 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
             </div>
 
             <p className="mt-6 text-[10px] font-medium text-stone-400 leading-relaxed">
-                Los objetivos están configurados <strong>en dólares</strong> y se convierten a pesos con el blue del día; el cumplimiento se mide contra lo <strong>facturado</strong> del mes (mismo criterio que el dashboard). La ganancia descuenta CMV, descuentos, comisiones y los costos fijos/marketing cargados para ese mes.
+                Los objetivos están configurados <strong>en dólares</strong> y se convierten a pesos con el blue del día; el cumplimiento se mide contra lo <strong>facturado sin costo financiero</strong>: efectivo y transferencia valen lo cobrado, y lo pagado con tarjeta (3, 6 o 12 cuotas) vale lo que hubiera valido por transferencia, porque el recargo lo paga la óptica. La ganancia descuenta CMV, descuentos, comisiones y los costos fijos/marketing cargados para ese mes.
             </p>
         </div>
     );
