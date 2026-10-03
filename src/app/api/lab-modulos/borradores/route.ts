@@ -4,6 +4,7 @@ import { getActor } from '@/lib/actor';
 import { Borradores } from '@/services/lab-modules/carga/borrador';
 import { armarFormulario, leerVentaParaCarga } from '@/services/lab-modules/vitolen/carga';
 import { cristalVitolenPorNombre } from '@/services/lab-modules/vitolen/catalogo';
+import { llenarBorradorEnPortal } from '@/services/lab-modules/vitolen/borrador-portal';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,8 +77,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos }, { status: 422 });
         }
 
-        const borrador = await Borradores.preparar({ lab: 'VITOLEN', orderId, pair, payload: r.payload, actor });
-        return NextResponse.json({ ok: true, borrador, avisos: r.avisos });
+        const preparado = await Borradores.preparar({ lab: 'VITOLEN', orderId, pair, payload: r.payload, actor });
+        // El robot entra al portal, llena hasta antes de "Crear" y deja la
+        // captura para revisar. Tarda unos segundos; si falla, el borrador queda
+        // en ERROR con el motivo y la respuesta lo dice.
+        try {
+            const borrador = await llenarBorradorEnPortal(preparado.id);
+            return NextResponse.json({ ok: true, borrador, avisos: r.avisos });
+        } catch (err: any) {
+            return NextResponse.json({ error: `El robot no pudo llenar el pedido en el portal: ${err?.message || err}`, borradorId: preparado.id }, { status: 502 });
+        }
     } catch (error: any) {
         const msg = error?.message || 'No se pudo preparar el pedido.';
         const status = /Ya hay un borrador/.test(msg) ? 409 : 500;

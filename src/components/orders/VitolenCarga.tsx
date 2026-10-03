@@ -18,6 +18,7 @@ import { formatDate } from '@/lib/format-date';
 
 interface Borrador {
     id: string; pair: number; status: string; payload: any; screenshotUrl: string | null;
+    resumenPortal: { pasos?: { campo: string; valor: string }[]; pendientes?: string[] } | null;
     screenshotFinalUrl: string | null; portalNumber: string | null; preparedBy: string | null;
     approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; createdAt: string;
 }
@@ -70,7 +71,11 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
                 body: JSON.stringify({ orderId, pair, forma: forma[pair] || null, variante: variante[pair] || null, pedidoOrigen: pair === 2 ? primero : null }),
             });
             const json = await res.json().catch(() => ({}));
-            if (!res.ok) { setError([json.error, ...(json.faltantes || [])].filter(Boolean).join(' · ')); return; }
+            if (!res.ok) {
+                setError([json.error, ...(json.faltantes || [])].filter(Boolean).join(' · '));
+                if (json.borradorId) await cargar(); // el robot falló: el borrador quedó en ERROR y se muestra
+                return;
+            }
             await cargar(); onChanged?.();
         } finally { setOcupado(null); }
     };
@@ -176,14 +181,21 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
 
                         {b && (
                             <div className="space-y-2">
-                                {b.status === 'PREPARADO' && <p className="text-[11px] text-stone-500">El robot va a llenar el portal y dejar la captura para revisar. Preparado por {b.preparedBy}.</p>}
-                                {b.status === 'APROBADO' && <p className="text-[11px] text-stone-500">Aprobado por {b.approvedBy}. El robot confirma en el portal y escribe el nº de pedido.</p>}
+                                {b.status === 'PREPARADO' && <p className="text-[11px] text-stone-500">El robot está llenando el portal; en unos segundos deja la captura para revisar. Preparado por {b.preparedBy}.</p>}
+                                {b.status === 'APROBADO' && <p className="text-[11px] text-stone-500">Aprobado por {b.approvedBy}. Por ahora el pedido se confirma a mano en el portal (el robot todavía no aprieta &quot;Crear&quot;); el nº de pedido lo trae el seguimiento solo.</p>}
                                 {b.status === 'EN_REVISION' && (
                                     <>
+                                        <p className="text-[11px] text-stone-600 dark:text-stone-300">Así quedó el formulario en el portal, <strong>antes de &quot;Crear&quot;</strong>. Revisá que coincida con la venta y aprobá o rechazá.</p>
                                         {b.screenshotUrl && (
                                             <a href={b.screenshotUrl} target="_blank" rel="noreferrer" className="block">
-                                                <img src={b.screenshotUrl} alt="Resumen del pedido en el portal de Vitolen" className="w-full rounded-lg border border-stone-200" />
+                                                <img src={b.screenshotUrl} alt="Formulario del pedido llenado en el portal de Vitolen" className="w-full rounded-lg border border-stone-200" />
                                             </a>
+                                        )}
+                                        {!!b.resumenPortal?.pendientes?.length && (
+                                            <div className="text-[11px] text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
+                                                <p className="font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Quedó para hacer a mano en el portal:</p>
+                                                <ul className="list-disc pl-4">{b.resumenPortal.pendientes.map(p => <li key={p}>{p}</li>)}</ul>
+                                            </div>
                                         )}
                                         <ResumenPayload payload={b.payload} />
                                         <div className="flex items-center gap-2">

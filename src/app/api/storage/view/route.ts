@@ -22,7 +22,9 @@ import path from 'path';
  * (ecos del celular): 717 fotos de clientes —recetas, DNI, comprobantes—
  * servidas sin sesión a quien tuviera la key. `_in_` y `_eco_` ahora cuentan.
  */
-const SENSITIVE_KEY = /_wa_|_in_|_eco_|receta|receipt|comprobante|prescripcion|prescription|\.pdf$|\.ogg$/i;
+// `lab-modulos/`: capturas del portal del laboratorio con la receta y las
+// medidas del cliente (carga asistida, 3/10/2026).
+const SENSITIVE_KEY = /_wa_|_in_|_eco_|receta|receipt|comprobante|prescripcion|prescription|lab-modulos\/|\.pdf$|\.ogg$/i;
 
 function esElBot(req: NextRequest): boolean {
     const clave = req.headers.get('x-api-key');
