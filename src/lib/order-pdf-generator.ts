@@ -1,10 +1,9 @@
-import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
+import { WHATSAPP_PHONE, WHATSAPP_PHONE_DISPLAY, INSTAGRAM_URL, YOUTUBE_URL, GOOGLE_MAPS_URL, STORE_ORIGIN } from '@/lib/constants';
 import { VIGENCIA_PRESUPUESTO_DIAS } from '@/lib/constants';
 
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
-import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
 // El PDF escribe plata por el MISMO helper que la tienda. Tenía 38
 // `toLocaleString()` sin idioma: en la Mac se ven bien, pero el contenedor de
 // producción (node:22-slim) resuelve en en-US, así que al cliente le llegaba
@@ -18,11 +17,18 @@ import { GARANTIA_UNA_LINEA, pedidoTieneGarantiaDeAdaptacion } from '@/lib/garan
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { colorLineaLabel } from '@/lib/crystal-color';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
-import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
+import { pick2x1FrameDiscount, isMultifocal2x1 } from '@/lib/promo-utils';
+import { esVentaDeOrden } from '@/lib/order-type';
 import { cristalesPorArmazon } from '@/lib/order-frames';
 import { armazonesPorPar, tipoDeItem } from '@/lib/armazon-por-par';
 import fs from 'fs';
 import path from 'path';
+
+// A4 en píxeles CSS (96 dpi), que es como Chromium pagina al imprimir.
+const A4_ANCHO_PX = 794;
+const A4_ALTO_PX = 1122; // 297 mm son 1122,5 px: con 1123 un documento justo sumaba una hoja en blanco
+// Hasta acá se achica para que entre en una hoja; más chico ya no se lee.
+const ESCALA_MINIMA_UNA_HOJA = 0.7;
 
 /**
  * La observación del vendedor es texto libre que va a parar al HTML del PDF:
@@ -49,8 +55,42 @@ function resolveVendorName(order: any, vendorName?: string): string | null {
     return name;
 }
 
+/**
+ * La foto del armazón, incrustada en base64 para que el PDF no dependa de la
+ * red (igual que el logo). Solo armazones y anteojos de sol: los cristales no
+ * tienen foto propia. Solo archivos de `public/`: una URL externa haría que el
+ * PDF dependa de la red (y un timeout lo tira al fallback sin foto ni pie).
+ */
+const MIME_FOTO: Record<string, string> = { avif: 'image/avif', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+/** El número que ve el cliente, el mismo en la cabecera y en el pie de cada hoja. */
+function numeroDeDocumento(order: any): string {
+    return String(order?.id || '').slice(-6).toUpperCase();
+}
+
+function imagenDeArmazon(it: any): string {
+    const categoria = `${it.product?.category || it.productCategorySnapshot || ''}`;
+    if (!/Armazón|Sol/i.test(categoria)) return '';
+    const src: string = it.product?.imagenesCatalogo?.[0] || it.product?.rawImageUrls?.[0] || '';
+    if (!src || /^https?:\/\//.test(src)) return '';
+    try {
+        // Resuelto y verificado dentro de public/: un "../" en la ruta no sale de ahí.
+        const raiz = path.join(process.cwd(), 'public');
+        const local = path.resolve(raiz, src.replace(/^\//, ''));
+        if (!local.startsWith(raiz + path.sep)) return '';
+        const mime = MIME_FOTO[path.extname(local).slice(1).toLowerCase()];
+        if (mime && fs.existsSync(local)) {
+            return `data:${mime};base64,${fs.readFileSync(local).toString('base64')}`;
+        }
+    } catch (e) {
+        console.error('Error al leer la foto del armazón para el PDF:', e);
+    }
+    return '';
+}
+
 function getOrderHtml(order: any, client: any, vendorName?: string): string {
-    const isSale = order.orderType === 'SALE';
+    const isSale = esVentaDeOrden(order);
+    // Un presupuesto es una cotización: no habla de pagos ni de saldos.
+    const esPresupuesto = !isSale;
     
     let dateStr = '';
     try {
@@ -59,6 +99,17 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         dateStr = formatDateLong(order.createdAt);
     } catch (e) {
         dateStr = formatDateLong(new Date());
+    }
+    // "Válido hasta" con fecha concreta: "15 días corridos" obligaba al
+    // cliente a contar desde una fecha que estaba en otro renglón.
+    // Si el presupuesto se reenvía vencido, no se imprime una fecha pasada
+    // (el bloque se omite); la vigencia contractual no cambia.
+    let validoHasta = '';
+    try {
+        const vence = addDays(new Date(order.createdAt || Date.now()), VIGENCIA_PRESUPUESTO_DIAS);
+        if (vence.getTime() >= Date.now()) validoHasta = formatDateLong(vence);
+    } catch {
+        validoHasta = '';
     }
 
     // Cargar logo local en base64 si existe
@@ -75,109 +126,170 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
 
     const logoUrl = logoBase64 || `${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/assets/logo-atelier-optica.png`;
     
-    // Brand Colors
+    // Paleta: dos tintas de marca y neutros. Cada color extra (verde, violeta,
+    // naranja) pedía atención por su cuenta y nada quedaba importante; el único
+    // acento distinto es el verde apagado de "sin cargo".
     const brandBeige = '#D4C3B5';
     const brandSand = '#A68B7C';
-    const systemEmerald = '#10b981';
-    
+    const tinta = '#1c1917';
+    const gris = '#78716c';
+    const linea = '#ece5dc';
+    const crema = '#fbf8f4';
+    const verdeSuave = '#4d7c5f';
+
     const financials = PricingService.calculateOrderFinancials(order);
     const markupFactor = 1 + ((order.markup || 0) / 100);
+    // Con un descuento (armazón bonificado o especial) el total se muestra
+    // como desglose; sin descuento, como una sola línea. Nunca los dos.
+    const promoFrameInflated = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
+    const specialDiscount = order.specialDiscount || 0;
+    const hayDesglose = promoFrameInflated > 0 || specialDiscount > 0;
+    const lab = describeLabFrameDetails(order);
+    const numeroDoc = numeroDeDocumento(order);
 
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>${isSale ? 'Venta' : 'Presupuesto'} - ${client?.name || 'Cliente'} - Atelier Óptica</title>
+    <title>${isSale ? 'Venta' : 'Presupuesto'} - ${escapeHtml(String(client?.name || 'Cliente'))} - Atelier Óptica</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',sans-serif; }
         @page { margin: 0; size: auto; }
-        body { padding: 40px 50px; color: #1c1917; font-size: 13px; line-height:1.4; background: white; }
-        
-        .letterhead { padding-bottom:20px; border-bottom:2px solid ${brandBeige}; margin-bottom: 8px; overflow: hidden; }
-        .letterhead-logo { height: 35px; width: auto; max-width: 220px; float: left; object-fit: contain; }
-        .letterhead-right { float: right; text-align:right; font-size:10px; color:#78716c; font-weight: 500; margin-top: 5px; }
-        .address-bold { font-weight:800; color:${brandSand}; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .tagline { text-align:center; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2.5px; color:${brandSand}; padding:14px 0; border-bottom: 1px solid #f5f5f4; margin-bottom: 10px; }
-        
-        .doc-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px; }
-        .doc-title { font-size:22px; font-weight:900; text-transform:uppercase; color:${brandSand}; letter-spacing: 2px; }
-        .doc-meta { font-size:11px; color:#a8a29e; font-weight: 800; }
+        body { padding: 30px 40px; color: ${tinta}; font-size: 12px; line-height:1.45; background: white; }
 
-        .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px; }
-        .info-box { border:1.5px solid ${brandBeige}; border-radius:14px; padding:14px; background: #fffcf9; }
-        .info-box h3 { font-size:9px; font-weight:900; text-transform:uppercase; color:${brandSand}; border-bottom: 1px solid ${brandBeige}; padding-bottom: 6px; margin-bottom: 8px; }
-        .info-row { display:flex; justify-content:space-between; margin-bottom:4px; font-size:12px; }
-        .info-label { color:#78716c; font-weight: 600; }
-        .info-value { font-weight:800; color:#1c1917; }
+        .letterhead { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:10px; border-bottom:1px solid ${brandBeige}; margin-bottom:12px; }
+        .letterhead-logo { height: 34px; width: auto; max-width: 220px; object-fit: contain; }
+        .letterhead-right { text-align:right; font-size:10px; color:${gris}; line-height:1.5; }
+        .address-bold { font-weight:600; color:${brandSand}; }
+        /* El eslogan como sello: píldora oscura con las estrellas en el dorado de
+           la marca sobre fondo oscuro (--dorado) y el "Ver" verde como botón. */
+        .tagline { display:inline-flex; align-items:center; gap:8px; margin-top:7px; padding:5px 5px 5px 13px; border-radius:999px; background:linear-gradient(135deg, #1c1917 0%, #3b312a 100%); color:#fff; text-decoration:none; font-size:8.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
+        .tagline .estrellas { color:#c8a55c; font-size:12px; letter-spacing:1.5px; line-height:1; text-shadow:0 0 3px rgba(200,165,92,.55); }
+        .tagline .ver { display:inline-block; padding:3px 9px; border-radius:999px; background:${verdeSuave}; color:#fff; font-size:8px; font-weight:700; letter-spacing:.08em; }
 
-        table { width:100%; border-collapse:collapse; margin-bottom:20px; border-radius: 12px; overflow: hidden; border: 1.5px solid ${brandBeige}; }
-        th { background:${brandSand}; color:white; padding:12px 14px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:1.5px; }
-        td { padding:12px 14px; border-bottom:1px solid #f5f5f4; font-size:12px; }
-        tr:nth-child(even) { background:#fffcf9; }
+        .doc-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px; }
+        .doc-title { font-size:24px; font-weight:700; color:${tinta}; letter-spacing:-0.01em; }
+        .doc-meta { font-size:11px; color:${gris}; margin-top:2px; }
+        .doc-valid { text-align:right; font-size:11px; color:${gris}; }
+        .doc-valid b { color:${tinta}; font-weight:600; }
 
-        .payment-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
-        .payment-card { border-radius: 18px; padding: 18px; border: 1.5px solid ${brandBeige}; position: relative; overflow: hidden; }
-        .payment-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; }
-        .p-efective::before { background: ${systemEmerald}; }
-        .p-transfer::before { background: #7c3aed; }
-        .p-card::before { background: #f97316; }
+        .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:14px; }
+        .info-box { border:1px solid ${linea}; border-radius:6px; padding:10px 14px; background:${crema}; }
+        .info-box h3 { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${brandSand}; margin-bottom:8px; }
+        .info-row { display:flex; justify-content:space-between; margin-bottom:3px; font-size:12px; }
+        .info-label { color:${gris}; }
+        .info-value { font-weight:600; }
 
-        .p-title { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: block; }
-        .p-amount { font-size: 18px; font-weight: 900; color: #1c1917; display: block; margin-bottom: 2px; }
-        .p-saldo { font-size: 12px; font-weight: 900; background: #f5f5f4; display: inline-block; padding: 4px 10px; border-radius: 8px; margin-top: 8px; }
-        .p-saldo-label { color: #78716c; font-size: 8px; display: block; margin-bottom: 2px; text-transform: uppercase; }
-        
-        .installments { border-top: 1px solid #f5f5f4; margin-top: 12px; padding-top: 10px; }
-        .inst-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .inst-quota { font-size: 14px; font-weight: 900; color: #c2410c; }
-        .inst-total { font-size: 8px; color: #a8a29e; font-weight: 700; text-align: right; text-transform: uppercase; display: block; }
-        .p-tag { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color:#a8a29e; margin-bottom: 4px; display: block; }
+        table { width:100%; border-collapse:collapse; margin-bottom:6px; border-radius:6px; overflow:hidden; border:1px solid ${linea}; }
+        th { background:${crema}; color:${brandSand}; padding:7px 14px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; border-bottom:1px solid ${linea}; }
+        td { padding:7px 14px; border-bottom:1px solid ${linea}; font-size:12px; vertical-align:top; }
+        td.num { text-align:right; font-variant-numeric: tabular-nums; }
+        tr { break-inside: avoid; page-break-inside: avoid; }
+        .par-sep { break-after: avoid; page-break-after: avoid; }
+        .par-sep td { background:${crema}; padding:7px 14px; font-size:10px; font-weight:700; color:${brandSand}; letter-spacing:.06em; }
+        .par-sub { font-size:10px; color:${gris}; font-weight:400; letter-spacing:0; margin-top:1px; }
+        .ojo { display:inline-block; border:1px solid ${brandBeige}; border-radius:4px; padding:1px 6px; font-size:8.5px; font-weight:600; letter-spacing:.06em; color:${brandSand}; margin-bottom:3px; }
+        .item-name { font-weight:600; }
+        .item-row { display:flex; gap:12px; align-items:flex-start; }
+        .item-img { flex:none; width:84px; height:56px; object-fit:contain; border:1px solid ${linea}; border-radius:4px; background:white; }
+        .item-sub { font-size:10px; color:${gris}; margin-top:1px; }
+        .bonif { font-size:10px; color:${verdeSuave}; font-weight:600; margin-top:2px; }
 
-        .totals-summary { margin-top: 25px; padding: 20px 25px; border-radius: 16px; background: #fffcf9; color: #1c1917; display: flex; justify-content: space-between; align-items: center; border: 1.5px solid ${brandBeige}; }
-        .tot-amount { font-size: 34px; font-weight: 900; color: #047857; letter-spacing: -1px; }
-        .tot-col { text-align: center; padding: 0 15px; border-right: 1px solid ${brandBeige}; }
-        .tot-col:last-of-type { border-right: none; }
-        .tot-val { font-size: 18px; font-weight: 900; display: block; }
-        .tot-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #78716c; display: block; margin-bottom: 4px; }
-        
-        .tot-paid { text-align: right; border-left: 2px solid ${brandBeige}; padding-left: 25px; margin-left: 10px; }
-        .paid-value { font-size: 24px; font-weight: 900; color: #b45309; }
+        .total-promo { font-size:10.5px; font-weight:700; color:${verdeSuave}; letter-spacing:.02em; white-space:nowrap; margin-left:6px; }
+        .total-promo .oro { color:#c8a55c; margin-right:4px; }
+        .total-label { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:${brandSand}; font-weight:600; }
+        .total-hint { font-size:11px; color:${gris}; padding:0 2px; margin-top:16px; }
 
-        .footer { margin-top: 16px; text-align: center; border-top: 2px solid ${brandBeige}; padding-top: 10px; break-before: avoid; page-break-before: avoid; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; }
-        
-        @media print { body { padding: 22px 30px; } }
+        /* Las tres tarjetas de pago van ENTERAS en una hoja: partidas por el
+           corte de página, la fila de 12 cuotas caía sola en la hoja 2 dentro
+           de una tarjeta cortada y el cliente no la veía. */
+        .payment-methods { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:8px; margin-top:12px; align-items:start; break-inside: avoid; page-break-inside: avoid; }
+        .p-amount small { font-size:10px; font-weight:400; color:${gris}; }
+        .cuota-grande { font-size:11px; color:${gris}; margin-top:3px; white-space:nowrap; }
+        .cuota-grande b { font-size:15px; font-weight:700; color:${tinta}; }
+        .cuota-grande span { font-size:15px; font-weight:700; color:${tinta}; }
+        .cuota-total { font-size:9px; color:${gris}; margin-top:6px; padding-top:5px; border-top:1px solid ${linea}; }
+        .payment-card { position:relative; border-radius:6px; padding:12px 16px; border:1px solid ${linea}; }
+        .p-desc { position:absolute; top:9px; right:10px; background:${verdeSuave}; color:#fff; font-size:9px; font-weight:700; padding:2px 7px; border-radius:999px; letter-spacing:.04em; }
+        .p-ahorro { font-size:9px; color:${gris}; margin-top:6px; padding-top:5px; border-top:1px solid ${linea}; white-space:nowrap; }
+        .p-ahorro s { color:#a8a29e; }
+        .p-ahorro b { color:${verdeSuave}; }
+        .p-title { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${gris}; margin-bottom:6px; display:block; }
+        .p-amount { font-size:18px; font-weight:700; display:block; }
+        .p-saldo { font-size:12px; font-weight:600; background:${crema}; display:inline-block; padding:4px 10px; border-radius:4px; margin-top:8px; }
+        .p-saldo-label { color:${gris}; font-size:8px; display:block; margin-bottom:2px; text-transform:uppercase; }
+
+        .installments { border-top:1px solid ${linea}; margin-top:10px; padding-top:8px; }
+        .inst-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; font-size:10.5px; }
+        .inst-quota { font-size:13px; font-weight:700; }
+        .inst-note { font-size:9px; color:${gris}; }
+
+
+        .totals-summary { margin-top:18px; padding:16px 22px; border-radius:6px; background:${crema}; display:flex; justify-content:space-between; align-items:center; border:1px solid ${linea}; break-inside: avoid; page-break-inside: avoid; }
+        .tot-col { text-align:center; padding:0 15px; border-right:1px solid ${brandBeige}; }
+        .tot-col:last-of-type { border-right:none; }
+        .tot-val { font-size:18px; font-weight:700; display:block; }
+        .tot-label { font-size:8px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:${gris}; display:block; margin-bottom:4px; }
+        .tot-paid { text-align:right; border-left:1px solid ${brandBeige}; padding-left:25px; margin-left:10px; }
+        .paid-value { font-size:22px; font-weight:700; }
+
+        .cierre { break-inside: avoid; page-break-inside: avoid; }
+        .firma { display:flex; justify-content:flex-end; margin-top:8px; }
+        .footer { margin-top:10px; padding-top:8px; border-top:1px solid ${linea}; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:${gris}; }
+        .footer-links { display:flex; gap:14px; }
+        .footer-links a { display:inline-flex; align-items:center; gap:4px; color:${brandSand}; text-decoration:none; font-weight:500; }
+        .footer-links svg { width:12px; height:12px; }
+        .footer-links a.ver-tienda { background:${verdeSuave}; color:white; padding:2px 8px; border-radius:3px; font-weight:700; }
+
+        /* Modo compacto: lo prende el generador solo cuando el documento no
+           entra en una hoja, antes de recurrir a achicar la escala. */
+        body.compacto { padding: 22px 32px; font-size: 11.5px; }
+        body.compacto .letterhead { margin-bottom: 10px; padding-bottom: 8px; }
+        body.compacto .doc-header { margin-bottom: 8px; }
+        body.compacto .info-grid { margin-bottom: 10px; }
+        body.compacto .info-box { padding: 8px 12px; }
+        body.compacto td { padding: 5px 12px; }
+        body.compacto .par-sep td { padding: 5px 12px; }
+        body.compacto .item-sub { display: inline; }
+        body.compacto .item-sub + .item-sub::before { content: ' · '; }
+        body.compacto .item-img { width: 64px; height: 42px; }
+        body.compacto .payment-card { padding: 10px 12px; }
+        body.compacto .installments { margin-top: 6px; padding-top: 6px; }
+        body.compacto .firma { margin-top: 6px; }
+        body.compacto .footer { margin-top: 8px; padding-top: 6px; }
+
+        @media print { body { padding: 22px 30px; } body.compacto { padding: 18px 26px; } }
     </style>
 </head>
 <body>
     <div class='letterhead'>
         <img src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
         <div class='letterhead-right'>
-            <div class='address-bold'>José Luis de Tejeda 4380</div>
-            <div>Cerro de las Rosas, Córdoba</div>
-            <div>WhatsApp: ${WHATSAPP_PHONE_DISPLAY}</div>
+            <div class='address-bold'>José Luis de Tejeda 4380 · Cerro de las Rosas, Córdoba</div>
+            <div>WhatsApp ${WHATSAPP_PHONE_DISPLAY}</div>
+            <a class='tagline' href='${GOOGLE_MAPS_URL}'><span class='estrellas'>★★★★★</span> La óptica mejor calificada en Córdoba <span class='ver'>Ver</span></a>
         </div>
     </div>
-    <div class='tagline'>ATELIER ÓPTICA — LA ÓPTICA MEJOR CALIFICADA EN CÓRDOBA ⭐⭐⭐⭐⭐</div>
 
     <div class='doc-header'>
         <div>
-            <div class='doc-title'>${isSale ? 'Orden de Venta' : 'Presupuesto'} <span style="background:#1c1917; color:white; padding:2px 8px; border-radius:4px; font-size:7px; margin-left:10px; vertical-align:middle;">V2.0</span></div>
-            <div class='doc-meta'>#${order.id.slice(-6).toUpperCase()} · ${dateStr}</div>
+            <div class='doc-title'>${isSale ? 'Orden de venta' : 'Presupuesto'}</div>
+            <div class='doc-meta'>N.º ${numeroDoc} · ${dateStr}</div>
         </div>
+        ${esPresupuesto && validoHasta ? `<div class='doc-valid'>Válido hasta el <b>${validoHasta}</b></div>` : ''}
     </div>
 
     <div class='info-grid'>
         <div class='info-box'>
-            <h3>👤 Cliente</h3>
-            <div class='info-row'><span class='info-label'>Nombre</span><span class='info-value'>${client?.name || 'Cliente Final'}</span></div>
-            <div class='info-row'><span class='info-label'>WhatsApp</span><span class='info-value'>${client?.phone || '-'}</span></div>
+            <h3>Cliente</h3>
+            <div class='info-row'><span class='info-label'>Nombre</span><span class='info-value'>${escapeHtml(client?.name || 'Cliente Final')}</span></div>
+            <div class='info-row'><span class='info-label'>WhatsApp</span><span class='info-value'>${escapeHtml(client?.phone || '-')}</span></div>
         </div>
         <div class='info-box'>
-            <h3>🏢 Atelier Local</h3>
-            <div class='info-row'><span class='info-label'>Sucursal</span><span class='info-value'>Cerro de las Rosas</span></div>
-            <div class='info-row'><span class='info-label'>Vigencia</span><span class='info-value'>${VIGENCIA_PRESUPUESTO_DIAS} días corridos</span></div>
+            <h3>Atelier Óptica</h3>
+            <div class='info-row'><span class='info-label'>Local</span><span class='info-value'>Tejeda 4380, Cerro de las Rosas</span></div>
+            <div class='info-row'><span class='info-label'>Consultas</span><span class='info-value'>WhatsApp ${WHATSAPP_PHONE_DISPLAY}</span></div>
         </div>
     </div>
 
@@ -186,7 +298,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             <tr>
                 <th style="width: 60%">Descripción</th>
                 <th style="text-align: center">Cant.</th>
-                <th style="text-align: right">Precio Unit.</th>
+                <th style="text-align: right">Precio unitario</th>
                 <th style="text-align: right">Subtotal</th>
             </tr>
         </thead>
@@ -197,7 +309,6 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 // venta; el localizador es el mismo módulo que calculó la plata.
                 const promoGuardada = (order.appliedPromoDiscount || 0) > 0 ? pick2x1FrameDiscount(order.items || []) : null;
                 const itemBonificado = promoGuardada?.item || null;
-                const modoBonif = modoBonificacionGuardada(order.appliedPromoName);
 
                 // AGRUPADO POR PAR, con separador. Antes esto mapeaba los items
                 // en el orden de carga: un 2x1 mostraba cuatro Varilux idénticos
@@ -214,16 +325,15 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     // CLIPO ON METAL"), y el ítem del armazón vendido se ubica
                     // debajo de sus cristales — antes "Clip-on Classic" caía en
                     // la bolsa del final y nadie sabía de qué par era.
-                    const resumenPdf = describeLabFrameDetails(order);
                     const esArmazonPdf = (it: any) =>
                         /Armazón|Sol/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`);
     // ↑ `includes` y no igualdad: la categoría real del catálogo es
     // "Armazón de Receta" — el filtro exacto no matcheaba ningún producto.
                     const armazonDelParPdf = armazonesPorPar(
-                        (order.items || []).filter(esArmazonPdf), resumenPdf.pairs);
+                        (order.items || []).filter(esArmazonPdf), lab.pairs);
                     for (const [par, lista] of [...porPar.entries()].sort((a, b) => a[0] - b[0])) {
                         if (!lista.length) continue; // un encabezado sin filas confunde más que nada
-                        const info = resumenPdf.pairs.find(p => p.pair === par);
+                        const info = lab.pairs.find(p => p.pair === par);
                         const cual = (info?.details || info?.shape || '').trim();
                         // Debajo del título van las medidas de ESE armazón:
                         // antes vivían en un cuadro aparte al final y el lector
@@ -233,9 +343,15 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                             info?.measurements || '',
                             info?.fitting || '',
                         ].filter(Boolean).join('  ·  ');
+                        // "SIN CARGO" sin decir por qué confundía: si todos los
+                        // cristales del par van a $0, el separador explica el 2x1.
+                        const parSinCargo = lista.every((it: any) => Math.round((it.price || 0) * markupFactor) === 0);
+                        // Sin cargo por OTRO motivo (cortesía, garantía) no es el 2x1.
+                        const parDel2x1 = parSinCargo && lista.every((it: any) => isMultifocal2x1(it.product || it));
+                        const notaSinCargo = parDel2x1 ? 'Promo 2x1: los cristales de este par van sin cargo' : parSinCargo ? 'Cristales sin cargo' : '';
                         conSeparador.push({
                             __separador: `${par}º PAR${cual ? ` — ${cual.toUpperCase()}` : ''}`,
-                            __sub: medidasDe,
+                            __sub: [notaSinCargo, medidasDe].filter(Boolean).join('  ·  '),
                         });
                         const orden = (it: any) => (it.eye === 'RIGHT' || it.eye === 'OD') ? 0 : 1;
                         [...lista].sort((a, b) => orden(a) - orden(b)).forEach(it => { conSeparador.push(it); asignadosPdf.add(it); });
@@ -243,29 +359,37 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                         if (arm) { conSeparador.push(arm); asignadosPdf.add(arm); }
                     }
                     const sueltos = (order.items || []).filter((it: any) => !asignadosPdf.has(it));
-                    if (sueltos.length) conSeparador.push({ __separador: 'APARTE DE TUS ANTEOJOS' }, ...sueltos);
+                    // Si lo suelto son armazones, la banda lo dice; "aparte de
+                    // tus anteojos" sonaba a estuches y líquidos.
+                    if (sueltos.length) conSeparador.push({ __separador: sueltos.every(esArmazonPdf) ? 'ARMAZONES' : 'OTROS ÍTEMS' }, ...sueltos);
                 } else {
                     conSeparador.push(...(order.items || []));
                 }
+                // Con bandas por par, el 2x1 ya está explicado en la banda: no
+                // se repite "bonificado" en cada renglón.
+                const hayBandas = porPar.size > 1;
 
                 return conSeparador.map((it: any) => {
                 if (it.__separador) return `
-                    <tr><td colspan="4" style="padding:12px 0 4px;border-bottom:2px solid #d6cfc2">
-                      <span style="font-size:10px;letter-spacing:2px;font-weight:900;color:#8a7f6d">${it.__separador}</span>
-                      ${it.__sub ? `<div style="font-size:10px;color:#57534e;margin-top:2px;font-weight:700">${escapeHtml(it.__sub)}</div>` : ''}
+                    <tr class="par-sep"><td colspan="4">
+                      ${escapeHtml(it.__separador)}
+                      ${it.__sub ? `<div class="par-sub">${escapeHtml(it.__sub)}</div>` : ''}
                     </td></tr>`;
                 const itemPrice = Math.round(it.price * markupFactor);
+                // El ojo va ARRIBA del nombre y en mayúsculas: OD y OI son dos
+                // líneas con el mismo título, y como quinta línea gris el
+                // cliente no distinguía cuál era cuál.
                 let eyeLabel = '';
-                if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'Ojo Derecho (OD)';
-                else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'Ojo Izquierdo (OI)';
-                else if (it.eye) eyeLabel = it.eye;
+                if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'OJO DERECHO (OD)';
+                else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'OJO IZQUIERDO (OI)';
+                else if (it.eye) eyeLabel = String(it.eye).toUpperCase();
 
                 let priceDisplay = `$${formatearPrecio(itemPrice)}`;
                 let totalDisplay = `$${formatearPrecio((itemPrice * it.quantity))}`;
                 
                 if (itemPrice === 0) {
-                    priceDisplay = '<span style="color:#10b981; font-weight:800; font-size:10px;">SIN CARGO</span>';
-                    totalDisplay = '<span style="color:#10b981; font-weight:900;">$0</span>';
+                    priceDisplay = '<span style="color:#4d7c5f; font-weight:600; font-size:10px;">SIN CARGO</span>';
+                    totalDisplay = '<span style="color:#4d7c5f; font-weight:700;">$0</span>';
                 }
 
                 // El armazón bonificado: bruto tachado y el neto real al lado
@@ -275,20 +399,26 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     const descuentoInflado = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
                     const brutoLinea = itemPrice * (it.quantity || 1);
                     const netoLinea = Math.max(0, brutoLinea - descuentoInflado);
-                    totalDisplay = `<span style="text-decoration: line-through; color:#a8a29e; font-size:10px;">$${formatearPrecio(brutoLinea)}</span><br/><span style="color:#10b981; font-weight:900;">${netoLinea === 0 ? 'SIN CARGO' : '$' + formatearPrecio(netoLinea)}</span>`;
-                    notaBonificacion = `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">🎁 ${etiquetaBonificacion2x1(modoBonif)} — descuento de $${formatearPrecio(descuentoInflado)}</div>`;
+                    priceDisplay = `<span style="text-decoration: line-through; color:#a8a29e;">$${formatearPrecio(itemPrice)}</span>`;
+                    totalDisplay = `<span style="text-decoration: line-through; color:#a8a29e; font-size:10px;">$${formatearPrecio(brutoLinea)}</span><br/><span style="color:#4d7c5f; font-weight:700;">${netoLinea === 0 ? 'SIN CARGO' : '$' + formatearPrecio(netoLinea)}</span>`;
+                    notaBonificacion = `<div class="bonif">Armazón bonificado por el 2x1 · descuento de $${formatearPrecio(descuentoInflado)}</div>`;
                 }
 
                 const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
-                const origin = lensOriginLabel(lensOriginFromItem(it));
-
+                const foto = imagenDeArmazon(it);
                 // El COLOR del cristal en la línea que lo lleva, con la misma
                 // redacción que la pantalla y el mensaje al cliente.
                 const colorLinea = colorLineaLabel(it) || '';
+                const colorDeLente = colorDeLenteEnPedido(it, order.items || []) || '';
+                const tipo = tipoDeItem(it) || '';
                 return `
                 <tr>
                     <td>
-                        <div style="font-weight: 900;">${(() => {
+                        <div class="item-row">
+                        ${foto ? `<img class="item-img" src="${foto}" alt="" />` : ''}
+                        <div>
+                        ${eyeLabel ? `<div><span class="ojo">${eyeLabel}</span></div>` : ''}
+                        <div class="item-name">${(() => {
                             // "Carolina emanuel Carolina Emanuel": la marca y el
                             // nombre del producto suelen decir lo mismo, y
                             // pegarlos sin mirar duplicaba el texto en la línea.
@@ -296,21 +426,21 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                             const nombreP = (it.product?.name || it.productNameSnapshot || '').trim();
                             // `includes` y no igualdad: "Vulk" ya vive dentro de
                             // "Anteojo de sol - Vulk" y anteponerla repetía la marca.
-                            return marca && !nombreP.toLowerCase().includes(marca.toLowerCase())
-                                ? `${marca} ${nombreP}` : nombreP || marca;
+                            return escapeHtml(marca && !nombreP.toLowerCase().includes(marca.toLowerCase())
+                                ? `${marca} ${nombreP}` : nombreP || marca);
                         })()}</div>
-                        ${tipoDeItem(it) ? `<div style="font-size:10px; color:#78716c; font-weight:700; margin-top:1px;">${tipoDeItem(it)}</div>` : ''}
-                        ${refIndex ? `<div style="font-size:10px; color:#c2410c; font-weight: 700; margin-top: 1px;">Índice de Refracción: ${refIndex}</div>` : ''}
-                        ${colorDeLenteEnPedido(it, order.items || []) ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Color de la lente: ${colorDeLenteEnPedido(it, order.items || [])}</div>` : ''}
-                        ${origin ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Origen: ${origin}</div>` : ''}
-                        ${colorLinea ? `<div style="font-size:10px; color:#6d28d9; font-weight: 800; margin-top: 1px;">Color: ${colorLinea}</div>` : ''}
-                        ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
-                        ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">* Bonificado por Promoción</div>` : ''}
+                        ${tipo ? `<div class="item-sub">${escapeHtml(String(tipo))}</div>` : ''}
+                        ${colorDeLente ? `<div class="item-sub">Color de la lente: ${escapeHtml(colorDeLente)}</div>` : ''}
+                        ${colorLinea ? `<div class="item-sub">Color: ${escapeHtml(colorLinea)}</div>` : ''}
+                        ${refIndex ? `<div class="item-sub">Índice de refracción ${escapeHtml(String(refIndex))}</div>` : ''}
+                        ${itemPrice === 0 && !hayBandas ? `<div class="bonif">Bonificado por promoción</div>` : ''}
                         ${notaBonificacion}
+                        </div>
+                        </div>
                     </td>
-                    <td style='text-align:center; font-weight: 800;'>${it.quantity}</td>
-                    <td style='text-align:right'>${priceDisplay}</td>
-                    <td style='text-align:right; font-weight: 900;'>${totalDisplay}</td>
+                    <td class="num" style='text-align:center; font-weight:500;'>${it.quantity}</td>
+                    <td class="num">${priceDisplay}</td>
+                    <td class="num" style='font-weight:700;'>${totalDisplay}</td>
                 </tr>
             `}).join('');
             })()}
@@ -318,44 +448,32 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     </table>
 
     ${(() => {
+        if (!hayDesglose) return '';
         const rawSubtotalInflated = (order.items || []).reduce((sum: number, it: any) => sum + (Math.round(it.price * markupFactor) * (it.quantity || 1)), 0);
-        const promoFrameDiscount = order.appliedPromoDiscount || 0;
-        const promoFrameInflated = Math.round(promoFrameDiscount * markupFactor);
-        const specialDiscount = order.specialDiscount || 0;
-
-        if (promoFrameInflated === 0 && specialDiscount === 0) return '';
-
+        // El nombre de la promo guardada a veces trae la marca repetida
+        // ("Atelier Atelier Premium"): se colapsa la palabra doble.
+        const nombrePromo = String(order.appliedPromoName || 'Armazón bonificado').replace(/^(\S+)\s+\1\b/i, '$1');
+        const fila = (label: string, valor: string, color = tinta) => `
+                <div style="display:flex; justify-content:space-between; padding:3px 0; font-size:11px; color:${color};">
+                    <span>${label}</span><span style="font-weight:600;">${valor}</span>
+                </div>`;
         return `
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 25px;">
-            <div style="width: 320px; background: #fffcf9; border: 1.5px solid ${brandBeige}; border-radius: 14px; padding: 16px;">
-                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px;">
-                    <span style="color: #78716c; font-weight: 600;">Subtotal Items:</span>
-                    <span style="font-weight: 800;">$${formatearPrecio(rawSubtotalInflated)}</span>
-                </div>
-                ${promoFrameInflated > 0 ? `
-                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #10b981;">
-                    <span style="font-weight: 600;">🎁 ${order.appliedPromoName || 'Bonificación Armazón'}:</span>
-                    <span style="font-weight: 800;">-$${formatearPrecio(promoFrameInflated)}</span>
-                </div>
-                ` : ''}
-                ${specialDiscount > 0 ? `
-                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #10b981;">
-                    <span style="font-weight: 800;">⭐ Descuento excepcional para vos:</span>
-                    <span style="font-weight: 800;">-$${formatearPrecio(specialDiscount)}</span>
-                </div>
-                ` : ''}
-                <div style="display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px; border-top: 1.5px solid ${brandBeige}; font-size: 14px; font-weight: 900; color: ${brandSand};">
-                    <span>PRECIO DE LISTA FINAL:</span>
-                    <span>$${formatearPrecio(financials.listPrice)}</span>
+        <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+            <div style="width:340px; background:${crema}; border:1px solid ${linea}; border-radius:6px; padding:12px 16px;">
+                ${fila('Subtotal', `$${formatearPrecio(rawSubtotalInflated)}`, gris)}
+                ${promoFrameInflated > 0 ? fila(`${escapeHtml(nombrePromo)} (2x1)`, `−$${formatearPrecio(promoFrameInflated)}`, verdeSuave) : ''}
+                ${specialDiscount > 0 ? fila('Descuento especial para vos', `−$${formatearPrecio(specialDiscount)}`, verdeSuave) : ''}
+                <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:8px; margin-top:6px; border-top:1px solid ${brandBeige};">
+                    <span class="total-label">Precio total (lista)</span>
+                    <span style="font-size:20px; font-weight:700;">$${formatearPrecio(financials.listPrice)}</span>
                 </div>
             </div>
-        </div>
-        `;
+        </div>`;
     })()}
 
-    ${!financials.hasBalance ? `
-    <div style="margin-top: 30px; padding: 28px 35px; border-radius: 20px; background: #f0fdf4; border: 2px solid #10b981; color: #065f46;">
-        <h2 style="font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px; text-align: center;">✅ Orden pagada en su totalidad</h2>
+    ${!esPresupuesto && !financials.hasBalance ? `
+    <div style="margin-top: 30px; padding: 28px 35px; border-radius: 6px; background: #f0fdf4; border: 2px solid #4d7c5f; color: #065f46;">
+        <h2 style="font-size: 24px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px; text-align: center;">Orden pagada en su totalidad</h2>
         <p style="font-size: 14px; font-weight: 700; margin: 0 0 18px; text-align: center;">No queda saldo pendiente. Al retirar el pedido no tenés que abonar nada más.</p>
         ${(() => {
             // EL SALTO QUE NADIE EXPLICABA. Arriba dice "precio de lista final"
@@ -368,103 +486,99 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             const num = formatearPrecio;
             const filaTot = (label: string, valor: string, fuerte = false, color = '#065f46') => `
                 <tr>
-                  <td style="padding:5px 0;font-size:14px;color:${color};${fuerte ? 'font-weight:900;' : ''}">${label}</td>
+                  <td style="padding:5px 0;font-size:14px;color:${color};${fuerte ? 'font-weight:700;' : ''}">${label}</td>
                   <td style="padding:5px 0;font-size:${fuerte ? '18px' : '14px'};text-align:right;color:${color};font-weight:${fuerte ? '900' : '700'}">${valor}</td>
                 </tr>`;
             return `
             <table style="width:100%;max-width:460px;margin:0 auto;border-collapse:collapse">
               ${filaTot('Precio de lista', `$${num(financials.listPrice)}`)}
               ${ahorro > 0 ? filaTot('Descuento por tu forma de pago', `− $${num(ahorro)}`) : ''}
-              <tr><td colspan="2" style="border-top:2px solid #10b981;padding:0"></td></tr>
+              <tr><td colspan="2" style="border-top:2px solid #4d7c5f;padding:0"></td></tr>
               ${filaTot('Total que abonaste', `$${num(financials.paidReal)}`, true)}
             </table>`;
         })()}
     </div>
     ` : `
+    ${esPresupuesto ? `<div class='total-hint'>Elegí cómo pagarlo: <span class='total-promo'><span class='oro'>★</span>3 y 6 cuotas sin interés, y hasta 12 cuotas fijas</span></div>` : ''}
     <div class='payment-methods'>
-        <div class='payment-card p-efective'>
-            <span class='p-title'>💵 Efectivo (-${financials.discountCash}%)</span>
+        <div class='payment-card'>
+            <span class='p-title'>Efectivo</span><span class='p-desc'>−${financials.discountCash}%</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalCash)}</span>
-            <div class='p-saldo'>
+            <div class='p-ahorro'><s>$${formatearPrecio(financials.listPrice)}</s> · Ahorrás <b>$${formatearPrecio(financials.listPrice - financials.totalCash)}</b></div>
+            ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${formatearPrecio(financials.remainingCash)}</span>
-            </div>
+            </div>`}
         </div>
-        <div class='payment-card p-transfer'>
-            <span class='p-title'>🏦 Transferencia (-${financials.discountTransfer}%)</span>
+        <div class='payment-card'>
+            <span class='p-title'>Transferencia</span><span class='p-desc'>−${financials.discountTransfer}%</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalTransfer)}</span>
-            <div class='p-saldo'>
+            <div class='p-ahorro'><s>$${formatearPrecio(financials.listPrice)}</s> · Ahorrás <b>$${formatearPrecio(financials.listPrice - financials.totalTransfer)}</b></div>
+            ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${formatearPrecio(financials.remainingTransfer)}</span>
-            </div>
+            </div>`}
         </div>
-        <div class='payment-card p-card'>
-            <span class='p-title'>💳 Tarjetas (Lista)</span>
-            <span class='p-amount'>$${formatearPrecio(financials.totalCard)}</span>
-            <div class='p-saldo'>
+        <div class='payment-card'>
+            <span class='p-title'>Cuotas sin interés</span>
+            <div class='cuota-grande'><b>3</b> cuotas de <span>$${formatearPrecio(financials.installment3)}</span></div>
+            <div class='cuota-grande'><b>6</b> cuotas de <span>$${formatearPrecio(financials.installment6)}</span></div>
+            <div class='cuota-total'>Total $${formatearPrecio(financials.totalCard)} · precio de lista</div>
+            ${esPresupuesto ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Listado</span>
                 <span>$${formatearPrecio(financials.remainingCard)}</span>
-            </div>
-            <div class='installments'>
-                <div class='inst-row'>
-                    <span style="font-size:10px; font-weight:700;">3 Cuotas sin interés de</span>
-                    <span class='inst-quota'>$${formatearPrecio(financials.installment3)}</span>
-                </div>
-                <div class='inst-row' style="margin-top: 8px;">
-                    <span style="font-size:10px; font-weight:700;">6 Cuotas sin interés de</span>
-                    <span class='inst-quota'>$${formatearPrecio(financials.installment6)}</span>
-                </div>
-                ${financials.paidReal <= 0 ? `
-                <div class='inst-row' style="margin-top: 8px;">
-                    <span style="font-size:10px; font-weight:700;">12 Cuotas fijas de</span>
-                    <span class='inst-quota'>$${formatearPrecio(financials.installment12)}</span>
-                </div>
-                <div class='inst-row' style="margin-top: 2px;">
-                    <span style="font-size:8px; color:#78716c;">Total en 12 cuotas: $${formatearPrecio(financials.totalCardFinanced)}</span>
-                </div>` : ''}
-            </div>
+            </div>`}
         </div>
+        ${esPresupuesto || financials.paidReal <= 0 ? `
+        <div class='payment-card'>
+            <span class='p-title'>12 cuotas fijas</span>
+            <div class='cuota-grande'><b>12</b> cuotas de <span>$${formatearPrecio(financials.installment12)}</span></div>
+            <div class='cuota-total'>Total $${formatearPrecio(financials.totalCardFinanced)}</div>
+        </div>` : ''}
     </div>
 
-    <div class='totals-summary'>
+    ${esPresupuesto ? '' : `<div class='totals-summary'>
         <div class='tot-col'>
-            <span class='tot-label' style="color: #047857;">💵 Efectivo</span>
+            <span class='tot-label' style="color: #047857;">Efectivo</span>
             <span class='tot-val' style="color: #047857;">$${formatearPrecio(financials.totalCash)}</span>
         </div>
         <div class='tot-col'>
-            <span class='tot-label' style="color: #6d28d9;">🏦 Transf</span>
-            <span class='tot-val' style="color: #6d28d9;">$${formatearPrecio(financials.totalTransfer)}</span>
+            <span class='tot-label' style="color: #78716c;">Transf</span>
+            <span class='tot-val' style="color: #78716c;">$${formatearPrecio(financials.totalTransfer)}</span>
         </div>
         <div class='tot-col'>
-            <span class='tot-label' style="color: #c2410c;">💳 Tarjeta</span>
-            <span class='tot-val' style="color: #c2410c;">$${formatearPrecio(financials.totalCard)}</span>
+            <span class='tot-label' style="color: #78716c;">Tarjeta</span>
+            <span class='tot-val' style="color: #78716c;">$${formatearPrecio(financials.totalCard)}</span>
         </div>
-        
+
         <div class='tot-paid'>
             <span class='tot-label' style="color: #78716c;">Abonado Real</span>
             <span class='paid-value' style="color: #1c1917;">$${formatearPrecio(financials.paidReal)}</span>
         </div>
-    </div>
+    </div>`}
     `}
 
     ${order.prescription ? `
         <div style="margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div style="border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 12px;">
-                <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; margin-bottom: 5px;">OD</div>
-                <div style="font-size: 14px; font-weight: 800;">${order.prescription.sphereOD || '0'} / ${order.prescription.cylinderOD || '0'} x ${order.prescription.axisOD || '0'}°</div>
+            <div style="border: 1px solid ${brandBeige}; border-radius: 6px; padding: 12px;">
+                <div style="font-size: 8px; font-weight: 700; color: ${brandSand}; margin-bottom: 5px;">OD</div>
+                <div style="font-size: 14px; font-weight: 600;">${escapeHtml(`${order.prescription.sphereOD || '0'} / ${order.prescription.cylinderOD || '0'} x ${order.prescription.axisOD || '0'}`)}°</div>
             </div>
-            <div style="border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 12px;">
-                <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; margin-bottom: 5px;">OI</div>
-                <div style="font-size: 14px; font-weight: 800;">${order.prescription.sphereOI || '0'} / ${order.prescription.cylinderOI || '0'} x ${order.prescription.axisOI || '0'}°</div>
+            <div style="border: 1px solid ${brandBeige}; border-radius: 6px; padding: 12px;">
+                <div style="font-size: 8px; font-weight: 700; color: ${brandSand}; margin-bottom: 5px;">OI</div>
+                <div style="font-size: 14px; font-weight: 600;">${escapeHtml(`${order.prescription.sphereOI || '0'} / ${order.prescription.cylinderOI || '0'} x ${order.prescription.axisOI || '0'}`)}°</div>
             </div>
         </div>
     ` : ''}
 
     ${(() => {
-        const lab = describeLabFrameDetails(order);
         if (lab.isEmpty) return '';
+        // En un presupuesto de solo armazón nada va al laboratorio; un teñido
+        // o tratamiento sí, aunque no haya línea de cristal.
+        const vaAlLaboratorio = !!lab.tint || (order.items || []).some((it: any) => /cristal|tratamiento/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`));
+        if (esPresupuesto && !vaAlLaboratorio) return '';
         const filas: string[] = [];
-        if (lab.origin) filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.origin)}</div></div>`);
+        if (lab.origin) filas.push(`<div><div style="font-size: 8px; font-weight: 700; color: ${brandSand};">ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.origin)}</div></div>`);
         // Con VARIOS pares, las medidas de cada uno ya viven arriba, junto a
         // sus cristales ("2º PAR — CLIPO ON METAL · Forma: rectangular · …"):
         // repetirlas acá era volver a partir la información en dos lugares.
@@ -474,44 +588,52 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 if (pair.isEmpty) return;
                 const partes = [pair.shape ? `Forma: ${pair.shape}` : '', pair.measurements || '', pair.details || ''].filter(Boolean);
                 if (partes.length === 0) return;
-                filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">MEDIDAS DEL ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(partes.join('  ·  '))}</div></div>`);
+                filas.push(`<div><div style="font-size: 8px; font-weight: 700; color: ${brandSand};">MEDIDAS DEL ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(partes.join('  ·  '))}</div></div>`);
             });
         }
         if (lab.tint) {
-            filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">TRATAMIENTO</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.tint.text)}</div></div>`);
+            filas.push(`<div><div style="font-size: 8px; font-weight: 700; color: ${brandSand};">TRATAMIENTO</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.tint.text)}</div></div>`);
         }
         return `
-    <div style="margin-top: 14px; border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 12px 16px; page-break-inside: avoid; break-inside: avoid;">
-        <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; letter-spacing: 2px; margin-bottom: 10px;">DETALLES DE LABORATORIO</div>
+    <div style="margin-top: 14px; border: 1px solid ${brandBeige}; border-radius: 6px; padding: 12px 16px; page-break-inside: avoid; break-inside: avoid;">
+        <div style="font-size: 8px; font-weight: 700; color: ${brandSand}; letter-spacing: .08em; margin-bottom: 10px;">DETALLES DE LABORATORIO</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">${filas.join('')}</div>
     </div>`;
     })()}
 
     ${order.clientNote && String(order.clientNote).trim() ? `
-        <div style="margin-top: 22px; border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 14px 16px; background: #fffcf9; page-break-inside: avoid; break-inside: avoid;">
-            <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; letter-spacing: 2px; margin-bottom: 6px;">OBSERVACIONES</div>
+        <div style="margin-top: 22px; border: 1px solid ${brandBeige}; border-radius: 6px; padding: 14px 16px; background: #fffcf9; page-break-inside: avoid; break-inside: avoid;">
+            <div style="font-size: 8px; font-weight: 700; color: ${brandSand}; letter-spacing: .08em; margin-bottom: 6px;">OBSERVACIONES</div>
             <div style="font-size: 12px; font-weight: 600; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(String(order.clientNote).trim())}</div>
         </div>
     ` : ''}
 
+    <div class='cierre'>
     ${resolveVendorName(order, vendorName) ? `
-        <div style="margin-top: 14px; display: flex; justify-content: flex-end; page-break-inside: avoid; break-inside: avoid;">
-            <div style="text-align: center; min-width: 220px;">
-                <div style="font-size: 13px; font-weight: 700; padding: 0 18px 6px;">${escapeHtml(resolveVendorName(order, vendorName)!)}</div>
-                <div style="border-top: 1.5px solid ${brandBeige}; padding-top: 6px;">
-                    <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; letter-spacing: 2px;">TE ATENDIÓ · ATELIER ÓPTICA</div>
-                </div>
+        <div class='firma'>
+            <div style="text-align: center; min-width: 200px;">
+                <div style="font-size: 12px; font-weight: 600; padding: 0 18px 5px;">${escapeHtml(resolveVendorName(order, vendorName)!)}</div>
+                <div style="border-top: 1px solid ${brandBeige}; padding-top: 5px; font-size: 8px; font-weight: 600; color: ${brandSand}; letter-spacing: .08em; text-transform: uppercase;">Te atendió · Atelier Óptica</div>
             </div>
         </div>
     ` : ''}
 
-    <div class='footer'>Atelier Óptica · Tejeda 4380 · Profesionalismo Ética y Diseño · ${format(new Date(), "yyyy")}</div>
+    <div class='footer'>
+        <div>Atelier Óptica · Tejeda 4380, Cerro de las Rosas · Profesionalismo, ética y diseño · ${format(new Date(), "yyyy")}</div>
+        <div class='footer-links'>
+            <a class='ver-tienda' href="${STORE_ORIGIN}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Ver tienda</a>
+            <a href="${INSTAGRAM_URL}"><svg viewBox="0 0 24 24" fill="none" stroke="#E1306C" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#E1306C"/></svg>@${INSTAGRAM_URL.replace(/\/$/, '').split('/').pop()}</a>
+            <a href="${YOUTUBE_URL}"><svg viewBox="0 0 24 24" fill="#FF0000"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .6 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5A3 3 0 0 0 23 16.8 31 31 0 0 0 23.4 12 31 31 0 0 0 23 7.2zM9.8 15.1V8.9L15.7 12l-5.9 3.1z"/></svg>YouTube</a>
+            <a href="https://wa.me/${WHATSAPP_PHONE}"><svg viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c1.7.7 2 .6 2.7.5a2.3 2.3 0 0 0 1.5-1.1 1.9 1.9 0 0 0 .1-1.1c0-.1-.2-.2-.5-.3z"/></svg>${WHATSAPP_PHONE_DISPLAY}</a>
+        </div>
+    </div>
+    </div>
 </body>
 </html>`;
 }
 
 export async function generateOrderPDF(order: any, contact: any, vendorName?: string): Promise<{ base64: string, filename: string }> {
-    const isSale = order.orderType === 'SALE';
+    const isSale = esVentaDeOrden(order);
     const safeName = (contact?.name || 'Cliente').replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
     const filename = `${isSale ? 'Venta' : 'Presupuesto'}_${order.id.slice(-4).toUpperCase()}_${safeName}.pdf`;
 
@@ -529,12 +651,59 @@ export async function generateOrderPDF(order: any, contact: any, vendorName?: st
         const context = await browser.newContext();
         const page = await context.newPage();
         
+        await page.setViewportSize({ width: A4_ANCHO_PX, height: A4_ALTO_PX });
+        await page.emulateMedia({ media: 'print' });
         await page.setContent(html, { waitUntil: 'load', timeout: 8000 });
-        
+        // `load` no espera a las fuentes del @import: a veces el PDF salía en
+        // Arial. Se espera a que estén listas, con tope para no colgarse si
+        // Google Fonts no responde (en ese caso sale con la fuente de sistema).
+        await page.evaluate(() => Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 5000))]));
+
+        // Que entre en UNA hoja salvo que sea realmente largo (Ishtar, 29/9):
+        // se mide el alto del documento y, si se pasa de la hoja por poco, se
+        // achica la escala hasta que entre. Si se pasa por mucho, va en dos
+        // hojas a tamaño normal antes que en una ilegible.
+        // Chromium imprime con `scale` maquetando la hoja a (ancho ÷ scale) px, así
+        // que el contenido se reacomoda más ancho y más corto: por eso se prueba
+        // cada escala midiendo de verdad, en vez de dividir alturas.
+        const altoDelDocumento = () => page.evaluate(() => document.documentElement.scrollHeight);
+        let scale = 1;
+        const altoInicial = await altoDelDocumento();
+        const medidas: string[] = [`1:${altoInicial}`];
+        let alto = altoInicial;
+        if (alto > A4_ALTO_PX) {
+            // Primero el modo compacto (misma letra, menos aire); si con eso
+            // entra, no se achica nada.
+            await page.evaluate(() => document.body.classList.add('compacto'));
+            alto = await altoDelDocumento();
+            medidas.push(`compacto:${alto}`);
+        }
+        if (alto > A4_ALTO_PX) {
+            for (let s = 0.95; s >= ESCALA_MINIMA_UNA_HOJA - 1e-9; s = Math.round((s - 0.05) * 100) / 100) {
+                await page.setViewportSize({ width: Math.round(A4_ANCHO_PX / s), height: Math.round(A4_ALTO_PX / s) });
+                const alto = await altoDelDocumento();
+                medidas.push(`${s}:${alto}/${Math.round(A4_ALTO_PX / s)}`);
+                if (alto <= A4_ALTO_PX / s) { scale = s; break; }
+            }
+            if (scale === 1) {
+                // Realmente largo: va en dos hojas, y a tamaño normal.
+                await page.setViewportSize({ width: A4_ANCHO_PX, height: A4_ALTO_PX });
+                await page.evaluate(() => document.body.classList.remove('compacto'));
+            }
+        }
+        console.log(`[order-pdf] ${filename} alto=${altoInicial}px escala=${scale} (${medidas.join(' ')})`);
+
+        // Si va en más de una hoja, cada hoja dice de quién es y cuántas son.
+        const variasHojas = alto > A4_ALTO_PX && scale === 1;
+        const pieCorrido = `<div style="width:100%; text-align:center; font-family:Inter, Arial, sans-serif; font-size:8px; color:#78716c;">${isSale ? 'Orden de venta' : 'Presupuesto'} N.º ${escapeHtml(numeroDeDocumento(order))} · ${escapeHtml(String(contact?.name || ''))} · hoja <span class="pageNumber"></span> de <span class="totalPages"></span></div>`;
         const pdfBuffer = await page.pdf({
             format: 'A4',
-            margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
-            printBackground: true
+            margin: { top: '0mm', right: '0mm', bottom: variasHojas ? '9mm' : '0mm', left: '0mm' },
+            printBackground: true,
+            scale,
+            displayHeaderFooter: variasHojas,
+            headerTemplate: '<span></span>',
+            footerTemplate: pieCorrido,
         });
         
         const base64String = pdfBuffer.toString('base64');
@@ -559,7 +728,9 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     const autoTable = (await import('jspdf-autotable')).default;
     
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const isSale = order.orderType === 'SALE';
+    const isSale = esVentaDeOrden(order);
+    // Un presupuesto es una cotización: no habla de pagos ni de saldos.
+    const esPresupuesto = !isSale;
     const financials = PricingService.calculateOrderFinancials(order);
     const markupFactor = 1 + ((order.markup || 0) / 100);
     
@@ -640,7 +811,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
     doc.text('Cerro de las Rosas', bx2 + 4, y + 13);
     doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
-    doc.text('Vigencia: 15 dias corridos', bx2 + 4, y + 18);
+    if (esPresupuesto) doc.text(`Vigencia: ${VIGENCIA_PRESUPUESTO_DIAS} dias corridos`, bx2 + 4, y + 18);
     
     y += bh + 6;
     
@@ -649,18 +820,16 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         const ip = Math.round(it.price * markupFactor);
         
         let eyeLabel = '';
-        if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'Ojo Derecho (OD)';
-        else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'Ojo Izquierdo (OI)';
-        else if (it.eye) eyeLabel = it.eye;
-        
+        if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'OJO DERECHO (OD)';
+        else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'OJO IZQUIERDO (OI)';
+        else if (it.eye) eyeLabel = String(it.eye).toUpperCase();
+
         let itemName = `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim();
+        if (eyeLabel) itemName = `${eyeLabel}\n${itemName}`;
         const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
         if (refIndex) itemName += `\n   Índice: ${refIndex}`;
         const colorLente = colorDeLenteEnPedido(it, order.items || []);
         if (colorLente) itemName += `\n   Color de la lente: ${colorLente}`;
-        const origin = lensOriginLabel(lensOriginFromItem(it));
-        if (origin) itemName += `\n   Origen: ${origin}`;
-        if (eyeLabel) itemName += `\n   Lado: ${eyeLabel}`;
         
         let priceLabel = `$${formatearPrecio(ip)}`;
         let totalLabel = `$${formatearPrecio((ip * it.quantity))}`;
@@ -746,7 +915,14 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     }
 
     // --- PAYMENT CARDS ---
-    if (financials.hasBalance) {
+    if (esPresupuesto || financials.hasBalance) {
+        if (esPresupuesto) {
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+            doc.text('TOTAL · PRECIO DE LISTA', m, y + 4);
+            doc.setFontSize(14); doc.setTextColor(...darkText);
+            doc.text(`$${formatearPrecio(financials.listPrice)}`, pw - m, y + 5, { align: 'right' });
+            y += 10;
+        }
         const cardW = (cw - 8) / 3;
         const cy = y;
         const ch = 32;
@@ -759,23 +935,33 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
             doc.text(title, x + 3, cy + 7);
             doc.setFontSize(13); doc.text(`$${formatearPrecio(amount)}`, x + 3, cy + 15);
             doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
-            doc.text(`Saldo: $${formatearPrecio(saldo)}`, x + 3, cy + 21);
+            if (!esPresupuesto) doc.text(`Saldo: $${formatearPrecio(saldo)}`, x + 3, cy + 21);
             if (extra) extra.forEach((l, i) => { doc.setFontSize(6); doc.text(l, x + 3, cy + 25 + i * 4); });
         };
         
         drawCard(m, emerald, `EFECTIVO (-${financials.discountCash}%)`, financials.totalCash, financials.remainingCash);
         drawCard(m + cardW + 4, violet, `TRANSFERENCIA (-${financials.discountTransfer}%)`, financials.totalTransfer, financials.remainingTransfer);
-        drawCard(m + (cardW + 4) * 2, orange, 'TARJETAS (LISTA)', financials.totalCard, financials.remainingCard, [
+        drawCard(m + (cardW + 4) * 2, orange, 'CUOTAS SIN INTERÉS', financials.totalCard, financials.remainingCard, [
             `3 cuotas s/int: $${formatearPrecio(financials.installment3)}`,
             `6 cuotas s/int: $${formatearPrecio(financials.installment6)}`,
-            // 12 cuotas solo al cotizar: con pagos, el pedido está en etapa de saldo
-            ...(financials.paidReal <= 0 ? [`12 cuotas: $${formatearPrecio(financials.installment12)} (+10%)`] : [])
         ]);
-        
+
         y = cy + ch + 8;
+
+        // Las 12 cuotas aparte, con su propio total (en una venta con pagos ya
+        // no se ofrece financiación larga, 27/8).
+        if (esPresupuesto || financials.paidReal <= 0) {
+            doc.setDrawColor(...brandBeige); doc.setLineWidth(0.3);
+            doc.roundedRect(m, y, cw, 12, 2, 2);
+            doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
+            doc.text(`12 cuotas fijas de $${formatearPrecio(financials.installment12)}`, m + 4, y + 7.5);
+            doc.text(`Total en 12 cuotas: $${formatearPrecio(financials.totalCardFinanced)}`, pw - m - 4, y + 7.5, { align: 'right' });
+            y += 18;
+        }
         
+        if (!esPresupuesto) {
         // Totals bar (Light background, beige border)
-        doc.setFillColor(255, 252, 249); 
+        doc.setFillColor(255, 252, 249);
         doc.setDrawColor(212, 195, 181); // brandBeige
         doc.setLineWidth(0.5);
         doc.roundedRect(m, y, cw, 20, 3, 3, 'FD'); // Fill and stroke
@@ -799,6 +985,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         drawCol(m + colW * 2 + 4, 'TARJETA', `$${formatearPrecio(financials.totalCard)}`, darkOrange, darkOrange);
         drawCol(m + colW * 3 + 4, 'ABONADO REAL', `$${formatearPrecio(financials.paidReal)}`, darkGray, darkStone);
         y += 26;
+        }
     } else {
         doc.setFillColor(240, 253, 244); doc.setDrawColor(...emerald); doc.setLineWidth(0.5);
         doc.roundedRect(m, y, cw, 18, 3, 3, 'FD');

@@ -92,6 +92,10 @@ export async function GET(request: Request) {
                 // TODAS las ventas (el ?? 20 de calculateOrderFinancials dispara
                 // con undefined) — incluidas las que tienen 15/25/30%.
                 discountCash: true,
+                discountTransfer: true,
+                labSentAt: true,
+                labNotes: true,
+                payments: { select: { method: true, amount: true } },
                 createdAt: true,
                 items: {
                     select: {
@@ -135,7 +139,11 @@ export async function GET(request: Request) {
         if (!isStaff) {
             allOrders = await prisma.order.findMany({
                 where: { orderType: 'SALE', isDeleted: false },
-                select: { total: true, subtotalWithMarkup: true, labSentAt: true, createdAt: true },
+                select: {
+                    total: true, subtotalWithMarkup: true, labSentAt: true, createdAt: true,
+                    paid: true, discountCash: true, discountTransfer: true, labNotes: true,
+                    payments: { select: { method: true, amount: true } },
+                },
                 orderBy: { labSentAt: 'asc' },
             });
         }
@@ -248,13 +256,12 @@ export async function GET(request: Request) {
         // con el descuento PROPIO de cada venta (20/15/25/30%), nunca un 20%
         // plano. Los SALDOS no pasan por acá (vienen de getOrdersWithBalance)
         // y no se tocan.
+        // Desde el 3/10/2026 la regla es la de PricingService.valorSinCostoFinanciero:
+        // efectivo y transferencia valen lo cobrado, tarjeta vale lo que hubiera
+        // valido por transferencia, y el saldo se valúa a transferencia. Mismo
+        // número que los objetivos de /admin/reportes.
         const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => {
-            const price = PricingService.calculateOrderFinancials({
-                subtotalWithMarkup: order.subtotalWithMarkup,
-                total: order.total,
-                discountCash: order.discountCash,
-                payments: [],
-            }).totalCash;
+            const price = PricingService.valorSinCostoFinanciero(order).real;
             const orderDate = new Date(order.labSentAt || order.createdAt);
             if (orderDate >= startOfDayART) todaySold += price;
             if (orderDate >= startOfWeekART) weekSold += price;
@@ -434,8 +441,8 @@ export async function GET(request: Request) {
             const date = new Date(new Date(order.labSentAt || order.createdAt).getTime() - ART_OFFSET_MS);
             const key = `${monthsNames[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
             if (monthlyStats[key] !== undefined) {
-                const price = order.subtotalWithMarkup || order.total || 0;
-                monthlyStats[key] += price;
+                // Sin costo financiero (misma regla que totalSoldMonth y objetivos).
+                monthlyStats[key] += PricingService.valorSinCostoFinanciero(order).real;
             }
         });
 
@@ -472,7 +479,7 @@ export async function GET(request: Request) {
             // 'Orgánico / Local' allá) y el mismo cliente parecía dos cosas.
             const source = normalizeContactSource(order.client?.contactSource);
             if (!tagStats[source]) tagStats[source] = { total: 0, count: 0 };
-            const orderPrice = order.subtotalWithMarkup || order.total || 0;
+            const orderPrice = PricingService.valorSinCostoFinanciero(order).real;
             tagStats[source].total += orderPrice;
             tagStats[source].count += 1;
 
@@ -576,16 +583,14 @@ export async function GET(request: Request) {
                     orderType: 'SALE',
                     isDeleted: false,
                 },
-                select: { total: true, subtotalWithMarkup: true, discountCash: true },
+                select: {
+                    total: true, subtotalWithMarkup: true, paid: true, discountCash: true, discountTransfer: true, labNotes: true,
+                    payments: { select: { method: true, amount: true } },
+                },
             });
-            // Misma moneda que totalSoldMonth (efectivo): comparar efectivo de
-            // este período contra lista del anterior haría mentir la flecha.
-            prevTotal = prevOrders.reduce((acc, o) => acc + PricingService.calculateOrderFinancials({
-                subtotalWithMarkup: o.subtotalWithMarkup,
-                total: o.total,
-                discountCash: o.discountCash,
-                payments: [],
-            }).totalCash, 0);
+            // Misma moneda que totalSoldMonth (sin costo financiero): comparar
+            // bases distintas haría mentir la flecha.
+            prevTotal = prevOrders.reduce((acc, o) => acc + PricingService.valorSinCostoFinanciero(o).real, 0);
         }
 
         const trendPct = prevTotal > 0 ? (((totalSoldMonth - prevTotal) / prevTotal) * 100).toFixed(1) : null;

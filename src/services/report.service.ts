@@ -54,6 +54,7 @@ export class ReportService {
                 appliedPromoName: true,
                 discountCash: true,
                 discountTransfer: true,
+                labNotes: true, // venta web por transferencia: su `total` ya viene rebajado
                 discountCard: true,
                 discount: true,
                 markup: true,
@@ -166,6 +167,12 @@ export class ReportService {
         let totalDoctorFees = 0;
         let totalSpecialDiscounts = 0;
         let totalPending = 0;
+        // Facturado real del período (sin costo financiero) y cuánto se fue en
+        // tarjeta. Lo calcula PricingService.valorSinCostoFinanciero, una vez por venta.
+        let totalBilledList = 0;
+        let totalBilledReal = 0;
+        let totalCollectedReal = 0;
+        let totalCostoFinanciero = 0;
         let totalMarkup = 0;
 
         const clientStats: Record<string, { name: string; total: number; orders: number }> = {};
@@ -174,7 +181,7 @@ export class ReportService {
         const paymentMethodStats: Record<string, { total: number; count: number; commission: number }> = {};
         const vendorStats: Record<string, { name: string; revenue: number; orders: number; avgTicket: number }> = {};
         // Por mes: facturado (lista, mismo criterio que el dashboard de objetivos) y desglose por vendedor
-        const objectiveMonths: Record<string, { year: number; month: number; label: string; billed: number; collected: number; orders: number; vendors: Record<string, { name: string; billed: number; orders: number }> }> = {};
+        const objectiveMonths: Record<string, { year: number; month: number; label: string; billed: number; billedReal: number; collected: number; costoFinanciero: number; orders: number; vendors: Record<string, { name: string; billed: number; billedReal: number; orders: number }> }> = {};
         const labProfitStats: Record<string, { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number; clients: { name: string; date: string; product: string; revenue: number; cost: number }[] }> = {};
         const salesDetail: any[] = [];
 
@@ -184,6 +191,10 @@ export class ReportService {
             const orderPaidReal = order.payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
             totalRevenue += orderPaidReal;
 
+            // El descuento especial YA está restado dentro de `subtotalWithMarkup`
+            // (PricingService.calculateTotals) y los pagos se cobran sobre ese precio
+            // rebajado. Restarlo otra vez en la ganancia lo contaba DOS veces
+            // (septiembre 2026: $192.665 de menos). Se suma solo para mostrarlo.
             const specialDesc = order.specialDiscount || 0;
             totalSpecialDiscounts += specialDesc;
 
@@ -192,6 +203,11 @@ export class ReportService {
             // vale más en precio de lista que su importe nominal. Restar el nominal
             // contra el precio de lista inflaba el pendiente con saldos que no existen.
             totalPending += PricingService.calculateOrderFinancials(order).remainingList;
+            const sinCF = PricingService.valorSinCostoFinanciero(order);
+            totalBilledList += listPrice;
+            totalBilledReal += sinCF.real;
+            totalCollectedReal += sinCF.cobradoReal;
+            totalCostoFinanciero += sinCF.costoFinanciero;
 
             if (order.subtotalWithMarkup && order.subtotalWithMarkup > 0) {
                 const itemSubtotal = order.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
@@ -230,14 +246,17 @@ export class ReportService {
 
             const objKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             if (!objectiveMonths[objKey]) {
-                objectiveMonths[objKey] = { year: date.getFullYear(), month: date.getMonth() + 1, label: monthKey, billed: 0, collected: 0, orders: 0, vendors: {} };
+                objectiveMonths[objKey] = { year: date.getFullYear(), month: date.getMonth() + 1, label: monthKey, billed: 0, billedReal: 0, collected: 0, costoFinanciero: 0, orders: 0, vendors: {} };
             }
             const objMonth = objectiveMonths[objKey];
             objMonth.billed += listPrice;
+            objMonth.billedReal += sinCF.real;
             objMonth.collected += orderPaidReal;
+            objMonth.costoFinanciero += sinCF.costoFinanciero;
             objMonth.orders += 1;
-            if (!objMonth.vendors[vId]) objMonth.vendors[vId] = { name: vName, billed: 0, orders: 0 };
+            if (!objMonth.vendors[vId]) objMonth.vendors[vId] = { name: vName, billed: 0, billedReal: 0, orders: 0 };
             objMonth.vendors[vId].billed += listPrice;
+            objMonth.vendors[vId].billedReal += sinCF.real;
             objMonth.vendors[vId].orders += 1;
 
             let orderCMV = pSaleCost;
@@ -379,7 +398,7 @@ export class ReportService {
             const doctorName = order.client?.doctor;
             let doctorFee = 0;
             if (doctorName) {
-                const doctorNet = orderPaidReal - orderPlatformFee - specialDesc;
+                const doctorNet = orderPaidReal - orderPlatformFee;
                 doctorFee = Math.max(0, doctorNet * DOCTOR_COMMISSION_RATE);
                 totalDoctorFees += doctorFee;
             }
@@ -394,7 +413,6 @@ export class ReportService {
 
             monthlyStats[monthKey].profit = monthlyStats[monthKey].revenue 
                 - monthlyStats[monthKey].cost 
-                - monthlyStats[monthKey].specialDescSum! 
                 - monthlyStats[monthKey].platformFeeSum! 
                 - monthlyStats[monthKey].doctorFeeSum!;
 
@@ -404,7 +422,7 @@ export class ReportService {
             else if (types.includes('CRISTAL')) orderTypeLabel = 'CRISTAL';
             else if (types.includes('ARMAZÓN')) orderTypeLabel = 'ARMAZÓN';
 
-            const saleNetProfit = orderPaidReal - orderCMV - orderPlatformFee - doctorFee - specialDesc;
+            const saleNetProfit = orderPaidReal - orderCMV - orderPlatformFee - doctorFee;
             salesDetail.push({
                 id: order.id.slice(-6),
                 fullId: order.id,
@@ -415,6 +433,7 @@ export class ReportService {
                 orderType: orderTypeLabel,
                 totalPaid: orderPaidReal,
                 totalList: listPrice,
+                totalReal: sinCF.real,
                 cmv: orderCMV,
                 platformFee: Math.round(orderPlatformFee * 100) / 100,
                 doctorFee: Math.round(doctorFee * 100) / 100,
@@ -436,7 +455,7 @@ export class ReportService {
         }
 
         const totalCosts = totalCostFrames + totalCostLenses + totalCostOther + totalPostSaleCosts;
-        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalMarketingCosts - totalSpecialDiscounts;
+        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalMarketingCosts;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         const invoicesWhere: any = { status: 'COMPLETED' };
@@ -493,7 +512,10 @@ export class ReportService {
             .map(([key, m]) => {
                 const resolved = resolveTargetsFromRow(targetMap.get(key) || null, dolarBlue);
                 const { target1, target2, target3 } = resolved;
-                const reachedLevel = m.billed >= target3 ? 3 : m.billed >= target2 ? 2 : m.billed >= target1 ? 1 : 0;
+                // El objetivo se mide contra lo facturado SIN costo financiero (Ishtar,
+                // 3/10/2026): tarjeta a valor de transferencia. Antes era a precio de
+                // lista, que premiaba el recargo de tarjeta que paga la óptica.
+                const reachedLevel = m.billedReal >= target3 ? 3 : m.billedReal >= target2 ? 2 : m.billedReal >= target1 ? 1 : 0;
 
                 // Ganancia del mes: bruta (ventas - CMV - descuentos - comisiones) menos costos fijos y marketing del mes
                 const grossProfit = monthlyStats[m.label]?.profit || 0;
@@ -507,15 +529,17 @@ export class ReportService {
                     year: m.year,
                     month: m.month,
                     billed: Math.round(m.billed),
+                    billedReal: Math.round(m.billedReal),
                     collected: Math.round(m.collected),
+                    costoFinanciero: Math.round(m.costoFinanciero),
                     orders: m.orders,
                     grossProfit: Math.round(grossProfit),
                     netProfit: Math.round(grossProfit - monthOverhead),
                     targets: resolved,
                     reachedLevel,
                     vendors: Object.values(m.vendors)
-                        .map(v => ({ ...v, billed: Math.round(v.billed) }))
-                        .sort((a, b) => b.billed - a.billed),
+                        .map(v => ({ ...v, billed: Math.round(v.billed), billedReal: Math.round(v.billedReal) }))
+                        .sort((a, b) => b.billedReal - a.billedReal),
                 };
             });
 
@@ -524,6 +548,7 @@ export class ReportService {
                 totalRevenue, totalCosts, totalCostFrames, totalCostLenses, totalCostOther, totalPostSaleCosts,
                 totalPlatformFees, totalDoctorFees, totalFixedCosts, totalMarketingCosts, totalProviderCosts, totalSpecialDiscounts,
                 netProfit, profitMargin, totalPaid: totalRevenue, totalPending, totalMarkup, ordersCount: orders.length,
+                totalBilledList: Math.round(totalBilledList), totalBilledReal: Math.round(totalBilledReal), totalCollectedReal: Math.round(totalCollectedReal), totalCostoFinanciero: Math.round(totalCostoFinanciero),
                 contactsCount, quotedContactsCount,
             },
             billingStats: Object.values(billingStats),

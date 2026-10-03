@@ -12,6 +12,7 @@ import PrescriptionManager from './PrescriptionManager';
 import OrderManager from './OrderManager';
 import PostSaleTab from './PostSaleTab';
 import HitosPanel from './HitosPanel';
+import CalculadorPagos from '@/components/pagos/CalculadorPagos';
 
 interface ContactDetailProps {
     contactId: string;
@@ -57,6 +58,7 @@ export default function ContactDetail({
     const [pendingConvertOrderId, setPendingConvertOrderId] = useState<string | null>(null);
     const [convertSuccess, setConvertSuccess] = useState(false);
     const [convertError, setConvertError] = useState<string | null>(null);
+    const [showCalculador, setShowCalculador] = useState(false);
     // El pedido del link (?pedido=): cuando el contacto ya cargó, elige solo la
     // solapa que corresponde (venta o presupuesto) y OrderManager lo despliega.
     const [pedidoDelLink, setPedidoDelLink] = useState<string | null>(initialOrderId);
@@ -215,6 +217,7 @@ export default function ContactDetail({
                     onUpdatePriority={onUpdatePriority}
                     onRevertStatus={handleRevertStatus}
                     onDeleteContact={onDeleteContact}
+                    onOpenCalculador={() => setShowCalculador(true)}
                     onRegisterVisit={async () => {
                         await onAddInteraction(contactId, 'STORE_VISIT', '📍 Cliente visitó el local (marcado desde el perfil)');
                         fetchContact();
@@ -344,6 +347,15 @@ export default function ContactDetail({
                     )}
                 </main>
             </div>
+
+            {showCalculador && (
+                <CalculadorPagos
+                    isOpen={showCalculador}
+                    onClose={() => setShowCalculador(false)}
+                    orders={(contact as any).orders || []}
+                    clientName={contact.name}
+                />
+            )}
         </div>
     );
 }

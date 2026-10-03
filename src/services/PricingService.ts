@@ -266,6 +266,98 @@ export class PricingService {
     }
 
     /**
+     * Valor REAL de una venta, sin costo financiero. Regla de Ishtar (3/10/2026):
+     * la venta entra ENTERA, al precio de EFECTIVO si la pagó en efectivo, o al
+     * precio de TRANSFERENCIA si pagó por transferencia o con tarjeta (3, 6 o 12
+     * cuotas, Payway, MP, Naranja, pago web). Los SALDOS son independientes del
+     * objetivo: no se descuentan ni importa cuánto lleva pagado. Una venta sin
+     * pagos todavía vale a transferencia. El recargo de tarjeta lo paga la
+     * óptica, no es venta.
+     *
+     * ÚNICO lugar del cálculo: dashboard, reporte financiero, objetivos, cierre
+     * de mes y copilot leen de acá. `costoFinanciero` = cobrado nominal − valor
+     * real de lo cobrado (tarjeta a transferencia; MP 12 saca primero el +10%
+     * que trae adentro). Si el objetivo se mide con `real`, NO se le resta
+     * además la comisión de plataforma: sería doble descuento.
+     *
+     * Venta web pagada por transferencia: nace sin `subtotalWithMarkup` y con
+     * `total` YA rebajado (checkout/payway/route.ts). Ahí `total` es el valor
+     * real tal cual; volver a descontarle el 15% la contaba de menos.
+     */
+    static valorSinCostoFinanciero(order: any): {
+        /** Facturado real: la venta entera al precio de cómo pagó. */
+        real: number;
+        /** Cómo pagó: decide el precio al que entra la venta. */
+        modo: 'EFECTIVO' | 'TRANSFERENCIA' | 'TARJETA' | 'SIN_PAGOS';
+        /** Lo cobrado tal cual entró (con costo financiero adentro). */
+        cobradoNominal: number;
+        /** Valor real de lo cobrado (tarjeta a precio de transferencia). */
+        cobradoReal: number;
+        /** cobradoNominal − cobradoReal. */
+        costoFinanciero: number;
+    } {
+        const discCash = order.discountCash ?? 20;
+        const discTrans = order.discountTransfer ?? 15;
+        const factorTrans = 1 - discTrans / 100;
+        const payments: Array<{ method?: string | null; amount?: number | null }> = order.payments || [];
+        const r = (n: number) => Math.round(n);
+
+        const clasificar = (m: string): 'EFECTIVO' | 'TRANSFERENCIA' | 'TARJETA' => {
+            if (['CASH', 'EFECTIVO', 'EFVO'].includes(m)) return 'EFECTIVO';
+            if (['TRANSFER', 'TRANSFERENCIA', 'TRANSF', 'DEPOSITO'].some(x => m.includes(x))) return 'TRANSFERENCIA';
+            // Cuenta especial (canje, cheque, descuento a empleado) y débito: no
+            // hay plataforma que cobre comisión (PLATFORM_COMMISSIONS = 0), así
+            // que no generan costo financiero. Valen como transferencia.
+            if (m === 'OTRO_ESPECIAL' || m === 'DEBIT') return 'TRANSFERENCIA';
+            return 'TARJETA';
+        };
+
+        let cobradoNominal = 0;
+        let cobradoReal = 0;
+        let hayEfectivo = false, hayOtro = false;
+        for (const p of payments) {
+            const amount = p.amount || 0;
+            cobradoNominal += amount;
+            const tipo = clasificar((p.method || '').toUpperCase().trim());
+            if (tipo === 'EFECTIVO') hayEfectivo = true; else hayOtro = true;
+            if (tipo === 'TARJETA') {
+                // Primero a lista (MP 12 trae el +10% adentro), después a transferencia.
+                cobradoReal += PricingService.listEquivalentOfPayments([p], discCash, discTrans) * factorTrans;
+            } else {
+                cobradoReal += amount;
+            }
+        }
+        // Failsafe (mismo que calculateOrderFinancials): `paid` sin filas de Payment.
+        if (payments.length === 0 && (order.paid || 0) > 0) {
+            cobradoNominal = order.paid;
+            cobradoReal = order.paid;
+        }
+
+        let modo: 'EFECTIVO' | 'TRANSFERENCIA' | 'TARJETA' | 'SIN_PAGOS' = 'SIN_PAGOS';
+        if (payments.length > 0) {
+            modo = hayEfectivo && !hayOtro ? 'EFECTIVO'
+                : payments.some(p => clasificar((p.method || '').toUpperCase().trim()) === 'TARJETA') ? 'TARJETA'
+                : 'TRANSFERENCIA';
+        }
+
+        const fin = PricingService.calculateOrderFinancials(order);
+        const esWebTransferencia = !order.subtotalWithMarkup
+            && /M[ée]todo de pago: TRANSFER/i.test(order.labNotes || '');
+        let real: number;
+        if (esWebTransferencia) real = order.total || 0;
+        else if (modo === 'EFECTIVO') real = fin.totalCash;
+        else real = fin.totalTransfer;
+
+        return {
+            real: r(real),
+            modo,
+            cobradoNominal: r(cobradoNominal),
+            cobradoReal: r(cobradoReal),
+            costoFinanciero: r(cobradoNominal - cobradoReal),
+        };
+    }
+
+    /**
      * Calcula el desglose financiero completo (Totales y Saldos) para una orden existente.
      */
     static calculateOrderFinancials(order: any): OrderFinancials {

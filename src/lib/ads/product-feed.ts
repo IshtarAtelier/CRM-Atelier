@@ -10,6 +10,9 @@
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 import { formaAdjetivo, formaFemenina, formaVisible } from '@/lib/catalog/forma-armazon';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { captureError } from '@/lib/logger';
 
 export type FeedPlatform = 'google' | 'meta';
@@ -56,11 +59,38 @@ function feedImages(images: string[] | undefined): string[] {
     const abs = resolved.startsWith('http')
       ? resolved
       : resolved.startsWith('/')
-        ? `${APP_URL}${resolved}`
+        ? `${APP_URL}${resolved}${versionDeImagen(resolved)}`
         : '';
     if (abs && !out.includes(abs)) out.push(abs);
   }
   return out;
+}
+
+/**
+ * `?v=<hash del archivo>` para las fotos que viven en public/. Meta y Google
+ * no vuelven a bajar una imagen cuya URL no cambió: el 3/10/2026 se
+ * reemplazaron las fotos de seis lentes de sol (recorte del PDF del pedido →
+ * foto oficial) en el MISMO path y el catálogo de Meta habría seguido
+ * mostrando la captura. Con el hash en la URL, una foto nueva es una URL
+ * nueva y se baja sola en la próxima lectura del feed; una foto igual
+ * conserva su URL y no se re-descarga. Se calcula una vez por archivo y por
+ * proceso.
+ */
+const versionesDeImagen = new Map<string, string>();
+function versionDeImagen(rutaPublica: string): string {
+  const limpia = rutaPublica.split('?')[0];
+  if (!versionesDeImagen.has(limpia)) {
+    let v = '';
+    try {
+      const bytes = readFileSync(path.join(process.cwd(), 'public', limpia));
+      v = createHash('md5').update(bytes).digest('hex').slice(0, 8);
+    } catch {
+      v = '';   // no está en public/ (Firebase, etc.): la URL queda como estaba
+    }
+    versionesDeImagen.set(limpia, v);
+  }
+  const v = versionesDeImagen.get(limpia);
+  return v ? `?v=${v}` : '';
 }
 
 /**
@@ -199,14 +229,19 @@ function describe(
         ? `${name}: armazón para lentes recetados con clip-on de sol magnético${polarizado ? ' de lentes polarizados' : ''}.`
         : `${name}: armazón para anteojos recetados.`;
 
+  // Cada dato con su etiqueta, como lo busca Google. El 3/10/2026 Merchant
+  // Center marcaba 73 fichas como "faltan Forma, Color, Material del marco"
+  // aunque la frase "Marco de forma cuadrada, color negro, material del marco
+  // titanio" ya los tenía: su lector espera "Forma: …", "Color: …",
+  // "Material del marco: …" como oraciones propias.
   const specs: string[] = [];
   // formaFemenina() ya devuelve la palabra como se escribe ("cuadrada", "XL"):
   // bajarla a minúsculas acá dejaba "forma xl".
   const forma = formaFemenina(shape);
-  if (forma) specs.push(`forma ${forma}`);
-  if (color) specs.push(`color ${color.toLowerCase()}`);
-  if (material) specs.push(`material del marco ${material.toLowerCase()}`);
-  const ficha = specs.length ? ` Marco de ${specs.join(', ')}.` : '';
+  if (forma) specs.push(`Forma: ${forma}.`);
+  if (color) specs.push(`Color: ${color.toLowerCase()}.`);
+  if (material) specs.push(`Material del marco: ${material.toLowerCase()}.`);
+  const ficha = specs.length ? ` ${specs.join(' ')}` : '';
 
   const uso =
     tipo === 'sol'
