@@ -41,6 +41,8 @@ interface CartLineItemsProps {
     markup: number;
     secondFrameUid: number | null;
     promoFrameDiscount: number;
+    /** Renglones del 2º par de Hoya/Pentax con descuento (promo-segundo-par-hoya.ts). */
+    promoLensUids?: Set<string | number>;
     crystalColors?: CrystalColorOption[];
     tintStylePrices?: Record<string, number>;
 }
@@ -59,6 +61,7 @@ export default function CartLineItems({
     markup,
     secondFrameUid,
     promoFrameDiscount,
+    promoLensUids,
     crystalColors = [],
     tintStylePrices: _tintStylePrices = {}
 }: CartLineItemsProps) {
@@ -195,6 +198,11 @@ export default function CartLineItems({
                                         <span className="inline-flex items-center gap-1 bg-violet-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                                             <Glasses className="w-3 h-3" />
                                             {item.framePosition}º armazón
+                                        </span>
+                                    )}
+                                    {item.uid !== undefined && promoLensUids?.has(item.uid) && (
+                                        <span title="Promo Hoya: el segundo par va con descuento; el renglón queda a lista y el descuento se ve en el total" className="inline-flex items-center gap-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                            🎁 2º par Hoya
                                         </span>
                                     )}
                                 </div>

@@ -103,3 +103,15 @@ export function descuentoNegativo(v: DescuentosPropuestos): string | null {
   if (Number.isFinite(transf) && transf < 0) return 'El descuento por transferencia no puede ser negativo.';
   return null;
 }
+
+/**
+ * PROMO DEL SEGUNDO PAR DE HOYA / PENTAX ("Ampliá tu visión", Vitolen, bases
+ * del 30/9/2026): comprando un progresivo Hoya (iD LifeStyle 4, Array 2,
+ * Summit, Argos) o Pentax Allfocus con antirreflejo, el segundo par del mismo
+ * diseño —de igual o menor valor— o un ocupacional Tact va con este descuento
+ * para el CLIENTE. El laboratorio nos lo factura al 20 % de lista más
+ * calibrado; el 80 % es lo que Hoya publicita ("80 % de descuento en el 2º
+ * par"). La regla completa vive en `src/lib/promo-segundo-par-hoya.ts`.
+ * Decisión de Ishtar, 3/10/2026.
+ */
+export const DESCUENTO_SEGUNDO_PAR_HOYA = 80;

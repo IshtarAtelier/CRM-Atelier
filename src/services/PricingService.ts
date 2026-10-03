@@ -1,5 +1,6 @@
 import { hasActive2x1Promo, pick2x1FrameDiscount, safePrice } from '@/lib/promo-utils';
-import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
+import { descuentoSegundoParHoya } from '@/lib/promo-segundo-par-hoya';
+import { DESCUENTO_SEGUNDO_PAR_HOYA, FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { esMpCuotasLargas } from '@/lib/payment-card';
 
 export interface CartItem {
@@ -7,12 +8,19 @@ export interface CartItem {
     product: any;
     quantity: number;
     price: number; // Snapshot or current price
+    /** Ojo y armazón del renglón: la promo del 2º par de Hoya arma los pares con esto. */
+    eye?: string | null;
+    framePosition?: number | null;
+    uid?: string | number;
 }
 
 export interface PricingResult {
     rawSubtotal: number;
     promoFrameDiscount: number;
     promoFrameName: string | null; // Added to identify the discounted item
+    /** Descuento del 2º par de Hoya/Pentax (promo-segundo-par-hoya.ts), ya restado en subtotal. */
+    promoLensDiscount: number;
+    promoLensName: string | null;
     subtotal: number;
     subtotalWithMarkup: number;
     totalCash: number;
@@ -93,7 +101,14 @@ export class PricingService {
             }
         }
 
-        const subtotal = Math.max(0, rawSubtotal - promoFrameDiscount);
+        // 2º par de Hoya / Pentax al 20 % (regla en promo-segundo-par-hoya.ts).
+        // Va aparte del armazón del 2x1: son promos distintas y se muestran distinto.
+        const hoya = descuentoSegundoParHoya(items);
+        const promoLensDiscount = hoya.discount;
+        const promoLensName = hoya.itemName;
+        if (promoLensDiscount > 0) appliedPromos.push(`Hoya: 2º par -${DESCUENTO_SEGUNDO_PAR_HOYA}%`);
+
+        const subtotal = Math.max(0, rawSubtotal - promoFrameDiscount - promoLensDiscount);
         const markupAmount = subtotal * (safePrice(markup) / 100);
         let subtotalWithMarkup = subtotal + markupAmount;
         
@@ -110,6 +125,8 @@ export class PricingService {
             rawSubtotal,
             promoFrameDiscount,
             promoFrameName,
+            promoLensDiscount,
+            promoLensName,
             subtotal,
             subtotalWithMarkup: Math.round(subtotalWithMarkup),
             totalCash: Math.round(totalCash),
@@ -432,11 +449,15 @@ export const calculateQuoteTotals = (
     discountCash: number,
     availableProducts?: any[],
     specialDiscount: number = 0
-): { 
-    rawSubtotal: number; 
-    promoFrameDiscount: number; 
-    subtotal: number; 
-    subtotalWithMarkup: number; 
+): {
+    rawSubtotal: number;
+    promoFrameDiscount: number;
+    promoLensDiscount: number;
+    promoLensName: string | null;
+    /** Todo lo bonificado por promos (armazón del 2x1 + 2º par de Hoya): lo que se guarda en appliedPromoDiscount. */
+    promoDiscount: number;
+    subtotal: number;
+    subtotalWithMarkup: number;
     totalCash: number;
     appliedPromoName: string | null;
     specialDiscountAmount: number;
@@ -448,18 +469,25 @@ export const calculateQuoteTotals = (
         // `??` y no `||`: un customPrice de $0 (línea bonificada o pisada a mano)
         // es un precio válido, no una ausencia — con `||` caía al precio de lista
         // y el total no coincidía con lo que mostraban los renglones.
-        price: i.customPrice ?? i.price
+        price: i.customPrice ?? i.price,
+        eye: i.eye ?? null,
+        framePosition: i.framePosition ?? null,
+        uid: i.uid,
     }));
 
     const result = PricingService.calculateTotals(cartItems, markup, discountCash, availableProducts || [], specialDiscount);
+    const nombres = [result.promoFrameName, result.promoLensName].filter(Boolean) as string[];
 
     return {
         rawSubtotal: result.rawSubtotal,
         promoFrameDiscount: result.promoFrameDiscount,
+        promoLensDiscount: result.promoLensDiscount,
+        promoLensName: result.promoLensName,
+        promoDiscount: result.promoFrameDiscount + result.promoLensDiscount,
         subtotal: result.subtotal,
         subtotalWithMarkup: result.subtotalWithMarkup,
         totalCash: result.totalCash,
-        appliedPromoName: result.promoFrameName || (result.appliedPromos.length > 0 ? result.appliedPromos[0] : null),
+        appliedPromoName: nombres.length ? nombres.join(' + ') : (result.appliedPromos.length > 0 ? result.appliedPromos[0] : null),
         specialDiscountAmount: result.specialDiscountAmount
     };
 };

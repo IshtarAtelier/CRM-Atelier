@@ -75,6 +75,19 @@ puede ser de un material de menor valor.
 de regalo": el laboratorio factura el 20 %. Vitolen sugiere sumar ese costo al
 primer par y ofrecerlo al cliente como "Llevate 2, pagá 1".
 
+**Cómo lo aplica el CRM (desde el 3/10/2026, decisión de Ishtar):** la regla
+vive en `src/lib/promo-segundo-par-hoya.ts` y la usa `PricingService`
+(cotizador, ficha y API de ventas, un solo cálculo). Cuando la venta tiene un
+primer par de progresivo Hoya (LifeStyle 4, Array 2, Summit, Argos) o Pentax
+Allfocus y un segundo par del mismo diseño de igual o menor valor (o un Tact),
+el cliente recibe `DESCUENTO_SEGUNDO_PAR_HOYA` (80 %) sobre el 2º par. Los
+renglones quedan a precio de lista; el descuento va al total y se guarda en
+`appliedPromoDiscount` (como el armazón del 2x1). Qué par es cada uno lo
+dice el armazón asignado; sin asignar, los pares se arman en orden. Mi
+Primer Hoya no participa; un solo 2º par por venta. Lo fija
+`npm run check:promo-hoya`. En el cruce de costos el 2º par se cuenta entero
+(lo facturado al 20 % + calibrado queda "a favor", nunca un reclamo falso).
+
 ### Amplitude (marca propia de Vitolen): mismo esquema
 
 Progresivos Amplitude Freestyle IA / Plus / View / Classic con AR Spectrum:

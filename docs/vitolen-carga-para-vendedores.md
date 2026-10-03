@@ -15,6 +15,16 @@ aprueba. Nada se manda al laboratorio sin esa aprobación.
 3. Si el cristal es fotocromático (Sensity) o polarizado, la venta tiene que
    tener el **color** cargado en el ítem (gris, marrón o verde).
 
+## La promo del segundo par, en el cotizador
+
+Si el cliente se lleva un progresivo Hoya (LifeStyle 4, Array 2, Summit,
+Argos) o Pentax Allfocus y un **segundo par del mismo diseño** (igual o más
+barato, o un ocupacional Tact), el cotizador aplica solo el **80 % de
+descuento en el 2º par**: los renglones quedan a precio de lista, aparece el
+chip "🎁 2º par Hoya" y el total ya lo descuenta. Asigná cada par a su
+armazón (1º / 2º) para que no haya dudas de cuál es el segundo. Mi Primer
+Hoya no entra.
+
 ## Paso a paso
 
 1. Abrí la venta. Abajo está el bloque **"Vitolen · pedido en el portal"**.

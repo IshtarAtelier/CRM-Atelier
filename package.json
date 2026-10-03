@@ -63,6 +63,7 @@
     "check:cierres-base": "node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres-base.check.mjs",
     "check:mensajeria": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/mensajeria-interna.check.mjs",
     "check:promo": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1.check.mjs",
+    "check:promo-hoya": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-segundo-par-hoya.check.mjs",
     "check:promo2x1web": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1-armazones.check.mjs",
     "check:colores": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-normalizado.check.mjs",
     "check:facetas": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/facetas.check.mjs",

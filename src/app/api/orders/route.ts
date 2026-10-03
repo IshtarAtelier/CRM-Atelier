@@ -78,7 +78,10 @@ export async function POST(request: Request) {
         const cartItems = items.map((it: any) => ({
             product: it.product || { price: it.price },
             quantity: it.quantity,
-            customPrice: it.price
+            customPrice: it.price,
+            // Ojo y armazón: la promo del 2º par de Hoya arma los pares con esto.
+            eye: it.eye ?? null,
+            framePosition: it.framePosition ?? null,
         }));
 
 
@@ -105,7 +108,7 @@ export async function POST(request: Request) {
         
         const effectiveFrameSource = frameSource || (hasFramesInCart ? 'OPTICA' : null);
         const calcPromoName = totals.appliedPromoName;
-        const calcPromoDiscount = totals.promoFrameDiscount;
+        const calcPromoDiscount = totals.promoDiscount;
 
         // DEDUPLICATION GATE: Check for duplicate order creation (double click) within last 10 seconds, locking client
         const order = await prisma.$transaction(async (tx) => {

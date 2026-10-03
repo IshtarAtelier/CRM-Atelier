@@ -7,6 +7,9 @@ interface CartTotalsProps {
     /** Descuento del armazón por la promo 2x1 (ya restado en subtotal). */
     promoFrameDiscount?: number;
     promoFrameName?: string | null;
+    /** Descuento del 2º par de Hoya/Pentax (ya restado en subtotal). */
+    promoLensDiscount?: number;
+    promoLensName?: string | null;
     markup: number;
     markupAmount: number;
     specialDiscount?: number;
@@ -20,6 +23,8 @@ export default function CartTotals({
     subtotal,
     promoFrameDiscount = 0,
     promoFrameName = null,
+    promoLensDiscount = 0,
+    promoLensName = null,
     markup,
     markupAmount,
     specialDiscount = 0,
@@ -39,6 +44,11 @@ export default function CartTotals({
                     {promoFrameDiscount > 0 && (
                         <span title={promoFrameName || undefined} className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
                             🎁 Promo 2x1: -${Math.round(promoFrameDiscount).toLocaleString()}
+                        </span>
+                    )}
+                    {promoLensDiscount > 0 && (
+                        <span title={promoLensName || undefined} className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                            🎁 2º par Hoya: -${Math.round(promoLensDiscount).toLocaleString()}
                         </span>
                     )}
                     {markup > 0 && <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Markup: +${Math.round(markupAmount).toLocaleString()}</span>}

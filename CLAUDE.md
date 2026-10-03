@@ -159,6 +159,16 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   vale para el CRUCE (lo que se espera pagar). El resultado del negocio
   (dashboard, `report.service`) sigue usando `costoParBonificado`, porque ahí
   importa lo que se pagó de verdad.
+- **La promo de Hoya/Pentax NO es el 2x1: es "2º par con 80 % de descuento"**
+  (Ishtar, 3/10/2026). Comprando un progresivo Hoya (LifeStyle 4, Array 2,
+  Summit, Argos) o Pentax Allfocus, el 2º par del mismo diseño —igual o menor
+  valor— o un Tact lleva `DESCUENTO_SEGUNDO_PAR_HOYA` para el cliente; Mi
+  Primer Hoya no participa. La regla vive en `src/lib/promo-segundo-par-hoya.ts`
+  y la aplica `PricingService` (renglones a lista, descuento al total como el
+  armazón del 2x1); la fija `npm run check:promo-hoya`. Vitolen nos factura
+  ese 2º par al **20 % de lista + calibrado** (no $0): por eso no se marca
+  `is2x1` en Hoya y el cruce lo cuenta entero (queda "a favor", nunca un
+  reclamo falso). Bases en `docs/vitolen-pedidos-y-promos.md`.
 - **El saldo NUNCA es lista − cobrado.** Hay que convertir cada pago a su
   equivalente de lista; la resta directa inventó 76 saldos fantasma en prod.
 - **Un cobro de más no redefine el precio de la venta.** Nada debe pisar

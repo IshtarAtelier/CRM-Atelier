@@ -767,7 +767,7 @@ export class OrderService {
                     // `eye` es obligatorio: sin él, contarPares2x1 toma cada renglón como
                     // un par entero y un solo par de cristales pasa por dos, activando
                     // una bonificación de armazón que no corresponde.
-                    items: { select: { productId: true, price: true, quantity: true, eye: true, product: { select: { id: true, is2x1: true, eligible2x1: true, category: true, type: true } } } }
+                    items: { select: { productId: true, price: true, quantity: true, eye: true, framePosition: true, product: { select: { id: true, name: true, is2x1: true, eligible2x1: true, category: true, type: true } } } }
                 }
             });
 
@@ -821,7 +821,10 @@ export class OrderService {
                 const cartItems = itemsToCalculate.map((it: any) => ({
                     product: dbProducts.find(p => p.id === it.productId) || it.product || { price: it.price },
                     quantity: it.quantity,
-                    customPrice: it.price
+                    customPrice: it.price,
+                    // Ojo y armazón: la promo del 2º par de Hoya arma los pares con esto.
+                    eye: it.eye ?? null,
+                    framePosition: it.framePosition ?? null,
                 }));
 
                 // Firma y aviso de precios bajo lista (no bloquea; ver helper)
@@ -865,7 +868,7 @@ export class OrderService {
                 data.specialDiscount = Math.round(totals.specialDiscountAmount);
                 data.total = totals.totalCash;
                 data.appliedPromoName = totals.appliedPromoName;
-                data.appliedPromoDiscount = totals.promoFrameDiscount;
+                data.appliedPromoDiscount = totals.promoDiscount;
             }
         }
         

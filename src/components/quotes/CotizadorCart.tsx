@@ -10,6 +10,7 @@ import {
     armarParesDeCristal, recalculateCrystalPrices, applyTeñidoPromoDiscount,
     AVISO_TENIDO_2X1
 } from '@/lib/promo-utils';
+import { descuentoSegundoParHoya } from '@/lib/promo-segundo-par-hoya';
 import { asignarParAlArmazon, autoasignarArmazones } from '@/lib/armazon-por-par';
 import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { cantidadDeArmazones } from '@/lib/order-frames';
@@ -146,6 +147,11 @@ export default function CotizadorCart({
         [items]
     );
     const secondFrameUid = promoFrameItem?.uid || null;
+
+    // 2º par de Hoya / Pentax: misma regla que usa PricingService
+    // (promo-segundo-par-hoya.ts); acá solo para marcar los renglones y el chip.
+    const promoHoya = useMemo(() => descuentoSegundoParHoya(items), [items]);
+    const promoLensUids = useMemo(() => new Set<string | number>(promoHoya.uids), [promoHoya]);
 
     const { subtotal, subtotalWithMarkup: priceWithMarkup, totalCash } = useMemo(() => {
         return calculateQuoteTotals(items, markup, discountCash, availableProducts, specialDiscount);
@@ -305,6 +311,7 @@ export default function CotizadorCart({
                 markup={markup}
                 secondFrameUid={secondFrameUid}
                 promoFrameDiscount={promoFrameDiscount}
+                promoLensUids={promoLensUids}
                 crystalColors={crystalColors}
                 tintStylePrices={tintStylePrices}
             />
@@ -419,6 +426,7 @@ export default function CotizadorCart({
             <CartTotals 
                 subtotal={subtotal} markup={markup} markupAmount={subtotal * (safePrice(markup) / 100)}
                 promoFrameDiscount={promoFrameDiscount} promoFrameName={promoFrameName}
+                promoLensDiscount={promoHoya.discount} promoLensName={promoHoya.itemName}
                 specialDiscount={specialDiscount}
                 priceWithMarkup={priceWithMarkup} totalCash={totalCash} totalTransfer={totalTransfer}
                 isCard={isCard}

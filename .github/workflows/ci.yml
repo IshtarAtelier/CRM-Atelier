@@ -83,6 +83,7 @@ jobs:
       - name: Chequeos de plata, atribución y catálogo
         run: |
           npm run check:promo
+          npm run check:promo-hoya
           npm run check:promo2x1web
           npm run check:oferta
           npm run check:cristales
