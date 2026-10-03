@@ -46,11 +46,43 @@ const medida = (n: number | null): string => n === null ? '' : String(Number.isI
 /** El select de adición usa "1.0", "1.5", "2.25"… */
 const adicion = (n: number | null): string | null => n === null ? null : (Number.isInteger(n) ? n.toFixed(1) : String(n));
 
+/** Lo que se escribió en cada input de texto, para verificarlo antes de "Crear". */
+const escritos = new WeakMap<Page, Map<string, string>>();
+
 async function llenarCampo(page: Page, pasos: PasoDeLlenado[], nombre: string, etiqueta: string, valor: string) {
     const selector = `[name="${nombre}"]`;
     if (await page.locator(selector).count() === 0) throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el campo "${etiqueta}" (${nombre}).`);
     await page.fill(selector, valor);
     pasos.push({ campo: etiqueta, valor });
+    if (!escritos.has(page)) escritos.set(page, new Map());
+    escritos.get(page)!.set(nombre, valor);
+}
+
+/**
+ * El portal re-dibuja partes del formulario con sus XHR (material → trabajos,
+ * promos) y puede borrar lo ya escrito: el 3/10/2026 un pedido llegó a "Crear"
+ * con la graduación y las medidas en blanco. Antes de "Crear" se relee cada
+ * input de texto; lo que no coincide se reescribe, y si vuelve a no coincidir
+ * se corta con error en vez de crear un pedido vacío.
+ */
+async function verificarEscritos(page: Page): Promise<string[]> {
+    const mapa = escritos.get(page) ?? new Map<string, string>();
+    const reescritos: string[] = [];
+    for (const [nombre, valor] of mapa) {
+        const selector = `[name="${nombre}"]`;
+        const actual = await page.inputValue(selector).catch(() => null);
+        if (actual === valor) continue;
+        await page.fill(selector, valor);
+        reescritos.push(nombre);
+    }
+    if (reescritos.length) {
+        await page.waitForTimeout(800);
+        for (const nombre of reescritos) {
+            const actual = await page.inputValue(`[name="${nombre}"]`).catch(() => null);
+            if (actual !== mapa.get(nombre)) throw new Error(`El portal de ${NOMBRE_VITOLEN} borra lo escrito en "${nombre}" (quedó "${actual ?? ''}"): no se crea el pedido.`);
+        }
+    }
+    return reescritos;
 }
 
 async function marcarRadio(page: Page, pasos: PasoDeLlenado[], nombre: string, valor: string, etiqueta: string, texto: string) {
@@ -145,9 +177,13 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
         pasos.push({ campo: `Material ${idx === 0 ? 'OD' : 'OI'}`, valor: texto });
     }
 
-    // Con el material elegido aparece el resto (graduación, promos, armazón, trabajos).
+    // Con el material elegido aparece el resto (graduación, promos, armazón,
+    // trabajos), en varias respuestas XHR que re-dibujan secciones: se espera a
+    // que el portal termine de pedir cosas antes de escribir nada.
     await page.waitForSelector('input[name="pedido[lentes_attributes][0][esferico]"]', { timeout: ESPERA_PASO_MS });
     await page.waitForSelector('input[type=checkbox][name*="trabajos_realizados"]', { timeout: ESPERA_PASO_MS });
+    await page.waitForLoadState('networkidle', { timeout: ESPERA_PASO_MS }).catch(() => null);
+    await page.waitForTimeout(1000);
 
     if (payload.od) await llenarOjo(page, pasos, 0, payload.od, payload);
     if (payload.oi) await llenarOjo(page, pasos, 1, payload.oi, payload);
@@ -198,6 +234,11 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     }
 
     await llenarCampo(page, pasos, 'pedido[observaciones]', 'Observaciones', payload.observaciones);
+
+    // Nada se da por escrito hasta releerlo (ver verificarEscritos).
+    await page.waitForLoadState('networkidle', { timeout: ESPERA_PASO_MS }).catch(() => null);
+    const reescritos = await verificarEscritos(page);
+    if (reescritos.length) pasos.push({ campo: 'Verificación', valor: `el portal había borrado ${reescritos.length} campo(s); se reescribieron y se comprobaron` });
 
     const captura = await page.screenshot({ fullPage: true });
     return { url: page.url(), pasos, pendientes, captura };
