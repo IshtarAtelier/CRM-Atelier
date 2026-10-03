@@ -1553,7 +1553,8 @@ export default function VentasPage() {
                                                 <WhatsAppIcon className="w-4 h-4" />
                                             </button>
                                         )}
-                                        {/* === ENVIAR A SMARTLAB — BOTÓN PRINCIPAL === */}
+                                        {/* === SMARTLAB A MANO (favorito) — plan B: la carga normal es el bloque
+                                            "Grupo Óptico · carga del pedido" de la ficha (robot + OK humano). === */}
                                         {isGrupoOptico && (() => {
                                              const is2x1 = order.appliedPromoName?.toLowerCase().includes('2x1') || order.items?.some((it: any) => {
                                                  const str = `${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
@@ -1564,31 +1565,31 @@ export default function VentasPage() {
                                                      <button
                                                          onClick={() => autoSubmitSmartLab(order, 1)}
                                                          disabled={isAutoSubmitting}
-                                                         className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-400/20 disabled:opacity-50"
-                                                         title="Copiar Par 1 y abrir SmartLab"
+                                                         className="px-3 py-2 border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 hover:bg-stone-50 dark:hover:bg-stone-800 transition-all disabled:opacity-50"
+                                                         title="Plan B: cargar el Par 1 a mano en SmartLab con el favorito"
                                                      >
                                                          {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                                         <span>Par 1</span>
+                                                         <span>A mano · Par 1</span>
                                                      </button>
                                                      <button
                                                          onClick={() => autoSubmitSmartLab(order, 2)}
                                                          disabled={isAutoSubmitting}
-                                                         className="px-3 py-2 bg-gradient-to-r from-orange-400 to-orange-500 text-orange-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-orange-400/20 disabled:opacity-50"
-                                                         title="Copiar Par 2 (Bonificado) y abrir SmartLab"
+                                                         className="px-3 py-2 border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 hover:bg-stone-50 dark:hover:bg-stone-800 transition-all disabled:opacity-50"
+                                                         title="Plan B: cargar el Par 2 a mano en SmartLab con el favorito"
                                                      >
                                                          {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                                         <span>Par 2</span>
+                                                         <span>A mano · Par 2</span>
                                                      </button>
                                                  </div>
                                              ) : (
                                                  <button
                                                      onClick={() => autoSubmitSmartLab(order, 1)}
                                                      disabled={isAutoSubmitting}
-                                                     className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-400/30 disabled:opacity-50"
-                                                     title="Copiar datos y abrir SmartLab"
+                                                     className="px-3 py-2 border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 hover:bg-stone-50 dark:hover:bg-stone-800 transition-all disabled:opacity-50"
+                                                     title="Plan B: cargar a mano en SmartLab con el favorito"
                                                  >
                                                      {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
-                                                     {isAutoSubmitting ? 'Copiando...' : '🧪 SmartLab'}
+                                                     {isAutoSubmitting ? 'Copiando...' : 'SmartLab a mano'}
                                                  </button>
                                              );
                                          })()}

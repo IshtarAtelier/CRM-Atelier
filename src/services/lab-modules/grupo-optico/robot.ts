@@ -162,8 +162,21 @@ export async function buscarPedidoYaCreado(page: Page, codigoOptica: string, des
     return pedidoYaCreado(Array.isArray(res?.rows) ? res.rows : [], codigoOptica, desde);
 }
 
+/**
+ * ¿Este server puede crear pedidos REALES en el laboratorio? Solo producción.
+ * Un `npm run dev` con la credencial real (para probar la ficha) tiene que
+ * poder preparar —que solo lee— pero nunca mandar un pedido a fabricar. Para
+ * habilitarlo a propósito fuera de producción: SMARTLAB_PERMITIR_CARGA=1. Puro.
+ */
+export function puedeCrearPedidosReales(env: Record<string, string | undefined> = process.env): boolean {
+    return env.NODE_ENV === 'production' || env.SMARTLAB_PERMITIR_CARGA === '1';
+}
+
 /** EL ÚNICO POST: crea el pedido. Devuelve el nº que asignó el portal. */
 export async function crearPedidoEnPortal(page: Page, payload: Record<string, unknown>): Promise<{ numero: string; mensaje: string }> {
+    if (!puedeCrearPedidosReales()) {
+        throw new Error('Este servidor no es producción: no crea pedidos reales en el laboratorio (para probar a propósito: SMARTLAB_PERMITIR_CARGA=1). No se mandó nada.');
+    }
     const r: any = await page.evaluate(async ({ url, body }) => {
         const res = await fetch(url, {
             method: 'POST', credentials: 'include',

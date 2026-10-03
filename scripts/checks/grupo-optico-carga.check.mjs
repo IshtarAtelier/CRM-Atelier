@@ -14,7 +14,7 @@
 import assert from 'node:assert/strict';
 import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/services/lab-modules/grupo-optico/catalogo.ts';
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
-import { pedidoYaCreado, diferenciasConLoAprobado } from '../../src/services/lab-modules/grupo-optico/robot.ts';
+import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 
 let fallas = 0;
 const ok = (nombre, fn) => { try { fn(); console.log(`  ✅ ${nombre}`); } catch (e) { fallas++; console.log(`  ❌ ${nombre}\n     ${e.message.split('\n').join('\n     ')}`); } };
@@ -171,6 +171,13 @@ ok('lo guardado se compara con lo aprobado', () => {
     const aprobado = { rightEyeArticle: 28463, leftEyeArticle: 28463, materialId: 20, lensTypeId: '5', rightEyeFarSpherical: '+0.75', leftEyeFarSpherical: '+0.75', tintedId: null };
     assert.deepEqual(diferenciasConLoAprobado({ right_eye_article_id: 28463, left_eye_article_id: 28463, IdMaterial: '20', IdTipoLente: '5', OjoDerEsfericoLejos: '.750', OjoIzqEsfericoLejos: '.750', tinted_id: null }, aprobado), []);
     assert.equal(diferenciasConLoAprobado({ right_eye_article_id: 10325, left_eye_article_id: 28463, IdMaterial: '20', IdTipoLente: '5', OjoDerEsfericoLejos: '.750', OjoIzqEsfericoLejos: '.750', tinted_id: null }, aprobado).length, 1);
+});
+
+ok('fuera de producción el robot nunca crea pedidos reales (salvo SMARTLAB_PERMITIR_CARGA=1)', () => {
+    assert.equal(puedeCrearPedidosReales({ NODE_ENV: 'development' }), false);
+    assert.equal(puedeCrearPedidosReales({ NODE_ENV: 'test' }), false);
+    assert.equal(puedeCrearPedidosReales({ NODE_ENV: 'production' }), true);
+    assert.equal(puedeCrearPedidosReales({ NODE_ENV: 'development', SMARTLAB_PERMITIR_CARGA: '1' }), true);
 });
 
 console.log(fallas ? `\n❌ ${fallas} falla(s).` : '\n✅ Carga de Grupo Óptico: todo en orden.');

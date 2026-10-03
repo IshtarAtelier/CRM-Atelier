@@ -3,7 +3,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { REGISTRO_MODULOS } from '@/services/lab-modules/registro';
 import { correrSeguimiento, tocaPasadaCompleta, ultimaPasadaCompleta } from '@/services/lab-modules/corrida';
 import { Borradores } from '@/services/lab-modules/carga/borrador';
-import { ROBOT_ACTOR_VITOLEN } from '@/services/lab-modules/vitolen/borrador-portal';
+import { ROBOT_DE_LABORATORIO } from '@/services/lab-modules/carga/registro';
 import { LAB_GRUPO_OPTICO } from '@/services/lab-modules/grupo-optico/portal';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
     const forzarCompleta = new URL(request.url).searchParams.get('completa') === '1';
-    const colgados = await Borradores.vencerColgados(ROBOT_ACTOR_VITOLEN).catch(err => ({ error: err?.message || String(err) }));
+    const colgados = await Borradores.vencerColgados(ROBOT_DE_LABORATORIO).catch(err => ({ error: err?.message || String(err) }));
     const resultados = [];
     for (const modulo of REGISTRO_MODULOS) {
         // Grupo Óptico NO corre acá: su tick es /api/cron/smartlab-sync, que
