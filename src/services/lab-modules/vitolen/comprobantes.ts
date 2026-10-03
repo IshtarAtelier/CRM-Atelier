@@ -66,7 +66,13 @@ export function parsearFacturaVitolen(textoPagina: string): FacturaVitolen | nul
     if (!numero) return null;
     const tipo: FacturaVitolen['tipo'] = /Nota de Cr[eé]dito/i.test(t) ? 'NCA' : /Factura/i.test(t) ? 'FA' : 'OTRO';
     const fecha = fechaArgentina(t.match(/Fecha de Emisi[oó]n:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1] ?? null);
-    const codigoPedido = t.match(/^(\d{9})\s*$/m)?.[1] ?? null;
+    // El código del pedido va solo en un renglón, pegado a "Código 01" en el
+    // orden de pdf2json; un código de producto partido por el salto de línea
+    // también puede quedar solo, así que primero se busca el vecino de "Código 01".
+    const codigoPedido = t.match(/C[oó]digo 01\s*\n\s*(\d{9})\s*$/m)?.[1]
+        ?? t.match(/^(\d{9})\s*\n\s*C[oó]digo 01/m)?.[1]
+        ?? t.match(/^(\d{9})\s*$/m)?.[1]
+        ?? null;
     const caso = t.match(/REMITO\/CASO N[ºo°]\s*(.*?)\s*$/m)?.[1]?.trim() || null;
     const lineas: LineaFactura[] = [];
     for (const m of t.matchAll(/^(\d{5,9})\s+(.+?)\s+(\d+)\s+21,0%\s+(-?\$[\d.]+,\d{2})\s+(-?\$[\d.]+,\d{2})\s*$/gm)) {
@@ -90,9 +96,19 @@ export function parsearFacturaVitolen(textoPagina: string): FacturaVitolen | nul
     };
 }
 
-/** Todas las páginas del PDF del pedido → facturas, descartando lo que no es comprobante. Puro. */
+/**
+ * Todas las páginas del PDF del pedido → facturas, descartando lo que no es
+ * comprobante. Una factura que ocupe dos páginas (o venga ORIGINAL y
+ * DUPLICADO) entra UNA vez: por nº, quedándose con la página que trae TOTAL. Puro.
+ */
 export function parsearFacturasDelPedido(paginas: string[]): FacturaVitolen[] {
-    return paginas.map(parsearFacturaVitolen).filter((f): f is FacturaVitolen => !!f);
+    const porNumero = new Map<string, FacturaVitolen>();
+    for (const f of paginas.map(parsearFacturaVitolen)) {
+        if (!f) continue;
+        const previa = porNumero.get(f.numero);
+        if (!previa || (previa.total === null && f.total !== null)) porNumero.set(f.numero, f);
+    }
+    return [...porNumero.values()];
 }
 
 export interface CostoFacturado {
@@ -124,12 +140,34 @@ export function costoFacturadoDelPedido(
         return true;
     });
     const suma = (xs: (number | null)[]) => xs.every(x => x === null) ? null : xs.reduce<number>((s, x) => s + (x ?? 0), 0);
+    // Las anuladas van con importe null: así la pantalla las muestra sin plata
+    // (juntarComprobantes pisa por nº, y la referencia vieja con importe se va).
+    const anuladasDelPedido = facturas.filter(f => f.tipo === 'FA' && (!f.pedido || f.pedido === pedido) && anuladas.has(`FA ${f.numero}`));
     return {
         pedido,
         billedNet: suma(vigentes.map(f => f.gravado)),
         billedTotal: suma(vigentes.map(f => f.total)),
         invoiceDate: vigentes.map(f => f.fecha).filter((d): d is Date => !!d).sort((a, b) => a.getTime() - b.getTime())[0] ?? null,
-        invoiceRefs: vigentes.map(f => ({ comprobante: f.numero, importe: f.total, url: urlPdf, tipo: 'factura' as const })),
+        invoiceRefs: [
+            ...vigentes.map(f => ({ comprobante: f.numero, importe: f.total, url: urlPdf, tipo: 'factura' as const })),
+            ...anuladasDelPedido.map(f => ({ comprobante: f.numero, importe: null, url: urlPdf, tipo: 'factura' as const })),
+        ],
         descartadas,
     };
+}
+
+/**
+ * ¿El PDF del pedido es de fiar para escribir importes? Cada factura que
+ * trae tiene que figurar en la cuenta corriente con el MISMO total; si una
+ * falta o difiere, el PDF vino a medias o cambió y no se tocan importes ya
+ * registrados (lección de Grupo Óptico del 24/9/2026: un PDF incompleto no
+ * toca plata). Puro.
+ */
+export function pdfCoincideConCuenta(facturas: FacturaVitolen[], totalesEnCuenta: Map<string, number | null>): { confiable: boolean; motivo?: string } {
+    for (const f of facturas.filter(f => f.tipo === 'FA')) {
+        const enCuenta = totalesEnCuenta.get(`FA ${f.numero}`);
+        if (enCuenta === undefined) return { confiable: false, motivo: `FA ${f.numero} no está en la cuenta corriente` };
+        if (enCuenta !== null && f.total !== null && Math.abs(enCuenta - f.total) > 0.01) return { confiable: false, motivo: `FA ${f.numero}: el PDF dice ${f.total} y la cuenta corriente ${enCuenta}` };
+    }
+    return { confiable: true };
 }

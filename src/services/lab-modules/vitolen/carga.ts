@@ -33,6 +33,8 @@ export interface GraduacionOjo {
 
 export interface PayloadVitolen {
     lista: string;
+    /** Qué par de la venta es (1 o 2): el 2º lleva la promo del segundo par. */
+    par: number;
     nroCasoInterno: string;    // código corto de la venta: #A1B2
     paciente: string;
     ojos: OjoPortal;
@@ -223,6 +225,7 @@ export function armarFormulario(
 
     const payload: PayloadVitolen = {
         lista: 'L96',
+        par: pair,
         nroCasoInterno: `#${venta.id.slice(-4).toUpperCase()}`,
         paciente: venta.clienteNombre,
         ojos: od && oi ? 'AMBOS' : od ? 'OD' : 'OI',

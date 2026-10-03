@@ -8,14 +8,14 @@ import { conTurno } from '../portal/turno';
 import { BASE_VITOLEN, normalizarPedido, periodoDeListado, type FilaListado } from './pedidos';
 import { conSesionVitolen, LAB_VITOLEN, leerCuentaCorriente, leerListado, NOMBRE_VITOLEN, pedirBytesDesdeLaPagina, ROBOT_VITOLEN } from './portal';
 import { facturasVigentes } from './cuenta-corriente';
-import { costoFacturadoDelPedido, parsearFacturasDelPedido } from './comprobantes';
+import { costoFacturadoDelPedido, parsearFacturasDelPedido, pdfCoincideConCuenta } from './comprobantes';
 import { textoPorPagina } from './pdf';
 
 /**
  * EL MÓDULO DE VITOLEN. Seguimiento: una entrada al portal por corrida, el
- * listado entero del período, el espejo y las ventas. Costos y carga asistida
- * llegan en sus etapas (docs/lab-modulos.md); hasta entonces se declaran
- * apagados y el marco no los dispara.
+ * listado entero del período, el espejo y las ventas. Costos: las facturas de
+ * cada pedido al cruce (abajo). Carga asistida: vitolen/borrador-portal.ts,
+ * desde la ficha de la venta.
  */
 
 const PATRON_VITOLEN = LAB_ITEM_PATTERNS.VITOLEN;
@@ -91,40 +91,52 @@ const VENTANA_COSTOS_DIAS = 90;
  */
 async function recolectarCostos(opts: OpcionesCorrida = {}): Promise<Record<string, unknown>> {
     const ahora = new Date();
-    const periodo = periodoDeListado(opts.sinceDays ?? VENTANA_COSTOS_DIAS);
-    const desdeCuenta = new Date(ahora.getTime() - (opts.sinceDays ?? VENTANA_COSTOS_DIAS) * 86400000);
+    const ventana = opts.sinceDays ?? VENTANA_COSTOS_DIAS;
+    const periodo = periodoDeListado(ventana);
+    // La cuenta corriente se mira con margen: las facturas de un pedido llegan
+    // después del pedido, y sirven para saber qué se anuló y para validar el PDF.
+    const desdeCuenta = new Date(ahora.getTime() - (ventana + 45) * 86400000);
 
     const corrida = await conTurno(LAB_VITOLEN, 'completa', async () => conSesionVitolen(async (page) => {
         const listado = await leerListado(page, periodo);
         const cuenta = await leerCuentaCorriente(page, desdeCuenta);
         const vigentes = new Set(facturasVigentes(cuenta.movimientos).map(f => f.comprobante));
         const anuladas = new Set(cuenta.movimientos.filter(m => m.tipo === 'FA' && !vigentes.has(m.comprobante)).map(m => m.comprobante));
+        const totalesEnCuenta = new Map(cuenta.movimientos.filter(m => m.tipo === 'FA').map(m => [m.comprobante, m.total ?? m.debe]));
 
-        const pedidos: { fila: FilaListado; paginas: string[] | null; error?: string }[] = [];
+        // Un pedido sin link de factura todavía no está facturado: no es un error.
+        // Un PDF que no se pudo bajar o leer sí se anota (invoiceError), y ese
+        // pedido no toca importes.
+        const pedidos: { fila: FilaListado; paginas: string[] | null; fallo?: string }[] = [];
         for (const fila of listado.filas) {
-            if (!fila.pdfFactura) { pedidos.push({ fila, paginas: null, error: 'sin link de factura' }); continue; }
+            if (!fila.pdfFactura) { pedidos.push({ fila, paginas: null }); continue; }
             try {
                 const bytes = await pedirBytesDesdeLaPagina(page, fila.pdfFactura);
                 pedidos.push({ fila, paginas: await textoPorPagina(bytes) });
             } catch (err: any) {
-                pedidos.push({ fila, paginas: null, error: err?.message || String(err) });
+                pedidos.push({ fila, paginas: null, fallo: err?.message || String(err) });
             }
         }
-        return { listado, anuladas, pedidos };
+        return { listado, anuladas, totalesEnCuenta, pedidos };
     }), { esperar: opts.esperarTurno });
     if ('skipped' in corrida) return { skipped: true, reason: corrida.reason };
-    const { listado, anuladas, pedidos } = corrida;
+    const { listado, anuladas, totalesEnCuenta, pedidos } = corrida;
 
     let conFactura = 0, sinFactura = 0, registrados = 0;
-    const errores: string[] = [];
+    const invoiceErrors: string[] = [];
     const descartadas: string[] = [];
     for (const p of pedidos) {
         const numero = p.fila.numero.trim();
         if (!numero) continue;
-        if (p.error) errores.push(`${numero}: ${p.error}`);
+        if (p.fallo) invoiceErrors.push(`${numero}: ${p.fallo}`);
         const facturas = p.paginas ? parsearFacturasDelPedido(p.paginas) : [];
         const costo = costoFacturadoDelPedido(numero, facturas, anuladas, p.fila.pdfFactura ? `${BASE_VITOLEN}${p.fila.pdfFactura}` : null);
         descartadas.push(...costo.descartadas.map(d => `${numero}: ${d}`));
+        // Importes solo si el PDF es de fiar (cada factura figura en la cuenta
+        // corriente con el mismo total); si no, se completa lo que falte sin
+        // pisar lo que otra corrida ya registró.
+        const fiable = facturas.length ? pdfCoincideConCuenta(facturas, totalesEnCuenta) : { confiable: true as const };
+        if (!fiable.confiable) invoiceErrors.push(`${numero}: ${fiable.motivo}`);
         const tieneImporte = costo.billedTotal !== null;
         if (tieneImporte) conFactura++; else sinFactura++;
         const entrada = await LabCostReconciliationService.upsertEntry({
@@ -132,22 +144,30 @@ async function recolectarCostos(opts: OpcionesCorrida = {}): Promise<Record<stri
             labOrderNumber: numero,
             billedNet: tieneImporte ? costo.billedNet : null,
             billedTotal: tieneImporte ? costo.billedTotal : null,
+            preferExistingBilling: !fiable.confiable,
             source: 'SCRAPER',
             sourceFile: p.fila.pdfFactura ? `facturacion_automatica.pdf?codigo=${p.fila.codigoFactura}` : null,
             invoiceDate: costo.invoiceDate ?? undefined,
-            invoiceRefs: tieneImporte ? costo.invoiceRefs : undefined,
+            invoiceRefs: tieneImporte && fiable.confiable ? costo.invoiceRefs : undefined,
             notes: [
                 p.fila.nroCaso ? `Caso: ${p.fila.nroCaso}` : null,
                 p.fila.estado ? `Estado en el portal: ${p.fila.estado}` : null,
                 facturas.some(f => !f.lineasCompletas) ? 'Alguna línea del PDF no se pudo leer entera (los importes salen de los totales).' : null,
+                !fiable.confiable ? `PDF sin validar contra la cuenta corriente (${fiable.motivo}): importes sin actualizar.` : null,
             ].filter(Boolean).join(' · ') || null,
         });
         if (entrada) registrados++;
     }
-    if (listado.total !== null && listado.total > pedidos.length) {
-        errores.push(`el portal dice ${listado.total} pedidos y se leyeron ${pedidos.length}`);
-    }
-    return { pedidos: pedidos.length, registrados, conFactura, sinFactura, anuladas: anuladas.size, descartadas, errores, error: errores.length ? errores.join(' | ') : undefined };
+    // Solo un listado parcial es un error de la pasada (el portal dijo más de lo
+    // que se leyó): con él la pasada no se sella como buena.
+    const error = listado.total !== null && listado.total > pedidos.length
+        ? `el portal dice ${listado.total} pedidos y se leyeron ${pedidos.length}`
+        : undefined;
+    return {
+        pedidos: pedidos.length, registrados, conFactura, sinFactura, anuladas: anuladas.size, descartadas,
+        invoiceErrors, invoiceError: invoiceErrors.length ? invoiceErrors.join(' | ') : undefined,
+        error,
+    };
 }
 
 export const MODULO_VITOLEN: LabModule = {

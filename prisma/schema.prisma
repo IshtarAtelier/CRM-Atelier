@@ -1186,6 +1186,11 @@ model LabPortalOrder {
 // Carga asistida de un pedido en el portal: el robot arma y llena, una persona
 // aprueba mirando la captura, el robot confirma. PREPARADO → EN_REVISION →
 // APROBADO → CARGADO, o RECHAZADO / ERROR.
+// OJO: la base tiene además el índice único PARCIAL "LabOrderDraft_vivo_key"
+// (orderId, pair) WHERE status IN ('PREPARADO','EN_REVISION','APROBADO'),
+// creado a mano en 20261003_lab_order_draft_unico porque Prisma no lo puede
+// expresar. Un `prisma migrate dev` va a proponer borrarlo: NO aceptar ese DROP
+// (lo vigila check:lab-modulos). Garantiza un solo borrador vivo por venta y par.
 model LabOrderDraft {
   id                 String    @id @default(cuid())
   lab                String

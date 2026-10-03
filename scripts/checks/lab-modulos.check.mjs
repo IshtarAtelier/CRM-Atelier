@@ -29,7 +29,8 @@ import { estadoDe } from '../../src/services/lab-modules/vitolen/estados.ts';
 import { materialDelPortal, disenoDelPortal, colorDe } from '../../src/services/lab-modules/vitolen/materiales.ts';
 import { DISENOS_PORTAL } from '../../src/services/lab-modules/vitolen/portal-materiales.ts';
 import { parsearCuentaCorriente, leerPaginadorCuenta, importeArgentino, facturasVigentes, urlCuentaCorriente, tipoDeComprobante } from '../../src/services/lab-modules/vitolen/cuenta-corriente.ts';
-import { parsearFacturaVitolen, parsearFacturasDelPedido, pedidoDeCodigo, codigoDePedido, costoFacturadoDelPedido } from '../../src/services/lab-modules/vitolen/comprobantes.ts';
+import { parsearFacturaVitolen, parsearFacturasDelPedido, pedidoDeCodigo, codigoDePedido, costoFacturadoDelPedido, pdfCoincideConCuenta } from '../../src/services/lab-modules/vitolen/comprobantes.ts';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { LABS_FACTURA_A } from '../../src/services/lab-recon/cost-matching.ts';
 import { extraerHtmlDeRespuestaJs, parsearListado, leerPaginador, fechaArgentina, normalizarPedido, periodoDeListado, urlListado } from '../../src/services/lab-modules/vitolen/pedidos.ts';
 import { labKeyDeNombre } from '../../src/services/lab-recon/types.ts';
@@ -691,6 +692,55 @@ ok('una factura anulada por nota de crédito, o de otro pedido, no suma y se dic
 ok('Vitolen compara el TOTAL con IVA, como Optovisión y La Cámara (Factura A, monotributo)', () => {
     assert.ok(LABS_FACTURA_A.has('VITOLEN') && LABS_FACTURA_A.has('OPTOVISION') && LABS_FACTURA_A.has('LA_CAMARA'));
     assert.ok(!LABS_FACTURA_A.has('GRUPO_OPTICO'));
+});
+
+console.log('\n— Segunda auditoría (3/10): lo que pidió —');
+ok('el robot de la carga espera a cualquier pasada; la completa solo a una rápida', () => {
+    assert.equal(debeEsperar('rapida', 'robot'), true);
+    assert.equal(debeEsperar('completa', 'robot'), true);
+    assert.equal(debeEsperar(null, 'robot'), false);
+    assert.equal(debeEsperar('rapida', 'completa'), true);
+    assert.equal(debeEsperar('completa', 'rapida'), false);
+    assert.equal(debeEsperar('robot', 'rapida'), false);
+});
+ok('un pedido confirmado a mano en el portal deja de bloquear preparar', () => {
+    assert.equal(portalSinResolver({ status: 'RECHAZADO', resumenPortal: { portalDraftId: '1', confirmadoAManoEl: '2026-10-03', confirmadoAManoNumero: '7000001L' } }), false);
+});
+ok('una factura repetida en el PDF (dos páginas, duplicado) entra una sola vez', () => {
+    const sinTotal = PAGINA_FACTURA.replace('TOTAL  $44.986,59', 'continúa');
+    const f = parsearFacturasDelPedido([sinTotal, PAGINA_FACTURA, PAGINA_FACTURA]);
+    assert.equal(f.length, 1);
+    assert.equal(f[0].total, 44986.59);
+});
+ok('el código del pedido es el vecino de "Código 01", no cualquier número de 9 dígitos', () => {
+    const conProducto = PAGINA_FACTURA.replace('(1) 24093IC05000715S ESTADOS UNIDOS', '209168599\n(1) ESTADOS UNIDOS');
+    assert.equal(parsearFacturaVitolen(conProducto).codigoPedido, '698138200');
+});
+ok('un PDF a medias o distinto de la cuenta corriente no toca importes', () => {
+    const facturas = parsearFacturasDelPedido([PAGINA_FACTURA, PAGINA_CALIBRADO]);
+    const cuenta = new Map([['FA 0067-01243373', 44986.59], ['FA 0032-00179696', 5183.64]]);
+    assert.deepEqual(pdfCoincideConCuenta(facturas, cuenta), { confiable: true });
+    assert.equal(pdfCoincideConCuenta(facturas, new Map([['FA 0067-01243373', 44986.59]])).confiable, false, 'falta una en la cuenta');
+    assert.equal(pdfCoincideConCuenta(facturas, new Map([['FA 0067-01243373', 44986.59], ['FA 0032-00179696', 5000]])).confiable, false, 'difiere el total');
+    assert.equal(pdfCoincideConCuenta([], cuenta).confiable, true);
+});
+ok('una factura anulada queda en los comprobantes sin importe (la pantalla la muestra sin plata)', () => {
+    const facturas = parsearFacturasDelPedido([PAGINA_FACTURA, PAGINA_CALIBRADO]);
+    const c = costoFacturadoDelPedido('6981382L', facturas, new Set(['FA 0032-00179696']), null);
+    assert.deepEqual(c.invoiceRefs.map(r => [r.comprobante, r.importe]), [['0067-01243373', 44986.59], ['0032-00179696', null]]);
+});
+ok('el payload sabe qué par es; el 2º par sin pedido origen igual queda pendiente a mano', () => {
+    const v = ventaBase();
+    assert.equal(armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 }).payload.par, 1);
+    v.items.forEach(i => { i.framePosition = 2; });
+    v.frames = [{ position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
+    assert.equal(armarFormulario(v, { pair: 2, forma: 'Forma 1', ejeDiagonal: 0 }).payload.par, 2);
+});
+ok('ninguna migración borra el índice único parcial de los borradores', () => {
+    const dir = new URL('../../prisma/migrations/', import.meta.url).pathname;
+    const sqls = readdirSync(dir).filter(d => existsSync(`${dir}${d}/migration.sql`)).map(d => readFileSync(`${dir}${d}/migration.sql`, 'utf8'));
+    assert.ok(sqls.some(s => /CREATE UNIQUE INDEX IF NOT EXISTS "LabOrderDraft_vivo_key"/.test(s)), 'la migración que lo crea existe');
+    assert.ok(!sqls.some(s => /DROP INDEX[^;]*LabOrderDraft_vivo_key/i.test(s)), 'un prisma migrate dev propuso borrarlo: no aceptar');
 });
 
 console.log(fallas === 0 ? '\n✅ Marco de módulos de laboratorio: todo en orden.\n' : `\n❌ ${fallas} falla(s).\n`);

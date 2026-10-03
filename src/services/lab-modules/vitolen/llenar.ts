@@ -152,8 +152,8 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     if (payload.od) await llenarOjo(page, pasos, 0, payload.od, payload);
     if (payload.oi) await llenarOjo(page, pasos, 1, payload.oi, payload);
 
-    if (payload.pedidoOrigen) {
-        pendientes.push(`promo del 2º par: antes de aprobar, abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen} con la promoción HOYALUX (el robot todavía no lo hace)`);
+    if (payload.par === 2 || payload.pedidoOrigen) {
+        pendientes.push(`promo del 2º par: antes de aprobar, abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen ?? '(el nº del 1er par: la venta no lo tiene todavía)'} con la promoción HOYALUX (el robot todavía no lo hace)`);
     }
 
     // Armazón
@@ -286,12 +286,15 @@ export async function confirmar(page: Page, portalDraftId: string, resumenAproba
 
 /**
  * Cancela un borrador que una persona rechazó: el link "Cancelar" del portal
- * (DELETE con diálogo de confirmación). Se niega si ya tiene nº de trabajo:
- * un pedido confirmado se anula hablando con el laboratorio, no desde acá.
+ * (DELETE con diálogo de confirmación). Si ya tiene nº de trabajo (alguien
+ * lo confirmó a mano en el portal) no se cancela —un pedido confirmado se
+ * anula hablando con el laboratorio— y se devuelve ese nº para que el CRM lo
+ * tome por resuelto.
  */
-export async function cancelarBorrador(page: Page, portalDraftId: string): Promise<{ url: string; captura: Buffer }> {
+export async function cancelarBorrador(page: Page, portalDraftId: string): Promise<{ url: string; captura: Buffer; confirmadoAMano: string | null }> {
     const texto = await abrirBorrador(page, portalDraftId);
-    if (numeroDeTrabajoDe(texto)) throw new Error(`El pedido ${portalDraftId} de ${NOMBRE_VITOLEN} ya está confirmado: no se cancela desde el sistema.`);
+    const yaConfirmado = numeroDeTrabajoDe(texto);
+    if (yaConfirmado) return { url: page.url(), captura: await page.screenshot({ fullPage: true }), confirmadoAMano: yaConfirmado };
     const link = page.locator('a[data-method="delete"]:has-text("Cancelar")').first();
     if (await link.count() === 0) throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el link "Cancelar".`);
     page.once('dialog', d => { d.accept().catch(() => null); });
@@ -299,12 +302,13 @@ export async function cancelarBorrador(page: Page, portalDraftId: string): Promi
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
     const captura = await page.screenshot({ fullPage: true });
-    // No se da por cancelado hasta verlo: el borrador tiene que haber dejado de existir.
+    // No se da por cancelado hasta verlo: el portal responde 404 cuando el
+    // borrador dejó de existir (comprobado el 3/10/2026). Cualquier otra cosa
+    // (sigue "Por Asignar", sesión caída, otra pantalla) no cuenta como cancelado.
     const res = await page.goto(urlBorrador(portalDraftId), { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
-    const despues = (await page.innerText('body').catch(() => '')) || '';
-    if (res?.status() !== 404 && /Pedido de Laboratorio/i.test(despues) && /Por Asignar/i.test(despues)) {
-        throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} sigue en el portal después de "Cancelar".`);
+    if (res?.status() !== 404) {
+        throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no desapareció después de "Cancelar" (respondió ${res?.status() ?? 'sin estado'}).`);
     }
-    return { url: page.url(), captura };
+    return { url: page.url(), captura, confirmadoAMano: null };
 }

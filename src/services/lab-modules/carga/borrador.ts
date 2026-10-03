@@ -61,18 +61,26 @@ export interface RastroPortal {
     portalDraftId?: string;
     url?: string;
     canceladoEl?: string;
+    /** Alguien lo confirmó a mano en el portal: el nº de trabajo que el robot encontró al ir a cancelar. */
+    confirmadoAManoEl?: string;
+    confirmadoAManoNumero?: string;
+    /** Id de quien aprobó (el nombre va en `approvedBy`): para firmar la venta sin buscar por nombre. */
+    aprobadoPorId?: string | null;
+    /** El resumen del portal ya recortado a lo que se compara al confirmar (resumenComparable). */
+    textoComparable?: string;
     [k: string]: unknown;
 }
 
 /**
  * ¿Este borrador dejó un pedido en el portal que nadie resolvió? Resuelto es
- * CARGADO (confirmado) o cancelado por el robot. Puro.
+ * CARGADO (confirmado por el robot), cancelado por el robot, o confirmado a
+ * mano en el portal (el robot lo vio con nº al ir a cancelar). Puro.
  */
 export function portalSinResolver(b: { status: string; resumenPortal: unknown }): boolean {
     const r = b.resumenPortal as RastroPortal | null;
     if (!r || typeof r.portalDraftId !== 'string' || !r.portalDraftId) return false;
     if (b.status === 'CARGADO') return false;
-    return !r.canceladoEl;
+    return !r.canceladoEl && !r.confirmadoAManoEl;
 }
 
 /**
@@ -168,7 +176,9 @@ export const Borradores = {
     /** Una persona miró la captura y aprobó. */
     async aprobar(id: string, actor: Actor) {
         if (!puedeAprobar(actor)) throw new Error('La aprobación tiene que hacerla una persona identificada.');
-        return cambiarEstado(id, 'APROBADO', { approvedBy: actor.name, approvedAt: new Date(), error: null }, actor);
+        const b = await cambiarEstado(id, 'APROBADO', { approvedBy: actor.name, approvedAt: new Date(), error: null }, actor);
+        await mezclarRastro(id, { aprobadoPorId: actor.id });
+        return b;
     },
 
     async rechazar(id: string, actor: Actor, motivo: string) {
@@ -200,6 +210,11 @@ export const Borradores = {
     /** El robot canceló el borrador en el portal: ya no bloquea preparar otro. */
     canceladoEnPortal(id: string) {
         return mezclarRastro(id, { canceladoEl: new Date().toISOString() });
+    },
+
+    /** Al ir a cancelar, el robot encontró el pedido confirmado a mano: queda resuelto con ese nº. */
+    confirmadoAManoEnPortal(id: string, portalNumber: string) {
+        return mezclarRastro(id, { confirmadoAManoEl: new Date().toISOString(), confirmadoAManoNumero: portalNumber });
     },
 
     deVenta(orderId: string) {

@@ -5,6 +5,7 @@ import { Borradores } from '@/services/lab-modules/carga/borrador';
 import { armarFormulario, leerVentaParaCarga } from '@/services/lab-modules/vitolen/carga';
 import { cristalVitolenPorNombre } from '@/services/lab-modules/vitolen/catalogo';
 import { llenarBorradorEnPortal } from '@/services/lab-modules/vitolen/borrador-portal';
+import { parseLabNumbers } from '@/lib/lab-order-numbers';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,10 +81,19 @@ export async function POST(request: Request) {
         if (ejeDiagonal !== null && !(Number.isFinite(ejeDiagonal) && ejeDiagonal >= 0 && ejeDiagonal <= 180)) {
             return NextResponse.json({ error: 'El eje de la diagonal mayor va de 0 a 180.' }, { status: 400 });
         }
+        // El 2º par lleva el nº del 1º como "pedido origen" de la promo: lo que
+        // mandó la ficha o, si no, lo que ya sabe el CRM (espejo del portal o el
+        // nº cargado en la venta). Sin él, igual queda como pendiente a mano.
+        let pedidoOrigen = body.pedidoOrigen ? String(body.pedidoOrigen) : null;
+        if (pair === 2 && !pedidoOrigen) {
+            const enEspejo = await prisma.labPortalOrder.findFirst({ where: { orderId, lab: 'VITOLEN', pair: { not: 2 } }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
+            const enVenta = await prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true } });
+            pedidoOrigen = enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).map(n => `${n}L`)[0] ?? null;
+        }
         const r = armarFormulario(venta, {
             pair, forma, ejeDiagonal,
             variante: body.variante ? String(body.variante) : null,
-            pedidoOrigen: body.pedidoOrigen ? String(body.pedidoOrigen) : null,
+            pedidoOrigen,
         });
         if (!r.ok) {
             return NextResponse.json({ error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos }, { status: 422 });

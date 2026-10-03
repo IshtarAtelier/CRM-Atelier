@@ -113,8 +113,14 @@ export function parBonificadoCobrado(importesPorPedido: number[]): { cobrado: bo
 export function costoDeItemParaCruce(item: any, is2x1: boolean): number {
     const categoria = item.productCategorySnapshot || item.product?.category || '';
     const esCristal = /cristal/i.test(categoria);
-    // El par bonificado no suma nada: lo pone el laboratorio.
-    if (is2x1 && esCristal && item.price === 0) return 0;
+    // El par bonificado no suma nada: lo pone el laboratorio. Vitolen es la
+    // excepción: su promo NO es 2x1, el 2º par se factura al 20 % de lista más
+    // calibrado (bases del 30/9/2026, lab-modules/vitolen/promo.ts), así que
+    // ponerlo en $0 acusaría sobrecosto en cada venta. Hasta valuarlo con esa
+    // regla (pendiente de Ishtar) se cuenta entero: lo facturado queda "a
+    // favor", nunca un reclamo falso.
+    const esVitolen = /vitolen/i.test(item.laboratorySnapshot || item.product?.laboratory || '');
+    if (is2x1 && esCristal && item.price === 0 && !esVitolen) return 0;
     const perEyeHalf = item.eye ? 0.5 : 1;
     const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
     return cost * perEyeHalf * (item.quantity || 1);
@@ -433,7 +439,8 @@ export async function upsertEntry(input: LabCostInput) {
     // 2x1 CON EL PAR BONIFICADO COBRADO: es SOBRECOSTO aunque la suma cierre
     // (ver parBonificadoCobrado). Solo con la venta entera facturada — hasta
     // ahí es PENDING y no hay veredicto — y nunca para un reproceso.
-    const es2x1 = !!order && !pvEntry && esVenta2x1(order);
+    // Vitolen no entra: su 2º par se cobra (20 % de lista + calibrado) por diseño.
+    const es2x1 = !!order && !pvEntry && String(input.lab) !== 'VITOLEN' && esVenta2x1(order);
     const parBonificado = es2x1 && difference !== null
         ? parBonificadoCobrado(facturadoPorPedido.map(p => p.importe))
         : { cobrado: false, masBarato: null };

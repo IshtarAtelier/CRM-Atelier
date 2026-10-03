@@ -17,7 +17,8 @@ import { claveDeModulo } from '../contrato';
  * pase RÁPIDO, porque si se salteara ese día no habría pasada completa. Si lo
  * tiene otra completa, no espera: esa ya hace el trabajo.
  */
-export type Pasada = 'completa' | 'rapida';
+/** 'robot' es la carga asistida (una persona está esperando): espera a cualquiera. */
+export type Pasada = 'completa' | 'rapida' | 'robot';
 
 export interface TurnoGuardado { vence: string; pasada: Pasada }
 
@@ -25,7 +26,7 @@ export interface TurnoGuardado { vence: string; pasada: Pasada }
 export function leerTurno(valor: string | null | undefined): TurnoGuardado | null {
     const [vence, pasada] = String(valor || '').split('|');
     if (!vence || Number.isNaN(Date.parse(vence))) return null;
-    return { vence, pasada: pasada === 'rapida' ? 'rapida' : 'completa' };
+    return { vence, pasada: pasada === 'rapida' ? 'rapida' : pasada === 'robot' ? 'robot' : 'completa' };
 }
 
 /** ¿Está tomado a esta hora? Puro. */
@@ -37,9 +38,12 @@ export function turnoVigente(valor: string | null | undefined, ahora: Date): Pas
 
 /**
  * ¿La pasada que pide debe esperar a que se libere el turno? Puro.
- * Solo una completa espera a una rápida; todo lo demás se saltea.
+ * Una completa espera a una rápida; el robot de la carga asistida (hay una
+ * persona esperando en la ficha) espera a cualquiera; todo lo demás se saltea.
  */
 export function debeEsperar(quienLoTiene: Pasada | null, quienPide: Pasada): boolean {
+    if (!quienLoTiene) return false;
+    if (quienPide === 'robot') return true;
     return quienLoTiene === 'rapida' && quienPide === 'completa';
 }
 

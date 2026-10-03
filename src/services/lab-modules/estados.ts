@@ -85,7 +85,7 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
     const data: Record<string, unknown> = {};
     if (nuevo) data.labStatus = nuevo;
     if (asignarNumero) data.labOrderNumber = numeroNuevo;
-    await prisma.order.update({ where: { id: order.id }, data });
+    await prisma.order.update({ where: { id: order.id }, data, select: { id: true } });
 
     let notificado = false;
     if (nuevo === 'FINISHED') {

@@ -7,6 +7,7 @@ import { conTurno } from '../portal/turno';
 import type { PayloadVitolen } from './carga';
 import { cancelarBorrador, confirmar, crearYLeerResumen, llenarFormulario, ResumenCambiadoError } from './llenar';
 import { conSesionVitolen, LAB_VITOLEN, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './portal';
+import { resumenComparable } from './resumen';
 
 /**
  * EL ROBOT TRABAJA SOBRE UN BORRADOR DEL CRM, con el flujo real del portal
@@ -25,8 +26,9 @@ import { conSesionVitolen, LAB_VITOLEN, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './
  *   RECHAZADO  → el robot aprieta "Cancelar" en el portal y verifica que
  *                desapareció. Si no puede, queda anotado para hacerlo a mano.
  *
- * Toda entrada al portal toma el turno (una sola pasada a la vez: el
- * contenedor no aguanta dos Chromium) y espera si el seguimiento está corriendo.
+ * Toda entrada al portal toma el turno como pasada 'robot' (una sola pasada a
+ * la vez: el contenedor no aguanta dos Chromium) y espera hasta 4 min si otra
+ * pasada está corriendo.
  * Nada se confirma sin la aprobación de una persona (regla de Ishtar).
  */
 export const ROBOT_ACTOR_VITOLEN: Actor = { id: null, name: ROBOT_VITOLEN, role: null };
@@ -43,7 +45,8 @@ export interface ResumenGuardado extends RastroPortal {
 const ESPERA_TURNO_MS = 4 * 60_000;
 
 async function enElPortal<T>(tarea: () => Promise<T>): Promise<T> {
-    const r = await conTurno(LAB_VITOLEN, 'rapida', tarea, { esperar: true, esperaMaxMs: ESPERA_TURNO_MS });
+    // Pasada 'robot': espera a cualquier pasada en curso (hay una persona en la ficha).
+    const r = await conTurno(LAB_VITOLEN, 'robot', tarea, { esperar: true, esperaMaxMs: ESPERA_TURNO_MS });
     if (r && typeof r === 'object' && 'skipped' in (r as any) && (r as any).skipped) {
         throw new Error(`El portal de ${NOMBRE_VITOLEN} está ocupado por otra pasada; volvé a intentar en unos minutos.`);
     }
@@ -84,7 +87,10 @@ export async function llenarBorradorEnPortal(borradorId: string) {
         }
         const screenshotUrl = await guardarCaptura(b.id, 'resumen', r.resumen.captura);
         const resumenPortal: ResumenGuardado = {
-            portalDraftId: r.resumen.portalDraftId, url: r.resumen.url, texto: r.resumen.texto.slice(0, 8000),
+            portalDraftId: r.resumen.portalDraftId, url: r.resumen.url,
+            texto: r.resumen.texto.slice(0, 4000),
+            // Lo que se compara al confirmar: ya recortado, nunca truncado.
+            textoComparable: resumenComparable(r.resumen.texto),
             pasos: r.llenado.pasos, pendientes: r.llenado.pendientes, llenadoEl: new Date().toISOString(),
         };
         return await Borradores.enRevision(b.id, ROBOT_ACTOR_VITOLEN, { screenshotUrl, resumenPortal });
@@ -110,24 +116,26 @@ export async function confirmarBorradorAprobado(borradorId: string) {
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo confirma los APROBADOS.`);
     const rastro = rastroDe(b);
     if (!rastro) throw new Error('El borrador no tiene el id del portal: hay que volver a prepararlo.');
-    const aprobador = b.approvedBy ? await prisma.user.findFirst({ where: { name: b.approvedBy }, select: { id: true, name: true } }).catch(() => null) : null;
+    const aprobadoPor = b.approvedBy ? { id: rastro.aprobadoPorId ?? null, name: b.approvedBy } : null;
 
     try {
-        const r = await enElPortal(() => conSesionVitolen(page => confirmar(page, rastro.portalDraftId, rastro.texto)));
+        const r = await enElPortal(() => conSesionVitolen(page => confirmar(page, rastro.portalDraftId, rastro.textoComparable ?? rastro.texto)));
         const screenshotFinalUrl = await guardarCaptura(b.id, 'confirmado', r.captura).catch(() => null);
-        const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_VITOLEN, { portalNumber: r.portalNumber, screenshotFinalUrl });
+        // Primero la venta (nº, estado, aviso), después el borrador: si la venta
+        // falla el borrador sigue APROBADO y el reintento vuelve a pasar por acá
+        // (confirmar lee el nº ya asignado; aplicarEstadoEnVenta es idempotente).
         await aplicarEstadoEnVenta({
             orderId: b.orderId, lab: LAB_VITOLEN, nombreLab: NOMBRE_VITOLEN, robot: ROBOT_VITOLEN,
             pedidos: [{ portalNumber: r.portalNumber, status: 'INGRESADO', statusRaw: 'Confirmación' }],
-            aprobadoPor: aprobador ?? (b.approvedBy ? { id: null, name: b.approvedBy } : null),
+            aprobadoPor,
         });
-        return cargado;
+        return await Borradores.cargado(b.id, ROBOT_ACTOR_VITOLEN, { portalNumber: r.portalNumber, screenshotFinalUrl });
     } catch (err: any) {
         if (err instanceof ResumenCambiadoError) {
             const screenshotUrl = await guardarCaptura(b.id, 'cambiado', err.captura).catch(() => '');
             await Borradores.volverARevision(b.id, ROBOT_ACTOR_VITOLEN, {
                 screenshotUrl,
-                resumenPortal: { ...rastro, texto: err.texto.slice(0, 8000), url: err.url, cambiadoEl: new Date().toISOString() },
+                resumenPortal: { ...rastro, texto: err.texto.slice(0, 4000), textoComparable: resumenComparable(err.texto), url: err.url, cambiadoEl: new Date().toISOString() },
                 motivo: err.message,
             });
             throw err;
@@ -150,9 +158,22 @@ export async function cancelarEnPortal(borradorId: string): Promise<{ cancelado:
     if (b.status !== 'RECHAZADO' && b.status !== 'ERROR') throw new Error(`El borrador está ${b.status}: solo se cancela en el portal un RECHAZADO o un ERROR.`);
     const rastro = rastroDe(b);
     if (!rastro) return { cancelado: false, motivo: 'sin borrador en el portal' };
-    if (rastro.canceladoEl) return { cancelado: true };
+    if (rastro.canceladoEl || rastro.confirmadoAManoEl) return { cancelado: true };
     try {
-        await enElPortal(() => conSesionVitolen(page => cancelarBorrador(page, rastro.portalDraftId)));
+        const r = await enElPortal(() => conSesionVitolen(page => cancelarBorrador(page, rastro.portalDraftId)));
+        if (r.confirmadoAMano) {
+            // Alguien lo confirmó a mano en el portal: no se cancela (eso se habla
+            // con el laboratorio), queda resuelto con ese nº y la venta lo recibe.
+            await Borradores.confirmadoAManoEnPortal(b.id, r.confirmadoAMano);
+            const venta = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { orderId: true } });
+            if (venta) {
+                await aplicarEstadoEnVenta({
+                    orderId: venta.orderId, lab: LAB_VITOLEN, nombreLab: NOMBRE_VITOLEN, robot: ROBOT_VITOLEN,
+                    pedidos: [{ portalNumber: r.confirmadoAMano, status: 'INGRESADO', statusRaw: 'Confirmación (confirmado a mano en el portal)' }],
+                }).catch(e => console.error('[lab-modulos] no se pudo escribir el nº confirmado a mano en la venta:', e));
+            }
+            return { cancelado: false, motivo: `ya estaba confirmado a mano en el portal con el nº ${r.confirmadoAMano}; quedó anotado en la venta` };
+        }
         await Borradores.canceladoEnPortal(b.id);
         return { cancelado: true };
     } catch (err: any) {
