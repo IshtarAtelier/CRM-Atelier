@@ -19,7 +19,8 @@ export const dynamic = 'force-dynamic';
  *
  * Hoy solo Vitolen tiene carga asistida.
  */
-const FORMAS_PORTAL = ['Forma 1', 'Forma 2', 'Forma 3', 'Forma 4', 'Forma 5', 'Forma 6', 'Forma 7', 'Forma 8'];
+// Las 12 tarjetas "Forma OD - N" del formulario del portal (docs/vitolen-portal.md).
+const FORMAS_PORTAL = Array.from({ length: 12 }, (_, i) => `Forma ${i + 1}`);
 
 export async function GET(request: Request) {
     const orderId = new URL(request.url).searchParams.get('orderId') || '';
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
         const pair = Number(body.pair) || 1;
         if (!orderId) return NextResponse.json({ error: 'Falta orderId.' }, { status: 400 });
         const forma = body.forma ? String(body.forma) : null;
-        if (forma && !FORMAS_PORTAL.includes(forma)) return NextResponse.json({ error: 'La forma tiene que ser Forma 1 a Forma 8.' }, { status: 400 });
+        if (forma && !FORMAS_PORTAL.includes(forma)) return NextResponse.json({ error: 'La forma tiene que ser Forma 1 a Forma 12.' }, { status: 400 });
 
         const venta = await leerVentaParaCarga(orderId);
         if (!venta) return NextResponse.json({ error: 'Venta no encontrada.' }, { status: 404 });

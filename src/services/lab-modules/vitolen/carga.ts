@@ -1,6 +1,7 @@
 import { prisma } from '../../../lib/db';
 import { framesDeLaOrden } from '../../../lib/order-frames';
 import { cristalVitolenPorNombre, type CristalVitolen } from './catalogo';
+import { disenoDelPortal, materialDelPortal } from './materiales';
 
 /**
  * ARMADO DEL PEDIDO DE VITOLEN A PARTIR DE LA VENTA (la parte pura de la carga
@@ -23,8 +24,11 @@ export interface GraduacionOjo {
     adicion: number | null;
     dnp: number | null;        // DNP-L (20 a 80)
     altura: number | null;     // altura pupilar de lejos (14 a 50)
-    codigo: string;            // código del material en el portal
-    material: string;          // texto, para que la persona lo lea
+    codigo: string;            // código del producto en la lista L96
+    material: string;          // texto del CRM, para que la persona lo lea
+    color: string | null;      // color del cristal en la venta (Sensity / Polarized)
+    /** La opción exacta del select del portal (materiales.ts): id y texto, para marcarla y verificarla. */
+    portalMaterial: { id: string; texto: string } | null;
 }
 
 export interface PayloadVitolen {
@@ -34,6 +38,8 @@ export interface PayloadVitolen {
     ojos: OjoPortal;
     tipoReceta: TipoRecetaPortal;
     diseno: string;
+    /** El logo del portal que corresponde al diseño (data-id y nombre). */
+    portalDiseno: { dataId: string; nombre: string } | null;
     variante: string | null;   // Urban/Indoor/Outdoor, 40/60, 5/9/13, DP40/SP60
     od: GraduacionOjo | null;
     oi: GraduacionOjo | null;
@@ -41,7 +47,7 @@ export interface PayloadVitolen {
     distanciaVertice: number;  // 10 a 20
     anguloPantoscopico: number; // 0 a 30
     armazon: {
-        forma: string | null;      // "Forma 1".."Forma 8" del portal
+        forma: string | null;      // "Forma 1".."Forma 12" del portal
         largo: number | null;      // A
         alto: number | null;       // B
         diagonalMayor: number | null; // ED
@@ -169,6 +175,8 @@ export function armarFormulario(
         if (!cristal) { faltantes.push(`"${item.productNameSnapshot}" no está en el catálogo de Vitolen (regenerar catalogo.ts si es un cristal nuevo)`); return null; }
         const { codigo, motivo } = codigoDeCristal(cristal, opts.variante);
         if (!codigo) { faltantes.push(motivo!); return null; }
+        const enPortal = materialDelPortal(cristal, { variante: opts.variante, color: item.crystalColor });
+        if (!enPortal.opcion) faltantes.push(`material ${lado} en el portal: ${enPortal.motivo}`);
 
         const esferico = num(item.sphereVal) ?? num(lado === 'OD' ? rx?.sphereOD : rx?.sphereOI);
         if (esferico === null) faltantes.push(`esférico ${lado}`);
@@ -183,7 +191,7 @@ export function armarFormulario(
         const altura = num(item.heightVal) ?? num(lado === 'OD' ? frame?.heightOD : frame?.heightOI) ?? num(lado === 'OD' ? venta.labHeightOD : venta.labHeightOI) ?? num(lado === 'OD' ? rx?.heightOD : rx?.heightOI);
         if (altura === null && tipoReceta !== 'Monofocal') faltantes.push(`altura pupilar ${lado}`);
 
-        return { esferico: esferico ?? 0, cilindrico, eje, adicion, dnp, altura, codigo, material: cristal.material };
+        return { esferico: esferico ?? 0, cilindrico, eje, adicion, dnp, altura, codigo, material: cristal.material, color: item.crystalColor || null, portalMaterial: enPortal.opcion };
     };
     const od = ojo('OD');
     const oi = ojo('OI');
@@ -202,7 +210,7 @@ export function armarFormulario(
         if (valor === null) faltantes.push(`medida del armazón: ${nombre}`);
     }
     const forma = opts.forma ?? null;
-    if (!forma) faltantes.push('forma del armazón en el portal (Forma 1 a 8): se elige al preparar');
+    if (!forma) faltantes.push('forma del armazón en el portal (Forma 1 a 12): se elige al preparar');
 
     const caracteristicas = [venta.userFrameBrand, venta.userFrameModel, frame?.details || venta.labFrameDetails].filter(Boolean).join(' ').trim();
 
@@ -213,6 +221,7 @@ export function armarFormulario(
         ojos: od && oi ? 'AMBOS' : od ? 'OD' : 'OI',
         tipoReceta: tipoReceta ?? 'Monofocal',
         diseno: cristalBase?.diseno ?? '',
+        portalDiseno: (() => { const d = cristalBase ? disenoDelPortal(cristalBase) : null; return d ? { dataId: d.dataId, nombre: d.nombre } : null; })(),
         variante: eleccion.variante ?? null,
         od, oi,
         campoPreferente: 'Balanceado',

@@ -23,6 +23,8 @@ import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/servic
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
 import { estadoDe } from '../../src/services/lab-modules/vitolen/estados.ts';
+import { materialDelPortal, disenoDelPortal, colorDe } from '../../src/services/lab-modules/vitolen/materiales.ts';
+import { DISENOS_PORTAL } from '../../src/services/lab-modules/vitolen/portal-materiales.ts';
 import { extraerHtmlDeRespuestaJs, parsearListado, leerPaginador, fechaArgentina, normalizarPedido, periodoDeListado, urlListado } from '../../src/services/lab-modules/vitolen/pedidos.ts';
 import { labKeyDeNombre } from '../../src/services/lab-recon/types.ts';
 import { armarCatalogo } from '../maintenance/precios-vitolen/generar-catalogo-ts.mjs';
@@ -246,6 +248,9 @@ ok('una venta completa arma el pedido igual al ejemplo del video de Vitolen', ()
     assert.equal(p.diseno, 'Array 2');
     assert.equal(p.ojos, 'AMBOS');
     assert.deepEqual([p.od.esferico, p.od.cilindrico, p.od.eje, p.od.adicion, p.od.dnp, p.od.altura, p.od.codigo], [1.25, 0.75, 5, 2.25, 32, 28, '10070']);
+    assert.deepEqual(p.portalDiseno, { dataId: '23', nombre: 'Hoya Array 2' });
+    assert.deepEqual(p.od.portalMaterial, { id: '1644', texto: 'Array 2 1.60 Hilux MR-8 Clear' });
+    assert.deepEqual(p.oi.portalMaterial, p.od.portalMaterial);
     assert.deepEqual([p.oi.esferico, p.oi.cilindrico, p.oi.eje, p.oi.adicion, p.oi.dnp, p.oi.altura], [1.25, 0.5, 70, 2.25, 31, 28]);
     assert.deepEqual([p.armazon.largo, p.armazon.alto, p.armazon.diagonalMayor, p.armazon.puente, p.armazon.forma], [52, 40, 56, 18, 'Forma 7']);
     assert.equal(p.armazon.caracteristicas, 'Vulk Roma color rojo');
@@ -275,7 +280,86 @@ ok('lo que falta se dice, y no se prepara: forma, DNP, adición y variante', () 
     const l = ventaBase();
     l.items[0].productNameSnapshot = l.items[1].productNameSnapshot = 'HOYA LIFESTYLE 4 - 1.50 CLEAR';
     assert.ok(armarFormulario(l, { forma: 'Forma 2' }).faltantes.some(f => /variante/.test(f)));
-    assert.equal(armarFormulario(l, { forma: 'Forma 2', variante: 'Indoor' }).payload.od.codigo, '11050');
+    const indoor = armarFormulario(l, { forma: 'Forma 2', variante: 'Indoor' });
+    assert.equal(indoor.payload.od.codigo, '11050');
+    assert.deepEqual(indoor.payload.od.portalMaterial, { id: '2260', texto: 'IDLS4 INDOOR 1.50 Hilux Clear' });
+});
+ok('un cristal cuyo diseño no está relevado en el portal no se prepara: se dice', () => {
+    const v = ventaBase();
+    v.items[0].productNameSnapshot = v.items[1].productNameSnapshot = 'HOYA NULUX IDENTITY V+ - 1.60 CLEAR';
+    v.items[0].productTypeSnapshot = v.items[1].productTypeSnapshot = 'Cristal Monofocal';
+    const r = armarFormulario(v, { forma: 'Forma 1' });
+    assert.equal(r.ok, false);
+    assert.ok(r.faltantes.some(f => /material OD en el portal: .*no está relevado/.test(f)), r.faltantes.join(' | '));
+});
+
+console.log('\n— Vitolen: el material del portal se elige por texto, y solo si es uno —');
+const cristal = (nombre) => cristalVitolenPorNombre(nombre);
+ok('el relevamiento trae los 10 diseños del formulario Progresivo', () => {
+    assert.equal(DISENOS_PORTAL.length, 10);
+    assert.equal(disenoDelPortal(cristal('HOYA ARRAY 2 - 1.50 CLEAR BLUE FILTER')).nombre, 'Hoya Array 2');
+    assert.equal(disenoDelPortal(cristal('HOYA SUMMIT - 1.67 CLEAR')).dataId, '25');
+    assert.equal(disenoDelPortal({ linea: 'nulux' }), null);
+});
+ok('Array 2: cada material del CRM cae en UNA opción del portal (y nunca en Array Wrap)', () => {
+    const esperado = {
+        'HOYA ARRAY 2 - 1.50 CLEAR BLUE FILTER': '1635',
+        'HOYA ARRAY 2 - 1.50 SENSITY 2': '1637',
+        'HOYA ARRAY 2 - 1.59 CLEAR BLUE FILTER': '1639',
+        'HOYA ARRAY 2 - 1.59 SENSITY 2': '1640',
+        'HOYA ARRAY 2 - 1.59 POLARIZED': '1641',
+        'HOYA ARRAY 2 - 1.60 CLEAR': '1644',
+        'HOYA ARRAY 2 - 1.60 BLUE FILTER UV-420': '1645',
+        'HOYA ARRAY 2 - 1.60 SENSITY 2': '1646',
+        'HOYA ARRAY 2 - 1.67 CLEAR': '1649',
+        'HOYA ARRAY 2 - 1.67 CLEAR BLUE FILTER': '1650',
+        'HOYA ARRAY 2 - 1.67 SENSITY 2': '1651',
+        'HOYA ARRAY 2 - 1.74 CLEAR': '1652',
+    };
+    for (const [nombre, id] of Object.entries(esperado)) {
+        const r = materialDelPortal(cristal(nombre));
+        assert.equal(r.opcion?.id, id, `${nombre}: ${r.motivo ?? r.opcion?.texto}`);
+        assert.ok(!/wrap/i.test(r.opcion.texto));
+    }
+});
+ok('todo el catálogo progresivo de Hoya resuelve a una opción (Lifestyle con variante)', () => {
+    const sinResolver = [];
+    for (const c of CATALOGO_VITOLEN) {
+        if (!disenoDelPortal(c)) continue;
+        for (const variante of (c.variantes.length > 1 ? c.variantes : [null])) {
+            const r = materialDelPortal(c, { variante });
+            if (!r.opcion) sinResolver.push(`${c.nombre}${variante ? ` (${variante})` : ''}: ${r.motivo}`);
+        }
+    }
+    assert.deepEqual(sinResolver, []);
+});
+ok('el color de la venta elige el Sensity / Polarized; sin color, gris; un color que no existe se dice', () => {
+    assert.equal(colorDe('Marrón'), 'Brown');
+    assert.equal(colorDe('gris'), 'Grey');
+    assert.equal(colorDe('G15'), 'Green');
+    assert.equal(colorDe(''), null);
+    const pol = cristal('HOYA ARRAY 2 - 1.59 POLARIZED');
+    assert.equal(materialDelPortal(pol, { color: 'Marrón' }).opcion.id, '1642');
+    assert.equal(materialDelPortal(pol, { color: 'verde' }).opcion.id, '1643');
+    assert.equal(materialDelPortal(pol, { color: null }).opcion.id, '1641');
+    const r = materialDelPortal(cristal('HOYA ARRAY 2 - 1.50 SENSITY 2'), { color: 'Marrón' });
+    assert.equal(r.opcion, null);
+    assert.match(r.motivo, /no viene en Brown/);
+});
+ok('Mi Primer Hoya separa Array de Summit; Argos y Summit resuelven su "Clear" sin pisar el Blue Filter', () => {
+    const mphArray = CATALOGO_VITOLEN.find(c => c.linea === 'mph-array-2' && c.material === '1.50 CLEAR BLUE FILTER');
+    const mphSummit = CATALOGO_VITOLEN.find(c => c.linea === 'mph-summit' && c.material === '1.60 CLEAR');
+    assert.equal(materialDelPortal(mphArray).opcion?.id, '2300', mphArray.nombre);
+    assert.equal(materialDelPortal(mphSummit).opcion?.id, '2320', mphSummit.nombre);
+    assert.equal(materialDelPortal(cristal('HOYA ARGOS - 1.50 CLEAR')).opcion?.id, '1623');
+    assert.equal(materialDelPortal(cristal('HOYA ARGOS - 1.50 CLEAR BLUE FILTER')).opcion?.id, '1624');
+    assert.equal(materialDelPortal(cristal('HOYA SUMMIT - 1.67 CLEAR BLUE FILTER')).opcion?.id, '1584');
+});
+ok('si el portal ofreciera dos opciones iguales, no se elige ninguna', () => {
+    const disenos = [{ dataId: '23', nombre: 'Hoya Array 2', materiales: [{ id: '1', texto: 'Array 2 1.74 Hilux Clear' }, { id: '2', texto: 'Array 2 1.74 Hilux Clear' }] }];
+    const r = materialDelPortal(cristal('HOYA ARRAY 2 - 1.74 CLEAR'), {}, disenos);
+    assert.equal(r.opcion, null);
+    assert.match(r.motivo, /varias opciones/);
 });
 ok('sin cristales de Vitolen para ese par, no arma nada', () => {
     const v = ventaBase();
