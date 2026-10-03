@@ -190,6 +190,10 @@ export class ReportService {
             const orderPaidReal = order.payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
             totalRevenue += orderPaidReal;
 
+            // El descuento especial YA está restado dentro de `subtotalWithMarkup`
+            // (PricingService.calculateTotals) y los pagos se cobran sobre ese precio
+            // rebajado. Restarlo otra vez en la ganancia lo contaba DOS veces
+            // (septiembre 2026: $192.665 de menos). Se suma solo para mostrarlo.
             const specialDesc = order.specialDiscount || 0;
             totalSpecialDiscounts += specialDesc;
 
@@ -393,7 +397,7 @@ export class ReportService {
             const doctorName = order.client?.doctor;
             let doctorFee = 0;
             if (doctorName) {
-                const doctorNet = orderPaidReal - orderPlatformFee - specialDesc;
+                const doctorNet = orderPaidReal - orderPlatformFee;
                 doctorFee = Math.max(0, doctorNet * DOCTOR_COMMISSION_RATE);
                 totalDoctorFees += doctorFee;
             }
@@ -408,7 +412,6 @@ export class ReportService {
 
             monthlyStats[monthKey].profit = monthlyStats[monthKey].revenue 
                 - monthlyStats[monthKey].cost 
-                - monthlyStats[monthKey].specialDescSum! 
                 - monthlyStats[monthKey].platformFeeSum! 
                 - monthlyStats[monthKey].doctorFeeSum!;
 
@@ -418,7 +421,7 @@ export class ReportService {
             else if (types.includes('CRISTAL')) orderTypeLabel = 'CRISTAL';
             else if (types.includes('ARMAZÓN')) orderTypeLabel = 'ARMAZÓN';
 
-            const saleNetProfit = orderPaidReal - orderCMV - orderPlatformFee - doctorFee - specialDesc;
+            const saleNetProfit = orderPaidReal - orderCMV - orderPlatformFee - doctorFee;
             salesDetail.push({
                 id: order.id.slice(-6),
                 fullId: order.id,
@@ -429,6 +432,7 @@ export class ReportService {
                 orderType: orderTypeLabel,
                 totalPaid: orderPaidReal,
                 totalList: listPrice,
+                totalReal: sinCF.real,
                 cmv: orderCMV,
                 platformFee: Math.round(orderPlatformFee * 100) / 100,
                 doctorFee: Math.round(doctorFee * 100) / 100,
@@ -450,7 +454,7 @@ export class ReportService {
         }
 
         const totalCosts = totalCostFrames + totalCostLenses + totalCostOther + totalPostSaleCosts;
-        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalMarketingCosts - totalSpecialDiscounts;
+        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalMarketingCosts;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         const invoicesWhere: any = { status: 'COMPLETED' };

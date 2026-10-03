@@ -84,10 +84,16 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
     'PAY_WAY_6_YANI': 0.20,
     'CREDIT_6': 0.20,
 
-    // ── Pay Way 3 cuotas (10% plataforma) ──
-    'PAY_WAY_3_ISH': 0.10,
-    'PAY_WAY_3_YANI': 0.10,
-    'CREDIT_3': 0.10,
+    // ── Pay Way 3 cuotas: 20%, igual que 6 (Ishtar, 3/10/2026: "Payway me
+    //     descuenta un 20% para 3 y 6"; antes figuraba 10%) ──
+    'PAY_WAY_3_ISH': 0.20,
+    'PAY_WAY_3_YANI': 0.20,
+    'CREDIT_3': 0.20,
+
+    // ── Pago web por Payway (checkout de la tienda, un pago o cuotas): 20%.
+    //     Hasta el 3/10/2026 no estaba en la tabla y la venta web figuraba sin
+    //     costo financiero. ──
+    'TARJETA': 0.20,
 
     // ── Naranja Z / Plan Z (20% plataforma) ──
     'NARANJA_Z_ISH': 0.20,

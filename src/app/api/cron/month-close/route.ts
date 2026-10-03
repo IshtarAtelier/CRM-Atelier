@@ -158,21 +158,25 @@ export async function GET(request: Request) {
         pendingOrders.sort((a, b) => b.remainingList - a.remainingList);
 
         // ── Números del cierre ──
-        const billed = data.salesDetail.reduce((sum: number, o: any) => sum + (o.totalList || 0), 0); // facturación a valor de lista
-        const collected = s.totalRevenue; // cobrado real
+        const billedList = data.salesDetail.reduce((sum: number, o: any) => sum + (o.totalList || 0), 0); // a valor de lista (referencia)
+        // Facturado SIN costo financiero (Ishtar, 3/10/2026): tarjeta a valor de
+        // transferencia. Es el número de los objetivos; la lista queda de referencia.
+        const billed = s.totalBilledReal ?? billedList;
+        const costoFinanciero = s.totalCostoFinanciero ?? 0;
+        const collected = s.totalRevenue; // cobrado tal cual (con costo financiero adentro)
         const totalIncomeIfCollected = collected + totalPendingReal;
         // Descuentos ya otorgados por medio de pago (contado/transferencia)
-        const paymentDiscounts = Math.max(0, billed - collected - totalPendingReal);
+        const paymentDiscounts = Math.max(0, billedList - collected - totalPendingReal);
 
         const totalExpenses = s.totalFixedCosts + s.totalMarketingCosts;
         const projectedProfit = s.netProfit + totalPendingReal; // ganancia si se cobra todo
 
-        // ── Ventas por vendedor (a valor de lista, criterio del dashboard de objetivos) ──
+        // ── Ventas por vendedor (sin costo financiero, criterio de los objetivos) ──
         const vendorAgg: Record<string, { name: string; billed: number; collected: number; orders: number }> = {};
         for (const sale of data.salesDetail) {
             const name = sale.vendorName || 'Sin asignar';
             if (!vendorAgg[name]) vendorAgg[name] = { name, billed: 0, collected: 0, orders: 0 };
-            vendorAgg[name].billed += sale.totalList || 0;
+            vendorAgg[name].billed += sale.totalReal ?? sale.totalList ?? 0;
             vendorAgg[name].collected += sale.totalPaid || 0;
             vendorAgg[name].orders += 1;
         }
@@ -310,9 +314,9 @@ export async function GET(request: Request) {
                                         <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                             <tr>
                                                 <td style="vertical-align: top; width: 50%; padding-bottom: 16px;">
-                                                    <span style="font-size: 10px; font-weight: 800; color: #9e7f65; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Facturación total (lista)</span>
+                                                    <span style="font-size: 10px; font-weight: 800; color: #9e7f65; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Facturado SIN costo financiero</span>
                                                     <span style="font-size: 22px; font-weight: 900; color: #433831;">${money(billed)}</span>
-                                                    <span style="font-size: 10px; color: #a8a095; display: block;">${s.ordersCount} ventas</span>
+                                                    <span style="font-size: 10px; color: #a8a095; display: block;">${s.ordersCount} ventas · tarjeta a valor de transferencia · a precio de lista ${money(billedList)}</span>
                                                 </td>
                                                 <td style="vertical-align: top; width: 50%; padding-bottom: 16px; text-align: right;">
                                                     <span style="font-size: 10px; font-weight: 800; color: #9e7f65; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Ganancia del mes*</span>
@@ -322,8 +326,9 @@ export async function GET(request: Request) {
                                             </tr>
                                             <tr>
                                                 <td style="vertical-align: top;">
-                                                    <span style="font-size: 10px; font-weight: 800; color: #9e7f65; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Cobrado real</span>
+                                                    <span style="font-size: 10px; font-weight: 800; color: #9e7f65; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Cobrado tal cual (CON costo financiero)</span>
                                                     <span style="font-size: 15px; font-weight: 800; color: #433831;">${money(collected)}</span>
+                                                    <span style="font-size: 10px; color: #a8a095; display: block;">costo financiero ${money(costoFinanciero)}</span>
                                                 </td>
                                                 <td style="vertical-align: top; text-align: right;">
                                                     <span style="font-size: 10px; font-weight: 800; color: #9e7f65; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Saldos por cobrar</span>
@@ -379,7 +384,6 @@ export async function GET(request: Request) {
                                                 ${s.totalPostSaleCosts > 0 ? pnlRow('Costos de posventa / garantías', s.totalPostSaleCosts) : ''}
                                                 ${pnlRow('Comisiones PayWay / plataformas', s.totalPlatformFees)}
                                                 ${pnlRow('Honorarios médicos (15%)', s.totalDoctorFees)}
-                                                ${s.totalSpecialDiscounts > 0 ? pnlRow('Descuentos especiales', s.totalSpecialDiscounts) : ''}
                                                 ${pnlRow('Gastos fijos', s.totalFixedCosts)}
                                                 ${s.totalMarketingCosts > 0 ? pnlRow('Marketing', s.totalMarketingCosts) : ''}
                                                 <tr>
@@ -419,8 +423,8 @@ export async function GET(request: Request) {
         const emailSubject = `Cierre de Mes ${monthLabel}: Facturación ${money(billed)} · Ganancia ${money(projectedProfit)} - Atelier Óptica`;
         const emailText = [
             `Cierre de Mes ${monthLabel} - Atelier Óptica`,
-            `Facturación total (lista): ${money(billed)}`,
-            `Cobrado real: ${money(collected)}`,
+            `Facturado SIN costo financiero: ${money(billed)} (a precio de lista: ${money(billedList)})`,
+            `Cobrado tal cual (CON costo financiero): ${money(collected)} · costo financiero ${money(costoFinanciero)}`,
             `Saldos por cobrar: ${money(totalPendingReal)}`,
             `Ganancia del mes (si se cobra todo): ${money(projectedProfit)}`,
             '',
@@ -458,6 +462,8 @@ export async function GET(request: Request) {
             },
             summary: {
                 billed: Math.round(billed),
+                billedList: Math.round(billedList),
+                costoFinanciero: Math.round(costoFinanciero),
                 collected: Math.round(collected),
                 pending: Math.round(totalPendingReal),
                 pendingOrders: pendingOrders.length,
