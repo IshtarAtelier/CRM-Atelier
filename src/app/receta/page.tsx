@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { OG_IMAGEN_SITIO } from '@/lib/constants/og';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { ListadoCatalogoFiltrado } from "@/components/Storefront/ListadoCatalogoFiltrado";
@@ -32,6 +33,8 @@ export const metadata: Metadata = {
     description: 'Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.',
     url: 'https://atelieroptica.com.ar/receta',
     type: 'website',
+    // Sin esto la página se compartía sin foto: Next no hereda la del layout.
+    images: [OG_IMAGEN_SITIO],
   },
 };
 

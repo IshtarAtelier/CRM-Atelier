@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { urlAbsoluta } from '@/lib/url-absoluta';
 import { Metadata } from "next";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
@@ -124,9 +125,10 @@ export default async function Home() {
       "position": index + 1,
       "url": `https://atelieroptica.com.ar/producto/${wp.slug}`,
       "name": wp.name,
-      "image": wp.imageUrl 
+      // Absoluta: una ruta relativa en el ItemList Google la lee como inválida.
+      "image": urlAbsoluta(wp.imageUrl 
         ? resolveStorageUrl(wp.imageUrl) 
-        : (wp.images?.length > 0 ? resolveStorageUrl(wp.images[0]) : "https://atelieroptica.com.ar/assets/logo-pwa-512.png")
+        : (wp.images?.length > 0 ? resolveStorageUrl(wp.images[0]) : "/assets/logo-pwa-512.png"))
     }))
   };
 

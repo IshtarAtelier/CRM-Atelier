@@ -67,6 +67,7 @@
     "check:colores": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-normalizado.check.mjs",
     "check:facetas": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/facetas.check.mjs",
     "check:oferta": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/precio-oferta.check.mjs",
+    "check:seo-tienda": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/seo-tienda.check.mjs",
     "check:cristales": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cristales-web.check.mjs",
     "check:cristales-vinculos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cristales-web-vinculos.mjs",
     "check:color-lente": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-de-lente.check.mjs",

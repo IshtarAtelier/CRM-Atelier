@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ProveedorDeTema } from "@/components/ProveedorDeTema";
 import { STORE_ORIGIN } from "@/lib/constants";
+import { OG_IMAGEN_SITIO } from "@/lib/constants/og";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,14 +39,7 @@ export const metadata: Metadata = {
     siteName: "Atelier Óptica",
     title: "Atelier Óptica Córdoba | Cuidado Visual Personalizado",
     description: "Somos ópticos creativos con una sola pasión: Cuidar tu salud visual ofreciendo los mejores diseños de anteojos.",
-    images: [
-      {
-        url: "/images/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Atelier Óptica Córdoba",
-      },
-    ],
+    images: [OG_IMAGEN_SITIO],
   },
   twitter: {
     card: "summary_large_image",
