@@ -5,6 +5,7 @@ import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
 import { resolveMonthlyTargets } from '@/lib/targets';
 import { normalizeContactSource } from '@/lib/contact-source';
 import { PricingService } from '@/services/PricingService';
+import { resumenDeProductos } from '@/lib/resumen-venta';
 import { costoParBonificado } from '@/lib/lens-cost';
 
 export const dynamic = 'force-dynamic';
@@ -85,6 +86,10 @@ export async function GET(request: Request) {
         const currentMonthOrders = await prisma.order.findMany({
             where: whereClause,
             select: {
+                id: true,
+                labStatus: true,
+                labSentBy: true,
+                user: { select: { name: true } },
                 total: true,
                 paid: true,
                 subtotalWithMarkup: true, // ADDED
@@ -104,6 +109,7 @@ export async function GET(request: Request) {
                         eye: true,
                         productCostSnapshot: true,
                         productCategorySnapshot: true,
+                        productTypeSnapshot: true,
                         productNameSnapshot: true,
                         laboratorySnapshot: true,
                         product: {
@@ -124,6 +130,7 @@ export async function GET(request: Request) {
                 client: {
                     select: {
                         id: true,
+                        name: true,
                         contactSource: true,
                         tags: {
                             select: {
@@ -595,6 +602,31 @@ export async function GET(request: Request) {
 
         const trendPct = prevTotal > 0 ? (((totalSoldMonth - prevTotal) / prevTotal) * 100).toFixed(1) : null;
 
+        // ── Ventas del período, una por una (solo admin) ──
+        // Cliente, qué compró, cuánto vale la venta (sin costo financiero, la
+        // misma regla que el total de arriba), cuánto se cobró y cuánto falta.
+        const ventasDelPeriodo = isStaff ? [] : [...currentMonthOrders]
+            .sort((a: any, b: any) => new Date(b.labSentAt || b.createdAt).getTime() - new Date(a.labSentAt || a.createdAt).getTime())
+            .slice(0, 60)
+            .map((o: any) => {
+                const sinCF = PricingService.valorSinCostoFinanciero(o);
+                const fin = PricingService.calculateOrderFinancials(o);
+                return {
+                    id: o.id,
+                    fecha: o.labSentAt || o.createdAt,
+                    cliente: o.client?.name || 'Sin nombre',
+                    clienteId: o.client?.id || null,
+                    resumen: resumenDeProductos(o.items),
+                    vendedor: o.labSentBy || o.user?.name || 'Sin asignar',
+                    labStatus: o.labStatus || 'NONE',
+                    valor: sinCF.real,
+                    modo: sinCF.modo,
+                    cobrado: sinCF.cobradoNominal,
+                    saldo: fin.remainingList,
+                    origen: normalizeContactSource(o.client?.contactSource),
+                };
+            });
+
         // ── Conversion Funnel ──
         const funnelDateFilter: any = {};
         let hasFunnelFilter = false;
@@ -783,6 +815,7 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.json({
+            ventasDelPeriodo,
             totalSoldMonth,
             totalPaidMonth,
             ordersCountMonth,

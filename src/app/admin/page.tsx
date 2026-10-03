@@ -7,6 +7,7 @@ import Link from "next/link";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
 import { BillingCard } from "@/components/dashboard/BillingCard";
+import { VentasDelPeriodo, type VentaDelPeriodo } from "@/components/dashboard/VentasDelPeriodo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface AbandonedCart {
@@ -22,6 +23,7 @@ interface AbandonedCart {
 }
 
 interface DashboardData {
+  ventasDelPeriodo?: VentaDelPeriodo[];
   totalSoldMonth: number;
   totalPaidMonth: number;
   ordersCountMonth: number;
@@ -264,6 +266,7 @@ export default function Home() {
   };
 
   const d = data && !('error' in data) ? data : {
+    ventasDelPeriodo: [] as VentaDelPeriodo[],
     totalSoldMonth: 0,
     totalPaidMonth: 0,
     ordersCountMonth: 0,
@@ -454,6 +457,11 @@ export default function Home() {
       />
 
 
+
+      {/* VENTAS DEL PERÍODO, una por una — Only for Admin */}
+      {isAdmin && (
+        <VentasDelPeriodo ventas={d.ventasDelPeriodo || []} loading={loading} />
+      )}
 
       {/* FINANZAS Y PROYECCIONES — Only for Admin */}
       {isAdmin && (
