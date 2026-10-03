@@ -4,7 +4,7 @@ import type { Browser, Page } from 'playwright';
  * Un solo lugar para abrir Chromium contra el portal de un laboratorio.
  *
  * Hasta acá el mismo bloque estaba copiado en siete archivos, y el 24/8/2026
- * el único que no seteaba PLAYWRIGHT_BROWSERS_PATH (smartlab.service.ts) dejó
+ * el único que no seteaba PLAYWRIGHT_BROWSERS_PATH (el viejo smartlab.service.ts) dejó
  * catorce días sin sincronizar: el build instala Chromium en
  * `.playwright-browsers` y Playwright lo busca en ~/.cache, vacía en Railway.
  *

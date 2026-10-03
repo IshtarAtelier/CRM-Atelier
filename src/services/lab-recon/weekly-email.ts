@@ -339,14 +339,20 @@ export function armarEmailSemanal(rep: any, appUrl: string): { subject: string; 
             <li>La conciliación corrió <strong>${salud.corridasSemana}</strong> veces esta semana${salud.ultimaCorrida ? ` (última ${fmtFecha(salud.ultimaCorrida.runAt)}${salud.ultimaCorrida.staleSources?.length ? `, con fuentes caídas: ${salud.ultimaCorrida.staleSources.join(', ')}` : ''})` : ''}.</li>
         </ul>`;
 
-    // ── 9 · PORTALES CON MÓDULO (Vitolen): lo que el robot vio en su última pasada ──
+    // ── 9 · PORTALES CON MÓDULO (Vitolen, Grupo Óptico): lo que el robot vio en su última pasada ──
     const modulos: any[] = rep.modulos || [];
     const bloqueModulos = modulos.map((m: any) => {
         const h = m.hallazgos;
         if (!h) return `<li style="color:${GRIS}">${m.nombre}: el robot todavía no corrió.</li>`;
         const sinPedido = (h.sinPedidoEnPortal || []).map((v: any) => `<li>Venta enviada sin pedido en el portal: <a href="${appUrl}/admin/ventas?id=${v.orderId}">${v.cliente}</a> — hace ${v.enviadaHace} día(s). O no se cargó, o se cargó sin el código de la venta.</li>`).join('');
         const atrasados = (h.atrasados || []).map((p: any) => `<li>Pedido ${p.portalNumber}${p.cliente ? ` — ${p.cliente}` : ''}: prometido para ${fmtFecha(p.estimatedAt)}, ${p.diasDeAtraso} día(s) de atraso.</li>`).join('');
-        return `<li><strong>${m.nombre}</strong> (última pasada ${fmtFecha(h.en)}): ${sinPedido || atrasados ? `<ul style="margin:2px 0 6px">${sinPedido}${atrasados}</ul>` : 'nada para reclamar.'}</li>`;
+        // Grupo Óptico: un nº que el portal no conoce es un nº tipeado mal en la
+        // venta (hasta el 3/10/2026 esa venta quedaba muda para siempre), y un
+        // pedido trabado lleva días sin avanzar en el laboratorio: se reclama.
+        const noEncontrados = (h.noEncontrados || []).map((n: any) => `<li>El portal no tiene el pedido <strong>${n.numero}</strong> que figura en la venta de <a href="${appUrl}/admin/ventas?id=${n.orderId}">${n.cliente}</a>. Casi siempre es el nº tipeado mal: corregirlo en la venta y el robot lo sigue solo.</li>`).join('');
+        const trabados = (h.trabados || []).map((t: any) => `<li>Pedido ${t.portalNumber} — ${t.cliente}: <strong>${t.dias} día(s)</strong> en "${t.sector}" con ${t.progreso} % de avance. Está trabado en el laboratorio: reclamarlo.</li>`).join('');
+        const lista = sinPedido + noEncontrados + atrasados + trabados;
+        return `<li><strong>${m.nombre}</strong> (última pasada ${fmtFecha(h.en)}): ${lista ? `<ul style="margin:2px 0 6px">${lista}</ul>` : 'nada para reclamar.'}</li>`;
     }).join('');
     const bloquePortales = modulos.length ? `
         <h3 style="margin:26px 0 4px;font-size:15px;color:#111">9 · Portales con robot</h3>

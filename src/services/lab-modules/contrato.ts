@@ -3,10 +3,10 @@ import type { InvoiceRef } from '../lab-recon/types';
 /**
  * MÓDULOS DE LABORATORIO: un módulo por laboratorio, todos con la misma forma.
  *
- * Nació el 30/9/2026 con Vitolen (Hoya + Pentax). Optovisión y Grupo Óptico
- * siguen con sus integraciones de siempre (lab-recon/imap.ts, smartlab.service,
- * lab-providers/grupo-optico.provider.ts) y se migran acá cuando convenga: el
- * marco no las toca.
+ * Nació el 30/9/2026 con Vitolen (Hoya + Pentax). El seguimiento de Grupo
+ * Óptico entró el 3/10/2026 (grupo-optico/, reemplazó a smartlab.service.ts);
+ * sus costos siguen en lab-providers/grupo-optico.provider.ts y Optovisión en
+ * lab-recon/imap.ts, hasta que convenga migrarlos: el marco no los toca.
  *
  * Qué sabe hacer un módulo (cada capacidad es opcional y se declara):
  *   · seguimiento: leer los pedidos del portal, reflejarlos en LabPortalOrder y
@@ -55,6 +55,10 @@ export interface ResultadoSeguimiento {
     sinPedidoEnPortal: { orderId: string; cliente: string; enviadaHace: number }[];
     /** Pedidos con fecha estimada vencida y sin terminar. */
     atrasados: { portalNumber: string; cliente: string | null; estimatedAt: Date; diasDeAtraso: number }[];
+    /** Pedidos que llevan días sin avanzar en el portal (Grupo Óptico: pendiente/validación, o < 15 % con 2+ días). */
+    trabados?: { portalNumber: string; cliente: string; sector: string; progreso: number; dias: number }[];
+    /** Nº de pedido que la venta tiene y el portal NO conoce (tipeado mal): la venta quedaría muda. */
+    noEncontrados?: { orderId: string; cliente: string; numero: string }[];
     skipped?: boolean;
     reason?: string;
 }

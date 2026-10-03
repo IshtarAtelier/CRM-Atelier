@@ -3,6 +3,9 @@ import { LAB_AUDIT_START_ISO } from '../../lib/constants';
 import { prisma } from '../../lib/db';
 import { buildPedidoAmountMap, normalizeInvoiceNumber } from './grupo-optico-invoices';
 import type { InvoiceRef } from '../lab-recon/types';
+import { conTurno, type Pasada } from '../lab-modules/portal/turno';
+import { conSesionSmartLab, clientIdSmartLab, LAB_GRUPO_OPTICO, pedirJsonDesdeLaPagina, urlListadoApi } from '../lab-modules/grupo-optico/portal';
+import { linkComprobante } from '../lab-modules/grupo-optico/pedidos';
 
 /**
  * Proveedor de Grupo Óptico: lee los pedidos desde la API JSON interna del
@@ -13,12 +16,14 @@ import type { InvoiceRef } from '../lab-recon/types';
  * ver reglas en grupo-optico-invoices.ts. Los que tienen venta quedan
  * OK/OVERCOST/PENDING, los que no, UNMATCHED ("Sin venta") — con su importe.
  *
- * Credenciales: SMARTLAB_USER / SMARTLAB_PASSWORD (fallback a las actuales).
+ * Credenciales: SMARTLAB_USER / SMARTLAB_PASSWORD, SOLO del entorno (sin ellas
+ * no se abre el navegador). El login, el navegador y el turno del portal son
+ * los del módulo de seguimiento (lab-modules/grupo-optico/portal.ts): un solo
+ * lugar para entrar al portal y una sola pasada a la vez contra él, compartida
+ * con el seguimiento. El sello `lab-provider:GRUPO_OPTICO:lastOkAt` sigue
+ * siendo el de los COSTOS (lo escribe runAllProviders).
  */
 
-const PORTAL_BASE = 'https://grupooptico.dyndns.info';
-const API_BASE = `${PORTAL_BASE}/smartlab-api-v2/public/index.php`;
-const ROWS_PER_PAGE = 100;
 const MAX_PAGES = 50; // tope de seguridad (~5000 pedidos)
 
 /**
@@ -33,70 +38,14 @@ const MAX_PAGES = 50; // tope de seguridad (~5000 pedidos)
  * Belen con $162.872 en vez de $18.988), el resumen de las 8:38 los mandó, y
  * la pasada de las 8:47 los corrigió. Todos los días.
  *
- * El turno se reclama con un `updateMany` condicional (atómico en Postgres, y
- * sirve entre instancias). Vence solo: si una pasada muere a la mitad, a los
- * TURNO_MIN minutos otra lo puede tomar. 30 minutos cubre la pasada más larga
- * posible: la diaria tiene 25 de tope (instrumentation.ts).
- *
- * Quién espera y quién se saltea. La DIARIA espera el turno si lo tiene un
- * pase RÁPIDO (dura un par de minutos): si se salteara, ese día no habría
- * pasada completa, porque la diaria no se reintenta cuando la ruta responde
- * bien. Si lo tiene otra pasada COMPLETA (la recuperación), no espera: esa ya
- * hace el trabajo, y esperarla podía pasar el tope de 25 minutos de la diaria.
- * El pase rápido, la recuperación y el botón de la pantalla se saltean y
- * reintentan después. El valor guardado es "<vence>|<completa|rapida>".
- *
- * 45 minutos de vencimiento: la pasada normal tarda ~8, y el tope de 25 de la
- * diaria corta la espera del pedido, no el trabajo en el servidor. Solo una
- * pasada que muere sin llegar al `finally` deja el turno tomado hasta que vence.
+ * Desde el 3/10/2026 el turno es el del marco (`lab-modules/portal/turno.ts`,
+ * clave `lab-modulo:GRUPO_OPTICO:turno`), el MISMO que usa el seguimiento:
+ * antes cada uno tenía el suyo y los dos podían abrir un Chromium contra el
+ * portal a la vez. Quién espera y quién se saltea lo decide `debeEsperar`: la
+ * DIARIA espera si el turno lo tiene un pase RÁPIDO (si se salteara, ese día
+ * no habría pasada completa); a otra completa no la espera.
  */
-const TURNO_KEY = 'lab-provider:GRUPO_OPTICO:turno';
-const TURNO_MIN = 45;
 const ESPERA_TURNO_MIN = 8;
-type Pasada = 'completa' | 'rapida';
-
-export async function tomarTurnoDelPortal(pasada: Pasada = 'completa'): Promise<string | null> {
-    const ahora = new Date();
-    const hasta = `${new Date(ahora.getTime() + TURNO_MIN * 60000).toISOString()}|${pasada}`;
-    await prisma.systemSetting.createMany({
-        data: [{ key: TURNO_KEY, value: new Date(0).toISOString() }],
-        skipDuplicates: true,
-    });
-    const tomado = await prisma.systemSetting.updateMany({
-        where: { key: TURNO_KEY, value: { lt: ahora.toISOString() } },
-        data: { value: hasta },
-    });
-    return tomado.count === 1 ? hasta : null;
-}
-
-/** Qué pasada tiene hoy el turno (null si está libre o vencido). */
-async function quienTieneElTurno(): Promise<Pasada | null> {
-    const v = (await prisma.systemSetting.findUnique({ where: { key: TURNO_KEY } }))?.value || '';
-    const [vence, pasada] = v.split('|');
-    if (!vence || vence < new Date().toISOString()) return null;
-    return pasada === 'rapida' ? 'rapida' : 'completa';
-}
-
-/**
- * Espera el turno hasta `maxMs`, preguntando cada `cadaMs`, SOLO mientras lo
- * tenga un pase rápido. Si lo tiene otra pasada completa, se rinde enseguida.
- */
-export async function esperarTurnoDelPortal(maxMs: number, cadaMs = 20000, pasada: Pasada = 'completa'): Promise<string | null> {
-    const limite = Date.now() + maxMs;
-    for (;;) {
-        const turno = await tomarTurnoDelPortal(pasada);
-        if (turno || Date.now() + cadaMs > limite) return turno;
-        if ((await quienTieneElTurno()) === 'completa') return null;
-        await new Promise(r => setTimeout(r, cadaMs));
-    }
-}
-
-export async function soltarTurnoDelPortal(hasta: string) {
-    await prisma.systemSetting.updateMany({
-        where: { key: TURNO_KEY, value: hasta },
-        data: { value: new Date(0).toISOString() },
-    }).catch(err => console.error('[GrupoOptico] No se pudo soltar el turno del portal (vence solo):', err));
-}
 
 /**
  * CONTROL DE PDF INCOMPLETO. La pasada completa recuerda cuántos comprobantes
@@ -144,15 +93,9 @@ export function evaluarConteo(n: number, previo: number, dudoso: number): {
     };
 }
 
-/**
- * Link al PDF de un comprobante en el portal: el mismo que arma su página al
- * tocar la factura (`openInvoice` en su código). Verificado el 25/9/2026 con
- * los dos de Rius Belen (80544194): devuelve el PDF, aun sin la sesión del
- * portal. `t` es 2 para los remitos X y 1 para las facturas.
- */
-function linkComprobante(salesId: string, pedido: string, tipo: string): string {
-    return `${API_BASE}/laboratory/order/invoice?id=${encodeURIComponent(salesId)}&pedido=${encodeURIComponent(pedido)}&t=${tipo === 'r' ? 2 : 1}&c=1`;
-}
+// El link al PDF de cada comprobante (`linkComprobante`) vive en
+// lab-modules/grupo-optico/pedidos.ts: el seguimiento lo escribe en el espejo
+// y acá va en `invoiceRefs`. Un solo lugar para la URL del portal.
 
 /** "00004-00353854" → "0004-00353854"; si no tiene la forma esperada, tal cual. */
 const nroComprobante = (n: string) => /^\d+-\d+$/.test(n) ? normalizeInvoiceNumber(n) : n;
@@ -183,80 +126,23 @@ export class GrupoOpticoProvider {
      * toda la era en cada corrida. La pasada completa sigue siendo la diaria.
      */
     static async collect(opts: { sinceDays?: number; esperarTurno?: boolean } = {}): Promise<Record<string, any>> {
-        let turno: string | null = null;
-        try {
-            const pasada: Pasada = opts.sinceDays ? 'rapida' : 'completa';
-            turno = opts.esperarTurno
-                ? await esperarTurnoDelPortal(ESPERA_TURNO_MIN * 60000, 20000, pasada)
-                : await tomarTurnoDelPortal(pasada);
-        } catch (err) {
-            // Sin base para el turno se corre igual: mejor datos que silencio.
-            console.error('[GrupoOptico] No se pudo tomar el turno del portal (se corre igual):', err);
-            turno = 'sin-turno';
+        const pasada: Pasada = opts.sinceDays ? 'rapida' : 'completa';
+        const r = await conTurno(LAB_GRUPO_OPTICO, pasada, () => GrupoOpticoProvider.recolectar(opts), {
+            esperar: opts.esperarTurno, esperaMaxMs: ESPERA_TURNO_MIN * 60000,
+        });
+        if ('skipped' in r && r.skipped) {
+            console.log(`[GrupoOptico] Otra pasada contra el portal está en curso: esta (${pasada === 'rapida' ? 'rápida' : 'completa'}) se saltea.`);
+            return { skipped: true, reason: r.reason };
         }
-        if (!turno) {
-            console.log(`[GrupoOptico] Otra pasada contra el portal está en curso: esta (${opts.sinceDays ? 'rápida' : 'completa'}) se saltea.`);
-            return { skipped: true, reason: 'otra pasada contra el portal en curso' };
-        }
-        try {
-            return await GrupoOpticoProvider.recolectar(opts);
-        } finally {
-            if (turno !== 'sin-turno') await soltarTurnoDelPortal(turno);
-        }
+        return r as Record<string, any>;
     }
 
     private static async recolectar(opts: { sinceDays?: number }): Promise<Record<string, any>> {
-        // Dónde está Chromium. Mismo caso —y misma consecuencia— que
-        // `smartlab.service.ts`: el build lo instala en `.playwright-browsers`
-        // y Playwright lo busca por defecto en ~/.cache/ms-playwright, vacía en
-        // el contenedor. Sin esta línea el launch falla y no entra NINGÚN costo
-        // de Grupo Óptico: la última entrada era del 21/8/26, y por eso dejaron
-        // de salir los avisos por mail de lo que se carga en el laboratorio.
-        const nodePath = await import('path');
-        process.env.PLAYWRIGHT_BROWSERS_PATH = nodePath.join(process.cwd(), '.playwright-browsers');
-        const { chromium } = await import('playwright');
-        const browser = await chromium.launch({
-            headless: true,
-            args: [
-                '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
-                // El servidor del lab (dyndns casero) negocia mal HTTP/2 desde el
-                // contenedor: tira ERR_HTTP2_PROTOCOL_ERROR corrida tras corrida,
-                // mientras que desde Argentina responde bien. Forzar HTTP/1.1
-                // evita el problema sin tocar nada más.
-                '--disable-http2',
-            ],
-        });
-
         const summary: Record<string, any> = { pages: 0, seen: 0, anulados: 0, preCrm: 0, registered: 0, unmatched: 0, overcost: 0, withCost: 0 };
-        try {
-            const page = await browser.newContext().then(c => c.newPage());
-            // Sin timeout, un stall del portal deja este Chromium colgado para
-            // siempre — y el pase corre cada 10 min: browsers acumulados hasta
-            // tumbar el contenedor. Todo lo que espere, espera con tope.
-            // Portal muy lento durante la migración (8/9/26): 5 min por paso.
-        page.setDefaultTimeout(300000);
-            page.setDefaultNavigationTimeout(60000);
-
-            // El portal (dyndns casero) tira errores transitorios de red
-            // (ERR_HTTP2_PROTOCOL_ERROR y similares): un reintento con pausa
-            // resuelve la mayoría sin esperar a la próxima corrida.
-            let lastErr: any = null;
-            const INTENTOS = 3;
-            for (let intento = 1; intento <= INTENTOS; intento++) {
-                try {
-                    await this.login(page);
-                    // La app debe estar cargada para que fetch() comparta la sesión.
-                    await page.goto(`${PORTAL_BASE}/smartlab/laboratory/list`, { waitUntil: 'domcontentloaded' });
-                    lastErr = null;
-                    if (intento > 1) console.log(`[GrupoOptico] Portal OK en el intento ${intento}.`);
-                    break;
-                } catch (err) {
-                    lastErr = err;
-                    console.warn(`[GrupoOptico] Login/carga del portal falló (intento ${intento}/${INTENTOS}):`, err);
-                    if (intento < INTENTOS) await new Promise(r => setTimeout(r, 20000));
-                }
-            }
-            if (lastErr) throw lastErr;
+        // conSesionSmartLab abre Chromium (con la ruta de `.playwright-browsers`
+        // y sin HTTP/2), entra con reintentos y deja la página del listado
+        // cargada, que es lo que hace falta para que fetch() comparta la sesión.
+        return conSesionSmartLab(async (page) => {
             await page.waitForTimeout(3000);
 
             // Corte: inicio de la era CRM, o la ventana corta del pase rápido
@@ -265,22 +151,11 @@ export class GrupoOpticoProvider {
             const auditStart = opts.sinceDays
                 ? new Date(Math.max(eraStart.getTime(), Date.now() - opts.sinceDays * 86400000))
                 : eraStart;
-            const clientId = process.env.SMARTLAB_CLIENT_ID || '2462';
+            const clientId = clientIdSmartLab();
             const orders: PortalOrder[] = [];
 
             for (let current = 1; current <= MAX_PAGES; current++) {
-                const url = `${API_BASE}/laboratory/order/list?rowPerPage=${ROWS_PER_PAGE}&current=${current}` +
-                    `&isClient=1&isSeller=0&userId=${clientId}&sellerId=0` +
-                    `&search=&invoiceNumber=&sector=0&client=null&invoice=0&lensType=0&calibratedBy=0&zone=0`;
-                const res: any = await page.evaluate(async (u) => {
-                    // AbortSignal.timeout: un fetch que el portal nunca responde
-                    // colgaría el evaluate (y el browser) indefinidamente.
-                    const r = await fetch(u, { credentials: 'include', signal: AbortSignal.timeout(180000) });
-                    if (!r.ok) return { error: r.status };
-                    return await r.json();
-                }, url);
-
-                if (res?.error) throw new Error(`API SmartLab respondió ${res.error} en la página ${current}`);
+                const res = await pedirJsonDesdeLaPagina<{ rows?: any[] }>(page, urlListadoApi(current, clientId));
                 const rows: any[] = res?.rows || [];
                 if (rows.length === 0) break;
                 summary.pages = current;
@@ -441,74 +316,6 @@ export class GrupoOpticoProvider {
                 }
             }
             return summary;
-        } finally {
-            await browser.close();
-        }
-    }
-
-    private static async login(page: any) {
-        const user = process.env.SMARTLAB_USER || 'pisano.ishtar@gmail.com';
-        const pass = process.env.SMARTLAB_PASSWORD || 'atelier';
-
-        await page.goto(`${PORTAL_BASE}/smartlab/auth/authSmartlab/login`, { waitUntil: 'domcontentloaded', timeout: 300000 });
-        // El portal es un dyndns casero y la app tarda en hidratar; desde el
-        // contenedor (Singapur) los 15s originales se agotaban seguido y la
-        // corrida entera se perdía. 45s da margen sin colgar el pase.
-        await page.waitForSelector('input', { timeout: 300000 });
-        const inputs = await page.$$('input');
-        if (inputs.length < 2) throw new Error('No se encontraron los campos de login de SmartLab.');
-        await page.waitForTimeout(1500);
-        await inputs[0].fill(user);
-        await inputs[1].fill(pass);
-        await page.waitForTimeout(800);
-
-        let clicked = false;
-        for (const btn of await page.$$('button')) {
-            const t = ((await btn.innerText()) || '').toLowerCase();
-            if (t.includes('iniciar') || t.includes('ingresar') || t.includes('login')) {
-                await btn.click({ delay: 200 });
-                clicked = true;
-                break;
-            }
-        }
-        if (!clicked) {
-            await inputs[1].press('Enter', { delay: 150 }).catch(() => {});
-        }
-
-        // ACÁ ESTABA EL BUG (8/9/26). Después del clic esperaba 2,5 SEGUNDOS y
-        // si la URL seguía en /auth/ daba el login por fallado. Con el portal
-        // lento —están migrando de servidor— eso es siempre: el error
-        // "Login de SmartLab falló (sigue en la pantalla de auth)" no era un
-        // login rechazado, era una espera de dos segundos y medio. Por eso no
-        // entró un solo costo de Grupo Óptico desde el 21/8.
-        //
-        // Ahora se espera POR EL RESULTADO: se mira la URL cada 5 s hasta cinco
-        // minutos. El login se resuelve por JavaScript ("Iniciando sesión…"),
-        // así que tampoco sirve atarse a `waitForNavigation`.
-        // UNA CREDENCIAL RECHAZADA NO ES LENTITUD (8/9/26). Esperar por la URL
-        // era necesario pero no suficiente: cuando el portal contesta "Usuario o
-        // contraseña incorrectos" la URL se queda en /auth/ para siempre, así que
-        // el ciclo agotaba los 5 minutos y avisaba "el portal está muy lento".
-        // Con esa cara, el corte duró 15 días —del 24/8 al 8/9— buscando un
-        // problema de red que no existía: medido, el portal contesta en 2,4 s.
-        // Ahora se mira TAMBIÉN el cartel de error y se corta al instante,
-        // diciendo lo que de verdad pasa y qué hay que tocar.
-        const ESPERA_LOGIN_MS = 300_000;
-        const limite = Date.now() + ESPERA_LOGIN_MS;
-        while (Date.now() < limite) {
-            if (!page.url().includes('/auth/')) return;
-            const enPantalla = (await page.innerText('body').catch(() => '') || '').toLowerCase();
-            if (/incorrect|no se pudo iniciar sesi|credenciales inv/i.test(enPantalla)) {
-                const configurada = !!process.env.SMARTLAB_USER && !!process.env.SMARTLAB_PASSWORD;
-                throw new Error(
-                    'CREDENCIAL RECHAZADA por el portal de Grupo Óptico: dice "usuario o contraseña incorrectos". '
-                    + (configurada
-                        ? 'SMARTLAB_USER/SMARTLAB_PASSWORD están configuradas pero el portal no las acepta: hay que pedirle la clave nueva a Grupo Óptico y actualizarlas.'
-                        : 'SMARTLAB_USER/SMARTLAB_PASSWORD NO están configuradas, así que se usó la clave escrita en el código, que ya no sirve: cargarlas en las variables de entorno.')
-                );
-            }
-            await page.waitForTimeout(5000);
-        }
-        throw new Error(`Login de SmartLab no salió de /auth/ en ${ESPERA_LOGIN_MS / 60000} min (el portal está muy lento).`);
+        });
     }
 }

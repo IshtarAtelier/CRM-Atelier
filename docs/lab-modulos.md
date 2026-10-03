@@ -1,9 +1,10 @@
 # Módulos de laboratorio
 
 Un módulo por laboratorio, todos con la misma forma (`src/services/lab-modules`).
-Nació el 30/9/2026 con Vitolen (Hoya + Pentax). Optovisión y Grupo Óptico siguen
-con sus integraciones de siempre y se migran al marco cuando convenga: el marco
-no las toca.
+Nació el 30/9/2026 con Vitolen (Hoya + Pentax). El seguimiento de Grupo Óptico
+entró el 3/10/2026 (sus costos siguen en `lab-providers/grupo-optico.provider.ts`).
+Optovisión sigue con su integración de siempre y se migra al marco cuando
+convenga: el marco no la toca.
 
 ## Qué hace un módulo
 
@@ -48,7 +49,18 @@ con el nombre `Robot <laboratorio>`.
 - Catálogo con códigos del portal: `lab-modules/vitolen/catalogo.ts`, GENERADO desde la lista L96 con `node scripts/maintenance/precios-vitolen/generar-catalogo-ts.mjs`. No se edita a mano.
 - El vendedor pone el **código corto de la venta** (`#A1B2`, el que muestra el CRM) en "Nro de Caso Interno" del portal: es lo que permite vincular sin tipear el nº de pedido.
 
+## Grupo Óptico
+
+- Portal: SmartLab (`grupooptico.dyndns.info`). Credenciales: `SMARTLAB_USER` / `SMARTLAB_PASSWORD` (Railway y `.env`), **solo del entorno**: desde el 3/10/2026 no hay clave de respaldo en el código. Sin ellas, el módulo avisa en el acto como si la clave estuviera rechazada y no abre el navegador. `SMARTLAB_CLIENT_ID` es el id de la óptica en la API del portal (no es secreto).
+- Módulo (`lab-modules/grupo-optico/`): `portal.ts` (EL login del portal, compartido con el provider de costos; sesión con `conNavegador` sin HTTP/2 y 5 min por paso, login con 3 intentos; `leerPedidosApi` pagina la API JSON del portal), `pedidos.ts` (lo puro: `estadoDeFila`, `parDeFila`, `fechaDelPortal`, `esTrabado`, `normalizarPedido`, `seguirPaginando`, `numerosNoEncontrados`, el resumen del tracker), `modulo.ts` (el seguimiento).
+- **La fuente es la API JSON interna del portal** (`laboratory/order/list?rowPerPage=100&current=N…`, pedida DESDE la página con `fetch` para compartir la sesión; relevada el 3/10/2026): por pedido trae `IdPedido`, `FechaRegistro` (hora argentina sin zona: se lee en -03:00), `FechaFin`, `Anulado`, `CodigoOptica` (el "Código interno" que carga el vendedor, hoy "Laura Santucho 1°par"), `Observacion`, `sector` (texto), `sector_id` (2 = validación, 17 = facturación finalizado, 20 = entregado), `progress` 0-100, `is_rework`, `invoices[]`. `FechaFinEstimada` NO sirve (es la de registro): no hay atrasos que medir. La tabla HTML y el buscador del servicio viejo quedaron como comentario histórico en `portal.ts`.
+- **Qué hace el seguimiento**, cada tick de 10 min (sin `cadenciaRapidaMin`): entra UNA vez y pagina la API (`current=1..N`, pausa de 400 ms, tope 30 páginas) hasta que una página venga incompleta o su pedido más viejo quede fuera de la ventana: 21 días en el pase rápido, **120 en la pasada completa** (una cada 20 h y la primera después de un deploy, decidida en la ruta con `tocaPasadaCompleta`). Estado: `Anulado` → `ANULADO`; `sector_id` 20 → `DESPACHADO`; `progress` 100 o `FechaFin` → `TERMINADO`; `progress` > 0 → `EN_PROCESO`; si no → `INGRESADO`. `internalRef` y `cliente` = `CodigoOptica`; `pair` 1/2 si el código o la observación dicen "1°par" / "2° par" / "primer par"; `invoices` con el link al PDF (sin importe: eso es de la etapa de costos). Después `reflejar` + `aplicarEstadoEnVenta` como cualquier módulo (firma `Robot Grupo Óptico`), y ADEMÁS escribe el tracker de la ficha (`smartLabSector` = sector, `smartLabProgress` = mínimo de la venta, `smartLabDays` = días del más viejo, `smartLabEntryDate` = "dd/MM/yyyy HH:mm", `smartLabDetails` = JSON de `[{num, sector, progress, entryDate, days}]`, misma forma de siempre, con `select`). Los números del CRM son `parseLabNumbers` sobre el campo de la venta (salvo provisorios) y sus reprocesos. Huérfanos (pedidos del portal sin venta): a la conciliación con `registerPortalOrphans`, como siempre.
+- **Lo que cambió respecto del servicio viejo** (`smartlab.service.ts`, borrado): ya no raspa la tabla ni busca cada nº con el buscador (7 s por pedido), ya no manda el mail de "pedidos trabados" ni el cron el de caída/restablecido a una dirección escrita a mano. Los avisos de salud son los de `corrida.ts` (a `PRIVATE_ADMIN_EMAILS`); los **trabados** (`sector_id` 2 o < 15 % con 2+ días, no anulados ni terminados) y los **nº no encontrados** (activos en el CRM que no están ni en la lectura ni en el espejo) van a los hallazgos del módulo y salen en el **reporte semanal** (sección "Portales con robot"). Un nº que el portal no tiene deja `NO ENCONTRADO EN EL PORTAL` en el sector de la ficha (antes la venta quedaba muda para siempre) sin tocar `labStatus`. Las pantallas de ventas y pedidos ya no disparan el sync al abrirse (cada apertura abría un Chromium contra el portal): queda el botón, que responde `skipped` si el turno está tomado.
+- **Dónde corre**: `/api/cron/smartlab-sync` (y no `/api/cron/lab-modulos`, que lo saltea a propósito), porque en el mismo tick y DESPUÉS del seguimiento corre la conciliación rápida de costos (`GrupoOpticoProvider.collect`, ventana de 21 días). Las dos pasadas comparten el turno del portal: la de costos ya no abre un segundo Chromium mientras corre el seguimiento.
+- **Claves de SystemSetting**: `lab-modulo:GRUPO_OPTICO:turno` (el único turno del portal, lo usan seguimiento y costos; reemplazó a `lab-provider:GRUPO_OPTICO:turno`), `lab-modulo:GRUPO_OPTICO:lastOkAt|caidoDesde|alertadoEn` (salud del SEGUIMIENTO), `lab-modulo:GRUPO_OPTICO:hallazgos`. **`lab-provider:GRUPO_OPTICO:lastOkAt` sigue siendo la de COSTOS** (la escribe `runAllProviders` y la recuperación del pase rápido), y `lab-provider:GRUPO_OPTICO:comprobantes*` el control del PDF. Las viejas `smartlab_down_since`, `smartlab_alerted_at`, `smartlab_notified_stuck_orders` y `smartlab_stuck_alert_last_at` ya no se leen ni se escriben.
+- Diagnóstico a mano del login: `node scripts/checks/smartlab-diagnostico.check.mjs` (lee las variables del `.env`, no tiene clave adentro).
+
 ## Verificación
 
-- `npm run check:lab-modulos` (CI, sin base ni red): turno, salud, transiciones de venta, vinculación, alertas, máquina de estados de la carga.
+- `npm run check:lab-modulos` (CI, sin base ni red): turno, salud, transiciones de venta, vinculación, alertas, máquina de estados de la carga, y lo puro de Grupo Óptico (parseo de la fila, estado, trabados, qué buscar, tracker).
 - En local con `CRONS_LOCALES=1` el tick llama al cron; sin credenciales el módulo avisa "credencial" y no rompe nada.

@@ -37,7 +37,7 @@ import { extraerHtmlDeRespuestaJs, parsearListado, leerPaginador, fechaArgentina
 import { labKeyDeNombre } from '../../src/services/lab-recon/types.ts';
 import { armarCatalogo } from '../maintenance/precios-vitolen/generar-catalogo-ts.mjs';
 import { leerLista } from '../maintenance/precios-vitolen/subir-catalogo-vitolen.mjs';
-import { estadoDeFila, leerFechaIngreso, esTrabado, numerosABuscar, numerosActivosDeVenta, progresoDe, interpretarFila, aPedidoEnPortal, resumenTracker, diasDesde, TEXTO_NO_ENCONTRADO } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
+import { estadoDeFila, parDeFila, fechaDelPortal, fechaDelPortalEnTexto, esTrabado, normalizarPedido as normalizarPedidoGO, seguirPaginando, numerosNoEncontrados, numerosActivosDeVenta, detalleDeFila, resumenTracker, diasDesde, comprobantesDeFila, TEXTO_NO_ENCONTRADO } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { MODULO_GRUPO_OPTICO } from '../../src/services/lab-modules/grupo-optico/modulo.ts';
 import { REGISTRO_MODULOS } from '../../src/services/lab-modules/registro.ts';
 
@@ -785,35 +785,100 @@ ok('ninguna migración borra el índice único parcial de los borradores', () =>
 });
 
 console.log('\n— Grupo Óptico (SmartLab): lo puro del módulo —');
-ok('el estado sale del progreso, y anulado manda', () => {
-    assert.equal(estadoDeFila({ progreso: 0, anulado: false }), 'INGRESADO');
-    assert.equal(estadoDeFila({ progreso: 1, anulado: false }), 'EN_PROCESO');
-    assert.equal(estadoDeFila({ progreso: 99, anulado: false }), 'EN_PROCESO');
-    assert.equal(estadoDeFila({ progreso: 100, anulado: false }), 'TERMINADO');
-    assert.equal(estadoDeFila({ progreso: 100, anulado: true }), 'ANULADO');
+// Una fila como la devuelve la API del portal (relevada el 3/10/2026).
+const filaGO = (extra = {}) => ({
+    IdPedido: '80554323', FechaRegistro: '2026-10-02 18:02:01.000', FechaFin: null, FechaFinEstimada: '2026-10-02 18:02:01.000',
+    Anulado: '0', CodigoOptica: 'Laura Santucho 1°par', Observacion: '', sector: 'Calibrado Automático', sector_id: '5',
+    progress: 40, is_rework: false, validated: '1', invoices: [], material: 'CR', tipoLente: 'Monofocal', ...extra,
 });
-ok('la fecha "dd-mm-yy hh:mm" del portal se lee en hora argentina (no la del servidor)', () => {
-    assert.equal(leerFechaIngreso('03-10-26 14:05').toISOString(), '2026-10-03T17:05:00.000Z');
-    assert.equal(leerFechaIngreso('03-10-26').toISOString(), '2026-10-03T03:00:00.000Z');
-    assert.equal(leerFechaIngreso(''), null);
-    assert.equal(leerFechaIngreso('2026-10-03'), null);
-    assert.equal(leerFechaIngreso('99-99-26 00:00'), null);
-    assert.equal(diasDesde(leerFechaIngreso('01-10-26 12:00'), new Date('2026-10-03T12:00:00-03:00')), 2);
-    assert.equal(diasDesde(null, ahora), 0);
+const hoyGO = new Date('2026-10-03T12:00:00-03:00');
+ok('el estado sale de anulado, sector, progreso y fecha de fin, en ese orden', () => {
+    assert.equal(estadoDeFila(filaGO({ progress: 0 })), 'INGRESADO');
+    assert.equal(estadoDeFila(filaGO({ progress: '0' })), 'INGRESADO');
+    assert.equal(estadoDeFila(filaGO({ progress: 1 })), 'EN_PROCESO');
+    assert.equal(estadoDeFila(filaGO({ progress: 99 })), 'EN_PROCESO');
+    assert.equal(estadoDeFila(filaGO({ progress: 100 })), 'TERMINADO');
+    assert.equal(estadoDeFila(filaGO({ progress: 80, FechaFin: '2026-10-03 10:00:00.000' })), 'TERMINADO', 'con fecha de fin está terminado aunque la barra no llegue');
+    assert.equal(estadoDeFila(filaGO({ progress: 100, sector_id: '20', sector: 'Entregado' })), 'DESPACHADO');
+    assert.equal(estadoDeFila(filaGO({ progress: 100, sector_id: 20 })), 'DESPACHADO', 'sector_id numérico también');
+    assert.equal(estadoDeFila(filaGO({ progress: 100, sector_id: '20', Anulado: '1' })), 'ANULADO', 'anulado manda');
 });
-ok('trabado = pendiente/validación o < 15 % de avance, SOLO con 2+ días', () => {
-    assert.equal(esTrabado({ sector: 'Pendiente de ingreso', progreso: 0, dias: 2 }), true);
-    assert.equal(esTrabado({ sector: 'En validación', progreso: 50, dias: 3 }), true);
-    assert.equal(esTrabado({ sector: 'Validacion', progreso: 50, dias: 3 }), true, 'sin tilde también');
-    assert.equal(esTrabado({ sector: 'Tallado', progreso: 10, dias: 2 }), true, 'casi sin avance');
-    assert.equal(esTrabado({ sector: 'Tallado', progreso: 15, dias: 5 }), false, '15 % ya es avance');
-    assert.equal(esTrabado({ sector: 'Pendiente', progreso: 0, dias: 1 }), false, 'un día todavía no es trabado');
-    assert.equal(esTrabado({ sector: 'Tallado', progreso: 60, dias: 2, textoProgreso: 'pendiente' }), true, 'el texto de la columna también cuenta');
+ok('la fecha de la API ("2026-10-02 18:02:01.000") es hora argentina, no la del servidor', () => {
+    assert.equal(fechaDelPortal('2026-10-02 18:02:01.000').toISOString(), '2026-10-02T21:02:01.000Z');
+    assert.equal(fechaDelPortal('2026-10-02').toISOString(), '2026-10-02T03:00:00.000Z');
+    assert.equal(fechaDelPortal(null), null);
+    assert.equal(fechaDelPortal(''), null);
+    assert.equal(fechaDelPortal('02-10-26 18:02'), null, 'el formato de la tabla vieja ya no se lee');
+    assert.equal(fechaDelPortal('2026-99-99 00:00:00.000'), null);
+    assert.equal(fechaDelPortalEnTexto('2026-10-02 18:02:01.000'), '02/10/2026 18:02');
+    assert.equal(fechaDelPortalEnTexto('2026-10-02'), '02/10/2026');
+    assert.equal(fechaDelPortalEnTexto(null), '');
+    assert.equal(diasDesde(fechaDelPortal('2026-10-01 12:00:00.000'), hoyGO), 2);
+    assert.equal(diasDesde(null, hoyGO), 0);
 });
-ok('se busca uno por uno SOLO lo que no salió en el listado, sin repetir', () => {
-    assert.deepEqual(numerosABuscar(['80544194', '80544195', '80544194', '80544196'], ['80544195']), ['80544194', '80544196']);
-    assert.deepEqual(numerosABuscar([], ['1']), []);
-    assert.deepEqual(numerosABuscar(['80544194'], new Set(['80544194'])), []);
+ok('qué par es, si el vendedor lo escribió (1°par, 2° par, 1º par, primer par)', () => {
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho 1°par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho 2° par' }), 2);
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho', Observacion: '1º par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez 2do par' }), null, 'una forma que no se conoce no se adivina');
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez segundo par' }), 2);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez 1 par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez' }), null);
+    assert.equal(parDeFila({ CodigoOptica: '21 pares' }), null, 'un 21 no es el par 1');
+});
+ok('trabado = en validación (sector 2) o < 15 % de avance, SOLO con 2+ días y sin estar anulado ni terminado', () => {
+    assert.equal(esTrabado(filaGO({ sector_id: '2', sector: 'Pedido en proceso de validación', progress: 0, FechaRegistro: '2026-10-01 10:00:00.000' }), hoyGO), true);
+    assert.equal(esTrabado(filaGO({ sector_id: '2', progress: 50, FechaRegistro: '2026-10-01 10:00:00.000' }), hoyGO), true, 'validación con avance también');
+    assert.equal(esTrabado(filaGO({ sector_id: '5', progress: 10, FechaRegistro: '2026-10-01 10:00:00.000' }), hoyGO), true, 'casi sin avance');
+    assert.equal(esTrabado(filaGO({ sector_id: '5', progress: 15, FechaRegistro: '2026-09-20 10:00:00.000' }), hoyGO), false, '15 % ya es avance');
+    assert.equal(esTrabado(filaGO({ sector_id: '2', progress: 0, FechaRegistro: '2026-10-02 18:02:01.000' }), hoyGO), false, 'un día todavía no es trabado');
+    assert.equal(esTrabado(filaGO({ sector_id: '2', progress: 0, FechaRegistro: '2026-10-01 10:00:00.000', Anulado: '1' }), hoyGO), false, 'anulado no');
+    assert.equal(esTrabado(filaGO({ sector_id: '17', progress: 10, FechaRegistro: '2026-09-01 10:00:00.000', FechaFin: '2026-09-10 10:00:00.000' }), hoyGO), false, 'terminado no');
+});
+ok('el pedido del marco: el nombre del código interno como cliente (no vincula), par, fechas en -03:00, comprobantes con link', () => {
+    const p = normalizarPedidoGO(filaGO({ invoices: [{ salesId: '123', letter: 'X', number: '00004-00023793', type: 'r' }, { salesId: null, letter: 'B', number: '00004-00353854', type: 'f' }, { number: '' }] }));
+    assert.equal(p.portalNumber, '80554323');
+    assert.equal(p.internalRef, null);
+    assert.equal(p.cliente, 'Laura Santucho 1°par');
+    assert.equal(p.pair, 1);
+    assert.equal(p.status, 'EN_PROCESO');
+    assert.equal(p.statusRaw, 'Calibrado Automático');
+    assert.equal(p.enteredAt.toISOString(), '2026-10-02T21:02:01.000Z');
+    assert.equal(p.finishedAt, null);
+    assert.equal(p.estimatedAt, null, 'FechaFinEstimada no sirve: es la de registro');
+    assert.equal(p.dispatchedAt, null);
+    assert.deepEqual(p.raw, { progress: 40, sector_id: 5, is_rework: false });
+    assert.deepEqual(p.invoices, [
+        { comprobante: 'X-00004-00023793', importe: null, url: 'https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php/laboratory/order/invoice?id=123&pedido=80554323&t=2&c=1', tipo: 'remito' },
+        { comprobante: 'B-00004-00353854', importe: null, url: null, tipo: 'factura' },
+    ]);
+    assert.equal(normalizarPedidoGO(filaGO({ invoices: [] })).invoices, undefined, 'sin comprobantes no se escribe la columna');
+    assert.equal(normalizarPedidoGO(filaGO({ IdPedido: '' })), null, 'sin nº no es un pedido');
+    assert.equal(normalizarPedidoGO(filaGO({ CodigoOptica: '  ' })).internalRef, null);
+    // Vincular por nombre escribiría el nº en la venta equivocada (dos ventas de
+    // la misma persona, un reproceso): en Grupo Óptico solo vale el código #XXXX.
+    assert.equal(normalizarPedidoGO(filaGO({ CodigoOptica: 'Laura Santucho 1°par' })).internalRef, null, 'el nombre del cliente no vincula');
+    assert.equal(normalizarPedidoGO(filaGO({ CodigoOptica: '#s3ep Laura Santucho' })).internalRef, '#S3EP', 'el código corto sí');
+    assert.equal(normalizarPedidoGO(filaGO({ CodigoOptica: 'Laura Santucho 1°par' })).cliente, 'Laura Santucho 1°par', 'el nombre queda como cliente, para leerlo');
+    const fin = normalizarPedidoGO(filaGO({ progress: 100, FechaFin: '2026-10-03 09:30:00.000', is_rework: '1' }));
+    assert.equal(fin.status, 'TERMINADO');
+    assert.equal(fin.finishedAt.toISOString(), '2026-10-03T12:30:00.000Z');
+    assert.equal(fin.raw.is_rework, true);
+    assert.deepEqual(comprobantesDeFila(filaGO(), '80554323'), []);
+});
+ok('se pide la página siguiente mientras venga llena y su pedido más viejo siga en la ventana', () => {
+    const desde = new Date('2026-09-01T00:00:00-03:00');
+    const llena = (ultimaFecha) => Array.from({ length: 100 }, (_, i) => ({ FechaRegistro: i === 99 ? ultimaFecha : '2026-10-01 10:00:00.000' }));
+    assert.equal(seguirPaginando(llena('2026-09-15 10:00:00.000'), desde), true);
+    assert.equal(seguirPaginando(llena('2026-08-31 10:00:00.000'), desde), false, 'la última ya es anterior a la ventana');
+    assert.equal(seguirPaginando(llena(null), desde), true, 'sin fecha legible no se corta: mejor una página de más');
+    assert.equal(seguirPaginando(llena('2026-09-15 10:00:00.000').slice(0, 99), desde), false, 'una página corta es la última');
+    assert.equal(seguirPaginando([], desde), false);
+});
+ok('"no encontrado" = número activo del CRM que no está ni en la lectura ni en el espejo', () => {
+    assert.deepEqual(numerosNoEncontrados(['80544194', '80544195', '80544196', '80544194'], ['80544195'], ['80544196']), ['80544194']);
+    assert.deepEqual(numerosNoEncontrados([], ['1'], []), []);
+    assert.deepEqual(numerosNoEncontrados(['80544194'], new Set(['80544194']), new Set()), []);
 });
 ok('los números activos de una venta: parseLabNumbers, sin provisorios, con los reprocesos', () => {
     assert.deepEqual(numerosActivosDeVenta({ labOrderNumber: '80544194 - 80544195', postSaleNumbers: ['80544300'] }), ['80544194', '80544195', '80544300']);
@@ -821,60 +886,37 @@ ok('los números activos de una venta: parseLabNumbers, sin provisorios, con los
     assert.deepEqual(numerosActivosDeVenta({ labOrderNumber: 'sin numero', postSaleNumbers: ['80544300'] }), ['80544300']);
     assert.deepEqual(numerosActivosDeVenta({ labOrderNumber: null, postSaleNumbers: [] }), []);
 });
-ok('el progreso sale de la barra, después de aria-valuenow, después del texto', () => {
-    assert.equal(progresoDe({ textoProgreso: '20 %', estiloBarra: 'width: 60%;', ariaValor: '40' }), 60);
-    assert.equal(progresoDe({ textoProgreso: '20 %', estiloBarra: 'width: 0%;', ariaValor: '40' }), 40);
-    assert.equal(progresoDe({ textoProgreso: 'Ingreso: 01-10-26 · 33.4 %', estiloBarra: null, ariaValor: null }), 33);
-    assert.equal(progresoDe({ textoProgreso: 'Pendiente', estiloBarra: null, ariaValor: null }), 0);
-    assert.equal(progresoDe({ textoProgreso: '', estiloBarra: 'width: 250%', ariaValor: null }), 100, 'nunca más de 100');
-});
-ok('una fila del listado se interpreta con una sola regla de nº de pedido', () => {
-    const f = interpretarFila({ num: 'Pedido 80544194\nRECLAMO', cliente: ' Rius Belen ', fecha: '01-10-26 09:30', sector: 'Tallado\nCNC', textoProgreso: 'Ingreso: 01-10-26 09:30\n2 días\n45 %', estiloBarra: 'width: 45%' }, new Date('2026-10-03T12:00:00-03:00'));
-    assert.deepEqual(f, { num: '80544194', cliente: 'Rius Belen', fecha: '01-10-26 09:30', sector: 'Tallado CNC', progreso: 45, entryDate: '01-10-26 09:30', days: 2 });
-    const sinDias = interpretarFila({ num: '80544195', cliente: 'X', fecha: '30-09-26 09:30', sector: 'Pendiente', textoProgreso: '' }, new Date('2026-10-03T12:00:00-03:00'));
-    assert.equal(sinDias.days, 3, 'sin "N días" en la columna, se calcula desde la fecha');
-    assert.equal(sinDias.entryDate, '30-09-26 09:30');
-    assert.equal(interpretarFila({ num: 'Totales', cliente: '', fecha: '', sector: '', textoProgreso: '' }, ahora), null, 'una fila sin nº no es un pedido');
-});
-ok('el pedido del marco: sin internalRef (vincula SOLO por nº), con el progreso en raw', () => {
-    const p = aPedidoEnPortal({ num: '80544194', cliente: 'Rius Belen', fecha: '01-10-26 09:30', sector: 'Tallado', progreso: 45, entryDate: '01-10-26 09:30', days: 2 }, false);
-    assert.equal(p.portalNumber, '80544194');
-    assert.equal(p.internalRef, undefined);
-    assert.equal(p.status, 'EN_PROCESO');
-    assert.equal(p.statusRaw, 'Tallado');
-    assert.equal(p.enteredAt.toISOString(), '2026-10-01T12:30:00.000Z');
-    assert.deepEqual(p.raw, { progreso: 45, days: 2, entryDate: '01-10-26 09:30' });
-    assert.equal(aPedidoEnPortal({ ...p, num: '1', cliente: '', fecha: '', sector: '', progreso: 0, entryDate: '', days: 0 }, true).status, 'ANULADO');
-});
 ok('el tracker de la ficha: progreso MÍNIMO, días del más viejo, un sector por pedido, misma forma de siempre', () => {
-    const a = { num: '80544194', cliente: 'X', fecha: '01-10-26 09:30', sector: 'Tallado', progreso: 100, entryDate: '01-10-26 09:30', days: 2 };
-    const b = { ...a, num: '80544195', sector: 'Montaje', progreso: 40, days: 5 };
-    const t = resumenTracker([a, b], [], ahora);
+    const a = detalleDeFila(filaGO({ IdPedido: '80544194', sector: 'Tallado', progress: 100, FechaRegistro: '2026-10-01 09:30:00.000' }), hoyGO);
+    const b = detalleDeFila(filaGO({ IdPedido: '80544195', sector: 'Montaje', progress: 40, FechaRegistro: '2026-09-28 09:30:00.000' }), hoyGO);
+    assert.deepEqual(a, { num: '80544194', sector: 'Tallado', progress: 100, entryDate: '01/10/2026 09:30', days: 2, anulado: false });
+    const t = resumenTracker([a, b], [], hoyGO);
     assert.equal(t.smartLabProgress, 40);
     assert.equal(t.smartLabDays, 5);
     assert.equal(t.smartLabSector, '4194: Tallado | 4195: Montaje');
-    assert.equal(t.smartLabEntryDate, '01-10-26 09:30');
-    assert.equal(t.smartLabLastSync, ahora);
+    assert.equal(t.smartLabEntryDate, '01/10/2026 09:30');
+    assert.equal(t.smartLabLastSync, hoyGO);
     assert.deepEqual(JSON.parse(t.smartLabDetails), [
-        { num: '80544194', sector: 'Tallado', progress: 100, entryDate: '01-10-26 09:30', days: 2 },
-        { num: '80544195', sector: 'Montaje', progress: 40, entryDate: '01-10-26 09:30', days: 5 },
+        { num: '80544194', sector: 'Tallado', progress: 100, entryDate: '01/10/2026 09:30', days: 2 },
+        { num: '80544195', sector: 'Montaje', progress: 40, entryDate: '28/09/2026 09:30', days: 5 },
     ]);
-    assert.equal(resumenTracker([a], [], ahora).smartLabSector, 'Tallado', 'un solo pedido: el sector a secas');
+    assert.equal(resumenTracker([a], [], hoyGO).smartLabSector, 'Tallado', 'un solo pedido: el sector a secas');
+    assert.equal(detalleDeFila(filaGO({ IdPedido: null }), hoyGO), null);
 });
 ok('un pedido anulado no frena el progreso de los demás, y se ve como anulado', () => {
-    const vivo = { num: '80544194', cliente: 'X', fecha: '', sector: 'Montaje', progreso: 100, entryDate: '', days: 2 };
-    const anulado = { ...vivo, num: '80544195', sector: 'Pendiente', progreso: 0, anulado: true };
-    const t = resumenTracker([vivo, anulado], [], ahora);
+    const vivo = detalleDeFila(filaGO({ IdPedido: '80544194', sector: 'Montaje', progress: 100 }), hoyGO);
+    const anulado = detalleDeFila(filaGO({ IdPedido: '80544195', sector: 'Pendiente', progress: 0, Anulado: '1' }), hoyGO);
+    const t = resumenTracker([vivo, anulado], [], hoyGO);
     assert.equal(t.smartLabProgress, 100);
     assert.equal(t.smartLabSector, '4194: Montaje | 4195: ANULADO (Pendiente)');
 });
 ok('un nº que el portal no tiene queda a la vista en la ficha (antes la venta quedaba muda)', () => {
-    const solo = resumenTracker([], ['80549999'], ahora);
+    const solo = resumenTracker([], ['80549999'], hoyGO);
     assert.equal(solo.smartLabSector, TEXTO_NO_ENCONTRADO);
     assert.equal(solo.smartLabProgress, 0);
     assert.equal(JSON.parse(solo.smartLabDetails).length, 0);
-    const vivo = { num: '80544194', cliente: 'X', fecha: '', sector: 'Montaje', progreso: 70, entryDate: '', days: 2 };
-    assert.equal(resumenTracker([vivo], ['80549999'], ahora).smartLabSector, `4194: Montaje | 9999: ${TEXTO_NO_ENCONTRADO}`);
+    const vivo = detalleDeFila(filaGO({ IdPedido: '80544194', sector: 'Montaje', progress: 70 }), hoyGO);
+    assert.equal(resumenTracker([vivo], ['80549999'], hoyGO).smartLabSector, `4194: Montaje | 9999: ${TEXTO_NO_ENCONTRADO}`);
 });
 ok('el módulo está registrado, hace seguimiento y deja los costos al provider', () => {
     assert.equal(MODULO_GRUPO_OPTICO.clave, 'GRUPO_OPTICO');
@@ -884,21 +926,27 @@ ok('el módulo está registrado, hace seguimiento y deja los costos al provider'
     assert.notEqual(MODULO_GRUPO_OPTICO.avisoDeRetiroAutomatico, false, 'el retiro automático a las 24 h es el circuito de Grupo Óptico');
     assert.ok(MODULO_GRUPO_OPTICO.patronProducto.test('Grupo Óptico') && MODULO_GRUPO_OPTICO.patronProducto.test('grupo optico') && !MODULO_GRUPO_OPTICO.patronProducto.test('Vitolen'));
     assert.ok(REGISTRO_MODULOS.some(m => m.clave === 'GRUPO_OPTICO'));
+    assert.ok(REGISTRO_MODULOS.every(m => m && m.clave), 'ningún módulo quedó sin inicializar por un import circular');
 });
 ok('sin clave de respaldo en el código: sin variables, el login se corta antes de abrir el navegador', () => {
     const src = readFileSync(new URL('../../src/services/lab-modules/grupo-optico/portal.ts', import.meta.url), 'utf8');
-    assert.ok(!/SMARTLAB_(USER|PASSWORD)\s*\|\|\s*['"]/.test(src), 'un `|| "…"` al lado de la variable es una clave en el código');
+    assert.ok(!/SMARTLAB_(USER|PASSWORD)\s*\|\|\s*['"][^'"]+['"]/.test(src), 'un `|| "…"` con algo adentro al lado de la variable es una clave en el código');
     const provider = readFileSync(new URL('../../src/services/lab-providers/grupo-optico.provider.ts', import.meta.url), 'utf8');
-    assert.ok(!/SMARTLAB_(USER|PASSWORD)/.test(provider), 'el provider no lee la credencial: usa el login del módulo');
+    assert.ok(!/process\.env\.SMARTLAB_(USER|PASSWORD)/.test(provider), 'el provider no lee la credencial: usa el login del módulo');
     const diag = readFileSync(new URL('./smartlab-diagnostico.check.mjs', import.meta.url), 'utf8');
     assert.ok(!/fill\(['"]/.test(diag), 'el diagnóstico tampoco tiene la clave escrita');
+    assert.ok(!existsSync(new URL('../../src/services/smartlab.service.ts', import.meta.url)), 'smartlab.service.ts se borró: el seguimiento es el módulo');
 });
 ok('el tick de /api/cron/lab-modulos saltea a Grupo Óptico: su tick es /api/cron/smartlab-sync', () => {
     const ruta = readFileSync(new URL('../../src/app/api/cron/lab-modulos/route.ts', import.meta.url), 'utf8');
     assert.ok(/LAB_GRUPO_OPTICO\)\s*continue/.test(ruta));
     const sync = readFileSync(new URL('../../src/app/api/cron/smartlab-sync/route.ts', import.meta.url), 'utf8');
     assert.ok(/correrSeguimiento\(MODULO_GRUPO_OPTICO/.test(sync));
-    assert.ok(!/smartlab_down_since|smartlab_alerted_at|ADMIN_EMAIL\b|pisano\.ishtar@gmail\.com/.test(sync), 'ni claves viejas de salud ni direcciones escritas a mano');
+    assert.ok(!/['"]smartlab_(down_since|alerted_at)['"]|process\.env\.ADMIN_EMAIL\b|pisano\.ishtar@gmail\.com/.test(sync), 'ni claves viejas de salud ni direcciones escritas a mano');
+    for (const pagina of ['ventas', 'pedidos']) {
+        const src = readFileSync(new URL(`../../src/app/admin/${pagina}/page.tsx`, import.meta.url), 'utf8');
+        assert.ok(!/const autoSync = /.test(src), `/admin/${pagina} ya no dispara el sync al abrirse`);
+    }
 });
 
 console.log(fallas === 0 ? '\n✅ Marco de módulos de laboratorio: todo en orden.\n' : `\n❌ ${fallas} falla(s).\n`);

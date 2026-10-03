@@ -18,7 +18,8 @@ import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
 import ComprobanteLab from '@/components/orders/ComprobanteLab';
-import { itemsDeTenido, colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
+import { colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
+import { armarPedidoSmartLab, urlSmartLabConPedido, textoPasosSmartLab, textoFaltantesSmartLab } from '@/lib/grupo-optico/armar-pedido';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -91,238 +92,15 @@ export default function VentasPage() {
     const autoSubmitSmartLab = async (order: any, pairNum: number = 1) => {
         setIsAutoSubmitting(true);
         try {
-            let rx = order.prescription || {};
-            let pdOd = order.labPdOd;
-            let pdOi = order.labPdOi;
-            const nearPdOd = order.labNearPdOd;
-            const nearPdOi = order.labNearPdOi;
-            let heightOD = order.labHeightOD;
-            let heightOI = order.labHeightOI;
-            let material = order.labMaterial || '';
-            let tratamiento = order.labTreatment || '';
-            let color = order.labColor || '';
-            let diameter = order.labDiameter || '';
-            const notes = order.labNotes || '';
-
-            if (order.postSaleOrderOption === 'DIFFERENT' && order.postSaleRxData) {
-                try {
-                    const rxData = JSON.parse(order.postSaleRxData);
-                    const activeRx = pairNum === 2 ? rxData.rx2 : rxData.rx1;
-                    if (activeRx) {
-                        const getVal = (v: any) => (v === '' || v === undefined || v === null) ? null : parseFloat(v);
-                        const getIntVal = (v: any) => (v === '' || v === undefined || v === null) ? null : parseInt(v);
-
-                        rx = {
-                            ...rx,
-                            sphereOD: activeRx.sphereOD !== undefined ? getVal(activeRx.sphereOD) : rx.sphereOD,
-                            cylinderOD: activeRx.cylinderOD !== undefined ? getVal(activeRx.cylinderOD) : rx.cylinderOD,
-                            axisOD: activeRx.axisOD !== undefined ? getIntVal(activeRx.axisOD) : rx.axisOD,
-                            additionOD: activeRx.additionOD !== undefined ? getVal(activeRx.additionOD) : rx.additionOD,
-                            sphereOI: activeRx.sphereOI !== undefined ? getVal(activeRx.sphereOI) : rx.sphereOI,
-                            cylinderOI: activeRx.cylinderOI !== undefined ? getVal(activeRx.cylinderOI) : rx.cylinderOI,
-                            axisOI: activeRx.axisOI !== undefined ? getIntVal(activeRx.axisOI) : rx.axisOI,
-                            additionOI: activeRx.additionOI !== undefined ? getVal(activeRx.additionOI) : rx.additionOI,
-                            notes: activeRx.notes !== undefined ? activeRx.notes : rx.notes,
-                            imageUrl: activeRx.imageUrl !== undefined ? activeRx.imageUrl : rx.imageUrl,
-                        };
-                        if (activeRx.pdOd !== undefined) pdOd = activeRx.pdOd;
-                        if (activeRx.pdOi !== undefined) pdOi = activeRx.pdOi;
-                        if (activeRx.heightOD !== undefined) heightOD = activeRx.heightOD;
-                        if (activeRx.heightOI !== undefined) heightOI = activeRx.heightOI;
-                        if (activeRx.material !== undefined) material = activeRx.material;
-                        if (activeRx.treatment !== undefined) tratamiento = activeRx.treatment;
-                        if (activeRx.color !== undefined) color = activeRx.color;
-                        if (activeRx.diameter !== undefined) diameter = activeRx.diameter;
-                    }
-                } catch (e) {
-                    console.error('Error parsing postSaleRxData in autoSubmitSmartLab:', e);
-                }
+            // El armado vive en UN solo lugar (src/lib/grupo-optico/armar-pedido.ts):
+            // acá solo se muestra lo que falta o se abre el portal.
+            const r = armarPedidoSmartLab(order, pairNum);
+            if (!r.ok || !r.payload) {
+                alert(textoFaltantesSmartLab(r.faltantes));
+                return;
             }
-
-            const fmt = (v: number | null | undefined, plus?: boolean) => {
-                if (v == null) return '';
-                const s = v.toFixed(2);
-                return plus && v >= 0 ? '+' + s : s;
-            };
-
-            const clientName = order.client?.name || '';
-            const nameParts = clientName.trim().split(/\s+/);
-            const apellido = nameParts.pop() || '';
-            const nombre = nameParts.join(' ') || apellido;
-
-            const frameItems = order.items?.filter((i: any) => i.product?.category === 'Armazón de Receta' || i.product?.category === 'Lentes de Sol' || i.productCategorySnapshot === 'Armazón de Receta' || i.productCategorySnapshot === 'Lentes de Sol' || i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS' || i.productCategorySnapshot === 'FRAME' || i.productCategorySnapshot === 'SUNGLASS') || [];
-            
-            const frameIdx = (pairNum === 2 && frameItems.length > 1) ? 1 : 0;
-            const currentFrameItem = frameItems[frameIdx];
-
-            const frameInfo = currentFrameItem
-                ? `Armazón ${currentFrameItem?.product?.brand || currentFrameItem?.productBrandSnapshot || ''} ${currentFrameItem?.product?.name || currentFrameItem?.productNameSnapshot || ''}`.trim()
-                : order.frameSource === 'USUARIO'
-                    ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
-                    : '';
-
-            const lensItems = order.items?.filter((i: any) => i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal' || i.product?.category === 'LENS' || i.productCategorySnapshot === 'LENS') || [];
-            const lensProduct = lensItems.length > 0 ? lensItems[0]?.product : null;
-            const lensName = lensProduct?.name?.toLowerCase() || lensItems[0]?.productNameSnapshot?.toLowerCase() || '';
-            let lensIndex = lensProduct?.lensIndex || '';
-            if (!lensIndex && lensName) {
-                const indexMatch = lensName.match(/\b(1\.\d{2})\b/) || lensName.match(/\b(1\.\d)\b/);
-                if (indexMatch) {
-                    lensIndex = indexMatch[1];
-                }
-            }
-
-            let tipo_lente = 'Monofocal';
-            if (lensName.includes('multi') || lensName.includes('progresivo')) tipo_lente = 'Multifocal';
-            else if (lensName.includes('bifo') && lensName.includes('kri')) tipo_lente = 'Bifocal Kri';
-            else if (lensName.includes('bifo')) tipo_lente = 'Bifocal Ft';
-            else if (lensName.includes('ocupa') || lensName.includes('intermedio')) tipo_lente = 'Ocupacional';
-
-            if (!material) {
-                if (lensName.includes('poli')) material = 'Policarbonato';
-                else if (lensName.includes('orga') || lensName.includes('orgá')) material = 'Orgánico';
-                else if (lensName.includes('alto') || lensName.includes('1.6') || lensName.includes('1.7')) material = 'Alto Índice';
-                else if (lensName.includes('vidrio') || lensName.includes('mineral')) material = 'Mineral';
-            }
-
-            if (!tratamiento) {
-                if (lensName.includes('blue') || lensName.includes('block') || lensName.includes('filtro azul') || lensName.includes('filtro de luz')) tratamiento = 'Filtro Azul';
-                else if (lensName.includes('anti') || lensName.includes('ar')) tratamiento = 'Antirreflejo';
-                else if (lensName.includes('foto') || lensName.includes('transition')) tratamiento = 'Fotocromático';
-            }
-
-            const treatmentItems = order.items?.filter((i: any) => i.product?.category === 'Tratamiento' || i.productCategorySnapshot === 'Tratamiento' || (i.product?.type || '').includes('Tratamiento')) || [];
-            let tipo_tenido = '';
-            let color_tenido = '';
-            let intensidad_tenido = '';
-
-            for (const item of treatmentItems) {
-                const tName = (item.product?.name || item.productNameSnapshot || '').toLowerCase();
-                if (!tratamiento) {
-                    if (tName.includes('blue') || tName.includes('block') || tName.includes('filtro azul') || tName.includes('filtro de luz')) tratamiento = 'Filtro Azul';
-                    else if (tName.includes('anti') || tName.includes('ar')) tratamiento = 'Antirreflejo';
-                    else if (tName.includes('foto') || tName.includes('transition')) tratamiento = 'Fotocromático';
-                }
-                
-                if (tName.includes('teñi') || tName.includes('tinte') || tName.includes('color')) {
-                    if (tName.includes('degrade') || tName.includes('degradé') || tName.includes('bicolor') || tName.includes('fume')) tipo_tenido = 'Degradé';
-                    else if (tName.includes('doble')) tipo_tenido = 'Doble Degradé';
-                    else tipo_tenido = 'Pleno';
-
-                    if (tName.includes('gris')) color_tenido = 'Gris';
-                    else if (tName.includes('marr') || tName.includes('cafe')) color_tenido = 'Marrón';
-                    else if (tName.includes('verde') || tName.includes('g15') || tName.includes('g-15')) color_tenido = 'Verde G15';
-                    else if (tName.includes('rosa') || tName.includes('pink')) color_tenido = 'Rosa';
-                    else if (tName.includes('azul') || tName.includes('blue')) color_tenido = 'Azul';
-                    else if (tName.includes('ama')) color_tenido = 'Amarillo';
-                    else if (tName.includes('naran')) color_tenido = 'Naranja';
-                    else if (tName.includes('rojo') || tName.includes('red')) color_tenido = 'Rojo';
-
-                    if (tName.includes('10')) intensidad_tenido = '10%';
-                    else if (tName.includes('25')) intensidad_tenido = '25%';
-                    else if (tName.includes('50')) intensidad_tenido = '50%';
-                    else if (tName.includes('75')) intensidad_tenido = '75%';
-                    else if (tName.includes('85')) intensidad_tenido = '85%';
-                }
-            }
-
-            // Fallback: el color cargado en la línea del TEÑIDO.
-            //
-            // Mira SOLO las líneas de teñido. Desde que el fotocromático guarda
-            // su tono, "el primer item con crystalColor" podía ser un
-            // Transitions — y su color se habría ido a fábrica como un teñido a
-            // hacer, que el laboratorio no tiene cómo detectar.
-            if (!color_tenido || !tipo_tenido) {
-                const tintItem = itemsDeTenido(order.items).find((i: any) => i.crystalColor);
-                if (tintItem) {
-                    if (!color_tenido) color_tenido = tintItem.crystalColor || '';
-                    if (!tipo_tenido) {
-                        if (tintItem.crystalColorType === 'DEGRADE') tipo_tenido = 'Degradé';
-                        else if (tintItem.crystalColorType === 'MUESTRA') tipo_tenido = 'Pleno'; // Según muestra → Pleno in SmartLab
-                        else tipo_tenido = 'Pleno';
-                    }
-                }
-            }
-
-            // Detectar tipo de armazón del nombre del producto
-            const frameNameLower = frameItems.length > 0
-                ? (frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || '').toLowerCase()
-                : '';
-            let tipo_armazon = '';
-            if (frameNameLower.includes('acetato') || frameNameLower.includes('plást') || frameNameLower.includes('plast') || frameNameLower.includes('pasta') || frameNameLower.includes('nylon')) {
-                tipo_armazon = 'PLÁSTICO';
-            } else if (frameNameLower.includes('metal') || frameNameLower.includes('titanio') || frameNameLower.includes('acero')) {
-                tipo_armazon = 'METALICO';
-            }
-
-            const payload = {
-                tipo_lente,
-                labType: order.labType || '',
-                codigoInterno: clientName,
-                paciente_nombre: nombre,
-                paciente_apellido: apellido,
-                paciente_telefono: '3541215971',
-                paciente_email: 'pisano.ishtar@gmail.com',
-                paciente_fullname: clientName,
-                od_esfera: fmt(rx.sphereOD, true),
-                od_cilindro: fmt(rx.cylinderOD),
-                od_eje: rx.axisOD != null ? String(rx.axisOD) : '',
-                od_adicion: fmt(rx.additionOD ?? rx.addition, true),
-                oi_esfera: fmt(rx.sphereOI, true),
-                oi_cilindro: fmt(rx.cylinderOI),
-                oi_eje: rx.axisOI != null ? String(rx.axisOI) : '',
-                oi_adicion: fmt(rx.additionOI ?? rx.addition, true),
-                od_esfera_cerca: fmt(rx.nearSphereOD, true),
-                od_cilindro_cerca: fmt(rx.nearCylinderOD),
-                od_eje_cerca: rx.nearAxisOD != null ? String(rx.nearAxisOD) : '',
-                oi_esfera_cerca: fmt(rx.nearSphereOI, true),
-                oi_cilindro_cerca: fmt(rx.nearCylinderOI),
-                oi_eje_cerca: rx.nearAxisOI != null ? String(rx.nearAxisOI) : '',
-                od_dp: pdOd != null ? String(pdOd) : (rx.distanceOD != null ? String(rx.distanceOD) : ''),
-                oi_dp: pdOi != null ? String(pdOi) : (rx.distanceOI != null ? String(rx.distanceOI) : ''),
-                od_dp_cerca: nearPdOd != null ? String(nearPdOd) : (rx.nearDistanceOD != null ? String(rx.nearDistanceOD) : ''),
-                oi_dp_cerca: nearPdOi != null ? String(nearPdOi) : (rx.nearDistanceOI != null ? String(rx.nearDistanceOI) : ''),
-                od_altura: heightOD != null ? String(heightOD) : (rx.heightOD != null ? String(rx.heightOD) : ''),
-                oi_altura: heightOI != null ? String(heightOI) : (rx.heightOI != null ? String(rx.heightOI) : ''),
-                observaciones: [rx.notes, notes].filter(Boolean).join(' | '),
-                color: color || '',
-                armazon: [frameInfo, pairNum === 2 ? (order.labFrameDetails2 || '') : (order.labFrameDetails || '')].filter(Boolean).join(' - '),
-                diametro: diameter || '',
-                indice: lensIndex,
-                material,
-                tratamiento,
-                tipo_tenido,
-                color_tenido,
-                intensidad_tenido,
-                tipo_aro: 'Calibrado Aro Entero',
-                tipo_armazon,
-                medidaA: pairNum === 2 ? (order.frameA2 || '') : (order.frameA || ''),
-                medidaB: pairNum === 2 ? (order.frameB2 || '') : (order.frameB || ''),
-                medidaED: pairNum === 2 ? (order.frameEdc2 || '') : (order.frameEdc || ''),
-                medidaPte: pairNum === 2 ? (order.frameDbl2 || '') : (order.frameDbl || ''),
-                fuzzy_article: [
-                    lensName.includes('pro') ? 'pro' : '',
-                    lensName.includes('free') ? 'free' : '',
-                    lensName.includes('exclusive') ? 'exclusive' : '',
-                    lensName.includes('drive') ? 'drive' : '',
-                    lensName.includes('ailens') ? 'ailens' : '',
-                    lensName.includes('super') ? 'super' : '',
-                    lensName.includes('asfer') || lensName.includes('asfér') ? 'asfer' : '',
-                    lensName.includes('org') ? 'org' : '',
-                    lensName.includes('poli') ? 'poli' : '',
-                    (lensName.includes('blue') || tratamiento === 'Filtro Azul') ? 'blue' : '',
-                    (lensName.includes('ar') || tratamiento === 'Antirreflejo') ? 'c/ar' : '',
-                    lensIndex ? String(lensIndex) : ''
-                ].filter(Boolean)
-            };
-
-            const encodedData = encodeURIComponent(JSON.stringify(payload));
-            const smartLabUrl = `https://grupooptico.dyndns.info/smartlab/laboratory/new#ATELIER_DATA=${encodedData}`;
-            
-            alert('✅ ¡Datos copiados al sistema!\n\nPASOS A SEGUIR:\n1️⃣ Se abrirá la web de SmartLab.\n2️⃣ Hacé clic en tu favorito ⭐ "🤖 Atelier → SmartLab".\n3️⃣ ¡No toques nada un segundo! El sistema elegirá el lente y llenará todo.\n\n⚠️ IMPORTANTE:\nSi la página te tira error "404", es porque se cerró tu sesión de SmartLab. Iniciá sesión manualmente y volvé a tocar este botón amarillo.');
-            
-            window.open(smartLabUrl, '_blank');
-
+            alert(textoPasosSmartLab(r.avisos));
+            window.open(urlSmartLabConPedido(r.payload), '_blank');
         } catch (error) {
             console.error('Error auto-submitting:', error);
             alert('❌ Ocurrió un error al procesar los datos del pedido.');
@@ -474,20 +252,9 @@ export default function VentasPage() {
         }
     }, [orderIdParam, orders.length]);
 
-    // Auto-sync SmartLab una sola vez al cargar la página
-    useEffect(() => {
-        const autoSync = async () => {
-            try {
-                const res = await fetch('/api/smartlab-sync', { method: 'POST' });
-                if (res.ok) {
-                    fetchOrders(search); // Refrescar con datos de SmartLab
-                }
-            } catch (err) {
-                console.error('Error auto-sync SmartLab:', err);
-            }
-        };
-        autoSync();
-    }, []);
+    // Sin auto-sync de SmartLab al cargar (3/10/2026): abrir la pantalla
+    // lanzaba un Chromium contra el portal de Grupo Óptico en cada visita. El
+    // tick de 10 min ya lo hace; el botón "Sync SmartLab" queda para forzarlo.
 
     const fetchOrders = async (searchTerm?: string, loadAll?: boolean) => {
         setLoading(true);

@@ -3,10 +3,13 @@ import { claveDeModulo } from '../contrato';
 
 /**
  * SALUD DE CADA MÓDULO: cuándo corrió bien por última vez, desde cuándo está
- * caído y cuándo se avisó. Generaliza smartlab_down_since / smartlab_alerted_at
- * con una clave por laboratorio, así el cron avisa igual para cualquier módulo.
+ * caído y cuándo se avisó. Una clave por laboratorio
+ * (`lab-modulo:<LAB>:lastOkAt|caidoDesde|alertadoEn`), así el cron avisa igual
+ * para cualquier módulo. Reemplazó a las claves `smartlab_down_since` /
+ * `smartlab_alerted_at` del cron viejo de SmartLab, que desde el 3/10/2026 ya
+ * no se escriben ni se leen (Grupo Óptico corre por acá).
  *
- * Política (la misma que SmartLab): avisar recién cuando el módulo lleva más de
+ * Política (la que tenía SmartLab): avisar recién cuando el módulo lleva más de
  * UMBRAL_CAIDA_MS seguido sin correr bien, repetir como máximo cada
  * REPETIR_ALERTA_MS, y avisar la recuperación SOLO si se había alertado (un
  * micro-corte no genera "Restablecido"). Todo persiste en SystemSetting: un
