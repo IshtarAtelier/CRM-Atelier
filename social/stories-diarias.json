@@ -5,8 +5,10 @@
     "  mañana (8:00 ART)  → 2 de contenido + 2 modelos de Agostina",
     "  tarde  (18:05 ART) → 2 de contenido",
     "Cada modelo de Agostina son 2 a 4 stories seguidas (frente, perfil, anteojo en",
-    "manos; los clip-on suman la foto sin clip): DOS MODELOS POR DÍA (Ishtar,",
-    "3/10/2026), así que un día son ~10 stories.",
+    "los clip-on suman la foto sin clip): DOS MODELOS POR DÍA (Ishtar, 3/10/2026),",
+    "así que un día son ~8 stories. SIN la foto del anteojo en manos (Ishtar,",
+    "3/10/2026: el fondo desenfocado se ve como \"un cuerpo estirado fantasma\");",
+    "las 03/04.jpg siguen en public/social pero el carril no las cuenta.",
     "",
     "EL CARRIL `agostina` REEMPLAZA AL DE PRODUCTO (Ishtar, 1/10/2026): las stories",
     "de \"anteojo suelto + precio\" no atraían; lo que funcionó fueron las fotos de",
@@ -340,32 +342,32 @@
       {
         "id": "story-agos-atenea-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-victoria-c5",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-dionisio-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-antares-c1",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-frida-c5",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-polaris-c7",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-gala-c7",
@@ -375,7 +377,7 @@
       {
         "id": "story-agos-venice",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-gala-c1",
@@ -395,7 +397,7 @@
       {
         "id": "story-agos-sirio-c1",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-helena-c4",
@@ -410,287 +412,287 @@
       {
         "id": "story-agos-frida-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-torino-c4",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-victoria-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-polaris-c6",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-victoria-c6",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-sirio-c2",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-roma",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-hera",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-onix-negro",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-torino-c3",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-frida-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-andromeda-c6",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-olimpia",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-deneb-c2",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-andromeda-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-gala-c8",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-helena-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-palermo-c3",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-victoria-c7",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-helena-c5",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-andromeda-c7",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-vega-c2",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-gala-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-gala-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-helena-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-verona-c1",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-andromeda-c4",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-altair-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-minerva-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-adhara-c4",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-aquiles-c4",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-pandora-c5",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-ariadne-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-capri-c5",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-hermes-c4",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-ariadne-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-teseo-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-deneb-c1",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-diana-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-aquiles-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-venus-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-monaco-c2",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-hermes-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-poseidon-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-teseo-c4",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-vega-c1",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-orfeo-c4",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-cronos-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-cronos-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-riviera-c1",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-orfeo-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-orfeo-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-hermes-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-mizar-c2",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-poseidon-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-pandora-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-hermes-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-milano-c1",
@@ -700,92 +702,92 @@
       {
         "id": "story-agos-orfeo-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-diana-c4",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-diana-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-fenix-c1",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-venus-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-hestia-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-hestia-c2",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-florence-c2",
         "tipo": "clip",
-        "slides": 4
+        "slides": 3
       },
       {
         "id": "story-agos-selene-c4",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-selene-c5",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-rigel-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-canopo-c2",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-rigel-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-orion-c1",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-electra-c5",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-nashira-c3",
         "tipo": "sol",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-electra-c4",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       },
       {
         "id": "story-agos-minerva-c3",
         "tipo": "receta",
-        "slides": 3
+        "slides": 2
       }
     ]
   }
