@@ -11,7 +11,9 @@ import { evaluarFrescura, leerPieza } from '@/lib/social/frescura';
  * DOS TANDAS: `?tanda=manana` (default) y `?tanda=tarde`. Horarios fijados
  * por Ishtar (28/8), ver .github/workflows/social-crons.yml:
  *   mañana —  8:00 ART — 2 de contenido + 2 modelos de Agostina
- *   tarde  — 18:05 ART — 2 de contenido + 1 modelo  de Agostina
+ *   tarde  — 18:05 ART — 2 de contenido
+ * DOS MODELOS POR DÍA, con sus tres fotos (Ishtar, 3/10/2026). Los dos van a
+ * la mañana; la tarde queda solo de contenido.
  * Las stories duran 24 h pero se consumen en el momento: una sola tanda a la
  * mañana deja toda la tarde sin nada nuevo arriba, que es cuando la gente
  * vuelve a mirar.
@@ -88,7 +90,7 @@ function indiceDelDia(cantidad: number, porDia = 1): number {
  */
 const PLAN = {
     manana: { contenido: 2, agostina: 2 },
-    tarde: { contenido: 2, agostina: 1 },
+    tarde: { contenido: 2 },
 } as const satisfies Record<string, Record<string, number>>;
 
 type Tanda = keyof typeof PLAN;
