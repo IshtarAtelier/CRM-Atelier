@@ -727,23 +727,34 @@ const getSalesVsTarget: CopilotTool = {
     const from = new Date(year, month - 1, 1);
     const to = new Date(year, month, 0, 23, 59, 59, 999);
 
+    // Mismo conjunto y misma regla que el dashboard y /admin/reportes: la
+    // venta es del mes en que se mandó a fábrica (labSentAt, o createdAt si
+    // todavía no se mandó) y vale SIN costo financiero
+    // (PricingService.valorSinCostoFinanciero). Antes sumaba lista por createdAt
+    // y le decía al vendedor un objetivo distinto del de la pantalla.
+    const dateFilter = { gte: from, lte: to };
     const orders = await prisma.order.findMany({
-      where: { orderType: 'SALE', isDeleted: false, createdAt: { gte: from, lte: to } },
+      where: {
+        orderType: 'SALE', isDeleted: false,
+        OR: [{ labSentAt: dateFilter }, { AND: [{ labSentAt: null }, { createdAt: dateFilter }] }],
+      },
       select: {
         total: true,
         paid: true,
         subtotalWithMarkup: true,
-        payments: { select: { amount: true } },
+        discountCash: true,
+        discountTransfer: true,
+        labNotes: true,
+        payments: { select: { method: true, amount: true } },
       },
     });
 
     let totalSold = 0;
     let totalPaid = 0;
     for (const o of orders) {
-      totalSold += o.subtotalWithMarkup || o.total || 0;
-      for (const p of o.payments) {
-        totalPaid += p.amount || 0;
-      }
+      const v = PricingService.valorSinCostoFinanciero(o);
+      totalSold += v.real;
+      totalPaid += v.cobradoNominal;
     }
 
     // Objetivos configurados en USD, resueltos a ARS con el blue del día.
@@ -761,8 +772,8 @@ const getSalesVsTarget: CopilotTool = {
     const progressSoldPercent3 = goal3 > 0 ? ((totalSold / goal3) * 100).toFixed(1) : '0';
 
     let msg = `Progreso de Objetivos para ${monthStr} ${year}:\n`;
-    msg += `- Facturado actual: $${totalSold.toLocaleString('es-AR')}\n`;
-    msg += `- Cobrado actual: $${totalPaid.toLocaleString('es-AR')}\n\n`;
+    msg += `- Facturado actual (sin costo financiero): $${totalSold.toLocaleString('es-AR')}\n`;
+    msg += `- Cobrado tal cual (con costo financiero): $${totalPaid.toLocaleString('es-AR')}\n\n`;
     msg += `🎯 **Metas Mensuales (Base en Facturación):**\n`;
     if (target.currency === 'USD' && target.usd1 && target.rate) {
       msg += `_(Configuradas en USD: ${target.usd1.toLocaleString('es-AR')} / ${target.usd2?.toLocaleString('es-AR')} / ${target.usd3?.toLocaleString('es-AR')} — blue $${target.rate.toLocaleString('es-AR')})_\n`;

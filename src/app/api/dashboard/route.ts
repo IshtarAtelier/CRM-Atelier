@@ -94,6 +94,7 @@ export async function GET(request: Request) {
                 discountCash: true,
                 discountTransfer: true,
                 labSentAt: true,
+                labNotes: true,
                 payments: { select: { method: true, amount: true } },
                 createdAt: true,
                 items: {
@@ -140,7 +141,7 @@ export async function GET(request: Request) {
                 where: { orderType: 'SALE', isDeleted: false },
                 select: {
                     total: true, subtotalWithMarkup: true, labSentAt: true, createdAt: true,
-                    paid: true, discountCash: true, discountTransfer: true,
+                    paid: true, discountCash: true, discountTransfer: true, labNotes: true,
                     payments: { select: { method: true, amount: true } },
                 },
                 orderBy: { labSentAt: 'asc' },
@@ -582,16 +583,14 @@ export async function GET(request: Request) {
                     orderType: 'SALE',
                     isDeleted: false,
                 },
-                select: { total: true, subtotalWithMarkup: true, discountCash: true },
+                select: {
+                    total: true, subtotalWithMarkup: true, paid: true, discountCash: true, discountTransfer: true, labNotes: true,
+                    payments: { select: { method: true, amount: true } },
+                },
             });
-            // Misma moneda que totalSoldMonth (efectivo): comparar efectivo de
-            // este período contra lista del anterior haría mentir la flecha.
-            prevTotal = prevOrders.reduce((acc, o) => acc + PricingService.calculateOrderFinancials({
-                subtotalWithMarkup: o.subtotalWithMarkup,
-                total: o.total,
-                discountCash: o.discountCash,
-                payments: [],
-            }).totalCash, 0);
+            // Misma moneda que totalSoldMonth (sin costo financiero): comparar
+            // bases distintas haría mentir la flecha.
+            prevTotal = prevOrders.reduce((acc, o) => acc + PricingService.valorSinCostoFinanciero(o).real, 0);
         }
 
         const trendPct = prevTotal > 0 ? (((totalSoldMonth - prevTotal) / prevTotal) * 100).toFixed(1) : null;

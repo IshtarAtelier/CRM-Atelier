@@ -54,6 +54,7 @@ export class ReportService {
                 appliedPromoName: true,
                 discountCash: true,
                 discountTransfer: true,
+                labNotes: true, // venta web por transferencia: su `total` ya viene rebajado
                 discountCard: true,
                 discount: true,
                 markup: true,
