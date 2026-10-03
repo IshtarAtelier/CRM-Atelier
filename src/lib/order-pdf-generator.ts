@@ -505,7 +505,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             <span class='p-title'>Efectivo</span><span class='p-desc'>−${financials.discountCash}%</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalCash)}</span>
             <div class='p-ahorro'><s>$${formatearPrecio(financials.listPrice)}</s> · Ahorrás <b>$${formatearPrecio(financials.listPrice - financials.totalCash)}</b></div>
-            ${esPresupuesto ? '' : `<div class='p-saldo'>
+            ${esPresupuesto && financials.paidReal <= 0 ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${formatearPrecio(financials.remainingCash)}</span>
             </div>`}
@@ -514,7 +514,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             <span class='p-title'>Transferencia</span><span class='p-desc'>−${financials.discountTransfer}%</span>
             <span class='p-amount'>$${formatearPrecio(financials.totalTransfer)}</span>
             <div class='p-ahorro'><s>$${formatearPrecio(financials.listPrice)}</s> · Ahorrás <b>$${formatearPrecio(financials.listPrice - financials.totalTransfer)}</b></div>
-            ${esPresupuesto ? '' : `<div class='p-saldo'>
+            ${esPresupuesto && financials.paidReal <= 0 ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${formatearPrecio(financials.remainingTransfer)}</span>
             </div>`}
@@ -524,7 +524,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             <div class='cuota-grande'><b>3</b> cuotas de <span>$${formatearPrecio(financials.installment3)}</span></div>
             <div class='cuota-grande'><b>6</b> cuotas de <span>$${formatearPrecio(financials.installment6)}</span></div>
             <div class='cuota-total'>Total $${formatearPrecio(financials.totalCard)} · precio de lista</div>
-            ${esPresupuesto ? '' : `<div class='p-saldo'>
+            ${esPresupuesto && financials.paidReal <= 0 ? '' : `<div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Listado</span>
                 <span>$${formatearPrecio(financials.remainingCard)}</span>
             </div>`}
@@ -537,7 +537,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         </div>` : ''}
     </div>
 
-    ${esPresupuesto ? '' : `<div class='totals-summary'>
+    ${esPresupuesto && financials.paidReal <= 0 ? '' : `<div class='totals-summary'>
         <div class='tot-col'>
             <span class='tot-label' style="color: #047857;">Efectivo</span>
             <span class='tot-val' style="color: #047857;">$${formatearPrecio(financials.totalCash)}</span>
@@ -959,7 +959,8 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
             y += 18;
         }
         
-        if (!esPresupuesto) {
+        // Un presupuesto muestra lo abonado y el saldo SOLO si hubo un pago (Ishtar, 3/10/2026).
+        if (!esPresupuesto || financials.paidReal > 0) {
         // Totals bar (Light background, beige border)
         doc.setFillColor(255, 252, 249);
         doc.setDrawColor(212, 195, 181); // brandBeige
