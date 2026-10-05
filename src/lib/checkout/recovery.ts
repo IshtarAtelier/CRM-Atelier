@@ -242,6 +242,8 @@ export interface ItemRecuperado {
   model: string;
   price: number;
   basePrice: number;
+  /** Solo el segundo par del 2x1 Varilux, que va en $0 también para un mayorista. */
+  wholesaleBasePrice?: number;
   image: string;
   lensColor: string | null;
   lensConfig: unknown;
@@ -278,7 +280,7 @@ export async function carritoRecuperable(sessionId: string, db = prisma): Promis
   if (ids.length === 0) return [];
   const productos = await db.product.findMany({
     where: { id: { in: ids } },
-    select: { id: true, price: true, salePrice: true, wholesalePrice: true, stock: true },
+    select: { id: true, category: true, price: true, salePrice: true, wholesalePrice: true, stock: true },
   });
   const porId = new Map(productos.map(p => [p.id, p]));
 
@@ -286,20 +288,33 @@ export async function carritoRecuperable(sessionId: string, db = prisma): Promis
   for (const g of guardados) {
     const producto = porId.get(String(g?.productId || ''));
     if (!producto) continue;
-    const armazonHoy = effectiveFramePrice(producto, false);
+    // Mismo freno que el checkout al pagar (Cristal y Tratamiento no llevan
+    // stock): reponer algo agotado solo llevaba a un "Stock insuficiente"
+    // al final del formulario.
+    const llevaStock = producto.category !== 'Cristal' && producto.category !== 'Tratamiento';
+    if (llevaStock && !(producto.stock > 0)) continue;
+    const cantidadPedida = Math.max(1, Math.floor(Number(g.quantity) || 1));
+    const cantidad = llevaStock ? Math.min(cantidadPedida, producto.stock) : cantidadPedida;
+
+    // El segundo par del 2x1 Varilux va en $0 (armazón y cristales): así lo
+    // agrega el configurador y así lo cobra el checkout. Repreciarlo con el
+    // armazón de hoy le mostraba a la persona un total con un anteojo de más.
+    const segundoPar2x1 = !!(g.lensConfig as { secondPair2x1?: unknown } | null)?.secondPair2x1;
+    const armazonHoy = segundoPar2x1 ? 0 : effectiveFramePrice(producto, false);
     const basePrevio = Number(g.basePrice ?? g.price) || 0;
-    const extrasCristales = Math.max(0, (Number(g.price) || 0) - basePrevio);
+    const extrasCristales = segundoPar2x1 ? 0 : Math.max(0, (Number(g.price) || 0) - basePrevio);
     items.push({
       productId: producto.id,
       brand: String(g.brand || ''),
       model: String(g.model || ''),
       price: armazonHoy + extrasCristales,
       basePrice: armazonHoy,
+      ...(segundoPar2x1 ? { wholesaleBasePrice: 0 } : {}),
       image: String(g.image || ''),
       lensColor: g.lensColor ?? null,
       lensConfig: g.lensConfig ?? null,
-      quantity: Math.max(1, Math.floor(Number(g.quantity) || 1)),
-      stock: typeof producto.stock === 'number' ? producto.stock : undefined,
+      quantity: cantidad,
+      stock: llevaStock ? producto.stock : undefined,
     });
   }
   return items;
