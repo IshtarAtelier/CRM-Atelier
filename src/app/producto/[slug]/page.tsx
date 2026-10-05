@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { generoSchemaOrg } from '@/lib/catalog/genero-schema';
 import { cache } from 'react';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
@@ -245,9 +246,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
       images: [
         {
+          // Sin width/height: se declaraba 800×800 para fotos de cualquier
+          // tamaño (había de 2000×1753 y de 5815×4640). Mejor que el que
+          // comparte lea la imagen real que darle un tamaño falso.
           url: ogImageUrl,
-          width: 800,
-          height: 800,
           alt: `${product.brand} ${product.model}`,
         },
       ],
@@ -624,7 +626,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   if ((product as any).gender || (product as any).ageGroup) {
     jsonLd.audience = {
       '@type': 'PeopleAudience',
-      ...( (product as any).gender ? { suggestedGender: (product as any).gender.toLowerCase() } : {} ),
+      // 'female' | 'male' | 'unisex': Google no entiende "femenino" ni una lista.
+      ...( generoSchemaOrg((product as any).gender) ? { suggestedGender: generoSchemaOrg((product as any).gender) } : {} ),
       ...( (product as any).ageGroup ? { suggestedMinAge: (product as any).ageGroup === 'Adulto' ? 18 : 3 } : {} ),
     };
   }

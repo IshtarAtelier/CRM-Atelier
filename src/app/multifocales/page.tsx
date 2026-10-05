@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { OG_IMAGEN_SITIO } from '@/lib/constants/og';
 import { notFound } from "next/navigation";
 
 import { getGoogleReviews } from "@/lib/googleReviews";
@@ -58,6 +59,8 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       url: URL_CANONICA,
       type: "website",
+      // Sin esto la página se compartía sin foto: Next no hereda la del layout.
+      images: [OG_IMAGEN_SITIO],
     },
   };
 }

@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { OG_IMAGEN_SITIO } from '@/lib/constants/og';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { ListadoCategoria } from "@/components/Storefront/ListadoCategoria";
@@ -17,6 +18,8 @@ export const metadata: Metadata = {
     description: DESCRIPCION,
     url: 'https://atelieroptica.com.ar/clip-on',
     type: 'website',
+    // Sin esto la página se compartía sin foto: Next no hereda la del layout.
+    images: [OG_IMAGEN_SITIO],
   },
 };
 

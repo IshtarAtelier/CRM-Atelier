@@ -103,6 +103,7 @@ jobs:
           npm run check:recupero-carrito
           npm run check:go-lineas
           npm run check:lab-modulos
+          npm run check:seo-tienda
 
       # Los datos que el auto-respondedor de WhatsApp le manda a un cliente
       # (horarios, dirección, formas de pago) están duplicados en wa-service/

@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { OG_IMAGEN_SITIO } from '@/lib/constants/og';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { ListadoCatalogoFiltrado } from "@/components/Storefront/ListadoCatalogoFiltrado";
@@ -34,6 +35,8 @@ export const metadata: Metadata = {
     description: 'Descubrí nuestra colección de anteojos de sol con protección UV400. Las mejores marcas y diseños en Córdoba.',
     url: 'https://atelieroptica.com.ar/lentes-de-sol',
     type: 'website',
+    // Sin esto la página se compartía sin foto: Next no hereda la del layout.
+    images: [OG_IMAGEN_SITIO],
   },
 };
 

@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { OG_IMAGEN_SITIO } from '@/lib/constants/og';
 import { FaqClient } from './FaqClient';
 import { FAQ_FLAT } from '@/lib/faq-data';
 import { buildOpticianSchema } from '@/lib/schema';
@@ -26,6 +27,7 @@ export const metadata: Metadata = {
     title: 'Preguntas Frecuentes | Atelier Óptica Córdoba',
     description:
       'Todo lo que necesitás saber sobre nuestros anteojos, cristales, obras sociales, pagos y envíos a todo el país.',
+    images: [OG_IMAGEN_SITIO],
   },
 };
 

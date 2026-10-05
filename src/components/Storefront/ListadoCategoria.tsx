@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { urlAbsoluta } from '@/lib/url-absoluta';
 import { CategoryGrid } from '@/components/Storefront/CategoryGrid';
 import { ProductFilters } from '@/components/Storefront/ProductFilters';
 import { prisma } from '@/lib/db';
@@ -174,8 +175,7 @@ export async function ListadoCategoria({
       // inconsistencia que Google marca al validar.
       numberOfItems: enumerados.length,
       itemListElement: enumerados.map((p, i) => {
-        const foto = p.imagenesCatalogo?.[0] ? resolveStorageUrl(p.imagenesCatalogo[0]) : undefined;
-        const absoluta = foto ? (foto.startsWith('http') ? foto : `https://atelieroptica.com.ar${foto}`) : undefined;
+        const absoluta = urlAbsoluta(p.imagenesCatalogo?.[0] ? resolveStorageUrl(p.imagenesCatalogo[0]) : undefined);
         return {
           '@type': 'ListItem',
           position: i + 1,

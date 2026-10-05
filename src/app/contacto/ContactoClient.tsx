@@ -308,7 +308,7 @@ export function ContactoClient({
           </div>
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-1">Llamanos</h4>
-            <a href={`tel:${whatsappPhoneId.replace(/\D/g, '')}`} className="text-stone-800 hover:text-[#c8a55c] font-medium transition-colors">
+            <a href={`tel:+${whatsappPhoneId.replace(/\D/g, '')}`} className="text-stone-800 hover:text-[#c8a55c] font-medium transition-colors">
               {phone}
             </a>
           </div>
