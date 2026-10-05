@@ -682,7 +682,9 @@ export function ProductClient({
                   hideTransferRow={!hasSale}
                 />
 
-                {desde && (
+                {/* Agotado no: el botón de cristales está apagado y el texto
+                    invitaba a "elegir otros en el paso siguiente". */}
+                {desde && !(product.stock !== undefined && product.stock <= 0) && (
                   <div className="mt-4 border border-stone-200 bg-stone-50 px-4 py-3">
                     <p className="text-base font-bold text-stone-900">
                       Anteojo completo desde {precioConSigno(desde.lista)}
