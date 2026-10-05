@@ -63,6 +63,8 @@ export default async function ClipOnPage({
             material: texto('material'),
             genero: texto('genero'),
             orden: texto('orden'),
+            precioMin: texto('precioMin'),
+            precioMax: texto('precioMax'),
           }}
         />
       </main>

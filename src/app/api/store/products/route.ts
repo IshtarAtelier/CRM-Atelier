@@ -5,9 +5,8 @@ import { serverCache } from '@/lib/cache';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 import { canSeeWholesalePrices } from '@/lib/wholesale-access';
 import { coincideBusquedaTienda } from '@/lib/catalog/busqueda-tienda';
-import { precioFinal } from '@/lib/precio-oferta';
+import { precioParaRango, leerRangoPrecio, dentroDelRango, descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
 import { getWebSettings } from '@/lib/web-settings';
-import { PricingService } from '@/services/PricingService';
 import { calcularFacetas, filtrarPorFacetas, facetaValorUnico, facetaValoresMultiples } from '@/lib/catalog/facetas';
 
 export const dynamic = 'force-dynamic';
@@ -114,8 +113,7 @@ export async function GET(request: NextRequest) {
         // conteos). Antes vivían duplicadas — una copia filtraba, la otra
         // servía de base a los conteos — y las dos podían divergir sin que
         // nada avisara si alguien tocaba una y no la otra.
-        const precioMinParaFiltro = Number(request.nextUrl.searchParams.get('precioMin') || 0);
-        const precioMaxParaFiltro = Number(request.nextUrl.searchParams.get('precioMax') || 0);
+        const rangoDePrecio = leerRangoPrecio(request.nextUrl.searchParams.get('precioMin'), request.nextUrl.searchParams.get('precioMax'));
         const coincideCategoria = (p: any) => {
             if (!category || category === 'Todo') return true;
             const active = category.toLowerCase();
@@ -131,21 +129,16 @@ export async function GET(request: NextRequest) {
         // la tienda al público, el precio por transferencia (el grande); en el
         // canal mayorista, el que se cobra. Antes se comparaba siempre contra
         // el de tarjeta y "Hasta $150.000" dejaba 5 modelos con 134 tarjetas
-        // mostrando menos (auditoría 25/9, re-chequeo 28/9). Los rangos viven
-        // en src/lib/constants/rangos-precio-tienda.ts. El % se lee solo si hay
-        // un rango puesto, para no sumar una consulta a cada carga.
-        const hayRangoDePrecio = precioMinParaFiltro > 0 || precioMaxParaFiltro > 0;
+        // mostrando menos (auditoría 25/9, re-chequeo 28/9). La comparación
+        // vive en src/lib/catalog/rango-precio.ts (la usan también /receta,
+        // /lentes-de-sol y /clip-on). El % se lee solo si hay un rango puesto,
+        // para no sumar una consulta a cada carga.
+        const hayRangoDePrecio = rangoDePrecio.activo;
         const descuentoTransferenciaPct = hayRangoDePrecio && !isWholesale
-            ? Number((await getWebSettings()).web_promo_cash_discount ?? 15)
+            ? descuentoTransferenciaDe((await getWebSettings()).web_promo_cash_discount)
             : 0;
-        const coincidePrecio = (p: any) => {
-            if (!hayRangoDePrecio) return true;
-            const cobrado = precioFinal(p);
-            const valor = isWholesale ? cobrado : PricingService.preciosVidriera(cobrado, descuentoTransferenciaPct).contado;
-            if (precioMinParaFiltro > 0 && valor < precioMinParaFiltro) return false;
-            if (precioMaxParaFiltro > 0 && valor > precioMaxParaFiltro) return false;
-            return true;
-        };
+        const coincidePrecio = (p: any) =>
+            !hayRangoDePrecio || dentroDelRango(precioParaRango(p, descuentoTransferenciaPct, isWholesale), rangoDePrecio);
         // Misma búsqueda que la lupa del encabezado (src/lib/catalog/busqueda-tienda.ts).
         const coincideBusqueda = (p: any) => coincideBusquedaTienda(p, search);
 
