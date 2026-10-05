@@ -9,7 +9,12 @@
  *
  * Qué hace, en orden:
  * 1. Genera el código (ARR-AAAAMMDD-XXXXX) y busca el pedido por el número
- *    que ve el cliente (#ABCD = últimos 4 del id) Y el email de la ficha.
+ *    que ve el cliente (#ABCD = últimos 4 del id) Y el email. El email vale
+ *    si es el de la ficha O el que la persona escribió al comprar: el
+ *    checkout encuentra la ficha por teléfono y no le guarda el email, así
+ *    que un cliente que ya existía nunca coincidía (revisión del 5/10). El
+ *    del checkout queda en el intento de pago de Mercado Pago y, desde esta
+ *    versión, en la auditoría de la compra web.
  * 2. Crea la Notification pendiente en el CRM. Si la base no responde, ACÁ
  *    falla: el cliente tiene que enterarse de que no quedó registrado.
  * 3. Deja el registro firmado por SYSTEM_ACTOR en AuditLog (con await: es la
@@ -42,6 +47,13 @@ export interface SolicitudArrepentimiento {
     numeroPedido: string;
     email: string;
     motivo?: string | null;
+    /**
+     * Llegó con el campo trampa completado. Puede ser un robot o el
+     * autocompletado del navegador de una persona: el código que se le
+     * muestra tiene que ser real, así que queda la constancia en la
+     * auditoría, pero no se avisa a nadie ni se manda ningún mail.
+     */
+    sospechoso?: boolean;
 }
 
 export interface ResultadoArrepentimiento {
@@ -52,9 +64,14 @@ export interface ResultadoArrepentimiento {
 /** Lo que el servicio necesita de la base (inyectable para el check sin base). */
 export interface DbArrepentimiento {
     order: {
-        findMany(args: unknown): Promise<Array<{ id: string; clientId: string | null; client: { id: string; name: string | null; email: string | null } | null }>>;
+        findMany(args: unknown): Promise<Array<{
+            id: string; clientId: string | null;
+            client: { id: string; name: string | null; email: string | null } | null;
+            paymentIntents?: Array<{ checkoutContext: string | null }>;
+        }>>;
     };
-    notification: { create(args: unknown): Promise<unknown> };
+    auditLog: { findMany(args: unknown): Promise<Array<{ entityId: string; details: unknown }>> };
+    notification: { create(args: unknown): Promise<unknown>; count(args: unknown): Promise<number> };
     interaction: { create(args: unknown): Promise<unknown> };
 }
 
@@ -66,6 +83,13 @@ export interface DependenciasArrepentimiento {
 }
 
 const ZONA_ARGENTINA = 'America/Argentina/Buenos_Aires';
+/**
+ * Solicitudes SIN pedido que coincida que llegan a la campana y al mail del
+ * equipo en 24 h. El formulario es público: sin tope, alguien con varias IPs
+ * llenaba las 50 notificaciones que muestra la campana y tapaba las de
+ * verdad. Las que pasan el tope quedan igual en la auditoría, con su código.
+ */
+export const TOPE_SIN_PEDIDO_POR_DIA = 5;
 /** Sin 0/O ni 1/I/L: el código se dicta por teléfono o WhatsApp. */
 const ALFABETO_CODIGO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
@@ -91,6 +115,17 @@ function mismoEmail(a: string | null | undefined, b: string | null | undefined):
     return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
+/** El email que la persona escribió en el checkout de Mercado Pago (WebPaymentIntent.checkoutContext). */
+function emailDelIntento(checkoutContext: string | null): string | null {
+    if (!checkoutContext) return null;
+    try {
+        const email = (JSON.parse(checkoutContext) as { customer?: { email?: unknown } })?.customer?.email;
+        return typeof email === 'string' ? email : null;
+    } catch {
+        return null;
+    }
+}
+
 export async function registrarArrepentimiento(
     solicitud: SolicitudArrepentimiento,
     deps: DependenciasArrepentimiento = {},
@@ -109,26 +144,68 @@ export async function registrarArrepentimiento(
     const candidatos = pedido.length >= 4
         ? await db.order.findMany({
             where: { id: { endsWith: pedido.toLowerCase() }, isDeleted: false },
-            select: { id: true, clientId: true, client: { select: { id: true, name: true, email: true } } },
+            select: {
+                id: true, clientId: true,
+                client: { select: { id: true, name: true, email: true } },
+                paymentIntents: { select: { checkoutContext: true } },
+            },
             take: 20,
         })
         : [];
-    const coincide = candidatos.find(o => mismoEmail(o.client?.email, email)) ?? null;
+    // El email del checkout que quedó en la auditoría de la compra web.
+    const auditorias = candidatos.length
+        ? await db.auditLog.findMany({
+            where: { entityType: 'ORDER', action: 'CREATE', entityId: { in: candidatos.map(o => o.id) } },
+            select: { entityId: true, details: true },
+        })
+        : [];
+    const emailsDelCheckout = (orderId: string): string[] => [
+        ...auditorias.filter(a => a.entityId === orderId)
+            .map(a => (a.details as { email?: unknown } | null)?.email)
+            .filter((e): e is string => typeof e === 'string'),
+        ...(candidatos.find(o => o.id === orderId)?.paymentIntents ?? [])
+            .map(i => emailDelIntento(i.checkoutContext))
+            .filter((e): e is string => !!e),
+    ];
+    const coincide = candidatos.find(o =>
+        mismoEmail(o.client?.email, email) || emailsDelCheckout(o.id).some(e => mismoEmail(e, email)),
+    ) ?? null;
 
     const resumen = coincide
         ? `pedido #${pedido} de ${coincide.client?.name || 'cliente'}`
         : `pedido #${pedido || '(sin número)'} — el email no coincide con ningún pedido: revisar a mano`;
 
-    // 2. Aviso en el CRM. Si esto falla, se propaga: el trámite no quedó registrado.
-    await db.notification.create({
-        data: {
-            type: 'WITHDRAWAL_REQUEST',
-            message: `Botón de arrepentimiento ${codigo}: ${resumen}. Email: ${email}.${motivo ? ` Motivo: ${motivo}` : ''}`,
-            orderId: coincide?.id ?? null,
-            requestedBy: SYSTEM_ACTOR.name,
-            status: 'PENDING',
-        },
-    });
+    // 2. ¿Se avisa al equipo? Una sola notificación pendiente por pedido, y
+    // un tope diario para las que no coinciden con ningún pedido. Estas
+    // consultas van ANTES de devolver el código: si la base no responde,
+    // falla, y el cliente se entera de que no quedó registrado.
+    let sinAviso: 'campo-trampa' | 'ya-pendiente' | 'tope-diario' | null = null;
+    if (solicitud.sospechoso) {
+        sinAviso = 'campo-trampa';
+    } else if (coincide) {
+        const pendientes = await db.notification.count({
+            where: { type: 'WITHDRAWAL_REQUEST', status: 'PENDING', orderId: coincide.id },
+        });
+        if (pendientes > 0) sinAviso = 'ya-pendiente';
+    } else {
+        const ultimas24h = await db.notification.count({
+            where: { type: 'WITHDRAWAL_REQUEST', orderId: null, createdAt: { gte: new Date(recibidoEn.getTime() - 24 * 60 * 60 * 1000) } },
+        });
+        if (ultimas24h >= TOPE_SIN_PEDIDO_POR_DIA) sinAviso = 'tope-diario';
+    }
+
+    // Aviso en el CRM. Si esto falla, se propaga: el trámite no quedó registrado.
+    if (!sinAviso) {
+        await db.notification.create({
+            data: {
+                type: 'WITHDRAWAL_REQUEST',
+                message: `Botón de arrepentimiento ${codigo}: ${resumen}. Email: ${email}.${motivo ? ` Motivo: ${motivo}` : ''}`,
+                orderId: coincide?.id ?? null,
+                requestedBy: SYSTEM_ACTOR.name,
+                status: 'PENDING',
+            },
+        });
+    }
 
     // 3. La constancia del trámite, firmada. await: es lo que prueba que se recibió.
     await registrarAuditoria({
@@ -137,8 +214,10 @@ export async function registrarArrepentimiento(
         action: 'CREATE',
         entityType: 'WITHDRAWAL_REQUEST',
         entityId: codigo,
-        details: { codigo, numeroPedido: pedido, email, motivo, orderId: coincide?.id ?? null, emailCoincide: !!coincide, recibidoEn: recibidoEn.toISOString() },
+        details: { codigo, numeroPedido: pedido, email, motivo, orderId: coincide?.id ?? null, emailCoincide: !!coincide, recibidoEn: recibidoEn.toISOString(), sinAviso },
     });
+
+    if (sinAviso === 'campo-trampa' || sinAviso === 'tope-diario') return { codigo, recibidoEn };
 
     if (coincide?.clientId) {
         await db.interaction.create({
@@ -153,12 +232,16 @@ export async function registrarArrepentimiento(
     }
 
     // 4. Mails, sin demorar la respuesta.
+    // Si el pedido ya tenía una solicitud pendiente, el equipo ya está avisado:
+    // la nueva queda en la ficha y en la auditoría, y el cliente recibe su código.
     const cuando = formatDateTime(enHoraArgentina(recibidoEn));
-    enviarEmail({
-        to: ADMIN_ALERT_EMAILS,
-        subject: `↩️ Botón de arrepentimiento ${codigo} · pedido #${pedido || '?'}`,
-        html: htmlParaElEquipo({ codigo, cuando, pedido, email, motivo, coincide }),
-    }).catch(err => console.error('[Arrepentimiento] No se pudo avisar al equipo por mail:', err));
+    if (!sinAviso) {
+        enviarEmail({
+            to: ADMIN_ALERT_EMAILS,
+            subject: `↩️ Botón de arrepentimiento ${codigo} · pedido #${pedido || '?'}`,
+            html: htmlParaElEquipo({ codigo, cuando, pedido, email, motivo, coincide }),
+        }).catch(err => console.error('[Arrepentimiento] No se pudo avisar al equipo por mail:', err));
+    }
 
     if (coincide) {
         enviarEmail({

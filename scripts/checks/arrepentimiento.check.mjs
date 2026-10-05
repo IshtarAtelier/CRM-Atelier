@@ -10,8 +10,11 @@
  *     respuesta no revela qué números de pedido son reales;
  *   · la constancia queda firmada (AuditLog con SYSTEM_ACTOR) y el equipo se
  *     entera (Notification + mail);
- *   · el mail al cliente sale SOLO si su email coincide con el del pedido, así
- *     el formulario no sirve para mandarle mails nuestros a un tercero;
+ *   · el mail al cliente sale SOLO si su email coincide con el del pedido (el
+ *     de la ficha o el que escribió al comprar), así el formulario no sirve
+ *     para mandarle mails nuestros a un tercero;
+ *   · un formulario público no puede llenar la campana: una notificación
+ *     pendiente por pedido y tope diario para las que no coinciden;
  *   · si la base no responde, falla: mejor un error que un código de un
  *     trámite que no quedó registrado.
  *
@@ -27,7 +30,7 @@ const esperar = (nombre, cond, detalle) => casos.push({ nombre, ok: !!cond, deta
 const PEDIDO_ID = 'cmuhb8wue006y13o71crvabcd'; // el cliente ve "#ABCD"
 const ahora = () => new Date('2026-09-28T19:30:00.000Z'); // 16:30 en Argentina
 
-function dobles({ falleNotificacion = false } = {}) {
+function dobles({ falleNotificacion = false, emailFicha = 'ana@ejemplo.com', emailAuditoria = null, emailIntentoMp = null, pendientesDelPedido = 0, sinPedidoUltimas24h = 0 } = {}) {
     const registro = { notificaciones: [], interacciones: [], auditorias: [], mails: [], consultas: [] };
     const db = {
         order: {
@@ -35,15 +38,25 @@ function dobles({ falleNotificacion = false } = {}) {
                 registro.consultas.push(args);
                 const sufijo = args?.where?.id?.endsWith;
                 return PEDIDO_ID.endsWith(sufijo)
-                    ? [{ id: PEDIDO_ID, clientId: 'cliente-1', client: { id: 'cliente-1', name: 'Ana Pérez', email: 'ana@ejemplo.com' } }]
+                    ? [{
+                        id: PEDIDO_ID, clientId: 'cliente-1',
+                        client: { id: 'cliente-1', name: 'Ana Pérez', email: emailFicha },
+                        paymentIntents: emailIntentoMp ? [{ checkoutContext: JSON.stringify({ customer: { email: emailIntentoMp } }) }] : [],
+                    }]
                     : [];
             },
+        },
+        auditLog: {
+            findMany: async (args) => (emailAuditoria && args?.where?.entityId?.in?.includes(PEDIDO_ID)
+                ? [{ entityId: PEDIDO_ID, details: { orderType: 'SALE', email: emailAuditoria } }]
+                : []),
         },
         notification: {
             create: async (args) => {
                 if (falleNotificacion) throw new Error('base caída');
                 registro.notificaciones.push(args.data);
             },
+            count: async (args) => (args?.where?.orderId ? pendientesDelPedido : sinPedidoUltimas24h),
         },
         interaction: { create: async (args) => { registro.interacciones.push(args.data); } },
     };
@@ -101,6 +114,58 @@ for (const [nombre, solicitud] of [
     esperar(`${nombre}: la notificación pide revisarlo a mano`, registro.notificaciones[0]?.message.includes('revisar a mano') && registro.notificaciones[0]?.orderId === null);
     esperar(`${nombre}: NO le manda mail a ese email, solo al equipo`, registro.mails.length === 1 && !registro.mails[0].to.includes(solicitud.email), JSON.stringify(registro.mails.map((m) => m.to)));
     esperar(`${nombre}: no toca ninguna ficha`, registro.interacciones.length === 0);
+}
+
+// Cliente que ya existía: la ficha se encontró por teléfono y tiene otro
+// email (o ninguno). El que escribió al comprar está en la auditoría de la
+// compra web o en el intento de Mercado Pago.
+for (const [nombre, opciones] of [
+    ['email del checkout guardado en la auditoría de la compra', { emailFicha: null, emailAuditoria: 'ana.nueva@ejemplo.com' }],
+    ['email del checkout en el intento de Mercado Pago', { emailFicha: 'vieja@ejemplo.com', emailIntentoMp: 'Ana.Nueva@ejemplo.com' }],
+]) {
+    const { registro, deps } = dobles(opciones);
+    await registrarArrepentimiento({ numeroPedido: '#ABCD', email: 'ana.nueva@ejemplo.com' }, deps);
+    await new Promise((ok) => setTimeout(ok, 0));
+    esperar(`${nombre}: coincide con el pedido`, registro.notificaciones[0]?.orderId === PEDIDO_ID, JSON.stringify(registro.notificaciones));
+    esperar(`${nombre}: el cliente recibe su constancia`, registro.mails.some((m) => m.to === 'ana.nueva@ejemplo.com'));
+}
+
+// Una sola notificación pendiente por pedido
+{
+    const { registro, deps } = dobles({ pendientesDelPedido: 1 });
+    const r = await registrarArrepentimiento({ numeroPedido: '#ABCD', email: 'ana@ejemplo.com' }, deps);
+    await new Promise((ok) => setTimeout(ok, 0));
+    esperar('pedido con una solicitud pendiente: no se repite en la campana ni en el mail del equipo',
+        registro.notificaciones.length === 0 && !registro.mails.some((m) => m.subject.includes('Botón de arrepentimiento')), JSON.stringify(registro.mails.map((m) => m.subject)));
+    esperar('…pero el cliente recibe su código y queda la constancia', registro.mails.some((m) => m.to === 'ana@ejemplo.com') && registro.auditorias[0]?.entityId === r.codigo && registro.auditorias[0]?.details?.sinAviso === 'ya-pendiente');
+}
+
+// Tope diario para las que no coinciden con ningún pedido (formulario público)
+{
+    const { registro, deps } = dobles({ sinPedidoUltimas24h: 5 });
+    const r = await registrarArrepentimiento({ numeroPedido: '#ZZZZ', email: 'spam@ejemplo.com' }, deps);
+    await new Promise((ok) => setTimeout(ok, 0));
+    esperar('pasado el tope diario sin pedido: ni campana ni mails', registro.notificaciones.length === 0 && registro.mails.length === 0);
+    esperar('…pero el código existe en la auditoría', /^ARR-/.test(r.codigo) && registro.auditorias[0]?.entityId === r.codigo && registro.auditorias[0]?.details?.sinAviso === 'tope-diario');
+}
+
+// Campo trampa: el código que se muestra tiene que ser real
+{
+    const { registro, deps } = dobles();
+    const r = await registrarArrepentimiento({ numeroPedido: '#ABCD', email: 'ana@ejemplo.com', sospechoso: true }, deps);
+    await new Promise((ok) => setTimeout(ok, 0));
+    esperar('campo trampa: queda la constancia con el mismo código que se muestra', registro.auditorias[0]?.entityId === r.codigo && registro.auditorias[0]?.details?.sinAviso === 'campo-trampa');
+    esperar('campo trampa: no avisa, no manda mails, no toca la ficha', registro.notificaciones.length === 0 && registro.mails.length === 0 && registro.interacciones.length === 0);
+}
+
+// La compra web guarda el email del checkout (si no, un cliente que ya
+// existía no coincide nunca) y la ruta ya no inventa códigos.
+{
+    const { readFileSync } = await import('node:fs');
+    const payway = readFileSync(new URL('../../src/app/api/checkout/payway/route.ts', import.meta.url), 'utf8');
+    esperar('la auditoría de la compra web guarda el email del checkout', /entityType: 'ORDER'[\s\S]{0,400}details: \{[^}]*email: customer\.email/.test(payway));
+    const ruta = readFileSync(new URL('../../src/app/api/web/arrepentimiento/route.ts', import.meta.url), 'utf8');
+    esperar('la ruta no devuelve códigos que no se registraron', !/generarCodigoTramite/.test(ruta) && /sospechoso: !!sitio/.test(ruta));
 }
 
 // Base caída

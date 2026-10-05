@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { enforceRateLimit } from '@/lib/api-guard';
 import { arrepentimientoSchema, validateBody } from '@/lib/validation';
-import { generarCodigoTramite, registrarArrepentimiento } from '@/services/arrepentimiento.service';
+import { registrarArrepentimiento } from '@/services/arrepentimiento.service';
 
 /**
  * Botón de arrepentimiento (formulario público de /arrepentimiento).
@@ -20,14 +20,11 @@ export async function POST(req: Request) {
     if (!validado.success) return NextResponse.json({ error: validado.error }, { status: 400 });
     const { numeroPedido, email, motivo, sitio } = validado.data;
 
-    // Campo trampa completado = robot. Se le responde igual que a una persona,
-    // pero no se registra ni se avisa a nadie.
-    if (sitio) {
-        return NextResponse.json({ ok: true, codigo: generarCodigoTramite(new Date()) });
-    }
-
+    // Campo trampa completado: robot, o el autocompletado de una persona. Se
+    // registra igual (el código que ve tiene que existir) pero sin avisar a
+    // nadie ni mandar mails; ver `sospechoso` en el service.
     try {
-        const { codigo, recibidoEn } = await registrarArrepentimiento({ numeroPedido, email, motivo });
+        const { codigo, recibidoEn } = await registrarArrepentimiento({ numeroPedido, email, motivo, sospechoso: !!sitio });
         return NextResponse.json({ ok: true, codigo, recibidoEn: recibidoEn.toISOString() });
     } catch (error) {
         console.error('[Arrepentimiento] No se pudo registrar la solicitud:', error);

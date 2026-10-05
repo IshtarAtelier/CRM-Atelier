@@ -760,7 +760,10 @@ export async function POST(req: Request) {
       action: 'CREATE',
       entityType: 'ORDER',
       entityId: order.id,
-      details: { orderType: order.orderType, paymentMethod: customer.paymentMethod, total: order.total }
+      // El email que escribió en el checkout: la ficha se encuentra por
+      // teléfono y no se le actualiza el email, así que este es el único
+      // lugar donde queda junto al pedido (lo usa el botón de arrepentimiento).
+      details: { orderType: order.orderType, paymentMethod: customer.paymentMethod, total: order.total, email: customer.email || null }
     }).catch(err => console.error('Error en logAudit de compra web:', err));
 
     // MERCADO PAGO (Checkout Pro) — pasarela de RESPALDO.
