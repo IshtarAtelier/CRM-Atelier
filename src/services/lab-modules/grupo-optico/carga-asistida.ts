@@ -19,6 +19,7 @@ import { mensajeExistente, pedidoExistenteDelPar, type PedidoExistente } from '.
  * venta. El 2º par de un 2x1 toma solo el nº del 1º ya cargado.
  */
 
+const texto = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
 const esCristalGO = (i: any) => /cristal/i.test(i.productCategorySnapshot || i.product?.category || '')
     && /grupo/i.test(i.laboratorySnapshot || i.product?.laboratory || '');
 
@@ -72,12 +73,14 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                 const r = planDeCarga(venta as any, pair, { tipoArmazon: 'PLASTICO', pedidoOrigen: pair === 2 ? (origen ?? '80000000') : null });
                 const items = (porPar.get(pair) || []) as any[];
                 const existente = yaCargados.get(pair);
+                const esStock = /^stock\b/i.test(texto(items[0]?.product?.name ?? items[0]?.productNameSnapshot).split('·')[0]);
                 return {
                     pair,
                     titulo: items[0]?.product?.name ?? items[0]?.productNameSnapshot ?? null,
                     faltantes: r.ok ? [] : r.faltantes,
                     avisos: r.avisos,
-                    campos,
+                    // Stock: el portal no lleva forma del armazón; no se ofrece.
+                    campos: esStock ? campos.filter(c => c.clave !== 'forma') : campos,
                     espera: es2x1 && pair === 2 && !origen ? 'Es el 2º par del 2x1: se prepara cuando el 1er par esté cargado (lleva su nº en la observación, para que el laboratorio no lo cobre).' : null,
                     yaCargado: existente ? mensajeExistente(existente, pair) : null,
                 };

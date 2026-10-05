@@ -57,6 +57,8 @@ export interface VistaDeBorrador {
     /** Lo que se carga, renglón por renglón (apoyo de la captura, nunca su reemplazo). */
     filas: { titulo: string; valor: string; fuerte?: boolean }[];
     avisos: string[];
+    /** Cómo se titulan los avisos (Vitolen: son cosas para hacer a mano antes de aprobar). */
+    tituloAvisos?: string;
     /** Link al pedido en el portal, si el portal lo tiene (para corregirlo ahí). */
     enlacePortal?: string | null;
     /** Documento del laboratorio una vez cargado (PDF del pedido). */

@@ -66,6 +66,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
                 { titulo: 'Trabajos', valor: `${p.tratamientos?.antirreflejo ? 'AR' : 'sin AR'} · ${p.montajes?.calibrado ? 'calibrado' : 'sin calibrar'}${p.pedidoOrigen ? ` · 2º par de ${p.pedidoOrigen}` : ''}` },
             ],
             avisos: Array.isArray(r.pendientes) ? r.pendientes : [],
+            tituloAvisos: 'Quedó para hacer a mano en el portal antes de aprobar:',
             enlacePortal: r.url ?? null,
             documento: null,
             pendienteEnPortal: r.portalDraftId && !r.canceladoEl && !r.confirmadoAManoEl && (b.status === 'RECHAZADO' || b.status === 'ERROR') ? { id: String(r.portalDraftId), url: r.url ?? null } : null,

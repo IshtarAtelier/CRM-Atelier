@@ -35,15 +35,22 @@ Hoya no entra.
    Outdoor), elegila.
 3. Apretá **"Preparar en Vitolen"**. Tarda 10‑20 segundos: el robot entra al
    portal, llena los 35 campos y crea el pedido como **borrador sin
-   confirmar**. Vuelve con la captura del resumen que muestra Vitolen.
-4. **Revisá la captura contra la venta**: cristal (el código de lista va
-   adelante, p. ej. "10070 - Array 2 1.60 Hilux MR-8 Clear"), graduación,
-   DNP, alturas, armazón, forma, calibrado, antirreflejo.
-   - Si está bien → **Aprobar**. El robot confirma en el portal, el nº de
-     trabajo queda en la venta y **al cliente le llega el aviso de "pedido
-     procesado"** (igual que cuando se carga el nº a mano).
+   confirmar**. En la ficha aparece **la pantalla real de Vitolen** con el
+   resumen del pedido.
+4. Tocá **"Ver el portal en grande y decidir"** y revisá esa pantalla contra
+   la venta: cristal (el código de lista va adelante, p. ej. "10070 - Array 2
+   1.60 Hilux MR-8 Clear"), graduación, DNP, alturas, armazón, forma,
+   calibrado, antirreflejo. Si quedó algo para hacer a mano (la promo del 2º
+   par, el eje de la diagonal mayor), la ficha lo dice en amarillo.
+5. Ahí mismo, abajo de la pantalla, decidí:
+   - Si está bien → **Aprobar y cargar**. El robot confirma en el portal, el
+     nº de trabajo queda en la venta y **al cliente le llega el aviso de
+     "pedido procesado"** (igual que cuando se carga el nº a mano).
    - Si algo está mal → **Rechazar** con el motivo. El robot cancela el
      borrador en el portal. Corregí la venta y volvé a preparar.
+
+Es **la misma forma de trabajar que con Grupo Óptico**: preparar, mirar la
+pantalla real del laboratorio, aprobar.
    - Si es un detalle chico, el link "abrilo en el portal" lleva al borrador:
      se corrige con **Modificar** en Vitolen y después se aprueba acá.
 5. **Segundo par de la promo Hoya**: el bloque te lo marca en amarillo. Antes

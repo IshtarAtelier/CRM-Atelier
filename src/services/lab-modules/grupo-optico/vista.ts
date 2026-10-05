@@ -75,30 +75,32 @@ export function pedidoComoLoGuardaElPortal(p: Record<string, any>, e: Etiquetas,
     };
 }
 
-/** Lo que tiene que coincidir entre lo que manda el robot y lo que mandaría el portal desde su formulario. */
-const CAMPOS_DE_LA_VISTA = [
-    'lensTypeId', 'materialId', 'colorId', 'brandId',
-    'rightEyeArticle', 'rightEyeStockArticle', 'rightEyeFarSpherical', 'rightEyeFarCylindrical', 'rightEyeFarAxis', 'rightEyeNearSpherical', 'rightEyeAddition', 'rightEyeInterpupillaryDistance', 'rightEyePupillaryHeight',
-    'leftEyeArticle', 'leftEyeStockArticle', 'leftEyeFarSpherical', 'leftEyeFarCylindrical', 'leftEyeFarAxis', 'leftEyeNearSpherical', 'leftEyeAddition', 'leftEyeInterpupillaryDistance', 'leftEyePupillaryHeight',
-    'tintedId', 'tintedArticleId', 'tintedColor', 'tintedIntensity', 'frameType', 'typeRimId', 'typeRimArticleId',
-    'bridge', 'bridgeA', 'bridgeB', 'bridgeED', 'frameShape', 'frameModel', 'opticsCode', 'opticsComment', 'calibrated', 'frameBrought',
-] as const;
+/**
+ * Lo que el formulario del portal decide solo y el robot ADOPTA tal cual (así
+ * lo que se muestra es lo que se manda): la base del bloque. Todo lo demás se
+ * compara, salvo los datos de transporte de la petición.
+ */
+export const ADOPTAR_DEL_PORTAL = ['blockBase'] as const;
+const DE_TRANSPORTE = new Set(['action', 'orderId', 'isEdit', 'userId', 'isClient', 'clientId', 'patientId', 'sellerId']);
 
 /**
  * Diferencias entre el pedido del robot y el que armó el formulario del
- * portal. Los números se comparan como números ("25.000" = "25", "+0.75" =
- * ".750"); un eje "0" sin cilindro y un null son lo mismo. Vacío = iguales. Puro.
+ * portal, en TODAS las claves salvo las de transporte. Los números se comparan
+ * como números ("25.000" = "25", "+0.75" = ".750"); solo en ejes y adiciones
+ * un 0 vale lo mismo que vacío (un eje sin cilindro, una adición de monofocal).
+ * Vacío = iguales. Puro.
  */
 export function diferenciasDeVista(robot: Record<string, any>, portal: Record<string, any>): string[] {
-    const norm = (v: unknown): string => {
+    const norm = (k: string, v: unknown): string => {
         if (v === null || v === undefined || v === '' || v === 'NULL') return '';
         if (typeof v === 'boolean') return v ? '1' : '0';
         const t = String(v).trim();
         const n = Number(t);
-        if (t !== '' && Number.isFinite(n)) return n === 0 ? '' : String(n);
+        if (t !== '' && Number.isFinite(n)) return n === 0 && /Axis$|Addition$/.test(k) ? '' : String(n);
         return t.replace(/\s+/g, ' ');
     };
-    return CAMPOS_DE_LA_VISTA.filter(k => norm(robot[k]) !== norm(portal[k])).map(k => `${k}: el robot manda ${JSON.stringify(robot[k] ?? null)} y el portal armaría ${JSON.stringify(portal[k] ?? null)}`);
+    const claves = [...new Set([...Object.keys(robot), ...Object.keys(portal)])].filter(k => !DE_TRANSPORTE.has(k));
+    return claves.filter(k => norm(k, robot[k]) !== norm(k, portal[k])).map(k => `${k}: el robot manda ${JSON.stringify(robot[k] ?? null)} y el portal armaría ${JSON.stringify(portal[k] ?? null)}`);
 }
 
 const SOLO_LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -132,6 +134,10 @@ async function enSoloLectura<T>(page: Page, responder: ((url: string) => unknown
         atajadas.length = 0;
         return await tarea(atajadas);
     } finally {
+        // Antes de levantar el bloqueo se MATA la página del portal (about:blank):
+        // si su JavaScript reintentara el envío abortado, lo haría sin ruta y
+        // llegaría al servidor. Con la página en blanco no queda nada corriendo.
+        await page.goto('about:blank', { waitUntil: 'commit' }).catch(() => null);
         await page.unroute('**/*', handler).catch(() => null);
     }
 }

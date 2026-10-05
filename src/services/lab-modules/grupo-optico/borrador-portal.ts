@@ -9,7 +9,7 @@ import { conSesionSmartLab, LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO, ROBOT_GRUPO_O
 import { payloadCreateUpdate, planDeCarga, type OpcionesCarga, type PlanDeCarga, type ResueltoEnPortal } from './carga';
 import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
 import { leerVentaParaCargaGO } from './venta';
-import { capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
+import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import type { EstadoEnPortal } from '../contrato';
@@ -126,6 +126,8 @@ export async function prepararEnPortal(borradorId: string) {
             const { resuelto, etiquetas } = await resolverEnPortal(page, r.plan);
             const payloadPortal = payloadCreateUpdate(r.plan, resuelto);
             const vista = await capturarVistaEnPortal(page, payloadPortal, etiquetas);
+            // Lo que el formulario decide solo (la base) se manda como lo muestra.
+            for (const k of ADOPTAR_DEL_PORTAL) payloadPortal[k] = vista.payloadDelPortal[k] ?? null;
             const dif = diferenciasDeVista(payloadPortal, vista.payloadDelPortal);
             // Lo que se muestra tiene que ser lo que se manda: si el formulario del
             // portal armaría otra cosa, no hay nada para aprobar.

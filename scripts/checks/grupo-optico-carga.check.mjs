@@ -268,11 +268,26 @@ ok('lo que se muestra tiene que ser lo que se manda: cualquier diferencia con lo
     const r = planDeCarga(venta2x1(), 1, { tipoArmazon: 'PLASTICO', forma: 1 });
     const nuestro = payloadCreateUpdate(r.plan, RES);
     // el portal devuelve los mismos datos con otro formato numérico: no es diferencia
-    const portal = { ...nuestro, rightEyePupillaryHeight: '25.000', rightEyeFarSpherical: '+0.75', leftEyeFarAxis: '40', action: 'update', orderId: 99000001, isEdit: true, blockBase: '4' };
+    const portal = { ...nuestro, rightEyePupillaryHeight: '25.000', rightEyeFarSpherical: '+0.75', leftEyeFarAxis: '40', action: 'update', orderId: 99000001, isEdit: true };
     assert.deepEqual(diferenciasDeVista(nuestro, portal), []);
     assert.equal(diferenciasDeVista(nuestro, { ...portal, rightEyeArticle: 10325 }).length, 1);
     assert.equal(diferenciasDeVista(nuestro, { ...portal, bridgeA: null }).length, 1);
     assert.equal(diferenciasDeVista(nuestro, { ...portal, opticsComment: 'otra cosa' }).length, 1);
+    // TODAS las claves se comparan, la base del bloque incluida (el robot la adopta del portal antes de comparar)
+    assert.equal(nuestro.blockBase, null);
+    assert.equal(diferenciasDeVista(nuestro, { ...portal, blockBase: '4' }).length, 1);
+    assert.deepEqual(diferenciasDeVista({ ...nuestro, blockBase: '4' }, { ...portal, blockBase: 4 }), []);
+    // un 0 solo vale como vacío en ejes y adiciones (eje sin cilindro, adición de monofocal), no en un esférico
+    assert.deepEqual(diferenciasDeVista({ ...nuestro, leftEyeFarAxis: 0 }, { ...portal, leftEyeFarAxis: null }), []);
+    assert.equal(diferenciasDeVista({ ...nuestro, leftEyeFarSpherical: 0 }, { ...portal, leftEyeFarSpherical: null }).length, 1);
+    // una clave que solo trae el portal también cuenta
+    assert.equal(diferenciasDeVista(nuestro, { ...portal, algoNuevo: 'x' }).length, 1);
+});
+ok('las medidas del armazón con decimales se redondean para el portal y se dice', () => {
+    const v = venta2x1(); v.frames = [{ ...v.frames[0], a: 54.5 }, v.frames[1]];
+    const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO', forma: 1 });
+    assert.equal(r.ok, true);
+    assert.ok(r.avisos.some(a => /redondeadas.*A 54\.5 → 55/.test(a)), r.avisos.join(' | '));
 });
 ok('la DNP va de a 0,5 y la altura en enteros, como las ofrece el portal: otro valor frena (no se redondea solo)', () => {
     const v = venta2x1(); v.labPdOd = 25.4;
@@ -293,6 +308,8 @@ ok('stock: sin medidas ni forma del armazón y con base 4, como lo arma el formu
     const p = payloadCreateUpdate(r.plan, { materialId: 8, colorId: 1, brandId: 135, articuloOD: 9339, articuloOI: 9397, typeRimArticleId: 8889, tinted: null, clientId: '2462' });
     assert.equal(p.bridgeA, null); assert.equal(p.bridge, null); assert.equal(p.frameShape, null); assert.equal(p.blockBase, 4);
     assert.equal(p.rightEyeStockArticle, '1'); assert.equal(p.rightEyeAddition, 0); assert.equal(p.rightEyeNearSpherical, null);
+    // y la ficha lo dice, en vez de descartar medidas y forma callada
+    assert.ok(r.avisos.some(a => /stock: el formulario del portal no lleva medidas ni forma/.test(a)), r.avisos.join(' | '));
 });
 
 console.log(fallas ? `\n❌ ${fallas} falla(s).` : '\n✅ Carga de Grupo Óptico: todo en orden.');

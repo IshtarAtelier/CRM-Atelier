@@ -36,7 +36,9 @@ export async function conNavegador<T>(
         args: opts.sinHttp2 ? [...ARGS_BASE, '--disable-http2'] : ARGS_BASE,
     });
     try {
-        const page = await browser.newContext().then(c => c.newPage());
+        // Sin service workers: una petición que pasa por un SW no la ve `page.route`,
+        // y la carga de Grupo Óptico depende de abortar ahí toda escritura.
+        const page = await browser.newContext({ serviceWorkers: 'block' }).then(c => c.newPage());
         page.setDefaultTimeout(opts.timeoutMs ?? 120_000);
         page.setDefaultNavigationTimeout(opts.timeoutNavegacionMs ?? 60_000);
         return await tarea(page, browser);

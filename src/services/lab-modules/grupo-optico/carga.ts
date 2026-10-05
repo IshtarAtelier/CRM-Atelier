@@ -201,8 +201,9 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     // redondea solo: es la medida del cliente y la corrige quien la tomó.
     const enPaso = (v: string | null, paso: number) => v === null || Math.abs(Number(v) / paso - Math.round(Number(v) / paso)) < 1e-9;
     for (const [lado, o] of [['OD', od], ['OI', oi]] as const) {
-        if (o && !enPaso(o.dnp, 0.5)) faltantes.push(`DNP ${lado} ${o.dnp}: el laboratorio la toma de a 0,5 (corregila en la venta)`);
-        if (o && !enPaso(o.altura, 1)) faltantes.push(`altura pupilar ${lado} ${o.altura}: el laboratorio la toma en milímetros enteros (corregila en la venta)`);
+        const crudo = (campo: 'dp' | 'altura') => texto(p?.[`${lado.toLowerCase()}_${campo}` as 'od_dp']) || (campo === 'dp' ? o?.dnp : o?.altura);
+        if (o && !enPaso(o.dnp, 0.5)) faltantes.push(`DNP ${lado} ${crudo('dp')}: el laboratorio la toma de a 0,5 (corregila en la venta)`);
+        if (o && !enPaso(o.altura, 1)) faltantes.push(`altura pupilar ${lado} ${crudo('altura')}: el laboratorio la toma en milímetros enteros (corregila en la venta)`);
     }
     // La altura es del ARMAZÓN: en el 2º par no vale la de la ficha (suele ser la del 1º).
     const frameDelPar = framesDeLaOrden(venta).find(f => f.position === par) ?? null;
@@ -227,7 +228,13 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
 
     const cliente = texto(venta.client?.name);
     const stockSinMedidas = esp.clase === 'STOCK';
+    // Las medidas del armazón el portal las ofrece en milímetros enteros: se redondean, y se dice.
     const entero = (v: unknown): string | null => { const n = num(v); return n === null ? null : String(Math.round(n)); };
+    if (!stockSinMedidas) {
+        const redondeadas = ([['A', frame?.a], ['B', frame?.b], ['ED', frame?.edc], ['puente', frame?.dbl]] as const).filter(([, v]) => { const n = num(v); return n !== null && !Number.isInteger(n); });
+        if (redondeadas.length) avisos.push(`medidas del armazón redondeadas a milímetros enteros para el portal: ${redondeadas.map(([n, v]) => `${n} ${v} → ${entero(v)}`).join(', ')}`);
+    }
+    if (stockSinMedidas && (opciones.forma || frame?.a)) avisos.push('stock: el formulario del portal no lleva medidas ni forma del armazón (no se mandan)');
     return {
         ok: true,
         avisos,

@@ -37,7 +37,13 @@ export async function GET(request: Request) {
     return NextResponse.json({
         lab: carga.lab, nombre: carga.nombre,
         // Cada borrador con SU vista: la ficha dibuja igual cualquier laboratorio.
-        borradores: borradores.map(b => ({ ...b, vista: carga.vistaDeBorrador(b) })),
+        borradores: borradores.map(b => {
+            // Un borrador viejo con otra forma de payload no puede tirar abajo la ficha entera.
+            try { return { ...b, vista: carga.vistaDeBorrador(b) }; } catch (err) {
+                console.error('[lab-modulos/borradores] vista del borrador', b.id, err);
+                return { ...b, vista: { textoRevision: '', filas: [], avisos: [] } };
+            }
+        }),
         espejo, pares: analisis.pares,
         puedeCancelarEnPortal: !!carga.cancelarEnPortal,
     });
