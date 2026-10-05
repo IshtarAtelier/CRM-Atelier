@@ -22,12 +22,62 @@ export interface ResultadoPreparar {
     status: number;
 }
 
+/** Un dato que pone quien prepara (lo que la venta no sabe). La ficha lo dibuja sola. */
+export interface CampoDePreparacion {
+    /** La clave con la que viaja en el body de preparar. */
+    clave: string;
+    etiqueta: string;
+    tipo: 'select' | 'numero';
+    opciones?: { value: string; label: string }[];
+    obligatorio: boolean;
+    porDefecto?: string;
+    ayuda?: string;
+    min?: number;
+    max?: number;
+}
+
+/** Un par de la venta que se carga en este laboratorio, como lo ve la ficha. */
+export interface ParParaCargar {
+    pair: number;
+    /** El producto / diseño, para el título del par. */
+    titulo: string | null;
+    faltantes: string[];
+    avisos: string[];
+    campos: CampoDePreparacion[];
+    /** Si viene, todavía no se puede preparar (p. ej. el 2º par espera al 1º). */
+    espera?: string | null;
+    /** Si viene, el par ya tiene pedido en el laboratorio: no se carga otro. */
+    yaCargado?: string | null;
+}
+
+/** Cómo se muestra un borrador, igual para todos los laboratorios. */
+export interface VistaDeBorrador {
+    /** El texto que acompaña a la captura del portal en la revisión. */
+    textoRevision: string;
+    /** Lo que se carga, renglón por renglón (apoyo de la captura, nunca su reemplazo). */
+    filas: { titulo: string; valor: string; fuerte?: boolean }[];
+    avisos: string[];
+    /** Link al pedido en el portal, si el portal lo tiene (para corregirlo ahí). */
+    enlacePortal?: string | null;
+    /** Documento del laboratorio una vez cargado (PDF del pedido). */
+    documento?: { url: string; etiqueta: string } | null;
+    /** Quedó un pedido sin confirmar en el portal que hay que cancelar. */
+    pendienteEnPortal?: { id: string; url: string | null } | null;
+}
+
+export interface BorradorParaVista {
+    status: string; pair: number; payload: unknown; resumenPortal: unknown;
+    screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null; error: string | null;
+}
+
 export interface CargaAsistida {
     lab: string;
     nombre: string;
     robot: Actor;
-    /** Qué pares de la venta se cargan en este lab y qué le falta a cada uno (para la ficha). */
-    analizar(orderId: string): Promise<Record<string, unknown> | null>;
+    /** Qué pares de la venta se cargan en este lab, qué le falta a cada uno y qué hay que elegir al preparar. */
+    analizar(orderId: string): Promise<{ pares: ParParaCargar[] } | null>;
+    /** Cómo se muestra un borrador de este lab en la ficha. Puro. */
+    vistaDeBorrador(b: BorradorParaVista): VistaDeBorrador;
     /** Arma el pedido desde la venta, crea el borrador y hace que el robot lo deje para revisar. */
     preparar(orderId: string, pair: number, body: Record<string, unknown>, actor: Actor): Promise<ResultadoPreparar>;
     /** Después del OK humano: el robot carga en el portal. Reintentable. */

@@ -9,6 +9,7 @@ import { conSesionSmartLab, LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO, ROBOT_GRUPO_O
 import { payloadCreateUpdate, planDeCarga, type OpcionesCarga, type PlanDeCarga, type ResueltoEnPortal } from './carga';
 import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
 import { leerVentaParaCargaGO } from './venta';
+import { capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import type { EstadoEnPortal } from '../contrato';
@@ -119,10 +120,21 @@ export async function prepararEnPortal(borradorId: string) {
     try {
         const r = await planActual(b.orderId, b.pair, guardado.opciones);
         if (!r.ok) throw new Error(`Faltan datos: ${r.faltantes.join(' · ')}`);
-        const { resuelto, etiquetas } = await enElPortal(() => conSesionSmartLab(page => resolverEnPortal(page, r.plan)));
-        const payloadPortal = payloadCreateUpdate(r.plan, resuelto);
+        // Una sola entrada al portal: leer sus listas, armar el pedido y abrirlo
+        // en SU formulario para sacar la captura que la persona va a revisar.
+        const { resuelto, etiquetas, payloadPortal, captura } = await enElPortal(() => conSesionSmartLab(async (page) => {
+            const { resuelto, etiquetas } = await resolverEnPortal(page, r.plan);
+            const payloadPortal = payloadCreateUpdate(r.plan, resuelto);
+            const vista = await capturarVistaEnPortal(page, payloadPortal, etiquetas);
+            const dif = diferenciasDeVista(payloadPortal, vista.payloadDelPortal);
+            // Lo que se muestra tiene que ser lo que se manda: si el formulario del
+            // portal armaría otra cosa, no hay nada para aprobar.
+            if (dif.length) throw new Error(`el formulario del portal no coincide con el pedido armado (${dif.join(' · ')}). No se creó nada.`);
+            return { resuelto, etiquetas, payloadPortal, captura: vista.captura };
+        }));
+        const screenshotUrl = await guardarCaptura(b.id, 'revision', captura);
         return await Borradores.enRevision(b.id, ROBOT_ACTOR_GRUPO_OPTICO, {
-            screenshotUrl: '',
+            screenshotUrl,
             resumenPortal: { etiquetas, resuelto, payloadPortal, huella: huellaDelPlan(r.plan), preparadoEl: new Date().toISOString() } as RastroGO,
         });
     } catch (err: any) {
@@ -130,6 +142,12 @@ export async function prepararEnPortal(borradorId: string) {
         await Borradores.error(b.id, ROBOT_ACTOR_GRUPO_OPTICO, motivo).catch(e => console.error('[lab-modulos] no se pudo marcar el error del borrador GO:', e));
         throw err;
     }
+}
+
+async function guardarCaptura(borradorId: string, sufijo: string, png: Buffer): Promise<string> {
+    // Receta y datos del cliente: clave que /api/storage/view trata como sensible (exige sesión).
+    const key = await uploadFile(png, `lab-modulos/grupo-optico/${borradorId}-${sufijo}-${Date.now()}.png`, 'image/png');
+    return `/api/storage/view?key=${encodeURIComponent(key)}`;
 }
 
 async function guardarPdf(borradorId: string, numero: string, pdf: Buffer): Promise<string> {
@@ -240,10 +258,13 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 ? [`el pedido ya estaba en el portal (cargado antes, a mano o por un intento anterior): se tomó ese nº sin crear otro${comparado.length ? `, y NO coincide con lo aprobado (${comparado.join('; ')}): hablá con Grupo Óptico` : ''}`]
                 : comparado;
             const pdf = await bajarPdfDelPedido(page, numero);
-            return { numero, diferencias, pdf };
+            // La pantalla real del pedido YA creado, para verlo como quedó en el laboratorio.
+            const capturaFinal = await capturarPedidoCreado(page, numero);
+            return { numero, diferencias, pdf, capturaFinal };
         }));
 
         const pdfUrl = resultado.pdf ? await guardarPdf(b.id, resultado.numero, resultado.pdf).catch(() => null) : null;
+        const capturaFinalUrl = resultado.capturaFinal ? await guardarCaptura(b.id, 'cargado', resultado.capturaFinal).catch(() => null) : null;
         await mezclar(b.id, { pdfUrl: pdfUrl ?? undefined, diferencias: resultado.diferencias });
         if (resultado.diferencias.length) {
             await logAudit({
@@ -269,7 +290,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             pedidos: [...pedidos.values()],
             aprobadoPor,
         });
-        const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_GRUPO_OPTICO, { portalNumber: resultado.numero, screenshotFinalUrl: pdfUrl });
+        const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_GRUPO_OPTICO, { portalNumber: resultado.numero, screenshotFinalUrl: capturaFinalUrl ?? pdfUrl });
         if (resultado.diferencias.length) {
             await Borradores.anotarFalla(b.id, `Cargado con el nº ${resultado.numero}, pero: ${resultado.diferencias.join(' · ')}.`);
         }

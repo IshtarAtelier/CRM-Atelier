@@ -1,7 +1,7 @@
 import { prisma } from '../../../lib/db';
 import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import { Borradores } from '../carga/borrador';
-import type { CargaAsistida } from '../carga/contrato';
+import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { armarFormulario, leerVentaParaCarga } from './carga';
 import { cristalVitolenPorNombre } from './catalogo';
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
@@ -34,15 +34,41 @@ export const CARGA_VITOLEN: CargaAsistida = {
             pares: pares.map(pair => {
                 const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0 });
                 const cristal = cristalVitolenPorNombre(venta.items.find(i => (i.framePosition ?? 1) === pair && /vitolen/i.test(i.laboratorySnapshot || ''))?.productNameSnapshot);
+                const variantes = cristal?.variantes ?? [];
+                const campos: CampoDePreparacion[] = [
+                    ...(variantes.length > 1 ? [{ clave: 'variante', etiqueta: 'Variante', tipo: 'select' as const, opciones: variantes.map(v => ({ value: v, label: v })), obligatorio: true }] : []),
+                    { clave: 'forma', etiqueta: 'Forma del armazón (portal)', tipo: 'select', opciones: FORMAS_PORTAL_VITOLEN.map(f => ({ value: f, label: f })), obligatorio: true },
+                    { clave: 'ejeDiagonal', etiqueta: 'Eje de la diagonal (0‑180)', tipo: 'numero', obligatorio: true, min: 0, max: 180, ayuda: 'Ángulo de la diagonal mayor del aro, como lo pide el portal (botón "¿Cómo tomar las medidas?")' },
+                ];
                 return {
                     pair,
-                    diseno: cristal?.diseno ?? null,
-                    variantes: cristal?.variantes ?? [],
-                    faltantes: r.faltantes.filter(f => !/variante|forma del armazón/.test(f)),
+                    titulo: cristal?.diseno ?? null,
+                    faltantes: r.faltantes.filter(f => !/variante|forma del armazón|eje de la diagonal/.test(f)),
                     avisos: r.avisos,
+                    campos,
                 };
             }),
-            formas: FORMAS_PORTAL_VITOLEN,
+        };
+    },
+
+    vistaDeBorrador(b: BorradorParaVista): VistaDeBorrador {
+        const p = (b.payload || {}) as any;
+        const r = (b.resumenPortal || {}) as any;
+        const ojo = (g: any) => g ? `${g.esferico > 0 ? '+' : ''}${g.esferico}${g.cilindrico != null ? ` ${g.cilindrico > 0 ? '+' : ''}${g.cilindrico} × ${g.eje ?? '—'}` : ''}${g.adicion != null ? ` add ${g.adicion}` : ''} · DNP ${g.dnp ?? '—'} · alt ${g.altura ?? '—'} · ${g.material} (${g.codigo})` : '—';
+        return {
+            textoRevision: 'El pedido ya está en el portal de Vitolen como borrador sin confirmar. Aprobar lo confirma, trae el nº de pedido y le avisa al cliente que su pedido fue procesado; Rechazar lo cancela en el portal.',
+            filas: [
+                { titulo: 'Caso', valor: `${p.nroCasoInterno ?? ''} · ${p.paciente ?? ''}`, fuerte: true },
+                { titulo: 'Diseño', valor: `${p.tipoReceta ?? ''} · ${p.diseno ?? ''}${p.variante ? ` ${p.variante}` : ''}` },
+                { titulo: 'OD', valor: ojo(p.od) },
+                { titulo: 'OI', valor: ojo(p.oi) },
+                { titulo: 'Armazón', valor: `${p.armazon?.forma ?? ''} · A ${p.armazon?.largo ?? '—'} B ${p.armazon?.alto ?? '—'} DBL ${p.armazon?.puente ?? '—'} ED ${p.armazon?.diagonalMayor ?? '—'} eje ${p.armazon?.ejeDiagonal ?? '—'}° · ${p.armazon?.caracteristicas ?? ''}` },
+                { titulo: 'Trabajos', valor: `${p.tratamientos?.antirreflejo ? 'AR' : 'sin AR'} · ${p.montajes?.calibrado ? 'calibrado' : 'sin calibrar'}${p.pedidoOrigen ? ` · 2º par de ${p.pedidoOrigen}` : ''}` },
+            ],
+            avisos: Array.isArray(r.pendientes) ? r.pendientes : [],
+            enlacePortal: r.url ?? null,
+            documento: null,
+            pendienteEnPortal: r.portalDraftId && !r.canceladoEl && !r.confirmadoAManoEl && (b.status === 'RECHAZADO' || b.status === 'ERROR') ? { id: String(r.portalDraftId), url: r.url ?? null } : null,
         };
     },
 
@@ -68,9 +94,11 @@ export const CARGA_VITOLEN: CargaAsistida = {
         // nº cargado en la venta). Sin él, igual queda como pendiente a mano.
         let pedidoOrigen = body.pedidoOrigen ? String(body.pedidoOrigen) : null;
         if (pair === 2 && !pedidoOrigen) {
-            const enEspejo = await prisma.labPortalOrder.findFirst({ where: { orderId, lab: LAB_VITOLEN, pair: { not: 2 } }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
+            const cargado = await prisma.labOrderDraft.findFirst({ where: { orderId, lab: LAB_VITOLEN, pair: 1, status: 'CARGADO' }, select: { portalNumber: true } });
+            if (cargado?.portalNumber) pedidoOrigen = cargado.portalNumber;
+            const enEspejo = pedidoOrigen ? null : await prisma.labPortalOrder.findFirst({ where: { orderId, lab: LAB_VITOLEN, pair: { not: 2 } }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
             const enVenta = await prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true } });
-            pedidoOrigen = enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).map(n => `${n}L`)[0] ?? null;
+            pedidoOrigen = pedidoOrigen ?? enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).map(n => `${n}L`)[0] ?? null;
         }
         const r = armarFormulario(venta, { pair, forma, ejeDiagonal, variante: body.variante ? String(body.variante) : null, pedidoOrigen });
         if (!r.ok) return { ok: false, status: 422, error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos };

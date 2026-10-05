@@ -2,7 +2,7 @@ import { prisma } from '../../../lib/db';
 import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-frames';
 import { Borradores } from '../carga/borrador';
-import type { CargaAsistida } from '../carga/contrato';
+import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { esVenta2x1, planDeCarga, type OpcionesCarga, type TipoArmazon, type TipoAro } from './carga';
 import { TIPO_ARMAZON, TIPO_ARO } from './catalogo';
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_GRUPO_OPTICO, type PayloadBorradorGO } from './borrador-portal';
@@ -60,29 +60,55 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
         for (const p of pares) yaCargados.set(p, await pedidoExistenteDelPar(orderId, p, totalPares));
         const es2x1 = esVenta2x1(venta as any);
         const origen = es2x1 ? await numeroDelPrimerPar(orderId) : null;
+        const campos: CampoDePreparacion[] = [
+            { clave: 'tipoArmazon', etiqueta: 'Tipo de armazón', tipo: 'select', obligatorio: true, opciones: [{ value: 'PLASTICO', label: 'Plástico' }, { value: 'METALICO', label: 'Metálico' }] },
+            { clave: 'tipoAro', etiqueta: 'Tipo de aro', tipo: 'select', obligatorio: true, porDefecto: 'ENTERO', opciones: Object.entries(TIPO_ARO).map(([value, v]) => ({ value, label: v.etiqueta })) },
+            { clave: 'forma', etiqueta: 'Forma (opcional)', tipo: 'select', obligatorio: false, opciones: Array.from({ length: 9 }, (_, i) => ({ value: String(i + 1), label: `Forma ${i + 1}` })) },
+        ];
         return {
-            es2x1,
             pares: pares.map(pair => {
-                // Se analiza con las opciones "por defecto" para mostrar lo que FALTA en la venta;
+                // Se analiza con opciones "por defecto" para mostrar lo que FALTA en la venta;
                 // lo que elige quien prepara (tipo de armazón) no cuenta como faltante.
                 const r = planDeCarga(venta as any, pair, { tipoArmazon: 'PLASTICO', pedidoOrigen: pair === 2 ? (origen ?? '80000000') : null });
                 const items = (porPar.get(pair) || []) as any[];
+                const existente = yaCargados.get(pair);
                 return {
                     pair,
-                    producto: items[0]?.product?.name ?? items[0]?.productNameSnapshot ?? null,
+                    titulo: items[0]?.product?.name ?? items[0]?.productNameSnapshot ?? null,
                     faltantes: r.ok ? [] : r.faltantes,
-                    avisos: r.ok ? r.avisos : r.avisos,
-                    // El 2º par del 2x1 espera al 1º.
-                    esperaPrimerPar: es2x1 && pair === 2 && !origen,
-                    pedidoOrigen: pair === 2 ? origen : null,
-                    // Ya tiene pedido en el laboratorio (robot, seguimiento o nº tipeado): no se ofrece preparar otro.
-                    yaCargado: yaCargados.get(pair)?.numero ?? null,
-                    yaCargadoMensaje: yaCargados.get(pair) ? mensajeExistente(yaCargados.get(pair)!, pair) : null,
+                    avisos: r.avisos,
+                    campos,
+                    espera: es2x1 && pair === 2 && !origen ? 'Es el 2º par del 2x1: se prepara cuando el 1er par esté cargado (lleva su nº en la observación, para que el laboratorio no lo cobre).' : null,
+                    yaCargado: existente ? mensajeExistente(existente, pair) : null,
                 };
             }),
-            tiposArmazon: [{ value: 'PLASTICO', label: 'Plástico' }, { value: 'METALICO', label: 'Metálico' }],
-            tiposAro: Object.entries(TIPO_ARO).map(([value, v]) => ({ value, label: v.etiqueta })),
-            pares2x1: es2x1 ? cantidadDeArmazones(venta as any) : null,
+        };
+    },
+
+    vistaDeBorrador(b: BorradorParaVista): VistaDeBorrador {
+        const plan = ((b.payload || {}) as PayloadBorradorGO).plan;
+        const r = (b.resumenPortal || {}) as any;
+        const e = r.etiquetas || {};
+        const grad = (o: any) => o ? `${o.esferico}${o.cilindrico ? ` ${o.cilindrico} × ${o.eje}°` : ''}${o.adicion ? ` · add +${Number(o.adicion).toFixed(2)}` : ''} · DNP ${o.dnp ?? '—'} · altura ${o.altura ?? '—'}` : '—';
+        return {
+            textoRevision: 'Así queda el pedido en SmartLab (es la pantalla del portal, todavía sin guardar). Aprobar lo crea en el laboratorio, trae el nº y le avisa al cliente; después no se puede anular desde la óptica, solo pidiéndoselo a Grupo Óptico. Rechazar no manda nada.',
+            filas: plan ? [
+                { titulo: 'Vendido', valor: plan.producto },
+                { titulo: 'Artículo OD', valor: e.articuloOD ?? '—', fuerte: true },
+                { titulo: 'Artículo OI', valor: e.articuloOI ?? '—', fuerte: true },
+                { titulo: 'Tipo · material', valor: `${e.tipoLente ?? '—'} · ${e.material ?? '—'} · ${e.color ?? '—'}` },
+                ...(e.tenido ? [{ titulo: 'Teñido', valor: String(e.tenido), fuerte: true }] : []),
+                { titulo: 'Graduación OD', valor: grad(plan.od) },
+                { titulo: 'Graduación OI', valor: grad(plan.oi) },
+                { titulo: 'Armazón', valor: `${plan.armazon.tipo === 'METALICO' ? 'Metálico' : 'Plástico'} · ${e.aro ?? ''}${plan.armazon.a ? ` · A ${plan.armazon.a} B ${plan.armazon.b ?? '—'} ED ${plan.armazon.ed ?? '—'} Pte ${plan.armazon.puente ?? '—'}` : ''}${plan.armazon.forma ? ` · forma ${plan.armazon.forma}` : ''}` },
+                { titulo: 'Modelo', valor: plan.armazon.modelo || '—' },
+                { titulo: 'Código interno', valor: plan.codigoOptica },
+                { titulo: 'Observación', valor: plan.observacion || '—' },
+            ] : [],
+            avisos: ((b.payload || {}) as PayloadBorradorGO).avisos || [],
+            enlacePortal: null,
+            documento: r.pdfUrl ? { url: String(r.pdfUrl), etiqueta: 'Ver el pedido del laboratorio (PDF)' } : null,
+            pendienteEnPortal: null,
         };
     },
 

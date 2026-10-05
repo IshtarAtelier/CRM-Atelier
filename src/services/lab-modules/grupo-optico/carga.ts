@@ -196,6 +196,14 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     const od = ojo('od');
     const oi = ojo('oi');
     if (p && !od && !oi) faltantes.push('ningún ojo con graduación');
+    // El portal ofrece la DNP de a 0,5 y la altura en enteros (visto en 800 pedidos
+    // y en su formulario, 5/10/2026): con otro valor no arma el pedido. No se
+    // redondea solo: es la medida del cliente y la corrige quien la tomó.
+    const enPaso = (v: string | null, paso: number) => v === null || Math.abs(Number(v) / paso - Math.round(Number(v) / paso)) < 1e-9;
+    for (const [lado, o] of [['OD', od], ['OI', oi]] as const) {
+        if (o && !enPaso(o.dnp, 0.5)) faltantes.push(`DNP ${lado} ${o.dnp}: el laboratorio la toma de a 0,5 (corregila en la venta)`);
+        if (o && !enPaso(o.altura, 1)) faltantes.push(`altura pupilar ${lado} ${o.altura}: el laboratorio la toma en milímetros enteros (corregila en la venta)`);
+    }
     // La altura es del ARMAZÓN: en el 2º par no vale la de la ficha (suele ser la del 1º).
     const frameDelPar = framesDeLaOrden(venta).find(f => f.position === par) ?? null;
     if (multifocal && par > 1) {
@@ -218,6 +226,8 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     if (faltantes.length) return { ok: false, faltantes, avisos };
 
     const cliente = texto(venta.client?.name);
+    const stockSinMedidas = esp.clase === 'STOCK';
+    const entero = (v: unknown): string | null => { const n = num(v); return n === null ? null : String(Math.round(n)); };
     return {
         ok: true,
         avisos,
@@ -231,8 +241,11 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
             paciente: cliente,
             armazon: {
                 modelo: texto(p?.armazon),
-                tipo: tipoArmazon!, aro: opciones.tipoAro ?? 'ENTERO', forma,
-                a: medida(frame?.a), b: medida(frame?.b), ed: medida(frame?.edc), puente: medida(frame?.dbl),
+                tipo: tipoArmazon!, aro: opciones.tipoAro ?? 'ENTERO', forma: stockSinMedidas ? null : forma,
+                // Stock: el formulario del portal no lleva medidas ni forma del armazón.
+                // Laboratorio: enteros, como las ofrece el portal.
+                a: stockSinMedidas ? null : entero(frame?.a), b: stockSinMedidas ? null : entero(frame?.b),
+                ed: stockSinMedidas ? null : entero(frame?.edc), puente: stockSinMedidas ? null : entero(frame?.dbl),
             },
         },
     };
@@ -278,8 +291,8 @@ export function payloadCreateUpdate(plan: PlanDeCarga, r: ResueltoEnPortal): Rec
         materialId: r.materialId,
         colorId: r.colorId,
         calibrated: '1',
-        // La base la decide el laboratorio (el portal acepta null: "-1" = sin elegir).
-        blockBase: null,
+        // Laboratorio: la base la decide el lab (sin elegir). Stock: el formulario del portal pone 4.
+        blockBase: stock ? 4 : null,
         frameType: TIPO_ARMAZON[plan.armazon.tipo],
         typeRimId: String(TIPO_ARO[plan.armazon.aro].id),
         typeRimArticleId: r.typeRimArticleId,

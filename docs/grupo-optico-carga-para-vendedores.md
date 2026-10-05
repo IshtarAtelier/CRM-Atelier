@@ -18,8 +18,8 @@ El robot carga lo que dice la venta. Si falta algo, no prepara y dice qué.
    robot carga exactamente lo vendido (antes se cambiaba a mano en el portal y
    la venta quedaba diciendo otra cosa).
 3. Receta completa (esférico, cilindro con su eje, adición en multifocal),
-   DNP de cada ojo y **altura de cada armazón** (en un 2x1, la del 2º armazón
-   también).
+   DNP de cada ojo **de a 0,5** y **altura de cada armazón en milímetros
+   enteros** (en un 2x1, la del 2º armazón también): así las toma el laboratorio.
 4. Medidas del armazón (A, B, ED, puente).
 5. Si hay teñido (anteojo de sol): la línea de teñido con **estilo, color y
    grado**, y **asignada a su armazón**.
@@ -32,15 +32,16 @@ En la ficha, columna derecha, el bloque **"Grupo Óptico · carga del pedido"**.
    ranurado, perforado) y forma son opcionales.
 2. Apretá **"Preparar en Grupo Óptico"**. El robot entra al portal (solo a
    leer) y arma el pedido. Tarda unos segundos.
-3. **Revisá** lo que va a cargar, renglón por renglón contra la venta: el
-   **artículo** de cada ojo (grande, en negrita), material, color, teñido,
-   graduación, DNP, altura, armazón, código y observación.
-4. Decidí:
+3. En la ficha aparece **la pantalla de SmartLab con el pedido cargado** (todavía sin guardar). Tocá **"Ver el portal en grande y decidir"** y revisala contra la venta: artículo de cada ojo, material, graduación, DNP, altura, armazón, teñido y observación.
+4. Ahí mismo, abajo de la pantalla, decidí:
    - **Aprobar y cargar**: el robot crea el pedido, el **nº de pedido** queda
      en la venta, el cliente recibe el aviso de "pedido procesado" y en la
-     ficha aparece **"Ver el pedido del laboratorio (PDF)"**.
+     ficha queda la pantalla del pedido ya cargado y su PDF.
    - **Rechazar** (con el motivo): no se manda nada. Corregí la venta y volvé
      a preparar.
+
+Es **la misma forma de trabajar que con Vitolen**: preparar, mirar la pantalla
+real del laboratorio, aprobar.
 
 ## 2x1 Smart Free
 

@@ -34,7 +34,13 @@ export async function GET(request: Request) {
         Borradores.deVenta(orderId).then(bs => bs.filter(b => b.lab === carga.lab)),
         prisma.labPortalOrder.findMany({ where: { orderId, lab: carga.lab }, orderBy: { portalNumber: 'asc' } }),
     ]);
-    return NextResponse.json({ lab: carga.lab, nombre: carga.nombre, borradores, espejo, ...analisis });
+    return NextResponse.json({
+        lab: carga.lab, nombre: carga.nombre,
+        // Cada borrador con SU vista: la ficha dibuja igual cualquier laboratorio.
+        borradores: borradores.map(b => ({ ...b, vista: carga.vistaDeBorrador(b) })),
+        espejo, pares: analisis.pares,
+        puedeCancelarEnPortal: !!carga.cancelarEnPortal,
+    });
 }
 
 export async function POST(request: Request) {

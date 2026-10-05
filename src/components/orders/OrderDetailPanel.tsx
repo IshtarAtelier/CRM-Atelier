@@ -23,8 +23,7 @@ import type { OrderFinancials } from '@/services/PricingService';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
-import VitolenCarga from '@/components/orders/VitolenCarga';
-import GrupoOpticoCarga from '@/components/orders/GrupoOpticoCarga';
+import CargaLaboratorio from '@/components/orders/CargaLaboratorio';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 
 export const LAB_STEPS = [
@@ -1184,11 +1183,12 @@ export function OrderDetailPanel({
                         </div>
                     </div>
 
-                    {/* Grupo Óptico: el robot arma el pedido en SmartLab, una persona lo
-                        aprueba y recién ahí se crea. Reemplaza al favorito, que queda
-                        arriba como plan B ("a mano") hasta la primera carga real. */}
+                    {/* Carga del pedido en el portal del laboratorio: el MISMO bloque para
+                        todos (CargaLaboratorio). El robot arma el pedido, se ve la pantalla
+                        real del portal y ahí mismo se aprueba. El favorito de SmartLab queda
+                        arriba como plan B ("a mano"). */}
                     {isGrupoOptico && (
-                        <GrupoOpticoCarga orderId={order.id} onChanged={() => onRefresh?.()} />
+                        <CargaLaboratorio lab="GRUPO_OPTICO" orderId={order.id} onChanged={() => onRefresh?.()} />
                     )}
 
                     {/* SmartLab Live Status (Grupo Óptico). Vitolen tiene su propio bloque. */}
@@ -1259,7 +1259,7 @@ export function OrderDetailPanel({
                     {/* Vitolen: espejo del portal y carga asistida con OK humano
                         (src/services/lab-modules). Solo si la venta lleva sus cristales. */}
                     {isVitolen && (
-                        <VitolenCarga orderId={order.id} onChanged={() => onRefresh?.()} />
+                        <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={() => onRefresh?.()} />
                     )}
 
 

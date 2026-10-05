@@ -17,6 +17,7 @@ import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1 } fr
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
+import { pedidoComoLoGuardaElPortal, diferenciasDeVista } from '../../src/services/lab-modules/grupo-optico/vista.ts';
 import { huellaDelPlan, cambiosEntrePayloads } from '../../src/services/lab-modules/grupo-optico/borrador-portal.ts';
 
 let fallas = 0;
@@ -248,6 +249,50 @@ ok('I10: el 2º par multifocal sin altura de SU armazón frena (no toma la de la
     const r = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878' });
     assert.equal(r.ok, false);
     assert.ok(r.faltantes.some(f => /armazón 2/.test(f)));
+});
+
+console.log('\nLa pantalla real del portal antes de crear (5/10/2026)');
+const RES = { materialId: 20, colorId: 1, brandId: 145, articuloOD: 28463, articuloOI: 28463, typeRimArticleId: 8896, tinted: null, clientId: '2462' };
+const ETQ = { tipoLente: 'Multifocal', material: 'ORG BLUE LIGHT 1.56', color: 'Blanco', marca: 'Smart Lens Digital', articuloOD: 'X', articuloOI: 'X', aro: 'Calibrado Aro Entero', tenido: null };
+ok('el pedido se le da al formulario del portal con SU forma (la DNP derecha es DistInterpupilar, la izquierda DistMecanica)', () => {
+    const r = planDeCarga(venta2x1(), 1, { tipoArmazon: 'PLASTICO', forma: 1 });
+    const g = pedidoComoLoGuardaElPortal(payloadCreateUpdate(r.plan, RES), ETQ);
+    assert.equal(g.IdTipoLente, '5'); assert.equal(g.OjoDerEsfericoLejos, '0.750'); assert.equal(g.OjoDerCilindricoLejos, '-1.000');
+    assert.equal(g.OjoDerEjeLejos, '140'); assert.equal(g.adicionder, '1.500'); assert.equal(g.OjoDerEsfericoCerca, '2.250');
+    assert.equal(g.DistInterpupilar, '33.000'); assert.equal(g.DistMecanica, '33.000'); assert.equal(g.AltPupila, '25.000');
+    assert.equal(g.right_eye_article_id, 28463); assert.equal(g.IdMaterial, '20'); assert.equal(g.Armazon, 'ZILO');
+    assert.equal(g.A, '54.000'); assert.equal(g.frame_shape, 1); assert.equal(g.tinted_id, null);
+    assert.match(String(g.CodigoOptica), /^#L4AU .+ 1°par$/);
+});
+ok('lo que se muestra tiene que ser lo que se manda: cualquier diferencia con lo que armaría el portal frena', () => {
+    const r = planDeCarga(venta2x1(), 1, { tipoArmazon: 'PLASTICO', forma: 1 });
+    const nuestro = payloadCreateUpdate(r.plan, RES);
+    // el portal devuelve los mismos datos con otro formato numérico: no es diferencia
+    const portal = { ...nuestro, rightEyePupillaryHeight: '25.000', rightEyeFarSpherical: '+0.75', leftEyeFarAxis: '40', action: 'update', orderId: 99000001, isEdit: true, blockBase: '4' };
+    assert.deepEqual(diferenciasDeVista(nuestro, portal), []);
+    assert.equal(diferenciasDeVista(nuestro, { ...portal, rightEyeArticle: 10325 }).length, 1);
+    assert.equal(diferenciasDeVista(nuestro, { ...portal, bridgeA: null }).length, 1);
+    assert.equal(diferenciasDeVista(nuestro, { ...portal, opticsComment: 'otra cosa' }).length, 1);
+});
+ok('la DNP va de a 0,5 y la altura en enteros, como las ofrece el portal: otro valor frena (no se redondea solo)', () => {
+    const v = venta2x1(); v.labPdOd = 25.4;
+    const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' });
+    assert.equal(r.ok, false); assert.ok(r.faltantes.some(f => /DNP OD 25\.4/.test(f)));
+    const w = venta2x1(); w.frames = [{ ...w.frames[0], heightOD: 25.5 }, w.frames[1]];
+    assert.ok(planDeCarga(w, 1, { tipoArmazon: 'PLASTICO' }).faltantes.some(f => /altura pupilar OD 25\.5/.test(f)));
+    const x = venta2x1(); x.labPdOd = 32.5;
+    assert.equal(planDeCarga(x, 1, { tipoArmazon: 'PLASTICO' }).ok, true);
+});
+ok('stock: sin medidas ni forma del armazón y con base 4, como lo arma el formulario del portal', () => {
+    const v = { id: 'cmxxxxxxxxxxxxxxxxxxxs3ep', labType: 'STOCK', labPdOd: 31, labPdOi: 32, client: { name: 'Ana' },
+        frames: [{ position: 1, a: '54', b: '42', dbl: '18', edc: '55', heightOD: 30, heightOI: 30 }],
+        items: [{ eye: 'OD', framePosition: 1, sphereVal: -1.75, cylinderVal: -0.5, axisVal: 15, product: { name: 'Stock · Orgánico Blue c/AR 1.56', category: 'Cristal', type: 'Cristal Monofocal' } },
+                { eye: 'OI', framePosition: 1, sphereVal: -2.25, cylinderVal: -1.5, axisVal: 165, product: { name: 'Stock · Orgánico Blue c/AR 1.56', category: 'Cristal', type: 'Cristal Monofocal' } }] };
+    const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO', forma: 3 });
+    assert.ok(r.ok, r.faltantes?.join(' | '));
+    const p = payloadCreateUpdate(r.plan, { materialId: 8, colorId: 1, brandId: 135, articuloOD: 9339, articuloOI: 9397, typeRimArticleId: 8889, tinted: null, clientId: '2462' });
+    assert.equal(p.bridgeA, null); assert.equal(p.bridge, null); assert.equal(p.frameShape, null); assert.equal(p.blockBase, 4);
+    assert.equal(p.rightEyeStockArticle, '1'); assert.equal(p.rightEyeAddition, 0); assert.equal(p.rightEyeNearSpherical, null);
 });
 
 console.log(fallas ? `\n❌ ${fallas} falla(s).` : '\n✅ Carga de Grupo Óptico: todo en orden.');
