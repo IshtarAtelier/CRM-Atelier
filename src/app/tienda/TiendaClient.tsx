@@ -17,6 +17,7 @@ import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
+import { etiquetaRangoPrecio } from "@/lib/constants/rangos-precio-tienda";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades } from "@/lib/constants/social-proof";
 import { track } from "@/lib/client-analytics";
 
@@ -252,11 +253,7 @@ export function TiendaClient({
     {
       param: 'precio',
       valor: filterPrecioMin || filterPrecioMax,
-      etiqueta: filterPrecioMin && filterPrecioMax
-        ? `$${Number(filterPrecioMin).toLocaleString('es-AR')} a $${Number(filterPrecioMax).toLocaleString('es-AR')}`
-        : filterPrecioMax
-          ? `Hasta $${Number(filterPrecioMax).toLocaleString('es-AR')}`
-          : `Más de $${Number(filterPrecioMin).toLocaleString('es-AR')}`,
+      etiqueta: etiquetaRangoPrecio(filterPrecioMin, filterPrecioMax),
     },
   ].filter(f => Boolean(f.valor));
 

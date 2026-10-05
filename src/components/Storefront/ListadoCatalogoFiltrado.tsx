@@ -23,6 +23,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryGrid } from "./CategoryGrid";
+import { precioParaRango, leerRangoPrecio, dentroDelRango } from "@/lib/catalog/rango-precio";
 
 export interface FiltrosListado {
   marca: string;
@@ -30,6 +31,8 @@ export interface FiltrosListado {
   material: string;
   genero: string;
   orden: string;
+  precioMin: string;
+  precioMax: string;
 }
 
 const SIN_FILTROS: FiltrosListado = {
@@ -38,6 +41,8 @@ const SIN_FILTROS: FiltrosListado = {
   material: "",
   genero: "",
   orden: "recientes",
+  precioMin: "",
+  precioMax: "",
 };
 
 function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosListado) => void }) {
@@ -50,6 +55,8 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosListado) => 
       material: searchParams.get("material") || "",
       genero: searchParams.get("genero") || "",
       orden: searchParams.get("orden") || "recientes",
+      precioMin: searchParams.get("precioMin") || "",
+      precioMax: searchParams.get("precioMax") || "",
     });
   }, [searchParams, onChange]);
 
@@ -80,11 +87,14 @@ export function ListadoCatalogoFiltrado({
   // Con `{marca}` donde va el nombre de la marca. Va como plantilla y no como
   // función porque los props de un client component tienen que ser serializables.
   plantillaVacioPorMarca,
+  descuentoTransferenciaPct,
 }: {
   productos: any[];
   nombreCategoria: string;
   mensajeVacio: string;
   plantillaVacioPorMarca: string;
+  /** El % por transferencia de /admin/web: el filtro de precio compara contra el número grande de la tarjeta. */
+  descuentoTransferenciaPct: number;
 }) {
   const [filtros, setFiltros] = useState<FiltrosListado>(SIN_FILTROS);
 
@@ -116,6 +126,12 @@ export function ListadoCatalogoFiltrado({
     if (filtros.genero) {
       resultado = resultado.filter((p) => coincideGenero(p.gender, filtros.genero));
     }
+    // Los botones de precio estaban en esta página pero no filtraban: la URL
+    // cambiaba y la grilla quedaba igual (revisión del 5/10/2026).
+    const rango = leerRangoPrecio(filtros.precioMin, filtros.precioMax);
+    if (rango.activo) {
+      resultado = resultado.filter((p) => dentroDelRango(precioParaRango(p, descuentoTransferenciaPct), rango));
+    }
 
     // El orden que llega del servidor ya es [destacados, luego lo más nuevo]:
     // eso ES "recientes" y no hay que recalcularlo (createdAt ni siquiera viaja).
@@ -135,7 +151,7 @@ export function ListadoCatalogoFiltrado({
     }
 
     return resultado;
-  }, [productos, filtros, hayMarcas]);
+  }, [productos, filtros, hayMarcas, descuentoTransferenciaPct]);
 
   return (
     <>
@@ -148,7 +164,9 @@ export function ListadoCatalogoFiltrado({
         emptyMessage={
           filtros.marca
             ? plantillaVacioPorMarca.replace("{marca}", filtros.marca)
-            : mensajeVacio
+            : leerRangoPrecio(filtros.precioMin, filtros.precioMax).activo
+              ? "No hay modelos en ese rango de precio. Probá con otro."
+              : mensajeVacio
         }
       />
     </>

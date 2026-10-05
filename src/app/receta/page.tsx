@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { ListadoCatalogoFiltrado } from "@/components/Storefront/ListadoCatalogoFiltrado";
+import { getWebSettings } from '@/lib/web-settings';
+import { descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { prisma } from '@/lib/db';
 import { LISTADO_SELECT } from '@/lib/catalog/queries';
@@ -45,6 +47,9 @@ const SELECT_CON_MARCA = {
 };
 
 export default async function RecetaPage() {
+  // El filtro de precio compara contra el número grande de la tarjeta (por
+  // transferencia), que depende del % de /admin/web.
+  const webSettings = await getWebSettings();
   // WHERE y ORDER BY fijos: son los de la vista por defecto, la única que se
   // cachea. Los cristales no son armazones: si a uno le queda la categoría web
   // de receta, aparece en la grilla mezclado entre los marcos. Pasó con un
@@ -243,6 +248,7 @@ export default async function RecetaPage() {
           <div className="flex-1">
             <ListadoCatalogoFiltrado
               productos={products}
+              descuentoTransferenciaPct={descuentoTransferenciaDe(webSettings.web_promo_cash_discount)}
               nombreCategoria="Armazones de Receta"
               mensajeVacio="Estamos actualizando nuestra colección de anteojos de receta. Vení a probarte todos nuestros modelos a nuestro local."
               plantillaVacioPorMarca="No encontramos armazones de receta de la marca {marca}."

@@ -4,7 +4,9 @@ import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 import { canSeeWholesalePrices } from '@/lib/wholesale-access';
-import { normalizarTexto } from '@/lib/text-normalize';
+import { coincideBusquedaTienda } from '@/lib/catalog/busqueda-tienda';
+import { precioParaRango, leerRangoPrecio, dentroDelRango, descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
+import { getWebSettings } from '@/lib/web-settings';
 import { calcularFacetas, filtrarPorFacetas, facetaValorUnico, facetaValoresMultiples } from '@/lib/catalog/facetas';
 
 export const dynamic = 'force-dynamic';
@@ -111,8 +113,7 @@ export async function GET(request: NextRequest) {
         // conteos). Antes vivían duplicadas — una copia filtraba, la otra
         // servía de base a los conteos — y las dos podían divergir sin que
         // nada avisara si alguien tocaba una y no la otra.
-        const precioMinParaFiltro = Number(request.nextUrl.searchParams.get('precioMin') || 0);
-        const precioMaxParaFiltro = Number(request.nextUrl.searchParams.get('precioMax') || 0);
+        const rangoDePrecio = leerRangoPrecio(request.nextUrl.searchParams.get('precioMin'), request.nextUrl.searchParams.get('precioMax'));
         const coincideCategoria = (p: any) => {
             if (!category || category === 'Todo') return true;
             const active = category.toLowerCase();
@@ -124,23 +125,22 @@ export async function GET(request: NextRequest) {
             if (active === 'cristales') return cat.includes('cristal');
             return cat.includes(active);
         };
-        const coincidePrecio = (p: any) => {
-            if (precioMinParaFiltro <= 0 && precioMaxParaFiltro <= 0) return true;
-            const lista = p.price || 0;
-            const oferta = p.salePrice;
-            const valor = oferta != null && oferta > 0 && oferta < lista ? oferta : lista;
-            if (precioMinParaFiltro > 0 && valor < precioMinParaFiltro) return false;
-            if (precioMaxParaFiltro > 0 && valor > precioMaxParaFiltro) return false;
-            return true;
-        };
-        const coincideBusqueda = (p: any) => {
-            if (!search) return true;
-            const query = normalizarTexto(search);
-            return normalizarTexto(p.model).includes(query)
-                || normalizarTexto(p.modelCode).includes(query)
-                || normalizarTexto(p.category).includes(query)
-                || normalizarTexto(p.brand).includes(query);
-        };
+        // El rango se compara contra el MISMO número que muestra la tarjeta: en
+        // la tienda al público, el precio por transferencia (el grande); en el
+        // canal mayorista, el que se cobra. Antes se comparaba siempre contra
+        // el de tarjeta y "Hasta $150.000" dejaba 5 modelos con 134 tarjetas
+        // mostrando menos (auditoría 25/9, re-chequeo 28/9). La comparación
+        // vive en src/lib/catalog/rango-precio.ts (la usan también /receta,
+        // /lentes-de-sol y /clip-on). El % se lee solo si hay un rango puesto,
+        // para no sumar una consulta a cada carga.
+        const hayRangoDePrecio = rangoDePrecio.activo;
+        const descuentoTransferenciaPct = hayRangoDePrecio && !isWholesale
+            ? descuentoTransferenciaDe((await getWebSettings()).web_promo_cash_discount)
+            : 0;
+        const coincidePrecio = (p: any) =>
+            !hayRangoDePrecio || dentroDelRango(precioParaRango(p, descuentoTransferenciaPct, isWholesale), rangoDePrecio);
+        // Misma búsqueda que la lupa del encabezado (src/lib/catalog/busqueda-tienda.ts).
+        const coincideBusqueda = (p: any) => coincideBusquedaTienda(p, search);
 
         // 1) Filtrado por Categoría (fuera del sistema de facetas: no tiene
         // conteo propio en el panel — es la pestaña de arriba, no un chip).
@@ -192,19 +192,17 @@ export async function GET(request: NextRequest) {
         // Fuera del sistema de facetas: no es "pertenece a esta opción", es un
         // rango numérico con dos parámetros que se mueven juntos.
         //
-        // Se filtra por el precio EFECTIVO (con oferta si la hay), que es el
-        // que la grilla muestra — igual que el orden por precio de acá abajo.
-        // Si mostrás $150.000 y filtrás por el de lista, el resultado no
-        // coincide con lo que la persona ve.
+        // Se filtra por el número grande de la tarjeta (ver coincidePrecio):
+        // si la tarjeta muestra $136.000 y el filtro mira otro precio, el
+        // resultado no coincide con lo que la persona ve.
         filtered = filtered.filter(coincidePrecio);
 
         // 6) Filtrado por Búsqueda (Search)
         //
-        // normalizarTexto() saca tildes en los dos lados de la comparación:
-        // sin esto, "andromeda" (como lo tipea la mayoría en un buscador) daba
-        // CERO resultados contra "Andrómeda" — se lee como "no tienen", no
-        // como "escribiste sin tilde". Y `brand` faltaba directamente: el
-        // campo prometía buscar por marca pero nunca la miraba.
+        // Sin tildes, guiones ni plurales, con sinónimos ("clip on", "mujer",
+        // "anteojos de sol") y mirando también color, forma, material y
+        // género: todo en src/lib/catalog/busqueda-tienda.ts, que es la misma
+        // función que usa la lupa del encabezado.
         filtered = filtered.filter(coincideBusqueda);
 
         // 7) Orden (Sort). Normalizamos guion bajo -> guion medio para aceptar los
