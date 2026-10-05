@@ -44,6 +44,8 @@ for (const [valor, esperado] of Object.entries(generos)) {
 esperar('ruta relativa → URL completa', urlAbsoluta('/images/products/x.webp') === 'https://atelieroptica.com.ar/images/products/x.webp');
 esperar('URL completa queda igual', urlAbsoluta('https://cdn.ejemplo.com/a.jpg') === 'https://cdn.ejemplo.com/a.jpg');
 esperar('sin ruta → undefined', urlAbsoluta('') === undefined && urlAbsoluta(null) === undefined);
+esperar('una foto embebida (data:) no se convierte en URL', urlAbsoluta('data:image/webp;base64,AAAA') === undefined);
+esperar('//cdn… → https://cdn…', urlAbsoluta('//cdn.ejemplo.com/a.jpg') === 'https://cdn.ejemplo.com/a.jpg');
 
 // Toda página pública que define openGraph trae imagen.
 function paginas(dir) {
