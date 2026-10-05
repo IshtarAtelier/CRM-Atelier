@@ -100,6 +100,7 @@ jobs:
           npm run check:busqueda-tienda
           npm run check:ficha
           npm run check:par-bonificado
+          npm run check:recupero-carrito
           npm run check:go-lineas
           npm run check:lab-modulos
 

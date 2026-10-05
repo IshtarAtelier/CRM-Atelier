@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/db';
-import { esCompradorRobot } from '@/lib/checkout/robots';
+import { esCompradorRobot, ESTADO_ROBOT } from '@/lib/checkout/robots';
 import { sendEmail } from '@/lib/email';
 import { getAbandonedCartHtml, getClientItemsHtml } from '@/lib/checkout/checkout-emails';
 import { hasClosedOrder } from '@/lib/checkout/purchase-guard';
 import { getWebSettings } from '@/lib/web-settings';
 import { STORE_ORIGIN } from '@/lib/constants';
+import { effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
 
 const SANS = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 
@@ -157,8 +158,8 @@ export async function sendRecoveryEmailForSession(
     ? getClientItemsHtml(cartItems)
     : `<tr><td style="padding: 16px 0; color: #8f897c; font-family: ${SANS}; font-size: 14px;">Tu selección de la tienda</td></tr>`;
 
-  // Mail al cliente: el botón vuelve a la tienda pública, nunca a la URL de Railway.
-  const appUrl = STORE_ORIGIN;
+  // Mail al cliente: el botón vuelve a la tienda pública (linkDeRecupero usa
+  // STORE_ORIGIN), nunca a la URL de Railway.
   const customerName = session.firstName || 'Cliente';
 
   const subject = touch === 'EARLY'
@@ -170,7 +171,7 @@ export async function sendRecoveryEmailForSession(
   const result = await sendEmail({
     to: session.email,
     subject,
-    html: getAbandonedCartHtml(customerName, itemsHtml, session.total || 0, `${appUrl}/checkout`, coupon),
+    html: getAbandonedCartHtml(customerName, itemsHtml, session.total || 0, linkDeRecupero(session.id), coupon),
   });
 
   if (result.success) {
@@ -212,4 +213,109 @@ export async function sendRecoveryEmailForSession(
  */
 export async function runRecoveryTouch(session: RecoverableSession, touch: RecoveryTouch): Promise<RecoveryResult> {
   return sendRecoveryEmailForSession(session, { touch });
+}
+
+
+// ── Reponer el carrito desde el mail de recupero ────────────────────────────
+//
+// Auditoría del 25/9/2026: el mail llevaba a /checkout pelado y el carrito vive
+// en el navegador (localStorage). Quien lo abría desde el celular después de
+// haber empezado en la compu —o desde otro navegador— veía "Tu carrito está
+// vacío": el mail invitaba a volver a una compra que ya no estaba. Sobre 12
+// sesiones reales que recibieron el mail, 0 volvieron.
+//
+// Ahora el link lleva el id de la sesión y el checkout repone los productos
+// desde `CheckoutSession.cartData`, que ya se guardaba.
+
+/** Estados en los que el carrito ya no se repone: la persona compró, o no es una persona. */
+export const ESTADOS_SIN_CARRITO_RECUPERABLE = ['COMPLETED', 'RECOVERED', 'FINALIZED', ESTADO_ROBOT] as const;
+
+/** Link del mail de recupero: abre el checkout con los productos de esa sesión. */
+export function linkDeRecupero(sessionId: string): string {
+  return `${STORE_ORIGIN}/checkout?recuperar=${encodeURIComponent(sessionId)}`;
+}
+
+/** Lo que se devuelve para reponer: solo productos, ningún dato de la persona. */
+export interface ItemRecuperado {
+  productId: string;
+  brand: string;
+  model: string;
+  price: number;
+  basePrice: number;
+  /** Solo el segundo par del 2x1 Varilux, que va en $0 también para un mayorista. */
+  wholesaleBasePrice?: number;
+  image: string;
+  lensColor: string | null;
+  lensConfig: unknown;
+  quantity: number;
+  stock?: number;
+}
+
+/** Los ids de sesión son cuid: letras minúsculas y números. Cualquier otra cosa no se consulta. */
+export function esIdDeSesionValido(id: string | null | undefined): id is string {
+  return !!id && /^[a-z0-9]{20,40}$/.test(id);
+}
+
+/**
+ * Los productos de un carrito abandonado, listos para volver a cargarlos.
+ *
+ * - Solo si la sesión sigue abierta: nunca se repone la compra de alguien que
+ *   ya pagó (se le duplicaría el pedido).
+ * - El armazón vuelve con el precio de HOY (`effectiveFramePrice`, el mismo
+ *   con el que cobra el checkout): si subió desde que se armó el carrito, un
+ *   precio viejo haría rebotar el pago con "Discrepancia de precio", un error
+ *   que el cliente no puede resolver. Los cristales se ponen al día solos en el
+ *   carrito (`useCristalesAlDia`).
+ * - Un producto que ya no existe se saca.
+ * - No devuelve email, nombre, teléfono ni dirección: el link viaja por mail y
+ *   se puede reenviar.
+ */
+export async function carritoRecuperable(sessionId: string, db = prisma): Promise<ItemRecuperado[]> {
+  if (!esIdDeSesionValido(sessionId)) return [];
+  const sesion = await db.checkoutSession.findUnique({ where: { id: sessionId }, select: { status: true, cartData: true } });
+  if (!sesion || (ESTADOS_SIN_CARRITO_RECUPERABLE as readonly string[]).includes(sesion.status)) return [];
+
+  const guardados = Array.isArray(sesion.cartData) ? (sesion.cartData as any[]) : [];
+  const ids = [...new Set(guardados.map(i => String(i?.productId || '')).filter(Boolean))];
+  if (ids.length === 0) return [];
+  const productos = await db.product.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, category: true, price: true, salePrice: true, wholesalePrice: true, stock: true },
+  });
+  const porId = new Map(productos.map(p => [p.id, p]));
+
+  const items: ItemRecuperado[] = [];
+  for (const g of guardados) {
+    const producto = porId.get(String(g?.productId || ''));
+    if (!producto) continue;
+    // Mismo freno que el checkout al pagar (Cristal y Tratamiento no llevan
+    // stock): reponer algo agotado solo llevaba a un "Stock insuficiente"
+    // al final del formulario.
+    const llevaStock = producto.category !== 'Cristal' && producto.category !== 'Tratamiento';
+    if (llevaStock && !(producto.stock > 0)) continue;
+    const cantidadPedida = Math.max(1, Math.floor(Number(g.quantity) || 1));
+    const cantidad = llevaStock ? Math.min(cantidadPedida, producto.stock) : cantidadPedida;
+
+    // El segundo par del 2x1 Varilux va en $0 (armazón y cristales): así lo
+    // agrega el configurador y así lo cobra el checkout. Repreciarlo con el
+    // armazón de hoy le mostraba a la persona un total con un anteojo de más.
+    const segundoPar2x1 = !!(g.lensConfig as { secondPair2x1?: unknown } | null)?.secondPair2x1;
+    const armazonHoy = segundoPar2x1 ? 0 : effectiveFramePrice(producto, false);
+    const basePrevio = Number(g.basePrice ?? g.price) || 0;
+    const extrasCristales = segundoPar2x1 ? 0 : Math.max(0, (Number(g.price) || 0) - basePrevio);
+    items.push({
+      productId: producto.id,
+      brand: String(g.brand || ''),
+      model: String(g.model || ''),
+      price: armazonHoy + extrasCristales,
+      basePrice: armazonHoy,
+      ...(segundoPar2x1 ? { wholesaleBasePrice: 0 } : {}),
+      image: String(g.image || ''),
+      lensColor: g.lensColor ?? null,
+      lensConfig: g.lensConfig ?? null,
+      quantity: cantidad,
+      stock: llevaStock ? producto.stock : undefined,
+    });
+  }
+  return items;
 }

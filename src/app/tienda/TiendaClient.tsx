@@ -73,6 +73,9 @@ type FiltrosUrl = {
   /** A-08: rango de precio. Van juntos y pueden estar vacíos los dos. */
   precioMin: string;
   precioMax: string;
+  /** Lo buscado (?q=). En la URL para poder compartirlo y para que "atrás"
+   *  desde una ficha vuelva a la misma búsqueda (auditoría del 25/9/2026). */
+  q: string;
 };
 
 // useSearchParams fuerza render en cliente hasta el <Suspense> más cercano; lo
@@ -101,6 +104,7 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void
       sort: searchParams.get('orden') || 'recientes',
       precioMin: searchParams.get('precioMin') || '',
       precioMax: searchParams.get('precioMax') || '',
+      q: searchParams.get('q') || '',
     });
   }, [searchParams, onChange]);
 
@@ -125,6 +129,8 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void
 const CLAVE_MEMORIA_LISTA = 'tienda:lista';
 type MemoriaLista = {
   url: string;
+  /** Filtros + página de la lista guardada (misma forma que `claveDeLista`). */
+  clave: string;
   products: any[];
   currentPage: number;
   totalPages: number;
@@ -140,6 +146,7 @@ function leerMemoriaLista(): MemoriaLista | null {
     const m = JSON.parse(crudo) as MemoriaLista;
     if (m.url !== window.location.pathname + window.location.search) return null;
     if (!Array.isArray(m.products) || !m.products.length) return null;
+    if (typeof m.clave !== 'string') return null;
     // Media hora: más que eso y el precio o el stock pueden haber cambiado.
     if (Date.now() - m.guardadoEn > 30 * 60 * 1000) return null;
     return m;
@@ -181,6 +188,7 @@ export function TiendaClient({
   };
   const [visibleCount, setVisibleCount] = useState(24);
 
+
   const [urlFilters, setUrlFilters] = useState<FiltrosUrl>({
     // Llega resuelta del servidor: si arrancara en 'Todo' y cambiara al
     // hidratar, la grilla —que se anima con key={activeCategory} en modo
@@ -194,7 +202,34 @@ export function TiendaClient({
     sort: 'recientes',
     precioMin: '',
     precioMax: '',
+    q: '',
   });
+
+  // ── La búsqueda en la URL (?q=) ──
+  // Antes lo tipeado vivía solo en memoria: al volver de una ficha se perdía y
+  // una búsqueda no se podía compartir. `searchQuery` sigue siendo lo que se
+  // ve en el campo (y lo que dispara la consulta); la URL se escribe un rato
+  // después de dejar de tipear. `ultimoQEscrito` evita que el eco de esa
+  // escritura pise lo que la persona siguió tipeando mientras tanto.
+  const ultimoQEscrito = useRef<string>('');
+  useEffect(() => {
+    const q = urlFilters.q;
+    if (q === ultimoQEscrito.current) return; // es nuestro propio eco
+    ultimoQEscrito.current = q;
+    setSearchQuery(q);
+  }, [urlFilters.q]);
+  useEffect(() => {
+    const valor = searchQuery.trim();
+    if (valor === ultimoQEscrito.current) return;
+    const t = setTimeout(() => {
+      ultimoQEscrito.current = valor;
+      const params = new URLSearchParams(window.location.search);
+      if (valor) params.set('q', valor); else params.delete('q');
+      const qs = params.toString();
+      navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   // La categoría vivía en un useState suelto: la grilla cambiaba pero la URL
   // seguía siendo /tienda, así que "la tienda filtrada en sol" no tenía
@@ -359,10 +394,34 @@ export function TiendaClient({
   const [reloadNonce, setReloadNonce] = useState(0);
   const isRecoveringProducts = isLoading;
 
-  // Whenever filters change, reset page to 1
+  /** Filtros + página: identifica qué lista hay en pantalla. */
+  const claveDeLista = [activeCategory, filterBrand, filterShape, filterMaterial,
+    filterGender, filterColor, filterPrecioMin, filterPrecioMax, sortParam, searchQuery,
+    currentPage].join('|');
+
+  /**
+   * Lista restaurada desde sessionStorage que todavía no terminó de
+   * "encajar": los filtros de la URL (marca, búsqueda…) llegan uno o dos
+   * pintados DESPUÉS del montaje. Mientras la URL siga siendo la guardada,
+   * ni se vuelve a la página 1 ni se pide la lista: se espera a que los
+   * filtros coincidan con los de la lista guardada.
+   */
+  const restauracionRef = useRef<{ url: string; clave: string } | null>(null);
+  const restaurandoEstaUrl = () => {
+    const r = restauracionRef.current;
+    if (!r) return false;
+    if (r.url === window.location.pathname + window.location.search) return true;
+    restauracionRef.current = null; // la persona ya cambió de filtro
+    return false;
+  };
+
+  // Al cambiar cualquier filtro se vuelve a la página 1. Color y precio no
+  // estaban: estando en la página 3, elegir un color traía la página 3 del
+  // filtro nuevo y la sumaba debajo de la lista vieja.
   useEffect(() => {
+    if (restaurandoEstaUrl()) return;
     setCurrentPage(1);
-  }, [activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale]);
+  }, [activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax, sortParam, isWholesale]);
 
   // Load products from API based on current filters and page.
   // El skip del fetch inicial solo vale para la PRIMERA corrida del efecto:
@@ -371,8 +430,6 @@ export function TiendaClient({
   // sin este ref, el early-return dejaba la pestaña "Todo" mostrando solo
   // los productos del filtro anterior.
   const isFirstEffectRunRef = useRef(true);
-  /** URL (ruta + query) para la que ya se restauró la lista desde sessionStorage: ese fetch se saltea. */
-  const listaRestauradaParaRef = useRef<string | null>(null);
   const [scrollARestaurar, setScrollARestaurar] = useState<number | null>(null);
 
   // Al montar: si venimos de una ficha de esta misma lista, se repone la lista
@@ -380,7 +437,7 @@ export function TiendaClient({
   useEffect(() => {
     const m = leerMemoriaLista();
     if (!m) return;
-    listaRestauradaParaRef.current = m.url;
+    restauracionRef.current = { url: m.url, clave: m.clave };
     setProducts(m.products);
     setCurrentPage(m.currentPage);
     setTotalPages(m.totalPages);
@@ -388,6 +445,16 @@ export function TiendaClient({
     setConteos(m.conteos ?? null);
     setScrollARestaurar(m.scrollY);
     sessionStorage.removeItem(CLAVE_MEMORIA_LISTA);
+    // Red de seguridad: si los filtros nunca llegan a coincidir (por ejemplo,
+    // abrió la ficha antes de que la búsqueda tipeada se escribiera en la
+    // URL), no se deja la lista congelada: se pide la de verdad.
+    const t = setTimeout(() => {
+      if (!restauracionRef.current) return;
+      restauracionRef.current = null;
+      setCurrentPage(1);
+      setReloadNonce(n => n + 1);
+    }, 3000);
+    return () => clearTimeout(t);
   }, []);
 
   // Volver al punto exacto, recién cuando la página ya es tan alta como para
@@ -416,6 +483,7 @@ export function TiendaClient({
     try {
       const m: MemoriaLista = {
         url: window.location.pathname + window.location.search,
+        clave: claveDeLista,
         products,
         currentPage,
         totalPages,
@@ -438,14 +506,14 @@ export function TiendaClient({
 
     // Lista restaurada desde la memoria para ESTA URL: ya está en pantalla
     // tal cual la dejó el visitante; pedirla de nuevo la reemplazaría por la
-    // página 1 y se perdería el lugar. Vale una sola vez: cualquier cambio de
-    // filtro posterior cambia la URL y vuelve a pedir normalmente.
-    if (listaRestauradaParaRef.current &&
-        listaRestauradaParaRef.current === window.location.pathname + window.location.search) {
-      listaRestauradaParaRef.current = null;
-      filtrosDelUltimoFetch.current = [activeCategory, filterBrand, filterShape,
-        filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax,
-        sortParam, searchQuery, currentPage].join('|');
+    // página 1 y se perdería el lugar. Antes se consumía en la primera
+    // corrida, cuando los filtros de la URL todavía no habían llegado: con
+    // ?q= o ?marca= la corrida siguiente pedía la página 1 y el lugar se
+    // perdía igual. Ahora se espera a que filtros y página coincidan.
+    if (restaurandoEstaUrl()) {
+      if (claveDeLista !== restauracionRef.current!.clave) return;
+      restauracionRef.current = null;
+      filtrosDelUltimoFetch.current = claveDeLista;
       return;
     }
 
@@ -503,9 +571,7 @@ export function TiendaClient({
           setTotalPages(data.totalPages || 1);
           setTotalCount(data.totalCount || 0);
           setConteos(data.conteos || null);
-          filtrosDelUltimoFetch.current = [activeCategory, filterBrand, filterShape,
-            filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax,
-            sortParam, searchQuery, currentPage].join('|');
+          filtrosDelUltimoFetch.current = claveDeLista;
         }
       } catch (err) {
         console.error("Error loading products:", err);
@@ -551,9 +617,7 @@ export function TiendaClient({
     // vez por combinación: sin esta guarda, cada re-render (y son muchos: el
     // panel, el contador, el hover de una card) mandaría el evento de nuevo y
     // el denominador del embudo quedaría inflado.
-    const clave = [activeCategory, filterBrand, filterShape, filterMaterial,
-      filterGender, filterColor, filterPrecioMin, filterPrecioMax, sortParam, searchQuery,
-      currentPage].join('|');
+    const clave = claveDeLista;
     if (listaReportada.current === clave) return;
     // El conteo que viaja en el evento tiene que ser el de ESTOS filtros. Si el
     // último fetch fue por otra combinación, `totalCount` todavía es el viejo:
