@@ -171,6 +171,19 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   reclamo falso). Bases en `docs/vitolen-pedidos-y-promos.md`.
 - **El saldo NUNCA es lista − cobrado.** Hay que convertir cada pago a su
   equivalente de lista; la resta directa inventó 76 saldos fantasma en prod.
+- **Con precios viejos no se cobra ni se pasa a venta** (Ishtar, 5/10/2026).
+  Un presupuesto guarda el precio con el que se cotizó; después de un aumento
+  queda viejo. `PreciosVigentesService` (`src/services/precios-vigentes.service.ts`)
+  lo re-cotiza en memoria con las MISMAS funciones del cotizador
+  (`src/lib/precios-vigentes.ts`) y dice qué ítems cambiaron. La tarjeta avisa
+  con una banda y un pop-up: para ENVIAR o descargar se puede seguir con los
+  precios cotizados (queda firmado en la ficha); para COBRAR o CONVERTIR EN
+  VENTA no — hay que actualizar, y si se le respeta el precio anterior al
+  cliente lo hace un ADMINISTRADOR con un descuento especial por la diferencia.
+  El candado de verdad está en `OrderService.updateOrder` (409
+  `PRECIOS_DESACTUALIZADOS`), no en la pantalla. Una VENTA no se re-cotiza nunca.
+  Los aumentos quedan firmados como `PRICE_OVERRIDE` en AuditLog (historial en
+  /admin/inventario/precios).
 - **Un cobro de más no redefine el precio de la venta.** Nada debe pisar
   `total` / `subtotalWithMarkup` con lo pagado.
 - **`Order.paid` NO prueba que se haya cobrado.** La venta real se mide por filas

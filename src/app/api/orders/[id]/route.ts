@@ -57,6 +57,11 @@ export async function PATCH(
         const order = await OrderService.updateOrder(id, body, userId, userName, role);
         return NextResponse.json(order);
     } catch (error: any) {
+        // El candado de precios viejos no es un error del server: la pantalla
+        // abre el aviso con esta comparación.
+        if (error?.code === 'PRECIOS_DESACTUALIZADOS') {
+            return NextResponse.json({ error: error.message, code: error.code, comparacion: error.comparacion }, { status: 409 });
+        }
         console.error('Error updating order:', error);
         
         let status = 500;

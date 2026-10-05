@@ -6,6 +6,8 @@ import { prisma } from '@/lib/db';
 import { codigosCrizal, crizalPermitidoEn2x1, esCrizalValido, ventaExigeCrizal } from '@/lib/constants/crizal';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { calculateQuoteTotals } from '@/services/PricingService';
+import { PreciosVigentesService } from '@/services/precios-vigentes.service';
+import { PreciosDesactualizadosError } from '@/lib/precios-vigentes';
 import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
 import { TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 import { z } from 'zod';
@@ -551,6 +553,15 @@ export class OrderService {
             where: { id },
             select: { orderType: true, isLocked: true, labStatus: true }
         });
+
+        // Con precios viejos no se pasa a venta (Ishtar, 5/10/2026): se
+        // actualiza y, si hay que respetar el precio anterior, un administrador
+        // aplica un descuento especial. La pantalla avisa antes; este es el
+        // candado que no depende de la pantalla.
+        if (body.orderType === 'SALE' && existingForGuard && existingForGuard.orderType !== 'SALE') {
+            const comparacion = await PreciosVigentesService.comparar(id);
+            if (comparacion?.desactualizado) throw new PreciosDesactualizadosError(comparacion);
+        }
 
         if (existingForGuard?.orderType === 'SALE') {
             // 1. Unlocking (isLocked: false) is ADMIN-only
@@ -2730,6 +2741,10 @@ export class OrderService {
 
         return order;
     } catch (error: any) {
+        // El candado de precios viejos viaja tal cual: lleva la comparación que
+        // la pantalla necesita para abrir el aviso (y no es un error del server).
+        if (error instanceof PreciosDesactualizadosError) throw error;
+
         console.error('Error updating order:', error);
         
         // Handle Prisma's "Record to update not found" specifically for stock constraint

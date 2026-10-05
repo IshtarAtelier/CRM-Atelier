@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { PricingService } from '@/services/PricingService';
+import { formatearPrecio } from '@/lib/format-precio';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 // Modular Components
@@ -29,6 +30,8 @@ import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
 import CalculadorPagos from '@/components/pagos/CalculadorPagos';
+import AvisoPreciosViejos, { type AccionConPrecios } from './AvisoPreciosViejos';
+import type { ComparacionDePrecios } from '@/lib/precios-vigentes';
 import InvoiceModal from '@/components/billing/InvoiceModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 
@@ -78,6 +81,28 @@ export default function QuoteSummary({
     const [showCheckout, setShowCheckout] = React.useState(false);
     const [showPayment, setShowPayment] = React.useState(false);
     const [showCalculador, setShowCalculador] = React.useState(false);
+    // Precios viejos: la comparación contra el catálogo de hoy y, si hay un
+    // aviso abierto, qué estaba por hacer el vendedor.
+    const [preciosViejos, setPreciosViejos] = React.useState<ComparacionDePrecios | null>(null);
+    const [avisoPrecios, setAvisoPrecios] = React.useState<{ accion: AccionConPrecios; comparacion: ComparacionDePrecios; seguir: () => void } | null>(null);
+    // Hooks arriba de cualquier return: la comparación se pide al desplegar el
+    // presupuesto, para mostrar la banda de "precios desactualizados".
+    const esVentaParaPrecios = order?.orderType === 'SALE' || order?.orderType === 'MAYORISTA';
+    const compararPrecios = React.useCallback(async (): Promise<ComparacionDePrecios | null> => {
+        if (esVentaParaPrecios || order?.isDeleted || !order?.id) return null;
+        try {
+            const res = await fetch(`/api/orders/${order.id}/precios-vigentes`);
+            if (!res.ok) return null;
+            const c: ComparacionDePrecios = await res.json();
+            setPreciosViejos(c.desactualizado ? c : null);
+            return c;
+        } catch {
+            return null;
+        }
+    }, [esVentaParaPrecios, order?.id, order?.isDeleted]);
+    React.useEffect(() => {
+        if (isExpanded && !esVentaParaPrecios) compararPrecios();
+    }, [isExpanded, esVentaParaPrecios, order?.total, compararPrecios]);
     const [showIshAlert, setShowIshAlert] = React.useState(false);
     // Cartel obligatorio después de mandar a fábrica: que el vendedor verifique
     // con sus ojos que la confirmación de compra salió, y que se lo explique al
@@ -275,7 +300,7 @@ export default function QuoteSummary({
 
                 <div className="grid grid-cols-2 gap-2">
                     <button 
-                        onClick={() => window.open(`/api/orders/${order.id}/pdf`, '_blank')}
+                        onClick={() => conPreciosAlDia('pdf', () => window.open(`/api/orders/${order.id}/pdf`, '_blank'))}
                         className="py-2 bg-stone-50 dark:bg-stone-700/50 hover:bg-primary/10 hover:text-primary rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                     >
                         <Download className="w-3 h-3" /> PDF
@@ -295,6 +320,49 @@ export default function QuoteSummary({
 
     const isSale = order.orderType === 'SALE' || order.orderType === 'MAYORISTA';
     const isQuote = !isSale;
+
+    /**
+     * Corre `seguir` solo si el presupuesto está al día; si no, abre el aviso.
+     * Si la consulta falla no se frena el envío: el candado de verdad (pasar a
+     * venta) vive en el servidor.
+     */
+    const conPreciosAlDia = async (accion: AccionConPrecios, seguir: () => void) => {
+        const c = await compararPrecios();
+        if (c?.desactualizado) setAvisoPrecios({ accion, comparacion: c, seguir });
+        else seguir();
+    };
+
+    const actualizarPrecios = async () => {
+        const res = await fetch(`/api/orders/${order.id}/precios-vigentes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accion: 'actualizar' }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err?.error || 'No se pudieron actualizar los precios');
+        }
+        setPreciosViejos(null);
+        const pendiente = avisoPrecios;
+        setAvisoPrecios(null);
+        if (onRefreshContact) await onRefreshContact();
+        // Enviar y descargar leen el pedido del servidor, ya actualizado. Cobrar
+        // y convertir abren una pantalla que muestra importes: se sigue después
+        // de refrescar la ficha.
+        if (pendiente && pendiente.accion !== 'ver') pendiente.seguir();
+    };
+
+    const seguirConPreciosCotizados = () => {
+        const pendiente = avisoPrecios;
+        setAvisoPrecios(null);
+        if (!pendiente) return;
+        fetch(`/api/orders/${order.id}/precios-vigentes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accion: 'enviar-cotizado', medio: pendiente.accion }),
+        }).catch(err => console.error('No se pudo anotar el envío con precios cotizados:', err));
+        pendiente.seguir();
+    };
     const isLockedSale = isSale && order.isLocked !== false;
 
     // La receta tal cual quedó congelada al enviar a fábrica. Las ventas viejas
@@ -1191,18 +1259,33 @@ export default function QuoteSummary({
                     />
                 )}
 
+                {isQuote && preciosViejos && !order.isDeleted && (
+                    <button
+                        type="button"
+                        onClick={() => setAvisoPrecios({ accion: 'ver', comparacion: preciosViejos, seguir: () => {} })}
+                        className="w-full mt-4 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-900/50 text-left hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all"
+                    >
+                        <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-300">
+                            <AlertCircle className="w-4 h-4" /> Precios desactualizados
+                        </span>
+                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                            {preciosViejos.filas.length} de {preciosViejos.itemsTotales} ítems · lista ${formatearPrecio(preciosViejos.listaCotizada)} → ${formatearPrecio(preciosViejos.listaHoy)} · Ver y actualizar
+                        </span>
+                    </button>
+                )}
+
                 {showActions && !order.isDeleted && (
                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
                         {isQuote ? (
                             <button 
-                                onClick={() => {
+                                onClick={() => conPreciosAlDia('convertir', () => {
                                     const hasPayment = (Number(order.paid) || 0) > 0 || (order.payments && order.payments.length > 0);
                                     if (hasPayment) {
                                         setShowCheckout(true);
                                     } else {
                                         setShowPayment(true);
                                     }
-                                }} 
+                                })} 
                                 className="sm:col-span-4 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                             >
                                 <CheckCircle2 className="w-5 h-5" /> CONVERTIR EN VENTA
@@ -1245,7 +1328,7 @@ export default function QuoteSummary({
                             botones chicos de enviar. Los cuatro chicos quedan en una
                             sola línea abajo. */}
                         <button
-                            onClick={() => setShowPayment(true)}
+                            onClick={() => conPreciosAlDia('cobrar', () => setShowPayment(true))}
                             className="sm:col-span-3 py-4 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
                             <Banknote className="w-5 h-5" /> ABONAR
@@ -1303,20 +1386,20 @@ export default function QuoteSummary({
                         )}
 
                         <button
-                            onClick={() => window.open(`/api/orders/${order.id}/pdf`, '_blank')}
+                            onClick={() => conPreciosAlDia('pdf', () => window.open(`/api/orders/${order.id}/pdf`, '_blank'))}
                             className="py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-all flex items-center justify-center gap-2"
                         >
                             <Download className="w-3.5 h-3.5" /> PDF
                         </button>
                         <button 
-                            onClick={handleWhatsApp} 
+                            onClick={() => conPreciosAlDia('whatsapp', handleWhatsApp)} 
                             disabled={!contact.phone || isSendingWhatsApp}
                             className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30"
                         >
                             <WhatsAppIcon className={`w-3.5 h-3.5 ${isSendingWhatsApp ? 'animate-pulse' : ''}`} /> {isSendingWhatsApp ? 'Enviando...' : 'WhatsApp'}
                         </button>
                         <button 
-                            onClick={handleWhatsAppPDF} 
+                            onClick={() => conPreciosAlDia('enviar-pdf', handleWhatsAppPDF)} 
                             disabled={!contact.phone || isSendingPDF}
                             className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30"
                         >
@@ -1369,6 +1452,16 @@ export default function QuoteSummary({
                         setInvoiceOrder(null);
                         if (onRefreshContact) await onRefreshContact();
                     }}
+                />
+            )}
+
+            {avisoPrecios && (
+                <AvisoPreciosViejos
+                    comparacion={avisoPrecios.comparacion}
+                    accion={avisoPrecios.accion}
+                    onActualizar={actualizarPrecios}
+                    onSeguirIgual={seguirConPreciosCotizados}
+                    onClose={() => setAvisoPrecios(null)}
                 />
             )}
 
