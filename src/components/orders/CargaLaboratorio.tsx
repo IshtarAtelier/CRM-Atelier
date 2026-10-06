@@ -313,7 +313,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
             {ampliada && (
                 <div role="dialog" aria-label={`El pedido en el portal de ${nombre}, ampliado`} className="fixed inset-0 z-[200] bg-black/90 flex flex-col"
                     onKeyDown={e => { if (e.key === 'Escape') setAmpliada(null); }} tabIndex={-1} ref={dialogo}>
-                    <div className="flex items-center justify-between gap-3 px-4 py-2 text-white">
+                    <div className="flex items-center justify-between gap-3 px-4 py-2 text-white bg-stone-950">
                         <span className="text-[11px] font-black uppercase tracking-widest">{nombre} · {borradorAmpliado ? 'así queda el pedido en el portal' : 'el pedido en el portal'}</span>
                         <a href={ampliada.url} target="_blank" rel="noreferrer" className="text-[11px] underline text-stone-300 hover:text-white whitespace-nowrap">Abrir la captura en otra pestaña</a>
                         <button type="button" aria-label="Cerrar" onClick={() => setAmpliada(null)} className="inline-flex items-center gap-1 bg-white text-stone-900 text-[11px] font-black uppercase tracking-widest px-3 py-2 rounded-lg">
