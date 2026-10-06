@@ -25,7 +25,7 @@ interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
-    preparedBy: string | null; approvedBy: string | null; loadedAt: string | null; error: string | null; vista: Vista;
+    preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista;
 }
 interface PedidoEspejo { portalNumber: string; status: string; statusRaw: string | null; estimatedAt: string | null; lastSeenAt: string }
 interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean }
@@ -40,6 +40,8 @@ const ESTADO: Record<string, { texto: string; clase: string }> = {
 };
 const ESTADO_PORTAL: Record<string, string> = { INGRESADO: 'Ingresado', EN_PROCESO: 'En proceso', TERMINADO: 'Terminado', DESPACHADO: 'Despachado', ANULADO: 'Anulado', DESCONOCIDO: 'Sin interpretar' };
 const VIVOS = ['PREPARADO', 'EN_REVISION', 'APROBADO'];
+/** Un APROBADO sin novedades después de esto ya no está "cargando": se ofrece reintentar. */
+const APROBADO_DEMORADO_MS = 5 * 60_000;
 const esImagen = (url: string | null | undefined) => !!url && !/\.pdf(\?|$|%)/i.test(decodeURIComponent(url));
 
 /** Colores por laboratorio (clases completas: Tailwind no arma nombres dinámicos). */
@@ -243,7 +245,17 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         )}
 
                         {b?.status === 'PREPARADO' && <p className="text-xs text-stone-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está armando el pedido en el portal; en unos segundos trae la pantalla para revisar. Preparado por {b.preparedBy}.</p>}
-                        {b?.status === 'APROBADO' && !b.error && <p className="text-xs text-stone-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Aprobado por {b.approvedBy}. El robot está cargando el pedido en el laboratorio.</p>}
+                        {b?.status === 'APROBADO' && !b.error && (
+                            <div className="text-xs text-stone-500 space-y-1">
+                                <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Aprobado por {b.approvedBy}. El robot está cargando el pedido en el laboratorio.</p>
+                                {/* Si el servidor se reinició a mitad de la carga, nadie anota el error: pasados unos minutos se ofrece reintentar (nunca duplica). */}
+                                {b.approvedAt && Date.now() - Date.parse(b.approvedAt) > APROBADO_DEMORADO_MS && (
+                                    <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')} className={`${boton} bg-emerald-600`}>
+                                        {ocupado === `reintentar-${b.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Está tardando: reintentar la carga
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         {b?.status === 'APROBADO' && b.error && (
                             <div className="text-xs text-rose-700 dark:text-rose-400 space-y-1">
                                 <p className="flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {b.error}</p>

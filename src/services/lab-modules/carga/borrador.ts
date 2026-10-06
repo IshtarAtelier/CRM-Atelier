@@ -90,7 +90,10 @@ export function portalSinResolver(b: { status: string; resumenPortal: unknown })
  *  · APROBADO viejo: la confirmación no terminó → se anota para reintentar,
  *    nunca ERROR (el portal puede haberla tomado).
  */
-export const COLGADO_TRAS_MIN = 20;
+// Por encima del peor caso legítimo del robot: 3 intentos de login de hasta 5 min
+// + 4 min de espera de turno + esperas del portal (~22 min). GO además mueve
+// `updatedAt` al entrar al portal (`etapa`), así que trabajando no se vence.
+export const COLGADO_TRAS_MIN = 30;
 
 export function colgados(
     vivos: { id: string; status: string; updatedAt: Date }[],

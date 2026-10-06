@@ -123,7 +123,10 @@ async function enSoloLectura<T>(page: Page, responder: ((url: string) => unknown
         if (cuerpo) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cuerpo) });
         return route.continue();
     };
-    await page.route('**/*', handler);
+    // Sobre el contexto y no solo la página: si el portal abriera un popup o una
+    // pestaña nueva, también quedaría en solo lectura.
+    const contexto = page.context();
+    await contexto.route('**/*', handler);
     try {
         const paso = await page.evaluate(async (u) => {
             try { await fetch(u, { method: 'POST', body: '{}', credentials: 'include' }); return true; } catch { return false; }
@@ -138,7 +141,7 @@ async function enSoloLectura<T>(page: Page, responder: ((url: string) => unknown
         // si su JavaScript reintentara el envío abortado, lo haría sin ruta y
         // llegaría al servidor. Con la página en blanco no queda nada corriendo.
         await page.goto('about:blank', { waitUntil: 'commit' }).catch(() => null);
-        await page.unroute('**/*', handler).catch(() => null);
+        await contexto.unroute('**/*', handler).catch(() => null);
     }
 }
 

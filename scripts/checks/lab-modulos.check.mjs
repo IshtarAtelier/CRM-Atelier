@@ -461,11 +461,11 @@ ok('un borrador que dejó un pedido en el portal bloquea preparar otro hasta can
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: null }), false);
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { pasos: [] } }), false);
 });
-ok('un PREPARADO colgado 20 min va a ERROR; un APROBADO colgado se reintenta, nunca ERROR', () => {
+ok('un PREPARADO colgado 30 min va a ERROR (más que el peor caso del robot, ~22 min); un APROBADO colgado se reintenta, nunca ERROR', () => {
     const r = colgados([
-        { id: 'p-viejo', status: 'PREPARADO', updatedAt: hace(25 * 60000) },
-        { id: 'p-nuevo', status: 'PREPARADO', updatedAt: hace(5 * 60000) },
-        { id: 'a-viejo', status: 'APROBADO', updatedAt: hace(25 * 60000) },
+        { id: 'p-viejo', status: 'PREPARADO', updatedAt: hace(35 * 60000) },
+        { id: 'p-nuevo', status: 'PREPARADO', updatedAt: hace(22 * 60000) },
+        { id: 'a-viejo', status: 'APROBADO', updatedAt: hace(35 * 60000) },
         { id: 'r', status: 'EN_REVISION', updatedAt: hace(500 * 60000) },
     ], ahora);
     assert.deepEqual(r, { aError: ['p-viejo'], aReintentar: ['a-viejo'] });

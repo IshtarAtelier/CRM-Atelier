@@ -210,6 +210,16 @@ export function puedeCrearPedidosReales(env: Record<string, string | undefined> 
 
 const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '[::1]', '::1', '0.0.0.0', 'host.docker.internal']);
 
+/** El portal CONTESTÓ que no crea el pedido (HTTP 400: datos que no acepta). No hay nada creado. */
+export class PedidoRechazadoError extends Error {
+    constructor(msg: string) { super(msg); this.name = 'PedidoRechazadoError'; }
+}
+/** El portal contestó con otro error (5xx, 401…): hubo respuesta, así que el envío no quedó incierto. */
+export class PortalRespondioError extends Error {
+    status: number;
+    constructor(status: number, msg: string) { super(msg); this.name = 'PortalRespondioError'; this.status = status; }
+}
+
 /** EL ÚNICO POST: crea el pedido. Devuelve el nº que asignó el portal. */
 export async function crearPedidoEnPortal(page: Page, payload: Record<string, unknown>): Promise<{ numero: string; mensaje: string }> {
     if (!puedeCrearPedidosReales()) {
@@ -226,8 +236,8 @@ export async function crearPedidoEnPortal(page: Page, payload: Record<string, un
         let j: any = null; try { j = JSON.parse(t); } catch { /* texto */ }
         return { status: res.status, json: j, texto: t.slice(0, 500) };
     }, { url: `${API_BASE}/laboratory/order/createupdate`, body: payload });
-    if (r.status === 400) throw new PortalNoCoincideError(`el portal rechazó el pedido: ${r.json?.error || r.texto}`);
-    if (r.status !== 200 && r.status !== 201) throw new Error(`${NOMBRE_GRUPO_OPTICO} respondió ${r.status} al crear el pedido: ${r.texto}`);
+    if (r.status === 400) throw new PedidoRechazadoError(`el portal rechazó el pedido: ${r.json?.error || r.texto}`);
+    if (r.status !== 200 && r.status !== 201) throw new PortalRespondioError(r.status, `${NOMBRE_GRUPO_OPTICO} respondió ${r.status} al crear el pedido: ${r.texto}`);
     const numero = String(r.json?.orderId ?? '').trim();
     if (!/^\d{6,}$/.test(numero)) throw new Error(`${NOMBRE_GRUPO_OPTICO} no devolvió el nº de pedido (${r.texto})`);
     return { numero, mensaje: String(r.json?.message || '') };

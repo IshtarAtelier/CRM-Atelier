@@ -6,6 +6,7 @@ import { armarFormulario, leerVentaParaCarga } from './carga';
 import { cristalVitolenPorNombre } from './catalogo';
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
+import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 
 /**
  * La carga asistida de Vitolen detrás del contrato común (carga/contrato.ts).
@@ -30,6 +31,10 @@ export const CARGA_VITOLEN: CargaAsistida = {
         // Qué pares de Vitolen tiene la venta y qué le falta a cada uno para armarse
         // (sin forma ni variante elegidas todavía: eso lo decide quien prepara).
         const pares = [...new Set(venta.items.filter(esCristalVitolen).map(i => i.framePosition ?? 1))].sort();
+        // ¿Algún par ya tiene pedido (robot, seguimiento o nº tipeado)? La ficha
+        // no ofrece preparar y deshabilita "Aprobar" (misma regla que Grupo Óptico).
+        const yaCargados = new Map<number, string | null>();
+        for (const p of pares) { const e = await pedidoExistenteDelPar(orderId, p, pares.length); yaCargados.set(p, e ? mensajeExistente(e, p) : null); }
         return {
             pares: pares.map(pair => {
                 const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0 });
@@ -46,6 +51,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
                     faltantes: r.faltantes.filter(f => !/variante|forma del armazón|eje de la diagonal/.test(f)),
                     avisos: r.avisos,
                     campos,
+                    yaCargado: yaCargados.get(pair) ?? null,
                 };
             }),
         };
@@ -80,11 +86,15 @@ export const CARGA_VITOLEN: CargaAsistida = {
         if (!venta) return { ok: false, status: 404, error: 'Venta no encontrada.' };
         // Al laboratorio va solo una venta ENVIADA a fábrica: así queda quién la
         // envió (vendedor = labSentBy), la fecha, y el seguimiento la vincula.
-        if (venta.labStatus !== 'SENT') {
+        // SENT, o IN_PROGRESS: al confirmar el 1er par la venta ya pasa a "en
+        // proceso" y el 2º par tiene que poder prepararse igual (como Grupo Óptico).
+        if (venta.labStatus !== 'SENT' && venta.labStatus !== 'IN_PROGRESS') {
             return { ok: false, status: 409, error: `La venta tiene que estar enviada a fábrica antes de cargarla en el portal (hoy está ${venta.labStatus || 'sin enviar'}).` };
         }
         const paresDeLaVenta = new Set(venta.items.filter(esCristalVitolen).map(i => i.framePosition ?? 1));
         if (!paresDeLaVenta.has(pair)) return { ok: false, status: 400, error: `La venta no tiene cristales de Vitolen para el par ${pair}.` };
+        const existente = await pedidoExistenteDelPar(orderId, pair, paresDeLaVenta.size);
+        if (existente) return { ok: false, status: 409, error: mensajeExistente(existente, pair) };
 
         const ejeDiagonal = body.ejeDiagonal === undefined || body.ejeDiagonal === null || body.ejeDiagonal === '' ? null : Number(body.ejeDiagonal);
         if (ejeDiagonal !== null && !(Number.isFinite(ejeDiagonal) && ejeDiagonal >= 0 && ejeDiagonal <= 180)) {

@@ -72,8 +72,11 @@ export async function esperarTurno(lab: string, pasada: Pasada, maxMs: number, c
     for (;;) {
         const turno = await tomarTurno(lab, pasada);
         if (turno || Date.now() + cadaMs > limite) return turno;
-        if (!debeEsperar(await quienTieneElTurno(lab), pasada)) return null;
-        await new Promise(r => setTimeout(r, cadaMs));
+        const dueno = await quienTieneElTurno(lab);
+        // Sin dueño = se soltó entre que falló tomarlo y acá: se vuelve a intentar
+        // enseguida, no es "ocupado" (auditoría 4, M6).
+        if (dueno && !debeEsperar(dueno, pasada)) return null;
+        await new Promise(r => setTimeout(r, dueno ? cadaMs : 1_000));
     }
 }
 

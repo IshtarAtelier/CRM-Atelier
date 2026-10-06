@@ -7,6 +7,7 @@ import { conTurno } from '../portal/turno';
 import type { PayloadVitolen } from './carga';
 import { cancelarBorrador, confirmar, crearYLeerResumen, llenarFormulario, ResumenCambiadoError } from './llenar';
 import { conSesionVitolen, LAB_VITOLEN, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './portal';
+import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { resumenComparable } from './resumen';
 
 /**
@@ -31,6 +32,8 @@ import { resumenComparable } from './resumen';
  * pasada está corriendo.
  * Nada se confirma sin la aprobación de una persona (regla de Ishtar).
  */
+class ParYaConPedidoError extends Error { constructor(m: string) { super(m); this.name = 'ParYaConPedidoError'; } }
+
 export const ROBOT_ACTOR_VITOLEN: Actor = { id: null, name: ROBOT_VITOLEN, role: null };
 
 export interface ResumenGuardado extends RastroPortal {
@@ -46,7 +49,9 @@ const ESPERA_TURNO_MS = 4 * 60_000;
 
 async function enElPortal<T>(tarea: () => Promise<T>): Promise<T> {
     // Pasada 'robot': espera a cualquier pasada en curso (hay una persona en la ficha).
-    const r = await conTurno(LAB_VITOLEN, 'robot', tarea, { esperar: true, esperaMaxMs: ESPERA_TURNO_MS });
+    // Obligatorio: lo que crea o confirma en un portal no corre sin turno (dos
+    // robots a la vez serían dos trabajos), igual que Grupo Óptico.
+    const r = await conTurno(LAB_VITOLEN, 'robot', tarea, { esperar: true, esperaMaxMs: ESPERA_TURNO_MS, obligatorio: true });
     if (r && typeof r === 'object' && 'skipped' in (r as any) && (r as any).skipped) {
         throw new Error(`El portal de ${NOMBRE_VITOLEN} está ocupado por otra pasada; volvé a intentar en unos minutos.`);
     }
@@ -111,7 +116,7 @@ export async function llenarBorradorEnPortal(borradorId: string) {
  * quien aprobó), CARGADO. Reintentable: desde APROBADO nunca va a ERROR.
  */
 export async function confirmarBorradorAprobado(borradorId: string) {
-    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, resumenPortal: true, approvedBy: true } });
+    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, resumenPortal: true, approvedBy: true, screenshotUrl: true } });
     if (!b) throw new Error('El borrador no existe.');
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo confirma los APROBADOS.`);
     const rastro = rastroDe(b);
@@ -119,7 +124,14 @@ export async function confirmarBorradorAprobado(borradorId: string) {
     const aprobadoPor = b.approvedBy ? { id: rastro.aprobadoPorId ?? null, name: b.approvedBy } : null;
 
     try {
-        const r = await enElPortal(() => conSesionVitolen(page => confirmar(page, rastro.portalDraftId, rastro.textoComparable ?? rastro.texto)));
+        const r = await enElPortal(() => conSesionVitolen(async (page) => {
+            // ¿El par recibió pedido por otro camino mientras el borrador esperaba
+            // (nº tipeado a mano, seguimiento)? Confirmar sería un segundo trabajo.
+            const pares = await prisma.labOrderDraft.findMany({ where: { orderId: b.orderId, lab: LAB_VITOLEN }, select: { pair: true }, distinct: ['pair'] });
+            const existente = await pedidoExistenteDelPar(b.orderId, b.pair, Math.max(pares.length, b.pair), rastro.portalDraftId);
+            if (existente) throw new ParYaConPedidoError(`${mensajeExistente(existente, b.pair)} El borrador del portal sigue sin confirmar: rechazalo para cancelarlo.`);
+            return confirmar(page, rastro.portalDraftId, rastro.textoComparable ?? rastro.texto);
+        }));
         const screenshotFinalUrl = await guardarCaptura(b.id, 'confirmado', r.captura).catch(() => null);
         // Primero la venta (nº, estado, aviso), después el borrador: si la venta
         // falla el borrador sigue APROBADO y el reintento vuelve a pasar por acá
@@ -131,6 +143,12 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         });
         return await Borradores.cargado(b.id, ROBOT_ACTOR_VITOLEN, { portalNumber: r.portalNumber, screenshotFinalUrl });
     } catch (err: any) {
+        if (err instanceof ParYaConPedidoError) {
+            // No se confirmó nada: vuelve a revisión con el motivo para que la persona rechace.
+            await Borradores.volverARevision(b.id, ROBOT_ACTOR_VITOLEN, { screenshotUrl: b.screenshotUrl ?? '', resumenPortal: rastro, motivo: err.message })
+                .catch(e => console.error('[lab-modulos] no se pudo devolver a revisión el borrador Vitolen (queda APROBADO):', e));
+            throw err;
+        }
         if (err instanceof ResumenCambiadoError) {
             const screenshotUrl = await guardarCaptura(b.id, 'cambiado', err.captura).catch(() => '');
             await Borradores.volverARevision(b.id, ROBOT_ACTOR_VITOLEN, {

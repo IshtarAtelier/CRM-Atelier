@@ -7,11 +7,12 @@ import { aplicarEstadoEnVenta } from '../estados';
 import { conTurno } from '../portal/turno';
 import { conSesionSmartLab, LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO, ROBOT_GRUPO_OPTICO } from './portal';
 import { payloadCreateUpdate, planDeCarga, type OpcionesCarga, type PlanDeCarga, type ResueltoEnPortal } from './carga';
-import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
+import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, PedidoRechazadoError, PortalRespondioError, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
 import { leerVentaParaCargaGO } from './venta';
 import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
+import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import type { EstadoEnPortal } from '../contrato';
 
 /**
@@ -55,8 +56,10 @@ export interface RastroGO extends RastroPortal {
     /** La huella del producto vendido al preparar (huellaDelPlan). */
     huella?: string;
     adoptadoDelPortal?: boolean;
-    /** Cuándo salió el POST de creación (antes de saber la respuesta). */
-    envioIniciadoEl?: string;
+    /** Cuándo salió el POST de creación (antes de saber la respuesta). Se borra si el portal contestó. */
+    envioIniciadoEl?: string | null;
+    /** En qué anda el robot (mueve `updatedAt`: así el cron de colgados no lo da por muerto mientras trabaja). */
+    etapa?: string;
 }
 
 const ESPERA_TURNO_MS = 4 * 60_000;
@@ -123,6 +126,7 @@ export async function prepararEnPortal(borradorId: string) {
         // Una sola entrada al portal: leer sus listas, armar el pedido y abrirlo
         // en SU formulario para sacar la captura que la persona va a revisar.
         const { resuelto, etiquetas, payloadPortal, captura } = await enElPortal(() => conSesionSmartLab(async (page) => {
+            await mezclar(b.id, { etapa: `en el portal desde ${new Date().toISOString()}` }).catch(() => null);
             const { resuelto, etiquetas } = await resolverEnPortal(page, r.plan);
             const payloadPortal = payloadCreateUpdate(r.plan, resuelto);
             const vista = await capturarVistaEnPortal(page, payloadPortal, etiquetas);
@@ -179,6 +183,11 @@ async function numerosDeOtrosPares(orderId: string, pair: number): Promise<Set<s
     }
     const espejo = await prisma.labPortalOrder.findMany({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair: { not: pair, gt: 0 } }, select: { portalNumber: true } });
     for (const e of espejo) set.add(e.portalNumber);
+    // Un reproceso (post-venta) cargado a mano con el código de la venta no es
+    // el pedido de este par: si se adoptara, el borrador quedaría CARGADO con
+    // el nº de un reproceso y la venta sin su pedido (auditoría 4, M5).
+    const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { postSaleCases: { where: { newOrderNumber: { not: null } }, select: { newOrderNumber: true } } } });
+    for (const c of venta?.postSaleCases || []) for (const n of parseLabNumbers(c.newOrderNumber)) set.add(n);
     return set;
 }
 
@@ -227,8 +236,20 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 //     mientras este borrador esperaba revisión? (auditoría 2, N2)
                 const pares = cantidadDeArmazones((await leerVentaParaCargaGO(b.orderId)) as any);
                 const existente = await pedidoExistenteDelPar(b.orderId, b.pair, pares);
-                if (existente) throw new AprobacionInvalidaError(`${mensajeExistente(existente, b.pair)} No se creó nada.`);
+                const envioAnterior = !!((actual.resumenPortal || {}) as RastroGO).envioIniciadoEl;
+                if (existente && !existente.ambiguo && envioAnterior) {
+                    // Es el pedido que ESTE borrador mandó y cuya respuesta se perdió: el
+                    // seguimiento lo vinculó al par antes del reintento. Se adopta, no se
+                    // invalida (auditoría 4, M4).
+                    numero = existente.numero;
+                    adoptado = true;
+                } else if (existente) {
+                    throw new AprobacionInvalidaError(`${mensajeExistente(existente, b.pair)} No se creó nada.`);
+                }
+            }
+            if (!numero) {
                 // 2b. ¿Ya existe ese pedido en el portal con el código de la venta?
+                const pares = cantidadDeArmazones((await leerVentaParaCargaGO(b.orderId)) as any);
                 numero = await buscarPedidoYaCreado(page, codigoVenta, pares > 1 ? b.pair : null, await numerosDeOtrosPares(b.orderId, b.pair));
                 adoptado = !!numero;
             }
@@ -250,7 +271,13 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 if (cambios.length) throw new AprobacionInvalidaError(`La venta cambió después de aprobar (${cambios.join(', ')}): volvé a prepararlo para revisar el pedido nuevo. No se mandó nada.`);
                 // 4. Crear: se anota ANTES que salió el envío, y el nº apenas vuelve.
                 await mezclar(b.id, { envioIniciadoEl: new Date().toISOString() });
-                numero = (await crearPedidoEnPortal(page, payloadAprobado)).numero;
+                try {
+                    numero = (await crearPedidoEnPortal(page, payloadAprobado)).numero;
+                } catch (e) {
+                    // El portal contestó (400, 5xx…): no hay envío incierto que esperar.
+                    if (e instanceof PedidoRechazadoError || e instanceof PortalRespondioError) await mezclar(b.id, { envioIniciadoEl: null }).catch(() => null);
+                    throw e;
+                }
             }
             // Anotado en el acto: de acá en más un reintento no vuelve a crear.
             await mezclar(b.id, { numeroCreado: numero, portalDraftId: numero, ...(adoptado ? { adoptadoDelPortal: true } : {}) } as RastroGO);
@@ -299,6 +326,14 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         return cargado;
     } catch (err: any) {
         if (err instanceof YaCargadoError) return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
+        if (err instanceof PedidoRechazadoError) {
+            // El portal dijo que NO crea ese pedido (datos que no acepta): reintentar
+            // mandaría lo mismo y daría lo mismo. La aprobación se invalida para que
+            // se pueda corregir y preparar de nuevo (auditoría 4, I1).
+            await Borradores.invalidarSinPedido(b.id, ROBOT_ACTOR_GRUPO_OPTICO, `El laboratorio no aceptó el pedido (${err.message}). No se creó nada: corregí la venta y volvé a prepararlo.`)
+                .catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador GO rechazado (queda APROBADO):', e));
+            throw err;
+        }
         if (err instanceof AprobacionInvalidaError || err instanceof PedidoAmbiguoError) {
             // No se creó nada: la aprobación ya no vale y hay que mirar la venta de nuevo.
             await Borradores.invalidarSinPedido(b.id, ROBOT_ACTOR_GRUPO_OPTICO, err.message)
