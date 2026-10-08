@@ -9,15 +9,25 @@ import { SEG1_HOURS, SEG2_HOURS, FRIO_HOURS, STAGE_ORDER, VENTANA_EMBUDO_DIAS } 
  * (/admin/leads), el resumen diario del equipo y el registro de envíos: si
  * se cambia un plazo o una plantilla, se cambia acá y en ningún otro lado.
  *
- * Con la API oficial de WhatsApp NADA sale solo hacia el cliente (decisión del
- * 18/8/2026). El motor no manda: dice qué plantilla aprobada corresponde hoy,
- * una persona la confirma desde el buzón, y ESE envío es lo que mueve la
- * tarjeta de columna (ver registrar-seguimiento.ts). Antes las tarjetas
- * avanzaban solo por el paso del tiempo y todas decían "Sin contactar", porque
- * mandar una plantilla no dejaba ningún rastro.
+ * El embudo es 100 % automático y NO tiene pasos para una persona (decisión
+ * de Ishtar, 8/10/2026: "en embudo no debe haber nada para humano"). Antes el
+ * recorrido terminaba en "Definir: ganado o perdido" y la charla sin
+ * presupuesto en "Falta cotizar": 250 tareas vencidas acumuladas, 11 cerradas
+ * en un mes. Hoy cada paso es una plantilla que manda el motor, un `esperar`
+ * entre plantilla y plantilla, o un `cerrar` que el motor ejecuta solo
+ * (`lib/seguimientos/cierre.ts`). `cotizar` sigue existiendo como INFORMACIÓN
+ * en la tarjeta (nunca es "para hoy"): cotizar es trabajo de venta, no del embudo.
+ *
+ * El envío de una plantilla —del motor o de una persona desde el buzón— deja
+ * la etiqueta del escalón en el chat (ver registrar-seguimiento.ts), y eso es
+ * lo que mueve la tarjeta. Antes avanzaban solo por el reloj y todas decían
+ * "Sin contactar".
  *
  * Los plazos son los de siempre (48h / 4 días / 15 días), definidos en
- * leads-pipeline.ts; acá solo se les asigna la plantilla y la etiqueta.
+ * leads-pipeline.ts; acá solo se les asigna la plantilla y la etiqueta. La
+ * MISMA cadencia vale con presupuesto (reloj desde el presupuesto) y sin
+ * presupuesto (reloj desde el alta): antes la charla frenada recibía un solo
+ * toque y después quedaba para una persona.
  */
 
 const HORA_MS = 3_600_000;
@@ -69,14 +79,28 @@ export const NOMBRE_CORTO_PLANTILLA: Partial<Record<TemplateName, string>> = {
 };
 
 export type TipoDeAccion =
-    /** Todavía no hay presupuesto: hay que cotizar (o pedir la receta). */
+    /** Todavía no hay presupuesto. Solo informa en la tarjeta: nunca es "para hoy". */
     | 'cotizar'
     /** Hay una plantilla aprobada para mandar hoy. */
     | 'plantilla'
-    /** Ya se hizo todo el recorrido: decidir ganado o perdido. */
-    | 'decidir'
+    /** Se hizo todo el recorrido (o se venció la ventana) sin venta: el motor lo cierra como perdido. */
+    | 'cerrar'
     /** Está al día; el próximo toque vence más adelante. */
     | 'esperar';
+
+/**
+ * Después del último toque (el del descuento), cuántos días de silencio antes
+ * de cerrar como perdido. Es la "ventana de respuesta" al último mensaje.
+ */
+export const CIERRE_TRAS_ULTIMO_TOQUE_DIAS = 7;
+
+/**
+ * Más viejo que esto no se cierra solo: ya es otra época y marcar perdidos
+ * cientos de presupuestos de hace meses en un tick cambiaría los números del
+ * historial sin que nadie lo haya pedido. Esos quedan como estaban (listados
+ * en Frío, sin acción). Es el mismo horizonte que la campaña de reflote.
+ */
+export const DIAS_MAX_CIERRE_AUTOMATICO = 120;
 
 export interface ProximaAccion {
     tipo: TipoDeAccion;
@@ -118,7 +142,21 @@ export interface EntradaProximaAccion {
     /** ¿Tiene chat de WhatsApp donde mandarle algo? */
     tieneChat: boolean;
     chatLabels: string[];
+    /** Cuándo salió el último seguimiento (`WhatsAppChat.lastFollowUpAt`). Decide cuándo cerrar tras el último toque. */
+    ultimoToqueAt?: Date | null;
     now: number;
+}
+
+type Escalon = keyof typeof PLANTILLA_POR_ESCALON;
+const ORDEN: Escalon[] = ['seguimiento1', 'seguimiento2', 'seguimiento10dias'];
+
+/** Hasta qué escalón cubren las etiquetas del chat (sin mirar mensajes humanos: es para el camino SIN presupuesto). */
+function cubiertoPorEtiquetas(chatLabels: string[]): Escalon | null {
+    const l = chatLabels.map(x => x.toUpperCase());
+    if (l.includes('SEGUIMIENTO_DIA_15')) return 'seguimiento10dias';
+    if (l.includes('SEGUIMIENTO_DIA_4')) return 'seguimiento2';
+    if (l.includes('SEGUIMIENTO_DIA_1')) return 'seguimiento1';
+    return null;
 }
 
 function diasDesde(fecha: Date, now: number): number {
@@ -127,132 +165,109 @@ function diasDesde(fecha: Date, now: number): number {
 
 /**
  * El siguiente paso para un lead. Determinista: misma entrada, misma salida,
- * así el tablero y el resumen diario cuentan lo mismo.
+ * así el tablero, el motor y el resumen diario cuentan lo mismo.
  *
  * Casos (entrada → acción):
- * - Sin presupuesto, alta hace 1 día                     → cotizar
- * - Sin presupuesto, alta hace 40 días                   → decidir (fuera de ventana, NO cuenta para hoy)
+ * - Sin presupuesto, alta hace 1 día                         → cotizar (informa, no vence)
  * - Sin presupuesto, con chat, 3 días, sin DIA_1, sin receta → plantilla seguimiento_lentes_sin_receta (vencida)
  * - Sin presupuesto, con chat, 3 días, sin DIA_1, con receta → plantilla seguimiento_lentes_con_receta (vencida)
- * - Sin presupuesto, con chat, 3 días, ya con DIA_1      → cotizar
- * - Presupuesto de hace 10h                              → esperar (vence a las 48h)
- * - Presupuesto de hace 3 días, nadie escribió           → plantilla seguimiento_presupuesto (vencida)
- * - Presupuesto de hace 3 días, DIA_1 enviado            → esperar (vence a los 4 días)
- * - Presupuesto de hace 6 días, solo DIA_1               → plantilla invitacion_local_v4 (vencida)
- * - Presupuesto de hace 6 días, solo DIA_1, YA VINO      → esperar al día 15 (no se lo invita al local)
- * - Presupuesto de hace 20 días, DIA_4 enviado           → plantilla ultimo_seguimiento (vencida)
- * - Presupuesto de hace 20 días, DIA_15 enviado          → decidir
- * - Presupuesto de hace 45 días, lo que sea             → decidir (fuera de ventana, NO cuenta para hoy)
+ * - Sin presupuesto, con chat, 3 días, ya con DIA_1          → esperar (vence a los 4 días)
+ * - Sin presupuesto, con chat, 6 días, solo DIA_1            → plantilla invitacion_local_v4 (vencida)
+ * - Sin presupuesto, con chat, 20 días, DIA_4                → plantilla ultimo_seguimiento (vencida)
+ * - Sin presupuesto, DIA_15 hace 8 días                      → cerrar (vencida)
+ * - Sin presupuesto, sin chat, 40 días                       → cerrar (vencida)
+ * - Presupuesto de hace 10h                                  → esperar (vence a las 48h)
+ * - Presupuesto de hace 3 días, nadie escribió               → plantilla seguimiento_presupuesto (vencida)
+ * - Presupuesto de hace 3 días, DIA_1 enviado                → esperar (vence a los 4 días)
+ * - Presupuesto de hace 6 días, solo DIA_1                   → plantilla invitacion_local_v4 (vencida)
+ * - Presupuesto de hace 6 días, solo DIA_1, YA VINO          → esperar al día 15 (no se lo invita al local)
+ * - Presupuesto de hace 20 días, DIA_4 enviado               → plantilla ultimo_seguimiento (vencida)
+ * - Presupuesto de hace 20 días, DIA_15 hace 2 días          → esperar (cierra a los 7 días del último toque)
+ * - Presupuesto de hace 20 días, DIA_15 hace 8 días          → cerrar (vencida)
+ * - Presupuesto de hace 45 días, lo que sea                  → cerrar (vencida)
+ * - Presupuesto de hace 200 días                             → esperar "fuera del embudo" (no se toca)
  */
 export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
-    if (!e.quoteCreatedAt) {
-        // Misma ventana que abajo: a quien escribió hace meses y nunca se
-        // cotizó no se lo "retoma" hoy, se lo cierra o se lo reactiva con una
-        // campaña. Sin esto, el primer día con backlog el tablero proponía
-        // retomar charlas de 178 días.
-        if (diasDesde(e.createdAt, e.now) > VENTANA_EMBUDO_DIAS) {
-            return {
-                tipo: 'decidir',
-                etiqueta: `Sin presupuesto hace ${diasDesde(e.createdAt, e.now)} días: cerrar o archivar`,
-                venceEn: new Date(e.createdAt.getTime() + VENTANA_EMBUDO_DIAS * 24 * HORA_MS).toISOString(),
-                vencida: false,
-            };
-        }
-        const yaRetomada = e.chatLabels.some(l => l.toUpperCase() === 'SEGUIMIENTO_DIA_1');
-        const charlaFrenada = e.tieneChat && !yaRetomada && (e.now - e.createdAt.getTime()) > SEG1_HOURS * HORA_MS;
-        if (charlaFrenada) {
-            // Misma etapa del embudo, dos plantillas: a quien ya mandó la
-            // receta no tiene sentido pedirle que la mande (7/9/2026).
-            const plantilla = e.hasPrescription ? 'seguimiento_lentes_con_receta' : 'seguimiento_lentes_sin_receta';
-            return {
-                tipo: 'plantilla',
-                plantilla,
-                etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA[plantilla]} (${diasDesde(e.createdAt, e.now)} días sin presupuesto)`,
-                venceEn: new Date(e.createdAt.getTime() + SEG1_HOURS * HORA_MS).toISOString(),
-                vencida: true,
-            };
-        }
-        if (e.borradorSinEnviar) {
-            const d = e.borradorSinEnviar;
-            const fecha = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-            return { tipo: 'cotizar', etiqueta: `Presupuesto armado el ${fecha} y NUNCA enviado: mandarlo`, venceEn: null, vencida: true };
-        }
-        return { tipo: 'cotizar', etiqueta: 'Falta cotizar', venceEn: null, vencida: false };
+    const ref = e.quoteCreatedAt ?? e.createdAt;
+    const dias = diasDesde(ref, e.now);
+    const vence = (h: number) => new Date(ref.getTime() + h * HORA_MS).toISOString();
+    const queEs = e.quoteCreatedAt ? 'Frío' : 'Sin presupuesto';
+
+    // Más viejo que el horizonte: no se le manda nada ni se lo cierra solo.
+    if (dias > DIAS_MAX_CIERRE_AUTOMATICO) {
+        return { tipo: 'esperar', etiqueta: `${queEs} hace ${dias} días: fuera del embudo`, venceEn: null, vencida: false };
     }
 
-    const q = e.quoteCreatedAt.getTime();
-    const vence = (h: number) => new Date(q + h * HORA_MS).toISOString();
-
-    // Fuera de la ventana del embudo: no se le manda más nada. Queda en Frío
-    // para que alguien lo cierre, pero NO cuenta como "para hoy" — si contara,
-    // el día que se arranca con un backlog de meses el tablero pide mandar 70
-    // plantillas de marketing de golpe, que es exactamente lo que no hay que
-    // hacer. Reactivar a los viejos es trabajo de una campaña, no del embudo.
-    if (diasDesde(e.quoteCreatedAt, e.now) > VENTANA_EMBUDO_DIAS) {
-        return {
-            tipo: 'decidir',
-            etiqueta: `Frío hace ${diasDesde(e.quoteCreatedAt, e.now)} días: cerrar o archivar`,
-            venceEn: vence(VENTANA_EMBUDO_DIAS * 24),
-            vencida: false,
-        };
+    // Fuera de la ventana sin venta: perdido. Lo ejecuta el motor, no una persona.
+    if (dias > VENTANA_EMBUDO_DIAS) {
+        return { tipo: 'cerrar', etiqueta: `${queEs} hace ${dias} días: se cierra como perdido`, venceEn: vence(VENTANA_EMBUDO_DIAS * 24), vencida: true };
     }
 
-    // Al día en la etapa actual: el reloj apunta al próximo escalón.
-    if (e.stage === 'cotizacionEnviada' || (e.escalonCubierto && e.stage !== 'seguimiento10dias')) {
-        const siguiente = e.stage === 'cotizacionEnviada' ? 'seguimiento1'
-            : e.stage === 'seguimiento1' ? 'seguimiento2' : 'seguimiento10dias';
-        const horas = VENCE_A_LAS_HORAS[siguiente];
-        const faltanDias = Math.max(0, Math.ceil((q + horas * HORA_MS - e.now) / (24 * HORA_MS)));
+    // ¿Hasta qué toque está cubierto? Con presupuesto lo dice classifyLead
+    // (etiquetas + mensajes humanos); sin presupuesto, las etiquetas del chat.
+    const cubierto: Escalon | null = e.quoteCreatedAt ? (e.cubiertoHasta ?? null) : cubiertoPorEtiquetas(e.chatLabels);
+
+    // Último toque hecho: se espera la respuesta unos días y se cierra.
+    if (cubierto === 'seguimiento10dias') {
+        const desde = e.ultimoToqueAt ? e.ultimoToqueAt.getTime() : ref.getTime() + FRIO_HOURS * HORA_MS;
+        const cierraEn = desde + CIERRE_TRAS_ULTIMO_TOQUE_DIAS * 24 * HORA_MS;
+        if (e.now >= cierraEn) {
+            return { tipo: 'cerrar', etiqueta: `Sin respuesta al último toque: se cierra como perdido`, venceEn: new Date(cierraEn).toISOString(), vencida: true };
+        }
+        const faltan = Math.max(1, Math.ceil((cierraEn - e.now) / (24 * HORA_MS)));
+        return { tipo: 'esperar', etiqueta: `Último toque hecho · se cierra en ${faltan} día${faltan === 1 ? '' : 's'} si no responde`, venceEn: new Date(cierraEn).toISOString(), vencida: false };
+    }
+
+    // El primer escalón sin cubrir, en orden (¿viste el presupuesto? → vení al
+    // local → último), aunque el lead llegue atrasado. Entre uno y otro, la
+    // compuerta de 48 h del motor pone la distancia.
+    const siguiente: Escalon = ORDEN[(cubierto ? ORDEN.indexOf(cubierto) : -1) + 1];
+    const horas = VENCE_A_LAS_HORAS[siguiente];
+    const faltanDias = Math.max(0, Math.ceil((ref.getTime() + horas * HORA_MS - e.now) / (24 * HORA_MS)));
+
+    if (e.now - ref.getTime() <= horas * HORA_MS) {
+        // Todavía no vence el próximo toque.
+        if (!e.quoteCreatedAt && !cubierto) {
+            // Recién llegó y nadie cotizó: la tarjeta lo dice, pero no es una tarea del embudo.
+            if (e.borradorSinEnviar) {
+                const d = e.borradorSinEnviar;
+                const fecha = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+                return { tipo: 'cotizar', etiqueta: `Presupuesto armado el ${fecha} y nunca enviado`, venceEn: vence(horas), vencida: false };
+            }
+            return { tipo: 'cotizar', etiqueta: 'Falta cotizar', venceEn: vence(horas), vencida: false };
+        }
         return {
             tipo: 'esperar',
-            etiqueta: faltanDias === 0 ? `Próximo toque: hoy` : `Próximo toque en ${faltanDias} día${faltanDias === 1 ? '' : 's'}`,
+            etiqueta: faltanDias === 0 ? 'Próximo toque: hoy' : `Próximo toque en ${faltanDias} día${faltanDias === 1 ? '' : 's'}`,
             venceEn: vence(horas),
             vencida: false,
         };
     }
 
-    if (e.stage === 'seguimiento10dias' && e.escalonCubierto) {
-        return { tipo: 'decidir', etiqueta: 'Decidir: ganado o perdido', venceEn: vence(FRIO_HOURS), vencida: true };
+    // Sin chat no hay a dónde mandar: espera a cerrarse al día 30.
+    if (!e.tieneChat) {
+        return { tipo: 'esperar', etiqueta: `Sin chat de WhatsApp · se cierra al día ${VENTANA_EMBUDO_DIAS}`, venceEn: vence(VENTANA_EMBUDO_DIAS * 24), vencida: false };
     }
 
-    // En un escalón de seguimiento sin haber mandado ese escalón: toca hoy.
-    // Pero toca el PRIMER escalón sin cubrir, no el de la antigüedad: los
-    // toques se dan en orden (¿viste el presupuesto? → vení al local → último),
-    // aunque el lead llegue atrasado. Entre uno y otro, la compuerta de 48 h
-    // del motor pone la distancia.
-    if (e.stage in PLANTILLA_POR_ESCALON) {
-        const ORDEN: (keyof typeof PLANTILLA_POR_ESCALON)[] = ['seguimiento1', 'seguimiento2', 'seguimiento10dias'];
-        const cubierto = e.cubiertoHasta ? ORDEN.indexOf(e.cubiertoHasta) : -1;
-        const escalon = ORDEN[Math.min(cubierto + 1, ORDEN.indexOf(e.stage as keyof typeof PLANTILLA_POR_ESCALON))] ?? (e.stage as keyof typeof PLANTILLA_POR_ESCALON);
-
-        // Ya vino al local: la invitación no tiene sentido y se lee como que
-        // nadie está mirando. Se saltea ese toque — no se reemplaza por otro
-        // mensaje: espera al último seguimiento, que sigue aplicando.
-        if (escalon === 'seguimiento2' && e.visitoElLocal) {
-            const faltanDias = Math.max(0, Math.ceil((q + FRIO_HOURS * HORA_MS - e.now) / (24 * HORA_MS)));
-            return {
-                tipo: 'esperar',
-                etiqueta: faltanDias === 0
-                    ? 'Ya vino al local · próximo toque: hoy'
-                    : `Ya vino al local · próximo toque en ${faltanDias} día${faltanDias === 1 ? '' : 's'}`,
-                venceEn: vence(FRIO_HOURS),
-                vencida: false,
-            };
+    // Ya vino al local: la invitación no tiene sentido y se lee como que nadie
+    // está mirando. Se saltea ese toque — no se reemplaza por otro mensaje:
+    // espera al último seguimiento, que sigue aplicando.
+    if (siguiente === 'seguimiento2' && e.visitoElLocal) {
+        const faltan = Math.max(0, Math.ceil((ref.getTime() + FRIO_HOURS * HORA_MS - e.now) / (24 * HORA_MS)));
+        if (faltan > 0) {
+            return { tipo: 'esperar', etiqueta: `Ya vino al local · próximo toque en ${faltan} día${faltan === 1 ? '' : 's'}`, venceEn: vence(FRIO_HOURS), vencida: false };
         }
-
-        const plantilla = PLANTILLA_POR_ESCALON[escalon];
-        return {
-            tipo: 'plantilla',
-            plantilla,
-            etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA[plantilla]}`,
-            venceEn: vence(VENCE_A_LAS_HORAS[escalon]),
-            vencida: true,
-        };
+        const plantilla = PLANTILLA_POR_ESCALON.seguimiento10dias;
+        return { tipo: 'plantilla', plantilla, etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA[plantilla]}`, venceEn: vence(FRIO_HOURS), vencida: true };
     }
 
-    // primerContacto / nuevaReceta con presupuesto no existe (classifyLead los
-    // manda a cotizacionEnviada), pero el tipo lo permite: no inventar nada.
-    return { tipo: 'esperar', etiqueta: 'Al día', venceEn: null, vencida: false };
+    // Primer toque sin presupuesto: dos plantillas para la misma etapa. A quien
+    // ya mandó la receta no tiene sentido pedirle que la mande (7/9/2026).
+    const plantilla: TemplateName = !e.quoteCreatedAt && siguiente === 'seguimiento1'
+        ? (e.hasPrescription ? 'seguimiento_lentes_con_receta' : 'seguimiento_lentes_sin_receta')
+        : PLANTILLA_POR_ESCALON[siguiente];
+    const sufijo = e.quoteCreatedAt ? '' : ` (${dias} días sin presupuesto)`;
+    return { tipo: 'plantilla', plantilla, etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA[plantilla]}${sufijo}`, venceEn: vence(horas), vencida: true };
 }
 
 /** Orden para listar "lo de hoy": primero lo más atrasado. */

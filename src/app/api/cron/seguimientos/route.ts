@@ -7,6 +7,8 @@ import { seleccionar } from '@/lib/seguimientos/seleccion';
 import { ejecutar, FALLAS_SEGUIDAS_PARA_FRENAR } from '@/lib/seguimientos/ejecutor';
 import { agruparVetos, diaArt, horaArt, registrarCorrida } from '@/lib/seguimientos/registro';
 import type { Candidato, EstadoDelChat } from '@/lib/seguimientos/politica';
+import { clasificarRespuesta, respuestasAlToque, type Clasificacion } from '@/lib/embudo/respuesta';
+import { cerrarComoPerdido, posponerSeguimiento } from '@/lib/seguimientos/cierre';
 import {
     CUPO_DIARIO_POR_DEFECTO, HORA_DESDE, HORA_HASTA, LOTE_POR_TICK, MODO_POR_DEFECTO,
 } from '@/lib/constants/seguimientos';
@@ -31,10 +33,19 @@ export const dynamic = 'force-dynamic';
  * horas (`seguimientos_freno_hasta`), con mail. Tres rebotes seguidos son la
  * cuenta o la API, no tres clientes.
  *
+ * Desde el 8/10/2026 el motor también hace lo que antes quedaba "para una
+ * persona" (Ishtar: "en embudo no debe haber nada para humano"): lee la
+ * respuesta del cliente al último toque y cierra como perdido o pausa según
+ * lo que dijo (`lib/embudo/respuesta.ts`, `lib/seguimientos/cierre.ts`), y
+ * ejecuta los `cerrar` del playbook (recorrido completo sin venta, o ventana
+ * vencida). Nada de eso manda un mensaje: no consume cupo ni se frena.
+ *
  * `?dryRun=1` fuerza el modo seco para este tick.
  */
 
 const FRENO_HORAS = 2;
+/** Cuántos cierres como perdido por tick: el primer día puede haber cientos atrasados y el tick no debe durar media hora. */
+const CIERRES_POR_TICK = 200;
 
 async function leerSetting(key: string): Promise<string | null> {
     const row = await prisma.systemSetting.findUnique({ where: { key } }).catch(() => null);
@@ -93,6 +104,22 @@ export async function GET(request: Request) {
 
         // ── Candidatos: lo que el tablero dice que toca HOY ─────────────────
         const { paraHoy } = await EmbudoService.tablero(now);
+
+        // ── Cierres del playbook: recorrido completo sin venta, o ventana vencida ──
+        const aCerrar = paraHoy.filter(l => l.proximaAccion.tipo === 'cerrar').slice(0, CIERRES_POR_TICK);
+        const cierres: { nombre: string; motivo: string }[] = [];
+        if (modo === 'real') {
+            for (const l of aCerrar) {
+                try {
+                    await cerrarComoPerdido({ clientId: l.id, motivo: l.proximaAccion.etiqueta });
+                    cierres.push({ nombre: l.name, motivo: `cerrado como perdido: ${l.proximaAccion.etiqueta}` });
+                } catch (e: any) {
+                    console.error(`[Motor seguimientos] No se pudo cerrar a ${l.name}:`, e?.message);
+                    cierres.push({ nombre: l.name, motivo: `NO se pudo cerrar: ${e?.message}` });
+                }
+            }
+        }
+
         const candidatos: Candidato[] = paraHoy
             .filter(l => l.proximaAccion.tipo === 'plantilla')
             .map(l => ({
@@ -108,11 +135,48 @@ export async function GET(request: Request) {
         const filas = chatIds.length ? await prisma.whatsAppChat.findMany({
             where: { id: { in: chatIds } },
             select: {
-                id: true, lastInboundAt: true, lastFollowUpAt: true, followUpPausedUntil: true,
+                id: true, clientId: true, lastInboundAt: true, lastFollowUpAt: true, followUpPausedUntil: true,
                 // El interruptor por persona: etiqueta del chat o de la ficha (politica.ts).
                 chatLabels: true, client: { select: { tags: { select: { name: true } } } },
             },
         }) : [];
+
+        // ── Qué dijo el que contestó al último toque ────────────────────────
+        // Se leen los entrantes posteriores al último seguimiento y se clasifican.
+        // 'cierre' y 'posponer' se EJECUTAN acá (en modo real); la compuerta
+        // después solo los veta con el motivo a la vista.
+        const conRespuesta = filas.filter(f => f.lastFollowUpAt && f.lastInboundAt && f.lastInboundAt > f.lastFollowUpAt);
+        const respuestas = new Map<string, Clasificacion>();
+        const lecturas: { nombre: string; motivo: string }[] = [];
+        if (conRespuesta.length) {
+            const desde = new Date(Math.min(...conRespuesta.map(f => f.lastFollowUpAt!.getTime())));
+            const entrantes = await prisma.whatsAppMessage.findMany({
+                where: { chatId: { in: conRespuesta.map(f => f.id) }, direction: 'INBOUND', createdAt: { gt: desde } },
+                orderBy: { createdAt: 'asc' },
+                select: { chatId: true, content: true, type: true, createdAt: true },
+            });
+            for (const f of conRespuesta) {
+                const suyos = respuestasAlToque(entrantes.filter(m => m.chatId === f.id), f.lastFollowUpAt!);
+                const clase = clasificarRespuesta(suyos);
+                respuestas.set(f.id, clase);
+                if (clase === 'seguir') continue;
+                const nombre = candidatos.find(c => c.waChatId === f.id)?.nombre ?? f.id;
+                const palabras = suyos.map(m => m.content || '').filter(Boolean).join(' / ') || null;
+                if (modo !== 'real') { lecturas.push({ nombre, motivo: `(seco) ${clase}: «${(palabras || '').slice(0, 80)}»` }); continue; }
+                try {
+                    if (clase === 'cierre') {
+                        if (f.clientId) await cerrarComoPerdido({ clientId: f.clientId, motivo: 'el cliente dijo que no', palabrasDelCliente: palabras });
+                        lecturas.push({ nombre, motivo: `cerrado como perdido: el cliente dijo que no («${(palabras || '').slice(0, 80)}»)` });
+                    } else if (f.clientId) {
+                        const hasta = await posponerSeguimiento({ clientId: f.clientId, chatId: f.id, palabrasDelCliente: palabras, now });
+                        lecturas.push({ nombre, motivo: `pausado hasta ${hasta.toISOString().slice(0, 10)}: pidió más adelante («${(palabras || '').slice(0, 80)}»)` });
+                    }
+                } catch (e: any) {
+                    console.error(`[Motor seguimientos] No se pudo aplicar la respuesta de ${nombre}:`, e?.message);
+                    lecturas.push({ nombre, motivo: `NO se pudo aplicar (${clase}): ${e?.message}` });
+                }
+            }
+        }
         // Último SALIENTE de cada chat (de quien sea): lo mira la compuerta de 48 h.
         const salientes = chatIds.length ? await prisma.whatsAppMessage.groupBy({
             by: ['chatId'],
@@ -125,13 +189,15 @@ export async function GET(request: Request) {
                 lastInboundAt: f.lastInboundAt, lastFollowUpAt: f.lastFollowUpAt, followUpPausedUntil: f.followUpPausedUntil,
                 lastOutboundAt: ultimoSaliente.get(f.id) ?? null,
                 chatLabels: f.chatLabels, tagNames: (f.client?.tags || []).map(t => t.name),
+                respuesta: respuestas.get(f.id) ?? null,
             }]),
         );
 
         const seleccion = seleccionar({ candidatos, chats, ctx: { now }, cupo });
         base.elegidos = seleccion.elegidos.length;
         base.enEspera = seleccion.enEspera.length;
-        base.vetados = agruparVetos(seleccion.vetados.map(v => ({ nombre: v.candidato.nombre, motivo: v.motivo })));
+        // Los cierres y las lecturas de respuestas se registran junto a los vetos: es lo que el motor HIZO sin mandar nada.
+        base.vetados = agruparVetos([...seleccion.vetados.map(v => ({ nombre: v.candidato.nombre, motivo: v.motivo })), ...cierres, ...lecturas]);
 
         const { resultados: enviados, frenado } = modo === 'real' && seleccion.elegidos.length
             ? await ejecutar(seleccion.elegidos, new Date(now))
@@ -157,6 +223,8 @@ export async function GET(request: Request) {
                 modo,
                 cupo: { diario: cupoDiario, usadoHoy, esteTick: cupo },
                 candidatos: candidatos.length,
+                cerrados: modo === 'real' ? cierres : aCerrar.map(l => ({ nombre: l.name, motivo: l.proximaAccion.etiqueta })),
+                respuestasLeidas: lecturas,
                 habrianSalido: modo === 'seco' ? seleccion.elegidos.map(c => ({ nombre: c.nombre, plantilla: c.plantilla })) : undefined,
                 enviados,
                 frenado,

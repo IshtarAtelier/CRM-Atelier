@@ -50,7 +50,9 @@ veta('sin chat', cand({ waChatId: null }), null, 'chat');
 veta('sin nombre de pila', cand({ nombre: 'Cliente' }), chat(), 'nombre');
 veta('seguimientos pausados', cand(), chat({ followUpPausedUntil: hace(-24) }), 'pausados');
 veta('el cliente escribió hace 10 h (charla viva)', cand(), chat({ lastInboundAt: hace(10) }), 'charla está viva');
-veta('respondió al último seguimiento', cand(), chat({ lastFollowUpAt: hace(100), lastInboundAt: hace(60) }), 'respondió');
+check('8/10 · respondió con un 👍 o un "gracias" (seguir) y ya pasaron 48 h: SALE (antes frenaba para siempre)', evaluar(cand(), chat({ lastFollowUpAt: hace(100), lastInboundAt: hace(60), respuesta: 'seguir' }), ctx) === null);
+veta('8/10 · respondió que no: se cierra como perdido', cand(), chat({ lastFollowUpAt: hace(100), lastInboundAt: hace(60), respuesta: 'cierre' }), 'dijo que no');
+veta('8/10 · respondió "más adelante": se pausa', cand(), chat({ lastFollowUpAt: hace(100), lastInboundAt: hace(60), respuesta: 'posponer' }), 'más adelante');
 veta('NUEVO · ya se le mandó un seguimiento hace 20 h', cand(), chat({ lastFollowUpAt: hace(20) }), 'seguimiento hace menos');
 veta('NUEVO · un vendedor le escribió hace 5 h', cand(), chat({ lastOutboundAt: hace(5) }), 'le escribieron');
 veta('11/9 · nombre de puros emojis (🫵🏻💪)', cand({ nombre: '🫵🏻💪' }), chat(), 'nombre');
@@ -89,30 +91,24 @@ console.log('\nSi Meta rechaza un seguimiento automático, el sistema se aparta'
     check('persistStatus lo llama al recibir FAILED', inbound.includes('deshacerSeguimientoFallido(prisma'));
 }
 
-console.log('\nSi el cliente responde a un seguimiento, el vendedor recibe una tarea');
+console.log('\nSi el cliente responde a un seguimiento, NO hay tarea para nadie (8/10/2026)');
 {
     const { createRequire } = await import('node:module');
     const require = createRequire(import.meta.url);
+    const { readFileSync } = await import('node:fs');
     const rs = require('../../wa-service/shared/respuesta-a-seguimiento.js');
-    check('primera respuesta después del seguimiento → sí', rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: hace(20), lastInboundAt: hace(30) }));
-    check('nunca había escrito → sí', rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: hace(20), lastInboundAt: null }));
-    check('ya había respondido después del seguimiento → no (una sola tarea)', !rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: hace(20), lastInboundAt: hace(5) }));
-    check('sin seguimiento previo → no', !rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: null, lastInboundAt: hace(5) }));
-    let creada = null;
-    const prismaFalso = { clientTask: { findFirst: async () => null, create: async ({ data }) => { creada = data; return data; } } };
-    await rs.crearTareaPorRespuesta(prismaFalso, { clientId: 'c1', lastFollowUpAt: hace(20), lastInboundAt: null }, { texto: 'Hola sí me parece bien, solo me quedó una duda', tipo: 'TEXT' });
-    check('la tarea es del VENDEDOR (type TASK, para hoy) y trae el texto', creada && creada.type === 'TASK' && creada.description.includes('me quedó una duda') && creada.dueDate instanceof Date, JSON.stringify(creada));
-    check('la firma NO es "Sistema (Embudo)" (la sincronización diaria cancela esas)', creada && creada.createdBy === 'Sistema (Respuestas)' && rs.CREADO_POR === 'Sistema (Respuestas)');
-    const respTs = (await import('node:fs')).readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8');
-    check('la red diaria firma igual y vuelve a crear las canceladas por el sistema', respTs.includes("CREADO_POR = 'Sistema (Respuestas)'") && respTs.includes("t.status === 'COMPLETED' &&"));
-    const inbound = (await import('node:fs')).readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-    check('inbound.js la crea al guardar el entrante', inbound.includes('crearTareaPorRespuesta(prisma'));
-    const { respondioAlSeguimiento, PREFIJO_RESPUESTA } = await import('../../src/lib/embudo/respuestas-a-seguimientos.ts');
-    check('la red diaria usa el MISMO prefijo que el wa-service (no duplica)', PREFIJO_RESPUESTA === rs.PREFIJO);
-    check('red diaria: respuesta posterior al seguimiento → tarea', respondioAlSeguimiento({ clientId: 'c', lastFollowUpAt: hace(20), lastInboundAt: hace(5) }));
-    check('red diaria: respuesta ANTERIOR al seguimiento → nada', !respondioAlSeguimiento({ clientId: 'c', lastFollowUpAt: hace(5), lastInboundAt: hace(20) }));
-    const svc = (await import('node:fs')).readFileSync(new URL('../../src/services/embudo.service.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-    check('correrDiario (9:00) la corre todos los días', svc.includes('tareasPorRespuestasSinAtender()'));
+    check('primera respuesta después del seguimiento → se detecta', rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: hace(20), lastInboundAt: hace(30) }));
+    const inbound = readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('inbound.js ya NO crea la tarea del vendedor', !inbound.includes('crearTareaPorRespuesta('));
+    const respTs = readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('la red diaria solo CANCELA las que quedaron (no crea)', !respTs.includes('clientTask.create') && respTs.includes("status: 'CANCELLED'"));
+    const sync = readFileSync(new URL('../../src/lib/embudo/sincronizar-tareas.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('sincronizar-tareas ya NO crea tareas EMBUDO (solo limpia)', !sync.includes('clientTask.create') && sync.includes("status: 'CANCELLED'"));
+    const ruta = readFileSync(new URL('../../src/app/api/cron/seguimientos/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('el motor lee la respuesta y ejecuta cierre/pausa', ruta.includes('clasificarRespuesta(') && ruta.includes('cerrarComoPerdido(') && ruta.includes('posponerSeguimiento('));
+    check("el motor ejecuta los 'cerrar' del playbook", ruta.includes("tipo === 'cerrar'"));
+    const svc = readFileSync(new URL('../../src/services/embudo.service.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('la etiqueta "Perdido (embudo)" saca al lead del embudo', svc.includes('TAG_PERDIDO_EMBUDO.toLowerCase()'));
 }
 
 console.log('\nFreno, días de Córdoba y registro (12/9/2026)');
@@ -161,8 +157,6 @@ console.log('\nChats @lid: se manda al número real');
     check('/api/send crea el chat también cuando la campaña manda "<num>@c.us" (si no, el envío no se guarda)', api.includes("esTelefono || (esWaIdLegacy && /^\\d{10,15}$/.test(cleanPhone))"));
     const reg = readFileSync(new URL('../../src/lib/seguimientos/registro.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('un envío FALLIDO se puede volver a reclamar en el tick siguiente (no espera a mañana)', reg.includes("resultado: 'FALLIDO' },\n            data: { resultado: 'RECLAMADO'"));
-    const resp = readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-    check('las tareas por respuesta miran solo los últimos 14 días y cancelan las viejas', resp.includes('VENTANA_RESPUESTAS_DIAS = 14') && resp.includes("status: 'CANCELLED'"));
 }
 
 console.log('\nNombre de persona: el motor y el bot dicen lo mismo');

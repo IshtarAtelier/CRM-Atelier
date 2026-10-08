@@ -1,7 +1,7 @@
 # El embudo de seguimientos — la verdad que hoy está implementada
 
-**Fuente única de verdad** (12/9/2026). Sacado del código y de la base, no de
-lo que se quiso hacer. Cada fila dice dónde vive en el código. Los documentos
+**Fuente única de verdad** (12/9/2026; **cambio grande el 8/10/2026**, abajo).
+Sacado del código y de la base, no de lo que se quiso hacer. Cada fila dice dónde vive en el código. Los documentos
 anteriores (`docs/embudo-de-ventas.md`, `docs/plan-motor-seguimientos.md`)
 quedan como historia: donde contradicen a este, manda este.
 
@@ -9,6 +9,51 @@ Cuando acá dice "día N" son **bloques de 24 h desde el momento exacto** del
 presupuesto o del alta (no días calendario): un presupuesto armado el lunes a
 las 18:00 "cumple 2 días" el miércoles a las 18:00, no el miércoles a la
 mañana. Los horarios de envío sí son hora de Córdoba.
+
+---
+
+## 0. Desde el 8/10/2026: el embudo no tiene NADA para una persona
+
+Decisión de Ishtar ("en embudo no debe haber nada para humano"), tomada con
+estos datos de producción a la vista: 250 tareas del embudo pendientes, las
+250 vencidas (111 "Definir: ganado o perdido" que nadie podía cerrar porque no
+hay botón, 137 plantillas que el motor vetó y quedaron "para una persona");
+Matías y Milena cerraron 11 en todo septiembre; y de 501 oportunidades de
+septiembre sin comprar, 142 habían respondido a un seguimiento —casi siempre
+un 👍 o un "gracias"— y el motor las había soltado para siempre.
+
+Lo que cambió, y dónde:
+
+- **La charla SIN presupuesto sigue la MISMA cadencia** que la que tiene
+  presupuesto (1º toque → invitación → último), con el reloj desde el alta.
+  Antes recibía un toque y pasaba a "Falta cotizar" para una persona
+  (`playbook.ts`). "Falta cotizar" sigue en la tarjeta como información, pero
+  nunca es "para hoy".
+- **"Decidir: ganado o perdido" no existe más.** Lo reemplaza `cerrar`, que
+  ejecuta el motor: recorrido completo + `CIERRE_TRAS_ULTIMO_TOQUE_DIAS` (7)
+  días sin respuesta, o ventana de 30 días vencida → etiqueta
+  `Perdido (embudo)` en la ficha, presupuestos pendientes a `LOST`, nota
+  firmada 'Sistema' y AuditLog (`lib/seguimientos/cierre.ts`). Más viejo que
+  `DIAS_MAX_CIERRE_AUTOMATICO` (120 días) no se toca. El primer día había
+  ~1.090 para cerrar; salen de a `CIERRES_POR_TICK` (200) por hora.
+- **La respuesta del cliente se LEE** (`lib/embudo/respuesta.ts`, puro, sin
+  IA): "no / ya compré / en otra óptica / no me escriban" → `cierre` (perdido);
+  "más adelante / cuando cobre / por ahora no" → `posponer` (pausa 30 días);
+  todo lo demás —reacciones, "gracias", "ok", audios, preguntas— → `seguir`:
+  la charla viva la atiende el bot y, pasadas las 48 h de silencio, la
+  cadencia sigue con el toque que falta. Ante la duda es `seguir`. Un "No"
+  pelado solo cuenta si es la primera burbuja después del toque.
+- **No se crea ninguna tarea**: ni las EMBUDO del día
+  (`sincronizar-tareas.ts` solo cancela lo que quedó) ni las "💬 Respondió al
+  seguimiento" (`respuestas-a-seguimientos.ts` y
+  `wa-service/transport/inbound.js`). Si el bot necesita a una persona, la
+  deriva por su propio camino.
+- Lo que el motor hace sin mandar (cierres, lecturas de respuesta) queda en
+  `SeguimientoCorrida.vetados` y en la respuesta del endpoint; se ve en
+  `/admin/leads/salud`. Lo fija `npm run check:embudo` (CI).
+
+Las tablas de abajo están corregidas a esto; donde una celda viejа diga
+"persona", manda esta sección.
 
 ---
 
@@ -24,8 +69,8 @@ Entra toda ficha que cumpla **todo** esto (`src/services/embudo.service.ts`,
   (`no cliente`, `proveedor`, `laboratorio`, `mayorista` — `src/lib/no-cliente.ts`).
 
 **Sale del embudo** cuando: se le carga una venta/pedido; se le pone una de
-esas etiquetas; o su ficha pasa a `CLIENT`. No hay otra salida (ver ambigüedad
-B: "ganado/perdido" no existe como acción).
+esas etiquetas (incluida `Perdido (embudo)`, que pone el motor al cerrar); o
+su ficha pasa a `CLIENT`.
 
 La ficha se crea sola con el primer WhatsApp entrante
 (`wa-service/transport/alta-de-ficha.js`), salvo perfiles sin nombre de
@@ -75,13 +120,17 @@ Lo decide `src/lib/embudo/playbook.ts` (`proximaAccion`). Los plazos:
 
 ### 3a. Sin presupuesto enviado (Primer Contacto / Nueva Receta)
 
-| Día (desde el alta) | Qué toca | Mensaje | Quién lo hace | Pasa a / sale |
+Misma cadencia que 3b, con el reloj desde el **alta** y los escalones leídos
+de las etiquetas del chat (`SEGUIMIENTO_DIA_1/4/15`).
+
+| Día (desde el alta) | Qué toca | Mensaje | Quién | Pasa a / sale |
 |---|---|---|---|---|
-| 0 a 2 | "Falta cotizar" | — | persona | Al armar **y enviar** el presupuesto → Cotización Enviada. |
-| 0 a 2, con presupuesto armado y no enviado | "Presupuesto armado el dd/MM y NUNCA enviado: mandarlo" (para hoy) | — | persona | Al enviarlo → Cotización Enviada. |
-| **> 2** (48 h), con chat, sin `SEGUIMIENTO_DIA_1` | Retomar la charla | `seguimiento_lentes_sin_receta` ("¿seguís interesado…? recordá enviarme la recetita…") o, si tiene receta, `seguimiento_lentes_con_receta` ("¿retomamos el armado de tu presupuesto?") | **motor automático** (o persona) | Queda `SEGUIMIENTO_DIA_1`; después vuelve a "Falta cotizar" (persona). No hay 2º toque automático sin presupuesto. |
-| > 2, sin chat de WhatsApp | "Falta cotizar" | — | persona | Nunca recibe nada automático (ambigüedad G). |
-| **> 30** | "Sin presupuesto hace N días: cerrar o archivar" | — | persona | No cuenta para hoy; se queda en la columna hasta que alguien lo etiquete. |
+| 0 a 2 | "Falta cotizar" (informa, no vence) | — | — | Al armar **y enviar** el presupuesto → 3b. |
+| **> 2** (48 h), con chat, sin DIA_1 | 1er toque | `seguimiento_lentes_sin_receta` o, con receta, `seguimiento_lentes_con_receta` | **motor** | Deja `SEGUIMIENTO_DIA_1`. |
+| **> 4**, con DIA_1 y sin DIA_4 | 2º toque | `invitacion_local_v4` | **motor** | Deja `SEGUIMIENTO_DIA_4`. (Si ya vino al local, se saltea.) |
+| **> 15**, con DIA_4 y sin DIA_15 | 3er y último toque | `ultimo_seguimiento` | **motor** | Deja `SEGUIMIENTO_DIA_15`. |
+| DIA_15 + 7 días sin respuesta, o **> 30** | `cerrar` | — | **motor** | Etiqueta `Perdido (embudo)`: sale del embudo. |
+| sin chat de WhatsApp | esperar | — | — | No recibe nada; se cierra solo al día 30. |
 
 ### 3b. Con presupuesto enviado
 
@@ -92,14 +141,14 @@ Lo decide `src/lib/embudo/playbook.ts` (`proximaAccion`). Los plazos:
 | **4** (96 h), con DIA_1 y sin `SEGUIMIENTO_DIA_4` | Seguimiento 2 | 2º toque | `invitacion_local_v4` (invitación al local con dirección y horarios) | **motor** o persona | Deja `SEGUIMIENTO_DIA_4`. Espera al día 15. |
 | 4, **ya vino al local** (botón "Visita", turno cumplido o etiqueta de visita) | Seguimiento 2 | Esperar ("Ya vino al local") | — | — | Se saltea la invitación. Espera al día 15. |
 | **15** (360 h), con DIA_4 y sin `SEGUIMIENTO_DIA_15` | Frío | 3er y último toque | `ultimo_seguimiento` (Instagram + "tengo un descuento especial para hacerte") | **motor** o persona | Deja `SEGUIMIENTO_DIA_15`. |
-| 15 a 30, con DIA_15 | Frío | "Decidir: ganado o perdido" (para hoy) | — | persona | No hay botón (ambigüedad B): sale solo por venta o etiqueta. |
-| **> 30** | Frío | "Frío hace N días: cerrar o archivar" | — | persona | No cuenta para hoy. Se queda listado. |
+| DIA_15 + **7 días** sin respuesta | Frío | `cerrar` | — | **motor** | Etiqueta `Perdido (embudo)` + presupuestos pendientes a `LOST`. Sale del embudo. |
+| **> 30** (hasta 120) | Frío | `cerrar` | — | **motor** | Ídem. Más de 120 días: "fuera del embudo", no se toca. |
 
-Si el cliente **responde** cualquiera de los toques, el motor no le manda más
-(compuerta "respondió al último seguimiento: sigue una persona") y **se crea
-una tarea del vendedor con el texto de la respuesta** (desde el 12/9,
-`wa-service/shared/respuesta-a-seguimiento.js`); el estado no cambia solo — lo
-mueve la venta, la etiqueta o una persona.
+Si el cliente **responde** cualquiera de los toques, el motor lee qué dijo
+(`lib/embudo/respuesta.ts`, sección 0): un "no" lo cierra como perdido, un
+"más adelante" lo pausa 30 días, y lo demás no cambia nada — el bot atiende la
+charla y la cadencia sigue cuando pasan 48 h de silencio. No se crea ninguna
+tarea (hasta el 8/10/2026 sí: "💬 Respondió al seguimiento").
 
 Si un toque se hace **a mano fuera de su día** (por ejemplo el 1er toque a las
 3 h), la etiqueta manda: el estado avanza igual.
@@ -138,7 +187,7 @@ base (`SystemSetting`, `reclamarCorrida`) para que la haga una sola.
 **Compuertas del motor** (`src/lib/seguimientos/politica.ts`, en este orden;
 la primera que aplica veta):
 
-1. el paso no tiene plantilla (cotizar/decidir = persona);
+1. el paso no tiene plantilla (`cerrar` va por otro camino; `cotizar` solo informa);
 2. la plantilla no está habilitada para automático (solo las 5 de
    `PLANTILLAS_AUTOMATICAS`);
 3. lead anterior a `MOTOR_SEGUIMIENTOS_DESDE` (hoy `null`: **entran todos**
@@ -152,7 +201,9 @@ la primera que aplica veta):
 9. ya se le mandó un seguimiento hace < 48 h;
 10. alguien le escribió hace < 48 h;
 11. el cliente escribió hace < 48 h (charla viva);
-12. el cliente respondió al último seguimiento.
+12. el cliente respondió al último seguimiento **y dijo que no** (se cierra) o
+    **pidió más adelante** (se pausa). Una reacción, un "gracias" o una
+    pregunta NO vetan (hasta el 8/10/2026 cualquier respuesta vetaba para siempre).
 
 **Registro de corridas y envíos (desde el 12/9).** Cada tick escribe una fila
 en `SeguimientoCorrida` (candidatos, elegidos, enviados, fallidos, en espera,
@@ -198,11 +249,8 @@ sistema deshace el rastro, pausa 30 días y avisa al equipo
   (24-48h)" se entra a las 48 h; "Seguimiento 2 (2-10 días)" a los 4 días;
   "Frío (+10 días)" a los 15. `src/types/leads.ts:80-82` vs
   `src/lib/leads-pipeline.ts:43-45`.
-- **B. "Decidir: ganado o perdido" no existe como acción.** El playbook lo
-  propone, pero no hay botón ni etiqueta "perdido": el lead sale solo si se le
-  carga una venta o se le pone una etiqueta de exclusión a mano. Un lead en
-  Frío sin venta queda listado para siempre (después del día 30, sin contar
-  "para hoy"). Nadie lo cierra ni se registra por qué.
+- **B. ~~"Decidir: ganado o perdido" no existe como acción.~~** Resuelto el
+  8/10/2026: lo cierra el motor (`cerrar`, sección 0) con nota y AuditLog.
 - **C. `docs/embudo-de-ventas.md` dice "nada le escribe solo al cliente".**
   Desde el 11/9/2026 el motor manda solo. Ese documento quedó viejo.
 - **D. Dos lugares para la misma etiqueta.** El estado se lee de
@@ -219,8 +267,8 @@ sistema deshace el rastro, pausa 30 días y avisa al equipo
   la invitación al local. Es a propósito (evitar plantilla encima de charla),
   pero no queda registrado *qué* se cubrió.
 - **G. Sin chat de WhatsApp no hay embudo automático.** Un lead que llegó por
-  teléfono o mail queda en "Falta cotizar" / "para hoy" indefinidamente y
-  nunca recibe nada; solo lo ve una persona en la tarea del día.
+  teléfono o mail no recibe nada; desde el 8/10/2026 ya no es "para hoy" y se
+  cierra solo al día 30.
 - **H. Hasta el 11/9 los leads anteriores al 7/9 estaban fuera del motor**
   ("a los viejos a mano"): eran ~370 de los ~400 "para hoy", el tablero los
   pedía todos los días y nadie llegaba. Causa principal de "días con pocos

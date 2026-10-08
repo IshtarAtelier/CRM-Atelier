@@ -7,6 +7,7 @@ import { TAGS_NO_CLIENTE } from '@/lib/no-cliente';
 import { tieneEtiquetaDeVisita } from '@/lib/embudo/visito-local';
 import { presupuestoFueEnviado, MARCA_PDF_ENVIADO } from '@/lib/embudo/presupuesto-enviado';
 import { tareasPorRespuestasSinAtender } from '@/lib/embudo/respuestas-a-seguimientos';
+import { TAG_PERDIDO_EMBUDO } from '@/lib/seguimientos/cierre';
 
 /**
  * EmbudoService — el tablero de leads (/admin/leads) y "lo de hoy".
@@ -29,6 +30,8 @@ import { tareasPorRespuestasSinAtender } from '@/lib/embudo/respuestas-a-seguimi
  */
 const EXCLUSION_TAGS = [
     'no interesado', 'cancelar bot', 'spam', 'no bot', 'cerrado', 'post-venta',
+    // La pone el motor al cerrar como perdido (`lib/seguimientos/cierre.ts`).
+    TAG_PERDIDO_EMBUDO.toLowerCase(),
     ...TAGS_NO_CLIENTE,
 ];
 
@@ -157,6 +160,7 @@ export const EmbudoService = {
                 createdAt: lead.createdAt,
                 tieneChat: !!chat,
                 chatLabels,
+                ultimoToqueAt: chat?.lastFollowUpAt ?? null,
                 now,
             });
 
@@ -206,11 +210,9 @@ export const EmbudoService = {
 
     /**
      * Corre UNA VEZ POR DÍA (la llama /api/cron/resumen-diario-equipo, que ya
-     * tiene el guard de "una vez por día" y el horario). Hace las dos cosas
-     * que dependen del mismo tablero, para no calcularlo dos veces:
-     *   1. materializa "para hoy" como ClientTask reales — visibles en el
-     *      dashboard y en la ficha del cliente, no solo en /admin/leads;
-     *   2. arma la línea de texto para el resumen del equipo.
+     * tiene el guard de "una vez por día" y el horario). Desde el 8/10/2026 el
+     * embudo no deja tareas a nadie: acá solo se limpian las que quedaron de
+     * antes y se arma la línea informativa del resumen del equipo.
      */
     async correrDiario(now = Date.now()): Promise<{ paraHoy: Tablero['paraHoy']; sync: ResultadoSync; respuestas: number; linea: string }> {
         const { paraHoy } = await EmbudoService.tablero(now);
@@ -223,23 +225,15 @@ export const EmbudoService = {
     /** La línea de texto del resumen diario. Separada de `correrDiario` para
      * poder probarla sola, sin tocar la base. */
     armarLinea(paraHoy: Tablero['paraHoy'], sync: ResultadoSync, respuestas = 0): string {
-        const avisoRespuestas = respuestas ? `\n    💬 ${respuestas} cliente(s) respondieron a un seguimiento y quedaron sin tarea: ya la tienen (campanita).` : '';
-        if (paraHoy.length === 0) return `🎯 Embudo: nadie con seguimiento vencido. Al día.${avisoRespuestas}`;
-        const porTipo = { plantilla: 0, cotizar: 0, decidir: 0 };
+        const limpieza = sync.cerradas || respuestas ? ` (${sync.cerradas + respuestas} tarea(s) vieja(s) del embudo canceladas: el embudo ya no deja tareas a nadie)` : '';
+        if (paraHoy.length === 0) return `🎯 Embudo: nadie con seguimiento vencido. Al día.${limpieza}`;
+        const porTipo = { plantilla: 0, cerrar: 0 };
         for (const l of paraHoy) if (l.proximaAccion.tipo in porTipo) porTipo[l.proximaAccion.tipo as keyof typeof porTipo]++;
         const partes = [
-            porTipo.plantilla ? `${porTipo.plantilla} seguimiento(s) para mandar` : null,
-            porTipo.cotizar ? `${porTipo.cotizar} sin cotizar` : null,
-            porTipo.decidir ? `${porTipo.decidir} para cerrar (ganado/perdido)` : null,
+            porTipo.plantilla ? `${porTipo.plantilla} seguimiento(s) que manda el motor` : null,
+            porTipo.cerrar ? `${porTipo.cerrar} que el motor cierra como perdido(s)` : null,
         ].filter(Boolean);
         const primeros = paraHoy.slice(0, 5).map(l => `${l.name.split(' ')[0]} (${l.proximaAccion.etiqueta.replace(/^Hoy: /, '')})`).join(', ');
-        // Las tareas quedan en el dashboard de TODOS (TasksPanel) y en la
-        // ficha de cada cliente — el mail es el aviso, la tarea es donde se
-        // tacha. `actualizadas` no se muestra: para el equipo es la misma
-        // tarea de ayer, solo cambió internamente el texto del paso.
-        const tareas = sync.creadas || sync.cerradas
-            ? ` (${sync.creadas} tarea(s) nueva(s) en el dashboard${sync.cerradas ? `, ${sync.cerradas} cerrada(s) sola(s) porque ya se resolvieron` : ''})`
-            : '';
-        return `🎯 Embudo — para hoy: ${partes.join(' · ')}.${tareas}\n    ${primeros}${paraHoy.length > 5 ? ` y ${paraHoy.length - 5} más` : ''} → /admin/leads${avisoRespuestas}`;
+        return `🎯 Embudo — hoy el motor hace: ${partes.join(' · ')}.${limpieza}\n    ${primeros}${paraHoy.length > 5 ? ` y ${paraHoy.length - 5} más` : ''} → /admin/leads`;
     },
 };

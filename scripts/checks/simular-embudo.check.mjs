@@ -73,7 +73,7 @@ for (let d = 0; d < DIAS; d++) {
             const quoteCreatedAt = enviado ? q : null;
             const chatLabels = st ? st.chatLabels : [];
             const { stage, escalonCubierto, cubiertoHasta } = classifyLead({ quoteCreatedAt, hasPrescription: l.prescriptions.length > 0, chatLabels, tagNames: l.tags.map(t => t.name), ultimoMensajeHumano: humano, now });
-            const accion = proximaAccion({ stage, escalonCubierto, cubiertoHasta, hasPrescription: l.prescriptions.length > 0, visitoElLocal: l.interactions.length > 0, quoteCreatedAt, borradorSinEnviar: q && !enviado ? q : null, createdAt: l.createdAt, tieneChat: !!chat, chatLabels, now });
+            const accion = proximaAccion({ stage, escalonCubierto, cubiertoHasta, hasPrescription: l.prescriptions.length > 0, visitoElLocal: l.interactions.length > 0, quoteCreatedAt, borradorSinEnviar: q && !enviado ? q : null, createdAt: l.createdAt, tieneChat: !!chat, chatLabels, ultimoToqueAt: chat?.lastFollowUpAt ?? null, now });
             if (accion.vencida && accion.tipo === 'plantilla') paraHoy.push({ lead: l, chat, st, accion, stage, proximaAccion: accion });
         }
         const ordenados = ordenarPorUrgencia(paraHoy);

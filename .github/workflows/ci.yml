@@ -135,6 +135,9 @@ jobs:
       - name: Motor de seguimientos (compuertas antes de mandar solo)
         run: npm run check:motor
 
+      - name: Embudo 100 % automático (cadencia, lectura de respuestas, cierre solo)
+        run: npm run check:embudo
+
       - name: Contrato herramientas del bot ↔ rutas del CRM
         run: npm run check:contrato-bot
 

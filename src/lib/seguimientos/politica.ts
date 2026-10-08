@@ -1,6 +1,7 @@
 import type { TemplateName } from '@/lib/whatsapp/templates';
 import { MOTOR_SEGUIMIENTOS_DESDE, PLANTILLAS_AUTOMATICAS, SILENCIO_MINIMO_HORAS } from '@/lib/constants/seguimientos';
 import { esNombreDePersona } from '@/lib/nombre-de-persona';
+import type { Clasificacion } from '@/lib/embudo/respuesta';
 
 /**
  * LAS COMPUERTAS del motor de seguimientos.
@@ -11,14 +12,14 @@ import { esNombreDePersona } from '@/lib/nombre-de-persona';
  * lista, nunca el motor.
  *
  * Ante la duda, vetar. Un seguimiento que no sale hoy se recupera mañana (el
- * lead sigue en "para hoy" del tablero, para que lo mande una persona); uno
- * de más no se recupera, y le pega a la calidad del número.
+ * lead sigue en "para hoy" y el motor lo vuelve a evaluar en el próximo tick);
+ * uno de más no se recupera, y le pega a la calidad del número.
  *
  * Qué decide el playbook y qué decide esto: el playbook dice QUÉ toca (la
  * plantilla, por etapa y plazo). Acá se decide si el sistema PUEDE mandarlo
- * solo. Son preguntas distintas a propósito: el tablero le muestra el mismo
- * "hoy toca X" a una persona, que sí puede decidir mandarlo aunque el motor
- * lo haya vetado.
+ * HOY. Lo que se veta no va a una persona (8/10/2026: "en embudo no debe
+ * haber nada para humano"): o se destraba solo con el tiempo (48 h, pausa),
+ * o lo cierra el motor (`cierre.ts`), o lo apagó alguien a mano a propósito.
  */
 
 export interface Candidato {
@@ -39,6 +40,12 @@ export interface EstadoDelChat {
     chatLabels?: string[];
     /** Etiquetas de la ficha ("Sin Seguimiento", "no interesado" = lo apagaron desde la ficha). */
     tagNames?: string[];
+    /**
+     * Qué dijo el cliente después del último seguimiento (`lib/embudo/respuesta.ts`),
+     * o null si no contestó. `cierre` y `posponer` los ejecuta el motor antes
+     * de seleccionar; acá solo se veta este tick con el motivo a la vista.
+     */
+    respuesta?: Clasificacion | null;
 }
 
 /** Etiquetas de ficha que apagan el seguimiento automático de esa persona. */
@@ -72,8 +79,8 @@ export function nombreDePila(nombre: string | null | undefined): string | null {
 }
 
 export const COMPUERTAS: Compuerta[] = [
-    // El playbook propone también 'cotizar' y 'decidir': eso es trabajo de una persona.
-    (c) => (c.plantilla ? null : 'no hay plantilla que mandar (el paso es de una persona)'),
+    // Sin plantilla no hay nada que mandar ('cerrar' lo ejecuta el motor por otro camino; 'cotizar' solo informa).
+    (c) => (c.plantilla ? null : 'no hay plantilla que mandar'),
 
     (c) => (PLANTILLAS_AUTOMATICAS.includes(c.plantilla!) ? null : `la plantilla ${c.plantilla} no está habilitada para envío automático`),
 
@@ -119,10 +126,16 @@ export const COMPUERTAS: Compuerta[] = [
         ? `el cliente escribió hace menos de ${SILENCIO_MINIMO_HORAS} h: la charla está viva`
         : null),
 
-    // Contestó después del último toque: le toca a una persona, no a otra plantilla.
-    (_c, chat) => (chat!.lastFollowUpAt && chat!.lastInboundAt && chat!.lastInboundAt.getTime() > chat!.lastFollowUpAt.getTime()
-        ? 'el cliente respondió al último seguimiento: sigue una persona'
-        : null),
+    // Contestó después del último toque. Hasta el 8/10/2026 esto frenaba al
+    // motor para siempre ("sigue una persona") y nadie seguía: 142 de 501
+    // oportunidades de septiembre quedaron ahí, casi todas por un 👍 o un
+    // "gracias". Ahora la respuesta se LEE (`lib/embudo/respuesta.ts`): si dijo
+    // que no, se cierra como perdido; si pidió más adelante, se pausa; si fue
+    // una reacción, un "ok" o una pregunta (que ya contestó el bot), la
+    // cadencia sigue cuando pasan las 48 h de silencio de arriba.
+    (_c, chat) => (chat!.respuesta === 'cierre' ? 'el cliente dijo que no: se cierra como perdido'
+        : chat!.respuesta === 'posponer' ? 'el cliente pidió más adelante: se pausa'
+            : null),
 ];
 
 /** El primer veto que aplica, o null si el sistema puede mandarlo solo. */

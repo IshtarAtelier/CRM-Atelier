@@ -24,7 +24,7 @@ const { prefillAdTag, fallbackAdTag } = require('../shared/ad-tag');
 const { uploadMediaToCrm } = require('../shared/media');
 const { asegurarFichaDeLead } = require('./alta-de-ficha');
 const { deshacerSeguimientoFallido, PAUSA_DIAS } = require('../shared/seguimiento-fallido');
-const { crearTareaPorRespuesta } = require('../shared/respuesta-a-seguimiento');
+const { esPrimeraRespuestaAlSeguimiento } = require('../shared/respuesta-a-seguimiento');
 const cloud = require('./cloud-api');
 
 const TYPE_MAP = {
@@ -243,13 +243,11 @@ async function persistInboundUnlocked(m, { io } = {}) {
     // chat, y corriendo antes no tendría nada que leer.
     chat = await asegurarFichaDeLead(chat, waId, m.profileName);
 
-    // Respondió a un seguimiento → tarea del vendedor (pedido de Ishtar, 12/9/2026).
-    try {
-        const tarea = await crearTareaPorRespuesta(prisma, chatAntes && { ...chatAntes, clientId: chatAntes.clientId || chat.clientId }, { texto: content, tipo: messageType });
-        if (tarea) console.log(`  📌 [Inbound] ${waId} respondió a un seguimiento: tarea creada para el vendedor.`);
-    } catch (e) {
-        console.error('[Inbound] No se pudo crear la tarea por respuesta al seguimiento:', e.message);
-    }
+    // Respondió a un seguimiento: solo se anota en el log. Hasta el 8/10/2026
+    // creaba una tarea del vendedor; desde entonces el embudo no tiene nada
+    // para personas (Ishtar): la respuesta la lee el motor de la app
+    // (`src/lib/embudo/respuesta.ts`) y la charla la contesta el bot.
+    if (esPrimeraRespuestaAlSeguimiento(chatAntes)) console.log(`  💬 [Inbound] ${waId} respondió a un seguimiento.`);
 
     // ── Eventos para el buzón (mismos nombres que hoy) ──────────────────────
     if (io) {
