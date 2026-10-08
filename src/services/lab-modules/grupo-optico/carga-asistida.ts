@@ -1,9 +1,8 @@
-import { prisma } from '../../../lib/db';
-import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-frames';
 import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { planDeCarga, rolesDel2x1, type OpcionesCarga, type TipoArmazon, type TipoAro } from './carga';
+import { numeroDelParConCargo } from './origen';
 import { TIPO_ARMAZON, TIPO_ARO } from './catalogo';
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_GRUPO_OPTICO, type PayloadBorradorGO } from './borrador-portal';
 import { LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO } from './portal';
@@ -23,16 +22,6 @@ const texto = (v: unknown) => (v === null || v === undefined ? '' : String(v).tr
 const esCristalGO = (i: any) => /cristal/i.test(i.productCategorySnapshot || i.product?.category || '')
     && /grupo/i.test(i.laboratorySnapshot || i.product?.laboratory || '');
 
-/** El nº del par CON CARGO ya cargado: del borrador CARGADO, si no del espejo, si no de la venta. */
-async function numeroDelParConCargo(orderId: string, pair: number): Promise<string | null> {
-    const cargado = await prisma.labOrderDraft.findFirst({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair, status: 'CARGADO' }, orderBy: { loadedAt: 'desc' }, select: { portalNumber: true } });
-    if (cargado?.portalNumber) return cargado.portalNumber;
-    const espejo = await prisma.labPortalOrder.findMany({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair, status: { not: 'ANULADO' } }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
-    if (espejo.length === 1) return espejo[0].portalNumber;
-    const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true } });
-    const nums = parseLabNumbers(venta?.labOrderNumber).filter(n => /^80\d{6}$/.test(n));
-    return nums.length === 1 ? nums[0] : null;
-}
 
 function opcionesDelBody(body: Record<string, unknown>): OpcionesCarga {
     const tipo = String(body.tipoArmazon || '').toUpperCase();

@@ -1,5 +1,5 @@
 import type { Page } from 'playwright';
-import type { GraduacionOjo, PayloadVitolen } from './carga';
+import { esSegundoParDePromo, type GraduacionOjo, type PayloadVitolen } from './carga';
 import { BASE_VITOLEN } from './pedidos';
 import { NOMBRE_VITOLEN } from './portal';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, resumenComparable } from './resumen';
@@ -188,8 +188,7 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     if (payload.od) await llenarOjo(page, pasos, 0, payload.od, payload);
     if (payload.oi) await llenarOjo(page, pasos, 1, payload.oi, payload);
 
-    const segundoPar = payload.rolPromo ? payload.rolPromo === 'SEGUNDO_PAR' : payload.par === 2;
-    if (segundoPar || payload.pedidoOrigen) {
+    if (esSegundoParDePromo(payload)) {
         pendientes.push(`promo del 2º par: antes de aprobar, abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen ?? '(el nº del 1er par: la venta no lo tiene todavía)'} con la promoción HOYALUX (el robot todavía no lo hace)`);
     }
 

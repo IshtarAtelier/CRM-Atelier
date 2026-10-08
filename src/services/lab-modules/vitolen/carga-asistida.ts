@@ -2,12 +2,13 @@ import { prisma } from '../../../lib/db';
 import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
-import { armarFormulario, leerVentaParaCarga } from './carga';
+import { armarFormulario, esSegundoParDePromo, leerVentaParaCarga } from './carga';
 import { cristalVitolenPorNombre } from './catalogo';
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
-import { avisoDeRoles, rolesPorValor, valorDeCristales, type RolesDePares } from '../carga/roles-2x1';
+import { avisoDeRoles, type RolesDePares } from '../carga/roles-2x1';
+import { rolDeLaPromo, rolesDeLaPromoHoya } from './promo';
 import { formatearPrecio } from '../../../lib/format-precio';
 
 /**
@@ -22,17 +23,9 @@ export const FORMAS_PORTAL_VITOLEN = Array.from({ length: 12 }, (_, i) => `Forma
 const esCristalVitolen = (i: { laboratorySnapshot: string | null; productCategorySnapshot: string | null }) =>
     /vitolen/i.test(i.laboratorySnapshot || '') && /cristal/i.test(i.productCategorySnapshot || '');
 
-/**
- * Con dos pares de Vitolen, cuál es el 1º de la promo del segundo par (el de
- * mayor valor de lista, Ishtar 8/10/2026) y cuál el 2º (lleva "pedido origen").
- */
-function rolesDeLaPromo(venta: { items: any[] }): RolesDePares | null {
-    const cristales = venta.items.filter(esCristalVitolen);
-    const pares = [...new Set(cristales.map(i => i.framePosition ?? 1))].sort();
-    if (pares.length < 2) return null;
-    return rolesPorValor(pares.slice(0, 2).map(pair => ({ pair, valor: valorDeCristales(cristales.filter(i => (i.framePosition ?? 1) === pair)) })));
-}
-const rolDe = (roles: RolesDePares | null, pair: number) => (roles ? (pair === roles.sinCargo ? 'SEGUNDO_PAR' : 'PRIMER_PAR') : null);
+/** Los roles de la promo del 2º par, con la regla del CRM (promo.ts). */
+const rolesDeLaPromo = (venta: { items: any[] }): RolesDePares | null => rolesDeLaPromoHoya(venta.items);
+const rolDe = rolDeLaPromo;
 
 export const CARGA_VITOLEN: CargaAsistida = {
     lab: LAB_VITOLEN,
@@ -90,7 +83,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
             ],
             avisos: Array.isArray(r.pendientes) ? r.pendientes : [],
             tituloAvisos: 'Quedó para hacer a mano en el portal antes de aprobar:',
-            confirmarAntesDeAprobar: (p.rolPromo ? p.rolPromo === 'SEGUNDO_PAR' : p.par === 2) || p.pedidoOrigen ? {
+            confirmarAntesDeAprobar: esSegundoParDePromo(p) ? {
                 titulo: 'Es el 2º par de la promo de Vitolen',
                 texto: `Antes de aprobar, fijate en la pantalla del portal que el pedido tenga "Pedido origen" con el nº del 1er par (${p.pedidoOrigen ?? 'la venta todavía no lo tiene'}) y la promo del segundo par asociada con "Modificar". Sin eso Vitolen factura el par entero, no el 20 % de lista.`,
             } : p.rolPromo === 'PRIMER_PAR' ? {
@@ -135,7 +128,8 @@ export const CARGA_VITOLEN: CargaAsistida = {
             if (cargado?.portalNumber) pedidoOrigen = cargado.portalNumber;
             const enEspejo = pedidoOrigen ? null : await prisma.labPortalOrder.findFirst({ where: { orderId, lab: LAB_VITOLEN, pair: { not: roles!.sinCargo } }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
             const enVenta = await prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true } });
-            pedidoOrigen = pedidoOrigen ?? enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).map(n => `${n}L`)[0] ?? null;
+            // Solo un nº de Vitolen: en una venta mixta el de Grupo Óptico (80xxxxxx) no es origen de nada acá.
+            pedidoOrigen = pedidoOrigen ?? enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).filter(n => !/^80\d{6}$/.test(n)).map(n => `${n}L`)[0] ?? null;
         }
         const r = armarFormulario(venta, { pair, forma, ejeDiagonal, variante: body.variante ? String(body.variante) : null, pedidoOrigen, rolPromo });
         if (!r.ok) return { ok: false, status: 422, error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos };

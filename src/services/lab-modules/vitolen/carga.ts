@@ -148,6 +148,11 @@ export function codigoDeCristal(cristal: CristalVitolen, variante: string | null
     return { codigo: cristal.codigos[idx] ?? cristal.codigos[0], variante: cristal.variantes[idx] };
 }
 
+/** ¿Este payload es el 2º par de la promo? Con rol explícito manda el rol; sin él (borradores viejos), el par 2. Puro. */
+export function esSegundoParDePromo(payload: Pick<PayloadVitolen, 'par' | 'rolPromo'> & { pedidoOrigen?: string | null }): boolean {
+    return (payload.rolPromo ? payload.rolPromo === 'SEGUNDO_PAR' : payload.par === 2) || !!payload.pedidoOrigen;
+}
+
 /**
  * Arma el payload del portal. `pair` es el armazón/par de la venta (1 o 2, como
  * `framePosition`); `variante` es la elegida por el vendedor cuando el diseño
@@ -273,6 +278,7 @@ export async function leerVentaParaCarga(orderId: string): Promise<VentaParaCarg
                 },
             },
             items: {
+                orderBy: { id: 'asc' },
                 select: {
                     eye: true, productNameSnapshot: true, productTypeSnapshot: true, laboratorySnapshot: true, productCategorySnapshot: true,
                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, pdVal: true, heightVal: true,

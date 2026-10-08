@@ -2,7 +2,7 @@ import { armarPedidoSmartLab, codigoInternoSmartLab, type VentaParaSmartLab } fr
 import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones } from '../../../lib/order-frames';
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { formatearPrecio } from '../../../lib/format-precio';
-import { avisoDeRoles, rolesPorValor, valorDeCristales, type RolesDePares } from '../carga/roles-2x1';
+import { avisoDeRoles, rolesDeDosPares, type RolesDePares } from '../carga/roles-2x1';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import {
     especificacionDe, TENIDO_COLOR, TENIDO_INTENSIDADES, TENIDO_TIPO, TIPO_ARMAZON, TIPO_ARO,
@@ -134,8 +134,8 @@ export function esVenta2x1(venta: VentaParaSmartLab): boolean {
 export function rolesDel2x1(venta: VentaParaSmartLab): RolesDePares | null {
     if (!esVenta2x1(venta)) return null;
     const porPar = cristalesPorArmazon(venta);
-    const valor = (pair: number) => valorDeCristales(((porPar.get(pair) || []) as any[]).filter(i => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot) || 'cristal')));
-    return rolesPorValor([{ pair: 1, valor: valor(1) }, { pair: 2, valor: valor(2) }]);
+    const cristales = (pair: number) => ((porPar.get(pair) || []) as any[]).filter(i => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot) || 'cristal'));
+    return rolesDeDosPares([{ pair: 1, items: cristales(1) }, { pair: 2, items: cristales(2) }]);
 }
 
 export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: OpcionesCarga = {}): ResultadoPlan {
@@ -144,6 +144,15 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     const pares = cantidadDeArmazones(venta as any);
     if (par < 1 || par > pares) return { ok: false, faltantes: [`la venta no tiene par ${par}`], avisos };
 
+    // Con dos pares, un cristal sin armazón asignado NO se adivina: el reparto
+    // "por orden" depende del orden físico de las filas, que cambia con cualquier
+    // edición de la venta (auditoría 5, 8/10/2026) — y de eso dependen el rol
+    // (con cargo / sin cargo), la graduación y hasta qué ojo va en cada pedido.
+    const esCristalDelLab = (i: any) => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot))
+        && /grupo[\s-]?[oó]ptico/i.test(texto(i?.laboratorySnapshot ?? i?.product?.laboratory) || 'grupo optico');
+    if (pares > 1 && (venta.items as any[]).some(i => esCristalDelLab(i) && i.framePosition == null)) {
+        faltantes.push('hay cristales sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal');
+    }
     const cristales = (cristalesPorArmazon(venta).get(par) || []) as any[];
     const producto = texto(cristales[0]?.product?.name ?? cristales[0]?.productNameSnapshot);
     const nombres = [...new Set(cristales.map(c => texto(c.product?.name ?? c.productNameSnapshot)))];

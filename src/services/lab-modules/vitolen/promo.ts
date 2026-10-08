@@ -1,4 +1,6 @@
 import { cristalVitolenPorNombre } from './catalogo';
+import { descuentoSegundoParHoya, type LineaDeCarrito } from '../../../lib/promo-segundo-par-hoya';
+import type { RolesDePares } from '../carga/roles-2x1';
 
 /**
  * EL SEGUNDO PAR DE VITOLEN NO ES GRATIS: se factura al 20 % del precio de
@@ -41,4 +43,31 @@ export function importeEsperadoSegundoParDe(
  */
 export function segundoParCobradoDeMas(facturado: number, esperado: number, tolerancia = 0.05): boolean {
     return facturado > esperado * (1 + tolerancia);
+}
+
+/**
+ * Qué par es el 1º y cuál el 2º de la promo del segundo par, con LA MISMA
+ * regla con la que el CRM la aplica al cobrar (`descuentoSegundoParHoya`:
+ * líneas que la encienden, mismo diseño o Tact, igual o menor valor — el caro
+ * es el 1º, regla de Ishtar del 8/10/2026). Sin promo (Nulux + Tact, un solo
+ * par, Mi Primer Hoya) devuelve null: no hay pendiente ni aviso que mostrar.
+ * Sin armazón asignado, los pares se arman en orden (par 1 y 2). Puro.
+ */
+export function rolesDeLaPromoHoya(items: LineaDeCarrito[]): RolesDePares | null {
+    const d = descuentoSegundoParHoya(items);
+    if (!d.primerPar || !d.segundoPar) return null;
+    const conCargo = d.primerPar.framePosition ?? 1;
+    const sinCargo = d.segundoPar.framePosition ?? (conCargo === 1 ? 2 : 1);
+    if (conCargo === sinCargo) return null;
+    return {
+        conCargo, sinCargo,
+        porValor: d.primerPar.precio !== d.segundoPar.precio,
+        valores: { [conCargo]: d.primerPar.precio, [sinCargo]: d.segundoPar.precio },
+    };
+}
+
+/** El rol de un par según esos roles: null si no está en la promo (un 3er par, o sin promo). Puro. */
+export function rolDeLaPromo(roles: RolesDePares | null, pair: number): 'PRIMER_PAR' | 'SEGUNDO_PAR' | null {
+    if (!roles) return null;
+    return pair === roles.sinCargo ? 'SEGUNDO_PAR' : pair === roles.conCargo ? 'PRIMER_PAR' : null;
 }

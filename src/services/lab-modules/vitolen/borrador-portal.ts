@@ -8,6 +8,8 @@ import type { PayloadVitolen } from './carga';
 import { cancelarBorrador, confirmar, crearYLeerResumen, llenarFormulario, ResumenCambiadoError } from './llenar';
 import { conSesionVitolen, LAB_VITOLEN, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
+import { rolDeLaPromo, rolesDeLaPromoHoya } from './promo';
+import { leerVentaParaCarga } from './carga';
 import { resumenComparable } from './resumen';
 
 /**
@@ -116,7 +118,7 @@ export async function llenarBorradorEnPortal(borradorId: string) {
  * quien aprobó), CARGADO. Reintentable: desde APROBADO nunca va a ERROR.
  */
 export async function confirmarBorradorAprobado(borradorId: string) {
-    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, resumenPortal: true, approvedBy: true, screenshotUrl: true } });
+    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, payload: true, resumenPortal: true, approvedBy: true, screenshotUrl: true } });
     if (!b) throw new Error('El borrador no existe.');
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo confirma los APROBADOS.`);
     const rastro = rastroDe(b);
@@ -130,6 +132,13 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             const pares = await prisma.labOrderDraft.findMany({ where: { orderId: b.orderId, lab: LAB_VITOLEN }, select: { pair: true }, distinct: ['pair'] });
             const existente = await pedidoExistenteDelPar(b.orderId, b.pair, Math.max(pares.length, b.pair), rastro.portalDraftId);
             if (existente) throw new ParYaConPedidoError(`${mensajeExistente(existente, b.pair)} El borrador del portal sigue sin confirmar: rechazalo para cancelarlo.`);
+            // El rol en la promo (1º / 2º par) tiene que ser el de HOY: si la venta se
+            // editó y el par caro ahora es el otro, el pendiente y el pedido origen ya no valen.
+            const payload = (b.payload || {}) as Partial<PayloadVitolen>;
+            const venta = await leerVentaParaCarga(b.orderId);
+            const rolHoy = venta ? rolDeLaPromo(rolesDeLaPromoHoya(venta.items as any), b.pair) : null;
+            const rolGuardado = payload.rolPromo === undefined ? (b.pair === 2 ? 'SEGUNDO_PAR' : null) : payload.rolPromo;
+            if (venta && rolHoy !== rolGuardado) throw new ParYaConPedidoError(`El lugar de este par en la promo cambió después de aprobar (era ${rolGuardado ?? 'sin promo'}, hoy ${rolHoy ?? 'sin promo'}): rechazá el borrador y volvé a prepararlo.`);
             return confirmar(page, rastro.portalDraftId, rastro.textoComparable ?? rastro.texto);
         }));
         const screenshotFinalUrl = await guardarCaptura(b.id, 'confirmado', r.captura).catch(() => null);

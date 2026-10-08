@@ -11,6 +11,8 @@ import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenci
 import { leerVentaParaCargaGO } from './venta';
 import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
+import { numeroDelParConCargo } from './origen';
+import { rolesDel2x1 } from './carga';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import type { EstadoEnPortal } from '../contrato';
@@ -269,6 +271,14 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 }
                 const cambios = cambiosEntrePayloads(payloadAprobado, payloadCreateUpdate(r.plan, rastro0.resuelto!));
                 if (cambios.length) throw new AprobacionInvalidaError(`La venta cambió después de aprobar (${cambios.join(', ')}): volvé a prepararlo para revisar el pedido nuevo. No se mandó nada.`);
+                // Par sin cargo: el nº del par con cargo que va en la observación tiene
+                // que ser el de HOY (el 1er par pudo anularse y recargarse mientras
+                // este borrador esperaba; auditoría 5, 8/10/2026).
+                if (r.plan.rol2x1 === 'SIN_CARGO') {
+                    const roles = rolesDel2x1((await leerVentaParaCargaGO(b.orderId)) as any);
+                    const hoy = roles ? await numeroDelParConCargo(b.orderId, roles.conCargo) : null;
+                    if (hoy !== r.plan.pedidoOrigen) throw new AprobacionInvalidaError(`El nº del par con cargo cambió (el borrador decía ${r.plan.pedidoOrigen ?? '—'}; hoy ${hoy ?? 'no hay ninguno válido'}): volvé a prepararlo. No se mandó nada.`);
+                }
                 // 4. Crear: se anota ANTES que salió el envío, y el nº apenas vuelve.
                 await mezclar(b.id, { envioIniciadoEl: new Date().toISOString() });
                 try {

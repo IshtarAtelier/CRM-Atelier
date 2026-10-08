@@ -23,7 +23,8 @@ import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
-import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { rolesDeLaPromoHoya, rolDeLaPromo } from '../../src/services/lab-modules/vitolen/promo.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
 import { estadoDe } from '../../src/services/lab-modules/vitolen/estados.ts';
@@ -460,6 +461,30 @@ ok('un borrador que dejó un pedido en el portal bloquea preparar otro hasta can
     assert.equal(portalSinResolver({ status: 'CARGADO', resumenPortal: { portalDraftId: '10441994' } }), false);
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: null }), false);
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { pasos: [] } }), false);
+});
+ok('Vitolen: los roles de la promo salen de la MISMA regla con la que el CRM la cobra (líneas que la encienden, caro = 1º)', () => {
+    const c = (fp, eye, nombre, price) => ({ eye, framePosition: fp, price, quantity: 1, productNameSnapshot: nombre, product: { name: nombre, category: 'Cristal' } });
+    const LS = 'HOYA LIFESTYLE 4 - 1.50 CLEAR', TACT = 'HOYA TACT BKS - 1.50 CLEAR BLUE FILTER';
+    const r = rolesDeLaPromoHoya([c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000), c(2, 'OD', LS, 100000), c(2, 'OI', LS, 100000)]);
+    assert.deepEqual([r.conCargo, r.sinCargo, r.porValor], [1, 2, false]);
+    // el par 2 más caro: es el 1º de la promo
+    const caro = rolesDeLaPromoHoya([c(1, 'OD', LS, 90000), c(1, 'OI', LS, 90000), c(2, 'OD', LS, 100000), c(2, 'OI', LS, 100000)]);
+    assert.deepEqual([caro.conCargo, caro.sinCargo], [2, 1]);
+    // Tact solo puede ser 2º
+    const tact = rolesDeLaPromoHoya([c(1, 'OD', TACT, 80000), c(1, 'OI', TACT, 80000), c(2, 'OD', LS, 100000), c(2, 'OI', LS, 100000)]);
+    assert.deepEqual([tact.conCargo, tact.sinCargo], [2, 1]);
+    // sin promo: un solo par, o una línea que no la enciende
+    assert.equal(rolesDeLaPromoHoya([c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000)]), null);
+    assert.equal(rolesDeLaPromoHoya([c(1, 'OD', TACT, 80000), c(1, 'OI', TACT, 80000), c(2, 'OD', TACT, 80000), c(2, 'OI', TACT, 80000)]), null);
+    // un 3er par no tiene rol
+    assert.equal(rolDeLaPromo(r, 3), null); assert.equal(rolDeLaPromo(r, 2), 'SEGUNDO_PAR'); assert.equal(rolDeLaPromo(null, 2), null);
+});
+ok('Vitolen: qué payload es el 2º par de la promo (con rol manda el rol; sin rol, el par 2; o si lleva pedido origen)', () => {
+    assert.equal(esSegundoParDePromo({ par: 2, rolPromo: null }), true);
+    assert.equal(esSegundoParDePromo({ par: 2, rolPromo: 'PRIMER_PAR' }), false);
+    assert.equal(esSegundoParDePromo({ par: 1, rolPromo: 'SEGUNDO_PAR' }), true);
+    assert.equal(esSegundoParDePromo({ par: 1, rolPromo: null }), false);
+    assert.equal(esSegundoParDePromo({ par: 1, rolPromo: null, pedidoOrigen: '6981382L' }), true);
 });
 ok('Vitolen: el rol en la promo del 2º par lo decide quien prepara (el de mayor valor es el 1º); sin rol, el par 2 es el 2º', () => {
     const base = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0 });

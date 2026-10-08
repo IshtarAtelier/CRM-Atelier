@@ -334,7 +334,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         <p className="flex items-center gap-2 text-sm font-black"><AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" /> {confirmando.vista.confirmarAntesDeAprobar?.titulo}</p>
                         <p className="text-sm leading-relaxed">{confirmando.vista.confirmarAntesDeAprobar?.texto}</p>
                         <div className="flex flex-wrap justify-end gap-2 pt-1">
-                            <button type="button" onClick={() => setConfirmando(null)} className={`${boton} bg-stone-500`}>Volver a mirar</button>
+                            <button type="button" onClick={() => { setConfirmando(null); dialogo.current?.focus(); }} className={`${boton} bg-stone-500`}>Volver a mirar</button>
                             <button type="button" disabled={ocupado !== null} onClick={() => { const b = confirmando; setConfirmando(null); decidir(b.id, 'aprobar'); }} className={`${boton} bg-emerald-600 px-4`}>
                                 <Check className="w-3.5 h-3.5" /> Lo revisé: aprobar y cargar
                             </button>
@@ -359,7 +359,10 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                     </div>
                     {borradorAmpliado && (
                         <div className="bg-stone-900 border-t border-stone-700 px-4 py-3">
-                            <div className="mx-auto max-w-[1400px]">{decision(borradorAmpliado, true, !!rotas[ampliada.url])}</div>
+                            <div className="mx-auto max-w-[1400px] space-y-2">
+                                {error && <p className="text-xs text-rose-300 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {error}</p>}
+                                {decision(borradorAmpliado, true, !!rotas[ampliada.url])}
+                            </div>
                         </div>
                     )}
                 </div>

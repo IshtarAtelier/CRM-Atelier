@@ -14,7 +14,8 @@
 import assert from 'node:assert/strict';
 import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/services/lab-modules/grupo-optico/catalogo.ts';
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
-import { rolesPorValor, valorDeCristales, avisoDeRoles } from '../../src/services/lab-modules/carga/roles-2x1.ts';
+import { rolesPorValor, valorDeCristales, avisoDeRoles, rolesDeDosPares } from '../../src/services/lab-modules/carga/roles-2x1.ts';
+import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo-optico/origen.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
@@ -118,6 +119,58 @@ const venta2x1 = (conTenido = true, fpTenido = 2) => ({
         { framePosition: 2, product: { name: 'Armazón Atelier Premium Negro', category: 'Armazón de Receta', brand: 'Atelier' } },
         ...(conTenido ? [{ framePosition: fpTenido, crystalColor: 'Gris', crystalColorType: 'COMPACTO', crystalColorNote: '3', product: { name: 'Teñido Compacto', category: 'Tratamiento', type: 'Tratamiento' } }] : [])],
 });
+ok('el valor es el PRECIO DE LISTA del producto, no la línea: en el 2x1 el CRM deja el 2º par en $0', () => {
+    assert.equal(valorDeCristales([{ price: 0, product: { price: 120000 } }, { price: 0, product: { price: 120000 } }]), 240000);
+    // mismo producto en los dos pares, líneas X/2, X/2, 0, 0 y las del par 2 ANTES en el array: empate → par 1 con cargo
+    const p = (fp, price) => ({ framePosition: fp, price, quantity: 1, product: { name: 'Smart FREE · Blue 1.56 · Essential 2x1', price: 240000 } });
+    const r = rolesDeDosPares([{ pair: 2, items: [p(2, 0), p(2, 0)] }, { pair: 1, items: [p(1, 120000), p(1, 120000)] }]);
+    assert.deepEqual([r.conCargo, r.sinCargo, r.porValor], [1, 2, false]);
+    // productos distintos: por lista aunque la línea del caro esté en $0
+    const q = (fp, price, nombre, lista) => ({ framePosition: fp, price, quantity: 1, product: { name: nombre, price: lista } });
+    const d = rolesDeDosPares([{ pair: 1, items: [q(1, 100000, 'Básico', 100000), q(1, 100000, 'Básico', 100000)] }, { pair: 2, items: [q(2, 0, 'Premium', 150000), q(2, 0, 'Premium', 150000)] }]);
+    assert.deepEqual([d.conCargo, d.sinCargo, d.porValor], [2, 1, true]);
+});
+ok('2x1 con cristales sin armazón asignado (como la venta real #L4AU): no se adivina, falta asignarlos', () => {
+    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, framePosition: null } : i));
+    const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' });
+    assert.equal(r.ok, false); assert.ok(r.faltantes.some(f => /cristales sin armazón asignado/.test(f)), r.faltantes.join(' | '));
+    // con un solo par no hace falta
+    const uno = venta2x1(); uno.frames = [uno.frames[0]]; uno.items = uno.items.filter(i => i.framePosition !== 2 || i.product.category === 'Tratamiento').map(i => (i.eye ? { ...i, framePosition: null } : i)).filter(i => i.product.category !== 'Tratamiento');
+    assert.equal((planDeCarga(uno, 1, { tipoArmazon: 'PLASTICO' }).faltantes || []).some(f => /sin armazón asignado/.test(f)), false);
+});
+ok('si el rol gira entre preparar y aprobar, el payload cambia (observación) o deja de armar: nada sale con el rol viejo', () => {
+    const lista = (fp) => (fp === 2 ? 150000 : 100000);
+    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, product: { ...i.product, name: i.framePosition === 2 ? 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Premium 2x1' : i.product.name, price: lista(i.framePosition) } } : i));
+    const RES = { materialId: 20, colorId: 1, brandId: 145, articuloOD: 28463, articuloOI: 28463, typeRimArticleId: 8896, tinted: null, clientId: '2462' };
+    const aprobado = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878' }); // par 1 = barato = SIN CARGO
+    assert.equal(aprobado.plan.rol2x1, 'SIN_CARGO');
+    const antes = payloadCreateUpdate(aprobado.plan, RES);
+    // se edita la venta: el par 1 pasa a ser el caro → ahora es CON CARGO, con las mismas opciones
+    const w = JSON.parse(JSON.stringify(v)); w.items.forEach(i => { if (i.eye) i.product.price = i.framePosition === 1 ? 200000 : 150000; });
+    const hoy = planDeCarga(w, 1, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878' });
+    assert.equal(hoy.plan.rol2x1, 'CON_CARGO');
+    assert.ok(cambiosEntrePayloads(antes, payloadCreateUpdate(hoy.plan, RES)).some(c => /opticsComment/.test(c)));
+    // y al revés: CON CARGO aprobado que hoy sería SIN CARGO sin nº → no arma
+    const conCargo = planDeCarga(w, 1, { tipoArmazon: 'PLASTICO' });
+    assert.equal(conCargo.ok, true);
+    assert.equal(planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' }).ok, false);
+});
+ok('el nº del par con cargo: nunca un pedido ANULADO ni un reproceso, y el tipeado solo si no es de otro par', () => {
+    const base = { pair: 2, cargado: null, espejo: [], numerosEnVenta: [], reprocesos: [] };
+    assert.equal(elegirNumeroDelParConCargo({ ...base, cargado: '80000001' }), '80000001');
+    assert.equal(elegirNumeroDelParConCargo({ ...base, cargado: '80000001', espejo: [{ numero: '80000001', pair: 2, anulado: true }] }), null);
+    assert.equal(elegirNumeroDelParConCargo({ ...base, espejo: [{ numero: '80000002', pair: 2, anulado: false }] }), '80000002');
+    assert.equal(elegirNumeroDelParConCargo({ ...base, espejo: [{ numero: '80000002', pair: 2, anulado: false }, { numero: '80000003', pair: 2, anulado: false }] }), null);
+    assert.equal(elegirNumeroDelParConCargo({ ...base, numerosEnVenta: ['80000004'] }), '80000004');
+    assert.equal(elegirNumeroDelParConCargo({ ...base, numerosEnVenta: ['80000004'], espejo: [{ numero: '80000004', pair: 2, anulado: true }] }), null);
+    assert.equal(elegirNumeroDelParConCargo({ ...base, numerosEnVenta: ['80000004'], reprocesos: ['80000004'] }), null);
+    assert.equal(elegirNumeroDelParConCargo({ ...base, numerosEnVenta: ['80000004'], espejo: [{ numero: '80000004', pair: 1, anulado: false }] }), null);
+    assert.equal(elegirNumeroDelParConCargo({ ...base, numerosEnVenta: ['80000004', '80000005'] }), null);
+    assert.equal(elegirNumeroDelParConCargo({ ...base, numerosEnVenta: ['619486'] }), null); // de otro lab
+});
+ok('una fila del robot del par 1 sin cargo (código "…1°par", observación "2° par SIN CARGO…") es del par 1', () => {
+    assert.equal(parDeFila({ CodigoOptica: '#L4AU Laura Santucho 1°par', Observacion: 'Promo 2x1 Smart Free - 2° par SIN CARGO - 1° par n° 80549878' }), 1);
+});
 ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin cargo (como siempre)', () => {
     const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 80000 } : i));
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [1, 2]);
@@ -127,8 +180,8 @@ ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin 
     assert.match(r2.plan.observacion, /2° par SIN CARGO - 1° par n° 80549878/);
     assert.ok(!r2.avisos.some(a => /mayor valor/.test(a)));
 });
-ok('2x1 con dos cristales distintos: el de mayor valor (par 2) va CON CARGO y el par 1 sin cargo, con el nº del par 2', () => {
-    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: i.framePosition === 2 ? 120000 : 80000 } : i));
+ok('2x1 con dos cristales distintos: el de mayor valor de lista (par 2) va CON CARGO y el par 1 sin cargo, con el nº del par 2', () => {
+    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 0, product: { ...i.product, name: i.framePosition === 2 ? 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Premium 2x1' : i.product.name, price: i.framePosition === 2 ? 120000 : 80000 } } : i));
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [2, 1]);
     const r2 = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO' });
     assert.ok(r2.ok, r2.faltantes?.join(' | '));

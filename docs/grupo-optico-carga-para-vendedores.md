@@ -78,4 +78,8 @@ real del laboratorio, aprobar.
 
 **Plan B**: arriba de la ficha siguen los botones **"A mano · Par 1/2"** (el
 favorito de siempre). Usalos solo si el robot no puede; después **tipeá el nº**
-en la venta como siempre.
+en la venta como siempre. Si cargás a mano, el **código interno** tiene que
+decir qué armazón es (`#XXXX Nombre 1°par` / `2°par`, como lo escribe el
+favorito): es lo que usa el seguimiento para saber de qué par es el pedido. No
+alcanza con la observación "2° par SIN CARGO" — ese "2° par" es el de la
+promo, y puede ser el armazón 1.

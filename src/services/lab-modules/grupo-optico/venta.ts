@@ -23,13 +23,15 @@ export function leerVentaParaCargaGO(orderId: string) {
             prescription: true,
             frames: true,
             items: {
+                // Orden fijo: los cristales sin armazón asignado se reparten por orden de aparición.
+                orderBy: { id: 'asc' },
                 select: {
                     eye: true, quantity: true, framePosition: true, price: true,
                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, pdVal: true, heightVal: true,
                     crystalColor: true, crystalColorType: true, crystalColorNote: true,
                     productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, productBrandSnapshot: true,
                     laboratorySnapshot: true,
-                    product: { select: { name: true, category: true, type: true, brand: true, lensIndex: true, laboratory: true } },
+                    product: { select: { name: true, category: true, type: true, brand: true, lensIndex: true, laboratory: true, price: true } },
                 },
             },
         },
