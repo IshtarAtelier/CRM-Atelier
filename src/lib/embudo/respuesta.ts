@@ -33,6 +33,7 @@ export interface MensajeEntrante {
 
 /** "Más adelante": se mira ANTES que el cierre, porque "por ahora no" también tiene un "no". */
 const POSPONER: RegExp[] = [
+    /^ahora no\.?$/, // el botón de `retomar_conversacion`
     /m[aá]s adelante/,
     /por ahora no/,
     /por el momento/,

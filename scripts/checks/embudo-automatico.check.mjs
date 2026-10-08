@@ -13,7 +13,7 @@
 // Puro: sin base y sin red. Corre en CI.
 //   node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/embudo-automatico.check.mjs
 // ────────────────────────────────────────────────────────────────────────────
-import { proximaAccion, CIERRE_TRAS_ULTIMO_TOQUE_DIAS, DIAS_MAX_CIERRE_AUTOMATICO } from '../../src/lib/embudo/playbook.ts';
+import { proximaAccion, ordenarPorUrgencia, CIERRE_TRAS_ULTIMO_TOQUE_DIAS, DIAS_MAX_CIERRE_AUTOMATICO } from '../../src/lib/embudo/playbook.ts';
 import { classifyLead, VENTANA_EMBUDO_DIAS } from '../../src/lib/leads-pipeline.ts';
 import { clasificarRespuesta, clasificarMensaje, respuestasAlToque, VENTANA_RESPUESTA_DIAS } from '../../src/lib/embudo/respuesta.ts';
 
@@ -44,7 +44,10 @@ a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1'] }); check('20 d�
 a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] }); check('20 días con DIA_4: último toque', es(a, 'plantilla', 'ultimo_seguimiento') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 2 }); check(`último toque hace 2 días: esperar (cierra a los ${CIERRE_TRAS_ULTIMO_TOQUE_DIAS})`, es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ presupuestoHace: 24, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8 }); check('último toque hace 8 días, sin respuesta: CERRAR (antes: "Definir ganado o perdido" para una persona)', es(a, 'cerrar') && a.vencida, txt(a));
-a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1'] }); check(`${VENTANA_EMBUDO_DIAS}+ días, lo que sea: CERRAR`, es(a, 'cerrar') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1'] }); check(`${VENTANA_EMBUDO_DIAS}+ días sin retome: ÚLTIMO INTENTO con retomar_conversacion (Ishtar: "quiero intentar cerrarlos")`, es(a, 'plantilla', 'retomar_conversacion') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 2 }); check('45 días, retome hace 2 días: esperar', es(a, 'esperar') && !a.vencida, txt(a));
+a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 8 }); check('45 días, retome hace 8 días sin respuesta: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 45, chat: false }); check('45 días sin chat: nada que intentar, CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 200 }); check(`${DIAS_MAX_CIERRE_AUTOMATICO}+ días: fuera del embudo, no se toca`, es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ presupuestoHace: 6, humanoHace: 1 }); check('una persona le escribió ayer (día 5): el 2º escalón está cubierto, espera al día 15', es(a, 'esperar'), txt(a));
 
@@ -59,6 +62,16 @@ a = accion({ altaHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] })
 a = accion({ altaHace: 25, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8 }); check('último toque hace 8 días: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ altaHace: 10, chat: false }); check('sin chat: nada que mandar, espera al cierre del día 30', es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ altaHace: 40, chat: false }); check('sin chat, 40 días: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
+a = accion({ altaHace: 40 }); check('sin presupuesto, 40 días, con chat: último intento', es(a, 'plantilla', 'retomar_conversacion'), txt(a));
+
+console.log('\nOrden del día: la cadencia primero, los últimos intentos después y del más nuevo al más viejo');
+{
+    const item = (o, stage = 'seguimiento1') => ({ proximaAccion: accion(o), stage });
+    const lista = ordenarPorUrgencia([item({ presupuestoHace: 100, labels: ['SEGUIMIENTO_DIA_1'] }), item({ presupuestoHace: 35, labels: ['SEGUIMIENTO_DIA_1'] }), item({ presupuestoHace: 3 }), item({ presupuestoHace: 0.4 })]);
+    check('1º el toque de la cadencia, 2º el retome de 35 días, 3º el de 100, último lo que no vence',
+        lista[0].proximaAccion.plantilla === 'seguimiento_presupuesto' && lista[1].proximaAccion.etiqueta.includes('35 días') && lista[2].proximaAccion.etiqueta.includes('100 días') && !lista[3].proximaAccion.vencida,
+        lista.map(x => x.proximaAccion.etiqueta).join(' | '));
+}
 
 console.log('\nNingún paso vencido es de una persona');
 {
@@ -102,6 +115,8 @@ check('"por el momento no voy a comprar": posponer, no cierre', r('si lo vi al p
     check(`solo cuenta lo escrito en los ${VENTANA_RESPUESTA_DIAS} días después del toque (un "ya compré" de semanas después no cierra)`, suyos.length === 1 && suyos[0].content === 'Gracias');
 }
 check('"no sigas insistiendo" es cierre aunque antes haya dicho "te aviso"', clasificarRespuesta([{ content: 'Quiero tenerte para cuando pueda, te aviso' }, { content: 'Hola, porfavor no sigas insistiendo' }]) === 'cierre');
+check('botón "Ahora no" → posponer', r('Ahora no') === 'posponer');
+check('botón "Sí, sigamos" → seguir', r('Sí, sigamos') === 'seguir');
 check('un audio es seguir', clasificarMensaje({ content: '[Mensaje audio]', type: 'AUDIO' }) === 'seguir');
 check('tres burbujas, una dice que no: cierre', clasificarRespuesta([{ content: '👍' }, { content: 'No, gracias' }, { content: 'saludos' }]) === 'cierre');
 check('"más adelante" + "gracias": posponer', clasificarRespuesta([{ content: 'gracias' }, { content: 'más adelante veo' }]) === 'posponer');

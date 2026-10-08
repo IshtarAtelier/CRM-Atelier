@@ -29,6 +29,7 @@ const ETIQUETA_POR_PLANTILLA = {
     seguimiento_carrito: 'SEGUIMIENTO_DIA_1',
     invitacion_local_v4: 'SEGUIMIENTO_DIA_4',
     ultimo_seguimiento: 'SEGUIMIENTO_DIA_15',
+    retomar_conversacion: 'SEGUIMIENTO_RETOME',
 };
 const REMITENTE_AUTOMATICO = 'Sistema';
 const PAUSA_DIAS = 30;

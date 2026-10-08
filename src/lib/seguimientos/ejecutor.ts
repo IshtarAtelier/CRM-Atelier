@@ -3,7 +3,7 @@ import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { templateSpec, WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
 import { saludoSegunHoraArgentina } from '@/lib/whatsapp/saludo';
 import { registrarSeguimientoEnviado } from '@/lib/embudo/registrar-seguimiento';
-import { PAUSA_ENTRE_ENVIOS_MS } from '@/lib/constants/seguimientos';
+import { PAUSA_ENTRE_ENVIOS_MS, TEMA_RETOMAR } from '@/lib/constants/seguimientos';
 import { nombreDePila, type Candidato } from './politica';
 import { reclamarEnvio, cerrarEnvio, diaArt } from './registro';
 
@@ -53,6 +53,7 @@ export function armarParametros(plantilla: keyof typeof WHATSAPP_TEMPLATES, nomb
     return (def.params ?? []).map(p => {
         if (p.label === 'nombre') return nombreDePila(nombre) ?? '';
         if (p.label === 'saludo según la hora') return saludoSegunHoraArgentina(now);
+        if (p.label === 'tema') return TEMA_RETOMAR;
         throw new Error(`La plantilla ${plantilla} pide "${p.label}" y el motor no sabe llenarlo`);
     });
 }

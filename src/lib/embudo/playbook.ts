@@ -45,6 +45,9 @@ export const ETIQUETA_POR_PLANTILLA: Partial<Record<TemplateName, string>> = {
     seguimiento_carrito: 'SEGUIMIENTO_DIA_1',
     invitacion_local_v4: 'SEGUIMIENTO_DIA_4',
     ultimo_seguimiento: 'SEGUIMIENTO_DIA_15',
+    // El último intento antes de cerrar (8/10/2026). No es un escalón del
+    // clasificador: no mueve de columna, solo marca que ya se intentó.
+    retomar_conversacion: 'SEGUIMIENTO_RETOME',
 };
 
 /** Las plantillas que cuentan como "seguimiento" (las demás son transaccionales). */
@@ -76,6 +79,7 @@ export const NOMBRE_CORTO_PLANTILLA: Partial<Record<TemplateName, string>> = {
     seguimiento_carrito: 'Seguimiento del carrito',
     invitacion_local_v4: 'Invitar al local',
     ultimo_seguimiento: 'Último seguimiento',
+    retomar_conversacion: 'Retomar la conversación (último intento)',
 };
 
 export type TipoDeAccion =
@@ -184,7 +188,9 @@ function diasDesde(fecha: Date, now: number): number {
  * - Presupuesto de hace 20 días, DIA_4 enviado               → plantilla ultimo_seguimiento (vencida)
  * - Presupuesto de hace 20 días, DIA_15 hace 2 días          → esperar (cierra a los 7 días del último toque)
  * - Presupuesto de hace 20 días, DIA_15 hace 8 días          → cerrar (vencida)
- * - Presupuesto de hace 45 días, lo que sea                  → cerrar (vencida)
+ * - Presupuesto de hace 45 días, sin retome                  → plantilla retomar_conversacion (último intento)
+ * - Presupuesto de hace 45 días, retome hace 2 días          → esperar
+ * - Presupuesto de hace 45 días, retome hace 8 días          → cerrar (vencida)
  * - Presupuesto de hace 200 días                             → esperar "fuera del embudo" (no se toca)
  */
 export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
@@ -198,9 +204,21 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
         return { tipo: 'esperar', etiqueta: `${queEs} hace ${dias} días: fuera del embudo`, venceEn: null, vencida: false };
     }
 
-    // Fuera de la ventana sin venta: perdido. Lo ejecuta el motor, no una persona.
+    // Fuera de la ventana sin venta. Antes de darlo por perdido se intenta UNA
+    // vez más (Ishtar, 8/10/2026: "obvio que quiero intentar cerrarlos"): el
+    // mensaje de retome con botones; si en 7 días no contesta, se cierra.
     if (dias > VENTANA_EMBUDO_DIAS) {
-        return { tipo: 'cerrar', etiqueta: `${queEs} hace ${dias} días: se cierra como perdido`, venceEn: vence(VENTANA_EMBUDO_DIAS * 24), vencida: true };
+        const yaIntentado = e.chatLabels.some(l => l.toUpperCase() === ETIQUETA_POR_PLANTILLA.retomar_conversacion);
+        if (!yaIntentado && e.tieneChat) {
+            return { tipo: 'plantilla', plantilla: 'retomar_conversacion', etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA.retomar_conversacion} (${queEs.toLowerCase()} hace ${dias} días)`, venceEn: vence(VENTANA_EMBUDO_DIAS * 24), vencida: true };
+        }
+        const desde = e.ultimoToqueAt ? e.ultimoToqueAt.getTime() : ref.getTime() + VENTANA_EMBUDO_DIAS * 24 * HORA_MS;
+        const cierraEn = desde + CIERRE_TRAS_ULTIMO_TOQUE_DIAS * 24 * HORA_MS;
+        if (e.now < cierraEn) {
+            const faltan = Math.max(1, Math.ceil((cierraEn - e.now) / (24 * HORA_MS)));
+            return { tipo: 'esperar', etiqueta: `Último intento hecho · se cierra en ${faltan} día${faltan === 1 ? '' : 's'} si no responde`, venceEn: new Date(cierraEn).toISOString(), vencida: false };
+        }
+        return { tipo: 'cerrar', etiqueta: `${queEs} hace ${dias} días sin respuesta: se cierra como perdido`, venceEn: new Date(cierraEn).toISOString(), vencida: true };
     }
 
     // ¿Hasta qué toque está cubierto? Con presupuesto lo dice classifyLead
@@ -270,10 +288,19 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
     return { tipo: 'plantilla', plantilla, etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA[plantilla]}${sufijo}`, venceEn: vence(horas), vencida: true };
 }
 
-/** Orden para listar "lo de hoy": primero lo más atrasado. */
+/**
+ * Orden para listar "lo de hoy": primero lo más atrasado. Excepción: los
+ * últimos intentos (`retomar_conversacion`) van DESPUÉS de los toques de la
+ * cadencia y, entre ellos, el más NUEVO primero: un lead de 35 días convierte
+ * más que uno de 110, y con 573 atrasados el primer día (8/10/2026) el cupo
+ * decide quién recibe el mensaje hoy y quién la semana que viene.
+ */
 export function ordenarPorUrgencia<T extends { proximaAccion: ProximaAccion; stage?: PipelineStageKey }>(items: T[]): T[] {
+    const esRetome = (x: T) => x.proximaAccion.tipo === 'plantilla' && x.proximaAccion.plantilla === 'retomar_conversacion';
     return [...items].sort((a, b) => {
         if (a.proximaAccion.vencida !== b.proximaAccion.vencida) return a.proximaAccion.vencida ? -1 : 1;
+        if (esRetome(a) !== esRetome(b)) return esRetome(a) ? 1 : -1;
+        if (esRetome(a)) return (b.proximaAccion.venceEn || '').localeCompare(a.proximaAccion.venceEn || '');
         const sa = a.stage ? STAGE_ORDER[a.stage] : 0;
         const sb = b.stage ? STAGE_ORDER[b.stage] : 0;
         if (sa !== sb) return sb - sa;

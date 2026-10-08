@@ -65,7 +65,10 @@ async function leadsCalificados() {
         orderBy: { createdAt: 'desc' },
     });
     return leads.filter(lead =>
-        !lead.tags.some(tag => EXCLUSION_TAGS.some(ex => tag.name.toLowerCase().includes(ex))),
+        !lead.tags.some(tag => EXCLUSION_TAGS.some(ex => tag.name.toLowerCase().includes(ex)))
+        // Su último presupuesto lo marcó PERDIDO una persona (botón ✓ de Cierres):
+        // ya decidió, no se lo retoma ni se lo vuelve a cerrar.
+        && lead.orders[0]?.status !== 'LOST',
     );
 }
 
