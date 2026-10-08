@@ -1,4 +1,5 @@
 import { LAB_LABELS, TOPE_PAR_BONIFICADO_2X1, VENTANA_REPORTE_DIAS, fmtARS, fmtFecha } from './types';
+import { LABS_DEL_SEMANAL } from './reports';
 import { ACLARACION_LINKS, comprobantesHtml } from './comprobantes-html';
 
 /**
@@ -169,7 +170,7 @@ function lineaSobrecosto(s: any): string {
 export function armarEmailSemanal(rep: any, appUrl: string): { subject: string; html: string } {
     const rango = `${fmtFecha(rep.from)} – ${fmtFecha(rep.to)}`;
     const ventana = rep.ventanaDias ?? VENTANA_REPORTE_DIAS;
-    const labs = ['OPTOVISION', 'GRUPO_OPTICO'];
+    const labs = LABS_DEL_SEMANAL;
     const perLab = rep.perLab || {};
     const suma = (k: string) => labs.reduce((t, l) => t + (perLab[l]?.[k] || 0), 0);
     const facturas = suma('facturasSemana');

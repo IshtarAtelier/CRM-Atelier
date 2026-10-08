@@ -4,7 +4,10 @@ import { isQuietLab } from './backfill';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
 import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
-import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
+import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
+import { cristalesPorArmazon } from '../../lib/order-frames';
+import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../lab-modules/vitolen/promo';
+import { rolesPorValor, valorDeCristales } from '../lab-modules/carga/roles-2x1';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de
@@ -66,7 +69,43 @@ export function systemCostForLab(order: any, lab: string): number {
     // `costoParBonificado`: ahí importa lo que efectivamente se pagó, no lo que
     // debería haber costado.
     const is2x1 = esVenta2x1(order);
+    // VITOLEN: el 2º par de la promo no va en $0 ni entero: se espera al 20 % de
+    // lista + calibrado (vitolen/promo.ts). Regla de Ishtar del 8/10/2026: si
+    // cobran los dos pares, el segundo por más del 20 % es sobrecosto.
+    const segundo = String(lab) === 'VITOLEN' ? segundoParDePromoVitolen(order) : null;
+    if (segundo && segundo.esperado !== null) {
+        const delSegundo = new Set(segundo.items);
+        return relevant.filter(i => !delSegundo.has(i)).reduce((total, item) => total + costoDeItemParaCruce(item, is2x1), 0) + segundo.esperado;
+    }
     return relevant.reduce((total, item) => total + costoDeItemParaCruce(item, is2x1), 0);
+}
+
+/**
+ * VITOLEN, PROMO DEL SEGUNDO PAR: cuál es el 2º par y cuánto se espera que lo
+ * facturen. La venta tiene la promo si el CRM la aplicó (appliedPromoName:
+ * "2º par Hoya…", o un 2x1) y hay dos pares de cristales de Vitolen. El 2º par
+ * es el de MENOR valor de lista (regla de Ishtar, 8/10/2026: el caro va con
+ * cargo); con el mismo valor, el par 2. Lo esperado sale de `baseCost` (el
+ * pelado) del cristal de ese par: 20 % de lista + calibrado, con IVA, en las
+ * mismas unidades que `cost`. Sin pelado o sin promo, null (se cuenta entero,
+ * como antes). Puro: la config del lab viaja en `order.__labConfig`.
+ */
+export function segundoParDePromoVitolen(order: any): { items: any[]; esperado: number | null; nombre: string; pair: number } | null {
+    const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
+    const conPromo = /2[ºo°]\s*par|segundo par|2\s*x\s*1|hoya/i.test(order?.appliedPromoName || '') || esVenta2x1(order);
+    if (!conPromo) return null;
+    const esVitolen = (i: any) => /vitolen/i.test(labOf(i));
+    const pares = [...cristalesPorArmazon(order).entries()]
+        .map(([pair, items]) => ({ pair, items: (items as any[]).filter(esVitolen) }))
+        .filter(p => p.items.length > 0);
+    if (pares.length < 2) return null;
+    const roles = rolesPorValor(pares.map(p => ({ pair: p.pair, valor: valorDeCristales(p.items) })));
+    const segundo = pares.find(p => p.pair === roles!.sinCargo)!;
+    const cristal = segundo.items[0];
+    const nombre = cristal.productNameSnapshot || cristal.product?.name || '';
+    const cfg = order.__labConfig;
+    const esperado = importeEsperadoSegundoParDe(nombre, cristal.product?.baseCost, { calibrado: Number(cfg?.calibrado) || 0, iva: Number(cfg?.iva) || 0 });
+    return { items: segundo.items, esperado, nombre, pair: segundo.pair };
 }
 
 /** Una venta es 2x1 si lo dice la promo aplicada o si trae un cristal a precio 0. */
@@ -245,7 +284,7 @@ export async function upsertEntry(input: LabCostInput) {
         },
         include: {
             client: { select: { name: true } },
-            items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
+            items: { include: { product: { select: { name: true, cost: true, baseCost: true, laboratory: true, category: true } } } },
             postSaleCases: {
                 select: {
                     id: true, newOrderNumber: true, caseType: true, coverage: true,
@@ -445,6 +484,15 @@ export async function upsertEntry(input: LabCostInput) {
         ? parBonificadoCobrado(facturadoPorPedido.map(p => p.importe))
         : { cobrado: false, masBarato: null };
     if (parBonificado.cobrado) status = 'OVERCOST';
+    // VITOLEN: con los dos pedidos facturados, el más barato tiene que venir al
+    // 20 % de lista + calibrado (5 % de tolerancia). Si no, cobraron los dos
+    // pares: SOBRECOSTO aunque la suma cierre (Ishtar, 8/10/2026).
+    const segundoVitolen = String(input.lab) === 'VITOLEN' && order && !pvEntry && difference !== null && facturadoPorPedido.length >= 2
+        ? segundoParDePromoVitolen(order) : null;
+    const segundoCobrado = segundoVitolen?.esperado != null && segundoParCobradoDeMas(Math.min(...facturadoPorPedido.map(p => p.importe)), segundoVitolen.esperado)
+        ? { masBarato: Math.min(...facturadoPorPedido.map(p => p.importe)), esperado: segundoVitolen.esperado }
+        : null;
+    if (segundoCobrado) status = 'OVERCOST';
 
     // Conservar las notas existentes (p. ej. la del portal) cuando la
     // actualización no trae nota propia, y no duplicar la de multi-pedido.
@@ -476,7 +524,9 @@ export async function upsertEntry(input: LabCostInput) {
         : null;
     const parBonificadoNote = parBonificado.cobrado
         ? `[${MARCA_PAR_BONIFICADO_COBRADO}: ninguno de los ${facturadoPorPedido.length} pedidos vino sin cargo — el más barato (${pedidoMasBarato}) costó ${fmtARS(parBonificado.masBarato)} y el par bonificado no debería pasar de ${fmtARS(TOPE_PAR_BONIFICADO_2X1)}; a reclamar ${fmtARS(parBonificado.masBarato)}]`
-        : null;
+        : segundoCobrado
+            ? `[${MARCA_SEGUNDO_PAR_PROMO_COBRADO}: el pedido más barato (${facturadoPorPedido.find(p => p.importe === segundoCobrado.masBarato)?.numero}) costó ${fmtARS(segundoCobrado.masBarato)} y el 2º par de la promo (${segundoVitolen!.nombre}) va al 20 % de lista + calibrado = ${fmtARS(segundoCobrado.esperado)}; a reclamar ${fmtARS(segundoCobrado.masBarato - segundoCobrado.esperado)}]`
+            : null;
     // Enganchó por el nº de la planilla: decirlo, porque el número que figura
     // en la venta no es el de la factura y si no parece un cruce equivocado.
     const aliasNote = aliasUsado && !baseNotes?.includes('nº de la planilla')

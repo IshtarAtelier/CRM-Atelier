@@ -68,6 +68,8 @@ export function etiquetaSinVenta(labOrderNumber: string | null | undefined): { l
  *    y la factura se volvió a leer) — si no, quedaría acusando para siempre.
  */
 export const MARCA_PAR_BONIFICADO_COBRADO = '⚠️ 2x1 CON EL PAR BONIFICADO COBRADO';
+/** Vitolen: el 2º par de la promo vino por encima del 20 % de lista + calibrado (Ishtar, 8/10/2026). */
+export const MARCA_SEGUNDO_PAR_PROMO_COBRADO = '⚠️ 2º PAR DE LA PROMO COBRADO DE MÁS';
 
 /** ¿El cruce dejó marcada esta entrada como 2x1 con el par bonificado cobrado? */
 export const tieneParBonificadoCobrado = (notes: string | null | undefined): boolean =>
@@ -75,7 +77,8 @@ export const tieneParBonificadoCobrado = (notes: string | null | undefined): boo
 
 /** Saca la nota del par bonificado: el cruce la vuelve a escribir en cada pasada si sigue aplicando. */
 export function sinNotaParBonificado(notes: string | null | undefined): string | null {
-    const marca = MARCA_PAR_BONIFICADO_COBRADO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const esc = (m: string) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const marca = `(?:${esc(MARCA_PAR_BONIFICADO_COBRADO)}|${esc(MARCA_SEGUNDO_PAR_PROMO_COBRADO)})`;
     const limpio = (notes || '').replace(new RegExp(`\\s*\\[${marca}[^\\]]*\\]`, 'g'), '').trim();
     return limpio || null;
 }

@@ -1,6 +1,9 @@
 import { prisma } from '../../lib/db';
 import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, VENTANA_REPORTE_DIAS } from './types';
-import { esVenta2x1, parBonificadoCobrado, systemCostForLab } from './cost-matching';
+import { esVenta2x1, LABS_FACTURA_A, parBonificadoCobrado, systemCostForLab } from './cost-matching';
+
+/** Los laboratorios que salen en el reporte semanal (Vitolen desde el 8/10/2026). */
+export const LABS_DEL_SEMANAL = ['OPTOVISION', 'GRUPO_OPTICO', 'VITOLEN'];
 import { clasificarHuerfanos } from './alerts';
 import { detectarDobleCobro } from './dos-por-uno';
 import { esFacturaSinNumero, estaResuelta } from '../../lib/lab-factura';
@@ -100,7 +103,9 @@ export async function weeklyReport(from: Date, to: Date) {
         include: { order: { select: { clientId: true, client: { select: { name: true } } } } },
     });
 
-    const billedOf = (e: any) => e.lab === 'OPTOVISION'
+    // Comparable según cómo factura cada lab (Factura A → total c/IVA): la
+    // misma regla del cruce. Hasta el 8/10/2026 acá solo Optovisión iba por total.
+    const billedOf = (e: any) => LABS_FACTURA_A.has(String(e.lab))
         ? (e.billedTotal ?? e.billedNet ?? null)
         : (e.billedNet ?? e.billedTotal ?? null);
     const esPostventa = (e: any) => (e.notes || '').includes('POSTVENTA (caso');
@@ -158,7 +163,7 @@ export async function weeklyReport(from: Date, to: Date) {
     };
 
     const perLab: Record<string, any> = {};
-    for (const lab of ['OPTOVISION', 'GRUPO_OPTICO']) {
+    for (const lab of LABS_DEL_SEMANAL) {
         const rows = entries.filter(e => e.lab === lab);
         const nuevasSemana = rows.filter(enSemana);
         const facturadoSemana = nuevasSemana.reduce((t, e) => t + (billedOf(e) || 0), 0);
@@ -384,12 +389,14 @@ export async function weeklyReport(from: Date, to: Date) {
         }));
 
     // ── SALUD DE LAS FUENTES y corridas de la conciliación ───────────────────
-    const labs = ['OPTOVISION', 'GRUPO_OPTICO'];
+    const labs = LABS_DEL_SEMANAL;
+    // Optovisión y Grupo Óptico sellan en lab-providers; Vitolen es un módulo (portal/salud.ts).
+    const claveSalud = (l: string) => (l === 'VITOLEN' ? `lab-modulo:${l}:lastOkAt` : `lab-provider:${l}:lastOkAt`);
     const estados = await prisma.systemSetting.findMany({
-        where: { key: { in: labs.map(l => `lab-provider:${l}:lastOkAt`) } },
+        where: { key: { in: labs.map(claveSalud) } },
     }).catch(() => [] as any[]);
     const fuentes = labs.map(l => {
-        const v = estados.find((r: any) => r.key === `lab-provider:${l}:lastOkAt`)?.value;
+        const v = estados.find((r: any) => r.key === claveSalud(l))?.value;
         const lastOkAt = v ? new Date(v) : null;
         const dias = lastOkAt ? Math.floor((to.getTime() - lastOkAt.getTime()) / 86400000) : null;
         return { lab: l, lastOkAt, dias, caida: dias === null || dias >= 3 };
@@ -497,7 +504,7 @@ export async function searchReport(query?: string, day?: string) {
 
 /** Arma el reporte (filas + cruce con facturas + totales) a partir de un set de órdenes ya traído. */
 export async function assembleReport(orders: any[], monthLabel: string) {
-    const anyLab = /(optovision|grupo[\s\-]?[oó]ptico)/i;
+    const anyLab = /(optovision|grupo[\s\-]?[oó]ptico|vitolen)/i;
     const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
 
     const rows = orders
@@ -506,7 +513,7 @@ export async function assembleReport(orders: any[], monthLabel: string) {
             if (labItems.length === 0) return null;
 
             const lab = labItems.some((i: any) => LAB_ITEM_PATTERNS.OPTOVISION.test(labOf(i)))
-                ? 'OPTOVISION' : 'GRUPO_OPTICO';
+                ? 'OPTOVISION' : labItems.some((i: any) => LAB_ITEM_PATTERNS.VITOLEN?.test(labOf(i))) ? 'VITOLEN' : 'GRUPO_OPTICO';
             // El costo de sistema sale de la REGLA ÚNICA del cruce (medio par,
             // cantidad y el par bonificado del 2x1 en $0). Esta pantalla tenía
             // su propia suma, que contaba los DOS pares de un 2x1: mostraba el
@@ -553,7 +560,7 @@ export async function assembleReport(orders: any[], monthLabel: string) {
     const report = rows.flatMap(r => {
         const pedidos: string[] = r.numbers.length > 0 ? r.numbers : [];
         const matched = pedidos.map((n: string) => byNumber.get(`${r.lab}:${n}`)).filter(Boolean);
-        const billedDe = (e: any) => r.lab === 'OPTOVISION'
+        const billedDe = (e: any) => LABS_FACTURA_A.has(String(r.lab))
             ? (e.billedTotal ?? e.billedNet ?? null)
             : (e.billedNet ?? e.billedTotal ?? null);
 

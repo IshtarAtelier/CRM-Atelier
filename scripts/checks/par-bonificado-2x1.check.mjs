@@ -21,7 +21,9 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import assert from 'node:assert/strict';
-import { esVenta2x1, parBonificadoCobrado, systemCostForLab } from '../../src/services/lab-recon/cost-matching.ts';
+import { esVenta2x1, parBonificadoCobrado, systemCostForLab, segundoParDePromoVitolen } from '../../src/services/lab-recon/cost-matching.ts';
+import { importeEsperadoSegundoPar, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
+import { MARCA_SEGUNDO_PAR_PROMO_COBRADO } from '../../src/lib/lab-factura.ts';
 import { TOPE_PAR_BONIFICADO_2X1 } from '../../src/services/lab-recon/types.ts';
 import { MARCA_PAR_BONIFICADO_COBRADO, estaResuelta, sinNotaParBonificado, tieneParBonificadoCobrado } from '../../src/lib/lab-factura.ts';
 
@@ -45,6 +47,22 @@ const ventaUnPar = () => ({
     appliedPromoName: null,
     labOrderNumber: '620277',
     items: [cristal('OD', 185000), cristal('OI', 185000), armazon(120000, 40000)],
+});
+
+
+/** Vitolen con la promo del 2º par del CRM: dos pares del mismo diseño a precio de lista, el par 2 más barato. */
+const cristalVitolen = (eye, fp, price, baseCost, cost) => ({
+    eye, price, quantity: 1, framePosition: fp,
+    productCategorySnapshot: 'Cristal', productNameSnapshot: 'HOYA LIFESTYLE 4 - 1.50 CLEAR',
+    laboratorySnapshot: 'Vitolen', productCostSnapshot: cost,
+    product: { name: 'HOYA LIFESTYLE 4 - 1.50 CLEAR', category: 'Cristal', laboratory: 'Vitolen', cost, baseCost },
+});
+const ventaVitolen = () => ({
+    appliedPromoName: '2º par Hoya (HOYA LIFESTYLE 4 - 1.50 CLEAR) -80%',
+    labOrderNumber: '6981382-6981390',
+    __labConfig: { calibrado: 10000, iva: 21 },
+    items: [cristalVitolen('OD', 1, 250000, 220000, 300000), cristalVitolen('OI', 1, 250000, 220000, 300000),
+        cristalVitolen('OD', 2, 180000, 200000, 300000), cristalVitolen('OI', 2, 180000, 200000, 300000), armazon(120000, 40000)],
 });
 
 const casos = [
@@ -106,6 +124,32 @@ const casos = [
         }],
     ['una nota que solo MENCIONA "reclamado" en el medio no resuelve nada',
         () => assert.equal(estaResuelta({ resolvedAt: null, notes: 'La venta tiene 2 pedidos; el cliente dice que fue reclamado.' }), false)],
+    // ── VITOLEN: el 2º par de la promo NO es gratis, va al 20 % de lista + calibrado (Ishtar, 8/10/2026) ──
+    ['Vitolen con la promo del 2º par: el 2º es el de MENOR valor de lista y se espera al 20 % + calibrado (con IVA)',
+        () => {
+            const v = ventaVitolen();
+            const s = segundoParDePromoVitolen(v);
+            assert.equal(s.pair, 2); assert.equal(s.nombre, 'HOYA LIFESTYLE 4 - 1.50 CLEAR');
+            assert.equal(s.esperado, importeEsperadoSegundoPar(200000, { calibrado: 10000, iva: 21 })); // (40.000 + 10.000) × 1,21 = 60.500
+            assert.equal(s.esperado, 60500);
+        }],
+    ['Vitolen: el costo de sistema cuenta el 1er par entero y el 2º al 20 % + calibrado',
+        () => assert.equal(systemCostForLab(ventaVitolen(), 'VITOLEN'), 300000 + 60500)],
+    ['Vitolen: si el par 1 es el más barato, el 2º de la promo es el par 1',
+        () => { const v = ventaVitolen(); v.items.forEach(i => { if (i.productCategorySnapshot === 'Cristal') i.price = i.framePosition === 1 ? 100000 : 180000; }); assert.equal(segundoParDePromoVitolen(v).pair, 1); }],
+    ['Vitolen sin promo aplicada (dos pares comprados aparte): nada que esperar, cada par entero',
+        () => { const v = ventaVitolen(); v.appliedPromoName = null; assert.equal(segundoParDePromoVitolen(v), null); assert.equal(systemCostForLab(v, 'VITOLEN'), 600000); }],
+    ['Vitolen sin el pelado (baseCost) del cristal: no se puede valuar, se cuenta entero y no se acusa',
+        () => { const v = ventaVitolen(); v.items.forEach(i => { if (i.product) i.product.baseCost = null; }); assert.equal(segundoParDePromoVitolen(v).esperado, null); assert.equal(systemCostForLab(v, 'VITOLEN'), 600000); }],
+    ['Vitolen: $300.000 + $60.500 es la promo cumplida; $300.000 + $90.000 es el 2º par cobrado de más (5 % de tolerancia)',
+        () => {
+            assert.equal(segundoParCobradoDeMas(60500, 60500), false);
+            assert.equal(segundoParCobradoDeMas(63000, 60500), false);
+            assert.equal(segundoParCobradoDeMas(90000, 60500), true);
+            assert.equal(segundoParCobradoDeMas(300000, 60500), true);
+        }],
+    ['la marca del 2º par cobrado de más se limpia de la nota igual que la del par bonificado',
+        () => assert.equal(sinNotaParBonificado(`Caso: Juan [${MARCA_SEGUNDO_PAR_PROMO_COBRADO}: el pedido más barato costó $ 90.000; a reclamar $ 29.500]`), 'Caso: Juan')],
 ];
 
 let fallas = 0;
