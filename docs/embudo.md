@@ -70,7 +70,10 @@ Entra toda ficha que cumpla **todo** esto (`src/services/embudo.service.ts`,
 `leadsCalificados`):
 
 - estado `CONTACT` (todavía no es cliente) y no borrada;
-- **ninguna** venta ni pedido (`Order` de tipo `SALE`/`ORDER`, no borrada);
+- **ninguna** señal de compra: ni venta ni pedido (`Order` de tipo
+  `SALE`/`ORDER`), ni presupuesto **CONFIRMADO**, ni pedido enviado a fábrica,
+  ni un peso pagado, ni fila de `Payment` (Ishtar, 8/10/2026: "que no se le
+  envíe a nadie que haya comprado o esté en confirmados");
 - ninguna etiqueta de exclusión en la ficha: `no interesado`, `cancelar bot`,
   `spam`, `no bot`, `cerrado`, `post-venta`, ni las de "no es cliente"
   (`no cliente`, `proveedor`, `laboratorio`, `mayorista` — `src/lib/no-cliente.ts`).

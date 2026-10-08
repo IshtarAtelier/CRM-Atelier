@@ -109,6 +109,7 @@ console.log('\nSi el cliente responde a un seguimiento, NO hay tarea para nadie 
     check("el motor ejecuta los 'cerrar' del playbook", ruta.includes("tipo === 'cerrar'"));
     const svc = readFileSync(new URL('../../src/services/embudo.service.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('la etiqueta "Perdido (embudo)" saca al lead del embudo', svc.includes('TAG_PERDIDO_EMBUDO.toLowerCase()'));
+    check('8/10 · nadie que haya comprado o esté CONFIRMADO entra al embudo (venta, confirmado, fábrica, pago)', ["{ status: 'CONFIRMED' }", "{ labSentAt: { not: null } }", "{ paid: { gt: 0 } }", "{ payments: { some: {} } }"].every(x => svc.includes(x)));
 }
 
 console.log('\nFreno, días de Córdoba y registro (12/9/2026)');

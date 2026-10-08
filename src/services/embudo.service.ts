@@ -47,7 +47,23 @@ async function leadsCalificados() {
         where: {
             status: 'CONTACT',
             isDeleted: false,
-            orders: { none: { isDeleted: false, orderType: { in: ['SALE', 'ORDER'] } } },
+            // Quien COMPRÓ no está en el embudo, por ninguna de las señales que
+            // el sistema conoce (Ishtar, 8/10/2026: "ES MUY IMPORTANTE QUE NO SE
+            // LE ENVÍE A NADIE QUE HAYA COMPRADO, O QUE ESTÉ EN CONFIRMADOS").
+            // `Order.paid` no prueba la venta, pero acá alcanza como exclusión:
+            // ante la duda, afuera.
+            orders: {
+                none: {
+                    isDeleted: false,
+                    OR: [
+                        { orderType: { in: ['SALE', 'ORDER'] } },
+                        { status: 'CONFIRMED' },
+                        { labSentAt: { not: null } },
+                        { paid: { gt: 0 } },
+                        { payments: { some: {} } },
+                    ],
+                },
+            },
         },
         include: {
             prescriptions: { orderBy: { date: 'desc' }, take: 1 },
