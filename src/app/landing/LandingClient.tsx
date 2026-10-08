@@ -11,6 +11,7 @@ import { trackWhatsAppClick } from "@/lib/tracking";
 import { CAMPAIGNS, type LandingProduct } from "@/lib/landing/campaigns";
 import { lineaAtribucionWhatsApp } from "@/lib/landing/wa-attribution";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { TRAYECTORIA } from "@/lib/constants/trayectoria";
 
 // ── Créditos de obra para los retratos editoriales (mismo espíritu que FilmmakerReel) ──
 const FRAME_CREDITS: Record<string, string> = {
@@ -24,7 +25,7 @@ const FRAME_CREDITS: Record<string, string> = {
 const MARQUEE_ITEMS = [
   "Colección de Diseño",
   "Acetato Italiano",
-  "Más de 10 años de experiencia",
+  TRAYECTORIA,
   "Hechos para destacar tu mirada",
   "Curaduría Exclusiva",
 ];

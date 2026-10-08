@@ -1,4 +1,5 @@
 import { BUSINESS_INFO } from "@/lib/business-info";
+import { TRAYECTORIA } from "@/lib/constants/trayectoria";
 
 /**
  * Pie de las landings de campaña.
@@ -39,7 +40,7 @@ export function LandingFooter({ theme = "dark" }: { theme?: "dark" | "light" }) 
             catálogo — verificado contra producción, solo quedan 3 Vulk en
             salón. Las que sí se venden y la gente busca por nombre son estas. */}
         <p className={`text-[11px] font-bold uppercase tracking-[0.2em] ${muted}`}>
-          Más de 10 años de experiencia · Essilor · Varilux · Kodak · Transitions
+          {TRAYECTORIA} · Essilor · Varilux · Kodak · Transitions
         </p>
         <p className={`text-sm ${strong}`}>
           {BUSINESS_INFO.address}
