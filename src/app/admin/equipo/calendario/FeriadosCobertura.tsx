@@ -30,6 +30,11 @@ function horas(desde: string | null, hasta: string | null): number | null {
     const [h1, m1] = desde.split(':').map(Number), [h2, m2] = hasta.split(':').map(Number);
     return Math.round(((h2 * 60 + m2) - (h1 * 60 + m1)) / 6) / 10;
 }
+const ETIQUETA_TIPO = {
+    FERIADO:            { texto: 'Feriado',               clase: 'border-sky-400 text-sky-800 dark:text-sky-200' },
+    NO_LABORABLE:       { texto: 'No laborable',          clase: 'border-violet-400 text-violet-800 dark:text-violet-200' },
+    EMPLEADOS_COMERCIO: { texto: 'Empleados de comercio', clase: 'border-orange-400 text-orange-800 dark:text-orange-200' },
+} as const;
 const fmtHoras = (n: number) => `${n.toLocaleString('es-AR', { maximumFractionDigits: 1 })} h`;
 
 export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
@@ -91,8 +96,8 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
                             <span className="font-mono text-sm text-stone-500">{formatDate(f.fecha + 'T12:00:00-03:00')}</span>
                             <span className="capitalize text-sm text-stone-600 dark:text-stone-300">{diaSemana(f.fecha)}</span>
                             <span className="font-black flex items-center gap-1.5"><Flag className="w-4 h-4 text-primary" aria-hidden />{f.nombre}</span>
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${f.tipo === 'NO_LABORABLE' ? 'border-violet-400 text-violet-800 dark:text-violet-200' : 'border-sky-400 text-sky-800 dark:text-sky-200'}`}>
-                                {f.tipo === 'NO_LABORABLE' ? 'No laborable' : 'Feriado'}
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].clase}`}>
+                                {ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].texto}
                             </span>
                             {sinCargar && <span className="text-xs text-amber-700 dark:text-amber-300 font-bold">Sin cargar quién cubrió</span>}
                         </div>

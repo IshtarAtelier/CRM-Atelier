@@ -9,11 +9,16 @@
  * siguiente; sábado/domingo se quedan) — REVISAR cuando salga el decreto, que
  * suele agregar días no laborables "puente".
  *
+ * El Día del Empleado de Comercio (26/9, ley 26.541) no es feriado nacional
+ * pero para los vendedores vale como tal: va con tipo EMPLEADOS_COMERCIO.
+ * Cuando cae fin de semana el gremio suele pasarlo al lunes; acá queda en la
+ * fecha de ley y si se corre, se edita.
+ *
  * Para agregar un feriado puntual o un puente sin tocar código: cargarlo en la
  * pantalla como novedad tipo "Otro".
  */
 
-export type TipoFeriado = 'FERIADO' | 'NO_LABORABLE';
+export type TipoFeriado = 'FERIADO' | 'NO_LABORABLE' | 'EMPLEADOS_COMERCIO';
 export interface Feriado { fecha: string; nombre: string; tipo?: TipoFeriado }
 
 /**
@@ -38,6 +43,7 @@ export const FERIADOS_ARGENTINA: Feriado[] = ([
     { fecha: '2026-07-09', nombre: 'Independencia' },
     { fecha: '2026-07-10', nombre: 'Puente turístico', tipo: 'NO_LABORABLE' },
     { fecha: '2026-08-17', nombre: 'San Martín' },
+    { fecha: '2026-09-26', nombre: 'Día del Empleado de Comercio', tipo: 'EMPLEADOS_COMERCIO' },
     { fecha: '2026-10-12', nombre: 'Diversidad Cultural' },
     { fecha: '2026-11-23', nombre: 'Soberanía Nacional (trasladado del 20/11)' },
     { fecha: '2026-12-07', nombre: 'Puente turístico', tipo: 'NO_LABORABLE' },
@@ -56,6 +62,7 @@ export const FERIADOS_ARGENTINA: Feriado[] = ([
     { fecha: '2027-06-20', nombre: 'Belgrano' },
     { fecha: '2027-07-09', nombre: 'Independencia' },
     { fecha: '2027-08-16', nombre: 'San Martín (trasladado del 17/8)' },
+    { fecha: '2027-09-26', nombre: 'Día del Empleado de Comercio', tipo: 'EMPLEADOS_COMERCIO' },
     { fecha: '2027-10-11', nombre: 'Diversidad Cultural (trasladado del 12/10)' },
     { fecha: '2027-11-20', nombre: 'Soberanía Nacional' },
     { fecha: '2027-12-08', nombre: 'Inmaculada Concepción' },
