@@ -1,9 +1,11 @@
 'use client';
 
 /**
- * Calendario compartido del equipo: faltas, llegadas tarde, francos,
- * vacaciones, cambios de turno y pedidos especiales, de TODOS, en una grilla
- * mensual. Todo el mundo ve todo; quién puede anotar qué lo decide el service
+ * Feriados y novedades del equipo (faltas, llegadas tarde, francos,
+ * vacaciones, cambios de turno y pedidos especiales), de TODOS, como LISTA por
+ * fecha: solo los días que tienen algo. Ishtar descartó la grilla mensual el
+ * 8/10/2026 ("no me parece lo más cómodo"): 30 casilleros casi todos vacíos.
+ * Todo el mundo ve todo; quién puede anotar qué lo decide el service
  * (src/services/team-events.service.ts) y acá solo se esconden los botones que
  * igual fallarían.
  *
@@ -12,7 +14,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Loader2, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Loader2, CalendarDays, Flag } from 'lucide-react';
+import { FERIADOS_ARGENTINA, type Feriado } from '@/lib/constants/feriados-argentina';
+import FeriadosCobertura from './FeriadosCobertura';
 import { formatDate } from '@/lib/format-date';
 import {
     TIPOS_NOVEDAD, TIPOS_QUE_SE_PIDEN, TIPOS_SOLO_ADMIN, NOVEDAD_INFO, ESTADO_INFO,
@@ -35,22 +39,7 @@ const fmtMes = new Intl.DateTimeFormat('es-AR', { timeZone: TZ, month: 'long', y
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 const pad = (n: number) => String(n).padStart(2, '0');
-const clave = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const hoyClave = () => claveDia.format(new Date());
-
-/** Los días de la grilla del mes (lunes a domingo, con los bordes del mes vecino). */
-function diasDelMes(y: number, m: number) {
-    const primero = new Date(y, m, 1);
-    const desplazamiento = (primero.getDay() + 6) % 7; // lunes = 0
-    const inicio = new Date(y, m, 1 - desplazamiento);
-    const celdas: { clave: string; dia: number; delMes: boolean }[] = [];
-    for (let i = 0; i < 42; i++) {
-        const d = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
-        celdas.push({ clave: clave(d.getFullYear(), d.getMonth(), d.getDate()), dia: d.getDate(), delMes: d.getMonth() === m });
-        if (i >= 34 && d.getMonth() !== m && d.getDay() === 0) break;
-    }
-    return celdas;
-}
 
 /** Todos los días (clave) que cubre una novedad. */
 function diasDe(n: Novedad): string[] {
@@ -79,20 +68,19 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
     const [formulario, setFormulario] = useState<{ dia: string } | null>(null);
     const [detalle, setDetalle] = useState<Novedad | null>(null);
 
-    const celdas = useMemo(() => diasDelMes(anio, mes), [anio, mes]);
+    const prefijoMes = `${anio}-${pad(mes + 1)}`;
+    const ultimoDia = new Date(anio, mes + 1, 0).getDate();
 
     const cargar = useCallback(async () => {
         setError(null);
         try {
-            const desde = celdas[0].clave;
-            const hasta = celdas[celdas.length - 1].clave;
-            const r = await fetch(`/api/equipo/novedades?desde=${desde}&hasta=${hasta}`);
+            const r = await fetch(`/api/equipo/novedades?desde=${prefijoMes}-01&hasta=${prefijoMes}-${pad(ultimoDia)}`);
             if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
             const d = await r.json();
             setNovedades(d.novedades); setEquipo(d.equipo); setPendientes(d.pendientes);
         } catch (e: any) { setError(e.message); }
         finally { setCargando(false); }
-    }, [celdas]);
+    }, [prefijoMes, ultimoDia]);
 
     useEffect(() => { cargar(); }, [cargar]);
 
@@ -101,29 +89,32 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
         [novedades, filtroPersona],
     );
 
-    const porDia = useMemo(() => {
-        const mapa = new Map<string, Novedad[]>();
-        for (const n of visibles) for (const k of diasDe(n)) {
-            if (!mapa.has(k)) mapa.set(k, []);
-            mapa.get(k)!.push(n);
-        }
-        return mapa;
-    }, [visibles]);
+    /**
+     * La lista del mes: un renglón por día que tenga algo (feriado o novedad),
+     * nada más. Los días vacíos no aparecen: eso es lo que hace la lista más
+     * cómoda que una grilla con 30 casilleros en blanco.
+     */
+    const dias = useMemo(() => {
+        const mapa = new Map<string, { feriados: Feriado[]; novedades: Novedad[] }>();
+        const fila = (k: string) => { if (!mapa.has(k)) mapa.set(k, { feriados: [], novedades: [] }); return mapa.get(k)!; };
+        for (const f of FERIADOS_ARGENTINA) if (f.fecha.startsWith(prefijoMes)) fila(f.fecha).feriados.push(f);
+        for (const n of visibles) for (const k of diasDe(n)) if (k.startsWith(prefijoMes)) fila(k).novedades.push(n);
+        return [...mapa.entries()].sort(([a], [b]) => a.localeCompare(b));
+    }, [visibles, prefijoMes]);
 
     /** Resumen del mes por persona: cuántas de cada tipo (sin rechazadas). */
     const resumen = useMemo(() => {
-        const prefijo = `${anio}-${pad(mes + 1)}`;
         const m = new Map<string, { nombre: string; conteo: Partial<Record<TipoNovedad, number>> }>();
         for (const n of novedades) {
             if (n.status === 'RECHAZADO') continue;
-            const dias = diasDe(n).filter(k => k.startsWith(prefijo)).length;
-            if (!dias) continue;
-            const fila = m.get(n.userId) ?? { nombre: n.user.name, conteo: {} };
-            fila.conteo[n.type] = (fila.conteo[n.type] ?? 0) + (n.type === 'VACACIONES' || n.type === 'FRANCO' ? dias : 1);
-            m.set(n.userId, fila);
+            const cant = diasDe(n).filter(k => k.startsWith(prefijoMes)).length;
+            if (!cant) continue;
+            const f = m.get(n.userId) ?? { nombre: n.user.name, conteo: {} };
+            f.conteo[n.type] = (f.conteo[n.type] ?? 0) + (n.type === 'VACACIONES' || n.type === 'FRANCO' ? cant : 1);
+            m.set(n.userId, f);
         }
         return [...m.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
-    }, [novedades, anio, mes]);
+    }, [novedades, prefijoMes]);
 
     const mover = (delta: number) => {
         const d = new Date(anio, mes + delta, 1);
@@ -148,11 +139,11 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
     const hoyK = hoyClave();
 
     return (
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
+        <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
             <header className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl font-black tracking-tight flex items-center gap-2"><CalendarDays className="w-6 h-6 text-primary" /> Equipo: faltas, turnos y pedidos</h1>
-                    <p className="text-sm text-stone-500 dark:text-stone-400">Calendario compartido. {yo.esAdmin ? 'Anotás faltas y aprobás pedidos.' : 'Pedí francos, cambios de turno o algo especial; un administrador lo aprueba.'}</p>
+                    <h1 className="text-2xl font-black tracking-tight flex items-center gap-2"><CalendarDays className="w-6 h-6 text-primary" /> Feriados y pedidos del equipo</h1>
+                    <p className="text-sm text-stone-500 dark:text-stone-400">{yo.esAdmin ? 'Feriados, faltas, cambios de turno y pedidos especiales. Vos anotás faltas y aprobás pedidos.' : 'Feriados y novedades del equipo. Pedí francos, cambios de turno o algo especial; un administrador lo aprueba.'}</p>
                 </div>
                 <button onClick={() => setFormulario({ dia: hoyK })} className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-bold shadow hover:opacity-90">
                     <Plus className="w-4 h-4" /> Anotar
@@ -180,7 +171,10 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                 </section>
             )}
 
+            <FeriadosCobertura esAdmin={yo.esAdmin} />
+
             <section className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden">
+                <div className="p-3 pb-0"><h2 className="text-lg font-black">Pedidos y novedades del mes</h2></div>
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3 border-b border-stone-200 dark:border-stone-700">
                     <div className="flex items-center gap-2">
                         <button onClick={() => mover(-1)} aria-label="Mes anterior" className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800"><ChevronLeft className="w-5 h-5" /></button>
@@ -197,37 +191,42 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
 
                 {error && <p className="p-4 text-red-700 dark:text-red-300 font-bold">No se pudo cargar: {error}</p>}
 
-                <div className="grid grid-cols-7 text-center text-xs font-black uppercase tracking-wider text-stone-500 border-b border-stone-200 dark:border-stone-700">
-                    {DIAS_SEMANA.map(d => <div key={d} className="py-2">{d}</div>)}
-                </div>
-                <div className="grid grid-cols-7">
-                    {celdas.map(c => {
-                        const lista = porDia.get(c.clave) ?? [];
-                        const esHoy = c.clave === hoyK;
+                {!cargando && dias.length === 0 && (
+                    <p className="p-6 text-center text-sm text-stone-500">Este mes no hay feriados ni novedades.</p>
+                )}
+
+                <ul className="divide-y divide-stone-100 dark:divide-stone-800">
+                    {dias.map(([k, d]) => {
+                        const esHoy = k === hoyK;
+                        const pasado = k < hoyK;
                         return (
-                            <div key={c.clave} className={`min-h-[6.5rem] border-b border-r border-stone-100 dark:border-stone-800 p-1 flex flex-col gap-0.5 ${c.delMes ? '' : 'bg-stone-50/70 dark:bg-stone-950/40 text-stone-400'}`}>
-                                <button onClick={() => setFormulario({ dia: c.clave })} title="Anotar en este día"
-                                    className={`self-start text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center hover:bg-stone-200 dark:hover:bg-stone-700 ${esHoy ? 'bg-primary text-white' : ''}`}>
-                                    {c.dia}
+                            <li key={k} className={`flex gap-3 p-3 ${pasado ? 'opacity-70' : ''}`}>
+                                <button onClick={() => setFormulario({ dia: k })} title="Anotar en este día"
+                                    className={`shrink-0 w-14 text-center rounded-xl py-1 ${esHoy ? 'bg-primary text-white' : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700'}`}>
+                                    <span className="block text-[10px] font-bold uppercase tracking-wider">{diaSemanaCorto(k)}</span>
+                                    <span className="block text-xl font-black leading-none">{Number(k.slice(-2))}</span>
                                 </button>
-                                {lista.map(n => (
-                                    <button key={n.id} onClick={() => setDetalle(n)}
-                                        className={`text-left text-[11px] leading-tight px-1.5 py-0.5 rounded border truncate ${NOVEDAD_INFO[n.type].clase} ${n.status === 'RECHAZADO' ? 'line-through opacity-60' : ''} ${n.status === 'PENDIENTE' ? 'border-dashed' : ''}`}
-                                        title={`${n.user.name} · ${NOVEDAD_INFO[n.type].etiqueta} · ${ESTADO_INFO[n.status].etiqueta}${n.notes ? ` · ${n.notes}` : ''}`}>
-                                        <span className="font-black">{n.user.name.split(' ')[0]}</span> · {NOVEDAD_INFO[n.type].corta}{n.horario ? ` ${n.horario}` : ''}{n.status === 'PENDIENTE' ? ' (?)' : ''}
-                                    </button>
-                                ))}
-                            </div>
+                                <div className="flex-1 min-w-0 space-y-1">
+                                    {d.feriados.map(f => (
+                                        <p key={f.nombre} className="text-sm font-black text-stone-900 dark:text-stone-50 flex items-center gap-2">
+                                            <Flag className="w-4 h-4 text-primary" aria-hidden /> Feriado: {f.nombre}
+                                        </p>
+                                    ))}
+                                    {d.novedades.map(n => (
+                                        <button key={n.id} onClick={() => setDetalle(n)}
+                                            className={`block w-full text-left text-sm px-2.5 py-1.5 rounded-lg border ${NOVEDAD_INFO[n.type].clase} ${n.status === 'RECHAZADO' ? 'line-through opacity-60' : ''} ${n.status === 'PENDIENTE' ? 'border-dashed' : ''}`}>
+                                            <span className="font-black">{n.user.name}</span> · {NOVEDAD_INFO[n.type].etiqueta}
+                                            {n.horario ? ` · ${n.horario}` : ''}
+                                            {n.swapWith ? ` con ${n.swapWith.name}` : ''}
+                                            {n.status === 'PENDIENTE' ? <span className="font-bold"> · pendiente de OK</span> : ''}
+                                            {n.notes ? <span className="block text-xs opacity-80 truncate">{n.notes}</span> : null}
+                                        </button>
+                                    ))}
+                                </div>
+                            </li>
                         );
                     })}
-                </div>
-
-                <div className="flex flex-wrap gap-x-4 gap-y-1 p-3 text-xs text-stone-600 dark:text-stone-300">
-                    {TIPOS_NOVEDAD.map(t => (
-                        <span key={t} className="inline-flex items-center gap-1.5"><span className={`w-2.5 h-2.5 rounded-full ${NOVEDAD_INFO[t].punto}`} />{NOVEDAD_INFO[t].etiqueta}</span>
-                    ))}
-                    <span className="inline-flex items-center gap-1.5"><span className="w-5 h-3 rounded border border-dashed border-stone-500" /> pendiente de OK (?)</span>
-                </div>
+                </ul>
             </section>
 
             {resumen.length > 0 && (
@@ -261,6 +260,10 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
             )}
         </div>
     );
+}
+
+function diaSemanaCorto(k: string) {
+    return DIAS_SEMANA[(new Date(`${k}T12:00:00`).getDay() + 6) % 7];
 }
 
 function rango(n: Novedad) {

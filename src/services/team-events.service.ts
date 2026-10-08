@@ -218,3 +218,72 @@ export class TeamEventsService {
         });
     }
 }
+
+// ---------------------------------------------------------------------------
+// COBERTURA DE FERIADOS: por feriado y persona, si vino y en qué horario.
+// Solo la carga un ADMIN; todos la ven.
+// ---------------------------------------------------------------------------
+
+const HORA_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export interface CoberturaInput {
+    fecha: string;          // AAAA-MM-DD
+    userId: string;
+    worked: boolean;
+    startTime?: string | null;
+    endTime?: string | null;
+    notes?: string | null;
+}
+
+const SELECT_COBERTURA = {
+    id: true, fecha: true, userId: true, worked: true, startTime: true, endTime: true, notes: true,
+    createdByName: true, updatedAt: true, user: { select: { id: true, name: true } },
+} as const;
+
+export class HolidayShiftsService {
+    static listar(desde: string, hasta: string) {
+        return prisma.holidayShift.findMany({
+            where: { fecha: { gte: diaAFecha(desde, 'desde'), lte: diaAFecha(hasta, 'hasta') } },
+            select: SELECT_COBERTURA,
+            orderBy: [{ fecha: 'asc' }, { user: { name: 'asc' } }],
+        });
+    }
+
+    /** Crea o pisa la cobertura de esa persona en ese día (una sola fila por par). */
+    static async guardar(input: CoberturaInput, actor: Actor) {
+        if (!actor.id) throw new TeamEventsError('Sin sesión', 401);
+        if (!esAdmin(actor)) throw new TeamEventsError('Solo un administrador carga la cobertura de feriados', 403);
+        const fecha = diaAFecha(input.fecha, 'fecha');
+        if (typeof input.worked !== 'boolean') throw new TeamEventsError('Falta si cubrió o no');
+        const persona = await prisma.user.findUnique({ where: { id: input.userId }, select: { id: true, name: true, role: true } });
+        if (!persona || !ROLES_INTERNOS.includes(persona.role)) throw new TeamEventsError('Esa persona no es del equipo', 404);
+
+        let startTime: string | null = null, endTime: string | null = null;
+        if (input.worked) {
+            startTime = input.startTime?.trim() || null;
+            endTime = input.endTime?.trim() || null;
+            for (const h of [startTime, endTime]) if (h && !HORA_RE.test(h)) throw new TeamEventsError(`Hora inválida: ${h} (usar HH:MM)`);
+            if (startTime && endTime && endTime <= startTime) throw new TeamEventsError('La hora de salida tiene que ser después de la de entrada');
+        }
+        const data = { worked: input.worked, startTime, endTime, notes: input.notes?.trim() || null, createdById: actor.id, createdByName: actor.name };
+        const fila = await prisma.holidayShift.upsert({
+            where: { fecha_userId: { fecha, userId: persona.id } },
+            create: { fecha, userId: persona.id, ...data },
+            update: data,
+            select: SELECT_COBERTURA,
+        });
+        logAudit({ userId: actor.id, userName: actor.name, action: 'UPDATE', entityType: 'HOLIDAY_SHIFT', entityId: fila.id, details: { persona: persona.name, fecha: input.fecha, ...data } }).catch(console.error);
+        return fila;
+    }
+
+    /** Vuelve a "sin cargar". */
+    static async borrar(fecha: string, userId: string, actor: Actor) {
+        if (!actor.id) throw new TeamEventsError('Sin sesión', 401);
+        if (!esAdmin(actor)) throw new TeamEventsError('Solo un administrador', 403);
+        const f = diaAFecha(fecha, 'fecha');
+        const fila = await prisma.holidayShift.findUnique({ where: { fecha_userId: { fecha: f, userId } }, select: SELECT_COBERTURA });
+        if (!fila) return;
+        await prisma.holidayShift.delete({ where: { id: fila.id } });
+        await logAudit({ userId: actor.id, userName: actor.name, action: 'DELETE', entityType: 'HOLIDAY_SHIFT', entityId: fila.id, details: { persona: fila.user.name, fecha, worked: fila.worked, startTime: fila.startTime, endTime: fila.endTime } });
+    }
+}

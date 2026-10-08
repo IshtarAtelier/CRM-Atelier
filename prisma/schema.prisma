@@ -45,6 +45,7 @@ model User {
   // Novedades del equipo (faltas, cambios de turno, pedidos especiales).
   teamEvents           TeamEvent[]                 @relation("TeamEventsOf")
   teamEventsSwapped    TeamEvent[]                 @relation("TeamEventsSwapWith")
+  holidayShifts        HolidayShift[]
 }
 
 model Client {
@@ -1656,4 +1657,29 @@ model TeamEvent {
   @@index([startsAt, endsAt])
   @@index([userId, startsAt])
   @@index([status])
+}
+
+// Cobertura de feriados: por cada feriado y persona, si vino a trabajar y en
+// qué horario. Lo carga un ADMIN en /admin/equipo/calendario. La lista de
+// feriados vive en src/lib/constants/feriados-argentina.ts.
+model HolidayShift {
+  id            String   @id @default(cuid())
+  // Día del feriado (medianoche de Córdoba), igual que en TeamEvent.
+  fecha         DateTime
+  userId        String
+  // true = lo cubrió · false = no vino
+  worked        Boolean
+  // "09:00" / "20:00". Solo si worked.
+  startTime     String?
+  endTime       String?
+  notes         String?
+  createdById   String?
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([fecha, userId])
+  @@index([fecha])
 }

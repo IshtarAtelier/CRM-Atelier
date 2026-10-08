@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 import CalendarioClient from './CalendarioClient';
 
-export const metadata = { title: 'Calendario del equipo' };
+export const metadata = { title: 'Feriados y pedidos del equipo' };
 
 // Datos vivos y por usuario (quién puede anotar qué): nada que prerenderizar.
 export const dynamic = 'force-dynamic';
