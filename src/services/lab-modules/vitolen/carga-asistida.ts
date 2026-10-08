@@ -7,7 +7,7 @@ import { cristalVitolenPorNombre } from './catalogo';
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
-import { avisoDeRoles, rolesPorValor, valorDelPar, type RolesDePares } from '../carga/roles-2x1';
+import { avisoDeRoles, rolesPorValor, valorDeCristales, type RolesDePares } from '../carga/roles-2x1';
 import { formatearPrecio } from '../../../lib/format-precio';
 
 /**
@@ -30,7 +30,7 @@ function rolesDeLaPromo(venta: { items: any[] }): RolesDePares | null {
     const cristales = venta.items.filter(esCristalVitolen);
     const pares = [...new Set(cristales.map(i => i.framePosition ?? 1))].sort();
     if (pares.length < 2) return null;
-    return rolesPorValor(pares.slice(0, 2).map(pair => ({ pair, valor: valorDelPar(cristales, pair) })));
+    return rolesPorValor(pares.slice(0, 2).map(pair => ({ pair, valor: valorDeCristales(cristales.filter(i => (i.framePosition ?? 1) === pair)) })));
 }
 const rolDe = (roles: RolesDePares | null, pair: number) => (roles ? (pair === roles.sinCargo ? 'SEGUNDO_PAR' : 'PRIMER_PAR') : null);
 

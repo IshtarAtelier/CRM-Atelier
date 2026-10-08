@@ -2,7 +2,7 @@ import { armarPedidoSmartLab, codigoInternoSmartLab, type VentaParaSmartLab } fr
 import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones } from '../../../lib/order-frames';
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { formatearPrecio } from '../../../lib/format-precio';
-import { avisoDeRoles, rolesPorValor, valorDelPar, type RolesDePares } from '../carga/roles-2x1';
+import { avisoDeRoles, rolesPorValor, valorDeCristales, type RolesDePares } from '../carga/roles-2x1';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import {
     especificacionDe, TENIDO_COLOR, TENIDO_INTENSIDADES, TENIDO_TIPO, TIPO_ARMAZON, TIPO_ARO,
@@ -134,7 +134,7 @@ export function esVenta2x1(venta: VentaParaSmartLab): boolean {
 export function rolesDel2x1(venta: VentaParaSmartLab): RolesDePares | null {
     if (!esVenta2x1(venta)) return null;
     const porPar = cristalesPorArmazon(venta);
-    const valor = (pair: number) => valorDelPar(((porPar.get(pair) || []) as any[]).filter(i => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot) || 'cristal')), pair);
+    const valor = (pair: number) => valorDeCristales(((porPar.get(pair) || []) as any[]).filter(i => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot) || 'cristal')));
     return rolesPorValor([{ pair: 1, valor: valor(1) }, { pair: 2, valor: valor(2) }]);
 }
 

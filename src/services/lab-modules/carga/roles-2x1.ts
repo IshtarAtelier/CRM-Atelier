@@ -31,11 +31,14 @@ export function rolesPorValor(valores: { pair: number; valor: number }[]): Roles
     return { conCargo: a.pair, sinCargo: b.pair, porValor: a.valor !== b.valor, valores: tabla };
 }
 
-/** El valor de lista de los cristales de un par (precio × cantidad). Puro. */
-export function valorDelPar(items: { framePosition?: number | null; price?: number | null; quantity?: number | null }[], pair: number): number {
-    return items
-        .filter(i => (i.framePosition ?? 1) === pair)
-        .reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+/**
+ * El valor de lista de los cristales de un par (precio × cantidad). Recibe los
+ * ítems YA agrupados por par: quién agrupa es cada laboratorio (Grupo Óptico
+ * con `cristalesPorArmazon`, que también resuelve los ítems sin armazón
+ * asignado; Vitolen por `framePosition`). Puro.
+ */
+export function valorDeCristales(items: { price?: number | null; quantity?: number | null }[]): number {
+    return items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
 }
 
 /** Texto para la ficha cuando el valor dio vuelta el orden de la venta. */

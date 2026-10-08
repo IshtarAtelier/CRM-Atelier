@@ -14,7 +14,7 @@
 import assert from 'node:assert/strict';
 import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/services/lab-modules/grupo-optico/catalogo.ts';
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
-import { rolesPorValor, valorDelPar, avisoDeRoles } from '../../src/services/lab-modules/carga/roles-2x1.ts';
+import { rolesPorValor, valorDeCristales, avisoDeRoles } from '../../src/services/lab-modules/carga/roles-2x1.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
@@ -103,7 +103,7 @@ ok('el par de mayor valor va con cargo y el de menor valor sin cargo; mismo valo
     assert.equal(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 150 }]).conCargo, 2);
     assert.equal(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 150 }]).sinCargo, 1);
     assert.equal(rolesPorValor([{ pair: 1, valor: 100 }]), null);
-    assert.equal(valorDelPar([{ framePosition: 1, price: 100, quantity: 2 }, { framePosition: 2, price: 500 }, { price: 7 }], 1), 207);
+    assert.equal(valorDeCristales([{ price: 100, quantity: 2 }, { price: 7 }, { price: null }]), 207);
     assert.equal(avisoDeRoles(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 100 }]), String), null);
     assert.match(avisoDeRoles(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 150 }]), String), /par 2 es el de mayor valor \(150\) y va CON CARGO; el par 1 \(100\) va sin cargo/);
 });

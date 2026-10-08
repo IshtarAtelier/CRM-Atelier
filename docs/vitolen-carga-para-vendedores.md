@@ -57,6 +57,16 @@ pantalla real del laboratorio, aprobar.
    de aprobar, abrí el borrador en el portal con "Modificar" y asociá el
    **pedido origen** (el nº del primer par) con la promoción HOYALUX. El
    robot todavía no lo hace solo.
+   - **Cuál es el 1er par y cuál el 2º lo decide el valor** (regla de Ishtar,
+     8/10/2026): el par de cristales **más caros es el 1º** (se cobra entero)
+     y el más barato es el 2º (el de la promo). Con el mismo cristal en los
+     dos, queda par 1 → 1º y par 2 → 2º. La ficha lo muestra al lado de cada
+     par ("1er par · promo" / "2º par · promo").
+   - Al apretar **"Aprobar y cargar"** en cualquiera de los dos aparece un
+     aviso que te pide confirmar: en el 2º par, que el pedido tenga el
+     **pedido origen** con el nº del 1º y la promo asociada; en el 1º, que su
+     nº quede en la venta antes de preparar el otro. Sin ese número, Vitolen
+     factura el 2º par entero.
 
 ## Qué hace el sistema después, solo
 

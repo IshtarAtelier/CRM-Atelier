@@ -45,10 +45,22 @@ real del laboratorio, aprobar.
 
 ## 2x1 Smart Free
 
-- Son **dos pedidos**. Primero se carga el **1er par**; el 2º se habilita
-  cuando el 1º ya tiene número.
-- El 2º par lleva en la observación **"2° par SIN CARGO - 1° par n° 80…"**:
-  así el laboratorio no lo cobra.
+- Son **dos pedidos**: uno **con cargo** y otro **sin cargo**. Primero se
+  carga el par con cargo; el sin cargo se habilita cuando el otro ya tiene
+  número.
+- **Cuál es cuál lo decide el valor** (regla de Ishtar, 8/10/2026): el par de
+  cristales **más caros va con cargo**; el más barato va sin cargo. Si los dos
+  pares llevan el mismo cristal, queda como siempre: par 1 con cargo, par 2 sin
+  cargo. La ficha lo muestra al lado de cada par ("con cargo · 2x1" /
+  "SIN CARGO · 2x1") y avisa en amarillo si el valor dio vuelta el orden.
+- El par sin cargo lleva en la observación **"2° par SIN CARGO - 1° par n°
+  80…"** (el nº de operación del par con cargo): **ese número es lo que hace
+  que el laboratorio no lo cobre**.
+- Por eso, al apretar **"Aprobar y cargar"** en un par de un 2x1 aparece un
+  aviso que te pide confirmar: en el par sin cargo, que la observación tenga
+  el nº de operación del otro par; en el par con cargo, que su nº quede en la
+  venta antes de preparar el otro. Leelo y recién ahí "Lo revisé: aprobar y
+  cargar".
 - Si el 2º par es **de sol** (con teñido), el robot lo carga en **Orgánico
   Blanco 1.49** de la misma familia + el teñido: es el único material que el
   laboratorio tiñe. Te lo avisa en amarillo antes de aprobar.
