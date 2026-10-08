@@ -31,19 +31,21 @@ const dias = (d) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400e
 
 console.log(`\n— Oportunidades de ${MES} que no compraron (base: ${args.prod ? 'PRODUCCIÓN' : 'local'}, solo lectura) —\n`);
 
-// Una fila por persona: su último presupuesto del mes (o su alta, si nunca
-// tuvo presupuesto), sin ninguna venta/pedido posterior.
+// Una fila por persona con algún movimiento en el mes: presupuesto, venta o
+// ficha nueva. OJO: al vender, la MISMA fila pasa de QUOTE a SALE — por eso la
+// base no puede ser "quien tiene un presupuesto" (así se perdían los que
+// compraron: la primera versión contaba 21 ventas donde había 80).
 const filas = await q(`
-  WITH presu AS (
-    SELECT DISTINCT ON (o."clientId") o."clientId", o."createdAt" AS ref, o.total
+  WITH mov AS (
+    SELECT DISTINCT ON (o."clientId") o."clientId", o."createdAt" AS ref, o.total, o.status
       FROM "Order" o
-     WHERE o."orderType" = 'QUOTE' AND o."isDeleted" = false
-       AND o."createdAt" >= $1 AND o."createdAt" < $2
+     WHERE o."isDeleted" = false AND o."createdAt" >= $1 AND o."createdAt" < $2
      ORDER BY o."clientId", o."createdAt" DESC
   ), base AS (
     SELECT c.id, c.name, c.status, c."opportunityDismissedAt" AS descartada,
-           COALESCE(p.ref, c."createdAt") AS ref, p.total, (p."clientId" IS NOT NULL) AS con_presupuesto
-      FROM "Client" c LEFT JOIN presu p ON p."clientId" = c.id
+           COALESCE(p.ref, c."createdAt") AS ref, p.total, (p."clientId" IS NOT NULL) AS con_presupuesto,
+           (p.status = 'LOST') AS perdido
+      FROM "Client" c LEFT JOIN mov p ON p."clientId" = c.id
      WHERE c."isDeleted" = false
        AND (p."clientId" IS NOT NULL
             OR (c."createdAt" >= $1 AND c."createdAt" < $2
@@ -51,7 +53,7 @@ const filas = await q(`
   )
   SELECT b.*,
          EXISTS (SELECT 1 FROM "Order" o WHERE o."clientId" = b.id AND o."isDeleted" = false
-                    AND o."orderType" IN ('SALE','ORDER') AND o."createdAt" > b.ref) AS compro,
+                    AND o."orderType" IN ('SALE','ORDER') AND o."createdAt" >= $1) AS compro,
          (SELECT string_agg(lower(t.name), '|') FROM "_ClientToTag" ct JOIN "Tag" t ON t.id = ct."B" WHERE ct."A" = b.id) AS tags,
          ch.id AS chat_id, ch."chatLabels" AS labels, ch."lastFollowUpAt" AS ultimo_seg, ch."lastInboundAt" AS ultimo_entrante,
          ch."followUpPausedUntil" AS pausa,
@@ -71,11 +73,13 @@ const filas = await q(`
 `, DESDE, HASTA);
 
 const total = filas.length;
-const compraron = filas.filter(f => f.compro || ['CLIENT', 'active'].includes(f.status) && f.compro);
-const noCompraron = filas.filter(f => !f.compro);
-console.log(`Personas con presupuesto o alta en el mes: ${total}`);
-console.log(`  compraron después:   ${compraron.length}`);
-console.log(`  NO compraron:        ${noCompraron.length}  (presupuestado: ${plata(noCompraron.reduce((a, f) => a + (f.total || 0), 0))})`);
+const compraron = filas.filter(f => f.compro);
+const perdidos = filas.filter(f => !f.compro && f.perdido);
+const noCompraron = filas.filter(f => !f.compro && !f.perdido);
+console.log(`Personas con presupuesto, venta o alta en el mes: ${total}`);
+console.log(`  compraron (venta desde el 1º del mes):      ${compraron.length}`);
+console.log(`  presupuesto marcado PERDIDO a mano:          ${perdidos.length}  (${plata(perdidos.reduce((a, f) => a + (f.total || 0), 0))})`);
+console.log(`  NO compraron y siguen abiertas:              ${noCompraron.length}  (presupuestado: ${plata(noCompraron.reduce((a, f) => a + (f.total || 0), 0))})`);
 
 const clasificar = (f) => {
     const tags = f.tags || '';
