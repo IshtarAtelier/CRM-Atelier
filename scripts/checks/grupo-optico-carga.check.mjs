@@ -13,7 +13,8 @@
 // ────────────────────────────────────────────────────────────────────────────
 import assert from 'node:assert/strict';
 import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/services/lab-modules/grupo-optico/catalogo.ts';
-import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
+import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
+import { rolesPorValor, valorDelPar, avisoDeRoles } from '../../src/services/lab-modules/carga/roles-2x1.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
@@ -95,6 +96,18 @@ ok('un producto sin equivalencia declarada no se carga (y dice qué falta)', () 
 });
 
 console.log('\nEl pedido armado desde la venta');
+console.log('\nEl orden del 2x1 lo decide el valor (Ishtar, 8/10/2026)');
+ok('el par de mayor valor va con cargo y el de menor valor sin cargo; mismo valor = queda el orden de la venta', () => {
+    assert.deepEqual(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 100 }]), { conCargo: 1, sinCargo: 2, porValor: false, valores: { 1: 100, 2: 100 } });
+    assert.equal(rolesPorValor([{ pair: 1, valor: 150 }, { pair: 2, valor: 100 }]).conCargo, 1);
+    assert.equal(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 150 }]).conCargo, 2);
+    assert.equal(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 150 }]).sinCargo, 1);
+    assert.equal(rolesPorValor([{ pair: 1, valor: 100 }]), null);
+    assert.equal(valorDelPar([{ framePosition: 1, price: 100, quantity: 2 }, { framePosition: 2, price: 500 }, { price: 7 }], 1), 207);
+    assert.equal(avisoDeRoles(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 100 }]), String), null);
+    assert.match(avisoDeRoles(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 150 }]), String), /par 2 es el de mayor valor \(150\) y va CON CARGO; el par 1 \(100\) va sin cargo/);
+});
+
 const cristal = (fp, eye, extra = {}) => ({ eye, framePosition: fp, quantity: 1, sphereVal: 0.75, cylinderVal: -1, axisVal: eye === 'OD' ? 140 : 40, additionVal: 1.5, product: { name: 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Essential 2x1', category: 'Cristal', type: 'Cristal Multifocal' }, ...extra });
 const venta2x1 = (conTenido = true, fpTenido = 2) => ({
     id: 'cmu6zfb0e00g6oe07n4rbl4au', labType: 'LABORATORY', appliedPromoName: 'Promo 2x1',
@@ -104,6 +117,30 @@ const venta2x1 = (conTenido = true, fpTenido = 2) => ({
         { framePosition: 1, product: { name: 'Armazón Atelier Premium', category: 'Armazón de Receta', brand: 'Atelier' } },
         { framePosition: 2, product: { name: 'Armazón Atelier Premium Negro', category: 'Armazón de Receta', brand: 'Atelier' } },
         ...(conTenido ? [{ framePosition: fpTenido, crystalColor: 'Gris', crystalColorType: 'COMPACTO', crystalColorNote: '3', product: { name: 'Teñido Compacto', category: 'Tratamiento', type: 'Tratamiento' } }] : [])],
+});
+ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin cargo (como siempre)', () => {
+    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 80000 } : i));
+    assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [1, 2]);
+    assert.equal(planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' }).plan.rol2x1, 'CON_CARGO');
+    const r2 = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878' });
+    assert.equal(r2.plan.rol2x1, 'SIN_CARGO'); assert.equal(r2.plan.pedidoOrigen, '80549878');
+    assert.match(r2.plan.observacion, /2° par SIN CARGO - 1° par n° 80549878/);
+    assert.ok(!r2.avisos.some(a => /mayor valor/.test(a)));
+});
+ok('2x1 con dos cristales distintos: el de mayor valor (par 2) va CON CARGO y el par 1 sin cargo, con el nº del par 2', () => {
+    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: i.framePosition === 2 ? 120000 : 80000 } : i));
+    assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [2, 1]);
+    const r2 = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO' });
+    assert.ok(r2.ok, r2.faltantes?.join(' | '));
+    assert.equal(r2.plan.rol2x1, 'CON_CARGO'); assert.match(r2.plan.observacion, /^Promo 2x1 Smart Free - 1° par( \||$)/);
+    assert.ok(r2.avisos.some(a => /par 2 es el de mayor valor/.test(a)), r2.avisos.join(' | '));
+    const sin = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' });
+    assert.equal(sin.ok, false); assert.ok(sin.faltantes.some(f => /par con cargo \(par 2\) ya cargado/.test(f)), sin.faltantes.join(' | '));
+    const r1 = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878' });
+    assert.ok(r1.ok, r1.faltantes?.join(' | '));
+    assert.equal(r1.plan.rol2x1, 'SIN_CARGO'); assert.match(r1.plan.observacion, /2° par SIN CARGO - 1° par n° 80549878/);
+    // el código interno sigue diciendo qué ARMAZÓN de la venta es (es la identidad del par en el CRM)
+    assert.match(r1.plan.codigoOptica, /1°par$/);
 });
 ok('2x1: el 1er par es el producto vendido, con su graduación y medidas', () => {
     const r = planDeCarga(venta2x1(), 1, { tipoArmazon: 'PLASTICO' });
@@ -126,7 +163,7 @@ ok('2x1: el 2º par de sol se carga en Blanco 1.49 con el teñido, y dice SIN CA
 ok('2x1: el 2º par no se prepara sin el nº del 1º', () => {
     const r = planDeCarga(venta2x1(), 2, { tipoArmazon: 'PLASTICO' });
     assert.equal(r.ok, false);
-    assert.ok(r.faltantes.some(f => /1º ya cargado/.test(f)));
+    assert.ok(r.faltantes.some(f => /par con cargo \(par 1\) ya cargado/.test(f)), r.faltantes.join(' | '));
 });
 ok('2x1: un teñido sin armazón asignado no se adivina', () => {
     const r = planDeCarga(venta2x1(true, null), 1, { tipoArmazon: 'PLASTICO' });
@@ -148,8 +185,8 @@ ok('es 2x1 solo con dos pares y la promo', () => {
     assert.equal(esVenta2x1({ ...venta2x1(), appliedPromoName: '', items: venta2x1().items.map(i => ({ ...i, product: { ...i.product, name: String(i.product.name).replace(' 2x1', '') } })) }), false);
 });
 ok('observación del 1er par y de un pedido suelto', () => {
-    assert.equal(observacionDelPedido({ es2x1: true, par: 1, producto: 'Multifocal Smart FREE · X' }), 'Promo 2x1 Smart Free - 1° par');
-    assert.equal(observacionDelPedido({ es2x1: false, par: 1, producto: 'Stock · X', notas: 'urgente' }), 'urgente');
+    assert.equal(observacionDelPedido({ es2x1: true, sinCargo: false, producto: 'Multifocal Smart FREE · X' }), 'Promo 2x1 Smart Free - 1° par');
+    assert.equal(observacionDelPedido({ es2x1: false, sinCargo: false, producto: 'Stock · X', notas: 'urgente' }), 'urgente');
 });
 ok('el payload tiene el formato del portal (pedido real 80549878 capturado el 3/10/2026)', () => {
     const r = planDeCarga(venta2x1(), 1, { tipoArmazon: 'PLASTICO', forma: 1 });

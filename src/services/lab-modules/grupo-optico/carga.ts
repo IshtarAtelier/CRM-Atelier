@@ -1,6 +1,8 @@
 import { armarPedidoSmartLab, codigoInternoSmartLab, type VentaParaSmartLab } from '../../../lib/grupo-optico/armar-pedido';
 import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones } from '../../../lib/order-frames';
 import { itemsDeTenido } from '../../../lib/crystal-color';
+import { formatearPrecio } from '../../../lib/format-precio';
+import { avisoDeRoles, rolesPorValor, valorDelPar, type RolesDePares } from '../carga/roles-2x1';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import {
     especificacionDe, TENIDO_COLOR, TENIDO_INTENSIDADES, TENIDO_TIPO, TIPO_ARMAZON, TIPO_ARO,
@@ -32,9 +34,11 @@ export interface OpcionesCarga {
     tipoAro?: TipoAro | null;
     /** Forma del armazón del portal (1 a 9); opcional. */
     forma?: number | null;
-    /** Nº del pedido del 1er par (lo exige el 2º par de un 2x1). */
+    /** Nº del pedido del par con cargo (lo exige el par sin cargo de un 2x1). */
     pedidoOrigen?: string | null;
 }
+
+export type Rol2x1 = 'CON_CARGO' | 'SIN_CARGO';
 
 export interface OjoPlan {
     esferico: string;      // "+0.75"
@@ -51,6 +55,10 @@ export interface Tenido { tipo: keyof typeof TENIDO_TIPO; color: string; colorId
 export interface PlanDeCarga {
     par: number;
     pares: number;
+    /** En un 2x1: qué rol tiene este par (el de mayor valor va con cargo). */
+    rol2x1: Rol2x1 | null;
+    /** Nº del pedido del par con cargo (solo en el par sin cargo). */
+    pedidoOrigen: string | null;
     producto: string;
     especificacion: Especificacion;
     /** "5" Multifocal, "1" Monofocal… (el portal lo manda como string). */
@@ -86,11 +94,12 @@ function nombreDePromo(producto: string): string {
  * 2º par: así la escribía el equipo a mano, y la regla de Ishtar (3/10/2026)
  * es que el 2º par diga que va SIN CARGO y el nº de operación del 1º. Puro.
  */
-export function observacionDelPedido(opts: { es2x1: boolean; par: number; producto: string; pedidoOrigen?: string | null; notas?: string | null; tenido?: Tenido | null }): string {
+export function observacionDelPedido(opts: { es2x1: boolean; sinCargo: boolean; producto: string; pedidoOrigen?: string | null; notas?: string | null; tenido?: Tenido | null }): string {
     const partes: string[] = [];
     if (opts.es2x1) {
         const promo = `Promo 2x1 ${nombreDePromo(opts.producto)}`;
-        partes.push(opts.par === 1 ? `${promo} - 1° par` : `${promo} - 2° par SIN CARGO - 1° par n° ${opts.pedidoOrigen}`);
+        // "1° par" / "2° par" acá son los de la PROMO (con cargo / sin cargo), no el armazón de la venta.
+        partes.push(opts.sinCargo ? `${promo} - 2° par SIN CARGO - 1° par n° ${opts.pedidoOrigen}` : `${promo} - 1° par`);
     }
     // El teñido ya viene escrito en las notas del armado ("Teñido Compacto · Gris · grado 4").
     if (opts.tenido && !/teñido/i.test(texto(opts.notas))) partes.push(`Teñido ${TENIDO_TIPO[opts.tenido.tipo]} ${opts.tenido.color} grado ${opts.tenido.intensidad}`);
@@ -116,6 +125,17 @@ export function esVenta2x1(venta: VentaParaSmartLab): boolean {
     if (!p1.length || !p2.length || familia(p1[0]) !== familia(p2[0])) return false;
     // La promo la dice el producto ("… 2x1") o la promo aplicada a la venta.
     return /2\s*x\s*1/i.test(nombreDe(p1[0])) || /2\s*x\s*1/i.test(texto(venta.appliedPromoName));
+}
+
+/**
+ * En un 2x1, qué par va con cargo y cuál sin cargo: el de mayor valor de lista
+ * se cobra (Ishtar, 8/10/2026); con el mismo cristal en los dos, el par 1. Puro.
+ */
+export function rolesDel2x1(venta: VentaParaSmartLab): RolesDePares | null {
+    if (!esVenta2x1(venta)) return null;
+    const porPar = cristalesPorArmazon(venta);
+    const valor = (pair: number) => valorDelPar(((porPar.get(pair) || []) as any[]).filter(i => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot) || 'cristal')), pair);
+    return rolesPorValor([{ pair: 1, valor: valor(1) }, { pair: 2, valor: valor(2) }]);
 }
 
 export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: OpcionesCarga = {}): ResultadoPlan {
@@ -169,10 +189,16 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     faltantes.push(...armado.faltantes);
     avisos.push(...armado.avisos);
 
-    // 2x1: el 2º par se prepara con el nº del 1º (va en la observación).
-    const es2x1 = esVenta2x1(venta);
-    const pedidoOrigen = texto(opciones.pedidoOrigen) || null;
-    if (es2x1 && par === 2 && !/^80\d{6}$/.test(pedidoOrigen || '')) faltantes.push('el 2º par de un 2x1 se carga con el 1º ya cargado (hace falta su nº de pedido para la observación)');
+    // 2x1: el par SIN CARGO (el de menor valor) se prepara con el nº del par con
+    // cargo, que va en la observación: es lo que hace que el laboratorio no lo cobre.
+    const roles = rolesDel2x1(venta);
+    const es2x1 = !!roles;
+    const sinCargo = !!roles && par === roles.sinCargo;
+    const rol2x1: Rol2x1 | null = roles ? (sinCargo ? 'SIN_CARGO' : 'CON_CARGO') : null;
+    const pedidoOrigen = sinCargo ? texto(opciones.pedidoOrigen) || null : null;
+    if (sinCargo && !/^80\d{6}$/.test(pedidoOrigen || '')) faltantes.push(`el par sin cargo del 2x1 se carga con el par con cargo (par ${roles!.conCargo}) ya cargado: hace falta su nº de pedido para la observación`);
+    const avisoRoles = roles ? avisoDeRoles(roles, formatearPrecio) : null;
+    if (avisoRoles) avisos.push(avisoRoles);
 
     const p = armado.payload;
     const lensTypeId = esp.clase === 'STOCK' ? '1' : String(esp.familia.lensTypeId);
@@ -239,12 +265,12 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
         ok: true,
         avisos,
         plan: {
-            par, pares, producto, especificacion: esp, lensTypeId, od, oi, tenido,
+            par, pares, rol2x1, pedidoOrigen, producto, especificacion: esp, lensTypeId, od, oi, tenido,
             // Código + nombre: el código vincula con certeza (espejo.ts), el
             // nombre es lo que lee el laboratorio. Con más de un par, cuál: es lo
             // que distingue un pedido del otro al buscar si ya se creó.
             codigoOptica: codigoInternoSmartLab(venta, par),
-            observacion: observacionDelPedido({ es2x1, par, producto, pedidoOrigen, notas: p?.observaciones, tenido }),
+            observacion: observacionDelPedido({ es2x1, sinCargo, producto, pedidoOrigen, notas: p?.observaciones, tenido }),
             paciente: cliente,
             armazon: {
                 modelo: texto(p?.armazon),

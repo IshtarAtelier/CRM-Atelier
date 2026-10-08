@@ -461,6 +461,15 @@ ok('un borrador que dejó un pedido en el portal bloquea preparar otro hasta can
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: null }), false);
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { pasos: [] } }), false);
 });
+ok('Vitolen: el rol en la promo del 2º par lo decide quien prepara (el de mayor valor es el 1º); sin rol, el par 2 es el 2º', () => {
+    const base = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0 });
+    assert.equal(base.payload.rolPromo, null); assert.equal(base.payload.pedidoOrigen, null);
+    const segundo = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0, rolPromo: 'SEGUNDO_PAR', pedidoOrigen: '6981382L' });
+    assert.equal(segundo.payload.rolPromo, 'SEGUNDO_PAR'); assert.equal(segundo.payload.pedidoOrigen, '6981382L');
+    // el 1º de la promo no lleva pedido origen aunque se lo pasen
+    const primero = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0, rolPromo: 'PRIMER_PAR', pedidoOrigen: '6981382L' });
+    assert.equal(primero.payload.pedidoOrigen, null);
+});
 ok('un PREPARADO colgado 30 min va a ERROR (más que el peor caso del robot, ~22 min); un APROBADO colgado se reintenta, nunca ERROR', () => {
     const r = colgados([
         { id: 'p-viejo', status: 'PREPARADO', updatedAt: hace(35 * 60000) },

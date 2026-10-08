@@ -21,8 +21,8 @@ import { formatDate } from '@/lib/format-date';
  */
 
 interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero'; opciones?: { value: string; label: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
-interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null }
-interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null }
+interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: string | null }
+interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
     preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista;
@@ -63,6 +63,9 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     const [rotas, setRotas] = useState<Record<string, true>>({});
     const marcarRota = (url: string) => setRotas(r => (r[url] ? r : { ...r, [url]: true }));
     const dialogo = useRef<HTMLDivElement>(null);
+    // Aviso previo a aprobar (2x1 / promo del 2º par): el nº de operación del otro par es lo que hace el descuento.
+    const [confirmando, setConfirmando] = useState<Borrador | null>(null);
+    const aprobar = (b: Borrador) => (b.vista.confirmarAntesDeAprobar ? setConfirmando(b) : decidir(b.id, 'aprobar'));
     // El foco va al diálogo UNA vez al abrirlo (para que Escape lo cierre), no en cada render:
     // si se lo robara en cada render, no se podría escribir el motivo del rechazo.
     useEffect(() => { if (ampliada) dialogo.current?.focus(); }, [ampliada]);
@@ -130,7 +133,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
             <div className="space-y-1.5">
                 {bloqueo && <p className={`text-xs font-bold flex items-start gap-1 ${claro ? 'text-rose-200' : 'text-rose-700 dark:text-rose-400'}`}><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {bloqueo} Rechazá este borrador.</p>}
                 <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" disabled={ocupado !== null || !!bloqueo || sinPantalla} title={sinPantalla ? 'Sin ver la pantalla del portal no se aprueba' : undefined} onClick={() => decidir(b.id, 'aprobar')} className={`${boton} bg-emerald-600 px-4`}>
+                    <button type="button" disabled={ocupado !== null || !!bloqueo || sinPantalla} title={sinPantalla ? 'Sin ver la pantalla del portal no se aprueba' : undefined} onClick={() => aprobar(b)} className={`${boton} bg-emerald-600 px-4`}>
                         {ocupado === `aprobar-${b.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Aprobar y cargar
                     </button>
                     <input value={motivo[b.id] || ''} onChange={e => setMotivo(m => ({ ...m, [b.id]: e.target.value }))} placeholder="Motivo del rechazo"
@@ -177,7 +180,10 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                 return (
                     <div key={par.pair} className={`border-t ${tema.borde} pt-3 mt-3 space-y-2`}>
                         <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">{datos.pares.length > 1 ? `Par ${par.pair}` : 'Pedido'}{par.titulo ? ` · ${par.titulo}` : ''}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">
+                                {datos.pares.length > 1 ? `Par ${par.pair}` : 'Pedido'}{par.titulo ? ` · ${par.titulo}` : ''}
+                                {par.rol && <span className={`ml-1.5 normal-case tracking-normal px-1.5 py-0.5 rounded ${/sin cargo|2º par/i.test(par.rol) ? 'bg-amber-100 text-amber-900' : 'bg-stone-200 text-stone-700'}`}>{par.rol}</span>}
+                            </span>
                             {mostrado && (mostrado.status === 'APROBADO' && mostrado.error
                                 ? <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded whitespace-nowrap bg-rose-100 text-rose-800">Aprobado · no se cargó</span>
                                 : <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded whitespace-nowrap ${ESTADO[mostrado.status]?.clase}`}>{ESTADO[mostrado.status]?.texto}</span>)}
@@ -320,6 +326,22 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
             })}
 
             {error && <p className="mt-3 text-xs text-rose-600 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {error}</p>}
+
+            {/* Antes de aprobar un par de una promo de dos pares: que nadie olvide el nº de operación del otro par. */}
+            {confirmando && (
+                <div role="alertdialog" aria-label={confirmando.vista.confirmarAntesDeAprobar?.titulo} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setConfirmando(null); }} tabIndex={-1} ref={el => el?.focus()}>
+                    <div role="document" className="bg-white text-stone-900 rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-3">
+                        <p className="flex items-center gap-2 text-sm font-black"><AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" /> {confirmando.vista.confirmarAntesDeAprobar?.titulo}</p>
+                        <p className="text-sm leading-relaxed">{confirmando.vista.confirmarAntesDeAprobar?.texto}</p>
+                        <div className="flex flex-wrap justify-end gap-2 pt-1">
+                            <button type="button" onClick={() => setConfirmando(null)} className={`${boton} bg-stone-500`}>Volver a mirar</button>
+                            <button type="button" disabled={ocupado !== null} onClick={() => { const b = confirmando; setConfirmando(null); decidir(b.id, 'aprobar'); }} className={`${boton} bg-emerald-600 px-4`}>
+                                <Check className="w-3.5 h-3.5" /> Lo revisé: aprobar y cargar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* El portal a pantalla completa. Si es un pedido para revisar, el OK se da acá mismo. */}
             {ampliada && (

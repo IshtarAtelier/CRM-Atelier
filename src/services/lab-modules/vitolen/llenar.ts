@@ -188,7 +188,8 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     if (payload.od) await llenarOjo(page, pasos, 0, payload.od, payload);
     if (payload.oi) await llenarOjo(page, pasos, 1, payload.oi, payload);
 
-    if (payload.par === 2 || payload.pedidoOrigen) {
+    const segundoPar = payload.rolPromo ? payload.rolPromo === 'SEGUNDO_PAR' : payload.par === 2;
+    if (segundoPar || payload.pedidoOrigen) {
         pendientes.push(`promo del 2º par: antes de aprobar, abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen ?? '(el nº del 1er par: la venta no lo tiene todavía)'} con la promoción HOYALUX (el robot todavía no lo hace)`);
     }
 

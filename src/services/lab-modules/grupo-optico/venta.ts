@@ -24,7 +24,7 @@ export function leerVentaParaCargaGO(orderId: string) {
             frames: true,
             items: {
                 select: {
-                    eye: true, quantity: true, framePosition: true,
+                    eye: true, quantity: true, framePosition: true, price: true,
                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, pdVal: true, heightVal: true,
                     crystalColor: true, crystalColorType: true, crystalColorNote: true,
                     productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, productBrandSnapshot: true,

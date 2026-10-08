@@ -33,8 +33,10 @@ export interface GraduacionOjo {
 
 export interface PayloadVitolen {
     lista: string;
-    /** Qué par de la venta es (1 o 2): el 2º lleva la promo del segundo par. */
+    /** Qué par de la venta es (1 o 2, como `framePosition`). */
     par: number;
+    /** Rol en la promo del segundo par: el de mayor valor es el 1º; el 2º lleva "pedido origen". */
+    rolPromo: 'PRIMER_PAR' | 'SEGUNDO_PAR' | null;
     nroCasoInterno: string;    // código corto de la venta: #A1B2
     paciente: string;
     ojos: OjoPortal;
@@ -153,11 +155,13 @@ export function codigoDeCristal(cristal: CristalVitolen, variante: string | null
  */
 export function armarFormulario(
     venta: VentaParaCarga,
-    opts: { pair?: number; variante?: string | null; pedidoOrigen?: string | null; forma?: string | null; ejeDiagonal?: number | null } = {},
+    opts: { pair?: number; variante?: string | null; pedidoOrigen?: string | null; forma?: string | null; ejeDiagonal?: number | null; rolPromo?: 'PRIMER_PAR' | 'SEGUNDO_PAR' | null } = {},
 ): ResultadoArmado {
     const faltantes: string[] = [];
     const avisos: string[] = [];
     const pair = opts.pair ?? 1;
+    // Sin rol explícito (borradores de antes del 8/10/2026), el par 2 es el 2º de la promo.
+    const rolPromo = opts.rolPromo === undefined ? (pair === 2 ? 'SEGUNDO_PAR' : null) : opts.rolPromo;
 
     // Un ítem sin posición de armazón es del par 1: no puede "prestarse" al par 2.
     const cristales = venta.items.filter(i =>
@@ -245,7 +249,8 @@ export function armarFormulario(
         tratamientos: { antirreflejo: !(cristalBase?.sinAntirreflejo) },
         montajes: { calibrado: true },
         observaciones: [venta.labNotes].filter(Boolean).join(' ').trim(),
-        pedidoOrigen: opts.pedidoOrigen ?? null,
+        pedidoOrigen: rolPromo === 'SEGUNDO_PAR' ? opts.pedidoOrigen ?? null : null,
+        rolPromo,
     };
 
     return { ok: faltantes.length === 0, payload: faltantes.length === 0 ? payload : payload, faltantes, avisos };

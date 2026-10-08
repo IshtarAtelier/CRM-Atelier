@@ -40,7 +40,7 @@ export const ROBOT_ACTOR_GRUPO_OPTICO: Actor = { id: null, name: ROBOT_GRUPO_OPT
 export interface PayloadBorradorGO {
     opciones: OpcionesCarga;
     /** Resumen legible del plan (lo que ve la persona). */
-    plan: Pick<PlanDeCarga, 'par' | 'producto' | 'lensTypeId' | 'od' | 'oi' | 'tenido' | 'codigoOptica' | 'observacion' | 'armazon'>;
+    plan: Pick<PlanDeCarga, 'par' | 'producto' | 'lensTypeId' | 'od' | 'oi' | 'tenido' | 'codigoOptica' | 'observacion' | 'armazon' | 'rol2x1' | 'pedidoOrigen'>;
     avisos: string[];
 }
 

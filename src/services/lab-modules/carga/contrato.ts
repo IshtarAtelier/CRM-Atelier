@@ -48,6 +48,8 @@ export interface ParParaCargar {
     espera?: string | null;
     /** Si viene, el par ya tiene pedido en el laboratorio: no se carga otro. */
     yaCargado?: string | null;
+    /** Rol en una promo de dos pares ("con cargo · 2x1", "SIN CARGO · 2x1"), para el título. */
+    rol?: string | null;
 }
 
 /** Cómo se muestra un borrador, igual para todos los laboratorios. */
@@ -65,6 +67,12 @@ export interface VistaDeBorrador {
     documento?: { url: string; etiqueta: string } | null;
     /** Quedó un pedido sin confirmar en el portal que hay que cancelar. */
     pendienteEnPortal?: { id: string; url: string | null } | null;
+    /**
+     * Si viene, "Aprobar y cargar" abre primero un aviso con este texto y pide
+     * confirmar (regla de Ishtar, 8/10/2026: en los 2x1 que nadie olvide el nº
+     * de operación del otro par, que es lo que hace el descuento).
+     */
+    confirmarAntesDeAprobar?: { titulo: string; texto: string } | null;
 }
 
 export interface BorradorParaVista {
