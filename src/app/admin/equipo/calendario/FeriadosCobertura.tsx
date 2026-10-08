@@ -2,14 +2,18 @@
 
 /**
  * Tabla de feriados con quién lo cubrió y quién no, desde que empezó Milena
- * (`DESDE_COBERTURA_FERIADOS`) hasta HOY: los que vienen no se listan (Ishtar,
- * 8/10/2026: "solo desde que Milena trabaja a hoy"). Por cada feriado,
+ * (`DESDE_COBERTURA_FERIADOS`) hasta hoy, y aparte los PRÓXIMOS para dejar
+ * programado quién cubre (Ishtar, 8/10/2026). Por cada feriado,
  * una fila por persona del equipo con tres estados: Cubrió (con horario),
- * No vino, o Sin cargar. Solo un ADMIN edita; el resto la ve.
+ * No vino, o Sin cargar. Solo un ADMIN edita; el resto la ve. Debajo de cada
+ * feriado se listan los pedidos del equipo para ese día (novedades de
+ * /api/equipo/novedades) y un botón para anotar uno nuevo.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Flag, Loader2, Check, X, Minus } from 'lucide-react';
+import { Flag, Loader2, Check, X, Minus, Plus } from 'lucide-react';
+import { NOVEDAD_INFO, ESTADO_INFO } from '@/lib/constants/novedades-equipo';
+import { rangoNovedad, type Novedad, type Yo } from './CalendarioClient';
 import { formatDate } from '@/lib/format-date';
 import { DESDE_COBERTURA_FERIADOS, type Feriado } from '@/lib/constants/feriados-argentina';
 
@@ -37,24 +41,36 @@ const ETIQUETA_TIPO = {
 } as const;
 const fmtHoras = (n: number) => `${n.toLocaleString('es-AR', { maximumFractionDigits: 1 })} h`;
 
-export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
+/** Hasta cuántos meses adelante se muestran los próximos feriados. */
+const MESES_ADELANTE = 6;
+
+export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad }: {
+    yo: Yo; version: number; onAnotar: (dia: string, tipo: 'PEDIDO_ESPECIAL') => void; onVerNovedad: (n: Novedad) => void;
+}) {
+    const esAdmin = yo.esAdmin;
     const [feriados, setFeriados] = useState<Feriado[]>([]);
     const [coberturas, setCoberturas] = useState<Cobertura[]>([]);
     const [equipo, setEquipo] = useState<Persona[]>([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const hasta = claveDia.format(new Date());
+    const [novedades, setNovedades] = useState<Novedad[]>([]);
+    const hoyK = claveDia.format(new Date());
+    const hasta = useMemo(() => { const d = new Date(); d.setMonth(d.getMonth() + MESES_ADELANTE); return claveDia.format(d); }, []);
 
     const cargar = useCallback(async () => {
         try {
-            const r = await fetch(`/api/equipo/feriados?desde=${DESDE_COBERTURA_FERIADOS}&hasta=${hasta}`);
+            const [r, rn] = await Promise.all([
+                fetch(`/api/equipo/feriados?desde=${DESDE_COBERTURA_FERIADOS}&hasta=${hasta}`),
+                fetch(`/api/equipo/novedades?desde=${DESDE_COBERTURA_FERIADOS}&hasta=${hasta}`),
+            ]);
             if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
             const d = await r.json();
             setFeriados(d.feriados); setCoberturas(d.coberturas); setEquipo(d.equipo);
+            if (rn.ok) setNovedades((await rn.json()).novedades);
         } catch (e: any) { setError(e.message); }
         finally { setCargando(false); }
     }, [hasta]);
-    useEffect(() => { cargar(); }, [cargar]);
+    useEffect(() => { cargar(); }, [cargar, version]);
 
     const porClave = useMemo(() => {
         const m = new Map<string, Cobertura>();
@@ -62,7 +78,10 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
         return m;
     }, [coberturas]);
 
-    const pasados = feriados;
+    const pasados = feriados.filter(f => f.fecha <= hoyK);
+    const proximos = feriados.filter(f => f.fecha > hoyK);
+    /** Las novedades (pedidos, francos, etc.) que tocan un día dado. */
+    const novedadesDe = (k: string) => novedades.filter(n => claveDia.format(new Date(n.startsAt)) <= k && claveDia.format(new Date(n.endsAt)) >= k);
 
     const guardar = async (body: Record<string, unknown>) => {
         const r = await fetch('/api/equipo/feriados', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -86,10 +105,10 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
         return { ...p, cubiertos, noVino, hs };
     }), [equipo, pasados, porClave]);
 
-    const Tabla = ({ lista }: { lista: Feriado[] }) => (
+    const Tabla = ({ lista, futuro }: { lista: Feriado[]; futuro: boolean }) => (
         <div className="divide-y divide-stone-100 dark:divide-stone-800">
             {lista.map(f => {
-                const sinCargar = equipo.some(p => !porClave.has(`${f.fecha}|${p.id}`));
+                const sinCargar = !futuro && equipo.some(p => !porClave.has(`${f.fecha}|${p.id}`));
                 return (
                     <div key={f.fecha} className="p-3 sm:p-4">
                         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
@@ -100,15 +119,28 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
                                 {ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].texto}
                             </span>
                             {sinCargar && <span className="text-xs text-amber-700 dark:text-amber-300 font-bold">Sin cargar quién cubrió</span>}
+                            {futuro && equipo.every(p => !porClave.has(`${f.fecha}|${p.id}`)) && <span className="text-xs text-stone-500">Sin programar</span>}
                         </div>
                         <table className="w-full text-sm">
                             <thead className="sr-only"><tr><th>Persona</th><th>Cubrió</th><th>Desde</th><th>Hasta</th><th>Total</th><th>Notas</th></tr></thead>
                             <tbody>
                                 {equipo.map(p => (
-                                    <FilaPersona key={p.id} persona={p} fecha={f.fecha} c={porClave.get(`${f.fecha}|${p.id}`)} esAdmin={esAdmin} onGuardar={guardar} onLimpiar={limpiar} />
+                                    <FilaPersona key={p.id} persona={p} fecha={f.fecha} c={porClave.get(`${f.fecha}|${p.id}`)} esAdmin={esAdmin} futuro={futuro} onGuardar={guardar} onLimpiar={limpiar} />
                                 ))}
                             </tbody>
                         </table>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            {novedadesDe(f.fecha).map(n => (
+                                <button key={n.id} onClick={() => onVerNovedad(n)}
+                                    className={`text-xs px-2 py-1 rounded-lg border ${NOVEDAD_INFO[n.type].clase} ${n.status === 'RECHAZADO' ? 'line-through opacity-60' : ''} ${n.status === 'PENDIENTE' ? 'border-dashed' : ''}`}
+                                    title={`${rangoNovedad(n)} · ${ESTADO_INFO[n.status].etiqueta}`}>
+                                    <strong>{n.user.name.split(' ')[0]}</strong> pidió: {NOVEDAD_INFO[n.type].etiqueta.toLowerCase()}{n.notes ? ` — ${n.notes}` : ''}{n.status === 'PENDIENTE' ? ' (pendiente de OK)' : ''}
+                                </button>
+                            ))}
+                            <button onClick={() => onAnotar(f.fecha, 'PEDIDO_ESPECIAL')} className="text-xs font-bold px-2 py-1 rounded-lg border border-dashed border-stone-400 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 inline-flex items-center gap-1">
+                                <Plus className="w-3 h-3" /> Alguien pidió algo para este día
+                            </button>
+                        </div>
                     </div>
                 );
             })}
@@ -137,14 +169,21 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
             )}
 
             {!cargando && pasados.length === 0 && <p className="p-6 text-center text-sm text-stone-500">Todavía no pasó ningún feriado desde esa fecha.</p>}
-            <Tabla lista={[...pasados].reverse()} />
+            <Tabla lista={[...pasados].reverse()} futuro={false} />
+
+            <div className="p-3 sm:p-4 border-t-4 border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950/40">
+                <h3 className="font-black">Próximos feriados: programar quién cubre</h3>
+                <p className="text-xs text-stone-500">Los próximos {MESES_ADELANTE} meses. {esAdmin ? 'Marcá quién cubre y en qué horario, y quién no viene.' : 'Si necesitás algo para uno de estos días, pedilo con el botón de ese feriado.'}</p>
+            </div>
+            {!cargando && proximos.length === 0 && <p className="p-6 text-center text-sm text-stone-500">No hay feriados en los próximos {MESES_ADELANTE} meses.</p>}
+            <Tabla lista={proximos} futuro />
 
         </section>
     );
 }
 
-function FilaPersona({ persona, fecha, c, esAdmin, onGuardar, onLimpiar }: {
-    persona: Persona; fecha: string; c: Cobertura | undefined; esAdmin: boolean;
+function FilaPersona({ persona, fecha, c, esAdmin, futuro, onGuardar, onLimpiar }: {
+    persona: Persona; fecha: string; c: Cobertura | undefined; esAdmin: boolean; futuro: boolean;
     onGuardar: (b: Record<string, unknown>) => Promise<void>; onLimpiar: (fecha: string, userId: string) => Promise<void>;
 }) {
     const [desde, setDesde] = useState(c?.startTime ?? '');
@@ -153,7 +192,8 @@ function FilaPersona({ persona, fecha, c, esAdmin, onGuardar, onLimpiar }: {
     useEffect(() => { setDesde(c?.startTime ?? ''); setHasta(c?.endTime ?? ''); setNotas(c?.notes ?? ''); }, [c]);
     const total = horas(c?.startTime ?? null, c?.endTime ?? null);
     const sucio = c?.worked && (desde !== (c.startTime ?? '') || hasta !== (c.endTime ?? '') || notas !== (c.notes ?? ''));
-    const estado = c === undefined ? 'sin cargar' : c.worked ? 'cubrió' : 'no vino';
+    const [txtSi, txtNo] = futuro ? ['Cubre', 'No viene'] : ['Cubrió', 'No vino'];
+    const estado = c === undefined ? (futuro ? 'sin programar' : 'sin cargar') : c.worked ? txtSi.toLowerCase() : txtNo.toLowerCase();
     const input = 'rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm w-[5.5rem]';
 
     return (
@@ -163,9 +203,9 @@ function FilaPersona({ persona, fecha, c, esAdmin, onGuardar, onLimpiar }: {
                 {esAdmin ? (
                     <span className="inline-flex rounded-lg border border-stone-300 dark:border-stone-600 overflow-hidden text-xs font-bold">
                         <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: true, startTime: desde || null, endTime: hasta || null, notes: notas || null })}
-                            className={`px-2 py-1 inline-flex items-center gap-1 ${c?.worked ? 'bg-emerald-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c?.worked}><Check className="w-3 h-3" />Cubrió</button>
+                            className={`px-2 py-1 inline-flex items-center gap-1 ${c?.worked ? 'bg-emerald-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c?.worked}><Check className="w-3 h-3" />{txtSi}</button>
                         <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: false, notes: notas || null })}
-                            className={`px-2 py-1 inline-flex items-center gap-1 border-l border-stone-300 dark:border-stone-600 ${c && !c.worked ? 'bg-red-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c && !c.worked}><X className="w-3 h-3" />No vino</button>
+                            className={`px-2 py-1 inline-flex items-center gap-1 border-l border-stone-300 dark:border-stone-600 ${c && !c.worked ? 'bg-red-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c && !c.worked}><X className="w-3 h-3" />{txtNo}</button>
                         <button onClick={() => onLimpiar(fecha, persona.id)} title="Volver a sin cargar"
                             className={`px-2 py-1 border-l border-stone-300 dark:border-stone-600 ${c === undefined ? 'bg-stone-200 dark:bg-stone-700' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-label="Sin cargar"><Minus className="w-3 h-3" /></button>
                     </span>

@@ -23,20 +23,24 @@ import {
     type TipoNovedad, type EstadoNovedad,
 } from '@/lib/constants/novedades-equipo';
 
-interface Persona { id: string; name: string; role?: string }
-interface Novedad {
+export interface Persona { id: string; name: string; role?: string }
+export interface Novedad {
     id: string; userId: string; type: TipoNovedad; startsAt: string; endsAt: string;
     horario: string | null; status: EstadoNovedad; justificada: boolean | null;
     swapWithUserId: string | null; notes: string | null; createdByName: string;
     decidedByName: string | null; decidedAt: string | null; createdAt: string;
     user: Persona; swapWith: Persona | null;
 }
-interface Yo { id: string; nombre: string; esAdmin: boolean }
+export interface Yo { id: string; nombre: string; esAdmin: boolean }
 
 const TZ = 'America/Argentina/Cordoba';
 const claveDia = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
 const fmtMes = new Intl.DateTimeFormat('es-AR', { timeZone: TZ, month: 'long', year: 'numeric' });
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+export function rangoNovedad(n: Novedad) {
+    const a = formatDate(n.startsAt), b = formatDate(n.endsAt);
+    return a === b ? a : `${a} al ${b}`;
+}
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const hoyClave = () => claveDia.format(new Date());
@@ -65,7 +69,9 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [filtroPersona, setFiltroPersona] = useState<string>('');
-    const [formulario, setFormulario] = useState<{ dia: string } | null>(null);
+    const [formulario, setFormulario] = useState<{ dia: string; tipo?: TipoNovedad } | null>(null);
+    // Sube cada vez que algo se guarda: la tabla de feriados lo usa para recargar.
+    const [version, setVersion] = useState(0);
     const [detalle, setDetalle] = useState<Novedad | null>(null);
 
     const prefijoMes = `${anio}-${pad(mes + 1)}`;
@@ -124,14 +130,14 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
     const decidir = async (id: string, decision: 'APROBADO' | 'RECHAZADO') => {
         const r = await fetch(`/api/equipo/novedades/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision }) });
         if (!r.ok) { alert((await r.json().catch(() => ({}))).error || 'No se pudo'); return; }
-        setDetalle(null); cargar();
+        setDetalle(null); cargar(); setVersion(v => v + 1);
     };
 
     const borrar = async (n: Novedad) => {
         if (!confirm(`¿Borrar "${NOVEDAD_INFO[n.type].etiqueta}" de ${n.user.name}?`)) return;
         const r = await fetch(`/api/equipo/novedades/${n.id}`, { method: 'DELETE' });
         if (!r.ok) { alert((await r.json().catch(() => ({}))).error || 'No se pudo'); return; }
-        setDetalle(null); cargar();
+        setDetalle(null); cargar(); setVersion(v => v + 1);
     };
 
     const puedeTocar = (n: Novedad) => yo.esAdmin || (n.userId === yo.id && n.status === 'PENDIENTE');
@@ -171,7 +177,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                 </section>
             )}
 
-            <FeriadosCobertura esAdmin={yo.esAdmin} />
+            <FeriadosCobertura yo={yo} version={version} onAnotar={(dia, tipo) => setFormulario({ dia, tipo })} onVerNovedad={setDetalle} />
 
             <section className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden">
                 <div className="p-3 pb-0"><h2 className="text-lg font-black">Pedidos y novedades del mes</h2></div>
@@ -253,7 +259,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
             )}
 
             {formulario && (
-                <Formulario yo={yo} equipo={equipo} dia={formulario.dia} onCerrar={() => setFormulario(null)} onGuardado={() => { setFormulario(null); cargar(); }} />
+                <Formulario yo={yo} equipo={equipo} dia={formulario.dia} tipoInicial={formulario.tipo} onCerrar={() => setFormulario(null)} onGuardado={() => { setFormulario(null); cargar(); setVersion(v => v + 1); }} />
             )}
             {detalle && (
                 <Detalle n={detalle} yo={yo} puedeTocar={puedeTocar(detalle)} onCerrar={() => setDetalle(null)} onDecidir={decidir} onBorrar={borrar} />
@@ -266,10 +272,7 @@ function diaSemanaCorto(k: string) {
     return DIAS_SEMANA[(new Date(`${k}T12:00:00`).getDay() + 6) % 7];
 }
 
-function rango(n: Novedad) {
-    const a = formatDate(n.startsAt), b = formatDate(n.endsAt);
-    return a === b ? a : `${a} al ${b}`;
-}
+const rango = rangoNovedad;
 
 function Modal({ titulo, onCerrar, children }: { titulo: string; onCerrar: () => void; children: React.ReactNode }) {
     // Escape cierra: el clic en el fondo es solo un atajo con el mouse.
@@ -297,10 +300,10 @@ function Modal({ titulo, onCerrar, children }: { titulo: string; onCerrar: () =>
 const campo = 'w-full rounded-lg border border-stone-300 dark:border-stone-600 bg-transparent px-3 py-2 text-sm';
 const etiqueta = 'block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1';
 
-function Formulario({ yo, equipo, dia, onCerrar, onGuardado }: { yo: Yo; equipo: Persona[]; dia: string; onCerrar: () => void; onGuardado: () => void }) {
+export function Formulario({ yo, equipo, dia, tipoInicial, onCerrar, onGuardado }: { yo: Yo; equipo: Persona[]; dia: string; tipoInicial?: TipoNovedad; onCerrar: () => void; onGuardado: () => void }) {
     const tiposPermitidos = TIPOS_NOVEDAD.filter(t => yo.esAdmin || !TIPOS_SOLO_ADMIN.includes(t));
     const [userId, setUserId] = useState(yo.id);
-    const [type, setType] = useState<TipoNovedad>(yo.esAdmin ? 'FALTA' : 'CAMBIO_TURNO');
+    const [type, setType] = useState<TipoNovedad>(tipoInicial ?? (yo.esAdmin ? 'FALTA' : 'CAMBIO_TURNO'));
     const [desde, setDesde] = useState(dia);
     const [hasta, setHasta] = useState(dia);
     const [horario, setHorario] = useState('');
