@@ -2,7 +2,8 @@
 
 /**
  * Tabla de feriados con quién lo cubrió y quién no, desde que empezó Milena
- * (`DESDE_COBERTURA_FERIADOS`) hasta fin del año que viene. Por cada feriado,
+ * (`DESDE_COBERTURA_FERIADOS`) hasta HOY: los que vienen no se listan (Ishtar,
+ * 8/10/2026: "solo desde que Milena trabaja a hoy"). Por cada feriado,
  * una fila por persona del equipo con tres estados: Cubrió (con horario),
  * No vino, o Sin cargar. Solo un ADMIN edita; el resto la ve.
  */
@@ -37,9 +38,7 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
     const [equipo, setEquipo] = useState<Persona[]>([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [mostrarFuturos, setMostrarFuturos] = useState(false);
-    const hoyK = claveDia.format(new Date());
-    const hasta = `${new Date().getFullYear() + 1}-12-31`;
+    const hasta = claveDia.format(new Date());
 
     const cargar = useCallback(async () => {
         try {
@@ -58,8 +57,7 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
         return m;
     }, [coberturas]);
 
-    const pasados = feriados.filter(f => f.fecha <= hoyK);
-    const futuros = feriados.filter(f => f.fecha > hoyK);
+    const pasados = feriados;
 
     const guardar = async (body: Record<string, unknown>) => {
         const r = await fetch('/api/equipo/feriados', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -86,7 +84,7 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
     const Tabla = ({ lista }: { lista: Feriado[] }) => (
         <div className="divide-y divide-stone-100 dark:divide-stone-800">
             {lista.map(f => {
-                const sinCargar = f.fecha <= hoyK && equipo.some(p => !porClave.has(`${f.fecha}|${p.id}`));
+                const sinCargar = equipo.some(p => !porClave.has(`${f.fecha}|${p.id}`));
                 return (
                     <div key={f.fecha} className="p-3 sm:p-4">
                         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
@@ -136,14 +134,6 @@ export default function FeriadosCobertura({ esAdmin }: { esAdmin: boolean }) {
             {!cargando && pasados.length === 0 && <p className="p-6 text-center text-sm text-stone-500">Todavía no pasó ningún feriado desde esa fecha.</p>}
             <Tabla lista={[...pasados].reverse()} />
 
-            {futuros.length > 0 && (
-                <div className="border-t border-stone-200 dark:border-stone-700">
-                    <button onClick={() => setMostrarFuturos(v => !v)} className="w-full text-left p-3 sm:p-4 text-sm font-bold text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800">
-                        {mostrarFuturos ? 'Ocultar' : 'Ver'} los que vienen ({futuros.length}) — el próximo: {futuros[0].nombre}, {formatDate(futuros[0].fecha + 'T12:00:00-03:00')}
-                    </button>
-                    {mostrarFuturos && <Tabla lista={futuros} />}
-                </div>
-            )}
         </section>
     );
 }
