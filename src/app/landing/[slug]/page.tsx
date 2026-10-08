@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { OG_IMAGEN_SITIO } from '@/lib/constants/og';
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { getGoogleReviews } from "@/lib/googleReviews";
@@ -46,6 +47,7 @@ export async function generateMetadata({
       description: campaign.seo.description,
       url,
       type: "website",
+      images: [OG_IMAGEN_SITIO],
     },
   };
 }

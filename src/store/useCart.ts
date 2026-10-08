@@ -37,6 +37,8 @@ interface CartState {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  /** Carga un carrito entero (el que repone el mail de recupero). No mide AddToCart: no es una acción nueva. */
+  reponerItems: (items: Omit<CartItem, 'id'>[]) => void;
   setIsOpen: (isOpen: boolean) => void;
   getCartTotal: (isWholesale?: boolean) => number;
   updateItemLensConfig: (id: string, lensConfig: any, additionalPrice: number) => void;
@@ -104,6 +106,10 @@ export const useCart = create<CartState>()(
       })),
       
       clearCart: () => set({ items: [] }),
+
+      reponerItems: (items) => set({
+        items: items.map((item, i) => ({ ...item, id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}` })),
+      }),
       
       setIsOpen: (isOpen) => set({ isOpen }),
 
@@ -130,6 +136,20 @@ export const useCart = create<CartState>()(
     }),
     {
       name: 'atelier-cart-storage',
+      // Se guardan SOLO los productos. `isOpen` es estado de pantalla: si se
+      // persistía, el panel del carrito se volvía a abrir solo en la página
+      // siguiente — por ejemplo encima del formulario del checkout, apenas la
+      // persona tocaba "Finalizar compra" (auditoría del 25/9/2026).
+      partialize: (state) => ({ items: state.items }),
+      // Los navegadores que ya tenían guardado `isOpen: true` (de antes de
+      // este cambio) lo levantarían una vez más: del guardado se toman solo
+      // los productos.
+      merge: (guardado, actual) => ({
+        ...actual,
+        items: Array.isArray((guardado as { items?: unknown })?.items)
+          ? (guardado as { items: CartItem[] }).items
+          : actual.items,
+      }),
     }
   )
 );

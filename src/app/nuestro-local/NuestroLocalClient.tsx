@@ -7,6 +7,18 @@ import { MapPin, Clock, Phone, ChevronDown, Sparkles, Eye, Coffee } from "lucide
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
+import { BUSINESS_INFO } from "@/lib/business-info";
+
+// Los horarios salen de BUSINESS_INFO (la misma fuente que el bot y los datos
+// para Google). Acá estaban escritos a mano y decían "8:00 – 20:00" de lunes a
+// viernes, cuando desde el 1/9/2026 se abre a las 9:00 (auditoría del 25/9).
+const franja = (dia: string) => {
+  const f = BUSINESS_INFO.openingHoursSpecification.find(e => (e.dayOfWeek as readonly string[]).includes(dia));
+  const hora = (h: string) => h.replace(/^0/, "");
+  return f ? `${hora(f.opens)} – ${hora(f.closes)}` : "";
+};
+const HORARIO_SEMANA = franja("Monday");
+const HORARIO_SABADO = franja("Saturday");
 
 interface NuestroLocalClientProps {
   settings: {
@@ -345,11 +357,11 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
                     <div className="flex flex-wrap gap-2">
                       <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
                         <p className="text-[9px] font-black uppercase tracking-widest text-stone-300 mb-0.5">Lun – Vie</p>
-                        <p className="text-sm font-medium text-white/80">8:00 – 20:00</p>
+                        <p className="text-sm font-medium text-white/80">{HORARIO_SEMANA}</p>
                       </div>
                       <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
                         <p className="text-[9px] font-black uppercase tracking-widest text-stone-300 mb-0.5">Sábados</p>
-                        <p className="text-sm font-medium text-white/80">9:00 – 17:00</p>
+                        <p className="text-sm font-medium text-white/80">{HORARIO_SABADO}</p>
                       </div>
                     </div>
                   </div>

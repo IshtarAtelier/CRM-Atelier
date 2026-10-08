@@ -11,6 +11,9 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/client-analytics";
 import { CARTEL_PROMO_POR_DEFECTO } from "@/lib/promo-cuotas";
+import { coincideBusquedaTienda } from "@/lib/catalog/busqueda-tienda";
+import { precioFinal } from "@/lib/precio-oferta";
+import { precioConSigno } from "@/lib/format-precio";
 
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
@@ -102,14 +105,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   }, [isSearchOpen, allProducts]);
 
   const searchResults = searchQuery.trim().length >= 2
-    ? allProducts.filter(p => {
-        const term = searchQuery.toLowerCase();
-        return (p.brand || '').toLowerCase().includes(term) ||
-               (p.name || '').toLowerCase().includes(term) ||
-               (p.model || '').toLowerCase().includes(term) ||
-               (p.modelCode || '').toLowerCase().includes(term) ||
-               (p.category || '').toLowerCase().includes(term);
-      })
+    // La MISMA búsqueda que /tienda (src/lib/catalog/busqueda-tienda.ts). Antes
+    // era otro motor que distinguía tildes: "orion" daba 0 y "Orión" daba 1.
+    ? allProducts.filter(p => coincideBusquedaTienda(p, searchQuery))
     : [];
 
   // Términos ya reportados: el buscador filtra en memoria, así que el mismo
@@ -559,7 +557,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                             {p.name || p.model}
                           </span>
                           <span className="text-xs text-[#8a6d3b] dark:text-[#c8a55c] font-bold mt-1">
-                            ${(p.price || 0).toLocaleString("es-AR")}
+                            {/* El que se cobra (oferta si la hay): Rigel C3 figuraba a
+                                $215.000 de lista y se cobra $160.000. */}
+                            {precioConSigno(precioFinal(p))}
                           </span>
                         </div>
                       </Link>

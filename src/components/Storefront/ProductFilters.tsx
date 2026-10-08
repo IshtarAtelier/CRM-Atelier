@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useCallback, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
+import { avisarPanelFiltros } from '@/hooks/usePanelFiltrosAbierto';
 import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GENEROS_DE_CATALOGO } from '@/lib/constants/genero-catalogo';
 import { track } from '@/lib/client-analytics';
 import { todasLasFamilias, type FamiliaColor } from '@/lib/catalog/color-normalizado';
+import { RANGOS_PRECIO_TIENDA } from '@/lib/constants/rangos-precio-tienda';
 
 interface ProductFiltersProps {
   availableBrands: string[];
@@ -115,6 +117,13 @@ export function ProductFilters({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Mientras el panel está abierto, el botón flotante esconde su pastilla
+  // "Presupuesto", que tapaba el botón "Ver N modelos" (auditoría 25/9).
+  useEffect(() => {
+    avisarPanelFiltros(isOpen);
+    return () => avisarPanelFiltros(false);
+  }, [isOpen]);
 
   // R6 del plan: la URL es la fuente de verdad de los filtros, pero el cambio
   // se hace con `replace` dentro de `useTransition`, no con `push`.
@@ -330,19 +339,9 @@ export function ProductFilters({
                   Precio
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: '', etiqueta: 'Todos', min: '', max: '' },
-                    { id: 'hasta-150', etiqueta: 'Hasta $150.000', min: '', max: '150000' },
-                    // El segundo rango empieza en 150001, no en 150000: los dos
-                    // límites de arriba y abajo se comparan con <= (ver
-                    // coincidePrecio en la API), así que compartir el 150000
-                    // hacía que un armazón de exactamente $150.000 calzara en
-                    // los DOS botones a la vez. Nunca hubo un producto justo en
-                    // ese precio (auditado), pero era una trampa para el día
-                    // que lo haya. Mismo motivo en 250001.
-                    { id: '150-250', etiqueta: '$150.000 a $250.000', min: '150001', max: '250000' },
-                    { id: 'desde-250', etiqueta: 'Más de $250.000', min: '250001', max: '' },
-                  ].map(rango => {
+                  {/* Los rangos (y por qué comparan contra el precio por
+                      transferencia) viven en src/lib/constants/rangos-precio-tienda.ts. */}
+                  {RANGOS_PRECIO_TIENDA.map(rango => {
                     const activo = currentPrecioMin === rango.min && currentPrecioMax === rango.max;
                     return (
                       <button

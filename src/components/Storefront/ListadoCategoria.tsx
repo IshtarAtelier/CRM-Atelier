@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { urlAbsoluta } from '@/lib/url-absoluta';
 import { CategoryGrid } from '@/components/Storefront/CategoryGrid';
 import { ProductFilters } from '@/components/Storefront/ProductFilters';
 import { prisma } from '@/lib/db';
@@ -6,6 +7,8 @@ import { LISTADO_SELECT } from '@/lib/catalog/queries';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { precioConOferta } from '@/lib/precio-oferta';
+import { getWebSettings } from '@/lib/web-settings';
+import { precioParaRango, leerRangoPrecio, dentroDelRango, descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
 
 /**
  * Listado de una categoría del catálogo: grilla + filtros + JSON-LD.
@@ -32,6 +35,8 @@ export interface ListadoCategoriaProps {
     material?: string;
     genero?: string;
     orden?: string;
+    precioMin?: string;
+    precioMax?: string;
   };
 }
 
@@ -46,7 +51,7 @@ export async function ListadoCategoria({
   mensajeVacio,
   filtros,
 }: ListadoCategoriaProps) {
-  const { marca, forma, material, genero, orden = 'recientes' } = filtros;
+  const { marca, forma, material, genero, orden = 'recientes', precioMin, precioMax } = filtros;
 
   // Los cristales no son armazones: si uno queda con la categoría web de
   // receta, aparece en la grilla mezclado entre los marcos. Ya pasó — un
@@ -139,6 +144,13 @@ export async function ListadoCategoria({
       return true;
     });
   }
+  // Los botones de precio estaban en esta página pero no filtraban
+  // (revisión del 5/10/2026). Misma comparación que /tienda.
+  const rango = leerRangoPrecio(precioMin, precioMax);
+  if (rango.activo) {
+    const pct = descuentoTransferenciaDe((await getWebSettings()).web_promo_cash_discount);
+    visibles = visibles.filter((p) => dentroDelRango(precioParaRango(p, pct), rango));
+  }
   if (orden === 'forma') {
     visibles.sort((a, b) => (a.shape || '').localeCompare(b.shape || ''));
   }
@@ -163,8 +175,7 @@ export async function ListadoCategoria({
       // inconsistencia que Google marca al validar.
       numberOfItems: enumerados.length,
       itemListElement: enumerados.map((p, i) => {
-        const foto = p.imagenesCatalogo?.[0] ? resolveStorageUrl(p.imagenesCatalogo[0]) : undefined;
-        const absoluta = foto ? (foto.startsWith('http') ? foto : `https://atelieroptica.com.ar${foto}`) : undefined;
+        const absoluta = urlAbsoluta(p.imagenesCatalogo?.[0] ? resolveStorageUrl(p.imagenesCatalogo[0]) : undefined);
         return {
           '@type': 'ListItem',
           position: i + 1,
@@ -193,7 +204,9 @@ export async function ListadoCategoria({
           <CategoryGrid
             products={visibles}
             categoryName={titulo}
-            emptyMessage={marca ? `No encontramos ${titulo.toLowerCase()} de la marca ${marca}.` : mensajeVacio}
+            emptyMessage={marca
+            ? `No encontramos ${titulo.toLowerCase()} de la marca ${marca}.`
+            : rango.activo ? 'No hay modelos en ese rango de precio. Probá con otro.' : mensajeVacio}
           />
         </div>
       </div>

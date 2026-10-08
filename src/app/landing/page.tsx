@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { OG_IMAGEN_SITIO } from '@/lib/constants/og';
 
 import { getGoogleReviews } from "@/lib/googleReviews";
 import { CAMPAIGNS } from "@/lib/landing/campaigns";
@@ -31,6 +32,7 @@ export const metadata: Metadata = {
     description: DEFAULT.seo.description,
     url: "https://atelieroptica.com.ar/landing",
     type: "website",
+    images: [OG_IMAGEN_SITIO],
   },
 };
 

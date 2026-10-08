@@ -10,6 +10,8 @@ const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 // IP del cliente (primer segmento del XFF). Solo para rate-limit, no para auth.
 const clientIp = (req: Request) => (req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim();
 
+const ESTADOS_QUE_LLEGAN_DE_AFUERA: readonly unknown[] = ['COMPLETED', 'RECOVERED'];
+
 export async function POST(req: Request) {
   try {
     // Endpoint PÚBLICO (el middleware lo deja pasar sin sesión, ver
@@ -78,19 +80,31 @@ export async function PUT(req: Request) {
     if (cartData !== undefined) updateData.cartData = cartData;
     if (shippingData !== undefined) updateData.shippingData = shippingData;
     if (total !== undefined) updateData.total = total;
-    if (status !== undefined) updateData.status = status;
+    // Es una ruta pública y el id de la sesión viaja en el link del mail de
+    // recupero: solo se aceptan los dos estados que de verdad se mandan (el
+    // checkout al pagar, el panel de carritos al marcarlo recuperado).
+    if (status !== undefined) {
+      if (!ESTADOS_QUE_LLEGAN_DE_AFUERA.includes(status)) {
+        return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
+      }
+      updateData.status = status;
+    }
 
     // Un checkout del robot de Google no pasa a carrito de persona, ni aunque
     // el navegador mande otro estado (ver src/lib/checkout/robots.ts).
     const actual = await prisma.checkoutSession.findUnique({ where: { id: sessionId }, select: { status: true, email: true } });
     if (actual?.status === ESTADO_ROBOT || esCompradorRobot(email ?? actual?.email)) updateData.status = ESTADO_ROBOT;
 
-    const session = await prisma.checkoutSession.update({
+    // No se devuelve la fila: tiene nombre, teléfono, email y dirección, y
+    // cualquiera que tenga el id (el link del mail de recupero lo lleva) podía
+    // leerlos con un PUT vacío. Nadie usaba la respuesta.
+    await prisma.checkoutSession.update({
       where: { id: sessionId },
-      data: updateData
+      data: updateData,
+      select: { id: true },
     });
 
-    return NextResponse.json({ success: true, session });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error updating checkout session:', error);
     return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
