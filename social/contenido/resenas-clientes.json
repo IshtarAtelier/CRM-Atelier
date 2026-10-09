@@ -4,7 +4,7 @@
   "theme": "dark",
   "pilar": "prueba",
   "caption_plantilla": "{{RATING}} en Google, con más de {{RESENAS}} reseñas. Estas son algunas, tal como las escribieron.",
-  "caption": "5,0 en Google, con más de 700 reseñas. Estas son algunas, tal como las escribieron.",
+  "caption": "5,0 en Google, con más de 725 reseñas. Estas son algunas, tal como las escribieron.",
   "temas": [
     "local"
   ],
@@ -14,7 +14,7 @@
       "role": "portada",
       "image": "blog/vidriera-atelier.jpg",
       "title_plantilla": "{{RATING}} en Google *(más de {{RESENAS}} reseñas)*",
-      "title": "5,0 en Google *(más de 700 reseñas)*",
+      "title": "5,0 en Google *(más de 725 reseñas)*",
       "subtitle": "Algunas de las últimas, tal como las escribieron."
     },
     {
@@ -55,7 +55,7 @@
       "image": "blog/fachada-ladrillo.jpg",
       "title": "Sumate a las opiniones",
       "body_plantilla": "Más de {{RESENAS}} reseñas en Google, calificación {{RATING}}. Cerro de las Rosas, sin turno previo.",
-      "body": "Más de 700 reseñas en Google, calificación 5,0. Cerro de las Rosas, sin turno previo."
+      "body": "Más de 725 reseñas en Google, calificación 5,0. Cerro de las Rosas, sin turno previo."
     }
   ]
 }
