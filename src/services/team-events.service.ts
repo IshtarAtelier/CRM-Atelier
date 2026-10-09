@@ -67,10 +67,14 @@ const SELECT = {
 
 export class TeamEventsService {
 
-    /** Los colaboradores que pueden tener novedades (nunca las cuentas OPTICA). */
+    /**
+     * La planta del local: quienes figuran en feriados y calendario. Se marca
+     * en Configuración → usuarios ("Planta del local"). Ishtar y Yani no
+     * están porque no son planta permanente (8/10/2026).
+     */
     static listarEquipo() {
         return prisma.user.findMany({
-            where: { role: { in: ROLES_INTERNOS } },
+            where: { role: { in: ROLES_INTERNOS }, plantaLocal: true },
             select: { id: true, name: true, role: true },
             orderBy: { name: 'asc' },
         });

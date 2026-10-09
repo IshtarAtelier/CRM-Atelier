@@ -23,6 +23,9 @@ model User {
   // Celular propio para la copia por WhatsApp de las notas y mensajes internos
   // (ver src/lib/whatsapp/aviso-interno.ts). Null = no recibe copia.
   whatsappPhone     String?
+  // Planta permanente del local: aparece en la cobertura de feriados y en el
+  // calendario del equipo. Ishtar y Yani no lo son (8/10/2026).
+  plantaLocal       Boolean           @default(false)
   // Última señal de vida, para el puntito verde de "en línea". La escribe el
   // latido de la barra lateral cada 20 s. Es una marca de tiempo y no un
   // booleano `online`: un booleano queda en `true` para siempre si el navegador

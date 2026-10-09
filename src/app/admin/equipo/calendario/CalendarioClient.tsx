@@ -116,7 +116,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
             const cant = diasDe(n).filter(k => k.startsWith(prefijoMes)).length;
             if (!cant) continue;
             const f = m.get(n.userId) ?? { nombre: n.user.name, conteo: {} };
-            f.conteo[n.type] = (f.conteo[n.type] ?? 0) + (n.type === 'VACACIONES' || n.type === 'FRANCO' ? cant : 1);
+            f.conteo[n.type] = (f.conteo[n.type] ?? 0) + (n.type === 'VACACIONES' || n.type === 'FRANCO' || n.type === 'FRANCO_COMPENSATORIO' ? cant : 1);
             m.set(n.userId, f);
         }
         return [...m.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
