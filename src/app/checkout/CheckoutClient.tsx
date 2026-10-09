@@ -43,6 +43,9 @@ function clearIdempotencyKey() {
   try { localStorage.removeItem(IDEM_KEY); } catch { /* noop */ }
 }
 
+/** Campos del bloque "1. Contacto": el primero que se escribe marca checkout_contact_start. */
+const CAMPOS_DE_CONTACTO = new Set(['phone', 'email', 'firstName', 'lastName', 'dni']);
+
 export function CheckoutClient({ 
   paywayConfig,
   mercadoPagoEnabled = false,
@@ -103,6 +106,11 @@ export function CheckoutClient({
 
   const initiatedRef = useRef(false);
   const payLockRef = useRef(false);
+  // Medición del formulario de contacto (8/10/26): en celular nadie llegaba a
+  // dejar sus datos y no se sabía si ni siquiera empezaban a escribir, o si
+  // escribían y el sistema no podía guardarlo.
+  const contactoEmpezadoRef = useRef(false);
+  const ultimoErrorDeContactoRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (mounted && items.length > 0 && !initiatedRef.current) {
@@ -458,6 +466,13 @@ export function CheckoutClient({
               body: JSON.stringify(payload)
             });
             const data = await res.json();
+            // Si no se pudo guardar el contacto, queda medido una vez por motivo:
+            // es la única forma de ver desde afuera un rechazo que la persona
+            // no ve (el formulario sigue igual).
+            if (!res.ok && ultimoErrorDeContactoRef.current !== res.status) {
+              ultimoErrorDeContactoRef.current = res.status;
+              try { track('checkout_contact_error', { value: totalConPromo2x1, meta: { status: res.status, motivo: String(data?.error || '').slice(0, 80) } }); } catch { /* nunca frena */ }
+            }
             if (data.sessionId && !sessionId) {
               localStorage.setItem("atelier-checkout-session-id", data.sessionId);
               // Etapa del embudo: dejó datos de contacto en el checkout (una vez).
@@ -465,6 +480,10 @@ export function CheckoutClient({
             }
           } catch (e) {
             console.error("Failed to sync checkout session", e);
+            if (ultimoErrorDeContactoRef.current !== 0) {
+              ultimoErrorDeContactoRef.current = 0;
+              try { track('checkout_contact_error', { value: totalConPromo2x1, meta: { status: 0, motivo: 'sin_conexion' } }); } catch { /* nunca frena */ }
+            }
           }
         }
       }, 2000); // 2 second debounce
@@ -475,6 +494,11 @@ export function CheckoutClient({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    if (!contactoEmpezadoRef.current && value && CAMPOS_DE_CONTACTO.has(name)) {
+      contactoEmpezadoRef.current = true;
+      try { track('checkout_contact_start', { value: totalConPromo2x1, meta: { campo: name } }); } catch { /* nunca frena */ }
+    }
     
     if (name === "zip") {
       const updatedFields: Record<string, string> = {};

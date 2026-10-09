@@ -48,6 +48,10 @@ export const ANALYTICS_EVENT_TYPES = [
   'checkout_payment', // eligió o cambió el medio de pago
   'checkout_submit', // tocó el botón de pagar / confirmar
   'checkout_error', // el checkout le mostró un error (meta.motivo)
+  // 8/10/26: en celular 20 de 20 checkouts se fueron sin dejar contacto (en
+  // computadora, 10 de 21 sí) y no había cómo saber si llegaban a escribir.
+  'checkout_contact_start', // empezó a escribir en el formulario de contacto (meta.campo)
+  'checkout_contact_error', // el sistema no pudo guardar su contacto (meta.status, meta.motivo)
 ] as const;
 
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];

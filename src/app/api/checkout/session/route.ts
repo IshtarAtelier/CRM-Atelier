@@ -25,7 +25,10 @@ export async function POST(req: Request) {
     }
 
     const data = await req.json();
-    const { email, firstName, lastName, phone, cartData } = data;
+    const { firstName, lastName, phone, cartData } = data;
+    // Sin espacios de más: un mail con un espacio al final no es inválido, es el
+    // mismo mail (los teclados de celular lo agregan al usar una sugerencia).
+    const email = typeof data.email === 'string' ? data.email.trim() : data.email;
 
     if (email && !isValidEmail(email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
@@ -62,7 +65,8 @@ export async function PUT(req: Request) {
     }
 
     const data = await req.json();
-    const { sessionId, email, firstName, lastName, phone, cartData, shippingData, total, status } = data;
+    const { sessionId, firstName, lastName, phone, cartData, shippingData, total, status } = data;
+    const email = typeof data.email === 'string' ? data.email.trim() : data.email;
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
