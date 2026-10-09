@@ -262,10 +262,8 @@ sistema deshace el rastro, pausa 30 días y avisa al equipo
 
 ## 5. Lo ambiguo, duplicado o contradictorio (marcado a propósito)
 
-- **A. Los títulos de las columnas mienten sobre los plazos.** "Seguimiento 1
-  (24-48h)" se entra a las 48 h; "Seguimiento 2 (2-10 días)" a los 4 días;
-  "Frío (+10 días)" a los 15. `src/types/leads.ts:80-82` vs
-  `src/lib/leads-pipeline.ts:43-45`.
+- **A. ~~Los títulos de las columnas mienten sobre los plazos.~~** Resuelto el
+  8/10/2026: dicen "día 2", "día 4" y "día 15", que es cuando se entra.
 - **B. ~~"Decidir: ganado o perdido" no existe como acción.~~** Resuelto el
   8/10/2026: lo cierra el motor (`cerrar`, sección 0) con nota y AuditLog.
 - **C. `docs/embudo-de-ventas.md` dice "nada le escribe solo al cliente".**

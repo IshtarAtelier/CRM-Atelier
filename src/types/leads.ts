@@ -77,7 +77,7 @@ export const PIPELINE_COLUMNS: Record<PipelineStageKey, { title: string; color: 
   primerContacto:     { title: 'Primer Contacto',           color: 'violet',  icon: 'User',        accent: '#8b5cf6' },
   nuevaReceta:        { title: 'Nueva Receta',              color: 'blue',    icon: 'FileText',    accent: '#3b82f6' },
   cotizacionEnviada:  { title: 'Cotización Enviada',        color: 'emerald', icon: 'Send',        accent: '#10b981' },
-  seguimiento1:       { title: 'Seguimiento 1 (24-48h)',    color: 'amber',   icon: 'Clock',       accent: '#f59e0b' },
-  seguimiento2:       { title: 'Seguimiento 2 (2-10 días)', color: 'orange',  icon: 'Bell',        accent: '#f97316' },
-  seguimiento10dias:  { title: 'Frío (+10 días)',           color: 'rose',    icon: 'Snowflake',   accent: '#f43f5e' },
+  seguimiento1:       { title: 'Seguimiento 1 (día 2)',     color: 'amber',   icon: 'Clock',       accent: '#f59e0b' },
+  seguimiento2:       { title: 'Seguimiento 2 (día 4)',     color: 'orange',  icon: 'Bell',        accent: '#f97316' },
+  seguimiento10dias:  { title: 'Frío (día 15)',             color: 'rose',    icon: 'Snowflake',   accent: '#f43f5e' },
 };
