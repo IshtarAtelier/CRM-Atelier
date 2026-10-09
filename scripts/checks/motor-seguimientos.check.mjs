@@ -107,6 +107,13 @@ console.log('\nSi el cliente responde a un seguimiento, NO hay tarea para nadie 
     check('primera respuesta después del seguimiento → se detecta', rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: hace(20), lastInboundAt: hace(30) }));
     const inbound = readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('inbound.js ya NO crea la tarea del vendedor', !inbound.includes('crearTareaPorRespuesta('));
+    check('8/10 · inbound.js avisa al equipo por la mensajería interna cuando alguien responde', inbound.includes('avisarRespuestaAlEquipo(prisma'));
+    const ar = require('../../wa-service/shared/aviso-respuesta.js');
+    const t1 = ar.textoDelAviso({ nombre: 'Julio Pérez', texto: 'Si claro, pasame los modelos', tipo: 'TEXT', plantilla: 'ultimo_seguimiento', clientId: 'c1' });
+    check('el aviso dice quién habló, qué dijo y lleva a la ficha', t1.includes('Julio Pérez respondió al seguimiento') && t1.includes('«Si claro, pasame los modelos»') && t1.includes('/admin/contactos?id=c1'));
+    const t2 = ar.textoDelAviso({ nombre: 'Ana', texto: '¡Sí, quiero mi descuento!', tipo: 'TEXT', plantilla: ar.PLANTILLA_RETOME, clientId: 'c2' });
+    check('si respondió al retome, avisa que ya tiene el 10 % reservado', t2.includes('10 %') && t2.includes('descuento reservado'));
+    check('un audio se describe como [audio]', ar.textoDelAviso({ nombre: 'Ana', texto: '', tipo: 'AUDIO', plantilla: null, clientId: 'c' }).includes('[audio]'));
     const respTs = readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('la red diaria solo CANCELA las que quedaron (no crea)', !respTs.includes('clientTask.create') && respTs.includes("status: 'CANCELLED'"));
     const sync = readFileSync(new URL('../../src/lib/embudo/sincronizar-tareas.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');

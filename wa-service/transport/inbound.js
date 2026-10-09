@@ -25,6 +25,7 @@ const { uploadMediaToCrm } = require('../shared/media');
 const { asegurarFichaDeLead } = require('./alta-de-ficha');
 const { deshacerSeguimientoFallido, PAUSA_DIAS } = require('../shared/seguimiento-fallido');
 const { esPrimeraRespuestaAlSeguimiento } = require('../shared/respuesta-a-seguimiento');
+const { avisarRespuestaAlEquipo } = require('../shared/aviso-respuesta');
 const cloud = require('./cloud-api');
 
 const TYPE_MAP = {
@@ -243,11 +244,17 @@ async function persistInboundUnlocked(m, { io } = {}) {
     // chat, y corriendo antes no tendría nada que leer.
     chat = await asegurarFichaDeLead(chat, waId, m.profileName);
 
-    // Respondió a un seguimiento: solo se anota en el log. Hasta el 8/10/2026
-    // creaba una tarea del vendedor; desde entonces el embudo no tiene nada
-    // para personas (Ishtar): la respuesta la lee el motor de la app
-    // (`src/lib/embudo/respuesta.ts`) y la charla la contesta el bot.
-    if (esPrimeraRespuestaAlSeguimiento(chatAntes)) console.log(`  💬 [Inbound] ${waId} respondió a un seguimiento.`);
+    // Respondió a un seguimiento: aviso al equipo en la mensajería interna
+    // ("Fulano respondió: «…»", canal "💬 Respuestas a seguimientos"). Hasta el
+    // 8/10/2026 creaba una TAREA del vendedor; desde entonces el embudo no deja
+    // nada para tachar (Ishtar): qué quiso decir lo lee el motor de la app
+    // (`src/lib/embudo/respuesta.ts`), la charla la contesta el bot, y el
+    // equipo se entera acá para entrar al chat si quiere.
+    if (esPrimeraRespuestaAlSeguimiento(chatAntes) && chat.clientId) {
+        const nombre = (await prisma.client.findUnique({ where: { id: chat.clientId }, select: { name: true } }).catch(() => null))?.name || m.profileName || 'Un cliente';
+        const avisado = await avisarRespuestaAlEquipo(prisma, { clientId: chat.clientId, chatId: chat.id, nombre, texto: content, tipo: messageType });
+        console.log(`  💬 [Inbound] ${waId} respondió a un seguimiento${avisado ? ': avisado al equipo' : ''}.`);
+    }
 
     // ── Eventos para el buzón (mismos nombres que hoy) ──────────────────────
     if (io) {

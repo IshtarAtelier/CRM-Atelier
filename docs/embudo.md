@@ -58,9 +58,13 @@ Lo que cambió, y dónde:
   pelado solo cuenta si es la primera burbuja después del toque.
 - **No se crea ninguna tarea**: ni las EMBUDO del día
   (`sincronizar-tareas.ts` solo cancela lo que quedó) ni las "💬 Respondió al
-  seguimiento" (`respuestas-a-seguimientos.ts` y
-  `wa-service/transport/inbound.js`). Si el bot necesita a una persona, la
-  deriva por su propio camino.
+  seguimiento" (`respuestas-a-seguimientos.ts`). En su lugar, **cuando alguien
+  responde a un toque, el equipo recibe al instante "Fulano respondió: «…»"**
+  en la conversación "💬 Respuestas a seguimientos" de la mensajería interna
+  (`wa-service/shared/aviso-respuesta.js`, lo dispara `transport/inbound.js`);
+  si respondió al retome del 10 %, el aviso lo dice. Es información para
+  entrar al chat, no una tarea. Si el bot necesita a una persona, la deriva
+  por su propio camino.
 - Lo que el motor hace sin mandar (cierres, lecturas de respuesta) queda en
   `SeguimientoCorrida.vetados` y en la respuesta del endpoint; se ve en
   `/admin/leads/salud`. Lo fija `npm run check:embudo` (CI).
