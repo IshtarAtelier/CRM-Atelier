@@ -3,7 +3,7 @@ import { RESOLUCIONES_CONOCIDAS } from '../lab-providers/resoluciones';
 import { isQuietLab } from './backfill';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
-import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
+import { LAB_ITEM_PATTERNS, LABS_FACTURA_A, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
 import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
 import { cristalesPorArmazon } from '../../lib/order-frames';
 import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../lab-modules/vitolen/promo';
@@ -218,7 +218,7 @@ const REWORK_MARK = '⚠️ REPROCESO DE GARANTÍA FACTURADO CON CARGO';
  * monotributo y no recupera ese IVA, así que su costo real es el TOTAL.
  * Grupo Óptico factura a consumidor final (neto = total) y no está acá.
  */
-export const LABS_FACTURA_A = new Set(['OPTOVISION', 'LA_CAMARA', 'VITOLEN']);
+export { LABS_FACTURA_A };
 
 /**
  * La config del laboratorio (calibrado e IVA) para valuar el par bonificado de

@@ -56,7 +56,8 @@ export function segundoParCobradoDeMas(facturado: number, esperado: number, tole
 export function rolesDeLaPromoHoya(items: LineaDeCarrito[]): RolesDePares | null {
     const d = descuentoSegundoParHoya(items);
     if (!d.primerPar || !d.segundoPar) return null;
-    const conCargo = d.primerPar.framePosition ?? 1;
+    // Sin armazón asignado en uno de los dos (ventas viejas), se resuelve contra el otro.
+    const conCargo = d.primerPar.framePosition ?? (d.segundoPar.framePosition === 1 ? 2 : 1);
     const sinCargo = d.segundoPar.framePosition ?? (conCargo === 1 ? 2 : 1);
     if (conCargo === sinCargo) return null;
     return {

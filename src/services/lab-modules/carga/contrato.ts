@@ -100,7 +100,9 @@ export interface CargaAsistida {
     /** Después del OK humano: el robot carga en el portal. Reintentable. */
     confirmar(borradorId: string): Promise<unknown>;
     /** Después de un rechazo: lo que haya que deshacer en el portal (Vitolen cancela su borrador; Grupo Óptico, nada). */
-    despuesDeRechazar(borradorId: string): Promise<unknown>;
+    despuesDeRechazar(borradorId: string, actor?: Actor): Promise<unknown>;
     /** Cancelar en el portal un borrador que quedó colgado (solo los portales que tienen borrador). */
-    cancelarEnPortal?(borradorId: string): Promise<{ cancelado: boolean; motivo?: string }>;
+    cancelarEnPortal?(borradorId: string, actor?: Actor): Promise<{ cancelado: boolean; motivo?: string }>;
+    /** Volver a mirar el portal sin cambiar de estado (Vitolen: después de "Modificar" a mano). */
+    releerPortal?(borradorId: string, actor: Actor): Promise<unknown>;
 }

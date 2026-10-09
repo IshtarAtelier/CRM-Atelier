@@ -8,7 +8,8 @@ import { LAB_GRUPO_OPTICO } from './portal';
  */
 export { decidirExistente, mensajeExistente, type PedidoExistente } from '../carga/existentes';
 
-export const esNumeroSmartLab = (n: string) => /^80\d{6}$/.test(n);
+/** Hoy 80xxxxxx; mañana 81xxxxxx: 8 dígitos que empiezan con 8 (Optovisión usa 6, Vitolen 7). */
+export const esNumeroSmartLab = (n: string) => /^8\d{7}$/.test(n);
 
 export function pedidoExistenteDelPar(orderId: string, pair: number, pares: number, excluir?: string | null): Promise<PedidoExistente | null> {
     return existenteDe(LAB_GRUPO_OPTICO, orderId, pair, pares, { excluir, esNumeroDelLab: esNumeroSmartLab });

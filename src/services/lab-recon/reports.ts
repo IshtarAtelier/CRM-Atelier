@@ -392,8 +392,10 @@ export async function weeklyReport(from: Date, to: Date) {
 
     // ── SALUD DE LAS FUENTES y corridas de la conciliación ───────────────────
     const labs = LABS_DEL_SEMANAL;
-    // Optovisión y Grupo Óptico sellan en lab-providers; Vitolen es un módulo (portal/salud.ts).
-    const claveSalud = (l: string) => (l === 'VITOLEN' ? `lab-modulo:${l}:lastOkAt` : `lab-provider:${l}:lastOkAt`);
+    // Los tres labs sellan la pasada de COSTOS en lab-providers (Vitolen entra en
+    // LAB_PROVIDERS); el seguimiento de Vitolen sella aparte (lab-modulo:…) y no
+    // dice nada de las facturas.
+    const claveSalud = (l: string) => `lab-provider:${l}:lastOkAt`;
     const estados = await prisma.systemSetting.findMany({
         where: { key: { in: labs.map(claveSalud) } },
     }).catch(() => [] as any[]);

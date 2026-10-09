@@ -20,7 +20,8 @@ El robot carga lo que dice la venta. Si falta algo, no prepara y dice qué.
 3. Receta completa (esférico, cilindro con su eje, adición en multifocal),
    DNP de cada ojo **de a 0,5** y **altura de cada armazón en milímetros
    enteros** (en un 2x1, la del 2º armazón también): así las toma el laboratorio.
-4. Medidas del armazón (A, B, ED, puente).
+4. Medidas del armazón (A, B, ED, puente): si faltan, el pedido sale sin
+   ellas (el laboratorio las toma del armazón físico); mejor cargarlas.
 5. Si hay teñido (anteojo de sol): la línea de teñido con **estilo, color y
    grado**, y **asignada a su armazón**.
 
@@ -75,9 +76,13 @@ de "Preparar" hay un link **"+ Agregar Essential (NO está en la venta)"**:
   el nº de operación del otro par; en el par con cargo, que su nº quede en la
   venta antes de preparar el otro. Leelo y recién ahí "Lo revisé: aprobar y
   cargar".
-- Si el 2º par es **de sol** (con teñido), el robot lo carga en **Orgánico
-  Blanco 1.49** de la misma familia + el teñido: es el único material que el
-  laboratorio tiñe. Te lo avisa en amarillo antes de aprobar.
+- Si el par **sin cargo** es **de sol** (con teñido), el robot lo carga en
+  **Orgánico Blanco 1.49** de la misma familia, sin Essential y con el
+  teñido: es el único material que el laboratorio tiñe. Te lo avisa en
+  amarillo antes de aprobar.
+- Un par **con cargo** de sol se vende directamente como **Orgánico Blanco
+  1.49 + teñido**: si la venta dice otro material (Blue Light, Essential…), el
+  robot no lo degrada en silencio — frena y pide corregir la venta.
 
 ## Si algo falla
 
@@ -92,7 +97,9 @@ de "Preparar" hay un link **"+ Agregar Essential (NO está en la venta)"**:
 
 **Plan B**: arriba de la ficha siguen los botones **"A mano · Par 1/2"** (el
 favorito de siempre). Usalos solo si el robot no puede; después **tipeá el nº**
-en la venta como siempre. Si cargás a mano, el **código interno** tiene que
+en la venta como siempre. OJO: el favorito escribe el teñido con otras
+palabras que las del portal ("Pleno", "Marrón"): **revisá el teñido en el
+portal** antes de guardar. Si cargás a mano, el **código interno** tiene que
 decir qué armazón es (`#XXXX Nombre 1°par` / `2°par`, como lo escribe el
 favorito): es lo que usa el seguimiento para saber de qué par es el pedido. No
 alcanza con la observación "2° par SIN CARGO" — ese "2° par" es el de la

@@ -3,6 +3,7 @@ import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones } from '../..
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { formatearPrecio } from '../../../lib/format-precio';
 import { avisoDeRoles, rolesDeDosPares, type RolesDePares } from '../carga/roles-2x1';
+import { esNumeroSmartLab } from './existentes';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import {
     especificacionDe, TENIDO_COLOR, TENIDO_INTENSIDADES, TENIDO_TIPO, TIPO_ARMAZON, TIPO_ARO,
@@ -122,13 +123,13 @@ export function esVenta2x1(venta: VentaParaSmartLab): boolean {
     const porPar = cristalesPorArmazon(venta);
     const nombreDe = (i: any) => texto(i?.product?.name ?? i?.productNameSnapshot);
     // Sin laboratorio cargado en el ítem se asume Grupo Óptico (se llama dentro de su carga).
-    const esGO = (i: any) => /grupo[\s-]?[oó]ptico/i.test(texto(i?.laboratorySnapshot ?? i?.product?.laboratory) || 'grupo optico');
+    const esGO = (i: any) => /grupo[\s_-]?[oó]ptico/i.test(texto(i?.laboratorySnapshot ?? i?.product?.laboratory) || 'grupo optico');
     const familia = (i: any) => nombreDe(i).split('·')[0].trim().toLowerCase();
     const p1 = ((porPar.get(1) || []) as any[]).filter(esGO);
     const p2 = ((porPar.get(2) || []) as any[]).filter(esGO);
     if (!p1.length || !p2.length || familia(p1[0]) !== familia(p2[0])) return false;
     // La promo la dice el producto ("… 2x1") o la promo aplicada a la venta.
-    return /2\s*x\s*1/i.test(nombreDe(p1[0])) || /2\s*x\s*1/i.test(texto(venta.appliedPromoName));
+    return /2\s*x\s*1/i.test(nombreDe(p1[0])) || /2\s*x\s*1/i.test(nombreDe(p2[0])) || /2\s*x\s*1/i.test(texto(venta.appliedPromoName));
 }
 
 /**
@@ -153,10 +154,12 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     // edición de la venta (auditoría 5, 8/10/2026) — y de eso dependen el rol
     // (con cargo / sin cargo), la graduación y hasta qué ojo va en cada pedido.
     const esCristalDelLab = (i: any) => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot))
-        && /grupo[\s-]?[oó]ptico/i.test(texto(i?.laboratorySnapshot ?? i?.product?.laboratory) || 'grupo optico');
+        && /grupo[\s_-]?[oó]ptico/i.test(texto(i?.laboratorySnapshot ?? i?.product?.laboratory) || 'grupo optico');
     if (pares > 1 && (venta.items as any[]).some(i => esCristalDelLab(i) && i.framePosition == null)) {
         faltantes.push('hay cristales sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal');
     }
+    const fueraDeRango = (venta.items as any[]).find(i => esCristalDelLab(i) && i.framePosition != null && (i.framePosition < 1 || i.framePosition > pares));
+    if (fueraDeRango) faltantes.push(`hay un cristal asignado al armazón ${fueraDeRango.framePosition}, que la venta no tiene: reasignalo`);
     const cristales = (cristalesPorArmazon(venta).get(par) || []) as any[];
     const producto = texto(cristales[0]?.product?.name ?? cristales[0]?.productNameSnapshot);
     const nombres = [...new Set(cristales.map(c => texto(c.product?.name ?? c.productNameSnapshot)))];
@@ -175,7 +178,7 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     const lineaTenido = tenidos.find((i: any) => (pares > 1 ? i.framePosition : (i.framePosition ?? 1)) === par);
     let tenido: Tenido | null = null;
     if (lineaTenido) {
-        const estilo = (lineaTenido.crystalColorType as Tenido['tipo'] | null) || estiloDeTenidoDelProducto((lineaTenido as any).product) || null;
+        const estilo = estiloDeTenidoDelProducto((lineaTenido as any).product ?? { name: (lineaTenido as any).productNameSnapshot }) || (lineaTenido.crystalColorType as Tenido['tipo'] | null) || null;
         const color = texto(lineaTenido.crystalColor);
         const intensidad = texto(lineaTenido.crystalColorNote);
         if (!estilo || !TENIDO_TIPO[estilo]) faltantes.push(`teñido del par ${par}: falta el estilo (compacto, degradé o según muestra)`);
@@ -186,16 +189,31 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
         }
     }
 
+    const roles = rolesDel2x1(venta);
+    const es2x1 = !!roles;
+    const sinCargo = !!roles && par === roles.sinCargo;
+    const rol2x1: Rol2x1 | null = roles ? (sinCargo ? 'SIN_CARGO' : 'CON_CARGO') : null;
+    const pedidoOrigen = sinCargo ? texto(opciones.pedidoOrigen) || null : null;
+    if (sinCargo && !esNumeroSmartLab(pedidoOrigen || '')) faltantes.push(`el par sin cargo del 2x1 se carga con el par con cargo (par ${roles!.conCargo}) ya cargado: hace falta su nº de pedido para la observación`);
+    const avisoRoles = roles ? avisoDeRoles(roles, n => `$ ${formatearPrecio(n)}`) : null;
+    if (avisoRoles) avisos.push(avisoRoles);
     const colorItem = cristales.map(c => texto(c.crystalColor)).find(Boolean) || null;
     // Essential como extra NO cobrado: solo con motivo (la ficha lo exige) y
     // solo si el producto no lo trae ya.
-    const motivoEssential = texto(opciones.extras?.essential) || null;
+    const motivoEssential = texto(opciones.extras?.essential).slice(0, 500) || null;
     const extrasNoCobrados: PlanDeCarga['extrasNoCobrados'] = [];
     const yaEssential = /·\s*essential\b/i.test(producto);
     const res = especificacionDe(producto, { colorItem, conTenido: !!lineaTenido, conEssential: !!motivoEssential && !yaEssential });
     if (!res.ok) { faltantes.push(res.motivo); return { ok: false, faltantes, avisos }; }
     const esp = res.especificacion;
-    if (esp.clase === 'LAB' && esp.pasoATenible) avisos.push(`par ${par} con teñido: se carga en Orgánico Blanco 1.49 (el único que el laboratorio tiñe), misma familia ${esp.familia.nombre}`);
+    if (esp.clase === 'LAB' && esp.pasoATenible) {
+        // El portal solo tiñe ORG BLANCO 1.49. Para el par SIN CARGO de un 2x1 es la
+        // práctica de siempre (el lab lo regala en ese material). Para un par
+        // COBRADO como otro material, cargarlo en Blanco 1.49 sin Essential sería
+        // cobrar una cosa y fabricar otra: se corrige la venta (auditoría total, 8/10/2026).
+        if (sinCargo) avisos.push(`par ${par} con teñido: se carga en Orgánico Blanco 1.49 (el único que el laboratorio tiñe), misma familia ${esp.familia.nombre}`);
+        else faltantes.push(`el cristal vendido (${producto}) no se tiñe en el laboratorio: para un par de sol con cargo, cambiá la venta a ${esp.familia.nombre} · Orgánico Blanco 1.49 (sin Essential) o sacale el teñido`);
+    }
     if (motivoEssential && !yaEssential) {
         if (motivoEssential.length < 10) faltantes.push('el motivo del Essential tiene que explicar por qué (al menos 10 letras)');
         else if (esp.clase !== 'LAB') faltantes.push('el Essential solo se agrega a un cristal de laboratorio (este es de stock)');
@@ -214,19 +232,14 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
 
     // Receta, medidas y validaciones de siempre: el armado único (armar-pedido.ts).
     const armado = armarPedidoSmartLab({ ...venta, labType: clase }, par);
-    faltantes.push(...armado.faltantes);
+    // El armado común deduce "necesita adición" del nombre ("ocupacional"); en el
+    // portal manda el tipo de lente de la FAMILIA (Ocupacional Ultra Relax es monofocal).
+    const familiaMonofocal = esp.clase === 'LAB' && esp.familia.lensTypeId === 1;
+    faltantes.push(...armado.faltantes.filter(f => !(familiaMonofocal && /adici[oó]n/i.test(f))));
     avisos.push(...armado.avisos);
 
     // 2x1: el par SIN CARGO (el de menor valor) se prepara con el nº del par con
     // cargo, que va en la observación: es lo que hace que el laboratorio no lo cobre.
-    const roles = rolesDel2x1(venta);
-    const es2x1 = !!roles;
-    const sinCargo = !!roles && par === roles.sinCargo;
-    const rol2x1: Rol2x1 | null = roles ? (sinCargo ? 'SIN_CARGO' : 'CON_CARGO') : null;
-    const pedidoOrigen = sinCargo ? texto(opciones.pedidoOrigen) || null : null;
-    if (sinCargo && !/^80\d{6}$/.test(pedidoOrigen || '')) faltantes.push(`el par sin cargo del 2x1 se carga con el par con cargo (par ${roles!.conCargo}) ya cargado: hace falta su nº de pedido para la observación`);
-    const avisoRoles = roles ? avisoDeRoles(roles, formatearPrecio) : null;
-    if (avisoRoles) avisos.push(avisoRoles);
 
     const p = armado.payload;
     const lensTypeId = esp.clase === 'STOCK' ? '1' : String(esp.familia.lensTypeId);

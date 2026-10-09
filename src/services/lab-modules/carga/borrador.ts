@@ -179,15 +179,18 @@ export const Borradores = {
     /** Una persona miró la captura y aprobó. */
     async aprobar(id: string, actor: Actor) {
         if (!puedeAprobar(actor)) throw new Error('La aprobación tiene que hacerla una persona identificada.');
-        const b = await cambiarEstado(id, 'APROBADO', { approvedBy: actor.name, approvedAt: new Date(), error: null }, actor);
-        await mezclarRastro(id, { aprobadoPorId: actor.id });
-        return b;
+        // Nombre e id de quien aprobó en UN solo write: si fueran dos, una falla en
+        // el segundo firmaría la venta sin id.
+        const previo = await prisma.labOrderDraft.findUnique({ where: { id }, select: { resumenPortal: true } });
+        const rastro = (previo?.resumenPortal && typeof previo.resumenPortal === 'object' ? previo.resumenPortal : {}) as RastroPortal;
+        return cambiarEstado(id, 'APROBADO', { approvedBy: actor.name, approvedAt: new Date(), error: null, resumenPortal: { ...rastro, aprobadoPorId: actor.id } as any }, actor);
     },
 
     async rechazar(id: string, actor: Actor, motivo: string) {
         if (!puedeAprobar(actor)) throw new Error('El rechazo tiene que hacerlo una persona identificada.');
         if (!motivo?.trim()) throw new Error('Decí por qué se rechaza: es lo que el vendedor va a leer.');
-        return cambiarEstado(id, 'RECHAZADO', { error: motivo.trim() }, actor, { motivo: motivo.trim() });
+        const texto = motivo.trim().slice(0, 500);
+        return cambiarEstado(id, 'RECHAZADO', { error: texto }, actor, { motivo: texto });
     },
 
     /** El robot confirmó en el portal y obtuvo el nº de pedido. */
@@ -231,14 +234,58 @@ export const Borradores = {
         return prisma.labOrderDraft.update({ where: { id }, data: { error: motivo } });
     },
 
-    /** El robot canceló el borrador en el portal: ya no bloquea preparar otro. */
-    canceladoEnPortal(id: string) {
-        return mezclarRastro(id, { canceladoEl: new Date().toISOString() });
+    /**
+     * Un APROBADO que no puede cargar y NUNCA mandó nada (sin envío iniciado ni
+     * nº) se anula a mano, firmado: si no, el par quedaba bloqueado para siempre
+     * con el portal caído o la credencial rechazada (auditoría total, 8/10/2026).
+     * Con envío iniciado no se anula: primero el reintento busca el pedido.
+     */
+    async anular(id: string, actor: Actor, motivo: string) {
+        if (!puedeAprobar(actor)) throw new Error('La anulación tiene que hacerla una persona identificada.');
+        if (!motivo?.trim()) throw new Error('Decí por qué se anula: es lo que el vendedor va a leer.');
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, resumenPortal: true, orderId: true, lab: true, pair: true } });
+        if (!b) throw new Error('El borrador no existe.');
+        const r = (b.resumenPortal || {}) as RastroPortal & { numeroCreado?: string; envioIniciadoEl?: string | null };
+        if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: solo se anula un APROBADO que no pudo cargar.`);
+        if (r.numeroCreado || r.envioIniciadoEl || r.portalDraftId) throw new Error('Este aprobado ya mandó algo al portal (o dejó un borrador ahí): no se anula a mano, se reintenta o se cancela en el portal.');
+        const texto = motivo.trim().slice(0, 500);
+        const u = await prisma.labOrderDraft.updateMany({ where: { id, status: 'APROBADO' }, data: { status: 'ERROR', error: `Anulado por ${actor.name}: ${texto}` } });
+        if (u.count !== 1) throw new Error('El borrador cambió de estado mientras tanto: volvé a cargar la ficha.');
+        await logAudit({
+            userId: actor.id, userName: actor.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
+            details: { lab: b.lab, orderId: b.orderId, pair: b.pair, de: 'APROBADO', a: 'ERROR', motivo: texto, anuladoAMano: true },
+        });
+        return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
+    },
+
+    /** El robot volvió a mirar el portal (sin cambiar de estado): captura y resumen nuevos para revisar. */
+    async vistaReleida(id: string, actor: Actor, datos: { screenshotUrl: string; resumenPortal: RastroPortal }) {
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
+        if (!b) throw new Error('El borrador no existe.');
+        if (b.status !== 'EN_REVISION') throw new Error(`El borrador está ${b.status}: solo se relee uno para revisar.`);
+        const r = await prisma.labOrderDraft.update({ where: { id }, data: { screenshotUrl: datos.screenshotUrl, resumenPortal: datos.resumenPortal as any } });
+        await logAudit({ userId: actor.id, userName: actor.name, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { lab: b.lab, orderId: b.orderId, pair: b.pair, releido: true } }).catch(console.error);
+        return r;
+    },
+
+    /** El robot canceló el borrador en el portal: ya no bloquea preparar otro. Firmado por quien lo pidió. */
+    async canceladoEnPortal(id: string, actor?: Actor) {
+        const b = await mezclarRastro(id, { canceladoEl: new Date().toISOString() });
+        await logAudit({
+            userId: actor?.id ?? null, userName: actor?.name ?? null, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
+            details: { lab: b.lab, orderId: b.orderId, pair: b.pair, canceladoEnPortal: true },
+        }).catch(console.error);
+        return b;
     },
 
     /** Al ir a cancelar, el robot encontró el pedido confirmado a mano: queda resuelto con ese nº. */
-    confirmadoAManoEnPortal(id: string, portalNumber: string) {
-        return mezclarRastro(id, { confirmadoAManoEl: new Date().toISOString(), confirmadoAManoNumero: portalNumber });
+    async confirmadoAManoEnPortal(id: string, portalNumber: string, actor?: Actor) {
+        const b = await mezclarRastro(id, { confirmadoAManoEl: new Date().toISOString(), confirmadoAManoNumero: portalNumber });
+        await logAudit({
+            userId: actor?.id ?? null, userName: actor?.name ?? null, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
+            details: { lab: b.lab, orderId: b.orderId, pair: b.pair, confirmadoAManoEnPortal: portalNumber },
+        }).catch(console.error);
+        return b;
     },
 
     deVenta(orderId: string) {

@@ -159,12 +159,23 @@ export class PedidoAmbiguoError extends Error {
  * mano antes también cuenta. Se descartan anulados y nº de otro par. En una
  * venta de varios pares, uno sin par marcado es AMBIGUO (auditoría 2, N1). Puro.
  */
-export function pedidoYaCreado(filas: FilaApiSmartLab[], codigoVenta: string, par: number | null, excluir: Set<string> = new Set()): { numero: string; ambiguo: boolean } | null {
+export function pedidoYaCreado(filas: FilaApiSmartLab[], codigoVenta: string, par: number | null, excluir: Set<string> = new Set(), nombreCliente: string | null = null): { numero: string; ambiguo: boolean } | null {
     const codigo = codigoVenta.toUpperCase().replace(/^#?/, '#');
     const re = new RegExp(`(^|\\s)${codigo}(\\s|$)`, 'i');
+    // El código corto (#XXXX, 4 letras del id) puede repetirse entre ventas: si la
+    // fila trae un nombre al lado del código, tiene que ser el de ESTE cliente
+    // (robot y favorito escriben "#XXXX Nombre Apellido N°par"; auditoría total, 8/10/2026).
+    const normal = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const palabrasCliente = normal(nombreCliente || '').split(/\s+/).filter(w => w.length >= 3);
+    const esDeEsteCliente = (codigoOptica: string) => {
+        const resto = normal(codigoOptica).replace(normal(codigo), ' ').replace(/\b\d\s*°?\s*par\b/g, ' ').trim();
+        if (!resto || palabrasCliente.length === 0) return true;
+        return palabrasCliente.some(w => resto.includes(w));
+    };
     let ambiguo: string | null = null;
     for (const f of filas) {
         if (!re.test(String(f.CodigoOptica || ''))) continue;
+        if (!esDeEsteCliente(String(f.CodigoOptica || ''))) continue;
         if (String(f.Anulado ?? '0') === '1') continue;
         const num = numeroDeFila(f);
         if (!num || excluir.has(num)) continue;
@@ -176,7 +187,7 @@ export function pedidoYaCreado(filas: FilaApiSmartLab[], codigoVenta: string, pa
     return ambiguo ? { numero: ambiguo, ambiguo: true } : null;
 }
 
-export async function buscarPedidoYaCreado(page: Page, codigoVenta: string, par: number | null, excluir: Set<string> = new Set()): Promise<string | null> {
+export async function buscarPedidoYaCreado(page: Page, codigoVenta: string, par: number | null, excluir: Set<string> = new Set(), nombreCliente: string | null = null): Promise<string | null> {
     // Las dos primeras páginas (200 pedidos, de más nuevo a más viejo) cubren lo
     // que pudo cargarse para una venta que todavía espera su pedido.
     for (let current = 1; current <= 2; current++) {
@@ -185,7 +196,7 @@ export async function buscarPedidoYaCreado(page: Page, codigoVenta: string, par:
         if (!Array.isArray(res?.rows) || (current === 1 && res.rows.length === 0)) {
             throw new Error(`${NOMBRE_GRUPO_OPTICO}: el listado del portal vino vacío o roto; no se puede comprobar si el pedido ya existe, así que no se crea nada.`);
         }
-        const r = pedidoYaCreado(res.rows, codigoVenta, par, excluir);
+        const r = pedidoYaCreado(res.rows, codigoVenta, par, excluir, nombreCliente);
         if (r?.ambiguo) throw new PedidoAmbiguoError(r.numero);
         if (r) return r.numero;
         if (res.rows.length < 100) break;

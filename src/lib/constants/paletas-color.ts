@@ -84,6 +84,24 @@ const normalizar = (s: string) =>
  * Devuelve null cuando el cristal no lleva color a elegir. El orden de las
  * reglas importa: primero las excepciones concretas, después el material.
  */
+const tono = (name: string, hexColor: string): Tono => ({ name, hexColor });
+const PALETAS_GRUPO_OPTICO: Record<string, Paleta> = {
+    SMART_COLOR: { id: 'go-smart-color', label: 'Fotocromático Smart Color (Grupo Óptico)', tonos: [tono('Azul', '#2a4b8d'), tono('Púrpura', '#7b4b9c'), tono('Rosa', '#c76b8a'), tono('Sepia', '#6b4c3a'), tono('Verde', '#2f6b4f')] },
+    FOTO_ESPEJADO: { id: 'go-foto-espejado', label: 'Fotocromático espejado (Grupo Óptico)', tonos: [tono('Azul', '#2a4b8d'), tono('Dorado', '#c9a227'), tono('Verde', '#2f6b4f'), tono('Púrpura', '#7b4b9c'), tono('Rojo', '#a52a2a'), tono('Plateado', '#9aa0a6')] },
+    POLARIZADO: { id: 'go-polarizado', label: 'Polarizado (Grupo Óptico)', tonos: [tono('Gris', '#555555'), tono('Sepia', '#6b4c3a'), tono('Verde', '#2f6b4f'), tono('Amarillo', '#d4b106')] },
+    ESPEJADO: { id: 'go-espejado', label: 'Espejado (Grupo Óptico)', tonos: [tono('Azul', '#2a4b8d'), tono('Plateado', '#9aa0a6')] },
+};
+/** La paleta de un cristal de Grupo Óptico, por su nombre normalizado; null si no es uno de varios colores. */
+export function paletaDeGrupoOptico(nombreNormalizado: string): Paleta | null {
+    const n = nombreNormalizado;
+    if (n.includes('xperio') || n.includes('transitions')) return null; // esos son de Optovisión
+    if (n.includes('smart color')) return PALETAS_GRUPO_OPTICO.SMART_COLOR;
+    if (/fotocromatic\w*\s+espejado|foto espejado/.test(n)) return PALETAS_GRUPO_OPTICO.FOTO_ESPEJADO;
+    if (n.includes('polarizado')) return PALETAS_GRUPO_OPTICO.POLARIZADO;
+    if (n.includes('espejado')) return PALETAS_GRUPO_OPTICO.ESPEJADO;
+    return null;
+}
+
 export function paletaDeFotocromatico(product: any): Paleta | null {
     const n = normalizar(product?.name);
 
@@ -92,6 +110,13 @@ export function paletaDeFotocromatico(product: any): Paleta | null {
     const esAcclimates = n.includes('acclimates');
     const esXperio = n.includes('xperio');
     const esFotocromatico = n.includes('transitions') || n.includes('fotocromatic');
+
+    // 0. Cristales de Grupo Óptico que el portal ofrece en varios colores: el
+    //    vendedor tiene que elegir uno en la venta, si no el robot no puede
+    //    cargarlo (lab-modules/grupo-optico/catalogo.ts, MATERIALES_LAB).
+    //    Los nombres son los que el catálogo reconoce (COLOR_DEL_ITEM).
+    const paletaGO = paletaDeGrupoOptico(n);
+    if (paletaGO) return paletaGO;
 
     if (!esGenS && !esXtractive && !esAcclimates && !esXperio && !esFotocromatico) return null;
 

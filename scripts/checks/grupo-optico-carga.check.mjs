@@ -211,6 +211,40 @@ ok('el plan con Essential no cobrado: carga Essential, lo anota con el motivo y 
     const sol = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878', extras: { essential: 'motivo cualquiera' } });
     assert.equal(sol.ok, false); assert.ok(sol.faltantes.some(f => /par teñido/.test(f)), sol.faltantes.join(' | '));
 });
+ok('un par CON CARGO vendido en un material que no se tiñe, con teñido: frena (no se degrada a Blanco 1.49 en silencio)', () => {
+    const v = venta2x1(); v.frames = [v.frames[0]]; v.items = v.items.filter(i => i.framePosition !== 2 || i.product.category === 'Tratamiento').map(i => (i.product.category === 'Tratamiento' ? { ...i, framePosition: 1 } : i));
+    const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' });
+    assert.equal(r.ok, false); assert.ok(r.faltantes.some(f => /no se tiñe en el laboratorio/.test(f)), r.faltantes.join(' | '));
+    const s = planDeCarga(venta2x1(), 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878' });
+    assert.ok(s.ok, s.faltantes?.join(' | ')); assert.ok(s.avisos.some(a => /Orgánico Blanco 1.49/.test(a)));
+});
+ok('Ocupacional Ultra Relax: el portal lo carga como monofocal, no pide adición', () => {
+    const v = venta2x1(); v.frames = [v.frames[0]];
+    v.items = v.items.filter(i => i.framePosition === 1 && i.eye).map(i => ({ ...i, additionVal: null, product: { ...i.product, name: 'Ocupacional Ultra Relax · Orgánico Blue Light 1.56 · Essential', type: 'Cristal Ocupacional' } }));
+    const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' });
+    assert.ok(!(r.faltantes || []).some(f => /adici/i.test(f)), (r.faltantes || []).join(' | '));
+});
+ok('el estilo del teñido lo dice el producto (Degradé) aunque el ítem traiga otro type; y sin product, el snapshot', () => {
+    const v = venta2x1(); v.items = v.items.map(i => (i.product.category === 'Tratamiento' ? { ...i, crystalColorType: 'COMPACTO', product: { ...i.product, name: 'Teñido Degradé' } } : i));
+    const r = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878' });
+    assert.ok(r.ok, r.faltantes?.join(' | ')); assert.equal(r.plan.tenido.tipo, 'DEGRADE');
+    const w = venta2x1(); w.items = w.items.map(i => (i.product.category === 'Tratamiento' ? { ...i, product: null, productNameSnapshot: 'Teñido Compacto', productCategorySnapshot: 'Tratamiento' } : i));
+    const r2 = planDeCarga(w, 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878' });
+    assert.ok(r2.ok, r2.faltantes?.join(' | ')); assert.equal(r2.plan.tenido.tipo, 'COMPACTO');
+});
+ok('un cristal asignado a un armazón que la venta no tiene: frena y lo dice', () => {
+    const v = venta2x1(); v.items = v.items.map(i => (i.eye && i.framePosition === 2 ? { ...i, framePosition: 3 } : i));
+    const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' });
+    assert.ok((r.faltantes || []).some(f => /asignado al armazón 3/.test(f)), (r.faltantes || []).join(' | '));
+});
+ok('un nº de SmartLab es de 8 dígitos que empiezan con 8 (mañana 81xxxxxx también)', () => {
+    assert.ok(planDeCarga(venta2x1(), 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '81000001' }).ok);
+    assert.equal(planDeCarga(venta2x1(), 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '619486' }).ok, false);
+});
+ok('la forma del armazón: 0 del formulario del portal equivale a "sin forma"', () => {
+    assert.deepEqual(diferenciasDeVista({ frameShape: null }, { frameShape: 0 }), []);
+    assert.equal(diferenciasDeVista({ frameShape: null }, { frameShape: 3 }).length, 1);
+});
 ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin cargo (como siempre)', () => {
     const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 80000 } : i));
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [1, 2]);
@@ -221,7 +255,8 @@ ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin 
     assert.ok(!r2.avisos.some(a => /mayor valor/.test(a)));
 });
 ok('2x1 con dos cristales distintos: el de mayor valor de lista (par 2) va CON CARGO y el par 1 sin cargo, con el nº del par 2', () => {
-    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 0, product: { ...i.product, name: i.framePosition === 2 ? 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Premium 2x1' : i.product.name, price: i.framePosition === 2 ? 120000 : 80000 } } : i));
+    // sin teñido: el par con cargo no puede ir teñido en Blue Light (eso frena, caso aparte)
+    const v = venta2x1(false); v.items = v.items.map(i => (i.eye ? { ...i, price: 0, product: { ...i.product, name: i.framePosition === 2 ? 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Premium 2x1' : i.product.name, price: i.framePosition === 2 ? 120000 : 80000 } } : i));
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [2, 1]);
     const r2 = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO' });
     assert.ok(r2.ok, r2.faltantes?.join(' | '));

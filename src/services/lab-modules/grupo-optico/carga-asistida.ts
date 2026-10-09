@@ -5,7 +5,6 @@ import { planDeCarga, rolesDel2x1, type OpcionesCarga, type TipoArmazon, type Ti
 import { numeroDelParConCargo } from './origen';
 import { especificacionDe } from './catalogo';
 import { itemsDeTenido } from '../../../lib/crystal-color';
-import { registrarExtraNoCobrado } from '../carga/extras-no-cobrados';
 import { TIPO_ARMAZON, TIPO_ARO } from './catalogo';
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_GRUPO_OPTICO, type PayloadBorradorGO } from './borrador-portal';
 import { LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO } from './portal';
@@ -84,7 +83,7 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                 const existente = yaCargados.get(pair);
                 const nombreProducto = texto(items[0]?.product?.name ?? items[0]?.productNameSnapshot);
                 const esStock = /^stock\b/i.test(nombreProducto.split('·')[0]);
-                const extraEssential = campoEssential(nombreProducto, itemsDeTenido(venta.items as any[]).some((t: any) => t.framePosition === pair));
+                const extraEssential = campoEssential(nombreProducto, itemsDeTenido(venta.items as any[]).some((t: any) => (pares.length > 1 ? t.framePosition : (t.framePosition ?? 1)) === pair));
                 return {
                     pair,
                     titulo: items[0]?.product?.name ?? items[0]?.productNameSnapshot ?? null,
@@ -162,18 +161,14 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
         if (plan.extrasNoCobrados.length && !actor?.id) return { ok: false, status: 403, error: 'Para agregar algo que no está cobrado tenés que estar identificado.' };
         const payload: PayloadBorradorGO = {
             opciones,
-            plan: { par: plan.par, rol2x1: plan.rol2x1, pedidoOrigen: plan.pedidoOrigen, extrasNoCobrados: plan.extrasNoCobrados, producto: plan.producto, lensTypeId: plan.lensTypeId, od: plan.od, oi: plan.oi, tenido: plan.tenido, codigoOptica: plan.codigoOptica, observacion: plan.observacion, armazon: plan.armazon },
+            plan: { par: plan.par, pares: plan.pares, rol2x1: plan.rol2x1, pedidoOrigen: plan.pedidoOrigen, extrasNoCobrados: plan.extrasNoCobrados, producto: plan.producto, lensTypeId: plan.lensTypeId, od: plan.od, oi: plan.oi, tenido: plan.tenido, codigoOptica: plan.codigoOptica, observacion: plan.observacion, armazon: plan.armazon },
             avisos: r.avisos,
         };
         const preparado = await Borradores.preparar({ lab: LAB_GRUPO_OPTICO, orderId, pair, payload, actor });
         try {
+            // El extra NO cobrado se registra y se avisa recién cuando el pedido se
+            // CARGA (borrador-portal.ts): si se rechaza, no pasó nada que contar.
             const borrador = await prepararEnPortal(preparado.id);
-            // Recién con el pedido para revisar: si el robot falló (portal ocupado,
-            // formulario que no coincide) y se vuelve a preparar, no se avisa dos veces.
-            for (const extra of plan.extrasNoCobrados) {
-                await registrarExtraNoCobrado({ orderId, nombreLab: NOMBRE_GRUPO_OPTICO, pair, pares: plan.pares, extra, actor, loQueSeCarga: `${plan.producto} + ${extra.nombre}` })
-                    .catch(err => console.error('[lab-modulos] no se pudo registrar el extra no cobrado:', err));
-            }
             return { ok: true, status: 200, borrador, avisos: r.avisos };
         } catch (err: any) {
             return { ok: false, status: 502, error: `El robot no pudo preparar el pedido: ${err?.message || err}`, borradorId: preparado.id };

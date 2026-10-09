@@ -142,13 +142,18 @@ async function recolectarCostos(opts: OpcionesCorrida = {}): Promise<Record<stri
         const entrada = await LabCostReconciliationService.upsertEntry({
             lab: LAB_VITOLEN,
             labOrderNumber: numero,
-            billedNet: tieneImporte ? costo.billedNet : null,
-            billedTotal: tieneImporte ? costo.billedTotal : null,
+            // Importes solo con PDF de fiar; si no, nada (ni en una entrada nueva).
+            billedNet: tieneImporte && fiable.confiable ? costo.billedNet : null,
+            billedTotal: tieneImporte && fiable.confiable ? costo.billedTotal : null,
             preferExistingBilling: !fiable.confiable,
+            // Todas las facturas del pedido anuladas por nota de crédito: esta fuente
+            // dice "sin importe" y borra el que ella misma había puesto (el reclamo
+            // deja de estar vivo cuando el lab ya acreditó).
+            sinImporteDeEstaFuente: fiable.confiable && facturas.length > 0 && !tieneImporte,
             source: 'SCRAPER',
             sourceFile: p.fila.pdfFactura ? `facturacion_automatica.pdf?codigo=${p.fila.codigoFactura}` : null,
             invoiceDate: costo.invoiceDate ?? undefined,
-            invoiceRefs: tieneImporte && fiable.confiable ? costo.invoiceRefs : undefined,
+            invoiceRefs: fiable.confiable && facturas.length > 0 ? costo.invoiceRefs : undefined,
             notes: [
                 p.fila.nroCaso ? `Caso: ${p.fila.nroCaso}` : null,
                 p.fila.estado ? `Estado en el portal: ${p.fila.estado}` : null,

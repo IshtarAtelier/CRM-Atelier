@@ -159,7 +159,7 @@ function bloqueFacturas(lab: string, d: any, appUrl: string): string {
 /** 1a · Un sobrecosto abierto, en una línea: o el 2x1 con el par cobrado, o la diferencia. */
 function lineaSobrecosto(s: any): string {
     const refs = comprobantes(s).replace(/<div style="white-space:nowrap">/g, '<span style="white-space:nowrap">').replace(/<\/div>/g, '</span> ');
-    const cabecera = `${labDe(s.lab)} · operación ${s.es2x1 && s.pedidos?.length > 1 ? s.pedidos.join(' + ') : nroOperacion(s)} · ${refs} · ${fechaFila(s)} (${s.cliente})`;
+    const cabecera = `${labDe(s.lab)} · operación ${(s.es2x1 || s.segundoParCobrado) && s.pedidos?.length > 1 ? s.pedidos.join(' + ') : nroOperacion(s)} · ${refs} · ${fechaFila(s)} (${s.cliente})`;
     if (s.parBonificadoCobrado) {
         return `<li>${cabecera}: <strong style="color:${ROJO}">2x1 con el par bonificado cobrado — a reclamar ${fmt(s.parMasBarato)}</strong>` +
             `${(s.difference || 0) > 100 ? ` (y la venta entera ${fmt(s.difference)} por encima del sistema)` : ''}</li>`;

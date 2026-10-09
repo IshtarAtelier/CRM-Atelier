@@ -5,11 +5,12 @@ import { Borradores, type RastroPortal } from '../carga/borrador';
 import { aplicarEstadoEnVenta } from '../estados';
 import { conTurno } from '../portal/turno';
 import type { PayloadVitolen } from './carga';
-import { cancelarBorrador, confirmar, crearYLeerResumen, llenarFormulario, ResumenCambiadoError } from './llenar';
+import { cancelarBorrador, confirmar, crearYLeerResumen, leerBorrador, llenarFormulario, ResumenCambiadoError } from './llenar';
 import { conSesionVitolen, LAB_VITOLEN, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { rolDeLaPromo, rolesDeLaPromoHoya } from './promo';
 import { leerVentaParaCarga } from './carga';
+import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { resumenComparable } from './resumen';
 
 /**
@@ -129,16 +130,26 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         const r = await enElPortal(() => conSesionVitolen(async (page) => {
             // ¿El par recibió pedido por otro camino mientras el borrador esperaba
             // (nº tipeado a mano, seguimiento)? Confirmar sería un segundo trabajo.
-            const pares = await prisma.labOrderDraft.findMany({ where: { orderId: b.orderId, lab: LAB_VITOLEN }, select: { pair: true }, distinct: ['pair'] });
-            const existente = await pedidoExistenteDelPar(b.orderId, b.pair, Math.max(pares.length, b.pair), rastro.portalDraftId);
-            if (existente) throw new ParYaConPedidoError(`${mensajeExistente(existente, b.pair)} El borrador del portal sigue sin confirmar: rechazalo para cancelarlo.`);
+            // Los pares se cuentan desde la VENTA (como en analizar), no desde los
+            // borradores: con el otro par cargado a mano no hay borrador y "un solo
+            // par" le atribuiría ese nº a este.
+            const ventaParaPares = await leerVentaParaCarga(b.orderId);
+            const pares = Math.max(cantidadDeArmazones(ventaParaPares as any), b.pair);
+            const existente = await pedidoExistenteDelPar(b.orderId, b.pair, pares, rastro.portalDraftId);
+            if (existente) {
+                // Si el nº que tiene el par es el de ESTE borrador (se confirmó y falló lo de
+                // después, o lo confirmaron a mano), no es "otro pedido": se sigue y se anota.
+                const estado = await leerBorrador(page, rastro.portalDraftId);
+                const esElMismo = !!estado.numeroPrevio && estado.numeroPrevio.replace(/\D/g, '') === existente.numero.replace(/\D/g, '');
+                if (!esElMismo) throw new ParYaConPedidoError(`${mensajeExistente(existente, b.pair)} El borrador del portal sigue sin confirmar: rechazalo para cancelarlo.`);
+            }
             // El rol en la promo (1º / 2º par) tiene que ser el de HOY: si la venta se
             // editó y el par caro ahora es el otro, el pendiente y el pedido origen ya no valen.
             const payload = (b.payload || {}) as Partial<PayloadVitolen>;
             const venta = await leerVentaParaCarga(b.orderId);
             const rolHoy = venta ? rolDeLaPromo(rolesDeLaPromoHoya(venta.items as any), b.pair) : null;
-            const rolGuardado = payload.rolPromo === undefined ? (b.pair === 2 ? 'SEGUNDO_PAR' : null) : payload.rolPromo;
-            if (venta && rolHoy !== rolGuardado) throw new ParYaConPedidoError(`El lugar de este par en la promo cambió después de aprobar (era ${rolGuardado ?? 'sin promo'}, hoy ${rolHoy ?? 'sin promo'}): rechazá el borrador y volvé a prepararlo.`);
+            // Un borrador de antes del 8/10/2026 no guardó rol: no hay con qué comparar.
+            if (venta && payload.rolPromo !== undefined && rolHoy !== payload.rolPromo) throw new ParYaConPedidoError(`El lugar de este par en la promo cambió después de aprobar (era ${payload.rolPromo ?? 'sin promo'}, hoy ${rolHoy ?? 'sin promo'}): rechazá el borrador y volvé a prepararlo.`);
             return confirmar(page, rastro.portalDraftId, rastro.textoComparable ?? rastro.texto);
         }));
         const screenshotFinalUrl = await guardarCaptura(b.id, 'confirmado', r.captura).catch(() => null);
@@ -179,7 +190,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
  * quedó creado sin confirmar). No cambia el estado del CRM; anota
  * `canceladoEl`, que es lo que vuelve a permitir preparar otro.
  */
-export async function cancelarEnPortal(borradorId: string): Promise<{ cancelado: boolean; motivo?: string }> {
+export async function cancelarEnPortal(borradorId: string, actor?: Actor): Promise<{ cancelado: boolean; motivo?: string }> {
     const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, error: true, resumenPortal: true } });
     if (!b) throw new Error('El borrador no existe.');
     if (b.status !== 'RECHAZADO' && b.status !== 'ERROR') throw new Error(`El borrador está ${b.status}: solo se cancela en el portal un RECHAZADO o un ERROR.`);
@@ -191,7 +202,7 @@ export async function cancelarEnPortal(borradorId: string): Promise<{ cancelado:
         if (r.confirmadoAMano) {
             // Alguien lo confirmó a mano en el portal: no se cancela (eso se habla
             // con el laboratorio), queda resuelto con ese nº y la venta lo recibe.
-            await Borradores.confirmadoAManoEnPortal(b.id, r.confirmadoAMano);
+            await Borradores.confirmadoAManoEnPortal(b.id, r.confirmadoAMano, actor);
             const venta = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { orderId: true } });
             if (venta) {
                 await aplicarEstadoEnVenta({
@@ -201,11 +212,36 @@ export async function cancelarEnPortal(borradorId: string): Promise<{ cancelado:
             }
             return { cancelado: false, motivo: `ya estaba confirmado a mano en el portal con el nº ${r.confirmadoAMano}; quedó anotado en la venta` };
         }
-        await Borradores.canceladoEnPortal(b.id);
+        await Borradores.canceladoEnPortal(b.id, actor);
         return { cancelado: true };
     } catch (err: any) {
         const motivo = err?.message || String(err);
         await Borradores.anotarFalla(b.id, `${b.error || ''}\nNO se pudo cancelar el borrador ${rastro.portalDraftId} en el portal (${motivo}): cancelarlo a mano en ${rastro.url}`.trim()).catch(() => null);
         return { cancelado: false, motivo };
     }
+}
+
+/**
+ * Volver a mirar el borrador en el portal SIN cambiar de estado: después de
+ * que la persona hizo "Modificar" a mano (la promo del 2º par), la captura y el
+ * resumen comparable se actualizan y recién entonces se aprueba. Sin esto, la
+ * aprobación chocaba siempre con "el pedido cambió" y había que aprobar dos veces.
+ */
+export async function releerBorradorEnPortal(borradorId: string, actor: Actor) {
+    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, resumenPortal: true } });
+    if (!b) throw new Error('El borrador no existe.');
+    if (b.status !== 'EN_REVISION') throw new Error(`El borrador está ${b.status}: solo se relee uno para revisar.`);
+    const rastro = rastroDe(b);
+    if (!rastro) throw new Error('El borrador no tiene el id del portal: hay que volver a prepararlo.');
+    const r = await enElPortal(() => conSesionVitolen(page => leerBorrador(page, rastro.portalDraftId)));
+    if (r.numeroPrevio) {
+        // Lo confirmaron a mano en el portal: queda resuelto con ese nº, como al cancelar.
+        await Borradores.confirmadoAManoEnPortal(b.id, r.numeroPrevio, actor);
+        throw new Error(`El borrador ya está confirmado en el portal con el nº ${r.numeroPrevio}: no hay nada que aprobar acá.`);
+    }
+    const screenshotUrl = await guardarCaptura(b.id, 'releido', r.captura);
+    return Borradores.vistaReleida(b.id, actor, {
+        screenshotUrl,
+        resumenPortal: { ...rastro, texto: r.texto.slice(0, 4000), textoComparable: resumenComparable(r.texto), url: r.url, releidoEl: new Date().toISOString() },
+    });
 }

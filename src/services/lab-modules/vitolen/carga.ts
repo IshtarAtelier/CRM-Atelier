@@ -1,5 +1,5 @@
 import { prisma } from '../../../lib/db';
-import { framesDeLaOrden } from '../../../lib/order-frames';
+import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../../../lib/order-frames';
 import { cristalVitolenPorNombre, type CristalVitolen } from './catalogo';
 import { disenoDelPortal, materialDelPortal } from './materiales';
 
@@ -149,8 +149,11 @@ export function codigoDeCristal(cristal: CristalVitolen, variante: string | null
 }
 
 /** ¿Este payload es el 2º par de la promo? Con rol explícito manda el rol; sin él (borradores viejos), el par 2. Puro. */
-export function esSegundoParDePromo(payload: Pick<PayloadVitolen, 'par' | 'rolPromo'> & { pedidoOrigen?: string | null }): boolean {
-    return (payload.rolPromo ? payload.rolPromo === 'SEGUNDO_PAR' : payload.par === 2) || !!payload.pedidoOrigen;
+export function esSegundoParDePromo(payload: Partial<Pick<PayloadVitolen, 'par' | 'rolPromo'>> & { pedidoOrigen?: string | null }): boolean {
+    // null = la regla dijo "sin promo" (dos pares comprados aparte, Nulux + Tact, un 3er par);
+    // undefined = borrador de antes del 8/10/2026, donde el par 2 era el 2º.
+    const segundo = payload.rolPromo !== undefined ? payload.rolPromo === 'SEGUNDO_PAR' : payload.par === 2;
+    return segundo || !!payload.pedidoOrigen;
 }
 
 /**
@@ -169,9 +172,16 @@ export function armarFormulario(
     const rolPromo = opts.rolPromo === undefined ? (pair === 2 ? 'SEGUNDO_PAR' : null) : opts.rolPromo;
 
     // Un ítem sin posición de armazón es del par 1: no puede "prestarse" al par 2.
-    const cristales = venta.items.filter(i =>
-        /cristal/i.test(i.productCategorySnapshot || '') && /vitolen/i.test(i.laboratorySnapshot || '')
-        && (i.framePosition ?? 1) === pair);
+    // Agrupados por armazón con la MISMA regla que el resto del CRM (cristalesPorArmazon):
+    // los sin armazón asignado se reparten por orden, y con dos pares eso es un faltante.
+    const esDeVitolen = (i: any) => /cristal/i.test(i.productCategorySnapshot || '') && /vitolen/i.test(i.laboratorySnapshot || '');
+    const totalPares = cantidadDeArmazones(venta as any);
+    if (totalPares > 1 && venta.items.some(i => esDeVitolen(i) && i.framePosition == null)) {
+        faltantes.push('hay cristales sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal');
+    }
+    const porArmazon = ((cristalesPorArmazon(venta as any).get(pair) || []) as typeof venta.items).filter(esDeVitolen);
+    // Si la venta no tiene ese armazón numerado (datos viejos con un solo frame "2"), vale la posición del ítem.
+    const cristales = porArmazon.length ? porArmazon : venta.items.filter(i => esDeVitolen(i) && (i.framePosition ?? 1) === pair);
     if (cristales.length === 0) {
         return { ok: false, payload: null, faltantes: [`la venta no tiene cristales de Vitolen para el par ${pair}`], avisos };
     }

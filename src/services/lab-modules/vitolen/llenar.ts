@@ -189,7 +189,7 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     if (payload.oi) await llenarOjo(page, pasos, 1, payload.oi, payload);
 
     if (esSegundoParDePromo(payload)) {
-        pendientes.push(`promo del 2º par: antes de aprobar, abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen ?? '(el nº del 1er par: la venta no lo tiene todavía)'} con la promoción HOYALUX (el robot todavía no lo hace)`);
+        pendientes.push(`promo del 2º par: abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen ?? '(el nº del 1er par: la venta no lo tiene todavía)'} con la promoción HOYALUX (el robot todavía no lo hace); después tocá "Releer el portal" en la ficha y recién ahí aprobá`);
     }
 
     // Armazón
@@ -306,6 +306,12 @@ export class ResumenCambiadoError extends Error {
  * confirmar: lo devuelve. Si `resumenAprobado` viene, se compara con lo que
  * el portal muestra HOY y, si difiere, no se confirma (ResumenCambiadoError).
  */
+/** Solo mira el borrador del portal: su texto, su captura y el nº de trabajo si ya lo confirmaron a mano. */
+export async function leerBorrador(page: Page, portalDraftId: string): Promise<{ texto: string; url: string; captura: Buffer; numeroPrevio: string | null }> {
+    const texto = await abrirBorrador(page, portalDraftId);
+    return { texto, url: page.url(), captura: await page.screenshot({ fullPage: true }), numeroPrevio: numeroDeTrabajoDe(texto) };
+}
+
 export async function confirmar(page: Page, portalDraftId: string, resumenAprobado?: string | null): Promise<{ portalNumber: string; url: string; captura: Buffer; yaEstaba: boolean }> {
     const antes = await abrirBorrador(page, portalDraftId);
     const previo = numeroDeTrabajoDe(antes);

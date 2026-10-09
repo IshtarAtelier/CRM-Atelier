@@ -4,12 +4,13 @@ import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { armarFormulario, esSegundoParDePromo, leerVentaParaCarga } from './carga';
 import { cristalVitolenPorNombre } from './catalogo';
-import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
+import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, releerBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { avisoDeRoles, type RolesDePares } from '../carga/roles-2x1';
 import { rolDeLaPromo, rolesDeLaPromoHoya } from './promo';
 import { formatearPrecio } from '../../../lib/format-precio';
+import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-frames';
 
 /**
  * La carga asistida de Vitolen detrás del contrato común (carga/contrato.ts).
@@ -37,13 +38,16 @@ export const CARGA_VITOLEN: CargaAsistida = {
         if (!venta) return null;
         // Qué pares de Vitolen tiene la venta y qué le falta a cada uno para armarse
         // (sin forma ni variante elegidas todavía: eso lo decide quien prepara).
-        const pares = [...new Set(venta.items.filter(esCristalVitolen).map(i => i.framePosition ?? 1))].sort();
+        // Los pares con cristales de Vitolen, agrupados como el resto del CRM; la carga asistida va hasta 2.
+        const pares = [...new Set([...[...cristalesPorArmazon(venta as any).entries()].filter(([, items]) => (items as any[]).some(esCristalVitolen)).map(([p]) => p), ...venta.items.filter(esCristalVitolen).map(i => i.framePosition ?? 1)])].filter(p => p <= 2).sort((a, b) => a - b);
         // ¿Algún par ya tiene pedido (robot, seguimiento o nº tipeado)? La ficha
         // no ofrece preparar y deshabilita "Aprobar" (misma regla que Grupo Óptico).
         const yaCargados = new Map<number, string | null>();
-        for (const p of pares) { const e = await pedidoExistenteDelPar(orderId, p, pares.length); yaCargados.set(p, e ? mensajeExistente(e, p) : null); }
+        // Los pares de la VENTA (un par de otro lab también cuenta para repartir los nº tipeados).
+        const totalPares = Math.max(cantidadDeArmazones(venta as any), pares.length);
+        for (const p of pares) { const e = await pedidoExistenteDelPar(orderId, p, totalPares); yaCargados.set(p, e ? mensajeExistente(e, p) : null); }
         const roles = rolesDeLaPromo(venta);
-        const avisoRoles = roles ? avisoDeRoles(roles, formatearPrecio) : null;
+        const avisoRoles = roles ? avisoDeRoles(roles, n => `$ ${formatearPrecio(n)}`) : null;
         return {
             pares: pares.map(pair => {
                 const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0, rolPromo: rolDe(roles, pair) });
@@ -61,7 +65,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
                     avisos: avisoRoles ? [...r.avisos, avisoRoles] : r.avisos,
                     campos,
                     yaCargado: yaCargados.get(pair) ?? null,
-                    rol: roles ? (pair === roles.sinCargo ? '2º par · promo' : '1er par · promo') : null,
+                    rol: rolDe(roles, pair) === 'SEGUNDO_PAR' ? '2º par · promo' : rolDe(roles, pair) === 'PRIMER_PAR' ? '1er par · promo' : null,
                 };
             }),
         };
@@ -108,9 +112,9 @@ export const CARGA_VITOLEN: CargaAsistida = {
         if (venta.labStatus !== 'SENT' && venta.labStatus !== 'IN_PROGRESS') {
             return { ok: false, status: 409, error: `La venta tiene que estar enviada a fábrica antes de cargarla en el portal (hoy está ${venta.labStatus || 'sin enviar'}).` };
         }
-        const paresDeLaVenta = new Set(venta.items.filter(esCristalVitolen).map(i => i.framePosition ?? 1));
+        const paresDeLaVenta = new Set([...[...cristalesPorArmazon(venta as any).entries()].filter(([, items]) => (items as any[]).some(esCristalVitolen)).map(([p]) => p), ...venta.items.filter(esCristalVitolen).map(i => i.framePosition ?? 1)]);
         if (!paresDeLaVenta.has(pair)) return { ok: false, status: 400, error: `La venta no tiene cristales de Vitolen para el par ${pair}.` };
-        const existente = await pedidoExistenteDelPar(orderId, pair, paresDeLaVenta.size);
+        const existente = await pedidoExistenteDelPar(orderId, pair, Math.max(cantidadDeArmazones(venta as any), paresDeLaVenta.size));
         if (existente) return { ok: false, status: 409, error: mensajeExistente(existente, pair) };
 
         const ejeDiagonal = body.ejeDiagonal === undefined || body.ejeDiagonal === null || body.ejeDiagonal === '' ? null : Number(body.ejeDiagonal);
@@ -122,14 +126,16 @@ export const CARGA_VITOLEN: CargaAsistida = {
         // nº cargado en la venta). Sin él, igual queda como pendiente a mano.
         const roles = rolesDeLaPromo(venta);
         const rolPromo = rolDe(roles, pair);
-        let pedidoOrigen = body.pedidoOrigen ? String(body.pedidoOrigen) : null;
+        // El pedido origen lo deduce el CRM (borrador cargado, espejo o nº de la venta): no se acepta del navegador.
+        let pedidoOrigen: string | null = null;
         if (rolPromo === 'SEGUNDO_PAR' && !pedidoOrigen) {
             const cargado = await prisma.labOrderDraft.findFirst({ where: { orderId, lab: LAB_VITOLEN, pair: roles!.conCargo, status: 'CARGADO' }, select: { portalNumber: true } });
             if (cargado?.portalNumber) pedidoOrigen = cargado.portalNumber;
-            const enEspejo = pedidoOrigen ? null : await prisma.labPortalOrder.findFirst({ where: { orderId, lab: LAB_VITOLEN, pair: { not: roles!.sinCargo } }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
+            const enEspejo = pedidoOrigen ? null : await prisma.labPortalOrder.findFirst({ where: { orderId, lab: LAB_VITOLEN, OR: [{ pair: roles!.conCargo }, { pair: null }] }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
             const enVenta = await prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true } });
             // Solo un nº de Vitolen: en una venta mixta el de Grupo Óptico (80xxxxxx) no es origen de nada acá.
-            pedidoOrigen = pedidoOrigen ?? enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).filter(n => !/^80\d{6}$/.test(n)).map(n => `${n}L`)[0] ?? null;
+            // Un nº de Vitolen tiene 7 dígitos ("6981382L" en el portal); los de SmartLab (80xxxxxx) u Optovisión (6) no son origen de nada acá.
+            pedidoOrigen = pedidoOrigen ?? enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).filter(n => /^\d{7}$/.test(n)).map(n => `${n}L`)[0] ?? null;
         }
         const r = armarFormulario(venta, { pair, forma, ejeDiagonal, variante: body.variante ? String(body.variante) : null, pedidoOrigen, rolPromo });
         if (!r.ok) return { ok: false, status: 422, error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos };
@@ -149,4 +155,5 @@ export const CARGA_VITOLEN: CargaAsistida = {
     confirmar: confirmarBorradorAprobado,
     despuesDeRechazar: cancelarEnPortal,
     cancelarEnPortal,
+    releerPortal: releerBorradorEnPortal,
 };

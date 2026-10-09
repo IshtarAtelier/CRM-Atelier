@@ -42,7 +42,7 @@ const ESTADO_PORTAL: Record<string, string> = { INGRESADO: 'Ingresado', EN_PROCE
 const VIVOS = ['PREPARADO', 'EN_REVISION', 'APROBADO'];
 /** Un APROBADO sin novedades después de esto ya no está "cargando": se ofrece reintentar. */
 const APROBADO_DEMORADO_MS = 5 * 60_000;
-const esImagen = (url: string | null | undefined) => !!url && !/\.pdf(\?|$|%)/i.test(decodeURIComponent(url));
+const esImagen = (url: string | null | undefined) => { if (!url) return false; try { return !/\.pdf(\?|$|%)/i.test(decodeURIComponent(url)); } catch { return false; } };
 
 /** Colores por laboratorio (clases completas: Tailwind no arma nombres dinámicos). */
 const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde: string; anillo: string }> = {
@@ -111,19 +111,20 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
             const json = await res.json().catch(() => ({}));
             if (!res.ok) {
                 setError([json.error, ...(json.faltantes || [])].filter(Boolean).join(' · '));
-                if (json.borradorId) await cargar();
+                await cargar();
                 return;
             }
             await cargar(); onChanged?.();
         } finally { setOcupado(null); }
     };
 
-    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal') => {
+    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal' | 'anular' | 'releer') => {
         setOcupado(`${accion}-${id}`); setError('');
         try {
             const res = await fetch(`/api/lab-modulos/borradores/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, motivo: motivo[id] || '' }) });
             const json = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(json.error || 'No se pudo guardar la decisión.'); if (json.borradorId) await cargar(); return; }
+            // Tras cualquier error se recarga: un 409 ("cambió de estado mientras tanto") deja la ficha vieja si no.
+            if (!res.ok) { setError(json.error || 'No se pudo guardar la decisión.'); await cargar(); return; }
             setAmpliada(null);
             await cargar(); onChanged?.();
         } finally { setOcupado(null); }
@@ -136,7 +137,15 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     const input = 'block mt-0.5 text-xs rounded border border-stone-300 bg-white dark:bg-stone-900 px-2 py-1.5';
     const boton = 'inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest px-3 py-2 rounded-lg text-white disabled:opacity-40';
     const borradorAmpliado = ampliada?.borradorId ? datos.borradores.find(b => b.id === ampliada.borradorId && b.status === 'EN_REVISION') : null;
-    const bloqueoDe = (b: Borrador) => datos.pares.find(p => p.pair === b.pair)?.yaCargado || null;
+    const bloqueoDe = (b: Borrador) => paresAMostrar.find(p => p.pair === b.pair)?.yaCargado || null;
+    // Un borrador vivo (o con un pedido sin resolver en el portal) de un par que la
+    // venta YA NO tiene en este lab igual se muestra: si no, nadie podría rechazarlo
+    // ni cancelarlo en el portal.
+    const paresAMostrar: Par[] = [
+        ...datos.pares,
+        ...[...new Set(datos.borradores.filter(b => (VIVOS.includes(b.status) || b.vista.pendienteEnPortal) && !datos.pares.some(p => p.pair === b.pair)).map(b => b.pair))]
+            .map(pair => ({ pair, titulo: null, faltantes: [], avisos: [], campos: [], yaCargado: `La venta ya no tiene cristales de ${nombre} en este par: rechazá o cancelá este borrador.` })),
+    ];
 
     /** Aprobar / Rechazar: los mismos botones debajo de la captura y dentro de la vista ampliada. */
     // Función y no componente: un componente definido acá se remontaría en cada tecla del motivo.
@@ -184,7 +193,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                 </ul>
             )}
 
-            {datos.pares.map(par => {
+            {paresAMostrar.map(par => {
                 const b = datos.borradores.find(x => x.pair === par.pair && VIVOS.includes(x.status));
                 const cerrados = datos.borradores.filter(x => x.pair === par.pair && !VIVOS.includes(x.status));
                 const cargado = cerrados.find(x => x.status === 'CARGADO');
@@ -290,9 +299,19 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         {b?.status === 'APROBADO' && b.error && (
                             <div className="text-xs text-rose-700 dark:text-rose-400 space-y-1">
                                 <p className="flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {b.error}</p>
-                                <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')} className={`${boton} bg-emerald-600`}>
-                                    {ocupado === `reintentar-${b.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reintentar la carga
-                                </button>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')} className={`${boton} bg-emerald-600`}>
+                                        {ocupado === `reintentar-${b.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reintentar la carga
+                                    </button>
+                                    {!/YA está creado|quedó sin respuesta/.test(b.error) && (
+                                        <>
+                                            <input value={motivo[b.id] || ''} onChange={e => setMotivo(m => ({ ...m, [b.id]: e.target.value }))} placeholder="Motivo para anular" className="flex-1 min-w-[10rem] text-xs rounded border border-stone-300 bg-white text-stone-900 px-2 py-2" />
+                                            <button type="button" disabled={ocupado !== null || !(motivo[b.id] || '').trim()} onClick={() => decidir(b.id, 'anular')} title="Solo si el robot nunca mandó nada al portal" className={`${boton} bg-stone-500`}>
+                                                <X className="w-3 h-3" /> Anular (no se mandó nada)
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -301,7 +320,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                             <div className="space-y-2">
                                 <p className="text-xs text-stone-600 dark:text-stone-300">
                                     {b.vista.textoRevision}
-                                    {b.vista.enlacePortal ? <> Para corregir algo antes, <a href={b.vista.enlacePortal} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a>.</> : null}
+                                    {b.vista.enlacePortal ? <> Para corregir algo antes, <a href={b.vista.enlacePortal} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> y después <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'releer')} className="underline font-bold">{ocupado === `releer-${b.id}` ? 'releyendo…' : 'releé el portal'}</button> para ver cómo quedó.</> : null}
                                     {b.error ? <span className="block mt-1 text-rose-700 dark:text-rose-400">{b.error}</span> : null}
                                 </p>
                                 {b.vista.avisos.length > 0 && (
@@ -354,7 +373,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
 
             {/* Un extra que NO está cobrado: avisar, pedir el porqué, y recién ahí aceptarlo. */}
             {extraPendiente && (
-                <div role="alertdialog" aria-label={extraPendiente.campo.etiqueta} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setExtraPendiente(null); }} tabIndex={-1} ref={cartelExtra}>
+                <div role="alertdialog" aria-label={extraPendiente.campo.etiqueta} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" aria-modal="true" onKeyDown={e => { if (e.key === 'Escape' && !(e.target instanceof HTMLTextAreaElement)) setExtraPendiente(null); }} tabIndex={-1} ref={cartelExtra}>
                     <div role="document" className="bg-white text-stone-900 rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-3">
                         <p className="flex items-center gap-2 text-sm font-black"><AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" /> No está cobrado. ¿Estás seguro?</p>
                         <p className="text-sm leading-relaxed">{extraPendiente.campo.advertencia}</p>
@@ -374,7 +393,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
 
             {/* Antes de aprobar un par de una promo de dos pares: que nadie olvide el nº de operación del otro par. */}
             {confirmando && (
-                <div role="alertdialog" aria-label={confirmando.vista.confirmarAntesDeAprobar?.titulo} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setConfirmando(null); }} tabIndex={-1} ref={cartelConfirmar}>
+                <div role="alertdialog" aria-label={confirmando.vista.confirmarAntesDeAprobar?.titulo} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" aria-modal="true" onKeyDown={e => { if (e.key === 'Escape') setConfirmando(null); }} tabIndex={-1} ref={cartelConfirmar}>
                     <div role="document" className="bg-white text-stone-900 rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-3">
                         <p className="flex items-center gap-2 text-sm font-black"><AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" /> {confirmando.vista.confirmarAntesDeAprobar?.titulo}</p>
                         <p className="text-sm leading-relaxed">{confirmando.vista.confirmarAntesDeAprobar?.texto}</p>
@@ -390,7 +409,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
 
             {/* El portal a pantalla completa. Si es un pedido para revisar, el OK se da acá mismo. */}
             {ampliada && (
-                <div role="dialog" aria-label={`El pedido en el portal de ${nombre}, ampliado`} className="fixed inset-0 z-[200] bg-black/90 flex flex-col"
+                <div role="dialog" aria-modal="true" aria-label={`El pedido en el portal de ${nombre}, ampliado`} className="fixed inset-0 z-[200] bg-black/90 flex flex-col"
                     onKeyDown={e => { if (e.key === 'Escape') setAmpliada(null); }} tabIndex={-1} ref={dialogo}>
                     <div className="flex items-center justify-between gap-3 px-4 py-2 text-white bg-stone-950">
                         <span className="text-[11px] font-black uppercase tracking-widest">{nombre} · {borradorAmpliado ? 'así queda el pedido en el portal' : 'el pedido en el portal'}</span>

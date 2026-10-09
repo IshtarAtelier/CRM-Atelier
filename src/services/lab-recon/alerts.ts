@@ -3,6 +3,7 @@ import { sendEmail } from '../../lib/email';
 import { estaResuelta, etiquetaSinVenta } from '../../lib/lab-factura';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
+import { billedForLab } from './types';
 import { LAB_LABELS, UNMATCHED_GRACE_MS, VENTANA_REPORTE_DIAS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
 import { ACLARACION_LINKS, comprobantesHtml } from './comprobantes-html';
 
@@ -192,9 +193,7 @@ export async function clasificarHuerfanos(huerfanos: any[]) {
         // de sistema se parezca al facturado. Es una SUGERENCIA para asignar a
         // mano: el sistema no la asigna solo.
         if ((o.notes || '').includes('SIN nº de pedido')) {
-            const importe = o.lab === 'OPTOVISION'
-                ? (o.billedTotal ?? o.billedNet)
-                : (o.billedNet ?? o.billedTotal);
+            const importe = billedForLab(o.lab, o);
             if (importe) {
                 const candidatas = await prisma.labCostEntry.findMany({
                     where: {
@@ -404,7 +403,7 @@ export async function alertNewFindings() {
             : ingresoPortal
                 ? `${ingresoPortal} <span style="color:#6b7280">(ingreso)</span>`
                 : `${fmtFecha(f.createdAt)} <span style="color:#6b7280">(alta)</span>`;
-        const real = f.lab === 'OPTOVISION' ? (f.billedTotal ?? f.billedNet) : (f.billedNet ?? f.billedTotal);
+        const real = billedForLab(f.lab, f);
         const t: any = triage.get(f.id);
         const pista = t
             ? `<span style="padding:2px 8px;border-radius:10px;${BADGE[t.tipo] || ''}">${t.detalle}</span>${t.clientId ? ` <a href="${appUrl}/admin/contactos?clientId=${t.clientId}">ver ficha</a>` : ''}`

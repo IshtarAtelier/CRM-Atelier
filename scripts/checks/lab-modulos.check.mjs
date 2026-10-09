@@ -480,7 +480,8 @@ ok('Vitolen: los roles de la promo salen de la MISMA regla con la que el CRM la 
     assert.equal(rolDeLaPromo(r, 3), null); assert.equal(rolDeLaPromo(r, 2), 'SEGUNDO_PAR'); assert.equal(rolDeLaPromo(null, 2), null);
 });
 ok('Vitolen: qué payload es el 2º par de la promo (con rol manda el rol; sin rol, el par 2; o si lleva pedido origen)', () => {
-    assert.equal(esSegundoParDePromo({ par: 2, rolPromo: null }), true);
+    assert.equal(esSegundoParDePromo({ par: 2, rolPromo: null }), false); // null = la regla dijo "sin promo"
+    assert.equal(esSegundoParDePromo({ par: 2 }), true); // sin el campo = borrador viejo: el par 2 era el 2º
     assert.equal(esSegundoParDePromo({ par: 2, rolPromo: 'PRIMER_PAR' }), false);
     assert.equal(esSegundoParDePromo({ par: 1, rolPromo: 'SEGUNDO_PAR' }), true);
     assert.equal(esSegundoParDePromo({ par: 1, rolPromo: null }), false);

@@ -78,7 +78,7 @@ export async function destinatariosDeExtras(excluirUserId: string | null): Promi
     return admins.map(a => a.id);
 }
 
-export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab: string; pair: number; pares: number; extra: ExtraNoCobrado; loQueSeCarga: string; actor: Actor }): Promise<void> {
+export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab: string; pair: number; pares: number; extra: ExtraNoCobrado; loQueSeCarga: string; actor: Actor; quien?: string }): Promise<void> {
     const { orderId, actor } = args;
     const order = await prisma.order.findUnique({
         where: { id: orderId },
@@ -89,7 +89,7 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
         },
     });
     if (!order) throw new Error('La venta no existe.');
-    const quien = actor.name || 'Alguien del equipo';
+    const quien = args.quien || actor.name || 'Alguien del equipo';
     const datos: DatosDelAviso = {
         codigoVenta: `#${orderId.slice(-4).toUpperCase()}`,
         orderId,
@@ -129,5 +129,8 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
         subject: `Extra no cobrado en un pedido de ${args.nombreLab}`,
         primerMensaje: textoDeExtraNoCobrado(datos),
         urgent: true, copiaWhatsapp: true,
-    }, actor).catch(err => console.error('[lab-modulos] no se pudo avisar el extra no cobrado por mensajería interna:', err));
+    }, actor).catch(async err => {
+        console.error('[lab-modulos] no se pudo avisar el extra no cobrado por mensajería interna:', err);
+        await logAudit({ userId: actor.id, userName: quien, action: 'NOTIFY', entityType: 'ORDER', entityId: orderId, details: { tipo: 'EXTRA_NO_COBRADO_SIN_AVISO', motivo: String(err?.message || err) } }).catch(() => null);
+    });
 }

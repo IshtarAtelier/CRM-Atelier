@@ -96,7 +96,7 @@ export function diferenciasDeVista(robot: Record<string, any>, portal: Record<st
         if (typeof v === 'boolean') return v ? '1' : '0';
         const t = String(v).trim();
         const n = Number(t);
-        if (t !== '' && Number.isFinite(n)) return n === 0 && /Axis$|Addition$/.test(k) ? '' : String(n);
+        if (t !== '' && Number.isFinite(n)) return n === 0 && /Axis$|Addition$|frameShape$|frame_shape$/.test(k) ? '' : String(n);
         return t.replace(/\s+/g, ' ');
     };
     const claves = [...new Set([...Object.keys(robot), ...Object.keys(portal)])].filter(k => !DE_TRANSPORTE.has(k));

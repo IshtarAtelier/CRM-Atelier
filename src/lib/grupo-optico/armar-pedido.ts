@@ -236,7 +236,9 @@ export function armarPedidoSmartLab(order: VentaParaSmartLab, pairNum: number = 
     // porque es lo que se cotizó para ese ojo.
     const valor = (postKey: string, item: ItemParaSmartLab | null, itemKey: keyof ItemParaSmartLab, rxKeys: string[]): number | null => {
         if (post && post[postKey] !== undefined) return num(post[postKey]);
-        const deLinea = item ? num(item[itemKey]) : null;
+        // Una línea SIN ojo (qty 2 "para los dos ojos") no tiene graduación propia
+        // de un ojo: su *Val no vale para ninguno; manda la ficha de receta.
+        const deLinea = item && texto(item.eye) ? num(item[itemKey]) : null;
         if (deLinea !== null) return deLinea;
         for (const k of rxKeys) {
             const v = num(rx[k]);
@@ -327,6 +329,11 @@ export function armarPedidoSmartLab(order: VentaParaSmartLab, pairNum: number = 
     // pares (un antirreflejo); una línea de TEÑIDO sin posición es del par 1,
     // igual que los cristales: no se presta al par 2.
     const tratamientos = items.filter(i => esTratamiento(i) && (i.framePosition == null || i.framePosition === pairNum));
+    // Con dos pares, un TEÑIDO sin armazón asignado no se adivina (el par de ver
+    // saldría teñido y el de sol sin color): hay que asignarlo en la venta.
+    if (cantidadDeArmazones(order) > 1 && itemsDeTenido(items).some(i => i.framePosition == null)) {
+        faltantes.push('hay un teñido sin armazón asignado: indicá en la venta a qué par va (el de sol)');
+    }
     let tipo_tenido = '';
     let color_tenido = '';
     let intensidad_tenido = '';

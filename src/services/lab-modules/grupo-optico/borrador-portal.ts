@@ -12,6 +12,7 @@ import { leerVentaParaCargaGO } from './venta';
 import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { numeroDelParConCargo } from './origen';
+import { registrarExtraNoCobrado } from '../carga/extras-no-cobrados';
 import { rolesDel2x1 } from './carga';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { parseLabNumbers } from '../../../lib/lab-order-numbers';
@@ -42,7 +43,7 @@ export const ROBOT_ACTOR_GRUPO_OPTICO: Actor = { id: null, name: ROBOT_GRUPO_OPT
 export interface PayloadBorradorGO {
     opciones: OpcionesCarga;
     /** Resumen legible del plan (lo que ve la persona). */
-    plan: Pick<PlanDeCarga, 'par' | 'producto' | 'lensTypeId' | 'od' | 'oi' | 'tenido' | 'codigoOptica' | 'observacion' | 'armazon' | 'rol2x1' | 'pedidoOrigen' | 'extrasNoCobrados'>;
+    plan: Pick<PlanDeCarga, 'par' | 'producto' | 'lensTypeId' | 'od' | 'oi' | 'tenido' | 'codigoOptica' | 'observacion' | 'armazon' | 'rol2x1' | 'pedidoOrigen' | 'extrasNoCobrados' | 'pares'>;
     avisos: string[];
 }
 
@@ -127,6 +128,7 @@ export async function prepararEnPortal(borradorId: string) {
         if (!r.ok) throw new Error(`Faltan datos: ${r.faltantes.join(' · ')}`);
         // Una sola entrada al portal: leer sus listas, armar el pedido y abrirlo
         // en SU formulario para sacar la captura que la persona va a revisar.
+        await mezclar(b.id, { etapa: `esperando turno y entrando al portal desde ${new Date().toISOString()}` }).catch(() => null);
         const { resuelto, etiquetas, payloadPortal, captura } = await enElPortal(() => conSesionSmartLab(async (page) => {
             await mezclar(b.id, { etapa: `en el portal desde ${new Date().toISOString()}` }).catch(() => null);
             const { resuelto, etiquetas } = await resolverEnPortal(page, r.plan);
@@ -207,7 +209,7 @@ async function numerosDeOtrosPares(orderId: string, pair: number): Promise<Set<s
  *  4. se crea, se anota el nº en el acto, se lee de vuelta, se baja el PDF.
  */
 export async function confirmarBorradorAprobado(borradorId: string) {
-    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, payload: true, resumenPortal: true, approvedBy: true } });
+    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, payload: true, resumenPortal: true, approvedBy: true, preparedBy: true } });
     if (!b) throw new Error('El borrador no existe.');
     if (b.status === 'CARGADO') return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo carga los APROBADOS.`);
@@ -251,8 +253,9 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             }
             if (!numero) {
                 // 2b. ¿Ya existe ese pedido en el portal con el código de la venta?
-                const pares = cantidadDeArmazones((await leerVentaParaCargaGO(b.orderId)) as any);
-                numero = await buscarPedidoYaCreado(page, codigoVenta, pares > 1 ? b.pair : null, await numerosDeOtrosPares(b.orderId, b.pair));
+                const ventaHoy = await leerVentaParaCargaGO(b.orderId);
+                const pares = cantidadDeArmazones(ventaHoy as any);
+                numero = await buscarPedidoYaCreado(page, codigoVenta, pares > 1 ? b.pair : null, await numerosDeOtrosPares(b.orderId, b.pair), ventaHoy?.client?.name ?? null);
                 adoptado = !!numero;
             }
             if (!numero) {
@@ -284,9 +287,21 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 try {
                     numero = (await crearPedidoEnPortal(page, payloadAprobado)).numero;
                 } catch (e) {
-                    // El portal contestó (400, 5xx…): no hay envío incierto que esperar.
-                    if (e instanceof PedidoRechazadoError || e instanceof PortalRespondioError) await mezclar(b.id, { envioIniciadoEl: null }).catch(() => null);
+                    // Solo un 4xx prueba que el portal NO creó nada. Un 5xx (502/504 del
+                    // proxy) puede llegar después de que PHP ya hizo el INSERT: el envío
+                    // sigue incierto y el reintento tiene que esperar y mirar el listado.
+                    if (e instanceof PedidoRechazadoError || (e instanceof PortalRespondioError && e.status < 500)) await mezclar(b.id, { envioIniciadoEl: null }).catch(() => null);
                     throw e;
+                }
+            }
+            // Un nº ADOPTADO (no creado por este envío) se verifica contra el portal
+            // antes de anotarlo: tiene que ser un pedido de ESTA venta (código de
+            // venta en su código interno). Un dedazo en la venta no se adopta.
+            if (adoptado) {
+                const fila = await leerPedido(page, numero).catch(() => null);
+                const codigoDeLaFila = String((fila as any)?.CodigoOptica ?? (fila as any)?.opticsCode ?? '').toUpperCase();
+                if (!fila || !codigoDeLaFila.includes(codigoVenta.toUpperCase())) {
+                    throw new Error(`el pedido ${numero} que figura para este par no se pudo leer en el portal como de la venta ${codigoVenta}: no se adopta ni se crea otro. Revisá el nº en la venta y en el portal`);
                 }
             }
             // Anotado en el acto: de acá en más un reintento no vuelve a crear.
@@ -333,6 +348,15 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         if (resultado.diferencias.length) {
             await Borradores.anotarFalla(b.id, `Cargado con el nº ${resultado.numero}, pero: ${resultado.diferencias.join(' · ')}.`);
         }
+        // Lo que se cargó SIN estar cobrado (Essential), ahora que existe de verdad:
+        // ficha del cliente, AuditLog y aviso a la dueña, firmado por quien lo pidió
+        // y quien lo aprobó (regla de Ishtar, 8/10/2026).
+        for (const extra of guardado.plan?.extrasNoCobrados || []) {
+            const firma = { id: rastro0.aprobadoPorId ?? null, name: b.approvedBy || b.preparedBy || 'Equipo', role: null };
+            const quien = b.preparedBy && b.approvedBy && b.preparedBy !== b.approvedBy ? `${b.preparedBy} (aprobó ${b.approvedBy})` : (b.preparedBy || b.approvedBy || 'Equipo');
+            await registrarExtraNoCobrado({ orderId: b.orderId, nombreLab: NOMBRE_GRUPO_OPTICO, pair: b.pair, pares: guardado.plan.pares ?? 1, extra, actor: firma, quien, loQueSeCarga: `${guardado.plan.producto} + ${extra.nombre} · pedido nº ${resultado.numero}` })
+                .catch(err => console.error('[lab-modulos] no se pudo registrar el extra no cobrado:', err));
+        }
         return cargado;
     } catch (err: any) {
         if (err instanceof YaCargadoError) return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
@@ -351,11 +375,17 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             throw err;
         }
         const motivo = (err?.message || String(err)).replace(/\.+$/, '');
+        // Si el pedido YA existe (falló lo de después: anotar la venta, el PDF), decirlo
+        // con todas las letras: "no se pudo cargar" invitaba a cargarlo a mano = duplicado.
+        const rastroAhora = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { resumenPortal: true } }).then(x => (x?.resumenPortal || {}) as RastroGO).catch(() => ({} as RastroGO));
+        const texto = rastroAhora.numeroCreado
+            ? `El pedido YA está creado en el laboratorio con el nº ${rastroAhora.numeroCreado}; falta anotarlo en la venta (${motivo}). Reintentar desde la ficha: NO se crea otro, solo se termina de anotar. No lo cargues a mano.`
+            : rastroAhora.envioIniciadoEl
+                ? `El envío al portal quedó sin respuesta (${motivo}). Reintentar desde la ficha en unos minutos: el robot busca el pedido en el portal antes de crear otro. No lo cargues a mano.`
+                : `No se pudo cargar en el portal: ${motivo}. Reintentar desde la ficha (nunca se duplica: el robot busca el pedido antes de crearlo).`;
         // Solo si sigue APROBADO: un error después de cargar no puede pisar el CARGADO.
-        await prisma.labOrderDraft.updateMany({
-            where: { id: b.id, status: 'APROBADO' },
-            data: { error: `No se pudo cargar en el portal: ${motivo}. Reintentar desde la ficha (nunca se duplica: el robot busca el pedido antes de crearlo).` },
-        }).catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador GO:', e));
+        await prisma.labOrderDraft.updateMany({ where: { id: b.id, status: 'APROBADO' }, data: { error: texto } })
+            .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador GO:', e));
         throw err;
     }
 }

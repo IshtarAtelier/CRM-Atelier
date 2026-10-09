@@ -247,11 +247,14 @@ export const LAB_LABELS: Record<string, string> = {
  *  Optovision discrimina IVA y Atelier es monotributo (no lo recupera) → el
  *  costo real es el TOTAL c/IVA. Grupo Óptico factura a consumidor final → neto
  *  y total coinciden. */
+/** Los labs que emiten Factura A (IVA discriminado): el costo real es el TOTAL. La misma lista que usa el cruce. */
+export const LABS_FACTURA_A = new Set(['OPTOVISION', 'LA_CAMARA', 'VITOLEN']);
+
 export const billedForLab = (
     lab: string,
     e: { billedNet: number | null; billedTotal: number | null },
 ): number | null =>
-    lab === 'OPTOVISION'
+    LABS_FACTURA_A.has(String(lab))
         ? (e.billedTotal ?? e.billedNet ?? null)
         : (e.billedNet ?? e.billedTotal ?? null);
 

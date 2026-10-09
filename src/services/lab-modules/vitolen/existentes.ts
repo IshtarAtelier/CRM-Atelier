@@ -9,7 +9,9 @@ import { LAB_VITOLEN } from './portal';
 export { mensajeExistente, type PedidoExistente } from '../carga/existentes';
 
 export const soloDigitos = (n: string) => n.replace(/\D/g, '');
+/** Un nº de SmartLab (80xxxxxx) tipeado en una venta mixta no es un pedido de Vitolen. */
+export const esNumeroVitolen = (n: string) => !/^8\d{7}$/.test(n);
 
 export function pedidoExistenteDelPar(orderId: string, pair: number, pares: number, excluir?: string | null): Promise<PedidoExistente | null> {
-    return existenteDe(LAB_VITOLEN, orderId, pair, pares, { excluir, normalizar: soloDigitos });
+    return existenteDe(LAB_VITOLEN, orderId, pair, pares, { excluir, normalizar: soloDigitos, esNumeroDelLab: esNumeroVitolen });
 }
