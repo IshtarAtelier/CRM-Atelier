@@ -95,7 +95,8 @@ export async function GET(request: Request) {
             'Dónde: business.facebook.com → WhatsApp Manager → Números de teléfono / Plantillas de mensajes.',
         ].join('\n');
 
-        const llegaron = await avisarAdmins({ asunto: subject, cuerpo: text, dedupePrefijo: `WhatsApp API ${hoyArt}` });
+        // El dedup compara el PRINCIPIO del cuerpo: tiene que incluir el emoji con que arranca el asunto.
+        const llegaron = await avisarAdmins({ asunto: subject, cuerpo: text, dedupePrefijo: subject.slice(0, subject.indexOf(hoyArt) + hoyArt.length) });
         return NextResponse.json({ ok: true, problemas, resumen, avisados: llegaron });
     } catch (e: any) {
         await avisarAdmins({ asunto: '⚠️ WhatsApp API: el chequeo diario falló', cuerpo: String(e.message) });

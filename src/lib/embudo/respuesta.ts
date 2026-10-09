@@ -128,16 +128,19 @@ export function clasificarRespuesta(mensajes: MensajeEntrante[]): Clasificacion 
 export const PAUSA_POSPONER_DIAS = 30;
 
 /**
- * Qué cuenta como respuesta AL TOQUE: lo que escribió en los primeros días
- * después del seguimiento. Medido el 8/10/2026: hay chats con meses de charla
- * posterior al último toque (Ricardo, 50 mensajes), y leer todo eso
- * encontraba un "ya compré" de hace semanas en alguien que hoy pide precios.
+ * Qué cuenta como respuesta AL TOQUE: lo que el cliente escribió en las
+ * primeras 48 h desde que empezó a contestar. Medido el 8/10/2026: hay chats
+ * con meses de charla posterior al último toque (Ricardo, 50 mensajes), y
+ * leer todo eso encontraba un "ya compré" de hace semanas en alguien que hoy
+ * pide precios. Y una ventana fija desde el toque se perdía el "no, gracias"
+ * de quien contestó a los 10 días: la ventana arranca cuando ÉL arranca.
  */
-export const VENTANA_RESPUESTA_DIAS = 7;
+export const VENTANA_RESPUESTA_HORAS = 48;
 
-/** Filtra los entrantes que responden al toque de `lastFollowUpAt`. */
 export function respuestasAlToque<T extends { createdAt: Date }>(mensajes: T[], lastFollowUpAt: Date): T[] {
     const desde = lastFollowUpAt.getTime();
-    const hasta = desde + VENTANA_RESPUESTA_DIAS * 24 * 3_600_000;
-    return mensajes.filter(m => m.createdAt.getTime() > desde && m.createdAt.getTime() <= hasta);
+    const despues = mensajes.filter(m => m.createdAt.getTime() > desde).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    if (!despues.length) return [];
+    const hasta = despues[0].createdAt.getTime() + VENTANA_RESPUESTA_HORAS * 3_600_000;
+    return despues.filter(m => m.createdAt.getTime() <= hasta);
 }

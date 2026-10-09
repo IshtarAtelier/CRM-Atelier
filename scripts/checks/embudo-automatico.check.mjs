@@ -15,7 +15,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 import { proximaAccion, ordenarPorUrgencia, CIERRE_TRAS_ULTIMO_TOQUE_DIAS, DIAS_MAX_CIERRE_AUTOMATICO } from '../../src/lib/embudo/playbook.ts';
 import { classifyLead, VENTANA_EMBUDO_DIAS } from '../../src/lib/leads-pipeline.ts';
-import { clasificarRespuesta, clasificarMensaje, respuestasAlToque, VENTANA_RESPUESTA_DIAS } from '../../src/lib/embudo/respuesta.ts';
+import { clasificarRespuesta, clasificarMensaje, respuestasAlToque, VENTANA_RESPUESTA_HORAS } from '../../src/lib/embudo/respuesta.ts';
 
 let ok = 0; const fallas = [];
 const check = (nombre, cond, extra = '') => { if (cond) { ok++; console.log(`  ✓ ${nombre}`); } else { fallas.push(nombre); console.log(`  ✗ ${nombre} ${extra}`); } };
@@ -25,10 +25,10 @@ const D = 86400e3, H = 3600e3;
 const hace = (d) => new Date(NOW - d * D);
 
 /** Arma la entrada del playbook como lo hace embudo.service: classifyLead + datos del lead. */
-function accion({ presupuestoHace = null, altaHace = 1, labels = [], humanoHace = null, receta = false, chat = true, visito = false, ultimoToqueHace = null, borrador = null }) {
+function accion({ presupuestoHace = null, altaHace = 1, labels = [], humanoHace = null, receta = false, chat = true, visito = false, ultimoToqueHace = null, borrador = null, actividadHace = null }) {
     const quoteCreatedAt = presupuestoHace == null ? null : hace(presupuestoHace);
     const { stage, escalonCubierto, cubiertoHasta } = classifyLead({ quoteCreatedAt, hasPrescription: receta, chatLabels: labels, tagNames: [], ultimoMensajeHumano: humanoHace == null ? null : hace(humanoHace), now: NOW });
-    return proximaAccion({ stage, escalonCubierto, cubiertoHasta, quoteCreatedAt, borradorSinEnviar: borrador, createdAt: hace(altaHace), hasPrescription: receta, visitoElLocal: visito, tieneChat: chat, chatLabels: labels, ultimoToqueAt: ultimoToqueHace == null ? null : hace(ultimoToqueHace), now: NOW });
+    return proximaAccion({ stage, escalonCubierto, cubiertoHasta, quoteCreatedAt, borradorSinEnviar: borrador, createdAt: hace(altaHace), hasPrescription: receta, visitoElLocal: visito, tieneChat: chat, chatLabels: labels, ultimoToqueAt: ultimoToqueHace == null ? null : hace(ultimoToqueHace), ultimaActividadAt: actividadHace == null ? null : hace(actividadHace), now: NOW });
 }
 const es = (a, tipo, plantilla) => a.tipo === tipo && (plantilla === undefined || a.plantilla === plantilla);
 const txt = (a) => `(${a.tipo}${a.plantilla ? ' ' + a.plantilla : ''}${a.vencida ? ', vencida' : ''}: "${a.etiqueta}")`;
@@ -44,6 +44,8 @@ a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1'] }); check('20 d�
 a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] }); check('20 días con DIA_4: último toque', es(a, 'plantilla', 'ultimo_seguimiento') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 2 }); check(`último toque hace 2 días: esperar (cierra a los ${CIERRE_TRAS_ULTIMO_TOQUE_DIAS})`, es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ presupuestoHace: 24, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8 }); check('último toque hace 8 días, sin respuesta: CERRAR (antes: "Definir ganado o perdido" para una persona)', es(a, 'cerrar') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 24, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8, actividadHace: 2 }); check('último toque hace 8 días pero el cliente (o Matías) escribió hace 2: NO se cierra, la venta está viva', es(a, 'esperar') && !a.vencida, txt(a));
+a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 10, actividadHace: 1 }); check('retome hace 10 días pero hablaron ayer: NO se cierra', es(a, 'esperar'), txt(a));
 a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1'] }); check(`${VENTANA_EMBUDO_DIAS}+ días sin retome: ÚLTIMO INTENTO con retomar_con_cupon (Ishtar: "quiero intentar cerrarlos")`, es(a, 'plantilla', 'retomar_con_cupon') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 2 }); check('45 días, retome hace 2 días: esperar', es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 8 }); check('45 días, retome hace 8 días sin respuesta: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
@@ -111,8 +113,10 @@ check('"por el momento no voy a comprar": posponer, no cierre', r('si lo vi al p
 {
     const toque = new Date('2026-09-01T12:00:00Z');
     const m = (d, content) => ({ createdAt: new Date(toque.getTime() + d * D), content });
-    const suyos = respuestasAlToque([m(-1, 'antes'), m(1, 'Gracias'), m(VENTANA_RESPUESTA_DIAS + 20, 'Ya compré')], toque);
-    check(`solo cuenta lo escrito en los ${VENTANA_RESPUESTA_DIAS} días después del toque (un "ya compré" de semanas después no cierra)`, suyos.length === 1 && suyos[0].content === 'Gracias');
+    const suyos = respuestasAlToque([m(-1, 'antes'), m(1, 'Gracias'), m(1.5, 'ok'), m(20, 'Ya compré')], toque);
+    check(`solo cuenta la primera ráfaga de respuesta (${VENTANA_RESPUESTA_HORAS} h desde que empezó a contestar): un "ya compré" de semanas después no cierra`, suyos.length === 2 && suyos[1].content === 'ok');
+    const tardio = respuestasAlToque([m(10, 'No, gracias'), m(10.5, 'saludos')], toque);
+    check('contestó a los 10 días: esa respuesta SÍ se lee (la ventana arranca cuando él arranca)', tardio.length === 2 && clasificarRespuesta(tardio) === 'cierre');
 }
 check('"no sigas insistiendo" es cierre aunque antes haya dicho "te aviso"', clasificarRespuesta([{ content: 'Quiero tenerte para cuando pueda, te aviso' }, { content: 'Hola, porfavor no sigas insistiendo' }]) === 'cierre');
 check('botón "Ahora no" → posponer', r('Ahora no') === 'posponer');

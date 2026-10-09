@@ -103,7 +103,12 @@ export async function GET(request: Request) {
         base.usadoHoy = usadoHoy;
 
         // ── Candidatos: lo que el tablero dice que toca HOY ─────────────────
-        const { paraHoy } = await EmbudoService.tablero(now);
+        const { paraHoy, columns } = await EmbudoService.tablero(now);
+        // TODOS los leads del embudo (no solo los que tienen un toque vencido): la
+        // respuesta de alguien que está "esperando" también hay que leerla — es
+        // justo el que contestó al último toque o al retome del 10 %.
+        const todosLosLeads = Object.values(columns).flatMap(c => c.leads);
+        const nombrePorChat = new Map(todosLosLeads.filter(l => l.waChatId).map(l => [l.waChatId!, l.name]));
 
         // ── Cierres del playbook: recorrido completo sin venta, o ventana vencida ──
         const aCerrar = paraHoy.filter(l => l.proximaAccion.tipo === 'cerrar').slice(0, CIERRES_POR_TICK);
@@ -131,7 +136,7 @@ export async function GET(request: Request) {
             }));
         base.candidatos = candidatos.length;
 
-        const chatIds = candidatos.map(c => c.waChatId).filter((x): x is string => !!x);
+        const chatIds = [...nombrePorChat.keys()];
         const filas = chatIds.length ? await prisma.whatsAppChat.findMany({
             where: { id: { in: chatIds } },
             select: {
@@ -167,7 +172,7 @@ export async function GET(request: Request) {
                 const suyos = respuestasAlToque(entrantes.filter(m => m.chatId === f.id), f.lastFollowUpAt!);
                 const clase = clasificarRespuesta(suyos);
                 respuestas.set(f.id, clase);
-                const nombre = candidatos.find(c => c.waChatId === f.id)?.nombre ?? f.id;
+                const nombre = nombrePorChat.get(f.id) ?? f.id;
                 const palabras = suyos.map(m => m.content || '').filter(Boolean).join(' / ') || null;
                 if (clase === 'seguir') {
                     // Respondió al retome con el 10 %: el descuento queda reservado en la ficha.

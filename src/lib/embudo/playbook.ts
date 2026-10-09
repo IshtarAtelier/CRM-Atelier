@@ -148,6 +148,14 @@ export interface EntradaProximaAccion {
     chatLabels: string[];
     /** Cuándo salió el último seguimiento (`WhatsAppChat.lastFollowUpAt`). Decide cuándo cerrar tras el último toque. */
     ultimoToqueAt?: Date | null;
+    /**
+     * Última señal de vida de la charla: lo último que escribió el CLIENTE o
+     * una PERSONA del equipo. El cierre como perdido exige 7 días de silencio
+     * TOTAL, no solo desde el toque: si el cliente contestó "sí, claro" y
+     * Matías le está armando algo, cerrarlo al día 7 del toque sería marcar
+     * perdida una venta en curso.
+     */
+    ultimaActividadAt?: Date | null;
     now: number;
 }
 
@@ -198,6 +206,8 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
     const dias = diasDesde(ref, e.now);
     const vence = (h: number) => new Date(ref.getTime() + h * HORA_MS).toISOString();
     const queEs = e.quoteCreatedAt ? 'Frío' : 'Sin presupuesto';
+    /** Desde cuándo corre el silencio que habilita el cierre: el último toque o la última palabra de alguien, lo más reciente. */
+    const silencioDesde = (fallback: number) => Math.max(e.ultimoToqueAt ? e.ultimoToqueAt.getTime() : fallback, e.ultimaActividadAt ? e.ultimaActividadAt.getTime() : 0);
 
     // Más viejo que el horizonte: no se le manda nada ni se lo cierra solo.
     if (dias > DIAS_MAX_CIERRE_AUTOMATICO) {
@@ -214,7 +224,7 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
         if (!yaIntentado && e.tieneChat) {
             return { tipo: 'plantilla', plantilla: 'retomar_con_cupon', etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA.retomar_con_cupon} (${queEs.toLowerCase()} hace ${dias} días)`, venceEn: vence(VENTANA_EMBUDO_DIAS * 24), vencida: true };
         }
-        const desde = e.ultimoToqueAt ? e.ultimoToqueAt.getTime() : ref.getTime() + VENTANA_EMBUDO_DIAS * 24 * HORA_MS;
+        const desde = silencioDesde(ref.getTime() + VENTANA_EMBUDO_DIAS * 24 * HORA_MS);
         const cierraEn = desde + CIERRE_TRAS_ULTIMO_TOQUE_DIAS * 24 * HORA_MS;
         if (e.now < cierraEn) {
             const faltan = Math.max(1, Math.ceil((cierraEn - e.now) / (24 * HORA_MS)));
@@ -229,7 +239,7 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
 
     // Último toque hecho: se espera la respuesta unos días y se cierra.
     if (cubierto === 'seguimiento10dias') {
-        const desde = e.ultimoToqueAt ? e.ultimoToqueAt.getTime() : ref.getTime() + FRIO_HOURS * HORA_MS;
+        const desde = silencioDesde(ref.getTime() + FRIO_HOURS * HORA_MS);
         const cierraEn = desde + CIERRE_TRAS_ULTIMO_TOQUE_DIAS * 24 * HORA_MS;
         if (e.now >= cierraEn) {
             return { tipo: 'cerrar', etiqueta: `Sin respuesta al último toque: se cierra como perdido`, venceEn: new Date(cierraEn).toISOString(), vencida: true };

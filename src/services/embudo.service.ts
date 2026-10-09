@@ -180,6 +180,7 @@ export const EmbudoService = {
                 tieneChat: !!chat,
                 chatLabels,
                 ultimoToqueAt: chat?.lastFollowUpAt ?? null,
+                ultimaActividadAt: [chat?.lastInboundAt ?? null, ultimoMensajeHumano].filter((d): d is Date => !!d).sort((a, b) => b.getTime() - a.getTime())[0] ?? null,
                 now,
             });
 
