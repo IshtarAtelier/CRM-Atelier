@@ -45,6 +45,8 @@ const veta = (nombre, c, ch, contiene) => {
 };
 veta('sin plantilla (el paso es de una persona)', cand({ plantilla: undefined }), chat(), 'plantilla');
 veta('plantilla no habilitada para envío automático', cand({ plantilla: 'seguimiento_carrito' }), chat(), 'no está habilitada');
+check('8/10 · una plantilla PENDING en Meta no se manda (rebotaría y frenaría el motor)', (evaluar(cand({ plantilla: 'retomar_con_cupon' }), chat(), { ...ctx, plantillasNoAprobadas: new Set(['retomar_con_cupon']) }) || '').includes('no está aprobada'));
+check('8/10 · aprobada: sale', evaluar(cand({ plantilla: 'retomar_con_cupon' }), chat(), { ...ctx, plantillasNoAprobadas: new Set() }) === null);
 check('12/9 · un lead de antes del 7/9 SALE (Ishtar: "a todos"; la ventana de 30 días la pone el playbook)', evaluar(cand({ createdAt: new Date('2026-09-01T12:00:00-03:00') }), chat(), ctx) === null);
 veta('sin chat', cand({ waChatId: null }), null, 'chat');
 veta('sin nombre de pila', cand({ nombre: 'Cliente' }), chat(), 'nombre');
@@ -107,6 +109,8 @@ console.log('\nSi el cliente responde a un seguimiento, NO hay tarea para nadie 
     const ruta = readFileSync(new URL('../../src/app/api/cron/seguimientos/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('el motor lee la respuesta y ejecuta cierre/pausa', ruta.includes('clasificarRespuesta(') && ruta.includes('cerrarComoPerdido(') && ruta.includes('posponerSeguimiento('));
     check("el motor ejecuta los 'cerrar' del playbook", ruta.includes("tipo === 'cerrar'"));
+    check('8/10 · responder al retome reserva el 10 % en la ficha', ruta.includes('reservarDescuentoRetome(') && ruta.includes("ultimaPlantilla.get(f.id) === PLANTILLA_RETOME"));
+    check('8/10 · el motor consulta el espejo de plantillas antes de mandar', ruta.includes('prisma.whatsAppTemplate.findMany') && ruta.includes('plantillasNoAprobadas'));
     const svc = readFileSync(new URL('../../src/services/embudo.service.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('la etiqueta "Perdido (embudo)" saca al lead del embudo', svc.includes('TAG_PERDIDO_EMBUDO.toLowerCase()'));
     check('8/10 · nadie que haya comprado o esté CONFIRMADO entra al embudo (venta, confirmado, fábrica, pago)', ["{ status: 'CONFIRMED' }", "{ labSentAt: { not: null } }", "{ paid: { gt: 0 } }", "{ payments: { some: {} } }"].every(x => svc.includes(x)));

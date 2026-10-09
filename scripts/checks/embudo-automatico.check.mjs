@@ -44,7 +44,7 @@ a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1'] }); check('20 d�
 a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] }); check('20 días con DIA_4: último toque', es(a, 'plantilla', 'ultimo_seguimiento') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 2 }); check(`último toque hace 2 días: esperar (cierra a los ${CIERRE_TRAS_ULTIMO_TOQUE_DIAS})`, es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ presupuestoHace: 24, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8 }); check('último toque hace 8 días, sin respuesta: CERRAR (antes: "Definir ganado o perdido" para una persona)', es(a, 'cerrar') && a.vencida, txt(a));
-a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1'] }); check(`${VENTANA_EMBUDO_DIAS}+ días sin retome: ÚLTIMO INTENTO con retomar_conversacion (Ishtar: "quiero intentar cerrarlos")`, es(a, 'plantilla', 'retomar_conversacion') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1'] }); check(`${VENTANA_EMBUDO_DIAS}+ días sin retome: ÚLTIMO INTENTO con retomar_con_cupon (Ishtar: "quiero intentar cerrarlos")`, es(a, 'plantilla', 'retomar_con_cupon') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 2 }); check('45 días, retome hace 2 días: esperar', es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 8 }); check('45 días, retome hace 8 días sin respuesta: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 45, chat: false }); check('45 días sin chat: nada que intentar, CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
@@ -62,7 +62,7 @@ a = accion({ altaHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] })
 a = accion({ altaHace: 25, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8 }); check('último toque hace 8 días: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ altaHace: 10, chat: false }); check('sin chat: nada que mandar, espera al cierre del día 30', es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ altaHace: 40, chat: false }); check('sin chat, 40 días: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
-a = accion({ altaHace: 40 }); check('sin presupuesto, 40 días, con chat: último intento', es(a, 'plantilla', 'retomar_conversacion'), txt(a));
+a = accion({ altaHace: 40 }); check('sin presupuesto, 40 días, con chat: último intento', es(a, 'plantilla', 'retomar_con_cupon'), txt(a));
 
 console.log('\nOrden del día: la cadencia primero, los últimos intentos después y del más nuevo al más viejo');
 {
@@ -116,7 +116,7 @@ check('"por el momento no voy a comprar": posponer, no cierre', r('si lo vi al p
 }
 check('"no sigas insistiendo" es cierre aunque antes haya dicho "te aviso"', clasificarRespuesta([{ content: 'Quiero tenerte para cuando pueda, te aviso' }, { content: 'Hola, porfavor no sigas insistiendo' }]) === 'cierre');
 check('botón "Ahora no" → posponer', r('Ahora no') === 'posponer');
-check('botón "Sí, sigamos" → seguir', r('Sí, sigamos') === 'seguir');
+check('botón "¡Sí, quiero mi descuento!" → seguir (y el motor reserva el 10 %)', r('¡Sí, quiero mi descuento!') === 'seguir');
 check('un audio es seguir', clasificarMensaje({ content: '[Mensaje audio]', type: 'AUDIO' }) === 'seguir');
 check('tres burbujas, una dice que no: cierre', clasificarRespuesta([{ content: '👍' }, { content: 'No, gracias' }, { content: 'saludos' }]) === 'cierre');
 check('"más adelante" + "gracias": posponer', clasificarRespuesta([{ content: 'gracias' }, { content: 'más adelante veo' }]) === 'posponer');

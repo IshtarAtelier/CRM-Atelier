@@ -8,9 +8,9 @@ import { ejecutar, FALLAS_SEGUIDAS_PARA_FRENAR } from '@/lib/seguimientos/ejecut
 import { agruparVetos, diaArt, horaArt, registrarCorrida } from '@/lib/seguimientos/registro';
 import type { Candidato, EstadoDelChat } from '@/lib/seguimientos/politica';
 import { clasificarRespuesta, respuestasAlToque, type Clasificacion } from '@/lib/embudo/respuesta';
-import { cerrarComoPerdido, posponerSeguimiento } from '@/lib/seguimientos/cierre';
+import { cerrarComoPerdido, posponerSeguimiento, reservarDescuentoRetome, PLANTILLA_RETOME } from '@/lib/seguimientos/cierre';
 import {
-    CUPO_DIARIO_POR_DEFECTO, HORA_DESDE, HORA_HASTA, LOTE_POR_TICK, MODO_POR_DEFECTO,
+    CUPO_DIARIO_POR_DEFECTO, HORA_DESDE, HORA_HASTA, LOTE_POR_TICK, MODO_POR_DEFECTO, PLANTILLAS_AUTOMATICAS,
 } from '@/lib/constants/seguimientos';
 
 export const dynamic = 'force-dynamic';
@@ -148,8 +148,16 @@ export async function GET(request: Request) {
         const conRespuesta = filas.filter(f => f.lastFollowUpAt && f.lastInboundAt && f.lastInboundAt > f.lastFollowUpAt);
         const respuestas = new Map<string, Clasificacion>();
         const lecturas: { nombre: string; motivo: string }[] = [];
+        const ultimaPlantilla = new Map<string, string | null>();
         if (conRespuesta.length) {
             const desde = new Date(Math.min(...conRespuesta.map(f => f.lastFollowUpAt!.getTime())));
+            // Cuál fue el último toque de cada chat (para saber si respondió al retome del 10 %).
+            const ultimas = await prisma.whatsAppMessage.findMany({
+                where: { chatId: { in: conRespuesta.map(f => f.id) }, direction: 'OUTBOUND', templateName: { not: null }, createdAt: { gte: desde } },
+                orderBy: { createdAt: 'desc' },
+                select: { chatId: true, templateName: true },
+            });
+            for (const u of ultimas) if (!ultimaPlantilla.has(u.chatId)) ultimaPlantilla.set(u.chatId, u.templateName);
             const entrantes = await prisma.whatsAppMessage.findMany({
                 where: { chatId: { in: conRespuesta.map(f => f.id) }, direction: 'INBOUND', createdAt: { gt: desde } },
                 orderBy: { createdAt: 'asc' },
@@ -159,9 +167,19 @@ export async function GET(request: Request) {
                 const suyos = respuestasAlToque(entrantes.filter(m => m.chatId === f.id), f.lastFollowUpAt!);
                 const clase = clasificarRespuesta(suyos);
                 respuestas.set(f.id, clase);
-                if (clase === 'seguir') continue;
                 const nombre = candidatos.find(c => c.waChatId === f.id)?.nombre ?? f.id;
                 const palabras = suyos.map(m => m.content || '').filter(Boolean).join(' / ') || null;
+                if (clase === 'seguir') {
+                    // Respondió al retome con el 10 %: el descuento queda reservado en la ficha.
+                    if (modo === 'real' && f.clientId && suyos.length && f.chatLabels.includes('SEGUIMIENTO_RETOME') && ultimaPlantilla.get(f.id) === PLANTILLA_RETOME) {
+                        try {
+                            if (await reservarDescuentoRetome({ clientId: f.clientId, palabrasDelCliente: palabras, tagNames: (f.client?.tags || []).map(t => t.name) })) {
+                                lecturas.push({ nombre, motivo: `respondió al retome: 10% reservado en la ficha («${(palabras || '').slice(0, 80)}»)` });
+                            }
+                        } catch (e: any) { lecturas.push({ nombre, motivo: `NO se pudo reservar el 10%: ${e?.message}` }); }
+                    }
+                    continue;
+                }
                 if (modo !== 'real') { lecturas.push({ nombre, motivo: `(seco) ${clase}: «${(palabras || '').slice(0, 80)}»` }); continue; }
                 try {
                     if (clase === 'cierre') {
@@ -184,6 +202,18 @@ export async function GET(request: Request) {
             _max: { createdAt: true },
         }) : [];
         const ultimoSaliente = new Map(salientes.map(s => [s.chatId, s._max.createdAt]));
+
+        // ¿Qué plantillas automáticas NO están aprobadas en Meta? (espejo local,
+        // lo sincroniza el cron whatsapp-calidad). Una PENDING no se manda: rebota.
+        const espejo = await prisma.whatsAppTemplate.findMany({
+            where: { name: { in: [...PLANTILLAS_AUTOMATICAS] }, language: 'es_AR' },
+            select: { name: true, status: true },
+        });
+        const hayEspejo = (await prisma.whatsAppTemplate.count()) > 0;
+        const plantillasNoAprobadas = new Set<string>(PLANTILLAS_AUTOMATICAS.filter(p => {
+            const fila = espejo.find(e => e.name === p);
+            return fila ? fila.status !== 'APPROVED' : hayEspejo;
+        }));
         const chats = new Map<string, EstadoDelChat>(
             filas.map(f => [f.id, {
                 lastInboundAt: f.lastInboundAt, lastFollowUpAt: f.lastFollowUpAt, followUpPausedUntil: f.followUpPausedUntil,
@@ -193,7 +223,7 @@ export async function GET(request: Request) {
             }]),
         );
 
-        const seleccion = seleccionar({ candidatos, chats, ctx: { now }, cupo });
+        const seleccion = seleccionar({ candidatos, chats, ctx: { now, plantillasNoAprobadas }, cupo });
         base.elegidos = seleccion.elegidos.length;
         base.enEspera = seleccion.enEspera.length;
         // Los cierres y las lecturas de respuestas se registran junto a los vetos: es lo que el motor HIZO sin mandar nada.

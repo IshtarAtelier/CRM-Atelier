@@ -35,14 +35,20 @@ Lo que cambió, y dónde:
   pendientes a `LOST`, nota firmada 'Sistema' y AuditLog
   (`lib/seguimientos/cierre.ts`). Más viejo que `DIAS_MAX_CIERRE_AUTOMATICO`
   (120 días) no se toca. Salen de a `CIERRES_POR_TICK` (200) por hora.
-- **Pasados los 30 días se intenta UNA vez más antes de cerrar** (Ishtar:
-  "obvio que quiero intentar cerrarlos"): el motor manda
-  `retomar_conversacion` ("te escribimos por tu consulta sobre tus lentes,
-  ¿seguimos por acá?", botones "Sí, sigamos" / "Ahora no"), deja la etiqueta
-  `SEGUIMIENTO_RETOME`, y si en 7 días no contesta, cierra. "Ahora no" pausa
-  30 días; "Sí, sigamos" lo atiende el bot. Sin chat no hay a quién
-  escribirle: cierra directo. Un presupuesto marcado perdido A MANO (botón ✓
-  de Cierres) saca al lead del embudo: alguien ya decidió.
+- **Pasados los 30 días se intenta una vez más antes de cerrar** (Ishtar:
+  "obvio que quiero intentar cerrarlos" + "ofreceles un cupón del 10 %"): el
+  motor manda `retomar_con_cupon` (texto de Ishtar: 10 % de descuento por
+  RESPONDER, botones "¡Sí, quiero mi descuento!" / "Ahora no" + links de
+  tienda e Instagram; subida a Meta el 8/10/2026), deja la etiqueta
+  `SEGUIMIENTO_RETOME`, y si en 7 días no contesta, cierra. **El 10 % se gana
+  respondiendo**: cualquier respuesta que no sea un "no" le pone a la ficha la
+  etiqueta `Retome 10%` y una nota; el vendedor lo aplica en la venta como
+  descuento especial. "Ahora no" pausa 30 días Y saca la etiqueta del retome:
+  al volver se le ofrece otra vez, hasta los 120 días (máximo tres mensajes
+  en tres meses). Sin chat no hay a quién escribirle: cierra directo. Una
+  plantilla que el espejo `WhatsAppTemplate` no da por APPROVED no se manda
+  (una PENDING rebota y tres rebotes frenan el motor). Un presupuesto marcado
+  perdido A MANO (botón ✓ de Cierres) saca al lead del embudo: alguien ya decidió.
 - **La respuesta del cliente se LEE** (`lib/embudo/respuesta.ts`, puro, sin
   IA): "no / ya compré / en otra óptica / no me escriban" → `cierre` (perdido);
   "más adelante / cuando cobre / por ahora no" → `posponer` (pausa 30 días);
@@ -140,7 +146,7 @@ de las etiquetas del chat (`SEGUIMIENTO_DIA_1/4/15`).
 | **> 4**, con DIA_1 y sin DIA_4 | 2º toque | `invitacion_local_v4` | **motor** | Deja `SEGUIMIENTO_DIA_4`. (Si ya vino al local, se saltea.) |
 | **> 15**, con DIA_4 y sin DIA_15 | 3er y último toque | `ultimo_seguimiento` | **motor** | Deja `SEGUIMIENTO_DIA_15`. |
 | DIA_15 + 7 días sin respuesta | `cerrar` | — | **motor** | Etiqueta `Perdido (embudo)`: sale del embudo. |
-| **> 30**, sin `SEGUIMIENTO_RETOME` | último intento | `retomar_conversacion` | **motor** | Deja `SEGUIMIENTO_RETOME`; 7 días después sin respuesta → `cerrar`. |
+| **> 30**, sin `SEGUIMIENTO_RETOME` | último intento | `retomar_con_cupon` | **motor** | Deja `SEGUIMIENTO_RETOME`; 7 días después sin respuesta → `cerrar`. |
 | sin chat de WhatsApp | esperar | — | — | No recibe nada; se cierra solo al día 30. |
 
 ### 3b. Con presupuesto enviado
@@ -153,7 +159,7 @@ de las etiquetas del chat (`SEGUIMIENTO_DIA_1/4/15`).
 | 4, **ya vino al local** (botón "Visita", turno cumplido o etiqueta de visita) | Seguimiento 2 | Esperar ("Ya vino al local") | — | — | Se saltea la invitación. Espera al día 15. |
 | **15** (360 h), con DIA_4 y sin `SEGUIMIENTO_DIA_15` | Frío | 3er y último toque | `ultimo_seguimiento` (Instagram + "tengo un descuento especial para hacerte") | **motor** o persona | Deja `SEGUIMIENTO_DIA_15`. |
 | DIA_15 + **7 días** sin respuesta | Frío | `cerrar` | — | **motor** | Etiqueta `Perdido (embudo)` + presupuestos pendientes a `LOST`. Sale del embudo. |
-| **> 30** (hasta 120), sin `SEGUIMIENTO_RETOME` | Frío | último intento | `retomar_conversacion` | **motor** | Deja `SEGUIMIENTO_RETOME`; 7 días después sin respuesta → `cerrar`. Más de 120 días: "fuera del embudo", no se toca. |
+| **> 30** (hasta 120), sin `SEGUIMIENTO_RETOME` | Frío | último intento | `retomar_con_cupon` | **motor** | Deja `SEGUIMIENTO_RETOME`; 7 días después sin respuesta → `cerrar`. Más de 120 días: "fuera del embudo", no se toca. |
 
 Si el cliente **responde** cualquiera de los toques, el motor lee qué dijo
 (`lib/embudo/respuesta.ts`, sección 0): un "no" lo cierra como perdido, un

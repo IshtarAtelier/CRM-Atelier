@@ -62,6 +62,12 @@ export function seguimientoApagado(chat: Pick<EstadoDelChat, 'chatLabels' | 'tag
 
 export interface Contexto {
     now: number;
+    /**
+     * Plantillas que el espejo local de Meta (`WhatsAppTemplate`) NO da por
+     * aprobadas. Una plantilla recién creada queda PENDING unas horas o un
+     * día: mandarla rebota, y tres rebotes seguidos frenan el motor entero.
+     */
+    plantillasNoAprobadas?: ReadonlySet<string>;
 }
 
 export type Compuerta = (c: Candidato, chat: EstadoDelChat | null, ctx: Contexto) => string | null;
@@ -83,6 +89,8 @@ export const COMPUERTAS: Compuerta[] = [
     (c) => (c.plantilla ? null : 'no hay plantilla que mandar'),
 
     (c) => (PLANTILLAS_AUTOMATICAS.includes(c.plantilla!) ? null : `la plantilla ${c.plantilla} no está habilitada para envío automático`),
+
+    (c, _chat, ctx) => (ctx.plantillasNoAprobadas?.has(c.plantilla!) ? `la plantilla ${c.plantilla} todavía no está aprobada en Meta` : null),
 
     // Los viejos se atienden a mano (decisión del 7/9/2026).
     (c) => (!MOTOR_SEGUIMIENTOS_DESDE || c.createdAt.getTime() >= MOTOR_SEGUIMIENTOS_DESDE.getTime() ? null : 'lead anterior al arranque del motor: se le escribe a mano'),

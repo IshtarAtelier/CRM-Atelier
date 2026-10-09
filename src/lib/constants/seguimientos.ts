@@ -58,10 +58,11 @@ export const SILENCIO_MINIMO_HORAS = 48;
  * esta última partida en con/sin receta desde el 7/9/26), el segundo y el
  * último (`playbook.ts`).
  * `seguimiento_carrito` NO está: lo cubre el cron de carritos abandonados.
- * `retomar_conversacion` SÍ está desde el 8/10/2026: es el último intento
- * antes de cerrar como perdido a quien pasó los 30 días (Ishtar: "obvio que
- * quiero intentar cerrarlos"). Es la más parecida a un mensaje humano y trae
- * los botones "Sí, sigamos" / "Ahora no".
+ * `retomar_con_cupon` está desde el 8/10/2026: es el último intento antes de
+ * cerrar como perdido a quien pasó los 30 días (Ishtar: "obvio que quiero
+ * intentar cerrarlos" + "ofreceles un cupón del 10 %"). Trae los botones
+ * "¡Sí, quiero mi descuento!" / "Ahora no" y los links de tienda e Instagram.
+ * `retomar_conversacion` sigue siendo manual (Matías e Ishtar desde el buzón).
  */
 export const PLANTILLAS_AUTOMATICAS: readonly TemplateName[] = [
     'seguimiento_presupuesto',
@@ -69,8 +70,5 @@ export const PLANTILLAS_AUTOMATICAS: readonly TemplateName[] = [
     'seguimiento_lentes_con_receta',
     'invitacion_local_v4',
     'ultimo_seguimiento',
-    'retomar_conversacion',
+    'retomar_con_cupon',
 ];
-
-/** Lo que va en "{{2}}" de `retomar_conversacion` ("…por tu consulta sobre {{2}}"). */
-export const TEMA_RETOMAR = 'tus lentes';

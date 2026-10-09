@@ -485,6 +485,23 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus {{2}}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'productos de la última venta', example: 'multifocales Crizal' }],
     },
+    // Último intento del embudo con descuento (Ishtar, 8/10/2026). El 10 % se
+    // gana RESPONDIENDO: la ficha recibe la etiqueta "Retome 10%" y el
+    // vendedor lo aplica en la venta como descuento especial. Marketing: habla
+    // de un descuento. Texto redactado por Ishtar; los links van como botones.
+    retomar_con_cupon: {
+        name: 'retomar_con_cupon',
+        inventario: 'E4 (último intento antes de cerrar: 10 % por responder)',
+        category: 'MARKETING',
+        body: '¡Hola {{1}}, {{2}}! 😊 Somos de Atelier Óptica, la óptica mejor calificada de Córdoba ⭐, y te escribimos por tu consulta de lentes. ¿Al final los resolviste?\nSi todavía no, 🎁 te regalamos un 10% de descuento en tus anteojos, ¡aprovechalo respondiendo este mensaje! Mientras tanto podés chusmear los modelos que van entrando en nuestra tienda y en Instagram 👓✨ ¿Querés ver cómo quedaría tu presupuesto? Respondenos y te lo aplicamos.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+        buttons: [
+            { type: 'QUICK_REPLY', text: '¡Sí, quiero mi descuento!' },
+            { type: 'QUICK_REPLY', text: 'Ahora no' },
+            { type: 'URL', text: 'Ver la tienda', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'URL', text: 'Seguirnos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
+        ],
+    },
     retomar_conversacion: {
         name: 'retomar_conversacion',
         inventario: 'A9',
