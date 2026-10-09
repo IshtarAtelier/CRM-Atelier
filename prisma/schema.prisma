@@ -1686,3 +1686,36 @@ model HolidayShift {
   @@unique([fecha, userId])
   @@index([fecha])
 }
+
+// Gift cards (tarjetas de regalo) que emite el local. La carga el equipo en
+// /admin/gift-cards cuando el cliente ya pagó; el registro sirve para saber
+// cuáles están vigentes y marcarlas como usadas al canjearlas.
+// Sin relaciones a propósito: la tarjeta puede regalarse a alguien que todavía
+// no es contacto del CRM. Quién la emitió/usó queda denormalizado, igual que
+// en TeamEvent, para que el historial sobreviva a cambios de usuarios.
+model GiftCard {
+  id            String    @id @default(cuid())
+  // AO-AAMM-NNNN, lo genera el service. Es lo que el cliente presenta.
+  code          String    @unique
+  para          String
+  de            String?
+  // Pesos, valor de la tarjeta (lo que se descuenta al canjearla).
+  monto         Float
+  // Día de vencimiento (medianoche de Córdoba). null = sin vencimiento.
+  validaHasta   DateTime?
+  // WhatsApp de quien la recibe, solo dígitos (opcional).
+  telefono      String?
+  // ACTIVA · USADA · ANULADA (ver src/lib/constants/gift-cards.ts)
+  estado        String    @default("ACTIVA")
+  usadaAt       DateTime?
+  usadaPorId    String?
+  usadaPorName  String?
+  notas         String?
+  createdById   String?
+  createdByName String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([estado])
+  @@index([createdAt])
+}
