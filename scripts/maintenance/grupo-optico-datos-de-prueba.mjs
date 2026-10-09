@@ -49,6 +49,16 @@ try {
             await prisma.interaction.deleteMany({ where: { clientId: client.id } });
             await prisma.client.delete({ where: { id: client.id } });
         }
+        // Lo que el usuario de pruebas escribió por la mensajería interna (un extra
+        // no cobrado le manda un mensaje a la dueña): sin esto, la FK no deja borrarlo.
+        const u = await prisma.user.findUnique({ where: { email: EMAIL }, select: { id: true } });
+        if (u) {
+            const hilos = await prisma.internalThread.findMany({ where: { createdById: u.id }, select: { id: true } });
+            await prisma.internalMessage.deleteMany({ where: { OR: [{ senderId: u.id }, { threadId: { in: hilos.map(h => h.id) } }] } });
+            await prisma.internalThreadParticipant.deleteMany({ where: { OR: [{ userId: u.id }, { threadId: { in: hilos.map(h => h.id) } }] } });
+            await prisma.internalThread.deleteMany({ where: { id: { in: hilos.map(h => h.id) } } });
+            await prisma.auditLog.deleteMany({ where: { userId: u.id } }).catch(() => null);
+        }
         await prisma.user.deleteMany({ where: { email: EMAIL } });
         console.log('✅ Datos de prueba de Grupo Óptico borrados.');
         process.exit(0);
