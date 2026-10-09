@@ -242,7 +242,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                     {par.campos.map(c => c.tipo === 'extra' ? (
                                         valorDe(par.pair, c) ? (
                                             <span key={c.clave} className="text-[11px] text-amber-900 bg-amber-100 rounded px-2 py-1.5 inline-flex items-center gap-2">
-                                                <AlertTriangle className="w-3 h-3" /> {c.etiqueta.replace(/^Agregar /, '')} agregado SIN COBRAR · "{valorDe(par.pair, c)}"
+                                                <AlertTriangle className="w-3 h-3" /> {c.etiqueta.replace(/^Agregar /, '').replace(/\s*\(.*\)\s*$/, '')} agregado SIN COBRAR · "{valorDe(par.pair, c)}"
                                                 <button type="button" onClick={() => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: '' }))} className="underline">quitar</button>
                                             </span>
                                         ) : (
