@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star, MessagesSquare, CalendarClock, CalendarDays } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star, MessagesSquare, CalendarClock, CalendarDays, Gift } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -74,6 +74,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/analitica", label: "↳ Analítica Web", icon: LineChart, adminOnly: true, isSubLink: true },
       { href: "/admin/resenas", label: "↳ Reseñas", icon: Star, adminOnly: true, isSubLink: true },
       { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
+      { href: "/admin/gift-cards", label: "Gift Cards", icon: Gift, adminOnly: false },
       { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
       { href: "/admin/ventas?mode=WEB", label: "↳ Ventas Web", icon: Globe, adminOnly: false, isSubLink: true },
       { href: "/admin/ventas?mode=POST_VENTA", label: "↳ Post Venta", icon: Wrench, adminOnly: false, isSubLink: true },
