@@ -24,7 +24,7 @@ import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
 import {
     TIPOS_NOVEDAD, TIPOS_QUE_SE_PIDEN, TIPOS_SOLO_ADMIN,
-    type TipoNovedad, type EstadoNovedad,
+    horasDeRango, type TipoNovedad, type EstadoNovedad,
 } from '@/lib/constants/novedades-equipo';
 
 const ROLES_INTERNOS = ['ADMIN', 'STAFF'];
@@ -45,6 +45,8 @@ function diaAFecha(dia: unknown, campo: string): Date {
 }
 
 function esAdmin(actor: Actor) { return actor.role === 'ADMIN'; }
+
+
 
 export interface NovedadInput {
     userId: string;
@@ -124,8 +126,16 @@ export class TeamEventsService {
         const endsAt = input.hasta ? diaAFecha(input.hasta, 'hasta') : startsAt;
         if (endsAt < startsAt) throw new TeamEventsError('"hasta" es anterior a "desde"');
 
+        // Franco compensatorio: SIEMPRE en horas (Ishtar, 8/10/2026: "se cubren
+        // entre ellos siempre a las horas"), con el rango en `horario`.
+        let horario = input.horario?.trim() || null;
+        if (input.type === 'FRANCO_COMPENSATORIO') {
+            if (!horario || horasDeRango(horario) === null) throw new TeamEventsError('El franco compensatorio lleva horario, por ejemplo 09:00-13:00');
+            horario = horario.replace(/\s+/g, '');
+        }
+
         let swapWithUserId: string | null = null;
-        if (input.type === 'CAMBIO_TURNO' && input.swapWithUserId) {
+        if ((input.type === 'CAMBIO_TURNO' || input.type === 'FRANCO_COMPENSATORIO') && input.swapWithUserId) {
             if (input.swapWithUserId === input.userId) throw new TeamEventsError('No se puede cambiar el turno con uno mismo');
             const otro = await prisma.user.findUnique({ where: { id: input.swapWithUserId }, select: { id: true, role: true } });
             if (!otro || !ROLES_INTERNOS.includes(otro.role)) throw new TeamEventsError('La otra persona no es del equipo', 404);
@@ -143,7 +153,7 @@ export class TeamEventsService {
                 userId: persona.id,
                 type: input.type,
                 startsAt, endsAt,
-                horario: input.horario?.trim() || null,
+                horario,
                 status,
                 justificada: TIPOS_SOLO_ADMIN.includes(input.type) ? (input.justificada ?? null) : null,
                 swapWithUserId,

@@ -223,7 +223,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                                             className={`block w-full text-left text-sm px-2.5 py-1.5 rounded-lg border ${NOVEDAD_INFO[n.type].clase} ${n.status === 'RECHAZADO' ? 'line-through opacity-60' : ''} ${n.status === 'PENDIENTE' ? 'border-dashed' : ''}`}>
                                             <span className="font-black">{n.user.name}</span> · {NOVEDAD_INFO[n.type].etiqueta}
                                             {n.horario ? ` · ${n.horario}` : ''}
-                                            {n.swapWith ? ` con ${n.swapWith.name}` : ''}
+                                            {n.swapWith ? (n.type === 'FRANCO_COMPENSATORIO' ? ` · lo cubre ${n.swapWith.name}` : ` con ${n.swapWith.name}`) : ''}
                                             {n.status === 'PENDIENTE' ? <span className="font-bold"> · pendiente de OK</span> : ''}
                                             {n.notes ? <span className="block text-xs opacity-80 truncate">{n.notes}</span> : null}
                                         </button>
@@ -307,6 +307,8 @@ export function Formulario({ yo, equipo, dia, tipoInicial, onCerrar, onGuardado 
     const [desde, setDesde] = useState(dia);
     const [hasta, setHasta] = useState(dia);
     const [horario, setHorario] = useState('');
+    const [hDesde, setHDesde] = useState('');
+    const [hHasta, setHHasta] = useState('');
     const [swapWithUserId, setSwap] = useState('');
     const [justificada, setJustificada] = useState<'' | 'si' | 'no'>('');
     const [notes, setNotes] = useState('');
@@ -319,8 +321,9 @@ export function Formulario({ yo, equipo, dia, tipoInicial, onCerrar, onGuardado 
             const r = await fetch('/api/equipo/novedades', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId, type, desde, hasta: hasta || desde, horario: horario || null,
-                    swapWithUserId: type === 'CAMBIO_TURNO' ? swapWithUserId || null : null,
+                    userId, type, desde, hasta: hasta || desde,
+                    horario: type === 'FRANCO_COMPENSATORIO' ? (hDesde && hHasta ? `${hDesde}-${hHasta}` : '') : horario || null,
+                    swapWithUserId: type === 'CAMBIO_TURNO' || type === 'FRANCO_COMPENSATORIO' ? swapWithUserId || null : null,
                     justificada: justificada === '' ? null : justificada === 'si',
                     notes: notes || null,
                 }),
@@ -358,13 +361,21 @@ export function Formulario({ yo, equipo, dia, tipoInicial, onCerrar, onGuardado 
                     <div><label className={etiqueta}>Desde</label><input type="date" value={desde} onChange={e => { setDesde(e.target.value); if (hasta < e.target.value) setHasta(e.target.value); }} className={campo} required /></div>
                     <div><label className={etiqueta}>Hasta</label><input type="date" value={hasta} min={desde} onChange={e => setHasta(e.target.value)} className={campo} required /></div>
                 </div>
+                {type === 'FRANCO_COMPENSATORIO' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><label className={etiqueta}>Se va / falta desde</label><input type="time" value={hDesde} onChange={e => setHDesde(e.target.value)} className={campo} required /></div>
+                        <div><label className={etiqueta}>Hasta</label><input type="time" value={hHasta} onChange={e => setHHasta(e.target.value)} className={campo} required /></div>
+                        <p className="col-span-2 text-xs text-stone-500">Las horas se descuentan de las que tiene a favor por feriados trabajados.</p>
+                    </div>
+                ) : (
                 <div>
                     <label className={etiqueta}>Horario (opcional)</label>
                     <input value={horario} onChange={e => setHorario(e.target.value)} placeholder={type === 'LLEGADA_TARDE' ? 'ej. llegó 10:40' : type === 'CAMBIO_TURNO' ? 'ej. hace la tarde en vez de la mañana' : 'ej. se va 17:00'} className={campo} maxLength={80} />
                 </div>
-                {type === 'CAMBIO_TURNO' && (
+                )}
+                {(type === 'CAMBIO_TURNO' || type === 'FRANCO_COMPENSATORIO') && (
                     <div>
-                        <label className={etiqueta}>Con quién cambia</label>
+                        <label className={etiqueta}>{type === 'CAMBIO_TURNO' ? 'Con quién cambia' : 'Quién lo cubre'}</label>
                         <select value={swapWithUserId} onChange={e => setSwap(e.target.value)} className={campo}>
                             <option value="">— sin especificar —</option>
                             {equipo.filter(p => p.id !== userId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -408,7 +419,7 @@ function Detalle({ n, yo, puedeTocar, onCerrar, onDecidir, onBorrar }: {
             <dl className="text-sm space-y-2">
                 <div><dt className={etiqueta}>Cuándo</dt><dd className="font-bold">{rango(n)}{n.horario ? ` · ${n.horario}` : ''}</dd></div>
                 <div><dt className={etiqueta}>Estado</dt><dd className={ESTADO_INFO[n.status].clase}>{ESTADO_INFO[n.status].etiqueta}{n.decidedByName ? ` por ${n.decidedByName}${n.decidedAt ? ` el ${formatDate(n.decidedAt)}` : ''}` : ''}</dd></div>
-                {n.swapWith && <div><dt className={etiqueta}>Cambia con</dt><dd>{n.swapWith.name}</dd></div>}
+                {n.swapWith && <div><dt className={etiqueta}>{n.type === 'FRANCO_COMPENSATORIO' ? 'Lo cubre' : 'Cambia con'}</dt><dd>{n.swapWith.name}</dd></div>}
                 {n.justificada !== null && <div><dt className={etiqueta}>Justificada</dt><dd>{n.justificada ? 'Sí' : 'No'}</dd></div>}
                 {n.notes && <div><dt className={etiqueta}>Notas</dt><dd className="whitespace-pre-wrap">{n.notes}</dd></div>}
                 <div><dt className={etiqueta}>Anotado por</dt><dd>{n.createdByName} el {formatDate(n.createdAt)}</dd></div>

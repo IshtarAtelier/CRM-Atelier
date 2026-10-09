@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flag, Loader2, Check, X, Minus, Plus } from 'lucide-react';
-import { NOVEDAD_INFO, ESTADO_INFO, TIPO_QUE_DESCUENTA_FERIADO } from '@/lib/constants/novedades-equipo';
+import { NOVEDAD_INFO, ESTADO_INFO, TIPO_QUE_DESCUENTA_FERIADO, horasDeRango } from '@/lib/constants/novedades-equipo';
 import { rangoNovedad, type Novedad, type Yo } from './CalendarioClient';
 import { formatDate } from '@/lib/format-date';
 import { DESDE_COBERTURA_FERIADOS, type Feriado } from '@/lib/constants/feriados-argentina';
@@ -95,30 +95,29 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
     };
 
     /**
-     * Saldo adeudado por persona (Ishtar, 8/10/2026: "que acumule algún
-     * adeudado"): cada feriado CUBIERTO suma un día a favor; cada día de
-     * franco compensatorio aprobado (hasta hoy) lo descuenta. Las horas se
-     * informan al lado para que se vea si fue media jornada.
+     * Saldo adeudado por persona, EN HORAS (Ishtar, 8/10/2026: "se cubren
+     * entre ellos siempre a las horas"): las horas de cada feriado cubierto
+     * suman a favor; las horas de cada franco compensatorio aprobado (hasta
+     * hoy) las descuentan. Un feriado cubierto sin horario cargado suma cero,
+     * y se avisa.
      */
     const totales = useMemo(() => equipo.map(p => {
-        let cubiertos = 0, noVino = 0, hs = 0, compensados = 0;
+        let cubiertos = 0, noVino = 0, hs = 0, sinHoras = 0, hsCompensadas = 0;
         for (const f of pasados) {
             const c = porClave.get(`${f.fecha}|${p.id}`);
             if (!c) continue;
-            if (c.worked) { cubiertos++; hs += horas(c.startTime, c.endTime) ?? 0; } else noVino++;
+            if (c.worked) {
+                cubiertos++;
+                const h = horas(c.startTime, c.endTime);
+                if (h === null) sinHoras++; else hs += h;
+            } else noVino++;
         }
         for (const n of novedades) {
             if (n.userId !== p.id || n.type !== TIPO_QUE_DESCUENTA_FERIADO || n.status !== 'APROBADO') continue;
-            const ini = claveDia.format(new Date(n.startsAt)), fin = claveDia.format(new Date(n.endsAt));
-            const cur = new Date(`${ini}T12:00:00-03:00`);
-            for (let i = 0; i < 366; i++) {
-                const k = claveDia.format(cur);
-                if (k > fin || k > hoyK) break;
-                compensados++;
-                cur.setDate(cur.getDate() + 1);
-            }
+            if (claveDia.format(new Date(n.startsAt)) > hoyK) continue;
+            hsCompensadas += horasDeRango(n.horario) ?? 0;
         }
-        return { ...p, cubiertos, noVino, hs, compensados, saldo: cubiertos - compensados };
+        return { ...p, cubiertos, noVino, hs, sinHoras, hsCompensadas, saldo: Math.round((hs - hsCompensadas) * 10) / 10 };
     }), [equipo, pasados, porClave, novedades, hoyK]);
 
     const Tabla = ({ lista, futuro }: { lista: Feriado[]; futuro: boolean }) => (
@@ -178,10 +177,11 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
                 <div className="flex flex-wrap gap-2 p-3 sm:p-4 border-b border-stone-100 dark:border-stone-800 text-xs">
                     {totales.map(t => (
                         <span key={t.id} className="px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 leading-tight">
-                            <strong>{t.name.split(' ')[0]}</strong>: cubrió {t.cubiertos}{t.hs ? ` (${fmtHoras(t.hs)})` : ''} · no vino {t.noVino} · compensó {t.compensados}
+                            <strong>{t.name.split(' ')[0]}</strong>: cubrió {t.cubiertos} feriado{t.cubiertos === 1 ? '' : 's'} ({fmtHoras(t.hs)}) · no vino {t.noVino} · se tomó {fmtHoras(t.hsCompensadas)}
                             <span className={`block font-black ${t.saldo > 0 ? 'text-amber-700 dark:text-amber-300' : t.saldo < 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
-                                {t.saldo > 0 ? `Se le deben ${t.saldo} ${t.saldo === 1 ? 'día' : 'días'}` : t.saldo < 0 ? `Tomó ${-t.saldo} de más` : 'Al día'}
+                                {t.saldo > 0 ? `Se le deben ${fmtHoras(t.saldo)}` : t.saldo < 0 ? `Se tomó ${fmtHoras(-t.saldo)} de más` : 'Al día'}
                             </span>
+                            {t.sinHoras > 0 && <span className="block text-amber-700 dark:text-amber-300">{t.sinHoras} feriado{t.sinHoras === 1 ? '' : 's'} cubierto{t.sinHoras === 1 ? '' : 's'} sin horario: no suma</span>}
                         </span>
                     ))}
                 </div>

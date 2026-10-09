@@ -48,3 +48,11 @@ export const ESTADO_INFO: Record<EstadoNovedad, { etiqueta: string; clase: strin
     APROBADO:   { etiqueta: 'Aprobado', clase: 'text-emerald-700 dark:text-emerald-300 font-bold' },
     RECHAZADO:  { etiqueta: 'Rechazado', clase: 'text-red-700 dark:text-red-300 line-through' },
 };
+
+/** "09:00-13:00" → 4 horas. null si no es un rango válido. La usan el service y la pantalla. */
+export function horasDeRango(texto: string | null | undefined): number | null {
+    const m = (texto || '').replace(/\s+/g, '').match(/^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/);
+    if (!m) return null;
+    const min = (Number(m[3]) * 60 + Number(m[4])) - (Number(m[1]) * 60 + Number(m[2]));
+    return min > 0 ? Math.round(min / 6) / 10 : null;
+}
