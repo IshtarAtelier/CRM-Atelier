@@ -36,6 +36,8 @@ export interface OpcionesCarga {
     forma?: number | null;
     /** Nº del pedido del par con cargo (lo exige el par sin cargo de un 2x1). */
     pedidoOrigen?: string | null;
+    /** Extras NO cobrados que pidió quien prepara, con su motivo (clave → motivo). Hoy: `essential`. */
+    extras?: Record<string, string | null | undefined> | null;
 }
 
 export type Rol2x1 = 'CON_CARGO' | 'SIN_CARGO';
@@ -59,6 +61,8 @@ export interface PlanDeCarga {
     rol2x1: Rol2x1 | null;
     /** Nº del pedido del par con cargo (solo en el par sin cargo). */
     pedidoOrigen: string | null;
+    /** Lo que se carga de más sin estar cobrado (Essential), con el motivo de quien lo pidió. */
+    extrasNoCobrados: { clave: string; nombre: string; motivo: string }[];
     producto: string;
     especificacion: Especificacion;
     /** "5" Multifocal, "1" Monofocal… (el portal lo manda como string). */
@@ -183,10 +187,23 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     }
 
     const colorItem = cristales.map(c => texto(c.crystalColor)).find(Boolean) || null;
-    const res = especificacionDe(producto, { colorItem, conTenido: !!lineaTenido });
+    // Essential como extra NO cobrado: solo con motivo (la ficha lo exige) y
+    // solo si el producto no lo trae ya.
+    const motivoEssential = texto(opciones.extras?.essential) || null;
+    const extrasNoCobrados: PlanDeCarga['extrasNoCobrados'] = [];
+    const yaEssential = /·\s*essential\b/i.test(producto);
+    const res = especificacionDe(producto, { colorItem, conTenido: !!lineaTenido, conEssential: !!motivoEssential && !yaEssential });
     if (!res.ok) { faltantes.push(res.motivo); return { ok: false, faltantes, avisos }; }
     const esp = res.especificacion;
     if (esp.clase === 'LAB' && esp.pasoATenible) avisos.push(`par ${par} con teñido: se carga en Orgánico Blanco 1.49 (el único que el laboratorio tiñe), misma familia ${esp.familia.nombre}`);
+    if (motivoEssential && !yaEssential) {
+        if (esp.clase !== 'LAB') faltantes.push('el Essential solo se agrega a un cristal de laboratorio (este es de stock)');
+        else if (esp.pasoATenible) faltantes.push('el Essential no se puede agregar a un par teñido (el portal lo tiñe en Orgánico Blanco 1.49 sin Essential)');
+        else {
+            extrasNoCobrados.push({ clave: 'essential', nombre: 'Essential (antirreflejo)', motivo: motivoEssential });
+            avisos.push(`⚠️ Essential agregado SIN COBRAR (motivo: ${motivoEssential}): el laboratorio lo factura y el cliente no lo pagó; queda en la ficha y le llega a Ishtar`);
+        }
+    }
 
     // Stock o laboratorio lo dice el PRODUCTO; si la venta dice otra cosa, se avisa.
     const labType = texto(venta.labType).toUpperCase();
@@ -274,7 +291,7 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
         ok: true,
         avisos,
         plan: {
-            par, pares, rol2x1, pedidoOrigen, producto, especificacion: esp, lensTypeId, od, oi, tenido,
+            par, pares, rol2x1, pedidoOrigen, extrasNoCobrados, producto, especificacion: esp, lensTypeId, od, oi, tenido,
             // Código + nombre: el código vincula con certeza (espejo.ts), el
             // nombre es lo que lee el laboratorio. Con más de un par, cuál: es lo
             // que distingue un pedido del otro al buscar si ya se creó.

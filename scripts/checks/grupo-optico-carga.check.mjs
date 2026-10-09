@@ -16,6 +16,7 @@ import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/servic
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
 import { rolesPorValor, valorDeCristales, avisoDeRoles, rolesDeDosPares } from '../../src/services/lab-modules/carga/roles-2x1.ts';
 import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo-optico/origen.ts';
+import { textoDeExtraNoCobrado, lineaDeFicha } from '../../src/services/lab-modules/carga/extras-no-cobrados.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
@@ -97,6 +98,22 @@ ok('un producto sin equivalencia declarada no se carga (y dice qué falta)', () 
 });
 
 console.log('\nEl pedido armado desde la venta');
+
+console.log('\nAlgo que se carga sin estar cobrado (Ishtar, 8/10/2026)');
+ok('Essential pedido como extra: el catálogo lo resuelve con Essential aunque el producto no lo diga', () => {
+    const sin = especificacionDe('Multifocal Smart FREE · Orgánico Blue Light 1.56');
+    assert.equal(sin.especificacion.essential, false);
+    const con = especificacionDe('Multifocal Smart FREE · Orgánico Blue Light 1.56', { conEssential: true });
+    assert.equal(con.especificacion.essential, true);
+});
+ok('el mensaje a la dueña lleva el motivo completo y la venta entera; la ficha, una línea firmada', () => {
+    const d = { codigoVenta: '#L4AU', orderId: 'cmu6zfb0e00g6oe07n4rbl4au', cliente: 'Laura Santucho', vendedor: 'Agostina', fechaVenta: '01/10/2026', nombreLab: 'Grupo Óptico', pair: 1, pares: 2,
+        renglones: ['Smart FREE · Blue 1.56 (OD) · par 1: $ 185.000', 'Smart FREE · Blue 1.56 (OI) · par 1: $ 185.000'], total: '$ 490.000', promo: 'Promo 2x1',
+        loQueSeCarga: 'Smart FREE · Blue 1.56 + Essential (antirreflejo)', extra: { clave: 'essential', nombre: 'Essential (antirreflejo)', motivo: 'se lo prometimos' }, quien: 'Matías' };
+    const t = textoDeExtraNoCobrado(d);
+    for (const esperado of ['Matías agregó Essential', 'NO está cobrado', '"se lo prometimos"', 'Laura Santucho', '$ 185.000', 'Total: $ 490.000', 'promo: Promo 2x1', '(par 1)', '/admin/ventas?id=cmu6zfb0e00g6oe07n4rbl4au']) assert.ok(t.includes(esperado), esperado);
+    assert.match(lineaDeFicha(d), /^⚠️ Matías agregó Essential .* SIN estar cobrado\. Motivo: se lo prometimos$/);
+});
 console.log('\nEl orden del 2x1 lo decide el valor (Ishtar, 8/10/2026)');
 ok('el par de mayor valor va con cargo y el de menor valor sin cargo; mismo valor = queda el orden de la venta', () => {
     assert.deepEqual(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 100 }]), { conCargo: 1, sinCargo: 2, porValor: false, valores: { 1: 100, 2: 100 } });
@@ -170,6 +187,22 @@ ok('el nº del par con cargo: nunca un pedido ANULADO ni un reproceso, y el tipe
 });
 ok('una fila del robot del par 1 sin cargo (código "…1°par", observación "2° par SIN CARGO…") es del par 1', () => {
     assert.equal(parDeFila({ CodigoOptica: '#L4AU Laura Santucho 1°par', Observacion: 'Promo 2x1 Smart Free - 2° par SIN CARGO - 1° par n° 80549878' }), 1);
+});
+ok('el plan con Essential no cobrado: carga Essential, lo anota con el motivo y avisa; sin motivo no agrega nada', () => {
+    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, product: { ...i.product, name: 'Multifocal Smart FREE · Orgánico Blue Light 1.56 2x1' } } : i));
+    const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO', extras: { essential: 'el cliente lo tenía en el par anterior y se lo prometimos' } });
+    assert.ok(r.ok, r.faltantes?.join(' | '));
+    assert.equal(r.plan.especificacion.essential, true);
+    assert.deepEqual(r.plan.extrasNoCobrados, [{ clave: 'essential', nombre: 'Essential (antirreflejo)', motivo: 'el cliente lo tenía en el par anterior y se lo prometimos' }]);
+    assert.ok(r.avisos.some(a => /Essential agregado SIN COBRAR/.test(a)));
+    const sin = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO', extras: { essential: '' } });
+    assert.equal(sin.plan.especificacion.essential, false); assert.deepEqual(sin.plan.extrasNoCobrados, []);
+    // si el producto ya es Essential, no es un extra
+    const ya = planDeCarga(venta2x1(), 1, { tipoArmazon: 'PLASTICO', extras: { essential: 'motivo cualquiera' } });
+    assert.deepEqual(ya.plan.extrasNoCobrados, []); assert.equal(ya.plan.especificacion.essential, true);
+    // un par teñido no lleva Essential: frena
+    const sol = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878', extras: { essential: 'motivo cualquiera' } });
+    assert.equal(sol.ok, false); assert.ok(sol.faltantes.some(f => /par teñido/.test(f)), sol.faltantes.join(' | '));
 });
 ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin cargo (como siempre)', () => {
     const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 80000 } : i));

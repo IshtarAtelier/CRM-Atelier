@@ -43,6 +43,20 @@ En la ficha, columna derecha, el bloque **"Grupo Óptico · carga del pedido"**.
 Es **la misma forma de trabajar que con Vitolen**: preparar, mirar la pantalla
 real del laboratorio, aprobar.
 
+## Agregar algo que NO está cobrado (Essential)
+
+El robot carga **exactamente lo que dice la venta**. Si querés que el pedido
+lleve Essential y la venta no lo tiene, lo correcto es **cambiar el cristal
+en la venta** por la versión Essential (y cobrarlo). Si igual hay que
+agregarlo sin cobrar (se lo prometieron, es una compensación, etc.), al lado
+de "Preparar" hay un link **"+ Agregar Essential (NO está en la venta)"**:
+1. Sale un cartel: "No está cobrado. ¿Estás seguro?", con la explicación.
+2. Hay que **escribir el motivo** (sin motivo no deja).
+3. Al preparar, queda anotado en la ficha del cliente con tu nombre, en el
+   registro del sistema, y **le llega a Ishtar por la mensajería interna**
+   (urgente, con copia al celular) con tu motivo tal cual y los datos de la
+   venta. El cruce de costos lo va a ver como sobrecosto, porque lo es.
+
 ## 2x1 Smart Free
 
 - Son **dos pedidos**: uno **con cargo** y otro **sin cargo**. Primero se

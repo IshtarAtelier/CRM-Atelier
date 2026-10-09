@@ -202,7 +202,7 @@ const materialDe = (nombre: string): string => partes(nombre)[1] || '';
  * que vienen en varios. `conTenido`: el par lleva teñido (sol): el portal
  * solo tiñe Orgánico Blanco 1.49.
  */
-export function especificacionDe(nombreProducto: string | null | undefined, opts: { colorItem?: string | null; conTenido?: boolean } = {}): Resolucion {
+export function especificacionDe(nombreProducto: string | null | undefined, opts: { colorItem?: string | null; conTenido?: boolean; conEssential?: boolean } = {}): Resolucion {
     const nombre = String(nombreProducto || '').replace(/\s+/g, ' ').trim();
     if (!nombre) return { ok: false, motivo: 'el cristal no tiene nombre de producto' };
     const fam = familiaDe(nombre);
@@ -218,7 +218,9 @@ export function especificacionDe(nombreProducto: string | null | undefined, opts
     const familia = FAMILIAS.find(f => f.crm.test(fam));
     if (!familia) return { ok: false, motivo: `"${nombre}": la familia "${fam}" no tiene equivalencia en SmartLab declarada (catalogo.ts)` };
 
-    const essential = /·\s*essential\b/i.test(nombre);
+    // Essential: lo dice el producto, o lo pide quien prepara como extra NO cobrado
+    // (carga/extras-no-cobrados.ts: avisa, exige motivo y le llega a la dueña).
+    const essential = /·\s*essential\b/i.test(nombre) || !!opts.conEssential;
     let material = MATERIALES_LAB.find(m => m.crm.test(mat));
     if (!material) return { ok: false, motivo: `"${nombre}": el material "${mat}" no tiene equivalencia en SmartLab declarada (catalogo.ts)` };
 

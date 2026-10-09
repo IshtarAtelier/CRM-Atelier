@@ -3,6 +3,9 @@ import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { planDeCarga, rolesDel2x1, type OpcionesCarga, type TipoArmazon, type TipoAro } from './carga';
 import { numeroDelParConCargo } from './origen';
+import { especificacionDe } from './catalogo';
+import { itemsDeTenido } from '../../../lib/crystal-color';
+import { registrarExtraNoCobrado } from '../carga/extras-no-cobrados';
 import { TIPO_ARMAZON, TIPO_ARO } from './catalogo';
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_GRUPO_OPTICO, type PayloadBorradorGO } from './borrador-portal';
 import { LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO } from './portal';
@@ -27,10 +30,25 @@ function opcionesDelBody(body: Record<string, unknown>): OpcionesCarga {
     const tipo = String(body.tipoArmazon || '').toUpperCase();
     const aro = String(body.tipoAro || '').toUpperCase();
     const forma = body.forma === undefined || body.forma === null || body.forma === '' ? null : Number(body.forma);
+    const extrasCrudos = body.extras && typeof body.extras === 'object' ? (body.extras as Record<string, unknown>) : {};
+    const extras: Record<string, string> = {};
+    for (const [k, v] of Object.entries(extrasCrudos)) if (typeof v === 'string' && v.trim()) extras[k] = v.trim();
     return {
         tipoArmazon: (tipo in TIPO_ARMAZON ? tipo : null) as TipoArmazon | null,
         tipoAro: (aro in TIPO_ARO ? aro : null) as TipoAro | null,
         forma,
+        extras: Object.keys(extras).length ? extras : null,
+    };
+}
+
+/** Essential se ofrece como extra NO cobrado solo a un cristal de laboratorio que no lo trae. */
+function campoEssential(nombreProducto: string, conTenido: boolean): CampoDePreparacion | null {
+    if (/·\s*essential\b/i.test(nombreProducto)) return null;
+    const r = especificacionDe(nombreProducto, { conTenido });
+    if (!r.ok || r.especificacion.clase !== 'LAB' || r.especificacion.pasoATenible || r.especificacion.material.arIncluido) return null;
+    return {
+        clave: 'essential', etiqueta: 'Agregar Essential (NO está en la venta)', tipo: 'extra', obligatorio: false,
+        advertencia: 'El Essential NO está cobrado en esta venta: el laboratorio lo va a facturar y el cliente no lo pagó. Si corresponde cobrarlo, cambiá el cristal en la venta por la versión Essential. Si igual querés agregarlo, explicá por qué: queda en la ficha del cliente y le llega a Ishtar con los datos de la venta.',
     };
 }
 
@@ -64,14 +82,16 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                 const r = planDeCarga(venta as any, pair, { tipoArmazon: 'PLASTICO', pedidoOrigen: esSinCargo ? (origen ?? '80000000') : null });
                 const items = (porPar.get(pair) || []) as any[];
                 const existente = yaCargados.get(pair);
-                const esStock = /^stock\b/i.test(texto(items[0]?.product?.name ?? items[0]?.productNameSnapshot).split('·')[0]);
+                const nombreProducto = texto(items[0]?.product?.name ?? items[0]?.productNameSnapshot);
+                const esStock = /^stock\b/i.test(nombreProducto.split('·')[0]);
+                const extraEssential = campoEssential(nombreProducto, itemsDeTenido(venta.items as any[]).some((t: any) => t.framePosition === pair));
                 return {
                     pair,
                     titulo: items[0]?.product?.name ?? items[0]?.productNameSnapshot ?? null,
                     faltantes: r.ok ? [] : r.faltantes,
                     avisos: r.avisos,
                     // Stock: el portal no lleva forma del armazón; no se ofrece.
-                    campos: esStock ? campos.filter(c => c.clave !== 'forma') : campos,
+                    campos: [...(esStock ? campos.filter(c => c.clave !== 'forma') : campos), ...(extraEssential ? [extraEssential] : [])],
                     espera: esSinCargo && !origen ? `Es el par SIN CARGO del 2x1: se prepara cuando el par con cargo (par ${roles!.conCargo}) esté cargado (lleva su nº de operación en la observación, para que el laboratorio no lo cobre).` : null,
                     yaCargado: existente ? mensajeExistente(existente, pair) : null,
                     rol: roles ? (esSinCargo ? 'SIN CARGO · 2x1' : 'con cargo · 2x1') : null,
@@ -138,12 +158,18 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
         if (!r.ok) return { ok: false, status: 422, error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos };
 
         const { plan } = r;
+        // Un extra NO cobrado se puede, pero firmado: ficha, AuditLog y aviso a la dueña.
+        if (plan.extrasNoCobrados.length && !actor?.id) return { ok: false, status: 403, error: 'Para agregar algo que no está cobrado tenés que estar identificado.' };
         const payload: PayloadBorradorGO = {
             opciones,
-            plan: { par: plan.par, rol2x1: plan.rol2x1, pedidoOrigen: plan.pedidoOrigen, producto: plan.producto, lensTypeId: plan.lensTypeId, od: plan.od, oi: plan.oi, tenido: plan.tenido, codigoOptica: plan.codigoOptica, observacion: plan.observacion, armazon: plan.armazon },
+            plan: { par: plan.par, rol2x1: plan.rol2x1, pedidoOrigen: plan.pedidoOrigen, extrasNoCobrados: plan.extrasNoCobrados, producto: plan.producto, lensTypeId: plan.lensTypeId, od: plan.od, oi: plan.oi, tenido: plan.tenido, codigoOptica: plan.codigoOptica, observacion: plan.observacion, armazon: plan.armazon },
             avisos: r.avisos,
         };
         const preparado = await Borradores.preparar({ lab: LAB_GRUPO_OPTICO, orderId, pair, payload, actor });
+        for (const extra of plan.extrasNoCobrados) {
+            await registrarExtraNoCobrado({ orderId, nombreLab: NOMBRE_GRUPO_OPTICO, pair, pares: plan.pares, extra, actor, loQueSeCarga: `${plan.producto} + ${extra.nombre}` })
+                .catch(err => console.error('[lab-modulos] no se pudo registrar el extra no cobrado:', err));
+        }
         try {
             const borrador = await prepararEnPortal(preparado.id);
             return { ok: true, status: 200, borrador, avisos: r.avisos };

@@ -22,12 +22,19 @@ export interface ResultadoPreparar {
     status: number;
 }
 
-/** Un dato que pone quien prepara (lo que la venta no sabe). La ficha lo dibuja sola. */
+/**
+ * Un dato que pone quien prepara (lo que la venta no sabe). La ficha lo dibuja sola.
+ * `extra`: algo que se agrega al pedido y NO está cobrado en la venta (p. ej.
+ * Essential). La ficha avisa con `advertencia`, exige un motivo, y el valor
+ * que viaja en `body.extras[clave]` es ese motivo (carga/extras-no-cobrados.ts).
+ */
 export interface CampoDePreparacion {
     /** La clave con la que viaja en el body de preparar. */
     clave: string;
     etiqueta: string;
-    tipo: 'select' | 'numero';
+    tipo: 'select' | 'numero' | 'extra';
+    /** Solo `extra`: lo que lee quien lo agrega antes de confirmar. */
+    advertencia?: string;
     opciones?: { value: string; label: string }[];
     obligatorio: boolean;
     porDefecto?: string;

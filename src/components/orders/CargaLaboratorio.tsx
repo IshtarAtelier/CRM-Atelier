@@ -20,7 +20,7 @@ import { formatDate } from '@/lib/format-date';
  * aprueba a ciegas.
  */
 
-interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero'; opciones?: { value: string; label: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
+interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: string | null }
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null }
 interface Borrador {
@@ -65,6 +65,9 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     const dialogo = useRef<HTMLDivElement>(null);
     // Aviso previo a aprobar (2x1 / promo del 2º par): el nº de operación del otro par es lo que hace el descuento.
     const [confirmando, setConfirmando] = useState<Borrador | null>(null);
+    // Un extra NO cobrado (Essential): "¿estás seguro?" + motivo obligatorio antes de aceptarlo (Ishtar, 8/10/2026).
+    const [extraPendiente, setExtraPendiente] = useState<{ pair: number; campo: Campo } | null>(null);
+    const [motivoExtra, setMotivoExtra] = useState('');
     const aprobar = (b: Borrador) => (b.vista.confirmarAntesDeAprobar ? setConfirmando(b) : decidir(b.id, 'aprobar'));
     // El foco va al diálogo UNA vez al abrirlo (para que Escape lo cierre), no en cada render:
     // si se lo robara en cada render, no se podría escribir el motivo del rechazo.
@@ -92,7 +95,12 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
         setOcupado(`preparar-${par.pair}`); setError('');
         try {
             const body: Record<string, unknown> = { lab, orderId, pair: par.pair };
-            for (const c of par.campos) body[c.clave] = valorDe(par.pair, c) || null;
+            const extras: Record<string, string> = {};
+            for (const c of par.campos) {
+                if (c.tipo === 'extra') { const m = valorDe(par.pair, c); if (m) extras[c.clave] = m; }
+                else body[c.clave] = valorDe(par.pair, c) || null;
+            }
+            if (Object.keys(extras).length) body.extras = extras;
             const res = await fetch('/api/lab-modulos/borradores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             const json = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -231,7 +239,18 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                 </div>
                             ) : (
                                 <div className="flex flex-wrap items-end gap-2">
-                                    {par.campos.map(c => (
+                                    {par.campos.map(c => c.tipo === 'extra' ? (
+                                        valorDe(par.pair, c) ? (
+                                            <span key={c.clave} className="text-[11px] text-amber-900 bg-amber-100 rounded px-2 py-1.5 inline-flex items-center gap-2">
+                                                <AlertTriangle className="w-3 h-3" /> {c.etiqueta.replace(/^Agregar /, '')} agregado SIN COBRAR · "{valorDe(par.pair, c)}"
+                                                <button type="button" onClick={() => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: '' }))} className="underline">quitar</button>
+                                            </span>
+                                        ) : (
+                                            <button key={c.clave} type="button" onClick={() => { setMotivoExtra(''); setExtraPendiente({ pair: par.pair, campo: c }); }} className="text-[11px] text-stone-600 underline decoration-dotted self-center">
+                                                + {c.etiqueta}
+                                            </button>
+                                        )
+                                    ) : (
                                         <label key={c.clave} className="text-[10px] text-stone-500" title={c.ayuda}>{c.etiqueta}
                                             {c.tipo === 'select' ? (
                                                 <select value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={input}>
@@ -326,6 +345,26 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
             })}
 
             {error && <p className="mt-3 text-xs text-rose-600 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {error}</p>}
+
+            {/* Un extra que NO está cobrado: avisar, pedir el porqué, y recién ahí aceptarlo. */}
+            {extraPendiente && (
+                <div role="alertdialog" aria-label={extraPendiente.campo.etiqueta} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setExtraPendiente(null); }} tabIndex={-1} ref={el => el?.focus()}>
+                    <div role="document" className="bg-white text-stone-900 rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-3">
+                        <p className="flex items-center gap-2 text-sm font-black"><AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" /> No está cobrado. ¿Estás seguro?</p>
+                        <p className="text-sm leading-relaxed">{extraPendiente.campo.advertencia}</p>
+                        <label className="block text-xs text-stone-600">Explicá por qué (le llega a Ishtar tal cual lo escribas)
+                            <textarea value={motivoExtra} onChange={e => setMotivoExtra(e.target.value)} rows={3} autoFocus className="mt-1 block w-full text-sm rounded border border-stone-300 bg-white text-stone-900 px-2 py-2" placeholder="Ej.: el cliente ya lo tenía en el par anterior y se lo prometimos" />
+                        </label>
+                        <div className="flex flex-wrap justify-end gap-2 pt-1">
+                            <button type="button" onClick={() => setExtraPendiente(null)} className={`${boton} bg-stone-500`}>No, dejarlo como está</button>
+                            <button type="button" disabled={motivoExtra.trim().length < 10} title={motivoExtra.trim().length < 10 ? 'Escribí el motivo (al menos 10 letras)' : undefined}
+                                onClick={() => { const { pair, campo } = extraPendiente; setValores(v => ({ ...v, [`${pair}:${campo.clave}`]: motivoExtra.trim() })); setExtraPendiente(null); }} className={`${boton} bg-amber-600 px-4`}>
+                                Agregarlo igual
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Antes de aprobar un par de una promo de dos pares: que nadie olvide el nº de operación del otro par. */}
             {confirmando && (
