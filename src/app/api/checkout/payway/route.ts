@@ -11,6 +11,7 @@ import { precioPorOjo, type ResultadoCalculo } from '@/lib/cristales-web/calculo
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
 import { calcularItemDeCarrito, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
+import { TEXTO_ESPERANDO_PAGO_MP } from '@/lib/checkout/finalize-web-payment';
 import { calcular2x1Armazones } from '@/lib/promo-2x1-armazones';
 import { isFrame } from '@/lib/promo-utils';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
@@ -873,7 +874,7 @@ export async function POST(req: Request) {
         await prisma.notification.create({
           data: {
             type: 'WEB_SALE',
-            message: `Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${mpTotal.toLocaleString('es-AR')} esperando pago en Mercado Pago.`,
+            message: `Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${mpTotal.toLocaleString('es-AR')} ${TEXTO_ESPERANDO_PAGO_MP}.`,
             orderId: order.id,
             requestedBy: 'Sistema (Mercado Pago)',
             status: 'PENDING',

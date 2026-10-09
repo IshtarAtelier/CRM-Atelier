@@ -7,6 +7,7 @@ import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { logAudit } from '@/lib/audit';
+import { formatearPrecio } from '@/lib/format-precio';
 import { MetaConversionService } from '@/services/meta-conversions.service';
 import { idsDeProductos } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
@@ -80,6 +81,23 @@ export function parseCheckoutContext(raw: string | null | undefined): CheckoutCo
   } catch {
     return null;
   }
+}
+
+/**
+ * El aviso de una venta web por Mercado Pago es UNO por orden y cambia con el
+ * pago: el checkout lo crea al abrir Mercado Pago ("… esperando pago en
+ * Mercado Pago") y acá se reescribe cuando se paga o cuando no. Antes, al
+ * pagar se creaba un aviso nuevo y el de "esperando pago" quedaba al lado; y
+ * si no se pagaba, seguía diciendo "esperando pago" de una venta ya cancelada,
+ * cuando era justo el momento de escribirle (8/10/2026).
+ */
+export const TEXTO_ESPERANDO_PAGO_MP = 'esperando pago en Mercado Pago';
+
+function avisoEsperandoPago(db: { notification: typeof prisma.notification }, orderId: string) {
+  return db.notification.findFirst({
+    where: { orderId, type: 'WEB_SALE', status: 'PENDING', message: { contains: TEXTO_ESPERANDO_PAGO_MP } },
+    select: { id: true },
+  });
 }
 
 interface FinalizeInput {
@@ -211,15 +229,26 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
       },
     });
 
-    await tx.notification.create({
-      data: {
-        type: 'WEB_SALE',
-        message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${client?.name || 'Cliente'} por $${cobradoEsperado.toLocaleString('es-AR')} (PAGADA vía Mercado Pago). Revisar y confirmar en Ventas.`,
-        orderId: order.id,
-        requestedBy: 'Sistema (Web)',
-        status: 'PENDING',
-      },
-    });
+    const mensajePagada = `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${client?.name || 'Cliente'} por $${cobradoEsperado.toLocaleString('es-AR')} (PAGADA vía Mercado Pago). Revisar y confirmar en Ventas.`;
+    const esperando = await avisoEsperandoPago(tx, order.id);
+    if (esperando) {
+      // createdAt nuevo: que suba arriba de la campana, como un aviso recién llegado.
+      await tx.notification.update({
+        where: { id: esperando.id },
+        data: { message: mensajePagada, requestedBy: 'Sistema (Web)', createdAt: new Date() },
+        select: { id: true },
+      });
+    } else {
+      await tx.notification.create({
+        data: {
+          type: 'WEB_SALE',
+          message: mensajePagada,
+          orderId: order.id,
+          requestedBy: 'Sistema (Web)',
+          status: 'PENDING',
+        },
+      });
+    }
 
     // Dentro de la MISMA transacción: si esto falla, no queremos una venta
     // marcada como pagada cuyo intento sigue figurando pendiente — esa
@@ -504,7 +533,30 @@ export async function failWebPayment(opts: {
     }
   }
 
+  // Quien llegó hasta la pantalla de pago y no pagó es el contacto más caliente
+  // de la tienda: el aviso deja de decir "esperando pago" y pide escribirle.
+  const ctx = parseCheckoutContext(intent.checkoutContext);
+  let nombre = ctx ? `${ctx.customer.firstName || ''} ${ctx.customer.lastName || ''}`.trim() : '';
+  let telefono = ctx?.customer.phone?.trim() || '';
+  if ((!nombre || !telefono) && order.clientId) {
+    const cliente = await prisma.client.findUnique({ where: { id: order.clientId }, select: { name: true, phone: true } });
+    nombre = nombre || cliente?.name || '';
+    telefono = telefono || cliente?.phone || '';
+  }
+  const queFue = gatewayStatus === 'expired'
+    ? 'no pagó en Mercado Pago y la venta se canceló sola (el stock volvió)'
+    : `Mercado Pago no aprobó el pago (${gatewayStatus}) y la venta se canceló`;
+  const mensajeNoPago = `Venta Web #${order.id.slice(-4).toUpperCase()} de ${nombre || 'Cliente'} por $${formatearPrecio(ctx?.emailTotal ?? order.total)}: ${queFue}. Llegó hasta la pantalla de pago: escribile${telefono ? ` al WhatsApp ${telefono}` : ''}.`;
+
   await prisma.$transaction(async (tx) => {
+    const esperando = await avisoEsperandoPago(tx, order.id);
+    if (esperando) {
+      await tx.notification.update({
+        where: { id: esperando.id },
+        data: { message: mensajeNoPago, createdAt: new Date() },
+        select: { id: true },
+      });
+    }
     await tx.order.update({
       where: { id: order.id },
       data: {
