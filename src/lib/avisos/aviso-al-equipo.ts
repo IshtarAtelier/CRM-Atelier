@@ -89,40 +89,29 @@ export async function avisarAlEquipo(aviso: AvisoAlEquipo): Promise<number> {
 }
 
 /**
- * Lo mismo, pero SOLO a los ADMIN: la salud del embudo, la calidad del número
- * de WhatsApp, el motor frenado. Hasta el 8/10/2026 eso salía por MAIL a
- * `ADMIN_EMAIL` (Ishtar: "retirá el email que me mandás todo el tiempo de los
- * fallidos; centralizalo en un canal dentro de la mensajería de sistema"). Un
- * vendedor no tiene nada que hacer con "Meta frenó 11 mensajes de marketing";
- * la dueña sí, y lo lee donde lee todo lo demás del sistema.
+ * Los FALLOS y chequeos del sistema (salud del embudo, calidad del número de
+ * WhatsApp, motor frenado) van a UNA conversación propia de la mensajería
+ * interna, "🔧 Fallos y salud del sistema", con la IA y todos los ADMIN.
  *
- * Mismo canal para todos los avisos del sistema: la conversación con el
- * Asistente de cada admin. El dedup de 20 h sigue valiendo: los crons disparan
- * dos veces a propósito.
+ * Hasta el 8/10/2026 eso salía por MAIL a `ADMIN_EMAIL` (Ishtar: "retirá el
+ * email que me mandás todo el tiempo de los fallidos; centralizalo en un
+ * canal dentro de la mensajería de sistema", y después: "que sea una
+ * conversación específica de eso, entonces pueda entrar y ver eso
+ * específicamente"). No va al hilo del Asistente —ahí vive el resumen
+ * diario— y no le llega a ningún vendedor.
+ *
+ * Mismo dedup de 20 h: los crons disparan dos veces a propósito.
  */
 export async function avisarAdmins(aviso: AvisoAlEquipo): Promise<number> {
     try {
-        const admins = (await InternalMessagingService.listarColaboradores()).filter(u => u.role === 'ADMIN');
-        if (!admins.length) {
-            console.warn('[Aviso a admins] No hay ADMIN a quién avisar:', aviso.asunto);
-            return 0;
-        }
-        const cuerpo = `${aviso.asunto}\n\n${aviso.cuerpo}`;
-        let llegaron = 0;
-        for (const admin of admins) {
-            try {
-                const enviado = await InternalMessagingService.mensajeDeIA({
-                    paraUserId: admin.id, asunto: aviso.asunto, cuerpo, urgent: aviso.urgente,
-                    dedupePrefijo: aviso.dedupePrefijo || aviso.asunto,
-                });
-                if (enviado) llegaron++;
-            } catch (err) {
-                console.error('[Aviso a admins] No se pudo avisar a un admin:', err);
-            }
-        }
-        return llegaron;
+        const r = await InternalMessagingService.mensajeEnCanalDelSistema({
+            cuerpo: `${aviso.asunto}\n\n${aviso.cuerpo}`,
+            urgent: aviso.urgente,
+            dedupePrefijo: aviso.dedupePrefijo || aviso.asunto,
+        });
+        return r ? 1 : 0;
     } catch (err) {
-        console.error('[Aviso a admins] Falló el aviso:', aviso.asunto, err);
+        console.error('[Canal del sistema] Falló el aviso:', aviso.asunto, err);
         return 0;
     }
 }
