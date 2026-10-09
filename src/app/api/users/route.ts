@@ -18,6 +18,7 @@ export async function GET() {
                 cashManager: true,
                 notificationEmail: true,
                 whatsappPhone: true,
+                plantaLocal: true,
                 createdAt: true,
             },
             orderBy: { createdAt: 'desc' },

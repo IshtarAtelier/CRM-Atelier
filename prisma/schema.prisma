@@ -23,6 +23,9 @@ model User {
   // Celular propio para la copia por WhatsApp de las notas y mensajes internos
   // (ver src/lib/whatsapp/aviso-interno.ts). Null = no recibe copia.
   whatsappPhone     String?
+  // Planta permanente del local: aparece en la cobertura de feriados y en el
+  // calendario del equipo. Ishtar y Yani no lo son (8/10/2026).
+  plantaLocal       Boolean           @default(false)
   // Última señal de vida, para el puntito verde de "en línea". La escribe el
   // latido de la barra lateral cada 20 s. Es una marca de tiempo y no un
   // booleano `online`: un booleano queda en `true` para siempre si el navegador
@@ -41,6 +44,11 @@ model User {
   threadsCreated       InternalThread[]            @relation("ThreadsCreated")
   threadParticipations InternalThreadParticipant[]
   messagesSent         InternalMessage[]           @relation("MessagesSent")
+
+  // Novedades del equipo (faltas, cambios de turno, pedidos especiales).
+  teamEvents           TeamEvent[]                 @relation("TeamEventsOf")
+  teamEventsSwapped    TeamEvent[]                 @relation("TeamEventsSwapWith")
+  holidayShifts        HolidayShift[]
 }
 
 model Client {
@@ -1609,4 +1617,72 @@ model MetaAd {
   // Cuándo se consultó por última vez a Meta. Se refresca al vencer.
   fetchedAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// NOVEDADES DEL EQUIPO: faltas, llegadas tarde, francos, vacaciones, cambios de
+// turno y pedidos especiales de cada colaborador. Alimenta el calendario
+// compartido de /admin/equipo/calendario. Lógica en
+// src/services/team-events.service.ts; tipos y colores en
+// src/lib/constants/novedades-equipo.ts.
+// ---------------------------------------------------------------------------
+model TeamEvent {
+  id             String    @id @default(cuid())
+  // A quién le pasa (el vendedor).
+  userId         String
+  // FALTA · LLEGADA_TARDE · FRANCO · VACACIONES · CAMBIO_TURNO · PEDIDO_ESPECIAL · OTRO
+  type           String
+  // Días (inclusive). Para un rango de un día, startsAt == endsAt. Se guardan
+  // a medianoche de Córdoba; la hora puntual (ej. "llega 11:30") va en `horario`.
+  startsAt       DateTime
+  endsAt         DateTime
+  horario        String?
+  // REGISTRADO (hecho consumado: una falta) · PENDIENTE (pedido que espera OK)
+  // · APROBADO · RECHAZADO
+  status         String    @default("REGISTRADO")
+  // Solo para FALTA / LLEGADA_TARDE: null = sin definir.
+  justificada    Boolean?
+  // Solo para CAMBIO_TURNO: con quién cambia.
+  swapWithUserId String?
+  notes          String?
+  createdById    String?
+  createdByName  String
+  decidedById    String?
+  decidedByName  String?
+  decidedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user     User  @relation("TeamEventsOf", fields: [userId], references: [id], onDelete: Cascade)
+  swapWith User? @relation("TeamEventsSwapWith", fields: [swapWithUserId], references: [id], onDelete: SetNull)
+
+  // El calendario pide "qué pasa entre tal y tal fecha".
+  @@index([startsAt, endsAt])
+  @@index([userId, startsAt])
+  @@index([status])
+}
+
+// Cobertura de feriados: por cada feriado y persona, si vino a trabajar y en
+// qué horario. Lo carga un ADMIN en /admin/equipo/calendario. La lista de
+// feriados vive en src/lib/constants/feriados-argentina.ts.
+model HolidayShift {
+  id            String   @id @default(cuid())
+  // Día del feriado (medianoche de Córdoba), igual que en TeamEvent.
+  fecha         DateTime
+  userId        String
+  // true = lo cubrió · false = no vino
+  worked        Boolean
+  // "09:00" / "20:00". Solo si worked.
+  startTime     String?
+  endTime       String?
+  notes         String?
+  createdById   String?
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([fecha, userId])
+  @@index([fecha])
 }

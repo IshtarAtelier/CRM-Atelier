@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star, MessagesSquare, CalendarClock } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star, MessagesSquare, CalendarClock, CalendarDays } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -82,6 +82,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
       { href: "/admin/agenda", label: "↳ Agenda de Turnos", icon: CalendarClock, adminOnly: false, isSubLink: true },
       { href: "/admin/mensajes", label: "Mensajes del Equipo", icon: MessagesSquare, adminOnly: false },
+      { href: "/admin/equipo/calendario", label: "↳ Feriados y Pedidos", icon: CalendarDays, adminOnly: false, isSubLink: true },
       { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
       { href: "/admin/caja/vendedores", label: "↳ Caja Vendedores", icon: Wallet, adminOnly: false, isSubLink: true },
       { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
