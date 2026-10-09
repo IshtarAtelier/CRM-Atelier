@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Flag, Loader2, Check, X, Minus, Plus } from 'lucide-react';
+import { Flag, Loader2, Check, Minus, Plus } from 'lucide-react';
 import { NOVEDAD_INFO, ESTADO_INFO, TIPO_QUE_DESCUENTA_FERIADO, TIPO_QUE_SUMA_HORAS, horasDeRango } from '@/lib/constants/novedades-equipo';
 import { rangoNovedad, type Novedad, type Yo } from './CalendarioClient';
 import { formatDate } from '@/lib/format-date';
@@ -140,7 +140,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
                             {futuro && equipo.every(p => !porClave.has(`${f.fecha}|${p.id}`)) && <span className="text-xs text-stone-500">Sin programar</span>}
                         </div>
                         <table className="w-full text-sm">
-                            <thead className="sr-only"><tr><th>Persona</th><th>Cubrió</th><th>Desde</th><th>Hasta</th><th>Total</th><th>Notas</th></tr></thead>
+                            <thead className="sr-only"><tr><th>Persona</th><th>Cubrió o no le tocó</th><th>Desde</th><th>Hasta</th><th>Total</th><th>Notas</th></tr></thead>
                             <tbody>
                                 {equipo.map(p => (
                                     <FilaPersona key={p.id} persona={p} fecha={f.fecha} c={porClave.get(`${f.fecha}|${p.id}`)} esAdmin={esAdmin} futuro={futuro} onGuardar={guardar} onLimpiar={limpiar} />
@@ -170,7 +170,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
             <div className="p-3 sm:p-4 border-b border-stone-200 dark:border-stone-700 flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h2 className="text-lg font-black">Feriados: quién cubrió</h2>
-                    <p className="text-xs text-stone-500">Desde el {formatDate(DESDE_COBERTURA_FERIADOS + 'T12:00:00-03:00')} (cuando empezó Milena). {esAdmin ? 'Tocá Cubrió / No vino en cada persona y cargá el horario.' : 'La carga un administrador.'}</p>
+                    <p className="text-xs text-stone-500">Desde el {formatDate(DESDE_COBERTURA_FERIADOS + 'T12:00:00-03:00')} (cuando empezó Milena). {esAdmin ? 'Tocá Cubrió en quien trabajó y cargá el horario; el guion es para quien no le tocó.' : 'La carga un administrador.'}</p>
                 </div>
                 {cargando && <Loader2 className="w-4 h-4 animate-spin text-stone-400" />}
             </div>
@@ -180,7 +180,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
                 <div className="flex flex-wrap gap-2 p-3 sm:p-4 border-b border-stone-100 dark:border-stone-800 text-xs">
                     {totales.filter(t => esAdmin || t.id === yo.id).map(t => (
                         <span key={t.id} className="px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 leading-tight">
-                            <strong>{t.name.split(' ')[0]}</strong>: cubrió {t.cubiertos} feriado{t.cubiertos === 1 ? '' : 's'} ({fmtHoras(t.hs)}) · extras {fmtHoras(t.hsExtra)} · no vino {t.noVino} · se tomó {fmtHoras(t.hsCompensadas)}
+                            <strong>{t.name.split(' ')[0]}</strong>: cubrió {t.cubiertos} feriado{t.cubiertos === 1 ? '' : 's'} ({fmtHoras(t.hs)}) · extras {fmtHoras(t.hsExtra)} · no le tocó {t.noVino} · se tomó {fmtHoras(t.hsCompensadas)}
                             <span className={`block font-black ${t.saldo > 0 ? 'text-amber-700 dark:text-amber-300' : t.saldo < 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
                                 {t.saldo > 0 ? `Se le deben ${fmtHoras(t.saldo)}` : t.saldo < 0 ? `Se tomó ${fmtHoras(-t.saldo)} de más` : 'Al día'}
                             </span>
@@ -195,7 +195,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
 
             <div className="p-3 sm:p-4 border-t-4 border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950/40">
                 <h3 className="font-black">Próximos feriados: programar quién cubre</h3>
-                <p className="text-xs text-stone-500">Los próximos {MESES_ADELANTE} meses. {esAdmin ? 'Marcá quién cubre y en qué horario, y quién no viene.' : 'Si necesitás algo para uno de estos días, pedilo con el botón de ese feriado.'}</p>
+                <p className="text-xs text-stone-500">Los próximos {MESES_ADELANTE} meses. {esAdmin ? 'Marcá quién cubre y en qué horario; el guion es para quien no le toca.' : 'Si necesitás algo para uno de estos días, pedilo con el botón de ese feriado.'}</p>
             </div>
             {!cargando && proximos.length === 0 && <p className="p-6 text-center text-sm text-stone-500">No hay feriados en los próximos {MESES_ADELANTE} meses.</p>}
             <Tabla lista={proximos} futuro />
@@ -214,8 +214,10 @@ function FilaPersona({ persona, fecha, c, esAdmin, futuro, onGuardar, onLimpiar 
     useEffect(() => { setDesde(c?.startTime ?? ''); setHasta(c?.endTime ?? ''); setNotas(c?.notes ?? ''); }, [c]);
     const total = horas(c?.startTime ?? null, c?.endTime ?? null);
     const sucio = c?.worked && (desde !== (c.startTime ?? '') || hasta !== (c.endTime ?? '') || notas !== (c.notes ?? ''));
-    const [txtSi, txtNo] = futuro ? ['Cubre', 'No viene'] : ['Cubrió', 'No vino'];
-    const estado = c === undefined ? (futuro ? 'sin programar' : 'sin cargar') : c.worked ? txtSi.toLowerCase() : txtNo.toLowerCase();
+    // El que no trabaja el feriado se marca con un guion, no con "no vino":
+    // no es una falta, simplemente no le tocó (Ishtar, 8/10/2026).
+    const txtSi = futuro ? 'Cubre' : 'Cubrió';
+    const estado = c === undefined ? (futuro ? 'sin programar' : 'sin cargar') : c.worked ? txtSi.toLowerCase() : '— —';
     const input = 'rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm w-[5.5rem]';
 
     return (
@@ -227,12 +229,12 @@ function FilaPersona({ persona, fecha, c, esAdmin, futuro, onGuardar, onLimpiar 
                         <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: true, startTime: desde || null, endTime: hasta || null, notes: notas || null })}
                             className={`px-2 py-1 inline-flex items-center gap-1 ${c?.worked ? 'bg-emerald-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c?.worked}><Check className="w-3 h-3" />{txtSi}</button>
                         <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: false, notes: notas || null })}
-                            className={`px-2 py-1 inline-flex items-center gap-1 border-l border-stone-300 dark:border-stone-600 ${c && !c.worked ? 'bg-red-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c && !c.worked}><X className="w-3 h-3" />{txtNo}</button>
+                            className={`px-2 py-1 inline-flex items-center gap-1 border-l border-stone-300 dark:border-stone-600 ${c && !c.worked ? 'bg-stone-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c && !c.worked} aria-label="No le tocó" title="No le tocó (no trabaja este feriado)"><span aria-hidden>— —</span></button>
                         <button onClick={() => onLimpiar(fecha, persona.id)} title="Volver a sin cargar"
                             className={`px-2 py-1 border-l border-stone-300 dark:border-stone-600 ${c === undefined ? 'bg-stone-200 dark:bg-stone-700' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-label="Sin cargar"><Minus className="w-3 h-3" /></button>
                     </span>
                 ) : (
-                    <span className={`text-xs font-bold ${c?.worked ? 'text-emerald-700 dark:text-emerald-300' : c ? 'text-red-700 dark:text-red-300' : 'text-stone-400'}`}>{estado}</span>
+                    <span className={`text-xs font-bold ${c?.worked ? 'text-emerald-700 dark:text-emerald-300' : c ? 'text-stone-500' : 'text-stone-400'}`} aria-label={c && !c.worked ? 'No le tocó' : undefined}>{estado}</span>
                 )}
             </td>
             {c?.worked ? (<>
