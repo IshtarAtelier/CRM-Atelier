@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
-import { sendEmail } from '@/lib/email';
+import { avisarAdmins } from '@/lib/avisos/aviso-al-equipo';
 import { fetchWa } from '@/lib/wa-config';
 import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
 import { prisma } from '@/lib/db';
@@ -31,11 +31,10 @@ export async function GET(request: Request) {
     const auth = verifyCronAuth(request);
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-    const to = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
     try {
         const st = await fetchWa('/api/status', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
         if (!st || st.transport !== 'cloud') {
-            await sendEmail({ to, subject: 'WhatsApp: todavía en WhatsApp Web (sin API oficial)', text: 'El wa-service sigue con WA_TRANSPORT=webjs. Este chequeo aplica cuando el número esté en la API oficial.' });
+            await avisarAdmins({ asunto: 'WhatsApp: todavía en WhatsApp Web (sin API oficial)', cuerpo: 'El wa-service sigue con WA_TRANSPORT=webjs. Este chequeo aplica cuando el número esté en la API oficial.' });
             return NextResponse.json({ ok: true, transport: st?.transport || 'desconocido' });
         }
 
@@ -82,9 +81,10 @@ export async function GET(request: Request) {
         }
 
         const resumen = `${st.phone || '?'} · calidad ${st.qualityRating || '?'} · límite ${st.messagingLimitTier || '?'} · plantillas OK ${Object.keys(WHATSAPP_TEMPLATES).length - faltan.length - pendientes.length - rechazadas.length}/${Object.keys(WHATSAPP_TEMPLATES).length}`;
+        const hoyArt = new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10);
         const subject = problemas.length
-            ? `⚠️ WhatsApp API: ${problemas.length} cosa(s) para mirar${rechazados.length ? ` · ${rechazados.length} NO entregado(s)` : ''} — ${resumen}`
-            : `✅ WhatsApp API sana — ${resumen}`;
+            ? `⚠️ WhatsApp API ${hoyArt}: ${problemas.length} cosa(s) para mirar${rechazados.length ? ` · ${rechazados.length} NO entregado(s)` : ''} — ${resumen}`
+            : `✅ WhatsApp API ${hoyArt} sana — ${resumen}`;
         const text = [
             `Número: ${st.phone || '?'} (${st.verifiedName || 'sin nombre verificado'})`,
             `Calidad: ${st.qualityRating || '?'} · Límite de mensajería: ${st.messagingLimitTier || '?'}`,
@@ -95,10 +95,10 @@ export async function GET(request: Request) {
             'Dónde: business.facebook.com → WhatsApp Manager → Números de teléfono / Plantillas de mensajes.',
         ].join('\n');
 
-        await sendEmail({ to, subject, text });
-        return NextResponse.json({ ok: true, problemas, resumen });
+        const llegaron = await avisarAdmins({ asunto: subject, cuerpo: text, dedupePrefijo: `WhatsApp API ${hoyArt}` });
+        return NextResponse.json({ ok: true, problemas, resumen, avisados: llegaron });
     } catch (e: any) {
-        await sendEmail({ to, subject: '⚠️ WhatsApp API: el chequeo diario falló', text: e.message }).catch(() => {});
+        await avisarAdmins({ asunto: '⚠️ WhatsApp API: el chequeo diario falló', cuerpo: String(e.message) });
         return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
     }
 }

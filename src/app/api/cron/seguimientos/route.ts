@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
+import { avisarAdmins } from '@/lib/avisos/aviso-al-equipo';
 import { EmbudoService } from '@/services/embudo.service';
 import { seleccionar } from '@/lib/seguimientos/seleccion';
 import { ejecutar, FALLAS_SEGUIDAS_PARA_FRENAR } from '@/lib/seguimientos/ejecutor';
@@ -30,7 +30,7 @@ export const dynamic = 'force-dynamic';
  * un reintento: la segunda choca con la fila y no manda.
  *
  * Freno: tres fallas seguidas al mandar cortan la tanda y paran el motor dos
- * horas (`seguimientos_freno_hasta`), con mail. Tres rebotes seguidos son la
+ * horas (`seguimientos_freno_hasta`), con aviso a los admin por la mensajería interna. Tres rebotes seguidos son la
  * cuenta o la API, no tres clientes.
  *
  * Desde el 8/10/2026 el motor también hace lo que antes quedaba "para una
@@ -239,11 +239,12 @@ export async function GET(request: Request) {
             const hasta = new Date(now + FRENO_HORAS * 3_600_000).toISOString();
             await escribirSetting('seguimientos_freno_hasta', hasta);
             const detalle = enviados.filter(r => !r.ok && !r.salteado).map(r => `${r.nombre}: ${r.detalle}`).join('\n  - ');
-            await sendEmail({
-                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                subject: `⚠️ Seguimientos: el motor se frenó (${FALLAS_SEGUIDAS_PARA_FRENAR} fallas seguidas)`,
-                text: `A las ${hora}:00 el motor de seguimientos falló ${FALLAS_SEGUIDAS_PARA_FRENAR} envíos seguidos y se frenó solo hasta las ${horaArt(new Date(hasta))}:00 (hora Córdoba). Tres rebotes seguidos suelen ser la cuenta de WhatsApp (pago, plantilla pausada) o la API, no los clientes.\n\nFallas:\n  - ${detalle}\n\nQué mirar: business.facebook.com → WhatsApp Manager (calidad del número, plantillas, método de pago). El motor reintenta solo cuando pasa el freno; los ${seleccion.elegidos.length - ok - fallidos} que quedaron sin mandar vuelven a evaluarse en el próximo tick.`,
-            }).catch(() => {});
+            // A la mensajería interna de los admin, no por mail (Ishtar, 8/10/2026).
+            await avisarAdmins({
+                asunto: `⚠️ Seguimientos: el motor se frenó a las ${hora}:00 (${FALLAS_SEGUIDAS_PARA_FRENAR} fallas seguidas)`,
+                urgente: true,
+                cuerpo: `A las ${hora}:00 el motor de seguimientos falló ${FALLAS_SEGUIDAS_PARA_FRENAR} envíos seguidos y se frenó solo hasta las ${horaArt(new Date(hasta))}:00 (hora Córdoba). Tres rebotes seguidos suelen ser la cuenta de WhatsApp (pago, plantilla pausada) o la API, no los clientes.\n\nFallas:\n  - ${detalle}\n\nQué mirar: business.facebook.com → WhatsApp Manager (calidad del número, plantillas, método de pago). El motor reintenta solo cuando pasa el freno; los ${seleccion.elegidos.length - ok - fallidos} que quedaron sin mandar vuelven a evaluarse en el próximo tick.`,
+            });
         }
 
         return terminar(

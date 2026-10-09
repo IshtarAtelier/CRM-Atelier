@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
-import { sendEmail } from '@/lib/email';
+import { avisarAdmins } from '@/lib/avisos/aviso-al-equipo';
 import { saludDelEmbudo } from '@/lib/seguimientos/salud';
 
 export const dynamic = 'force-dynamic';
@@ -9,21 +9,22 @@ export const dynamic = 'force-dynamic';
  * Alerta diaria del embudo. La dispara `src/instrumentation.ts` a las 19:30
  * (Córdoba), cuando el motor ya hizo su último tick del día.
  *
- * Igual que `whatsapp-calidad`: manda mail TODOS los días con el resultado en
- * el asunto — una alarma que solo suena cuando hay problema no se distingue
- * de una alarma rota. Lo que mira lo define `lib/seguimientos/salud.ts`:
+ * Igual que `whatsapp-calidad`: avisa TODOS los días con el resultado en la
+ * primera línea — una alarma que solo suena cuando hay problema no se
+ * distingue de una alarma rota. Desde el 8/10/2026 va a la MENSAJERÍA INTERNA
+ * de los admin (`avisarAdmins`), no por mail: Ishtar pidió sacar los mails de
+ * fallos y centralizarlos en el canal del sistema. Lo que mira lo define `lib/seguimientos/salud.ts`:
  * motor que no corrió, corrió sin mandar, fallas, freno, y leads olvidados.
  */
 export async function GET(request: Request) {
     const auth = verifyCronAuth(request);
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-    const to = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
     try {
         const s = await saludDelEmbudo(7);
         const hoy = s.dias[s.dias.length - 1];
         const subject = s.problemasHoy.length
-            ? `⚠️ Embudo: ${s.problemasHoy.length} problema(s) hoy — ${hoy.enviados} seguimientos enviados`
-            : `✅ Embudo: ${hoy.enviados} seguimientos enviados hoy, ${hoy.corridas} corridas, ${hoy.respuestas} respuestas`;
+            ? `⚠️ Embudo ${hoy.dia}: ${s.problemasHoy.length} problema(s) hoy — ${hoy.enviados} seguimientos enviados`
+            : `✅ Embudo ${hoy.dia}: ${hoy.enviados} seguimientos enviados hoy, ${hoy.corridas} corridas, ${hoy.respuestas} respuestas`;
         const tabla = s.dias.map(d => `  ${d.dia}  corridas ${String(d.corridas).padStart(2)}  enviados ${String(d.enviados).padStart(3)}  fallidos ${String(d.fallidos).padStart(2)}  en espera ${String(d.enEsperaUltimo).padStart(3)}  respuestas ${d.respuestas}${d.horasSinCorrida.length ? `  ⚠️ sin correr: ${d.horasSinCorrida.join(',')}` : ''}${d.frenos ? '  ⛔ freno' : ''}`).join('\n');
         const text = [
             s.problemasHoy.length ? `Para mirar hoy:\n- ${s.problemasHoy.join('\n- ')}` : 'Hoy sin problemas.',
@@ -36,10 +37,10 @@ export async function GET(request: Request) {
             '',
             'Vista completa: /admin/leads/salud',
         ].filter(Boolean).join('\n');
-        await sendEmail({ to, subject, text });
-        return NextResponse.json({ ok: true, problemas: s.problemasHoy, hoy });
+        const llegaron = await avisarAdmins({ asunto: subject, cuerpo: text, dedupePrefijo: subject.slice(0, subject.indexOf(':')) });
+        return NextResponse.json({ ok: true, problemas: s.problemasHoy, hoy, avisados: llegaron });
     } catch (e: any) {
-        await sendEmail({ to, subject: '⚠️ Embudo: el chequeo diario falló', text: e.message }).catch(() => {});
+        await avisarAdmins({ asunto: '⚠️ Embudo: el chequeo diario falló', cuerpo: String(e.message) });
         return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
     }
 }

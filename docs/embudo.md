@@ -201,8 +201,8 @@ base (`SystemSetting`, `reclamarCorrida`) para que la haga una sola.
 | **Motor de seguimientos** | 1 vez por hora, **10 a 19** hs Córdoba (el reloj lo llama de 9 a 20; la ruta filtra 10–19) | Toma "para hoy" del tablero, se queda con lo que tenga plantilla, pasa las compuertas, manda de a **15 por hora** con pausas de 8–12 s, tope **120 por día** (hasta el 11/9: 5 y 30). | `src/app/api/cron/seguimientos/route.ts`, `src/lib/seguimientos/*`, `src/lib/constants/seguimientos.ts` |
 | Tareas del día + mail al equipo | 1 vez por día, desde las **9:00** | Materializa "para hoy" como tareas `EMBUDO` (una viva por cliente; cancela las que ya no tocan) y manda el resumen. | `resumen-diario-equipo`, `src/lib/embudo/sincronizar-tareas.ts` |
 | Carritos (mail) | cada hora, 9–20 | Los dos mails del carrito. | `abandoned-carts` |
-| Calidad de WhatsApp | 1 vez por día | Mail: conexión, calidad del número, plantillas, rechazos de Meta, lint del prompt del bot. | `whatsapp-calidad` |
-| **Salud del embudo** | 1 vez por día, **19:30** | Mail (siempre, con ⚠️ en el asunto si hay problema): motor que no corrió alguna hora, corrió sin mandar, fallas, freno, leads olvidados (toque vencido +24 h y nadie les escribió). Vista: **/admin/leads/salud** (últimos 7 días). | `embudo-salud`, `src/lib/seguimientos/salud.ts` |
+| Calidad de WhatsApp | 1 vez por día | Mensaje del sistema a los ADMIN (mensajería interna; hasta el 8/10/2026 era mail): conexión, calidad del número, plantillas, rechazos de Meta, lint del prompt del bot. | `whatsapp-calidad` |
+| **Salud del embudo** | 1 vez por día, **19:30** | Mensaje del sistema a los ADMIN en la mensajería interna (siempre, con ⚠️ si hay problema; hasta el 8/10/2026 era mail): motor que no corrió alguna hora, corrió sin mandar, fallas, freno, leads olvidados (toque vencido +24 h y nadie les escribió). Vista: **/admin/leads/salud** (últimos 7 días). | `embudo-salud`, `src/lib/seguimientos/salud.ts` |
 
 **Compuertas del motor** (`src/lib/seguimientos/politica.ts`, en este orden;
 la primera que aplica veta):
@@ -235,7 +235,7 @@ El tope diario se cuenta sobre esas filas (`resultado = ENVIADO`).
 (`src/lib/seguimientos/registro.ts`, `prisma/schema.prisma`.)
 
 **Freno.** Tres fallas seguidas al mandar cortan la tanda, frenan el motor
-2 horas (`SystemSetting.seguimientos_freno_hasta`) y mandan mail: tres rebotes
+2 horas (`SystemSetting.seguimientos_freno_hasta`) y avisan a los admin por la mensajería interna (urgente): tres rebotes
 seguidos son la cuenta o la API, no tres clientes. Los que quedaron sin
 mandar vuelven a evaluarse en el tick siguiente (`ejecutor.ts`, `debeFrenar`).
 
