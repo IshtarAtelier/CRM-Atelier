@@ -11,7 +11,9 @@ import { clasificarRespuesta, respuestasAlToque, type Clasificacion } from '@/li
 import { cerrarComoPerdido, posponerSeguimiento, reservarDescuentoRetome, PLANTILLA_RETOME } from '@/lib/seguimientos/cierre';
 import {
     CUPO_DIARIO_POR_DEFECTO, HORA_DESDE, HORA_HASTA, LOTE_POR_TICK, MODO_POR_DEFECTO, PLANTILLAS_AUTOMATICAS,
+    SETTING_CALIDAD_NUMERO, FACTOR_CUPO_EN_AMARILLO,
 } from '@/lib/constants/seguimientos';
+import { fetchWa } from '@/lib/wa-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,12 +97,32 @@ export async function GET(request: Request) {
             return terminar({ error: `freno hasta ${frenoHasta}` }, { ok: false, modo, motivo: `motor frenado hasta ${frenoHasta} (${FALLAS_SEGUIDAS_PARA_FRENAR} fallas seguidas en una corrida anterior)` });
         }
 
+        // ── Calidad del número según Meta (en vivo; si no responde, la última guardada) ──
+        // "Siempre respetá que Meta no nos bloquee" (Ishtar, 8/10/2026).
+        let calidad = (await leerSetting(SETTING_CALIDAD_NUMERO)) || 'GREEN';
+        try {
+            const st = await fetchWa('/api/status', { cache: 'no-store', signal: AbortSignal.timeout(8_000) }).then(r => r.json());
+            if (st?.qualityRating) { calidad = String(st.qualityRating).toUpperCase(); await escribirSetting(SETTING_CALIDAD_NUMERO, calidad); }
+        } catch (e: any) {
+            console.warn('[Motor seguimientos] No se pudo leer la calidad del número; se usa la última guardada:', calidad, e?.message);
+        }
+        if (calidad === 'RED' && modo === 'real') {
+            await avisarAdmins({
+                asunto: `⛔ Seguimientos: el motor NO manda — Meta tiene el número en calidad ROJA (${dia})`,
+                urgente: true,
+                cuerpo: 'Meta califica el número en ROJO: mucha gente lo bloqueó o lo reportó. Mandar más seguimientos ahora es lo que termina en una suspensión. El motor vuelve solo cuando la calidad suba a amarillo o verde.\n\nDónde mirar: business.facebook.com → WhatsApp Manager → Números de teléfono → Calidad.',
+            });
+            return terminar({ error: 'calidad del número RED' }, { ok: false, modo, calidad, motivo: 'calidad del número en ROJO: el motor no manda hasta que Meta la suba' });
+        }
+        const cupoDiarioEfectivo = calidad === 'YELLOW' ? Math.floor(cupoDiario * FACTOR_CUPO_EN_AMARILLO) : cupoDiario;
+
         // ── Cupo del día (día de Córdoba) ───────────────────────────────────
         const usadoHoy = await prisma.seguimientoEnvio.count({
             where: { diaArt: dia, resultado: 'ENVIADO' },
         });
-        const cupo = Math.min(Math.max(0, cupoDiario - usadoHoy), LOTE_POR_TICK);
+        const cupo = Math.min(Math.max(0, cupoDiarioEfectivo - usadoHoy), LOTE_POR_TICK);
         base.usadoHoy = usadoHoy;
+        base.cupoDiario = cupoDiarioEfectivo;
 
         // ── Candidatos: lo que el tablero dice que toca HOY ─────────────────
         const { paraHoy, columns } = await EmbudoService.tablero(now);
@@ -257,7 +279,8 @@ export async function GET(request: Request) {
             {
                 ok: true,
                 modo,
-                cupo: { diario: cupoDiario, usadoHoy, esteTick: cupo },
+                calidad,
+                cupo: { diario: cupoDiarioEfectivo, usadoHoy, esteTick: cupo },
                 candidatos: candidatos.length,
                 cerrados: modo === 'real' ? cierres : aCerrar.map(l => ({ nombre: l.name, motivo: l.proximaAccion.etiqueta })),
                 respuestasLeidas: lecturas,

@@ -202,7 +202,7 @@ base (`SystemSetting`, `reclamarCorrida`) para que la haga una sola.
 
 | Robot | Cadencia | Qué hace | Dónde |
 |---|---|---|---|
-| **Motor de seguimientos** | 1 vez por hora, **10 a 19** hs Córdoba (el reloj lo llama de 9 a 20; la ruta filtra 10–19) | Toma "para hoy" del tablero, se queda con lo que tenga plantilla, pasa las compuertas, manda de a **15 por hora** con pausas de 8–12 s, tope **120 por día** (hasta el 11/9: 5 y 30). | `src/app/api/cron/seguimientos/route.ts`, `src/lib/seguimientos/*`, `src/lib/constants/seguimientos.ts` |
+| **Motor de seguimientos** | 1 vez por hora, **9 a 19** hs Córdoba (desde el 8/10/2026 arranca a las 9) | Toma "para hoy" del tablero, se queda con lo que tenga plantilla, pasa las compuertas, manda de a **15 por hora** con pausas de 8–12 s, tope **120 por día** (hasta el 11/9: 5 y 30). | `src/app/api/cron/seguimientos/route.ts`, `src/lib/seguimientos/*`, `src/lib/constants/seguimientos.ts` |
 | Tareas del día + mail al equipo | 1 vez por día, desde las **9:00** | Materializa "para hoy" como tareas `EMBUDO` (una viva por cliente; cancela las que ya no tocan) y manda el resumen. | `resumen-diario-equipo`, `src/lib/embudo/sincronizar-tareas.ts` |
 | Carritos (mail) | cada hora, 9–20 | Los dos mails del carrito. | `abandoned-carts` |
 | Calidad de WhatsApp | 1 vez por día | Mensaje del sistema a los ADMIN (mensajería interna; hasta el 8/10/2026 era mail): conexión, calidad del número, plantillas, rechazos de Meta, lint del prompt del bot. | `whatsapp-calidad` |
@@ -237,6 +237,13 @@ reclama ANTES de mandar una fila en `SeguimientoEnvio` con clave única
 las dos instancias, o se reintenta, la segunda choca con la fila y no manda.
 El tope diario se cuenta sobre esas filas (`resultado = ENVIADO`).
 (`src/lib/seguimientos/registro.ts`, `prisma/schema.prisma`.)
+
+**Freno por calidad del número (8/10/2026, "siempre respetá que Meta no nos
+bloquee").** En cada tick el motor lee la calidad del número en Meta
+(`/api/status` del wa-service; si no responde, la última guardada en
+`SystemSetting.whatsapp_calidad_numero`): en **YELLOW** manda la mitad del
+cupo, en **RED** no manda nada y avisa (urgente) al canal del sistema; vuelve
+solo cuando Meta la suba.
 
 **Freno.** Tres fallas seguidas al mandar cortan la tanda, frenan el motor
 2 horas (`SystemSetting.seguimientos_freno_hasta`) y avisan a los admin por la mensajería interna (urgente): tres rebotes
@@ -299,7 +306,7 @@ sistema deshace el rastro, pausa 30 días y avisa al equipo
   hora y 120 por día: el atraso se absorbe en unos 3 días, del más atrasado
   al menos.
 - **I. Días de 24 h vs días calendario.** Los plazos se miden en horas exactas
-  desde el presupuesto; el horario de envío es 10–19 Córdoba. Un presupuesto
+  desde el presupuesto; el horario de envío es 9–19 Córdoba. Un presupuesto
   de las 18:30 vence a las 18:30 del día 2: entra en el tick de las 18 → sale
   al día siguiente (a las 10). Detalle de zona horaria para la auditoría.
 - **J. Código viejo con otra cadencia.** `wa-service/followups/config.js`

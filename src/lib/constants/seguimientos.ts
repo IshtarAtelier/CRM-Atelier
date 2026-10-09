@@ -42,8 +42,8 @@ export const CUPO_DIARIO_POR_DEFECTO = 120; // 30 hasta el 12/9; subido para abs
 export const LOTE_POR_TICK = 15; // 5 hasta el 12/9
 export const PAUSA_ENTRE_ENVIOS_MS: readonly [number, number] = [8_000, 12_000]; // 15 × ~10 s = ~2,5 min por tick
 
-/** Horario en que salen (hora de Córdoba). Igual que las campañas: 10 a 19. */
-export const HORA_DESDE = 10;
+/** Horario en que salen (hora de Córdoba). Desde las 9 (Ishtar, 8/10/2026); las campañas siguen de 10 a 19. */
+export const HORA_DESDE = 9;
 export const HORA_HASTA = 19;
 
 /**
@@ -72,3 +72,15 @@ export const PLANTILLAS_AUTOMATICAS: readonly TemplateName[] = [
     'ultimo_seguimiento',
     'retomar_con_cupon',
 ];
+
+/**
+ * FRENO POR CALIDAD DEL NÚMERO (Ishtar, 8/10/2026: "siempre respetá que Meta
+ * no nos bloquee"). Meta califica el número GREEN / YELLOW / RED según cuánta
+ * gente bloquea o reporta; con RED baja el límite de conversaciones y puede
+ * suspender la cuenta. El motor lee la calidad en vivo en cada tick
+ * (`/api/status` del wa-service) y la guarda en `SystemSetting.whatsapp_calidad_numero`
+ * por si el wa-service no responde: en YELLOW manda la mitad del cupo, en RED
+ * no manda nada y avisa al canal del sistema.
+ */
+export const SETTING_CALIDAD_NUMERO = 'whatsapp_calidad_numero';
+export const FACTOR_CUPO_EN_AMARILLO = 0.5;
