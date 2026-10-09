@@ -400,7 +400,7 @@ const META_ERRORES = {
     132000: { texto: 'las variables de la plantilla no coinciden con lo aprobado en Meta.', cuenta: true },
     132001: { texto: 'la plantilla no existe o no está aprobada en Meta.', cuenta: true },
     132015: { texto: 'la plantilla está pausada en Meta por baja calidad.', cuenta: true },
-    130472: { texto: 'el cliente pidió no recibir mensajes de marketing por WhatsApp.', cuenta: false, avisar: false },
+    130472: { texto: 'el cliente pidió no recibir mensajes de marketing por WhatsApp.', cuenta: false, avisar: false, definitivo: true },
 };
 
 /**
@@ -443,10 +443,12 @@ async function persistStatus(s, { io } = {}) {
         const quien = row.senderName ? ` (lo mandó ${row.senderName})` : '';
         // Si lo mandó el motor solo, se deshace el escalón y el motor se aparta
         // de esta charla: sigue una persona (ver shared/seguimiento-fallido.js).
-        const deshecho = await deshacerSeguimientoFallido(prisma, { ...row, chatId: row.chatId }, { deCuenta: !!conocido?.cuenta })
+        const deshecho = await deshacerSeguimientoFallido(prisma, { ...row, chatId: row.chatId }, { deCuenta: !!conocido?.cuenta, definitivo: !!conocido?.definitivo })
             .catch(e => { console.error('[Status] No se pudo deshacer el seguimiento automático:', e.message); return null; });
         const sigueUnaPersona = deshecho
-            ? (deshecho.pausadoHasta
+            ? (deshecho.definitivo
+                ? ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}) y el motor NO le escribe más: pidió no recibir mensajes (Sin seguimiento).`
+                : deshecho.pausadoHasta
                 ? ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}) y el motor no le va a escribir por ${PAUSA_DIAS} días: le toca a una persona.`
                 : ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}); como el problema es de la cuenta, el motor lo reintenta solo cuando esté arreglada.`)
             : '';

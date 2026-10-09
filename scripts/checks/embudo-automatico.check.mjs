@@ -49,7 +49,7 @@ a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RET
 a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 8 }); check('45 días, retome hace 8 días sin respuesta: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 45, chat: false }); check('45 días sin chat: nada que intentar, CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 200 }); check(`${DIAS_MAX_CIERRE_AUTOMATICO}+ días: fuera del embudo, no se toca`, es(a, 'esperar') && !a.vencida, txt(a));
-a = accion({ presupuestoHace: 6, humanoHace: 1 }); check('una persona le escribió ayer (día 5): el 2º escalón está cubierto, espera al día 15', es(a, 'esperar'), txt(a));
+a = accion({ presupuestoHace: 6, humanoHace: 1 }); check('una persona le escribió ayer (día 5): el toque NO se da por hecho; el 1º sigue debiéndose (la compuerta de 48 h lo demora, no lo borra)', es(a, 'plantilla', 'seguimiento_presupuesto') && a.vencida, txt(a));
 
 console.log('\nSin presupuesto: MISMA cadencia desde el alta (antes: un toque y "Falta cotizar" para una persona)');
 a = accion({ altaHace: 1 }); check('1 día: "Falta cotizar" informa, NO vence', es(a, 'cotizar') && !a.vencida, txt(a));

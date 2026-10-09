@@ -155,17 +155,17 @@ export function classifyLead(input: ClassifyInput): ClassifyResult {
     return { stage: hasPrescription ? 'nuevaReceta' : 'primerContacto', contactado: true, escalonCubierto: true, cubiertoHasta: null };
   }
 
-  // Un mensaje humano cuenta como haber cubierto el escalón que estaba vigente
-  // el día que se mandó: si le escribieron al cuarto día, el escalón de las 48h
-  // está hecho. Se integra con el max() de abajo como una etiqueta más, en vez
-  // de ser una regla aparte que después divergiría.
+  // Un mensaje humano después del presupuesto prueba que lo CONTACTARON (la
+  // tarjeta no puede decir "Sin contactar"), pero desde el 8/10/2026 NO cubre
+  // el escalón: medido en producción, 41 de los 51 leads sin ningún toque
+  // estaban así —un "hola, ¿cómo va?" del vendedor el día 4 daba por hecha la
+  // invitación al local y nadie la mandaba nunca. El respeto a la charla viva
+  // lo pone la compuerta de 48 h del motor, no el clasificador.
   const contactoStage = ultimoMensajeHumano && ultimoMensajeHumano.getTime() > quoteCreatedAt.getTime()
     ? stageByQuoteAge(quoteCreatedAt, ultimoMensajeHumano.getTime())
     : null;
   const porEtiquetas = stageByLabels(chatLabels, tagNames);
-  const labelStage = contactoStage && STAGE_ORDER[contactoStage] > STAGE_ORDER[porEtiquetas]
-    ? contactoStage
-    : porEtiquetas;
+  const labelStage = porEtiquetas;
   const timeStage = stageByQuoteAge(quoteCreatedAt, now);
 
   // max(etapa por etiqueta, etapa por tiempo)

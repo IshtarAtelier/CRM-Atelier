@@ -147,10 +147,14 @@ export const EmbudoService = {
             const chat = lead.whatsappChats[0] ?? null;
             const chatLabels = chat?.chatLabels || [];
             const ultimoMensajeHumano = chat ? ultimoHumanoPorChat.get(chat.id) ?? null : null;
+            const visitoElLocal = lead.interactions.length > 0
+                || tieneEtiquetaDeVisita(lead.tags.map(t => t.name))
+                || lead.tasks.some(t => t.dueDate !== null && t.dueDate.getTime() < now);
             const enviado = presupuestoFueEnviado({
                 quoteCreatedAt: latestQuote?.createdAt ?? null,
                 pdfEnviadoAt: pdfPorCliente.get(lead.id) ?? null,
                 ultimoMensajeHumano,
+                visitoElLocal,
             });
             const quoteCreatedAt = enviado ? latestQuote!.createdAt : null;
             const borradorSinEnviar = latestQuote && !enviado ? latestQuote.createdAt : null;
@@ -163,10 +167,6 @@ export const EmbudoService = {
                 ultimoMensajeHumano,
                 now,
             });
-
-            const visitoElLocal = lead.interactions.length > 0
-                || tieneEtiquetaDeVisita(lead.tags.map(t => t.name))
-                || lead.tasks.some(t => t.dueDate !== null && t.dueDate.getTime() < now);
 
             const accion = proximaAccion({
                 stage,

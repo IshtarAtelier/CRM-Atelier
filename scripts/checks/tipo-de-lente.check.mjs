@@ -160,7 +160,8 @@ const casosEmbudo = [
      { contactado: false, escalonCubierto: false }],
     ['el mensaje humano cubre el escalón vigente ese día',
      classifyLead({ ...baseLead, quoteCreatedAt: haceDias(3), ultimoMensajeHumano: haceDias(0.2) }),
-     { contactado: true, escalonCubierto: true }],
+     // 8/10/2026: el mensaje humano prueba el contacto pero NO cubre el toque (lo frena 48 h la compuerta del motor).
+     { contactado: true, escalonCubierto: false }],
     ['la plantilla enviada sigue contando como siempre',
      classifyLead({ ...baseLead, quoteCreatedAt: haceDias(3), chatLabels: ['SEGUIMIENTO_DIA_1'] }),
      { contactado: true, escalonCubierto: true }],

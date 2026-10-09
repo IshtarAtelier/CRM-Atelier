@@ -89,6 +89,11 @@ console.log('\nSi Meta rechaza un seguimiento automático, el sistema se aparta'
     check('saca la etiqueta del escalón y deja las demás', escrito && JSON.stringify(escrito.chatLabels) === '["OTRA"]', JSON.stringify(escrito));
     check('borra lastFollowUpAt (el tablero lo vuelve a mostrar para una persona)', escrito && escrito.lastFollowUpAt === null);
     check(`pausa el motor ${sf.PAUSA_DIAS} días para esa charla`, r && escrito.followUpPausedUntil > new Date(Date.now() + (sf.PAUSA_DIAS - 1) * 86400000));
+    escrito = null;
+    const rd = await sf.deshacerSeguimientoFallido(prismaFalso, { chatId: 'c1', senderName: 'Sistema', templateName: 'seguimiento_presupuesto' }, { definitivo: true });
+    check('8/10 · "pidió no recibir marketing" (130472): se apaga el seguimiento de esa persona, no se pausa 30 días', rd && rd.definitivo && escrito.chatLabels.includes(sf.LABEL_SIN_SEGUIMIENTO) && !('followUpPausedUntil' in escrito), JSON.stringify(escrito));
+    const inb = readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8');
+    check('inbound.js marca 130472 como definitivo', inb.includes('130472') && inb.includes('definitivo: true') && inb.includes('definitivo: !!conocido?.definitivo'));
     const inbound = readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('persistStatus lo llama al recibir FAILED', inbound.includes('deshacerSeguimientoFallido(prisma'));
 }

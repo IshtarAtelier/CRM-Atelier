@@ -32,6 +32,8 @@ const ETIQUETA_POR_PLANTILLA = {
     retomar_con_cupon: 'SEGUIMIENTO_RETOME',
 };
 const REMITENTE_AUTOMATICO = 'Sistema';
+/** Espejo de LABEL_SIN_SEGUIMIENTO (src/lib/seguimientos/politica.ts). */
+const LABEL_SIN_SEGUIMIENTO = 'SIN_SEGUIMIENTO';
 const PAUSA_DIAS = 30;
 
 /** true si este saliente es un seguimiento que mandó el motor solo. */
@@ -43,7 +45,7 @@ function esSeguimientoAutomatico(row) {
  * Deshace el registro del escalón y pausa el motor para ese chat.
  * @returns {Promise<{etiqueta:string, pausadoHasta:Date}|null>}
  */
-async function deshacerSeguimientoFallido(prisma, row, { deCuenta = false } = {}) {
+async function deshacerSeguimientoFallido(prisma, row, { deCuenta = false, definitivo = false } = {}) {
     if (!esSeguimientoAutomatico(row)) return null;
     const etiqueta = ETIQUETA_POR_PLANTILLA[row.templateName];
     const chat = await prisma.whatsAppChat.findUnique({ where: { id: row.chatId }, select: { chatLabels: true } });
@@ -52,16 +54,22 @@ async function deshacerSeguimientoFallido(prisma, row, { deCuenta = false } = {}
     // culpa de este número: se deshace el escalón y listo, el motor reintenta
     // cuando la cuenta esté bien. La pausa de 30 días es solo para los
     // rechazos propios del número (no tiene WhatsApp, pidió no recibir marketing).
-    const pausadoHasta = deCuenta ? null : new Date(Date.now() + PAUSA_DIAS * 86400000);
+    // `definitivo`: el cliente pidió a Meta no recibir marketing de este
+    // negocio (código 130472). Medido el 8/10/2026: 19 de 36 rechazos del mes.
+    // Pausarlo 30 días solo garantiza otro rechazo en 30 días: se apaga el
+    // seguimiento de esa persona (misma etiqueta que el botón "Sin seguimiento").
+    const pausadoHasta = deCuenta || definitivo ? null : new Date(Date.now() + PAUSA_DIAS * 86400000);
+    const etiquetas = (chat.chatLabels || []).filter(l => l !== etiqueta);
+    if (definitivo && !etiquetas.includes(LABEL_SIN_SEGUIMIENTO)) etiquetas.push(LABEL_SIN_SEGUIMIENTO);
     await prisma.whatsAppChat.update({
         where: { id: row.chatId },
         data: {
-            chatLabels: (chat.chatLabels || []).filter(l => l !== etiqueta),
+            chatLabels: etiquetas,
             lastFollowUpAt: null,
             ...(pausadoHasta ? { followUpPausedUntil: pausadoHasta } : {}),
         },
     });
-    return { etiqueta, pausadoHasta };
+    return { etiqueta, pausadoHasta, definitivo };
 }
 
-module.exports = { deshacerSeguimientoFallido, esSeguimientoAutomatico, ETIQUETA_POR_PLANTILLA, PAUSA_DIAS };
+module.exports = { deshacerSeguimientoFallido, esSeguimientoAutomatico, ETIQUETA_POR_PLANTILLA, PAUSA_DIAS, LABEL_SIN_SEGUIMIENTO };

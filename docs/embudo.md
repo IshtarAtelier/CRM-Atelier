@@ -114,11 +114,14 @@ Reglas finas:
   (b) el que dan las etiquetas de seguimiento ya enviadas. Si el reloj va más
   adelante que las etiquetas, "el toque de hoy se debe" (`escalonCubierto=false`).
 - Un **mensaje escrito por una persona del equipo** después del presupuesto
-  cuenta como haber cubierto el escalón vigente ese día (`ultimoMensajeHumano`).
-  Los robots (`Bot`, `Sistema`, `Sistema Atelier`) no cuentan.
+  prueba que lo contactaron (la tarjeta no dice "Sin contactar") pero, desde el
+  8/10/2026, **no cubre el escalón**: el toque sigue debiéndose y el motor lo
+  manda cuando pasan 48 h sin mensajes. Los robots no cuentan.
 - **"Presupuesto enviado" exige prueba** (desde el 12/9/2026,
   `src/lib/embudo/presupuesto-enviado.ts`): la nota "📄 Presupuesto enviado"
-  que deja el envío del PDF, o un WhatsApp de una persona posterior a armarlo.
+  que deja el envío del PDF, un WhatsApp de una persona posterior a armarlo, o
+  (desde el 8/10/2026) que el cliente haya pasado por el local — se lo
+  mostraron en el mostrador.
   Un presupuesto armado en el CRM y nunca mandado deja al lead en Primer
   Contacto / Nueva Receta con la tarjeta "Presupuesto armado el dd/MM y NUNCA
   enviado: mandarlo".
@@ -256,7 +259,7 @@ sistema deshace el rastro, pausa 30 días y avisa al equipo
 | `seguimientos_cupo_diario` | `SystemSetting` (default 120) | tope diario |
 | "Sin seguimiento" | cabecera del chat en el buzón / etiqueta de ficha | apaga por persona |
 | Retroceder la tarjeta en el tablero | `/api/leads/pipeline/move` | pausa 14 días |
-| Rechazo de Meta a un automático | webhook de estado | pausa 30 días |
+| Rechazo de Meta a un automático | webhook de estado | pausa 30 días; si el cliente pidió no recibir marketing (130472), `SIN_SEGUIMIENTO` definitivo (8/10/2026) |
 
 ---
 
@@ -277,10 +280,11 @@ sistema deshace el rastro, pausa 30 días y avisa al equipo
   `SEGUIMIENTO_DIA_1`; para el embudo eso significa "ya se retomó la charla"
   y no vuelve a mandar el toque de retomar (3a). Son dos conversaciones
   distintas con la misma etiqueta.
-- **F. Cualquier mensaje humano cuenta como "toque hecho".** Un "hola, ¿cómo
-  va?" del equipo el día 4 marca el 2º toque como cubierto aunque no haya sido
-  la invitación al local. Es a propósito (evitar plantilla encima de charla),
-  pero no queda registrado *qué* se cubrió.
+- **F. ~~Cualquier mensaje humano cuenta como "toque hecho".~~** Resuelto el
+  8/10/2026: el mensaje humano prueba el CONTACTO (la tarjeta) pero ya no
+  cubre el escalón; la compuerta de 48 h del motor es la que respeta la
+  charla. Medido: 41 de 51 leads sin ningún toque estaban "cubiertos" por un
+  mensaje del vendedor.
 - **G. Sin chat de WhatsApp no hay embudo automático.** Un lead que llegó por
   teléfono o mail no recibe nada; desde el 8/10/2026 ya no es "para hoy" y se
   cierra solo al día 30.
