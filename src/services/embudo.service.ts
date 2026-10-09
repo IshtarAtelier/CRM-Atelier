@@ -73,7 +73,7 @@ async function leadsCalificados() {
             // Ver el porqué del criterio en `lib/embudo/visito-local.ts`.
             tasks: { where: { type: 'TURNO' }, select: { dueDate: true } },
             // La señal BUENA: el botón "Visita" de la ficha, que el equipo ya usa.
-            interactions: { where: { type: 'STORE_VISIT' }, select: { id: true }, take: 1 },
+            interactions: { where: { type: 'STORE_VISIT' }, select: { id: true, createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
             // Siempre el chat más reciente: hay clientes con dos chats y sin
             // este orden la etiqueta se lee del equivocado.
             whatsappChats: { orderBy: { lastMessageAt: 'desc' }, take: 1 },
@@ -150,11 +150,14 @@ export const EmbudoService = {
             const visitoElLocal = lead.interactions.length > 0
                 || tieneEtiquetaDeVisita(lead.tags.map(t => t.name))
                 || lead.tasks.some(t => t.dueDate !== null && t.dueDate.getTime() < now);
+            // La visita con fecha: el botón "Visita" o el último turno cumplido.
+            const visitaAt = [lead.interactions[0]?.createdAt ?? null, ...lead.tasks.map(t => t.dueDate).filter((d): d is Date => d !== null && d.getTime() < now)]
+                .filter((d): d is Date => !!d).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
             const enviado = presupuestoFueEnviado({
                 quoteCreatedAt: latestQuote?.createdAt ?? null,
                 pdfEnviadoAt: pdfPorCliente.get(lead.id) ?? null,
                 ultimoMensajeHumano,
-                visitoElLocal,
+                visitaAt,
             });
             const quoteCreatedAt = enviado ? latestQuote!.createdAt : null;
             const borradorSinEnviar = latestQuote && !enviado ? latestQuote.createdAt : null;

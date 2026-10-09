@@ -16,6 +16,7 @@
 import { proximaAccion, ordenarPorUrgencia, CIERRE_TRAS_ULTIMO_TOQUE_DIAS, DIAS_MAX_CIERRE_AUTOMATICO } from '../../src/lib/embudo/playbook.ts';
 import { classifyLead, VENTANA_EMBUDO_DIAS } from '../../src/lib/leads-pipeline.ts';
 import { clasificarRespuesta, clasificarMensaje, respuestasAlToque, VENTANA_RESPUESTA_HORAS } from '../../src/lib/embudo/respuesta.ts';
+import { presupuestoFueEnviado } from '../../src/lib/embudo/presupuesto-enviado.ts';
 
 let ok = 0; const fallas = [];
 const check = (nombre, cond, extra = '') => { if (cond) { ok++; console.log(`  ✓ ${nombre}`); } else { fallas.push(nombre); console.log(`  ✗ ${nombre} ${extra}`); } };
@@ -74,6 +75,13 @@ console.log('\nOrden del día: la cadencia primero, los últimos intentos despu�
         lista[0].proximaAccion.plantilla === 'seguimiento_presupuesto' && lista[1].proximaAccion.etiqueta.includes('35 días') && lista[2].proximaAccion.etiqueta.includes('100 días') && !lista[3].proximaAccion.vencida,
         lista.map(x => x.proximaAccion.etiqueta).join(' | '));
 }
+
+console.log('\nEl presupuesto cuenta como entregado si...');
+check('...hay nota de PDF posterior', presupuestoFueEnviado({ quoteCreatedAt: hace(3), pdfEnviadoAt: hace(2.9), ultimoMensajeHumano: null }));
+check('...una persona le escribió después', presupuestoFueEnviado({ quoteCreatedAt: hace(3), pdfEnviadoAt: null, ultimoMensajeHumano: hace(2) }));
+check('...vino al local DESPUÉS de armarlo (se lo mostraron en el mostrador)', presupuestoFueEnviado({ quoteCreatedAt: hace(3), pdfEnviadoAt: null, ultimoMensajeHumano: null, visitaAt: hace(2) }));
+check('...pero una visita de hace meses NO prueba este presupuesto', !presupuestoFueEnviado({ quoteCreatedAt: hace(3), pdfEnviadoAt: null, ultimoMensajeHumano: null, visitaAt: hace(90) }));
+check('...y sin ninguna prueba, no', !presupuestoFueEnviado({ quoteCreatedAt: hace(3), pdfEnviadoAt: null, ultimoMensajeHumano: null }));
 
 console.log('\nNingún paso vencido es de una persona');
 {

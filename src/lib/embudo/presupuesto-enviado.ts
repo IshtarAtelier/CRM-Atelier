@@ -32,11 +32,13 @@ export function presupuestoFueEnviado(e: {
     pdfEnviadoAt: Date | null;
     /** Último WhatsApp saliente escrito por una persona del equipo. */
     ultimoMensajeHumano: Date | null;
-    /** ¿Pasó por el local? (visito-local.ts) */
-    visitoElLocal?: boolean;
+    /** Última visita al local CON FECHA (botón "Visita" o turno cumplido). Una etiqueta de visita sin fecha no prueba nada sobre ESTE presupuesto. */
+    visitaAt?: Date | null;
 }): boolean {
     if (!e.quoteCreatedAt) return false;
-    if (e.visitoElLocal) return true;
+    // Solo una visita posterior (o del mismo momento) al presupuesto: la de
+    // hace meses no prueba que vio este.
+    if (e.visitaAt && e.visitaAt.getTime() >= e.quoteCreatedAt.getTime() - 60 * 60 * 1000) return true;
     const q = e.quoteCreatedAt.getTime();
     if (e.pdfEnviadoAt && e.pdfEnviadoAt.getTime() >= q) return true;
     if (e.ultimoMensajeHumano && e.ultimoMensajeHumano.getTime() >= q) return true;
