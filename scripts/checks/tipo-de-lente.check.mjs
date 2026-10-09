@@ -192,8 +192,10 @@ for (const [nombre, e, esperado] of [
 {
     const base = { stage: 'primerContacto', escalonCubierto: false, hasPrescription: true, visitoElLocal: false, tieneChat: true, chatLabels: [], now: ahora };
     const a = proximaAccion({ ...base, quoteCreatedAt: null, borradorSinEnviar: haceDias(1), createdAt: haceDias(1) });
-    a.tipo === 'cotizar' && /NUNCA enviado/.test(a.etiqueta) && a.vencida
-        ? ok('con un borrador sin enviar, la tarjeta pide MANDARLO (hoy), no "cotizar"')
+    // 8/10/2026: la tarjeta lo dice, pero ya NO es "para hoy": cotizar/mandar es
+    // trabajo de venta, no un paso del embudo (nada queda para una persona).
+    a.tipo === 'cotizar' && /nunca enviado/i.test(a.etiqueta) && !a.vencida
+        ? ok('con un borrador sin enviar, la tarjeta lo dice ("nunca enviado") sin convertirlo en tarea')
         : mal(`borrador sin enviar → ${JSON.stringify(a)}`);
     const b = proximaAccion({ ...base, quoteCreatedAt: null, borradorSinEnviar: haceDias(4), createdAt: haceDias(4) });
     b.tipo === 'plantilla' && b.plantilla === 'seguimiento_lentes_con_receta'
