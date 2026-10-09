@@ -19,6 +19,7 @@ import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
 import ComprobanteLab from '@/components/orders/ComprobanteLab';
 import { itemsDeTenido, colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
+import { estadoConfirmacionCliente } from '@/lib/confirmacion-cliente';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -886,6 +887,20 @@ export default function VentasPage() {
     const advanceStatus = async (orderId: string, currentStatus: string) => {
         const next = getNextStatus(currentStatus || 'NONE');
         if (!next) return;
+        // Antes de PROCESAR, lo que contestó el cliente al repaso de su pedido
+        // (Ishtar, 8/10/2026: "que cuando Milena toque procesar revise esa
+        // información y diga si respondió con el OK").
+        if (next === 'IN_PROGRESS') {
+            const o = orders.find(x => x.id === orderId);
+            const c = estadoConfirmacionCliente(o || {});
+            const icono = c.tono === 'verde' ? '✅' : c.tono === 'rojo' ? '✋' : c.tono === 'ambar' ? '⏳' : '⏱️';
+            const pregunta = c.estado === 'OBSERVACION'
+                ? `${icono} ${c.texto}\n\nEl cliente pidió revisar algo. ¿Ya lo resolvieron y querés procesarlo igual?`
+                : c.estado === 'ESPERANDO'
+                    ? `${icono} ${c.texto}\n\nTodavía no dijo OK ni pasaron las 24 h. ¿Procesar igual?`
+                    : `${icono} ${c.texto}\n\n¿Procesar el pedido?`;
+            if (!window.confirm(pregunta)) return;
+        }
         setUpdatingId(orderId);
         try {
             const res = await fetch(`/api/orders/${orderId}`, {
@@ -1394,6 +1409,20 @@ export default function VentasPage() {
                                                 <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}
                                                 </span>
+                                                {/* Qué contestó el cliente al repaso de su pedido: lo que Milena mira antes de procesar. */}
+                                                {order.labSentAt && !['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && (() => {
+                                                    const c = estadoConfirmacionCliente(order);
+                                                    const tono = c.tono === 'verde' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50'
+                                                        : c.tono === 'rojo' ? 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50 animate-pulse'
+                                                            : c.tono === 'ambar' ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50'
+                                                                : 'bg-stone-100 text-stone-700 border-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700';
+                                                    const icono = c.tono === 'verde' ? '✅' : c.tono === 'rojo' ? '✋' : c.tono === 'ambar' ? '⏳' : '⏱️';
+                                                    return (
+                                                        <span title={c.texto} className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 max-w-[320px] truncate ${tono}`}>
+                                                            {icono} {c.estado === 'OK' ? 'Cliente: OK' : c.estado === 'TACITA' ? 'Cliente: 24 h sin respuesta · confirmado' : c.estado === 'OBSERVACION' ? `Cliente: observación — ${(order.clientConfirmationText || '').slice(0, 40)}` : c.estado === 'ESPERANDO' ? 'Cliente: esperando su OK' : 'Sin confirmación enviada'}
+                                                        </span>
+                                                    );
+                                                })()}
                                                 {order.status === 'WEB_PENDING' && (
                                                     <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-sky-100 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 flex items-center gap-1 animate-pulse">
                                                         🌐 Venta Web · A Confirmar
