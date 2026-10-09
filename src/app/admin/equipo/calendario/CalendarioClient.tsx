@@ -19,7 +19,7 @@ import { FERIADOS_ARGENTINA, type Feriado } from '@/lib/constants/feriados-argen
 import FeriadosCobertura from './FeriadosCobertura';
 import { formatDate } from '@/lib/format-date';
 import {
-    TIPOS_NOVEDAD, TIPOS_QUE_SE_PIDEN, TIPOS_SOLO_ADMIN, NOVEDAD_INFO, ESTADO_INFO,
+    TIPOS_NOVEDAD, TIPOS_QUE_SE_PIDEN, TIPOS_SOLO_ADMIN, TIPOS_CON_HORAS, NOVEDAD_INFO, ESTADO_INFO,
     type TipoNovedad, type EstadoNovedad,
 } from '@/lib/constants/novedades-equipo';
 
@@ -149,7 +149,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
             <header className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-black tracking-tight flex items-center gap-2"><CalendarDays className="w-6 h-6 text-primary" /> Feriados y pedidos del equipo</h1>
-                    <p className="text-sm text-stone-500 dark:text-stone-400">{yo.esAdmin ? 'Feriados, faltas, cambios de turno y pedidos especiales. Vos anotás faltas y aprobás pedidos.' : 'Feriados y novedades del equipo. Pedí francos, cambios de turno o algo especial; un administrador lo aprueba.'}</p>
+                    <p className="text-sm text-stone-500 dark:text-stone-400">{yo.esAdmin ? 'Feriados, faltas, cambios de turno, horas extra y pedidos de todo el equipo. Vos anotás faltas y aprobás pedidos.' : 'Feriados de todos; de novedades ves solo las tuyas. Cargá horas extra, francos o cambios de turno; un administrador lo aprueba.'}</p>
                 </div>
                 <button onClick={() => setFormulario({ dia: hoyK })} className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-bold shadow hover:opacity-90">
                     <Plus className="w-4 h-4" /> Anotar
@@ -180,7 +180,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
             <FeriadosCobertura yo={yo} version={version} onAnotar={(dia, tipo) => setFormulario({ dia, tipo })} onVerNovedad={setDetalle} />
 
             <section className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden">
-                <div className="p-3 pb-0"><h2 className="text-lg font-black">Pedidos y novedades del mes</h2></div>
+                <div className="p-3 pb-0"><h2 className="text-lg font-black">{yo.esAdmin ? 'Pedidos y novedades del mes (todo el equipo)' : 'Mis pedidos y novedades del mes'}</h2></div>
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3 border-b border-stone-200 dark:border-stone-700">
                     <div className="flex items-center gap-2">
                         <button onClick={() => mover(-1)} aria-label="Mes anterior" className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800"><ChevronLeft className="w-5 h-5" /></button>
@@ -189,10 +189,12 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                         <button onClick={() => { setAnio(hoy.getFullYear()); setMes(hoy.getMonth()); }} className="text-xs font-bold px-2 py-1 rounded-lg border border-stone-300 dark:border-stone-600">Hoy</button>
                         {cargando && <Loader2 className="w-4 h-4 animate-spin text-stone-400" />}
                     </div>
-                    <select value={filtroPersona} onChange={e => setFiltroPersona(e.target.value)} className="text-sm rounded-lg border border-stone-300 dark:border-stone-600 bg-transparent px-2 py-1.5">
-                        <option value="">Todo el equipo</option>
-                        {equipo.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    {yo.esAdmin ? (
+                        <select value={filtroPersona} onChange={e => setFiltroPersona(e.target.value)} className="text-sm rounded-lg border border-stone-300 dark:border-stone-600 bg-transparent px-2 py-1.5">
+                            <option value="">Todo el equipo</option>
+                            {equipo.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    ) : <span className="text-xs text-stone-500">Solo ves lo tuyo</span>}
                 </div>
 
                 {error && <p className="p-4 text-red-700 dark:text-red-300 font-bold">No se pudo cargar: {error}</p>}
@@ -237,7 +239,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
 
             {resumen.length > 0 && (
                 <section className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-4">
-                    <h2 className="font-black mb-2">Resumen del mes por persona</h2>
+                    <h2 className="font-black mb-2">{yo.esAdmin ? 'Resumen del mes por persona' : 'Mi resumen del mes'}</h2>
                     <div className="overflow-x-auto">
                         <table className="text-sm w-full">
                             <thead><tr className="text-left text-xs uppercase tracking-wider text-stone-500">
@@ -322,7 +324,7 @@ export function Formulario({ yo, equipo, dia, tipoInicial, onCerrar, onGuardado 
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId, type, desde, hasta: hasta || desde,
-                    horario: type === 'FRANCO_COMPENSATORIO' ? (hDesde && hHasta ? `${hDesde}-${hHasta}` : '') : horario || null,
+                    horario: TIPOS_CON_HORAS.includes(type) ? (hDesde && hHasta ? `${hDesde}-${hHasta}` : '') : horario || null,
                     swapWithUserId: type === 'CAMBIO_TURNO' || type === 'FRANCO_COMPENSATORIO' ? swapWithUserId || null : null,
                     justificada: justificada === '' ? null : justificada === 'si',
                     notes: notes || null,
@@ -361,11 +363,11 @@ export function Formulario({ yo, equipo, dia, tipoInicial, onCerrar, onGuardado 
                     <div><label className={etiqueta}>Desde</label><input type="date" value={desde} onChange={e => { setDesde(e.target.value); if (hasta < e.target.value) setHasta(e.target.value); }} className={campo} required /></div>
                     <div><label className={etiqueta}>Hasta</label><input type="date" value={hasta} min={desde} onChange={e => setHasta(e.target.value)} className={campo} required /></div>
                 </div>
-                {type === 'FRANCO_COMPENSATORIO' ? (
+                {TIPOS_CON_HORAS.includes(type) ? (
                     <div className="grid grid-cols-2 gap-3">
-                        <div><label className={etiqueta}>Se va / falta desde</label><input type="time" value={hDesde} onChange={e => setHDesde(e.target.value)} className={campo} required /></div>
+                        <div><label className={etiqueta}>{type === 'HORAS_EXTRA' ? 'Desde' : 'Se va / falta desde'}</label><input type="time" value={hDesde} onChange={e => setHDesde(e.target.value)} className={campo} required /></div>
                         <div><label className={etiqueta}>Hasta</label><input type="time" value={hHasta} onChange={e => setHHasta(e.target.value)} className={campo} required /></div>
-                        <p className="col-span-2 text-xs text-stone-500">Las horas se descuentan de las que tiene a favor por feriados trabajados.</p>
+                        <p className="col-span-2 text-xs text-stone-500">{type === 'HORAS_EXTRA' ? 'Estas horas se suman a su favor, como un feriado trabajado.' : 'Las horas se descuentan de las que tiene a favor por feriados trabajados y horas extra.'}</p>
                     </div>
                 ) : (
                 <div>

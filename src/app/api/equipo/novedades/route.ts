@@ -17,10 +17,11 @@ export async function GET(request: Request) {
         const desde = sp.get('desde');
         const hasta = sp.get('hasta');
         if (!desde || !hasta) return NextResponse.json({ error: 'Faltan desde/hasta' }, { status: 400 });
+        const actor = getActor(request);
         const [novedades, equipo, pendientes] = await Promise.all([
-            TeamEventsService.listar(desde, hasta, sp.get('userId')),
+            TeamEventsService.listar(desde, hasta, actor, sp.get('userId')),
             TeamEventsService.listarEquipo(),
-            TeamEventsService.pendientes(),
+            TeamEventsService.pendientes(actor),
         ]);
         return NextResponse.json({ novedades, equipo, pendientes });
     } catch (e) { return responderError(e); }

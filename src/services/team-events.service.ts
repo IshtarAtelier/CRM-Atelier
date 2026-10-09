@@ -4,8 +4,11 @@
  *
  * Toda la lógica vive acá; las rutas de /api/equipo/novedades validan, llaman y
  * responden. Las reglas de permiso, en pocas líneas:
- *  - TODOS (ADMIN y STAFF) ven TODO el calendario: es compartido a propósito,
- *    para que cada uno sepa quién está y quién no.
+ *  - La cobertura de FERIADOS la ven todos completa (quién cubre cada uno).
+ *  - Las NOVEDADES (faltas, pedidos, horas extra, compensatorios) las ve cada
+ *    uno SOLO las propias; el ADMIN ve todo de todos en el mismo sitio
+ *    (Ishtar, 8/10/2026). Lo decide `listar()` / `pendientes()` por actor,
+ *    no la pantalla.
  *  - Un STAFF solo anota cosas PROPIAS y de los tipos que se piden (franco,
  *    vacaciones, cambio de turno, pedido especial): nacen PENDIENTE hasta que
  *    un ADMIN las aprueba o rechaza. Puede borrar las suyas mientras siguen
@@ -24,7 +27,7 @@ import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
 import {
     TIPOS_NOVEDAD, TIPOS_QUE_SE_PIDEN, TIPOS_SOLO_ADMIN,
-    horasDeRango, type TipoNovedad, type EstadoNovedad,
+    horasDeRango, TIPOS_CON_HORAS, type TipoNovedad, type EstadoNovedad,
 } from '@/lib/constants/novedades-equipo';
 
 const ROLES_INTERNOS = ['ADMIN', 'STAFF'];
@@ -82,8 +85,15 @@ export class TeamEventsService {
         });
     }
 
-    /** Todo lo que toca el rango [desde, hasta] (días inclusive). */
-    static listar(desde: string, hasta: string, userId?: string | null) {
+    /** Lo que ese actor puede ver: todo si es ADMIN, solo lo propio si no. */
+    private static filtroVisibilidad(actor: Actor) {
+        if (esAdmin(actor)) return {};
+        if (!actor.id) throw new TeamEventsError('Sin sesión', 401);
+        return { OR: [{ userId: actor.id }, { swapWithUserId: actor.id }] };
+    }
+
+    /** Todo lo que toca el rango [desde, hasta] (días inclusive) y el actor puede ver. */
+    static listar(desde: string, hasta: string, actor: Actor, userId?: string | null) {
         const d = diaAFecha(desde, 'desde');
         const h = diaAFecha(hasta, 'hasta');
         if (h < d) throw new TeamEventsError('"hasta" es anterior a "desde"');
@@ -92,16 +102,17 @@ export class TeamEventsService {
                 startsAt: { lte: h },
                 endsAt: { gte: d },
                 ...(userId ? { userId } : {}),
+                ...this.filtroVisibilidad(actor),
             },
             select: SELECT,
             orderBy: [{ startsAt: 'asc' }, { createdAt: 'asc' }],
         });
     }
 
-    /** Lo que espera un OK (para el aviso del admin). */
-    static pendientes() {
+    /** Lo que espera un OK: todo para el admin, lo propio para el vendedor. */
+    static pendientes(actor: Actor) {
         return prisma.teamEvent.findMany({
-            where: { status: 'PENDIENTE' },
+            where: { status: 'PENDIENTE', ...this.filtroVisibilidad(actor) },
             select: SELECT,
             orderBy: { startsAt: 'asc' },
         });
@@ -126,11 +137,12 @@ export class TeamEventsService {
         const endsAt = input.hasta ? diaAFecha(input.hasta, 'hasta') : startsAt;
         if (endsAt < startsAt) throw new TeamEventsError('"hasta" es anterior a "desde"');
 
-        // Franco compensatorio: SIEMPRE en horas (Ishtar, 8/10/2026: "se cubren
-        // entre ellos siempre a las horas"), con el rango en `horario`.
+        // Franco compensatorio y horas extra: SIEMPRE en horas (Ishtar,
+        // 8/10/2026: "se cubren entre ellos siempre a las horas"), con el
+        // rango en `horario`.
         let horario = input.horario?.trim() || null;
-        if (input.type === 'FRANCO_COMPENSATORIO') {
-            if (!horario || horasDeRango(horario) === null) throw new TeamEventsError('El franco compensatorio lleva horario, por ejemplo 09:00-13:00');
+        if (TIPOS_CON_HORAS.includes(input.type)) {
+            if (!horario || horasDeRango(horario) === null) throw new TeamEventsError(`${input.type === 'HORAS_EXTRA' ? 'Las horas extra llevan' : 'El franco compensatorio lleva'} horario, por ejemplo 09:00-13:00`);
             horario = horario.replace(/\s+/g, '');
         }
 
