@@ -1,5 +1,5 @@
 import { LAB_LABELS, TOPE_PAR_BONIFICADO_2X1, VENTANA_REPORTE_DIAS, fmtARS, fmtFecha } from './types';
-import { LABS_DEL_SEMANAL } from './reports';
+import { LABS_DEL_SEMANAL } from './types';
 import { ACLARACION_LINKS, comprobantesHtml } from './comprobantes-html';
 
 /**
@@ -163,6 +163,9 @@ function lineaSobrecosto(s: any): string {
     if (s.parBonificadoCobrado) {
         return `<li>${cabecera}: <strong style="color:${ROJO}">2x1 con el par bonificado cobrado — a reclamar ${fmt(s.parMasBarato)}</strong>` +
             `${(s.difference || 0) > 100 ? ` (y la venta entera ${fmt(s.difference)} por encima del sistema)` : ''}</li>`;
+    }
+    if (s.segundoParCobrado) {
+        return `<li>${cabecera}: <strong style="color:${ROJO}">2º par de la promo cobrado de más (va al 20 % de lista + calibrado) — a reclamar ${fmt(s.aReclamar ?? Math.max(0, s.difference || 0))}</strong></li>`;
     }
     return `<li>${cabecera}: <strong style="color:${ROJO}">+${fmt(s.difference)}</strong></li>`;
 }

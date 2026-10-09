@@ -107,11 +107,11 @@ ok('Essential pedido como extra: el catálogo lo resuelve con Essential aunque e
     assert.equal(con.especificacion.essential, true);
 });
 ok('el mensaje a la dueña lleva el motivo completo y la venta entera; la ficha, una línea firmada', () => {
-    const d = { codigoVenta: '#L4AU', orderId: 'cmu6zfb0e00g6oe07n4rbl4au', cliente: 'Laura Santucho', vendedor: 'Agostina', fechaVenta: '01/10/2026', nombreLab: 'Grupo Óptico', pair: 1, pares: 2,
+    const d = { baseUrl: 'https://crm.atelier', codigoVenta: '#L4AU', orderId: 'cmu6zfb0e00g6oe07n4rbl4au', cliente: 'Laura Santucho', vendedor: 'Agostina', fechaVenta: '01/10/2026', nombreLab: 'Grupo Óptico', pair: 1, pares: 2,
         renglones: ['Smart FREE · Blue 1.56 (OD) · par 1: $ 185.000', 'Smart FREE · Blue 1.56 (OI) · par 1: $ 185.000'], total: '$ 490.000', promo: 'Promo 2x1',
         loQueSeCarga: 'Smart FREE · Blue 1.56 + Essential (antirreflejo)', extra: { clave: 'essential', nombre: 'Essential (antirreflejo)', motivo: 'se lo prometimos' }, quien: 'Matías' };
     const t = textoDeExtraNoCobrado(d);
-    for (const esperado of ['Matías agregó Essential', 'NO está cobrado', '"se lo prometimos"', 'Laura Santucho', '$ 185.000', 'Total: $ 490.000', 'promo: Promo 2x1', '(par 1)', '/admin/ventas?id=cmu6zfb0e00g6oe07n4rbl4au']) assert.ok(t.includes(esperado), esperado);
+    for (const esperado of ['Matías agregó Essential', 'NO está cobrado', '"se lo prometimos"', 'Laura Santucho', '$ 185.000', 'Total: $ 490.000', 'promo: Promo 2x1', '(par 1)', 'https://crm.atelier/admin/ventas?id=cmu6zfb0e00g6oe07n4rbl4au']) assert.ok(t.includes(esperado), esperado);
     assert.match(lineaDeFicha(d), /^⚠️ Matías agregó Essential .* SIN estar cobrado\. Motivo: se lo prometimos$/);
 });
 console.log('\nEl orden del 2x1 lo decide el valor (Ishtar, 8/10/2026)');
@@ -200,6 +200,13 @@ ok('el plan con Essential no cobrado: carga Essential, lo anota con el motivo y 
     // si el producto ya es Essential, no es un extra
     const ya = planDeCarga(venta2x1(), 1, { tipoArmazon: 'PLASTICO', extras: { essential: 'motivo cualquiera' } });
     assert.deepEqual(ya.plan.extrasNoCobrados, []); assert.equal(ya.plan.especificacion.essential, true);
+    // motivo de compromiso: frena del lado del servidor, no solo en el navegador
+    const corto = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO', extras: { essential: '.' } });
+    assert.equal(corto.ok, false); assert.ok(corto.faltantes.some(f => /al menos 10 letras/.test(f)), corto.faltantes.join(' | '));
+    // un material que ya trae antirreflejo (Anti Age): no hay Essential que agregar
+    const aa = venta2x1(); aa.items = aa.items.map(i => (i.eye ? { ...i, product: { ...i.product, name: 'Multifocal Smart FREE · Orgánico Blue Anti Age 1.60 2x1' } } : i));
+    const ar = planDeCarga(aa, 1, { tipoArmazon: 'PLASTICO', extras: { essential: 'motivo con más de diez letras' } });
+    assert.ok(ar.faltantes?.some(f => /ya trae antirreflejo/.test(f)), (ar.faltantes || []).join(' | '));
     // un par teñido no lleva Essential: frena
     const sol = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO', pedidoOrigen: '80549878', extras: { essential: 'motivo cualquiera' } });
     assert.equal(sol.ok, false); assert.ok(sol.faltantes.some(f => /par teñido/.test(f)), sol.faltantes.join(' | '));

@@ -233,6 +233,9 @@ export function labKeyDeNombre(nombre: string | null | undefined): LabName | nul
 }
 
 /** Nombre legible de cada laboratorio, para emails y pantallas. */
+/** Los laboratorios que salen en el reporte semanal (Vitolen desde el 8/10/2026). */
+export const LABS_DEL_SEMANAL = ['OPTOVISION', 'GRUPO_OPTICO', 'VITOLEN'];
+
 export const LAB_LABELS: Record<string, string> = {
     OPTOVISION: 'Optovision',
     GRUPO_OPTICO: 'Grupo Óptico',

@@ -47,6 +47,8 @@ export interface DatosDelAviso {
     loQueSeCarga: string;
     extra: ExtraNoCobrado;
     quien: string;
+    /** Origen de la app, para que el link sirva también en el WhatsApp. */
+    baseUrl: string;
 }
 
 /** El texto del mensaje a la dueña: completo, sin resumir. Puro. */
@@ -61,7 +63,7 @@ export function textoDeExtraNoCobrado(d: DatosDelAviso): string {
         `  Total: ${d.total}${d.promo ? ` · promo: ${d.promo}` : ''}`,
         '',
         `Se carga${d.pares > 1 ? ` (par ${d.pair})` : ''}: ${d.loQueSeCarga}`,
-        `Ficha: /admin/ventas?id=${d.orderId}`,
+        `Ficha: ${d.baseUrl}/admin/ventas?id=${d.orderId}`,
     ].join('\n');
 }
 
@@ -101,6 +103,7 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
         loQueSeCarga: args.loQueSeCarga,
         extra: args.extra,
         quien,
+        baseUrl: (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, ''),
     };
 
     // 1. La ficha del cliente, firmada por quien lo decidió.
@@ -115,7 +118,10 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
     // 3. A la dueña, por la mensajería interna: urgente y con copia al celular.
     const para = await destinatariosDeExtras(actor.id);
     if (!actor.id || para.length === 0) {
+        // La única ADMIN es quien lo decidió (o no hay cuentas ADMIN): no hay a quién
+        // escribirle, pero que quede dicho en el AuditLog y en el log.
         console.error('[lab-modulos] extra no cobrado sin destinatario interno (actor sin id o sin cuentas ADMIN):', datos.codigoVenta);
+        await logAudit({ userId: actor.id, userName: quien, action: 'NOTIFY', entityType: 'ORDER', entityId: orderId, details: { tipo: 'EXTRA_NO_COBRADO_SIN_AVISO', motivo: 'sin destinatario interno' } }).catch(() => null);
         return;
     }
     await InternalMessagingService.crearConversacion({

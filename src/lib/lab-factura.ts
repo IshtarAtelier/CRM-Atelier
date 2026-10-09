@@ -76,6 +76,20 @@ export const tieneParBonificadoCobrado = (notes: string | null | undefined): boo
     (notes || '').includes(MARCA_PAR_BONIFICADO_COBRADO);
 
 /** Saca la nota del par bonificado: el cruce la vuelve a escribir en cada pasada si sigue aplicando. */
+/** ¿El cruce marcó esta entrada como 2º par de la promo (Vitolen) cobrado de más? */
+export const tieneSegundoParCobrado = (notes: string | null | undefined): boolean =>
+    (notes || '').includes(MARCA_SEGUNDO_PAR_PROMO_COBRADO);
+
+/** El "a reclamar $X" que el cruce escribió en la nota del 2º par cobrado de más; null si no está. Puro. */
+export function aReclamarDeNota(notes: string | null | undefined): number | null {
+    const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // "… ; a reclamar $29.500]" (fmtARS: miles con punto, sin decimales).
+    const m = (notes || '').match(new RegExp(esc(MARCA_SEGUNDO_PAR_PROMO_COBRADO) + '[^\\]]*?a reclamar \\$\\s*([\\d.]+)'));
+    if (!m) return null;
+    const n = Number(m[1].replace(/\./g, ''));
+    return Number.isFinite(n) ? n : null;
+}
+
 export function sinNotaParBonificado(notes: string | null | undefined): string | null {
     const esc = (m: string) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const marca = `(?:${esc(MARCA_PAR_BONIFICADO_COBRADO)}|${esc(MARCA_SEGUNDO_PAR_PROMO_COBRADO)})`;

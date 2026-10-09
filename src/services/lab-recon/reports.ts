@@ -1,9 +1,8 @@
 import { prisma } from '../../lib/db';
 import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, VENTANA_REPORTE_DIAS } from './types';
-import { esVenta2x1, LABS_FACTURA_A, parBonificadoCobrado, systemCostForLab } from './cost-matching';
-
-/** Los laboratorios que salen en el reporte semanal (Vitolen desde el 8/10/2026). */
-export const LABS_DEL_SEMANAL = ['OPTOVISION', 'GRUPO_OPTICO', 'VITOLEN'];
+import { esVenta2x1, LABS_FACTURA_A, labConfigDe, parBonificadoCobrado, systemCostForLab } from './cost-matching';
+import { LABS_DEL_SEMANAL } from './types';
+import { aReclamarDeNota, tieneSegundoParCobrado } from '../../lib/lab-factura';
 import { clasificarHuerfanos } from './alerts';
 import { detectarDobleCobro } from './dos-por-uno';
 import { esFacturaSinNumero, estaResuelta } from '../../lib/lab-factura';
@@ -266,6 +265,9 @@ export async function weeklyReport(from: Date, to: Date) {
                 pedidos: v.hermanos.map((h: any) => h.labOrderNumber),
                 parBonificadoCobrado: v.par.cobrado,
                 parMasBarato: v.par.masBarato,
+                // Vitolen: el 2º par de la promo cobrado de más (lo dice la nota del cruce).
+                segundoParCobrado: tieneSegundoParCobrado(e.notes),
+                aReclamar: aReclamarDeNota(e.notes),
             };
         });
 
@@ -405,7 +407,7 @@ export async function weeklyReport(from: Date, to: Date) {
     const ultimaCorrida = await prisma.labAuditRun.findFirst({ orderBy: { runAt: 'desc' }, select: { runAt: true, staleSources: true } }).catch(() => null);
 
     // ── RESUMEN: cuánto hay para reclamar ────────────────────────────────────
-    const montoSobrecostos = sobrecostosVigentes.reduce((t, s) => t + (s.parBonificadoCobrado ? (s.parMasBarato || 0) : Math.max(0, s.difference || 0)), 0);
+    const montoSobrecostos = sobrecostosVigentes.reduce((t, s) => t + (s.parBonificadoCobrado ? (s.parMasBarato || 0) : s.segundoParCobrado && s.aReclamar != null ? s.aReclamar : Math.max(0, s.difference || 0)), 0);
     const montoReprocesos = reprocesosConCargo.reduce((t, p) => t + p.cobrado, 0);
     const montoDobles = dobles.reduce((t: number, d: any) => t + (d.aReclamar || 0), 0);
     const paraReclamar = {
@@ -433,7 +435,7 @@ export async function weeklyReport(from: Date, to: Date) {
 // Include compartido por el reporte mensual y la búsqueda histórica.
 const REPORT_INCLUDE = {
     client: { select: { name: true } },
-    items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
+    items: { include: { product: { select: { name: true, cost: true, baseCost: true, price: true, laboratory: true, category: true } } } },
 } as const;
 
 
@@ -506,6 +508,10 @@ export async function searchReport(query?: string, day?: string) {
 export async function assembleReport(orders: any[], monthLabel: string) {
     const anyLab = /(optovision|grupo[\s\-]?[oó]ptico|vitolen)/i;
     const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
+    // La config de cada lab (calibrado e IVA): la misma que usa el cruce, así la
+    // pantalla y el LabCostEntry dicen el mismo costo de sistema (Vitolen valúa
+    // el 2º par de la promo con ella).
+    const labConfigs: Record<string, any> = Object.fromEntries(await Promise.all(LABS_DEL_SEMANAL.map(async l => [l, await labConfigDe(l)])));
 
     const rows = orders
         .map(order => {
@@ -518,6 +524,7 @@ export async function assembleReport(orders: any[], monthLabel: string) {
             // cantidad y el par bonificado del 2x1 en $0). Esta pantalla tenía
             // su propia suma, que contaba los DOS pares de un 2x1: mostraba el
             // doble de costo y un "menor costo" fantasma de un par entero.
+            (order as any).__labConfig = labConfigs[lab] ?? null;
             const systemCost = systemCostForLab(order, lab);
             const es2x1 = esVenta2x1(order);
             const numbers = order.labOrderNumber?.match(/\d{4,}/g) || [];

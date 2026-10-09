@@ -166,12 +166,14 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
             avisos: r.avisos,
         };
         const preparado = await Borradores.preparar({ lab: LAB_GRUPO_OPTICO, orderId, pair, payload, actor });
-        for (const extra of plan.extrasNoCobrados) {
-            await registrarExtraNoCobrado({ orderId, nombreLab: NOMBRE_GRUPO_OPTICO, pair, pares: plan.pares, extra, actor, loQueSeCarga: `${plan.producto} + ${extra.nombre}` })
-                .catch(err => console.error('[lab-modulos] no se pudo registrar el extra no cobrado:', err));
-        }
         try {
             const borrador = await prepararEnPortal(preparado.id);
+            // Recién con el pedido para revisar: si el robot falló (portal ocupado,
+            // formulario que no coincide) y se vuelve a preparar, no se avisa dos veces.
+            for (const extra of plan.extrasNoCobrados) {
+                await registrarExtraNoCobrado({ orderId, nombreLab: NOMBRE_GRUPO_OPTICO, pair, pares: plan.pares, extra, actor, loQueSeCarga: `${plan.producto} + ${extra.nombre}` })
+                    .catch(err => console.error('[lab-modulos] no se pudo registrar el extra no cobrado:', err));
+            }
             return { ok: true, status: 200, borrador, avisos: r.avisos };
         } catch (err: any) {
             return { ok: false, status: 502, error: `El robot no pudo preparar el pedido: ${err?.message || err}`, borradorId: preparado.id };

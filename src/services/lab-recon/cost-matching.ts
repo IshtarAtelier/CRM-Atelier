@@ -7,7 +7,7 @@ import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFIC
 import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
 import { cristalesPorArmazon } from '../../lib/order-frames';
 import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../lab-modules/vitolen/promo';
-import { rolesPorValor, valorDeCristales } from '../lab-modules/carga/roles-2x1';
+import { rolesDeDosPares } from '../lab-modules/carga/roles-2x1';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de
@@ -90,7 +90,7 @@ export function systemCostForLab(order: any, lab: string): number {
  * mismas unidades que `cost`. Sin pelado o sin promo, null (se cuenta entero,
  * como antes). Puro: la config del lab viaja en `order.__labConfig`.
  */
-export function segundoParDePromoVitolen(order: any): { items: any[]; esperado: number | null; nombre: string; pair: number } | null {
+export function segundoParDePromoVitolen(order: any, config?: { calibrado: number; iva: number } | null): { items: any[]; esperado: number | null; nombre: string; pair: number } | null {
     const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
     const conPromo = /2[ºo°]\s*par|segundo par|2\s*x\s*1|hoya/i.test(order?.appliedPromoName || '') || esVenta2x1(order);
     if (!conPromo) return null;
@@ -99,12 +99,19 @@ export function segundoParDePromoVitolen(order: any): { items: any[]; esperado: 
         .map(([pair, items]) => ({ pair, items: (items as any[]).filter(esVitolen) }))
         .filter(p => p.items.length > 0);
     if (pares.length < 2) return null;
-    const roles = rolesPorValor(pares.map(p => ({ pair: p.pair, valor: valorDeCristales(p.items) })));
+    // Mismo producto en los dos pares → empate (par 1 el 1º); distintos → por lista (roles-2x1.ts).
+    const roles = rolesDeDosPares(pares);
     const segundo = pares.find(p => p.pair === roles!.sinCargo)!;
     const cristal = segundo.items[0];
     const nombre = cristal.productNameSnapshot || cristal.product?.name || '';
-    const cfg = order.__labConfig;
-    const esperado = importeEsperadoSegundoParDe(nombre, cristal.product?.baseCost, { calibrado: Number(cfg?.calibrado) || 0, iva: Number(cfg?.iva) || 0 });
+    const cfg = config ?? order.__labConfig;
+    if (!cfg) {
+        // Sin la config del lab (calibrado e IVA) el esperado saldría bajo y TODA
+        // promo sería sobrecosto: mejor no valuar (se cuenta entero, como antes).
+        console.warn('[lab-recon] Vitolen sin LaboratoryConfig: el 2º par de la promo no se valúa');
+        return { items: segundo.items, esperado: null, nombre, pair: segundo.pair };
+    }
+    const esperado = importeEsperadoSegundoParDe(nombre, cristal.product?.baseCost, { calibrado: Number(cfg.calibrado) || 0, iva: Number(cfg.iva) || 0 });
     return { items: segundo.items, esperado, nombre, pair: segundo.pair };
 }
 
@@ -155,9 +162,11 @@ export function costoDeItemParaCruce(item: any, is2x1: boolean): number {
     // El par bonificado no suma nada: lo pone el laboratorio. Vitolen es la
     // excepción: su promo NO es 2x1, el 2º par se factura al 20 % de lista más
     // calibrado (bases del 30/9/2026, lab-modules/vitolen/promo.ts), así que
-    // ponerlo en $0 acusaría sobrecosto en cada venta. Hasta valuarlo con esa
-    // regla (pendiente de Ishtar) se cuenta entero: lo facturado queda "a
-    // favor", nunca un reclamo falso.
+    // ponerlo en $0 acusaría sobrecosto en cada venta. Acá (por ítem) se cuenta
+    // entero; la regla del 20 % la aplica `systemCostForLab` a nivel venta
+    // (`segundoParDePromoVitolen`, desde el 8/10/2026). La pantalla de Gastos
+    // (`costoPorLaboratorioDeVenta`) sigue contándolo entero: ahí importa lo que
+    // se paga de verdad, no lo que se espera.
     const esVitolen = /vitolen/i.test(item.laboratorySnapshot || item.product?.laboratory || '');
     if (is2x1 && esCristal && item.price === 0 && !esVitolen) return 0;
     const perEyeHalf = item.eye ? 0.5 : 1;
@@ -220,7 +229,7 @@ export const LABS_FACTURA_A = new Set(['OPTOVISION', 'LA_CAMARA', 'VITOLEN']);
  * Cacheado 5 minutos: se lee una vez por factura procesada y no cambia nunca.
  */
 let cacheLabs: { hasta: number; filas: any[] } | null = null;
-async function labConfigDe(lab: string) {
+export async function labConfigDe(lab: string) {
     if (!cacheLabs || cacheLabs.hasta < Date.now()) {
         const filas = await prisma.laboratoryConfig
             .findMany({ select: { name: true, calibrado: true, iva: true } })
@@ -284,7 +293,7 @@ export async function upsertEntry(input: LabCostInput) {
         },
         include: {
             client: { select: { name: true } },
-            items: { include: { product: { select: { name: true, cost: true, baseCost: true, laboratory: true, category: true } } } },
+            items: { include: { product: { select: { name: true, cost: true, baseCost: true, price: true, laboratory: true, category: true } } } },
             postSaleCases: {
                 select: {
                     id: true, newOrderNumber: true, caseType: true, coverage: true,
@@ -487,7 +496,9 @@ export async function upsertEntry(input: LabCostInput) {
     // VITOLEN: con los dos pedidos facturados, el más barato tiene que venir al
     // 20 % de lista + calibrado (5 % de tolerancia). Si no, cobraron los dos
     // pares: SOBRECOSTO aunque la suma cierre (Ishtar, 8/10/2026).
-    const segundoVitolen = String(input.lab) === 'VITOLEN' && order && !pvEntry && difference !== null && facturadoPorPedido.length >= 2
+    // Solo si la venta entera NO vino a favor: si el lab bonificó el par caro en
+    // vez del barato, pagamos de menos y no hay nada que reclamar (auditoría 6).
+    const segundoVitolen = String(input.lab) === 'VITOLEN' && order && !pvEntry && difference !== null && difference > -TOLERANCE && facturadoPorPedido.length >= 2
         ? segundoParDePromoVitolen(order) : null;
     const segundoCobrado = segundoVitolen?.esperado != null && segundoParCobradoDeMas(Math.min(...facturadoPorPedido.map(p => p.importe)), segundoVitolen.esperado)
         ? { masBarato: Math.min(...facturadoPorPedido.map(p => p.importe)), esperado: segundoVitolen.esperado }

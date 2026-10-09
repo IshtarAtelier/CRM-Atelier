@@ -197,8 +197,10 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     const esp = res.especificacion;
     if (esp.clase === 'LAB' && esp.pasoATenible) avisos.push(`par ${par} con teñido: se carga en Orgánico Blanco 1.49 (el único que el laboratorio tiñe), misma familia ${esp.familia.nombre}`);
     if (motivoEssential && !yaEssential) {
-        if (esp.clase !== 'LAB') faltantes.push('el Essential solo se agrega a un cristal de laboratorio (este es de stock)');
+        if (motivoEssential.length < 10) faltantes.push('el motivo del Essential tiene que explicar por qué (al menos 10 letras)');
+        else if (esp.clase !== 'LAB') faltantes.push('el Essential solo se agrega a un cristal de laboratorio (este es de stock)');
         else if (esp.pasoATenible) faltantes.push('el Essential no se puede agregar a un par teñido (el portal lo tiñe en Orgánico Blanco 1.49 sin Essential)');
+        else if (esp.material.arIncluido) faltantes.push(`${esp.material.etiqueta} ya trae antirreflejo: no hay Essential que agregar`);
         else {
             extrasNoCobrados.push({ clave: 'essential', nombre: 'Essential (antirreflejo)', motivo: motivoEssential });
             avisos.push(`⚠️ Essential agregado SIN COBRAR (motivo: ${motivoEssential}): el laboratorio lo factura y el cliente no lo pagó; queda en la ficha y le llega a Ishtar`);

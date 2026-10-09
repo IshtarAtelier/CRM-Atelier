@@ -68,6 +68,12 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     // Un extra NO cobrado (Essential): "¿estás seguro?" + motivo obligatorio antes de aceptarlo (Ishtar, 8/10/2026).
     const [extraPendiente, setExtraPendiente] = useState<{ pair: number; campo: Campo } | null>(null);
     const [motivoExtra, setMotivoExtra] = useState('');
+    // Los carteles toman el foco UNA vez al abrirse (para que Escape los cierre): un
+    // ref inline lo robaría en cada tecla y no se podría escribir el motivo.
+    const cartelExtra = useRef<HTMLDivElement>(null);
+    const cartelConfirmar = useRef<HTMLDivElement>(null);
+    useEffect(() => { if (extraPendiente) cartelExtra.current?.focus(); }, [extraPendiente]);
+    useEffect(() => { if (confirmando) cartelConfirmar.current?.focus(); }, [confirmando]);
     const aprobar = (b: Borrador) => (b.vista.confirmarAntesDeAprobar ? setConfirmando(b) : decidir(b.id, 'aprobar'));
     // El foco va al diálogo UNA vez al abrirlo (para que Escape lo cierre), no en cada render:
     // si se lo robara en cada render, no se podría escribir el motivo del rechazo.
@@ -348,7 +354,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
 
             {/* Un extra que NO está cobrado: avisar, pedir el porqué, y recién ahí aceptarlo. */}
             {extraPendiente && (
-                <div role="alertdialog" aria-label={extraPendiente.campo.etiqueta} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setExtraPendiente(null); }} tabIndex={-1} ref={el => el?.focus()}>
+                <div role="alertdialog" aria-label={extraPendiente.campo.etiqueta} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setExtraPendiente(null); }} tabIndex={-1} ref={cartelExtra}>
                     <div role="document" className="bg-white text-stone-900 rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-3">
                         <p className="flex items-center gap-2 text-sm font-black"><AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" /> No está cobrado. ¿Estás seguro?</p>
                         <p className="text-sm leading-relaxed">{extraPendiente.campo.advertencia}</p>
@@ -368,7 +374,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
 
             {/* Antes de aprobar un par de una promo de dos pares: que nadie olvide el nº de operación del otro par. */}
             {confirmando && (
-                <div role="alertdialog" aria-label={confirmando.vista.confirmarAntesDeAprobar?.titulo} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setConfirmando(null); }} tabIndex={-1} ref={el => el?.focus()}>
+                <div role="alertdialog" aria-label={confirmando.vista.confirmarAntesDeAprobar?.titulo} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setConfirmando(null); }} tabIndex={-1} ref={cartelConfirmar}>
                     <div role="document" className="bg-white text-stone-900 rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-3">
                         <p className="flex items-center gap-2 text-sm font-black"><AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" /> {confirmando.vista.confirmarAntesDeAprobar?.titulo}</p>
                         <p className="text-sm leading-relaxed">{confirmando.vista.confirmarAntesDeAprobar?.texto}</p>
