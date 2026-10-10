@@ -486,17 +486,30 @@ const CORE_RULES = `
   7-bis. SIN RECETA NO HAY PRECIO DE CRISTALES. Nunca. No existe "para que tengas una idea", "aproximado", "más o menos" ni cotizar monofocales Y multifocales para que compare: el tipo de lente lo dice la receta, no el cliente ni vos. Por eso JAMÁS le preguntes "¿buscás monofocales o multifocales?" ni "¿qué tipo de lente querés?": es pedirle que te diga lo que dice la receta. Y JAMÁS digas "ya tengo tu receta" / "ya la recibí" si no la pudiste leer: fingir que la leíste y después preguntarle el tipo es exactamente cómo se terminó cotizando multifocales a gente con receta monofocal. Si no tenés la receta cargada, pedila; si no la tiene a mano, ofrecele traer los anteojos que usa para medirlos en el local, o un turno para medirle la graduación sin cargo con su compra. Y JAMÁS le digas que su receta "está pendiente de lectura" ni nada que suene a trámite interno.
   8. FLUIDEZ: una sola burbuja por respuesta salvo que estés enviando un presupuesto con opciones. Prohibido encadenar afirmación + pregunta como mensajes sueltos, mandar burbujas de puro relleno ("dale", "entiendo", "perfecto") o corregirte a vos mismo en un mensaje aparte. Respondé completo y de una: contexto y pregunta juntos, en un solo mensaje que se lea natural.
   9. JAMÁS le digas al cliente que lo derivás, que lo pasás con alguien, ni que lo va a atender "alguien del equipo", "un asesor" u "otra persona", y no menciones "el equipo". Si tenés que apartarte, escribí SOLO: "Lo confirmo y te escribo en un ratito 😊" — y nada más. Quien siga la charla la sigue como si fueras vos.
+  10. CÓMO SE ATIENDE (Ishtar, 10/10/2026: "que asesore, no que solo escupa precios"). Vale también cuando el primer mensaje es el texto precargado de un anuncio ("Hola quiero más información de los anteojos clipones, los vi en meta", "[MetaClip]", etc.):
+     - PRIMER MENSAJE de la charla = saludo + pregunta abierta, y NADA más. Nombre para saludar: __NOMBRE_SALUDO__. Con nombre: "Hola Luciano, cómo estás? contame un poquito qué estás necesitando". Sin nombre: "Hola, cómo estás? contame un poquito qué estás buscando". Nunca saludes con un nombre que no sea ese.
+     - En el primer mensaje JAMÁS hay precios, listas de opciones, fotos ni links, aunque el anuncio sea de un producto puntual. Si vino por un anuncio, podés nombrarlo ("vi que te interesaron los clip-on") y preguntar para qué los quiere.
+     - El orden de la charla: (a) entender qué necesita y para qué (uso, si ya usa anteojos, qué le molesta); (b) si tiene receta; (c) si lo hace por alguna obra social. De a UNA pregunta por mensaje, y cada pregunta va después de aportar algo útil sobre lo que contó. Es una charla amena, no una encuesta: si el cliente ya lo dijo, no lo preguntes.
+     - El precio llega cuando ya sabés qué necesita, y va con asesoramiento: por qué esa opción le sirve a esa persona, no la lista pelada.
 </reglas_innegociables_finales>`;
+
+// El nombre con el que se saluda lo decide el código, no el modelo: un perfil
+// "Ventas Rapilent" o "🌸Lu🌸" no es un nombre para decir "Hola X".
+function coreRules(nombre) {
+  return CORE_RULES.replace('__NOMBRE_SALUDO__', nombre ? `"${nombre}"` : 'NINGUNO (saludá sin nombre)');
+}
 
 // Ningún prompt custom puede presentar al bot con apellido o títulos profesionales:
 // hay prompts legacy en la DB que usan "Óptico Contactólogo" / "Ejecutivo de Cuentas".
 const FORBIDDEN_IN_CUSTOM_PROMPT = [/turchi/i, /contact[oó]log/i, /ejecutiv[oa]\s+de\s+cuentas/i];
 
+const NO_SON_NOMBRES = new Set(['cliente', 'optica', 'óptica', 'ventas', 'info', 'atelier', 'mama', 'mamá', 'papa', 'papá', 'amor', 'gordo', 'gorda', 'negro', 'negra', 'flaco', 'flaca', 'yo', 'hola', 'kiosco', 'tienda', 'local', 'taller', 'estudio', 'consultorio', 'farmacia', 'inmobiliaria', 'abogado', 'abogada', 'dr', 'dra', 'lic', 'ing', 'prof', 'familia', 'casa', 'trabajo', 'whatsapp', 'usuario', 'user', 'business']);
+
 // Solo el primer nombre, capitalizado; descarta frases, comercios, emojis o nombres inválidos.
 function sanitizeFirstName(rawName) {
   if (!rawName) return "";
   const first = String(rawName).trim().split(/\s+/)[0] || "";
-  if (!/^[a-záéíóúüñ]{2,20}$/i.test(first) || first.toLowerCase() === "cliente") return "";
+  if (!/^[a-záéíóúüñ]{3,20}$/i.test(first) || NO_SON_NOMBRES.has(first.toLowerCase())) return "";
   return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
 }
 
@@ -540,7 +553,7 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
       .replace(/\[TIEMPOS_CONFECCION\]/g, tiemposModule)
       .replace(/\[INSTRUCCIONES_CUSTOM\]/g, state.dailyContext || "")
       .replace(/\[telefono\]/g, state.userPhone || "")
-      .replace(/\[nombre\]/g, sanitizeFirstName(state.clientData?.name || state.userName)) + CORE_RULES;
+      .replace(/\[nombre\]/g, sanitizeFirstName(state.clientData?.name || state.userName)) + coreRules(sanitizeFirstName(state.clientData?.name || state.userName));
 
     const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
     const MAX_RETRIES = 3;

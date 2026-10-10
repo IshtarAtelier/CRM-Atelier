@@ -109,6 +109,42 @@ const FRASES_DE_IDENTIDAD = [
 const RESPUESTA_SIN_IDENTIDAD = 'Te estoy ayudando desde la óptica 😊 Contame qué necesitás y lo vemos.';
 
 /**
+ * IDIOMA Y RAZONAMIENTO INTERNO — candado (Ishtar, 10/10/2026: "no puede volver
+ * a ocurrir"). El 4/10 un cliente dijo "Bueno gracias" y el modelo, en vez de
+ * callarse, mandó su razonamiento EN INGLÉS: "I have already confirmed that a
+ * call will be scheduled for tomorrow and the user has thanked me. According to
+ * the instructions, I should not respond further…". El prompt no alcanza: se
+ * saca acá toda línea que esté en inglés o que narre al cliente en tercera
+ * persona / cite las instrucciones. Si no queda nada, no se manda nada — que es
+ * justo lo que correspondía en ese caso.
+ */
+const PALABRAS_INGLES = new Set(('the and is are was were have has had i you he she it we they should would will ' +
+    'not no to of in on for with that this these those if does do did according instructions user client ' +
+    'customer respond reply message already been be my me further because so then there what which ' +
+    'can could need needs any about from as at by an or but').split(' '));
+const PALABRAS_ESPANOL = new Set(('el la los las de que y en un una por para con se lo le te tu es son está ' +
+    'estás tenés querés hola gracias dale si sí no muy más pero como al del').split(' '));
+
+function esLineaEnIngles(linea) {
+    const palabras = linea.toLowerCase().replace(/https?:\/\/\S+/g, ' ').match(/[a-záéíóúñü']+/g) || [];
+    if (palabras.length < 3) return false;
+    let en = 0, es = 0;
+    for (const p of palabras) {
+        if (PALABRAS_INGLES.has(p)) en++;
+        if (PALABRAS_ESPANOL.has(p)) es++;
+    }
+    return en >= 3 && en > es * 2;
+}
+
+/** Razonamiento interno en castellano: habla DEL cliente, no CON el cliente. */
+const RAZONAMIENTO_INTERNO = [
+    /\b(?:el|la) (?:cliente|usuari[oa]) (?:ya |me )?(?:agradeci[óo]|dijo|respondi[óo]|confirm[óo]|pregunt[óo]|escribi[óo]|mand[óo]|envi[óo]|est[áa]|quiere|no requiere)/i,
+    /\bseg[úu]n (?:las|mis) instrucciones\b/i,
+    /\b(?:no debo|no deber[íi]a) (?:responder|contestar|escribir)/i,
+    /\bmi (?:[úu]ltimo|pr[óo]ximo) (?:mensaje|turno)\b/i,
+];
+
+/**
  * Limpia el texto crudo del modelo. Devuelve `{ texto, quitado }` — `quitado`
  * lista qué se sacó, para que el log diga por qué el mensaje salió distinto.
  */
@@ -116,6 +152,14 @@ function limpiarSalidaBot(crudo) {
     const quitado = [];
     // Los signos de apertura se sacan por regla de estilo (tono humano en AR).
     let texto = String(crudo ?? '').replace(/¿/g, '').replace(/¡/g, '');
+
+    // Idioma / razonamiento interno: va primero y se lleva la LÍNEA entera.
+    const lineas = texto.split('\n');
+    const quedan = lineas.filter(l => !(esLineaEnIngles(l) || RAZONAMIENTO_INTERNO.some(re => re.test(l))));
+    if (quedan.length !== lineas.length) {
+        texto = quedan.join('\n');
+        quitado.push('razonamiento interno o texto en inglés (línea completa)');
+    }
 
     for (const re of MARCADORES_DE_LINEA) {
         re.lastIndex = 0;
@@ -352,4 +396,4 @@ function partirEnBurbujas(bloque) {
     return burbujas;
 }
 
-module.exports = { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas, FRASES_DE_RELLENO, FRASES_DE_IDENTIDAD };
+module.exports = { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas, FRASES_DE_RELLENO, FRASES_DE_IDENTIDAD, esLineaEnIngles };
