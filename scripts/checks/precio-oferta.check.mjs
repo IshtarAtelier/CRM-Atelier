@@ -31,6 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { precioConOferta } from '../../src/lib/precio-oferta.ts';
 import { effectiveFramePrice } from '../../src/lib/checkout/checkout-pricing.ts';
+import { PricingService } from '../../src/services/PricingService.ts';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const raiz = resolve(aqui, '../..');
@@ -134,6 +135,39 @@ for (const [archivo, queEs] of MUESTRAN_LA_OFERTA) {
     const cartel = /OFF\s*🔥|descuentoPct/.test(src);
     if (tachado && cartel) ok(`${queEs}: muestra el % y el precio de lista tachado`);
     else mal(`${queEs}: la oferta no se ve entera`, `tachado: ${tachado ? 'sí' : 'NO'} · cartel de %: ${cartel ? 'sí' : 'NO'}`);
+}
+
+// ── 6. Los números de la TARJETA salen de UN lugar (10/10/2026) ─────────────
+// El buscador mostraba el de tarjeta ($215.000) y la grilla el de
+// transferencia ($182.750) por el mismo anteojo; los relacionados de la ficha
+// con oferta, el de tarjeta en rojo; el home y el carrito, el 15 % y las 6
+// cuotas escritos a mano (no seguían a /admin/web).
+{
+    const v = PricingService.vidrieraDeProducto({ price: 215000, salePrice: 160000 }, { descuentoTransferenciaPct: 15, cuotasSinInteres: 6 });
+    if (v.enOferta && v.transferencia === 136000 && v.transferenciaSinOferta === 182750 && v.valorCuota === Math.round(160000 / 6) && v.precio === 160000) ok('vidrieraDeProducto con oferta: transferencia 136.000, tachado 182.750, cuota sobre 160.000');
+    else mal('vidrieraDeProducto con oferta', JSON.stringify(v));
+    const s = PricingService.vidrieraDeProducto({ price: 215000 }, { descuentoTransferenciaPct: 10, cuotasSinInteres: 3 });
+    if (!s.enOferta && s.transferencia === 193500 && s.transferenciaSinOferta === null && s.cuotas === 3 && s.valorCuota === Math.round(215000 / 3)) ok('vidrieraDeProducto sin oferta sigue al % y a las cuotas de /admin/web');
+    else mal('vidrieraDeProducto sin oferta', JSON.stringify(s));
+}
+const TARJETAS = [
+    ['src/app/tienda/TiendaClient.tsx', 'grilla de /tienda'],
+    ['src/components/Storefront/CategoryGrid.tsx', 'grilla de categoría'],
+    ['src/components/Storefront/HomeProductCarousel.tsx', 'carrusel del home'],
+    ['src/app/producto/[slug]/ProductClient.tsx', 'relacionados de la ficha'],
+    ['src/components/Storefront/StorefrontNavbar.tsx', 'buscador'],
+];
+for (const [archivo, queEs] of TARJETAS) {
+    const src = readFileSync(resolve(raiz, archivo), 'utf8');
+    const usa = src.includes('PricingService.vidrieraDeProducto(');
+    const aMano = /\(1 - discountRate\)|web_promo_cash_discount \|\| 15\) \/ 100|preciosVidriera\([^)]*,\s*15\)|6 cuotas sin interés de \$/.test(src);
+    if (usa && !aMano) ok(`${queEs}: los números salen de vidrieraDeProducto`);
+    else mal(`${queEs}: calcula la tarjeta por su lado`, `usa vidrieraDeProducto: ${usa ? 'sí' : 'NO'} · cálculo a mano: ${aMano ? 'SÍ' : 'no'}`);
+}
+{
+    const carrito = readFileSync(resolve(raiz, 'src/components/Storefront/CartSidebar.tsx'), 'utf8');
+    if (!/preciosVidriera\([^)]*,\s*15\)|>6 cuotas sin interés</.test(carrito)) ok('carrito: el % y las cuotas salen de /admin/web (usePromo2x1)');
+    else mal('carrito: el 15 % o las 6 cuotas siguen escritos a mano', 'usar descuentoTransferenciaPct / cuotasSinInteres de usePromo2x1');
 }
 
 // ── Salida ───────────────────────────────────────────────────────────────────

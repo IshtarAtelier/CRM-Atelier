@@ -16,13 +16,14 @@ import Image from "next/image";
 import { recetaPendiente } from '@/lib/checkout/receta';
 import { PricingService } from "@/services/PricingService";
 import { ETIQUETA_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
+import { formatearPrecio } from "@/lib/format-precio";
 
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
   // Precio de los cristales al día con el sistema (ver el hook).
   useCarritoAlDia();
   const { isWholesale } = useIsWholesale();
-  const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
+  const { activa: promo2x1Activa, ids: idsPromo2x1, descuentoTransferenciaPct, cuotasSinInteres } = usePromo2x1();
   // El descuento se calcula con la MISMA función que usa la ruta de pago. Acá
   // es solo para mostrar: quien cobra es el servidor, contra la base.
   const promo2x1 = calcular2x1Armazones(armazonesDelCarrito(items, isWholesale, idsPromo2x1), promo2x1Activa);
@@ -211,14 +212,15 @@ export function CartSidebar() {
                     alta que la que le van a cobrar. Primero el 2x1, después el
                     15% — al revés el descuento daría negativo. */}
                 {!isWholesale && totalConPromo > 0 && (() => {
-                  const v = PricingService.preciosVidriera(totalConPromo, 15);
+                  const v = PricingService.preciosVidriera(totalConPromo, descuentoTransferenciaPct);
+                  const valorCuota = Math.round(totalConPromo / cuotasSinInteres);
                   return (
                     // Orden de venta (pedido de Ishtar, 27/8): primero 12,
                     // después 6, después transferencia.
                     <div className="mb-5 grid grid-cols-1 gap-1.5 text-[11px] font-semibold text-stone-600">
-                      <div className="flex justify-between"><span>{ETIQUETA_MP_CUOTAS_LARGAS}</span><span className="font-black text-stone-900">12 x ${v.cuota12.toLocaleString("es-AR")}</span></div>
-                      <div className="flex justify-between"><span>6 cuotas sin interés</span><span className="font-black text-stone-900">6 x ${v.cuota6.toLocaleString("es-AR")}</span></div>
-                      <div className="flex justify-between text-emerald-700"><span>Transferencia 15% OFF</span><span className="font-black">${v.contado.toLocaleString("es-AR")}</span></div>
+                      <div className="flex justify-between"><span>{ETIQUETA_MP_CUOTAS_LARGAS}</span><span className="font-black text-stone-900">12 x ${formatearPrecio(v.cuota12)}</span></div>
+                      <div className="flex justify-between"><span>{cuotasSinInteres} cuotas sin interés</span><span className="font-black text-stone-900">{cuotasSinInteres} x ${formatearPrecio(valorCuota)}</span></div>
+                      <div className="flex justify-between text-emerald-700"><span>Transferencia {descuentoTransferenciaPct}% OFF</span><span className="font-black">${formatearPrecio(v.contado)}</span></div>
                     </div>
                   );
                 })()}

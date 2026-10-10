@@ -2,6 +2,7 @@ import { hasActive2x1Promo, pick2x1FrameDiscount, safePrice } from '@/lib/promo-
 import { descuentoSegundoParHoya } from '@/lib/promo-segundo-par-hoya';
 import { DESCUENTO_SEGUNDO_PAR_HOYA, FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { esMpCuotasLargas } from '@/lib/payment-card';
+import { precioConOferta, type ProductoConPrecio } from '@/lib/precio-oferta';
 
 export interface CartItem {
     productId: string | null;
@@ -279,6 +280,47 @@ export class PricingService {
             ahorroContado: Math.round(lista * (cashDiscountPct / 100)),
             cuota12: cuotasMp.installment12,
             total12: cuotasMp.totalFinanced,
+        };
+    }
+
+    /**
+     * Los números de la TARJETA de un producto en la vidriera, con la oferta
+     * resuelta. ÚNICO lugar: grilla de /tienda, /receta, /lentes-de-sol y
+     * /clip-on, carrusel del home, relacionados de la ficha y buscador.
+     *
+     * Existe porque cada pantalla lo armaba por su lado y divergieron (revisión
+     * del 10/10/2026): el buscador mostraba el precio de TARJETA ($215.000)
+     * mientras la grilla y la ficha mostraban el de transferencia ($182.750)
+     * por el mismo anteojo; los relacionados de la ficha con oferta, también el
+     * de tarjeta; y el home tenía el 15% escrito a mano, que no seguía al % de
+     * /admin/web.
+     *
+     * - `transferencia`: el número GRANDE (pedido de Ishtar, 31/8).
+     * - `transferenciaSinOferta`: el de lista con el mismo %, para tacharlo
+     *   SOLO si hay rebaja real (comparar contra el de lista pelado inflaría la
+     *   rebaja aparente). null sin oferta.
+     * - `cuotas` / `valorCuota`: las sin interés (3 o 6, leerPromoCuotas).
+     * - `cuota12`: las 12 fijas, con el costo financiero adentro.
+     */
+    static vidrieraDeProducto(
+        producto: ProductoConPrecio | null | undefined,
+        opts: { descuentoTransferenciaPct: number; cuotasSinInteres: number },
+    ) {
+        const { final, lista, enOferta, descuentoPct } = precioConOferta(producto);
+        const v = PricingService.preciosVidriera(final, opts.descuentoTransferenciaPct);
+        const cuotas = opts.cuotasSinInteres > 0 ? opts.cuotasSinInteres : 6;
+        return {
+            enOferta,
+            descuentoPct,
+            /** El que se cobra con tarjeta (oferta si la hay). */
+            precio: final,
+            transferencia: v.contado,
+            transferenciaSinOferta: enOferta
+                ? PricingService.preciosVidriera(lista, opts.descuentoTransferenciaPct).contado
+                : null,
+            cuotas,
+            valorCuota: Math.round(final / cuotas),
+            cuota12: v.cuota12,
         };
     }
 
