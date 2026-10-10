@@ -89,7 +89,8 @@
     "check:meta-anuncios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/meta-anuncios-identificados.mjs",
     "check:referral": "node scripts/checks/referral-anuncio.check.cjs",
     "check:meta-compras": "node scripts/checks/compras-informadas-a-meta.mjs",
-    "check:salida-bot": "node scripts/checks/salida-bot-sin-fugas.check.mjs"
+    "check:salida-bot": "node scripts/checks/salida-bot-sin-fugas.check.mjs",
+    "check:envios-bot": "node scripts/checks/envios-bot-con-origen.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",
