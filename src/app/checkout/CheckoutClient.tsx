@@ -421,6 +421,8 @@ export function CheckoutClient({
             setOrdenHecha({ id: orderId, total: 0 });
             clearCart();
             setIsSuccess(true);
+          } else if (d?.resultado === 'a-revisar') {
+            toast.info("Mercado Pago nos informó un pago: lo estamos revisando y te escribimos por WhatsApp.", { duration: 10000 });
           } else if (d?.resultado === 'liberada') {
             refrescarCarrito();
           }

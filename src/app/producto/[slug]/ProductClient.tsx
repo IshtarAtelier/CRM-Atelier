@@ -637,11 +637,14 @@ export function ProductClient({
                   </>
                 ) : (
                   <div className="flex items-baseline gap-3">
+                    {/* Sin precio mayorista cargado, a la óptica se le cobra el
+                        de la tienda CON su oferta (effectiveFramePrice): era
+                        lo que no se veía, mostraba el de lista. */}
                     <span className="text-3xl font-black text-stone-900">
-                      ${(product.price || 0).toLocaleString("es-AR")}
+                      ${formatearPrecio(effectivePrice)}
                     </span>
                     <span className="text-xs font-medium uppercase text-stone-400">
-                      P. Lista
+                      {hasSale ? 'Precio de oferta' : 'P. Lista'}
                     </span>
                   </div>
                 )}

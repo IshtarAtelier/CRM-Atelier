@@ -136,10 +136,10 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
   });
   // Una devolución o un contracargo llegan SOBRE un pago ya procesado: el
   // candado los cortaba acá y el aviso de abajo no salía nunca (revisión del
-  // 10/10/2026). Pasan, una vez por estado (gatewayStatus guarda el último).
+  // 10/10/2026). Pasan siempre; abajo un reclamo atómico por pago y estado
+  // hace que el mail salga una sola vez.
   const esReclamo = pago.status === 'refunded' || pago.status === 'charged_back';
-  const reclamoNuevo = esReclamo && yaProcesado?.gatewayStatus !== pago.status;
-  if (yaProcesado && yaProcesado.status !== 'PENDING' && !reclamoNuevo) {
+  if (yaProcesado && yaProcesado.status !== 'PENDING' && !esReclamo) {
     console.log(`[MP WEBHOOK] Pago ${pago.id} ya procesado (${yaProcesado.status}). Se ignora.`);
     return { detalle: 'Ya procesado', orderId: yaProcesado.orderId };
   }
@@ -220,15 +220,21 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
     case 'charged_back': {
       // Una devolución o un contracargo NO se procesan solos: deshacer una
       // venta ya entregada es una decisión del negocio, no del webhook.
-      // Un aviso por estado: el reintento del mismo aviso no repite el mail.
-      if (intent.gatewayStatus === pago.status) {
+      // Un aviso por PAGO y estado, reclamado de forma atómica: dos avisos
+      // del mismo reclamo que llegan juntos (IPN y webhook) no mandan dos mails,
+      // y devolver un cobro duplicado no tapa el reclamo de otro pago.
+      const marca = `[reclamo ${pago.id}:${pago.status}]`;
+      const reclamado = await prisma.webPaymentIntent.updateMany({
+        where: {
+          id: intent.id,
+          OR: [{ lastError: null }, { NOT: { lastError: { contains: marca } } }],
+        },
+        data: { gatewayStatus: pago.status, lastError: `${marca} Mercado Pago informó "${pago.status}". Requiere revisión manual.` },
+      });
+      if (reclamado.count !== 1) {
         return { detalle: `${pago.status}: ya avisado`, orderId: intent.orderId };
       }
       console.warn(`[MP WEBHOOK] ${pago.status} del pago ${pago.id} sobre la orden ${intent.orderId}.`);
-      await prisma.webPaymentIntent.update({
-        where: { id: intent.id },
-        data: { gatewayStatus: pago.status, lastError: `Mercado Pago informó "${pago.status}". Requiere revisión manual.` },
-      });
       const { sendEmail } = await import('@/lib/email');
       const { ADMIN_ALERT_EMAILS } = await import('@/lib/constants');
       await sendEmail({

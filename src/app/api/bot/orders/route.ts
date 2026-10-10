@@ -132,7 +132,8 @@ export async function POST(request: Request) {
                 // Armazón con su oferta, como el cotizador del CRM
                 // (precioConOferta, admin/cotizador/page.tsx). Antes el bot
                 // cotizaba a lista y el presupuesto salía más caro que la ficha.
-                price: isCrystal(dbProd) ? (dbProd.price ?? 0) : precioConOferta(dbProd).final,
+                // Misma decisión de "cristal" que /api/bot/pricing.
+                price: isCrystal(dbProd) || dbProd.category === 'Tratamiento' ? (dbProd.price ?? 0) : precioConOferta(dbProd).final,
             };
         });
 

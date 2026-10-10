@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isCrystal } from '@/lib/promo-utils';
 import { slugDeFichaPublicada } from '@/lib/catalog/queries';
 import { prisma } from '@/lib/db';
 import { STORE_ORIGIN } from '@/lib/constants';
@@ -490,7 +491,7 @@ export async function GET(req: NextRequest) {
         // 58 de 160 armazones en oferta, al pie de la foto decía "contado
         // $182.750" y el link llevaba a una ficha con $136.000. La oferta es
         // solo de armazones: los cristales de la web se cobran a su precio.
-        const esCristal = p.category === 'Cristal' || p.category === 'Tratamiento';
+        const esCristal = isCrystal(p) || p.category === 'Tratamiento';
         const precios = PricingService.vidrieraDeProducto(
             { price: p.price ?? 0, salePrice: esCristal ? null : p.salePrice },
             { descuentoTransferenciaPct: descuentoContadoPct, cuotasSinInteres },

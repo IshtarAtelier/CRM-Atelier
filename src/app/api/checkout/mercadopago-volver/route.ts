@@ -8,7 +8,8 @@ import { resolverVueltaSinPago } from '@/services/mercadopago-vuelta.service';
  * La llama el checkout cuando la persona vuelve de Mercado Pago sin un pago
  * aprobado (?mp=rechazado). Pública como el resto de /api/checkout: el id de
  * la orden solo lo tiene quien vino de esa pantalla de pago, y lo único que
- * puede pasar es lo mismo que haría el chequeo periódico 2 horas después
+ * puede pasar es lo que haría el chequeo periódico más tarde, adelantado: si
+ * igual paga en la pestaña vieja de Mercado Pago, la venta se reactiva
  * (ver resolverVueltaSinPago).
  */
 export const dynamic = 'force-dynamic';

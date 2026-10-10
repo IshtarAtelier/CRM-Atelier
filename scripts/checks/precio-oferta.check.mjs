@@ -182,8 +182,8 @@ for (const [archivo, queEs] of TARJETAS) {
     if (problemasDelCartel(CARTEL_PROMO_POR_DEFECTO).length === 0 && problemasDelCartel('3 y 6 cuotas sin interés, y hasta 12 cuotas fijas').length === 0) ok('el cartel por defecto y la fórmula de Ishtar pasan');
     else mal('el cartel correcto se rechaza', JSON.stringify(problemasDelCartel(CARTEL_PROMO_POR_DEFECTO)));
     // Frases reales (revisión del 10/10/2026): las que se escapaban y las que se bloqueaban mal.
-    const prohibidas = ['12 s/interés', 'Hasta 12 cuotas, sin interés', 'Sin interés hasta en 12 cuotas', '12 cuotas s/i', '12 CSI', 'Doce cuotas sin interés', '12 cuotas sin recargo'];
-    const validas = ['Hasta 12 cuotas fijas y 3 o 6 sin interés', 'Hasta el 12/10: 6 cuotas sin interés', 'Solo hasta el 12 de octubre: 3 y 6 cuotas sin interés', 'Armazones desde $12 mil en 6 cuotas sin interés', '6 cuotas sin interés de $12.000'];
+    const prohibidas = ['Hasta 12x sin interés', 'Cuotas x12 sin interés', '3/6/12 cuotas sin interés', '3,6,12 sin interés', 'Hasta 12 cuotas • Sin interés', '12 cuotas sin-interés', '12 cuotas libres de interés', '12 s/interés', 'Hasta 12 cuotas, sin interés', 'Sin interés hasta en 12 cuotas', '12 cuotas s/i', '12 CSI', 'Doce cuotas sin interés', '12 cuotas sin recargo'];
+    const validas = ['3/6 cuotas sin interés • hasta 12 fijas', 'Envío en 24 hs • 6 cuotas sin interés', 'Hasta 12x fijas • 3 y 6 sin interés', 'Hasta 12 cuotas fijas y 3 o 6 sin interés', 'Hasta el 12/10: 6 cuotas sin interés', 'Solo hasta el 12 de octubre: 3 y 6 cuotas sin interés', 'Armazones desde $12 mil en 6 cuotas sin interés', '6 cuotas sin interés de $12.000'];
     const seEscapan = prohibidas.filter((t) => problemasDelCartel(t).length === 0);
     const seBloquean = validas.filter((t) => problemasDelCartel(t).length > 0);
     if (!seEscapan.length) ok(`las ${prohibidas.length} variantes de "12 sin interés" se rechazan`); else mal('variantes de "12 sin interés" que pasan', seEscapan.join(' | '));
@@ -202,6 +202,27 @@ for (const [archivo, queEs] of TARJETAS) {
     const barra = readFileSync(resolve(raiz, 'src/components/Storefront/StorefrontNavbar.tsx'), 'utf8');
     if (/cartelQueSePuedeMostrar\(webSettings\?\.web_announcement_text\)/.test(barra)) ok('la barra de la tienda muestra el cartel con cartelQueSePuedeMostrar');
     else mal('la barra muestra el cartel guardado sin revisarlo', 'src/components/Storefront/StorefrontNavbar.tsx');
+}
+
+// ── 8. El bot cotiza con la oferta, igual que la tienda (10/10/2026) ───────
+// Cotizaba a lista: con 58 de 160 armazones en oferta, el pie de la foto decía
+// un precio más alto que la ficha que linkeaba.
+{
+    const sinComentarios = (r) => readFileSync(resolve(raiz, r), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    const pricing = sinComentarios('src/app/api/bot/pricing/route.ts');
+    const selects = (pricing.match(/salePrice:\s*true/g) || []).length;
+    if (/PricingService\.vidrieraDeProducto\(\s*\{\s*price:[^}]*salePrice:\s*esCristal\s*\?\s*null\s*:\s*p\.salePrice/.test(pricing) && selects >= 3 && !/preciosVidriera\(p\.price/.test(pricing))
+        ok('/api/bot/pricing: armazones con su oferta (vidrieraDeProducto) y salePrice en las 3 consultas');
+    else mal('/api/bot/pricing no cotiza con la oferta', `selects con salePrice: ${selects}`);
+    if (/priceCash:\s*precios\.transferencia/.test(pricing) && /priceCredit:\s*precios\.precio/.test(pricing) && /creditMonths:\s*precios\.cuotas/.test(pricing))
+        ok('/api/bot/pricing: contado = transferencia, tarjeta = precio con oferta, cuotas vigentes');
+    else mal('/api/bot/pricing: los campos del bot no salen de vidrieraDeProducto', '');
+    const orders = sinComentarios('src/app/api/bot/orders/route.ts');
+    if (/precioConOferta\(dbProd\)\.final/.test(orders)) ok('presupuesto del bot: el armazón va con su oferta, como el cotizador del CRM');
+    else mal('presupuesto del bot a precio de lista', 'src/app/api/bot/orders/route.ts');
+    const tools = sinComentarios('wa-service/tools.js');
+    if (/\$\{meses\} cuotas sin interés/.test(tools) && !/6 cuotas sin interés de \*\$/.test(tools)) ok('wa-service escribe las cuotas que manda el CRM (no un 6 fijo)');
+    else mal('wa-service tiene las 6 cuotas escritas a mano', 'wa-service/tools.js');
 }
 
 // ── Salida ───────────────────────────────────────────────────────────────────

@@ -20,7 +20,8 @@ import { avisarCobroSinVenta } from '@/lib/checkout/aviso-cobro-sin-venta';
  * Si después igual paga en la pestaña vieja de Mercado Pago, el pago llega
  * sobre una venta cancelada por el sistema y se reactiva (finalizeWebPayment).
  */
-export type ResultadoVuelta = 'liberada' | 'acreditada' | 'esperando' | 'nada';
+/** 'a-revisar': Mercado Pago aprobó un pago pero la venta no lo esperaba (quedó para conciliar o estaba borrada). */
+export type ResultadoVuelta = 'liberada' | 'acreditada' | 'a-revisar' | 'esperando' | 'nada';
 
 export async function resolverVueltaSinPago(orderId: string): Promise<ResultadoVuelta> {
   const intento = await prisma.webPaymentIntent.findFirst({
@@ -44,7 +45,7 @@ export async function resolverVueltaSinPago(orderId: string): Promise<ResultadoV
       gatewayInstallments: pago.installments,
     });
     if (!r.ok) await avisarCobroSinVenta(pago, `al volver al sitio no se pudo acreditar: ${r.reason}`);
-    return 'acreditada';
+    return r.ok && !r.aConciliar ? 'acreditada' : 'a-revisar';
   }
   const r = await failWebPayment({
     intentId: intento.id,

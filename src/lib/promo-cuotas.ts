@@ -143,37 +143,68 @@ export function problemasDelCartel(texto: string): string[] {
   if (/\befectivo\b/.test(t)) {
     problemas.push('En la tienda online el descuento es solo por transferencia: el efectivo es del local. Escribí "por Transferencia".');
   }
-  // Las 12 son FIJAS; sin interés son solo 3 y 6 (CLAUDE.md). Se mira cada
-  // tramo como lo muestra la barra (separado por • · |) y, dentro, a qué
+  // Las 12 son FIJAS; sin interés son solo 3 y 6 (CLAUDE.md). Se mira a qué
   // número queda pegado cada "sin interés": "12 cuotas fijas y 3 o 6 sin
-  // interés" está bien; "hasta 12 cuotas, sin interés" y "sin interés hasta en
-  // 12 cuotas" no. Fechas y precios ("12/10", "12 de octubre", "$12.000",
-  // "12 mil") no son cuotas.
-  for (const tramo of t.split(/\s*[•·|]\s*/)) {
-    if (tramoPrometeDoceSinInteres(tramo)) {
-      problemas.push(`Las 12 cuotas no son sin interés: van como "${TEXTO_MP_CUOTAS_LARGAS}". Sin interés son solo 3 y 6.`);
-      break;
-    }
+  // interés" está bien; "hasta 12 cuotas, sin interés", "12x sin interés",
+  // "3/6/12 sin interés" y "sin interés hasta en 12 cuotas" no. Fechas,
+  // precios y horas ("12/10", "12 de octubre", "$12.000", "12 mil") no son
+  // cuotas. Se mira el texto entero y no por tramo: "Hasta 12 cuotas • Sin
+  // interés" se lee igual en la barra que rota.
+  if (prometeDoceSinInteres(t)) {
+    problemas.push(`Las 12 cuotas no son sin interés: van como "${TEXTO_MP_CUOTAS_LARGAS}". Sin interés son solo 3 y 6.`);
   }
   return problemas;
 }
 
 /** Sinónimos de "sin interés" que se usan en carteles. */
-const SIN_INTERES = /sin\s+interes|s\/\s*i(nt(eres)?)?\b|sin\s+recargo|0\s*%\s*(de\s+)?interes|\bcsi\b/g;
-/** Números de cuotas, no de fechas ni de precios. */
-const NUMERO_DE_CUOTAS = /(?<![\d$./,])\b(3|6|12|tres|seis|doce)\b(?![\d./,%])(?!\s*(mil|de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)))/g;
+const SIN_INTERES = /sin[\s-]+interes|s\/\s*i(nt(eres)?)?\b|sin\s+recargo|libres?\s+de\s+interes|0\s*%\s*(de\s+)?interes|interes\s*0\b|\bcsi\b/g;
+const MESES = 'enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre';
+/** Cantidades de cuotas que se escriben en listas ("3/6/12", "3, 6 y 12"). */
+const CUOTAS_POSIBLES = new Set([3, 6, 12, 18, 24]);
 
-function tramoPrometeDoceSinInteres(tramo: string): boolean {
-  const numeros = [...tramo.matchAll(NUMERO_DE_CUOTAS)].map((m) => ({ pos: m.index ?? 0, doce: m[1] === '12' || m[1] === 'doce' }));
-  if (!numeros.some((n) => n.doce)) return false;
-  for (const m of tramo.matchAll(SIN_INTERES)) {
+/**
+ * Los números de CUOTAS del texto (no fechas, precios, horas ni porcentajes),
+ * con su posición. Sin lookbehind a propósito: este módulo lo carga el
+ * navegador en toda la tienda, y Safari anterior a 16.4 no lo entiende — el
+ * archivo entero dejaba de cargar en iPhones con iOS 15 (revisión del 10/10/2026).
+ */
+function numerosDeCuotas(t: string): { pos: number; valor: number }[] {
+  const salida: { pos: number; valor: number }[] = [];
+  const palabras: Record<string, number> = { tres: 3, seis: 6, doce: 12 };
+  const re = /(\$\s*)?(\d+(?:\.\d{3})+|\d+)|\b(tres|seis|doce)\b/g;
+  for (const m of t.matchAll(re)) {
+    const pos = m.index ?? 0;
+    if (m[3]) {
+      salida.push({ pos, valor: palabras[m[3]] });
+      continue;
+    }
+    if (m[1] || m[2].includes('.')) continue; // precio: "$12.000", "12.000"
+    const valor = Number(m[2]);
+    const despues = t.slice(pos + m[0].length);
+    if (/^\s*(mil\b|%|hs?\b|:\d)/.test(despues)) continue; // "12 mil", "15%", "12 hs", "12:30"
+    if (new RegExp(`^\\s+de\\s+(${MESES})`).test(despues)) continue; // "12 de octubre"
+    const barra = /^\/(\d+)/.exec(despues);
+    const antesBarra = /(\d+)\/$/.exec(t.slice(0, pos));
+    // "12/10" es una fecha; "3/6/12" es una lista de cuotas (todos posibles).
+    if (barra && !CUOTAS_POSIBLES.has(Number(barra[1]))) continue;
+    if (antesBarra && !(CUOTAS_POSIBLES.has(Number(antesBarra[1])) && CUOTAS_POSIBLES.has(valor))) continue;
+    salida.push({ pos, valor });
+  }
+  return salida;
+}
+
+function prometeDoceSinInteres(textoNormalizado: string): boolean {
+  // "12x", "x12" → "12 cuotas" (la x pegada al número es lo mismo).
+  const t = textoNormalizado.replace(/(\d+)\s*x\b/g, '$1 cuotas').replace(/\bx\s*(\d+)/g, '$1 cuotas');
+  const numeros = numerosDeCuotas(t);
+  if (!numeros.some((n) => n.valor >= 12)) return false;
+  for (const m of t.matchAll(SIN_INTERES)) {
     const pos = m.index ?? 0;
     // El número más cercano ANTES del "sin interés" es el que lo lleva; si no
     // hay ninguno antes, el primero de después ("sin interés hasta 12…").
     const antes = numeros.filter((n) => n.pos < pos).pop();
-    const despues = numeros.find((n) => n.pos > pos);
-    const dueno = antes ?? despues;
-    if (dueno?.doce) return true;
+    const dueno = antes ?? numeros.find((n) => n.pos > pos);
+    if (dueno && dueno.valor >= 12) return true;
   }
   return false;
 }
