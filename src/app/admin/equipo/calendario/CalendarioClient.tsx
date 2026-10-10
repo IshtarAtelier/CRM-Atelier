@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Loader2, CalendarDays, Flag } from 'lucide-react';
-import { FERIADOS_ARGENTINA, type Feriado } from '@/lib/constants/feriados-argentina';
+import { FERIADOS_ARGENTINA, textoApertura, type Feriado } from '@/lib/constants/feriados-argentina';
 import FeriadosCobertura from './FeriadosCobertura';
 import { formatDate } from '@/lib/format-date';
 import {
@@ -217,7 +217,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                                 <div className="flex-1 min-w-0 space-y-1">
                                     {d.feriados.map(f => (
                                         <p key={f.nombre} className="text-sm font-black text-stone-900 dark:text-stone-50 flex items-center gap-2">
-                                            <Flag className="w-4 h-4 text-primary" aria-hidden /> {f.tipo === 'NO_LABORABLE' ? <>No laborable: {f.nombre} <span className="font-normal text-stone-500">· se trabaja normal, todo el equipo</span></> : f.tipo === 'HORARIO_ESPECIAL' ? <>{f.nombre}</> : <>Feriado: {f.nombre}</>}{f.local && <span className="font-normal text-stone-500">· {f.local}</span>}
+                                            <Flag className="w-4 h-4 text-primary" aria-hidden /> {f.tipo === 'NO_LABORABLE' ? <>No laborable: {f.nombre} <span className="font-normal text-stone-500">· se trabaja normal, todo el equipo</span></> : f.tipo === 'HORARIO_ESPECIAL' ? <>{f.nombre}</> : <>Feriado: {f.nombre}</>}{f.apertura && <span className="font-normal text-stone-500"> · {textoApertura(f.apertura)}</span>}
                                         </p>
                                     ))}
                                     {d.novedades.map(n => (

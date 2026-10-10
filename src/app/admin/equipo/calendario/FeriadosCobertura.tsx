@@ -19,7 +19,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { NOVEDAD_INFO, ESTADO_INFO, TIPO_QUE_DESCUENTA_FERIADO, TIPO_QUE_SUMA_HORAS, horasDeRango } from '@/lib/constants/novedades-equipo';
 import { rangoNovedad, type Novedad, type Yo } from './CalendarioClient';
 import { formatDate } from '@/lib/format-date';
-import { DESDE_COBERTURA_FERIADOS, TIPOS_DIA_NORMAL, type Feriado } from '@/lib/constants/feriados-argentina';
+import { DESDE_COBERTURA_FERIADOS, TIPOS_DIA_NORMAL, textoApertura, type Feriado } from '@/lib/constants/feriados-argentina';
 
 interface Persona { id: string; name: string }
 interface Cobertura {
@@ -255,7 +255,7 @@ function FilaFeriado({ f, futuro, equipo, esAdmin, coberturas, novedades, onGuar
             <td className="py-2 px-2">
                 <span className="font-bold">{f.nombre}</span>
                 {f.tipo && f.tipo !== 'FERIADO' && <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${ETIQUETA_TIPO[f.tipo].clase}`}>{ETIQUETA_TIPO[f.tipo].texto}</span>}
-                {f.local && <span className="block text-xs text-stone-500">{f.local}</span>}
+                {f.apertura && <span className="block text-xs text-stone-500">{textoApertura(f.apertura)}</span>}
             </td>
             <td className="py-2 px-2 whitespace-nowrap">
                 {normal ? <span className="text-stone-600 dark:text-stone-300">Ambos <span className="text-xs text-stone-500">(día normal)</span></span>

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { prisma } from '@/lib/db';
 import { publicarStory, origenPublico } from '@/services/social-publisher.service';
 import { evaluarFrescura, leerPieza } from '@/lib/social/frescura';
+import { feriadosParaAvisarHoy, idPiezaFeriado } from '@/lib/social/stories-feriados';
 
 /**
  * Las stories de Instagram del día, sin que nadie las dispare.
@@ -51,6 +52,11 @@ import { evaluarFrescura, leerPieza } from '@/lib/social/frescura';
  * Las placas ya están renderizadas y commiteadas. Un cron que abre un Chromium
  * para generar una imagen es un cron que falla por memoria en el peor momento y
  * nadie entiende por qué. Acá solo se elige y se publica.
+ *
+ * FERIADOS (10/10/2026): la tanda de la mañana arranca, antes que los
+ * carriles, con la story del feriado que viene si su apertura está cargada
+ * (src/lib/social/stories-feriados.ts): sale una por día desde unos días
+ * antes hasta el feriado. No consume lugar de los carriles ni corre su índice.
  *
  * SI FALLA, AVISA POR MAIL Y NO REINTENTA. Un reintento automático sobre una
  * API de publicación puede terminar en dos stories iguales. Prefiere no
@@ -190,6 +196,20 @@ export async function GET(request: Request) {
         const elegidas: Array<{ carril: string; id: string; tipo?: string; slides?: number }> = [];
         for (let k = 0; porCarril.some(l => k < l.length); k++) {
             for (const l of porCarril) if (k < l.length) elegidas.push(l[k]);
+        }
+
+        // Feriados: primero, y solo a la mañana. Una placa que todavía no está
+        // en el repo (feriado recién cargado sin correr el generador) se saltea:
+        // es lo que avisa `npm run check:social`.
+        if (tanda === 'manana') {
+            const hoyART = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Cordoba' }).format(new Date());
+            const feriados: typeof elegidas = [];
+            for (const f of feriadosParaAvisarHoy(hoyART)) {
+                const id = idPiezaFeriado(f.fecha);
+                if (await leerPieza(id)) feriados.push({ carril: 'feriados', id });
+                else console.warn(`[cron social-story-diaria] Falta la placa ${id}: correr scripts/social/generar-stories-feriados.ts`);
+            }
+            elegidas.unshift(...feriados);
         }
 
         if (sinPlan.length) {

@@ -1,0 +1,17 @@
+{
+  "id": "feriado-2027-01-01",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "fuente": "business-info",
+  "caption": "El viernes 1/1 el local está cerrado.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "El viernes 1/1 *cerramos*",
+      "body": "Feriado de Año Nuevo\n\nTe esperamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba"
+    }
+  ]
+}
