@@ -12,7 +12,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createResilientSource, defaultIsEmpty } from '../../src/lib/catalog/resilience.ts';
-import { CATALOG_SOURCE_KEYS, RECETA_BASE_WHERE, SOL_BASE_WHERE, FICHA_EN_TIENDA, FICHA_PUBLICADA } from '../../src/lib/catalog/queries.ts';
+import { CATALOG_SOURCE_KEYS, RECETA_BASE_WHERE, SOL_BASE_WHERE, FICHA_EN_TIENDA, FICHA_PUBLICADA, sePuedeVenderEnLaWeb, slugDeFichaPublicada } from '../../src/lib/catalog/queries.ts';
 import { formatProducts as formatProductsRaw, countProducts, hasProducts } from '../../src/lib/home-fallback.ts';
 import { resolveStorageUrl } from '../../src/lib/utils/storage.ts';
 
@@ -208,6 +208,30 @@ for (const archivo of PUBLICOS) {
   if (archivo.endsWith('queries.ts')) fuente = fuente.slice(fuente.indexOf('export const SOL_BASE_WHERE'));
   const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   check(`${archivo}: sin un \`isActive: true\` propio (usa FICHA_EN_TIENDA / FICHA_PUBLICADA)`, !/isActive:\s*true/.test(sinComentarios));
+  // Y usa la regla: sin esto, un \`where: {}\` (que lista TODO) también pasaba.
+  if (!archivo.endsWith('queries.ts')) {
+    check(`${archivo}: usa la regla común`, /\b(FICHA_EN_TIENDA|FICHA_PUBLICADA|FICHA_MAYORISTA|RECETA_BASE_WHERE|SOL_BASE_WHERE|PRODUCTO_EN_TIENDA)\b/.test(sinComentarios));
+  }
+}
+// El catálogo mayorista, el checkout y los links del bot: la misma regla.
+for (const [archivo, patron, que] of [
+  ['src/app/api/store/products/route.ts', /where:\s*FICHA_MAYORISTA/, 'el catálogo mayorista lista FICHA_MAYORISTA'],
+  ['src/app/api/checkout/payway/route.ts', /sePuedeVenderEnLaWeb\(dbProduct\)/, 'el checkout solo vende lo publicado (sePuedeVenderEnLaWeb)'],
+  ['src/services/armazones-al-dia.service.ts', /sePuedeVenderEnLaWeb\(p\)/, 'el carrito se pone al día con la misma regla'],
+  ['src/app/api/bot/pricing/route.ts', /slugDeFichaPublicada\(p\)/, 'el bot solo linkea fichas que se pueden abrir'],
+]) {
+  const fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  check(`${que} (${archivo})`, patron.test(fuente));
+}
+{
+  const venta = (o) => sePuedeVenderEnLaWeb({ publishToWeb: true, category: 'Armazón de Receta', webProducts: [{ isActive: true }], ...o });
+  check('sePuedeVenderEnLaWeb: publicado con ficha activa → sí', venta({}) === true);
+  check('sePuedeVenderEnLaWeb: ficha oculta en /admin/web → no', venta({ webProducts: [{ isActive: false }] }) === false);
+  check('sePuedeVenderEnLaWeb: sin ficha → no', venta({ webProducts: [] }) === false);
+  check('sePuedeVenderEnLaWeb: despublicado → no', venta({ publishToWeb: false }) === false);
+  check('sePuedeVenderEnLaWeb: cristal → no', venta({ category: 'Cristal' }) === false);
+  check('slugDeFichaPublicada: solo la ficha activa', slugDeFichaPublicada({ publishToWeb: true, category: 'Lentes de Sol', webProducts: [{ slug: 'vieja', isActive: false }, { slug: 'vigente', isActive: true }] }) === 'vigente'
+    && slugDeFichaPublicada({ publishToWeb: false, category: 'Lentes de Sol', webProducts: [{ slug: 'x', isActive: true }] }) === null);
 }
 const ficha = readFileSync(new URL('../../src/app/producto/[slug]/page.tsx', import.meta.url), 'utf8');
 check('la ficha no abre un Product suelto por id (cristales, internos, desmarcados)', !/prisma\.product\.find(Unique|First)\(/.test(ficha));

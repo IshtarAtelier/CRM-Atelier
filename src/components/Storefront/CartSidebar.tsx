@@ -212,14 +212,13 @@ export function CartSidebar() {
                     alta que la que le van a cobrar. Primero el 2x1, después el
                     15% — al revés el descuento daría negativo. */}
                 {!isWholesale && totalConPromo > 0 && (() => {
-                  const v = PricingService.preciosVidriera(totalConPromo, descuentoTransferenciaPct);
-                  const valorCuota = Math.round(totalConPromo / cuotasSinInteres);
+                  const v = PricingService.preciosVidriera(totalConPromo, descuentoTransferenciaPct, cuotasSinInteres);
                   return (
                     // Orden de venta (pedido de Ishtar, 27/8): primero 12,
                     // después 6, después transferencia.
                     <div className="mb-5 grid grid-cols-1 gap-1.5 text-[11px] font-semibold text-stone-600">
                       <div className="flex justify-between"><span>{ETIQUETA_MP_CUOTAS_LARGAS}</span><span className="font-black text-stone-900">12 x ${formatearPrecio(v.cuota12)}</span></div>
-                      <div className="flex justify-between"><span>{cuotasSinInteres} cuotas sin interés</span><span className="font-black text-stone-900">{cuotasSinInteres} x ${formatearPrecio(valorCuota)}</span></div>
+                      <div className="flex justify-between"><span>{v.cuotas} cuotas sin interés</span><span className="font-black text-stone-900">{v.cuotas} x ${formatearPrecio(v.valorCuota)}</span></div>
                       <div className="flex justify-between text-emerald-700"><span>Transferencia {descuentoTransferenciaPct}% OFF</span><span className="font-black">${formatearPrecio(v.contado)}</span></div>
                     </div>
                   );

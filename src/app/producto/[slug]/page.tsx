@@ -73,7 +73,10 @@ const getProduct = cache(async (slug: string) => {
         const nombres = candidatos
           .map((c) => c.name || '')
           .filter((n) => baseDelNombre(n).toLowerCase() === base.toLowerCase());
-        nombreVisible = armarNombreVisible(nombres.length > 0 ? nombres : [nombreCrudo])(nombreCrudo);
+        // La ficha que se abre cuenta siempre, aunque esté agotada y la grilla
+        // no la liste: si no, "Gala C4" sin stock al lado de "Gala C3" se
+        // llamaba "Gala", igual que la otra (revisión del 10/10/2026).
+        nombreVisible = armarNombreVisible([...new Set([...nombres, nombreCrudo])])(nombreCrudo);
       }
       return {
         id: webProduct.product.id,

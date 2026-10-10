@@ -37,7 +37,11 @@ const consulta = cron.indexOf('buscarPagosDeOrden(');
 const cancela = cron.indexOf('failWebPayment(');
 esperar('el cron le pregunta a Mercado Pago ANTES de cancelar', consulta > -1 && cancela > consulta);
 esperar('el cron no depende del id de pago guardado para preguntar', !/if \(intento\.paymentId/.test(cron));
-esperar('sin poder preguntar (MP apagado) no cancela', /if \(!isMercadoPagoEnabled\(\)\) \{[\s\S]{0,60}continue;/.test(cron));
+esperar('sin poder preguntar (sin credencial) no cancela', /if \(!puedeConsultarMercadoPago\(\)\) \{[\s\S]{0,60}continue;/.test(cron));
+// Con el cobro apagado en la tienda el stock reservado se tiene que liberar
+// igual: el cron mira la credencial, no el interruptor de ventas.
+esperar('el cron no depende del interruptor de ventas de Mercado Pago', !/isMercadoPagoEnabled\(/.test(cron));
+esperar('un pago sobre una venta ya confirmada a mano se cuenta aparte (a conciliar)', /r\.ok && r\.aConciliar/.test(cron));
 
 const fin = leer('src/lib/checkout/finalize-web-payment.ts');
 const failW = fin.slice(fin.indexOf('export async function failWebPayment'));
@@ -48,7 +52,17 @@ const txFail = failW.slice(failW.indexOf('prisma.$transaction'), failW.indexOf("
 esperar('el stock se devuelve DENTRO de la transacción', /stock: \{ increment/.test(txFail));
 const finW = fin.slice(fin.indexOf('export async function finalizeWebPayment'), fin.indexOf('export async function failWebPayment'));
 esperar('el pago aprobado bloquea la fila de la orden', /FOR UPDATE/.test(finW));
-esperar('un pago aprobado sobre una venta borrada por una persona no la revive', /deletedReason\) return \{ tipo: 'borrada-por-una-persona'/.test(finW));
+const ramaBorrada = finW.slice(finW.indexOf('if (cancelada && fresca.deletedReason)'), finW.indexOf("tipo: 'borrada-por-una-persona'"));
+esperar('un pago aprobado sobre una venta borrada por una persona no la revive', ramaBorrada.length > 0 && ramaBorrada.length < 600);
+// Si el intento quedara PENDING, el chequeo cada 10 min lo volvería a encontrar
+// y mandaría el mismo aviso urgente para siempre (revisión del 10/10/2026).
+esperar('…y cierra el intento en la misma transacción (el aviso sale una vez)', /cerrarIntentoSinAcreditar\(/.test(ramaBorrada));
+const ramaConfirmada = finW.slice(finW.indexOf("if (!cancelada && fresca.status !== 'WEB_PENDING')"), finW.indexOf("tipo: 'a-conciliar'"));
+esperar('un pago sobre una venta que ya no espera el pago (confirmada a mano) no la acredita de nuevo', ramaConfirmada.length > 0 && ramaConfirmada.length < 1500);
+esperar('…cierra el intento y deja un aviso para conciliar, sin Payment ni factura', /cerrarIntentoSinAcreditar\(/.test(ramaConfirmada) && /notification\.create/.test(ramaConfirmada) && !/payment\.create|INVOICE_REQUEST/.test(ramaConfirmada));
+// Lo que sí acredita (Payment, factura) tiene que venir DESPUÉS de las dos ramas.
+esperar('el cobro y la factura se crean solo después de descartar esos casos',
+  finW.indexOf("tipo: 'a-conciliar'") > -1 && finW.indexOf('tx.payment.create(') > finW.indexOf("tipo: 'a-conciliar'") && finW.indexOf("type: 'INVOICE_REQUEST'") > finW.indexOf("tipo: 'a-conciliar'"));
 esperar('una venta que canceló el sistema se reactiva y vuelve a reservar el stock', /isDeleted: false/.test(finW) && /stock: \{ decrement/.test(finW));
 
 const inst = leer('src/instrumentation.ts');

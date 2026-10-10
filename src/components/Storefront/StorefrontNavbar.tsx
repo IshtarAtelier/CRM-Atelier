@@ -12,9 +12,9 @@ import { usePathname } from "next/navigation";
 import { track } from "@/lib/client-analytics";
 import { CARTEL_PROMO_POR_DEFECTO } from "@/lib/promo-cuotas";
 import { coincideBusquedaTienda } from "@/lib/catalog/busqueda-tienda";
-import { precioFinal } from "@/lib/precio-oferta";
 import { precioConSigno } from "@/lib/format-precio";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
+import { effectiveFramePrice } from "@/lib/checkout/checkout-pricing";
 import { PricingService } from "@/services/PricingService";
 
 interface StorefrontNavbarProps {
@@ -96,7 +96,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
 
   useEffect(() => {
     if (isSearchOpen && allProducts.length === 0) {
-      fetch('/api/store/products?limit=500')
+      // Una óptica busca en SU catálogo (el mayorista, con su precio): antes
+      // buscaba en el minorista y veía el precio al público.
+      fetch(`/api/store/products?limit=500${isOptica ? '&channel=wholesale' : ''}`)
         .then(res => res.json())
         .then(data => {
           const list = Array.isArray(data) ? data : data?.products;
@@ -106,7 +108,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
         })
         .catch(err => console.error("Error loading products for search:", err));
     }
-  }, [isSearchOpen, allProducts]);
+  }, [isSearchOpen, allProducts, isOptica]);
+
+  // Si la sesión de óptica se confirma después de abrir la búsqueda, lo que ya
+  // se trajo es el catálogo minorista: se descarta y se vuelve a pedir.
+  useEffect(() => { setAllProducts([]); }, [isOptica]);
 
   const searchResults = searchQuery.trim().length >= 2
     // La MISMA búsqueda que /tienda (src/lib/catalog/busqueda-tienda.ts). Antes
@@ -567,7 +573,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                                 Hasta el 10/10 acá salía el de tarjeta: el mismo
                                 anteojo decía $215.000 en el buscador y $182.750
                                 en la tienda. A una óptica, su precio. */}
-                            {isOptica ? precioConSigno(precioFinal(p)) : (
+                            {isOptica ? precioConSigno(effectiveFramePrice(p, true)) : (
                               <>
                                 {precioConSigno(PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: 6 }).transferencia)}
                                 <span className="font-semibold text-emerald-700 dark:text-emerald-400"> · {descuentoTransferenciaPct}% OFF transf.</span>

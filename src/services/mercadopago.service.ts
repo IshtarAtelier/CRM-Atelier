@@ -68,6 +68,16 @@ export function isMercadoPagoEnabled(): boolean {
   return process.env.MP_ENABLED === 'true' && !!process.env.MP_ACCESS_TOKEN;
 }
 
+/**
+ * Se puede PREGUNTAR a Mercado Pago (hay credencial), esté o no prendido el
+ * cobro en la tienda. El vencimiento de los pagos pendientes depende de esto y
+ * no de `isMercadoPagoEnabled`: si se apaga Mercado Pago con ventas esperando
+ * el pago, su stock reservado tiene que poder liberarse igual.
+ */
+export function puedeConsultarMercadoPago(): boolean {
+  return !!process.env.MP_ACCESS_TOKEN;
+}
+
 function accessToken(): string {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) throw new Error('MP_ACCESS_TOKEN no configurado.');

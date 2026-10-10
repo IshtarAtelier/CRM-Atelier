@@ -1628,8 +1628,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   let fichasVivas: Set<string> | null = null;
   if (post.isDb) {
     try {
-      const filas = await prisma.webProduct.findMany({ where: FICHA_PUBLICADA, select: { slug: true } });
-      fichasVivas = new Set(filas.map((f) => f.slug).filter(Boolean));
+      const filas = await prisma.webProduct.findMany({ where: FICHA_PUBLICADA, select: { slug: true, productId: true } });
+      // La ficha abre por su dirección y también por el id del producto.
+      fichasVivas = new Set(filas.flatMap((f) => [f.slug, f.productId]).filter(Boolean).map((x) => x.toLowerCase()));
     } catch (error) {
       console.error('[blog] no se pudieron leer las fichas para los links:', error);
     }

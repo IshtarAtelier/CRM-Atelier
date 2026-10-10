@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/store/useCart";
 import { WHATSAPP_PHONE } from "@/lib/constants";
@@ -86,7 +87,9 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
   // interés de $total/12" — la frase prohibida, con el precio mal.
   const promo = leerPromoCuotas(webSettings.web_promo_installments);
   const installmentsCount = promo.cantidad;
-  const discountRate = webSettings.web_promo_cash_discount / 100;
+  // Misma lectura del % que la tienda y el checkout (vacío o 0 → 15).
+  const descuentoTransferenciaPct = descuentoTransferenciaDe(webSettings.web_promo_cash_discount);
+  const discountRate = descuentoTransferenciaPct / 100;
 
   const [step, setStep] = useState<number>(1);
   const [lensType, setLensType] = useState<LensType>(null);
@@ -311,7 +314,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </div>
             Tengo dudas
-            <svg className="w-3.5 h-3.5 fill-current text-emerald-650 ml-0.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-3.5 h-3.5 fill-current text-emerald-700 ml-0.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d={WHATSAPP_ICON_PATH} />
             </svg>
           </a>
@@ -669,7 +672,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
           <p className="text-[11px] font-black uppercase tracking-wide text-[#8a6d3b] mt-1">
             {/* Online el descuento es solo por transferencia: el efectivo se
                 cobra en el local (el de Mercado Pago por Rapipago no lo lleva). */}
-            por transferencia · {webSettings.web_promo_cash_discount}% OFF
+            por transferencia · {descuentoTransferenciaPct}% OFF
           </p>
           <div className="flex flex-col items-center gap-0.5 sm:gap-1 mt-2 sm:mt-3.5 text-center">
             <p className="hidden sm:block text-[11px] font-bold text-stone-700">

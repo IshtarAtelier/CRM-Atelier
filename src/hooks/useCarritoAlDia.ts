@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCart } from "@/store/useCart";
 import { calcularConfiguracion } from "@/lib/cristales-web/calculo";
@@ -28,6 +28,22 @@ function esMayorista(): boolean {
 // /checkout): sin esto, un mismo cambio se avisaba dos veces.
 let ultimaFirmaAvisada = "";
 
+// El carrito lateral vive en la barra de navegación, así que el hook corre en
+// cada página: sin esto, cada navegación con algo en el carrito era una
+// consulta a la base. La misma consulta se reusa un minuto; un rechazo del
+// checkout (refrescarCarrito) siempre pregunta de nuevo.
+const VIGENCIA_MS = 60_000;
+let ultimaRespuesta: { url: string; at: number; data: unknown } | null = null;
+async function traerPrecios(url: string, forzar: boolean): Promise<unknown> {
+  if (!forzar && ultimaRespuesta && ultimaRespuesta.url === url && Date.now() - ultimaRespuesta.at < VIGENCIA_MS) {
+    return ultimaRespuesta.data;
+  }
+  const r = await fetch(url, { cache: "no-store" });
+  const data = r.ok ? await r.json() : null;
+  if (data) ultimaRespuesta = { url, at: Date.now(), data };
+  return data;
+}
+
 /**
  * Pone el carrito al día con el sistema: armazón (precio, stock, si se sigue
  * vendiendo) y cristales.
@@ -52,6 +68,8 @@ export function useCarritoAlDia() {
   const ponerItemAlDia = useCart(s => s.ponerItemAlDia);
   const removeItem = useCart(s => s.removeItem);
   const [pedido, setPedido] = useState(0);
+  // El último pedido de puesta al día ya atendido: solo ESE fuerza a preguntar.
+  const pedidoAtendido = useRef(0);
   const firma = items.map(i => `${i.id}:${i.productId}:${i.price}:${i.quantity}`).join("|");
 
   useEffect(() => {
@@ -69,9 +87,11 @@ export function useCarritoAlDia() {
     const url = mayorista || ids.length === 0
       ? "/api/web/pricing"
       : `/api/web/pricing?armazones=${encodeURIComponent(ids.join(","))}`;
-    fetch(url, { cache: "no-store" })
-      .then(r => (r.ok ? r.json() : null))
-      .then((data: { opciones?: OpcionCristalWeb[]; armazones?: ArmazonAlDia[] } | null) => {
+    const forzar = pedido !== pedidoAtendido.current;
+    pedidoAtendido.current = pedido;
+    traerPrecios(url, forzar)
+      .then((crudo) => {
+        const data = crudo as { opciones?: OpcionCristalWeb[]; armazones?: ArmazonAlDia[] } | null;
         if (!vivo || !Array.isArray(data?.opciones)) return;
         const opciones = indexarOpciones(data.opciones);
         const armazones = new Map((data.armazones ?? []).map(a => [a.id, a]));
@@ -80,7 +100,11 @@ export function useCarritoAlDia() {
         for (const item of useCart.getState().items) {
           const nombre = `${item.brand || ""} ${item.model || ""}`.trim() || "Un anteojo";
           const armazon = mayorista ? undefined : armazones.get(item.productId);
-          if (armazon && !armazon.disponible) {
+          // Solo sale lo que ya no se vende. Un stock en 0 puede ser la reserva
+          // de esta misma persona (intentó pagar con Mercado Pago y volvió):
+          // sacarlo le vaciaba el carrito diciendo "se agotó" justo cuando la
+          // pantalla decía "tu carrito sigue acá". El checkout dirá si no hay.
+          if (armazon && !armazon.aLaVenta) {
             removeItem(item.id);
             sacados.push(nombre);
             continue;
@@ -118,7 +142,7 @@ export function useCarritoAlDia() {
           }
         }
         const aviso = [
-          sacados.length ? `Sacamos del carrito ${sacados.join(", ")}: ya no está a la venta o se agotó.` : "",
+          sacados.length ? `Sacamos del carrito ${sacados.join(", ")}: ya no está a la venta.` : "",
           subieron.length ? `Actualizamos el precio: ${subieron.join(" · ")}.` : "",
         ].filter(Boolean).join(" ");
         if (aviso && aviso !== ultimaFirmaAvisada) {

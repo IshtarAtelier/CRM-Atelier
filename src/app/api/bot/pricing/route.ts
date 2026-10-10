@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { slugDeFichaPublicada } from '@/lib/catalog/queries';
 import { prisma } from '@/lib/db';
 import { STORE_ORIGIN } from '@/lib/constants';
 import { resolveStorageUrl } from '@/lib/utils/storage';
@@ -337,7 +338,7 @@ export async function GET(req: NextRequest) {
             gender: true,
             rawImageUrls: true,
             webProducts: {
-                select: { slug: true, imageUrl: true }
+                select: { slug: true, imageUrl: true, isActive: true }
             }
         },
         orderBy: { name: 'asc' },
@@ -366,7 +367,7 @@ export async function GET(req: NextRequest) {
                 publishToWeb: true,
                 gender: true,
                 rawImageUrls: true,
-                webProducts: { select: { slug: true, imageUrl: true } },
+                webProducts: { select: { slug: true, imageUrl: true, isActive: true } },
             },
             orderBy: { name: 'asc' },
             take: 20,
@@ -407,7 +408,7 @@ export async function GET(req: NextRequest) {
                 publishToWeb: true,
                 gender: true,
                 rawImageUrls: true,
-                webProducts: { select: { slug: true, imageUrl: true } },
+                webProducts: { select: { slug: true, imageUrl: true, isActive: true } },
             },
             orderBy: { name: 'asc' },
             take: 20,
@@ -507,7 +508,12 @@ export async function GET(req: NextRequest) {
             // por este campo para no ponerle un precio absurdo al pie de una foto.
             publishToWeb: p.publishToWeb,
             imageUrl: fotoParaWhatsApp(finalImageUrl),
-            link: webProd?.slug ? `https://atelieroptica.com.ar/producto/${webProd.slug}` : null,
+            // Solo la ficha que se puede abrir (slugDeFichaPublicada): con
+            // cualquier ficha, el link al pie de la foto podía dar 404.
+            link: (() => {
+                const slug = slugDeFichaPublicada(p);
+                return slug ? `${STORE_ORIGIN}/producto/${slug}` : null;
+            })(),
         };
     });
 

@@ -12,7 +12,7 @@ const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 import { readFileSync } from 'node:fs';
 const { origenDeterministico, origenDeChat, FRASES_DEL_SITIO } = await import(pathToFileURL(resolve(raiz, 'src/lib/origen-deterministico.ts')).href);
 const { mensajeDelBotonFlotante } = await import(pathToFileURL(resolve(raiz, 'src/lib/whatsapp-mensaje-flotante.ts')).href);
-const { conMarcaDeLaWeb, MARCA_DE_LA_WEB } = await import(pathToFileURL(resolve(raiz, 'src/lib/whatsapp-origen-web.ts')).href);
+const { conMarcaDeLaWeb, MARCA_DE_LA_WEB, hrefConOrigen } = await import(pathToFileURL(resolve(raiz, 'src/lib/whatsapp-origen-web.ts')).href);
 let fallos = 0;
 const check = (n, ok, det='') => { console.log(`  ${ok?'✓':'✖'} ${n}${ok||!det?'':' — '+det}`); if(!ok) fallos++; };
 const o = (t) => origenDeterministico(t)?.origen ?? null;
@@ -90,9 +90,29 @@ const deAnuncio = 'Los vi en Google Ads. Hola, precio de multifocales?';
 check('si viene de un anuncio, no se pisa el origen', conMarcaDeLaWeb(deAnuncio) === deAnuncio);
 check('texto vacío queda vacío', conMarcaDeLaWeb('') === '');
 check('sin punto final: la marca queda como otra oración', conMarcaDeLaWeb('Hola, quiero agendar un turno') === `Hola, quiero agendar un turno. ${MARCA_DE_LA_WEB}`);
-const attribution = readFileSync(resolve(raiz, 'src/components/Storefront/WhatsAppAttribution.tsx'), 'utf8');
-check('la marca solo va al número de la tienda y nunca desde el CRM',
-  /conMarcaDeLaWeb/.test(attribution) && /WHATSAPP_PHONE/.test(attribution) && /\(admin\|login\)/.test(attribution));
+// La decisión del clic, por comportamiento (antes se buscaba texto en el
+// componente y pasaba aunque se borrara la guarda del número).
+const TIENDA = '5493518685644', MAYORISTA = '5493510000000';
+const wa = (num, texto) => `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
+const textoDe = (href) => (href ? new URL(href).searchParams.get('text') : null);
+const base = { pathname: '/blog/control-miopia', fraseAnuncio: null, telefonoTienda: TIENDA };
+check('al número de la tienda, sin origen → con la marca',
+  textoDe(hrefConOrigen({ ...base, href: wa(TIENDA, 'Hola, quiero un turno') })) === `Hola, quiero un turno. ${MARCA_DE_LA_WEB}`);
+check('al número MAYORISTA → no se toca', hrefConOrigen({ ...base, href: wa(MAYORISTA, 'Hola, quiero un turno') }) === null);
+check('desde el CRM (/admin) → no se toca, ni con anuncio',
+  hrefConOrigen({ ...base, pathname: '/admin/ventas', fraseAnuncio: 'Los vi en Meta.', href: wa(TIENDA, 'Hola Juan, tu pedido está listo') }) === null
+  && hrefConOrigen({ ...base, pathname: '/login', href: wa(TIENDA, 'Hola') }) === null);
+check('con identificador de anuncio → la frase del anuncio adelante y sin marca de la web',
+  textoDe(hrefConOrigen({ ...base, fraseAnuncio: 'Los vi en Meta.', href: wa(TIENDA, 'Hola, precio?') })) === 'Los vi en Meta. Hola, precio?');
+check('el anuncio también va al número mayorista (lo mide igual)',
+  textoDe(hrefConOrigen({ ...base, fraseAnuncio: 'Los vi en Meta.', href: wa(MAYORISTA, 'Hola') })) === 'Los vi en Meta. Hola');
+check('sin texto prellenado → no se inventa uno', hrefConOrigen({ ...base, href: `https://wa.me/${TIENDA}` }) === null);
+check('el link ya marcado no cambia (doble clic)', hrefConOrigen({ ...base, href: wa(TIENDA, `Hola. ${MARCA_DE_LA_WEB}`) }) === null);
+check('api.whatsapp.com/send?phone= también se reconoce',
+  textoDe(hrefConOrigen({ ...base, href: `https://api.whatsapp.com/send?phone=${TIENDA}&text=${encodeURIComponent('Hola')}` })) === `Hola. ${MARCA_DE_LA_WEB}`);
+check('los espacios viajan como %20, no como "+"', !String(hrefConOrigen({ ...base, href: wa(TIENDA, 'Hola che') })).includes('+'));
+const attribution = readFileSync(resolve(raiz, 'src/components/Storefront/WhatsAppAttribution.tsx'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+check('WhatsAppAttribution decide con hrefConOrigen (sin lógica propia)', /hrefConOrigen\(\{/.test(attribution) && !/conMarcaDeLaWeb|searchParams/.test(attribution));
 
 console.log('El bot decide con la MISMA lista de frases');
 const tools = readFileSync(resolve(raiz, 'wa-service/tools.js'), 'utf8');

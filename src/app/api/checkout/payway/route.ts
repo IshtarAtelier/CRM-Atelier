@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
@@ -265,7 +266,11 @@ export async function POST(req: Request) {
 
     // Fetch web settings for dynamic discount rate
     const webSettings = await getWebSettings();
-    const cashDiscountRate = (webSettings.web_promo_cash_discount ?? 15) / 100;
+    // La MISMA lectura del % que la tienda y el checkout del navegador
+    // (descuentoTransferenciaDe: un vacío o 0 cae al 15). Con `?? 15` un 0
+    // cargado en /admin/web cobraba sin descuento mientras la pantalla mostraba
+    // 15 %, y la guarda de precios rechazaba la compra.
+    const cashDiscountRate = descuentoTransferenciaDe(webSettings.web_promo_cash_discount) / 100;
     const transferMultiplier = 1 - cashDiscountRate;
 
     // Opciones de cristal de la tienda, con el producto del sistema vinculado a
@@ -323,7 +328,9 @@ export async function POST(req: Request) {
       let dbProduct = null;
       if (safeProductId) {
         dbProduct = await prisma.product.findUnique({
-          where: { id: safeProductId }
+          where: { id: safeProductId },
+          // La ficha: si está oculta en /admin/web, no se vende (sePuedeVenderEnLaWeb).
+          include: { webProducts: { select: { isActive: true } } },
         });
       }
 
@@ -331,7 +338,7 @@ export async function POST(req: Request) {
       // src/lib/catalog/queries.ts): un carrito guardado puede traer un
       // armazón que se despublicó o se borró después, y un id armado a mano,
       // un cristal. Antes el inexistente salía como error 500 sin motivo.
-      if (!dbProduct || !sePuedeVenderEnLaWeb(dbProduct, isWholesaleUser)) {
+      if (!dbProduct || !sePuedeVenderEnLaWeb(dbProduct)) {
         console.warn(`[PAYWAY CHECKOUT] Producto fuera de la tienda en el carrito: ${safeProductId} (${item.model})`);
         return NextResponse.json({
           error: `${item.model || 'Un producto del carrito'} ya no está a la venta en la web. Sacalo del carrito para seguir.`,
@@ -410,7 +417,7 @@ export async function POST(req: Request) {
       // igual no lo arreglaba: el navegador, con el código, actualiza el
       // carrito y la persona ve el precio nuevo antes de confirmar.
       return NextResponse.json({
-        error: "Un precio de tu carrito cambió mientras comprabas. Ya lo actualizamos: revisá el total y confirmá de nuevo.",
+        error: "Un precio de tu carrito cambió mientras comprabas. Revisá el total y confirmá de nuevo.",
         code: 'PRECIO_CAMBIO',
       }, { status: 400 });
     }

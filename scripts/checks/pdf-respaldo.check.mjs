@@ -39,18 +39,26 @@ let doc = null;
 try { doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); } catch (e) { check('cargarJsPDF devuelve el constructor', false, e.message); }
 if (doc) check('cargarJsPDF devuelve el constructor (en Node)', typeof doc.output === 'function');
 
-// Sin `default:` en ningún lado.
+// jsPDF se carga en UN solo lugar (cargar-jspdf.ts). Buscar la forma mala
+// (\`{ default: jsPDF }\`) no alcanza: \`(await import('jspdf')).default\` es el
+// mismo bug escrito de otra manera, y tsc no lo ve porque los tipos de jspdf
+// declaran el default como la clase. Así que cualquier carga del módulo fuera
+// de cargar-jspdf.ts falla acá (los \`import type\` no cargan nada y pasan).
 const malos = [];
 const recorrer = (dir) => {
   for (const n of readdirSync(dir)) {
     const p = join(dir, n);
     if (statSync(p).isDirectory()) { if (n !== 'node_modules') recorrer(p); continue; }
     if (!/\.(ts|tsx|js|mjs)$/.test(n)) continue;
-    if (/\{\s*default\s*:\s*jsPDF\s*\}\s*=\s*await\s+import\(\s*['"]jspdf['"]\s*\)/.test(readFileSync(p, 'utf8'))) malos.push(relative(raiz, p));
+    const rel = relative(raiz, p);
+    if (rel === join('src', 'lib', 'cargar-jspdf.ts')) continue;
+    const src = readFileSync(p, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    const carga = /import\(\s*['"]jspdf['"]\s*\)|require\(\s*['"]jspdf['"]\s*\)|^\s*import\s+(?!type\b)[^;]*from\s+['"]jspdf['"]/m;
+    if (carga.test(src)) malos.push(rel);
   }
 };
 recorrer(join(raiz, 'src'));
-check('ningún archivo carga jsPDF por `default`', malos.length === 0, malos.join(', '));
+check('jsPDF se carga solo con cargarJsPDF (ningún otro import del módulo)', malos.length === 0, malos.join(', '));
 
 // El respaldo de punta a punta: desde una carpeta sin navegadores headless el
 // generador cae a jsPDF, como en un server donde Chromium no arranca.

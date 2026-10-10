@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { cargarJsPDF } from '@/lib/cargar-jspdf';
 import { prisma } from '@/lib/db';
 import { FICHA_EN_TIENDA } from '@/lib/catalog/queries';
 import { getFileBuffer } from '@/lib/storage';
@@ -71,7 +72,7 @@ async function getEditorialImageData(imagePath: string) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { jsPDF } = await import('jspdf');
+    const jsPDF = await cargarJsPDF();
 
     // El PDF del catálogo muestra lo mismo que la tienda: sin cristales ni
     // agotados (antes traía toda ficha activa, cristales incluidos).

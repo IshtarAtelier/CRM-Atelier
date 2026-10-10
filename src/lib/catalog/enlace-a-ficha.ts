@@ -23,7 +23,13 @@ const LINK_A_FICHA = /^(?:https?:\/\/(?:www\.)?atelieroptica\.com\.ar)?\/product
 /** "atelier-hera-dwcn" → "hera"; "aurora-c1" → "aurora"; "armazon-receta-escarlata-pandora-c5-hk011" → "pandora". */
 export function nombreDelModelo(slug: string): string {
   const partes = slug.toLowerCase().split('-').filter(Boolean);
-  const ruido = new Set(['atelier', 'armazon', 'receta', 'escarlata', 'capsula', 'lentes', 'sol', 'clip', 'on', 'anteojos']);
+  // Palabras de categoría, forma o color que el sistema viejo metía en el slug
+  // y no son el modelo ("tendencia-optical-…", "atelier-oval-negro-…").
+  const ruido = new Set([
+    'atelier', 'armazon', 'receta', 'escarlata', 'capsula', 'lentes', 'sol', 'clip', 'on', 'anteojos',
+    'tendencia', 'optical', 'oval', 'redondo', 'rectangular', 'cuadrado', 'aviador', 'cat', 'eye',
+    'negro', 'carey', 'dorado', 'plateado', 'transparente', 'rosa', 'azul', 'rojo', 'verde',
+  ]);
   const utiles = partes.filter((p) => !ruido.has(p) && !/^c\d+$/.test(p) && !/\d/.test(p) && p.length > 2);
   // Los códigos al azar del sistema viejo ("dwcn", "k0k7") van al final: el
   // nombre del modelo es la primera palabra que queda.
@@ -35,7 +41,8 @@ export function enlaceDeFichaVigente(href: string, vivas: ReadonlySet<string> | 
   const m = LINK_A_FICHA.exec(href.trim());
   if (!m) return href;
   const slug = m[1].toLowerCase();
-  if (vivas.has(slug)) return href;
+  // `vivas` trae slugs e ids de producto (la ficha también abre por el id).
+  if (vivas.has(slug)) return href === href.toLowerCase() ? href : href.replace(m[1], slug);
   const vigente = slugVigenteDe(slug);
   if (vigente && vivas.has(vigente)) return `/producto/${vigente}`;
   const nombre = nombreDelModelo(slug);

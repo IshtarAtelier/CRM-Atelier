@@ -122,14 +122,9 @@ export async function POST(req: Request) {
 }
 
 /**
- * El aviso de "entró plata y el CRM no la tiene cobrada", para los DOS caminos
- * por los que eso puede pasar: un pago sin intento asociado, y un pago aprobado
- * que no se pudo acreditar. Es el mismo problema de negocio y merece el mismo
- * grito, así que el texto vive en un solo lugar y no en dos copias que
- * divergen.
- *
- * Nunca lanza: un webhook que explota porque falló el mail le devuelve un 500 a
- * Mercado Pago y dispara reintentos por un problema que no es el del pago.
+ * Procesa un pago informado por Mercado Pago (aprobado, rechazado o pendiente)
+ * contra su intento. El aviso de "entró plata y el CRM no la tiene cobrada"
+ * vive en src/lib/checkout/aviso-cobro-sin-venta.ts (lo comparte el cron).
  */
 async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId?: string }> {
   // Candado de idempotencia: si este pago ya se procesó, cortar sin volver a

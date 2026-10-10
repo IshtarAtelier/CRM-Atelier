@@ -168,21 +168,51 @@ export const FICHA_PUBLICADA = {
 } as const;
 
 /**
- * La misma regla para un producto YA leído: el checkout la aplica a cada ítem
- * del carrito. Hasta el 10/10/2026 aceptaba cualquier id que existiera en la
- * base, así que un carrito guardado (o armado a mano) compraba un armazón que
- * la tienda ya había despublicado, o un cristal del CRM a su precio. El stock
- * NO se mira acá: el checkout lo valida aparte, con su propio mensaje.
- * Mayorista: su canal es `publishToWholesale`; lo de la tienda minorista que
- * ya tuviera en el carrito también vale.
+ * Lo que se vende a las ópticas (canal mayorista): las fichas PUBLICADAS que
+ * además tienen el tilde mayorista. El catálogo mayorista lo lista, la ficha
+ * lo abre y el checkout lo cobra con la MISMA regla. Antes el catálogo listaba
+ * cualquier `publishToWholesale` aunque no tuviera ficha publicada, y ese link
+ * daba 404 (revisión del 10/10/2026). Al 10/10 las 156 fichas mayoristas
+ * también estaban publicadas: no cambia nada visible, cierra la divergencia.
  */
-export function sePuedeVenderEnLaWeb(
-  p: { publishToWeb?: boolean | null; publishToWholesale?: boolean | null; category?: string | null },
-  mayorista: boolean,
-): boolean {
+export const FICHA_MAYORISTA = {
+  ...FICHA_PUBLICADA,
+  product: { ...FICHA_PUBLICADA.product, publishToWholesale: true },
+} as const;
+
+/**
+ * La misma regla para un producto YA leído: el checkout la aplica a cada ítem
+ * del carrito y el carrito la usa para ponerse al día. Hasta el 10/10/2026 el
+ * checkout aceptaba cualquier id que existiera en la base, así que un carrito
+ * guardado (o armado a mano) compraba un armazón que la tienda ya había
+ * despublicado u ocultado en /admin/web, o un cristal del CRM a su precio.
+ * Es FICHA_PUBLICADA sobre la fila: ficha activa, publicado y no cristal (el
+ * stock NO se mira acá: el checkout lo valida aparte, con su propio mensaje).
+ * Una óptica compra lo mismo: todo lo mayorista es parte de lo publicado.
+ */
+export function sePuedeVenderEnLaWeb(p: {
+  publishToWeb?: boolean | null;
+  category?: string | null;
+  webProducts?: { isActive: boolean | null }[] | null;
+}): boolean {
   if (p.category === FICHA_PUBLICADA.product.category.not) return false;
-  if (p.publishToWeb === FICHA_PUBLICADA.product.publishToWeb) return true;
-  return mayorista && p.publishToWholesale === true;
+  if (p.publishToWeb !== FICHA_PUBLICADA.product.publishToWeb) return false;
+  return (p.webProducts ?? []).some((w) => w.isActive === FICHA_PUBLICADA.isActive);
+}
+
+/**
+ * La dirección de la ficha de un producto, SOLO si se puede abrir (la misma
+ * regla que sePuedeVenderEnLaWeb). El bot de WhatsApp pone este link al pie de
+ * las fotos: armado con cualquier ficha, mandaba a la persona a un 404 en
+ * medio del chat (revisión del 10/10/2026).
+ */
+export function slugDeFichaPublicada(p: {
+  publishToWeb?: boolean | null;
+  category?: string | null;
+  webProducts?: { slug?: string | null; isActive: boolean | null }[] | null;
+}): string | null {
+  if (!sePuedeVenderEnLaWeb(p)) return null;
+  return (p.webProducts ?? []).find((w) => w.isActive === FICHA_PUBLICADA.isActive && w.slug)?.slug ?? null;
 }
 
 /** WHERE base (sin filtros del usuario) de cada listado parametrizado. */

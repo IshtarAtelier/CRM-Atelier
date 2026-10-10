@@ -270,12 +270,16 @@ export class PricingService {
      * grillas, carrito, resumen del checkout, emails y CTAs leen de acá.
      * `cashDiscountPct` es el % de la promo web (setting web_promo_cash_discount).
      */
-    static preciosVidriera(price: number, cashDiscountPct: number = 15) {
+    static preciosVidriera(price: number, cashDiscountPct: number = 15, cuotasSinInteres: number = 6) {
         const lista = Math.round(price || 0);
         const cuotasMp = PricingService.cuotasMpLargas(lista);
+        const cuotas = cuotasSinInteres > 0 ? cuotasSinInteres : 6;
         return {
             lista,
             cuota6: Math.round(lista / 6),
+            /** Las cuotas sin interés vigentes (3 o 6, leerPromoCuotas) y su valor. */
+            cuotas,
+            valorCuota: Math.round(lista / cuotas),
             contado: Math.round(lista * (1 - cashDiscountPct / 100)),
             ahorroContado: Math.round(lista * (cashDiscountPct / 100)),
             cuota12: cuotasMp.installment12,

@@ -1,6 +1,7 @@
 "use client";
 
 import { refrescarCarrito, useCarritoAlDia } from '@/hooks/useCarritoAlDia';
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { tieneCristales } from '@/lib/cristales-web/claves';
 import { useCart } from "@/store/useCart";
 import { calcular2x1Armazones, armazonesDelCarrito } from "@/lib/promo-2x1-armazones";
@@ -170,7 +171,7 @@ export function CheckoutClient({
   });
 
   const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
-  const descuentoTransferenciaPct = webSettings?.web_promo_cash_discount || 15;
+  const descuentoTransferenciaPct = descuentoTransferenciaDe(webSettings?.web_promo_cash_discount);
 
   // Lo que la persona termina pagando, desglosado. UN solo cálculo
   // (PricingService.totalesCheckout) para el botón de pago, el resumen de
@@ -894,7 +895,7 @@ export function CheckoutClient({
                     ${Math.round(ordenHecha.total).toLocaleString('es-AR')}
                   </p>
                   <p className="text-[11px] text-emerald-800/80 mt-1.5">
-                    Ya tiene aplicado el {webSettings?.web_promo_cash_discount || 15}% de descuento por transferencia.
+                    Ya tiene aplicado el {descuentoTransferenciaPct}% de descuento por transferencia.
                   </p>
                 </div>
               )}

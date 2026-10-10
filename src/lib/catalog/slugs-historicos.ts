@@ -26,6 +26,9 @@ export const SLUGS_HISTORICOS: Readonly<Record<string, string>> = {
   'ariadne-c1':                                                 'armazon-receta-atelier-ariadne-c1',
   'ariadne-c2':                                                 'armazon-receta-atelier-ariadne-c2',
   'atelier-artemis-8f6p':                                       'atelier-artemis-tendencia',
+  // El G7013 C1 estaba cargado dos veces: quedó publicado Artemis y se
+  // despublicó Halley (antes vivía en next.config.ts).
+  'halley-c1':                                                  'atelier-artemis-tendencia',
   'atelier-athena-906p':                                        'armazon-receta-atelier-athena-91501-c6',
   'atelier-gaia':                                               'capsula-escarlata-hy238013-c1-9iju',
   'atelier-gaia-hb3t':                                          'capsula-escarlata-hy238013-c1-9iju',

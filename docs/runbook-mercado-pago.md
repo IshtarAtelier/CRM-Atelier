@@ -79,15 +79,23 @@ MP_ENABLED=true
 Railway reinicia solo al guardar. Después de reiniciar, la opción aparece en el
 checkout.
 
-### 4. Dar de alta el cron
+### 4. El cron ya corre solo (no darlo de alta afuera)
 
-Un GET cada 30 minutos a:
+Desde el 10/10/2026 lo programa la propia app cada 10 minutos
+(`maybeRunMpExpirados` en `src/instrumentation.ts`, solo en producción, como
+todos los crons internos). **No registrar un GET externo**: sería un tercer
+ejecutor además de las dos instancias. Para probarlo a mano:
 
 ```
 https://atelieroptica.com.ar/api/cron/mercadopago-expirados?secret=<CRON_SECRET>
 ```
 
-**No es opcional.** Sin este cron, cada persona que abandona la pantalla de
+Antes de cancelar, siempre le pregunta a Mercado Pago por los pagos de la orden
+(si no hay credencial, no cancela nada). Un pago aprobado sobre una venta que un
+vendedor ya confirmó a mano NO se acredita de nuevo: queda un aviso "a
+conciliar" en la campana.
+
+**Es imprescindible.** Sin este cron, cada persona que abandona la pantalla de
 Mercado Pago se lleva un armazón del stock disponible para siempre. Además es lo
 que rescata un pago cuyo webhook se perdió.
 

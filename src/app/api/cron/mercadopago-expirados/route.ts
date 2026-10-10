@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { buscarPagosDeOrden, isMercadoPagoEnabled } from '@/services/mercadopago.service';
+import { buscarPagosDeOrden, puedeConsultarMercadoPago } from '@/services/mercadopago.service';
 import { avisarCobroSinVenta } from '@/lib/checkout/aviso-cobro-sin-venta';
 import { decidirVencimiento } from '@/lib/checkout/vencimiento-mp';
 import { failWebPayment, finalizeWebPayment } from '@/lib/checkout/finalize-web-payment';
@@ -21,8 +21,9 @@ import { failWebPayment, finalizeWebPayment } from '@/lib/checkout/finalize-web-
  * intento vencido. Si hay un pago aprobado, se acredita en vez de cancelarse.
  * Ese chequeo es la red que hace que ningún cobro quede sin venta.
  *
- * Alta del cron: GET a /api/cron/mercadopago-expirados?secret=CRON_SECRET.
- * Cada 30 minutos alcanza y sobra.
+ * Lo programa la propia app cada 10 minutos (maybeRunMpExpirados en
+ * src/instrumentation.ts, solo en producción). No darlo de alta afuera: sería
+ * un tercer ejecutor. A mano: GET con ?secret=CRON_SECRET.
  */
 
 export const dynamic = 'force-dynamic';
@@ -73,6 +74,8 @@ export async function GET(request: Request) {
   let sinConsultar = 0;
   /** Cancelados sin devolver stock por ser reservas viejas: hay que contar ese stock a mano. */
   const sinDevolverStock: string[] = [];
+  /** Pagos aprobados sobre ventas que ya estaban confirmadas a mano: quedó un aviso para conciliar. */
+  const aConciliar: string[] = [];
 
   for (const intento of vencidos) {
     try {
@@ -80,9 +83,10 @@ export async function GET(request: Request) {
       // esta orden. El intento pendiente no guarda el id del pago (el webhook
       // solo anota el estado), así que hasta el 10/10/2026 esta consulta no
       // corría nunca: una venta cobrada cuyo aviso se perdió se cancelaba sola.
-      // Sin poder preguntar (integración apagada o consulta caída), no se
-      // cancela nada: se reintenta en la próxima pasada.
-      if (!isMercadoPagoEnabled()) {
+      // Sin poder preguntar (sin credencial o consulta caída), no se cancela
+      // nada: se reintenta en la próxima pasada. Con el cobro apagado en la
+      // tienda SÍ se pregunta: el stock reservado se tiene que liberar igual.
+      if (!puedeConsultarMercadoPago()) {
         sinConsultar++;
         continue;
       }
@@ -98,7 +102,11 @@ export async function GET(request: Request) {
           paymentNote: 'Pago aprobado por Mercado Pago (recuperado por el chequeo periódico, el aviso no llegó)',
           gatewayInstallments: aprobado.installments,
         });
-        if (r.ok) {
+        if (r.ok && r.aConciliar) {
+          // Cobrado en Mercado Pago sobre una venta que un vendedor ya había
+          // confirmado a mano: no se acredita de nuevo, queda el aviso.
+          aConciliar.push(intento.orderId);
+        } else if (r.ok) {
           rescatados++;
           console.warn(`[MP CRON] ⚠️ La orden ${intento.orderId} estaba pagada y sin acreditar: el aviso no llegó. Rescatada.`);
         } else {
@@ -133,7 +141,7 @@ export async function GET(request: Request) {
   }
 
   console.log(
-    `[MP CRON] Revisados ${vencidos.length} · liberados ${liberados} · rescatados ${rescatados} · errores ${errores.length}`,
+    `[MP CRON] Revisados ${vencidos.length} · liberados ${liberados} · rescatados ${rescatados} · a conciliar ${aConciliar.length} · errores ${errores.length}`,
   );
 
   return NextResponse.json({
@@ -144,5 +152,6 @@ export async function GET(request: Request) {
     sinConsultar: sinConsultar || undefined,
     errores: errores.length ? errores : undefined,
     sinDevolverStock: sinDevolverStock.length ? sinDevolverStock : undefined,
+    aConciliar: aConciliar.length ? aConciliar : undefined,
   });
 }

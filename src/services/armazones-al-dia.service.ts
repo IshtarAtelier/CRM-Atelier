@@ -21,8 +21,13 @@ export type ArmazonAlDia = {
   /** Precio del armazón que cobraría el checkout hoy (oferta incluida). */
   precio: number;
   stock: number;
-  /** false = ya no se vende en la web (despublicado, cristal, inexistente) o sin stock. */
-  disponible: boolean;
+  /**
+   * false = ya no se vende en la web (despublicado, ficha oculta, cristal,
+   * inexistente). Es lo ÚNICO que saca un ítem del carrito: el stock en 0 no,
+   * porque puede ser la reserva de la misma persona, que acaba de intentar
+   * pagar con Mercado Pago (la reserva dura 2 h; revisión del 10/10/2026).
+   */
+  aLaVenta: boolean;
 };
 
 export const MAX_ARMAZONES_POR_CONSULTA = 30;
@@ -40,15 +45,17 @@ export async function armazonesAlDia(ids: string[]): Promise<ArmazonAlDia[]> {
   if (ids.length === 0) return [];
   const productos = await prisma.product.findMany({
     where: { id: { in: ids } },
-    select: { id: true, price: true, salePrice: true, stock: true, publishToWeb: true, publishToWholesale: true, category: true },
+    select: {
+      id: true, price: true, salePrice: true, stock: true, publishToWeb: true, publishToWholesale: true, category: true,
+      webProducts: { select: { isActive: true } },
+    },
   });
   const porId = new Map(productos.map((p) => [p.id, p]));
   return ids.map((id) => {
     const p = porId.get(id);
     // Lo que no se vende en la web no informa nada más: es una ruta pública y
     // por id se podría leer el precio o el stock de un producto interno.
-    if (!p || !sePuedeVenderEnLaWeb(p, false)) return { id, precio: 0, stock: 0, disponible: false };
-    const stock = p.stock ?? 0;
-    return { id, precio: effectiveFramePrice(p, false), stock, disponible: stock > 0 };
+    if (!p || !sePuedeVenderEnLaWeb(p)) return { id, precio: 0, stock: 0, aLaVenta: false };
+    return { id, precio: effectiveFramePrice(p, false), stock: p.stock ?? 0, aLaVenta: true };
   });
 }

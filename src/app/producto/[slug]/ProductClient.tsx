@@ -672,6 +672,14 @@ export function ProductClient({
                             <span className="text-xs font-black uppercase text-white bg-red-600 px-2 py-1 rounded">
                               {pctOff}% OFF
                             </span>
+                            {/* El precio de oferta con tarjeta, a la vista: es el
+                                que declara el JSON-LD y el feed de Merchant, y
+                                Google desaprueba el producto si el precio que le
+                                informamos no aparece en la página. Además, quien
+                                paga con tarjeta lo ve antes del checkout. */}
+                            <span className="basis-full text-sm font-medium text-stone-600">
+                              o ${formatearPrecio(v.precio)} con tarjeta
+                            </span>
                           </>
                         ) : (
                           // Sin oferta, el de lista al lado y más chico: así el
@@ -1163,9 +1171,10 @@ export function ProductClient({
             <p className="text-[11px] font-bold uppercase tracking-wide text-stone-900 truncate">{product.model}</p>
             {/* 29/9/26: el grande es el de transferencia, como en la ficha (arriba).
                 Con el de lista acá, el primer número que se veía en celular era
-                el más caro. Mismo cálculo que el precio grande de la ficha. */}
+                el más caro. Los mismos números que el precio grande de la ficha
+                (PricingService.vidrieraDeProducto). */}
             <p className="text-[13px] font-black text-stone-900">
-              ${formatearPrecio(Math.round(effectivePrice * (1 - cashDiscount / 100)))}
+              ${formatearPrecio(PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount }).transferencia)}
               <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">por transferencia</span>
             </p>
             <p className="text-[10px] font-medium text-stone-500">${formatearPrecio(effectivePrice)} con tarjeta</p>

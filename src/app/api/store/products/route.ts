@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { FICHA_MAYORISTA } from '@/lib/catalog/queries';
 import { prisma } from '@/lib/db';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
@@ -56,13 +57,10 @@ export async function GET(request: NextRequest) {
             mappedProducts = cachedWholesale;
         } else {
             const webProducts = await prisma.webProduct.findMany({
-                where: {
-                    isActive: true,
-                    product: {
-                        publishToWholesale: true,
-                        category: { not: 'Cristal' }
-                    }
-                },
+                // Lo que se le vende a una óptica: la regla de la ficha y del
+                // checkout (FICHA_MAYORISTA). Antes listaba cualquier
+                // publishToWholesale, aunque su ficha diera 404.
+                where: FICHA_MAYORISTA,
                 include: {
                     product: true
                 },
