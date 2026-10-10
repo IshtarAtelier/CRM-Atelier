@@ -22,6 +22,12 @@ export function conMarcaDeLaWeb(texto: string): string {
   // El link de la página va al final (WhatsApp arma la vista previa con él):
   // la marca va antes, pegada al texto.
   const corte = texto.search(/\s*\n+\s*https?:\/\//);
-  if (corte > 0) return `${texto.slice(0, corte).trimEnd()} ${MARCA_DE_LA_WEB}${texto.slice(corte)}`;
-  return `${texto.trimEnd()} ${MARCA_DE_LA_WEB}`;
+  if (corte > 0) return `${conPunto(texto.slice(0, corte))} ${MARCA_DE_LA_WEB}${texto.slice(corte)}`;
+  return `${conPunto(texto)} ${MARCA_DE_LA_WEB}`;
+}
+
+/** "…para multifocales" → "…para multifocales." (la marca es otra oración). */
+function conPunto(texto: string): string {
+  const t = texto.trimEnd();
+  return /[.!?…:)]$/.test(t) ? t : `${t}.`;
 }

@@ -89,6 +89,7 @@ check('si ya prueba el origen, no se duplica', conMarcaDeLaWeb(yaTiene) === yaTi
 const deAnuncio = 'Los vi en Google Ads. Hola, precio de multifocales?';
 check('si viene de un anuncio, no se pisa el origen', conMarcaDeLaWeb(deAnuncio) === deAnuncio);
 check('texto vacío queda vacío', conMarcaDeLaWeb('') === '');
+check('sin punto final: la marca queda como otra oración', conMarcaDeLaWeb('Hola, quiero agendar un turno') === `Hola, quiero agendar un turno. ${MARCA_DE_LA_WEB}`);
 const attribution = readFileSync(resolve(raiz, 'src/components/Storefront/WhatsAppAttribution.tsx'), 'utf8');
 check('la marca solo va al número de la tienda y nunca desde el CRM',
   /conMarcaDeLaWeb/.test(attribution) && /WHATSAPP_PHONE/.test(attribution) && /\(admin\|login\)/.test(attribution));
