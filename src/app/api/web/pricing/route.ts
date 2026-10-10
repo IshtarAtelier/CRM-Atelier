@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { mapaOpcionesPublico } from '@/services/cristales-web.service';
+import { armazonesAlDia, idsDeArmazon } from '@/services/armazones-al-dia.service';
 import type { OpcionCristalWeb } from '@/lib/cristales-web/claves';
 
 /**
@@ -13,6 +14,10 @@ import type { OpcionCristalWeb } from '@/lib/cristales-web/claves';
  * `force-dynamic`: cada carga lee la base, así un cambio de precio en el CRM
  * se ve en la siguiente visita. Si la base no responde, 503 y el configurador
  * avisa que no pudo cargar los precios (antes mostraba una tabla inventada).
+ *
+ * `?armazones=id1,id2`: además, precio/stock/disponibilidad de esos armazones
+ * con las reglas del checkout (ver armazones-al-dia.service). Lo pide el
+ * carrito para ponerse al día; son datos que la tienda ya muestra.
  */
 export const dynamic = 'force-dynamic';
 
@@ -30,12 +35,13 @@ function mapaNumericoAnterior(opciones: OpcionCristalWeb[]) {
     return grupos;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const mapa = await mapaOpcionesPublico();
+        const ids = idsDeArmazon(new URL(req.url).searchParams.get('armazones'));
+        const [mapa, armazones] = await Promise.all([mapaOpcionesPublico(), armazonesAlDia(ids)]);
         const opciones = Object.values(mapa).filter((o): o is OpcionCristalWeb => !!o);
         return NextResponse.json(
-            { opciones, ...mapaNumericoAnterior(opciones) },
+            { opciones, armazones, ...mapaNumericoAnterior(opciones) },
             { headers: { 'Cache-Control': 'no-store' } },
         );
     } catch (error) {

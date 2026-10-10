@@ -1,6 +1,6 @@
 "use client";
 
-import { useCristalesAlDia } from '@/hooks/useCristalesAlDia';
+import { refrescarCarrito, useCarritoAlDia } from '@/hooks/useCarritoAlDia';
 import { tieneCristales } from '@/lib/cristales-web/claves';
 import { useCart } from "@/store/useCart";
 import { calcular2x1Armazones, armazonesDelCarrito } from "@/lib/promo-2x1-armazones";
@@ -43,6 +43,9 @@ function clearIdempotencyKey() {
   try { localStorage.removeItem(IDEM_KEY); } catch { /* noop */ }
 }
 
+/** Códigos de rechazo del checkout que significan "el carrito tenía un dato viejo". */
+const CODIGOS_DE_CARRITO_VIEJO = new Set(['PRECIO_CAMBIO', 'PRODUCTO_NO_DISPONIBLE', 'STOCK_INSUFICIENTE', 'OPCION_CRISTAL_NO_DISPONIBLE']);
+
 export function CheckoutClient({ 
   paywayConfig,
   mercadoPagoEnabled = false,
@@ -60,7 +63,7 @@ export function CheckoutClient({
 }) {
   const { items, getCartTotal, clearCart } = useCart();
   // Precio de los cristales al día con el sistema antes de pagar (ver el hook).
-  useCristalesAlDia();
+  useCarritoAlDia();
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -507,6 +510,13 @@ export function CheckoutClient({
   // Todo error que ve el comprador queda medido (checkout_error): con esto se
   // sabe si la gente se va por la tarjeta rechazada, por la pasarela o por un
   // dato mal cargado, en vez de adivinarlo.
+  // Rechazos que se arreglan con el carrito al día (precio que cambió, armazón
+  // despublicado o agotado, opción de cristal caída): además de avisar, se
+  // pide la puesta al día, así lo que se ve al reintentar es lo que se cobra.
+  const ponerAlDiaSiHaceFalta = (data: any) => {
+    if (CODIGOS_DE_CARRITO_VIEJO.has(String(data?.code || ''))) refrescarCarrito();
+  };
+
   const avisarError = (mensaje: string, opts?: Parameters<typeof toast.error>[1]) => {
     try {
       track('checkout_error', { value: totalConPromo2x1, meta: { motivo: String(mensaje).slice(0, 160), metodo: formData.paymentMethod } });
@@ -580,6 +590,7 @@ export function CheckoutClient({
         }
 
         if (res.status !== 409) clearIdempotencyKey();
+        ponerAlDiaSiHaceFalta(data);
         avisarError(data?.error || "No pudimos abrir el pago con Mercado Pago. Probá con otro medio de pago.");
         return;
       }
@@ -639,7 +650,12 @@ export function CheckoutClient({
           // Respuesta terminal del server: rotar la key para que el próximo intento
           // sea un intento nuevo. El 409 (pedido aún procesándose) conserva la key.
           if (res.status !== 409) clearIdempotencyKey();
-          avisarError(formData.paymentMethod.includes('MAYORISTA') ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
+          // El motivo del servidor (sin stock, precio que cambió, producto que
+          // ya no se vende) es lo único que le dice a la persona qué hacer:
+          // antes se mostraba siempre "Error generando orden de transferencia".
+          const data = await res.json().catch(() => ({} as any));
+          ponerAlDiaSiHaceFalta(data);
+          avisarError(data?.error || (formData.paymentMethod.includes('MAYORISTA') ? "Error generando pedido mayorista." : "Error generando orden de transferencia."));
         }
         return;
       }
@@ -775,11 +791,12 @@ export function CheckoutClient({
               avisarError(data.error || "El pago fue rechazado por la tarjeta.");
             }
           } else {
-            const errorData = await res.json();
+            const errorData = await res.json().catch(() => ({} as any));
             // 409 = pedido aún en curso: conservar la key. Cualquier otro error
             // terminal (pago rechazado, validación) rota la key para desbloquear
             // el próximo intento.
             if (res.status !== 409) clearIdempotencyKey();
+            ponerAlDiaSiHaceFalta(errorData);
             avisarError(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
           }
         } catch (callbackError: any) {

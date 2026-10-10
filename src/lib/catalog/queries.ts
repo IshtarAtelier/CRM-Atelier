@@ -167,6 +167,24 @@ export const FICHA_PUBLICADA = {
   product: { publishToWeb: true, category: { not: "Cristal" } },
 } as const;
 
+/**
+ * La misma regla para un producto YA leído: el checkout la aplica a cada ítem
+ * del carrito. Hasta el 10/10/2026 aceptaba cualquier id que existiera en la
+ * base, así que un carrito guardado (o armado a mano) compraba un armazón que
+ * la tienda ya había despublicado, o un cristal del CRM a su precio. El stock
+ * NO se mira acá: el checkout lo valida aparte, con su propio mensaje.
+ * Mayorista: su canal es `publishToWholesale`; lo de la tienda minorista que
+ * ya tuviera en el carrito también vale.
+ */
+export function sePuedeVenderEnLaWeb(
+  p: { publishToWeb?: boolean | null; publishToWholesale?: boolean | null; category?: string | null },
+  mayorista: boolean,
+): boolean {
+  if (p.category === FICHA_PUBLICADA.product.category.not) return false;
+  if (p.publishToWeb === FICHA_PUBLICADA.product.publishToWeb) return true;
+  return mayorista && p.publishToWholesale === true;
+}
+
 /** WHERE base (sin filtros del usuario) de cada listado parametrizado. */
 export const SOL_BASE_WHERE = {
   ...FICHA_EN_TIENDA,
