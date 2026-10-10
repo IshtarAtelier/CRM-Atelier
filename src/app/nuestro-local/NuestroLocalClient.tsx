@@ -8,6 +8,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { BUSINESS_INFO } from "@/lib/business-info";
+import { TRAYECTORIA } from "@/lib/constants/trayectoria";
 
 // Los horarios salen de BUSINESS_INFO (la misma fuente que el bot y los datos
 // para Google). Acá estaban escritos a mano y decían "8:00 – 20:00" de lunes a
@@ -229,7 +230,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
               {/* Decorative line */}
               <div className="flex items-center gap-4 mt-10">
                 <div className="h-[1px] w-12 bg-[#c8a55c]" />
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--dorado)]">Desde 2018</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--dorado)]">{TRAYECTORIA}</span>
               </div>
             </motion.div>
           </div>
