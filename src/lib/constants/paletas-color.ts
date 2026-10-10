@@ -85,21 +85,46 @@ const normalizar = (s: string) =>
  * reglas importa: primero las excepciones concretas, después el material.
  */
 const tono = (name: string, hexColor: string): Tono => ({ name, hexColor });
+/** Los tonos que el catálogo de Grupo Óptico reconoce en el ítem (COLOR_DEL_ITEM), con el nombre en que el vendedor los ve. */
+const TONOS_GO: { patron: RegExp; tono: Tono }[] = [
+    { patron: /\b(gris|grey|gray)\b/, tono: tono('Gris', '#555555') },
+    { patron: /\b(sepia|brown|marron|cafe)\b/, tono: tono('Sepia', '#6b4c3a') },
+    { patron: /\b(verde|green|g-?15)\b/, tono: tono('Verde', '#2f6b4f') },
+    { patron: /\b(azul|blue)\b/, tono: tono('Azul', '#2a4b8d') },
+    { patron: /\b(rosa|pink)\b/, tono: tono('Rosa', '#c76b8a') },
+    { patron: /\b(purpura|purple|violeta)\b/, tono: tono('Púrpura', '#7b4b9c') },
+    { patron: /\b(rojo|red)\b/, tono: tono('Rojo', '#a52a2a') },
+    { patron: /\b(plata|plateado|silver)\b/, tono: tono('Plateado', '#9aa0a6') },
+    { patron: /\b(dorado|golden|gold|oro)\b/, tono: tono('Dorado', '#c9a227') },
+    { patron: /\b(amarillo|driver|drive)\b/, tono: tono('Amarillo', '#d4b106') },
+];
 const PALETAS_GRUPO_OPTICO: Record<string, Paleta> = {
     SMART_COLOR: { id: 'go-smart-color', label: 'Fotocromático Smart Color (Grupo Óptico)', tonos: [tono('Azul', '#2a4b8d'), tono('Púrpura', '#7b4b9c'), tono('Rosa', '#c76b8a'), tono('Sepia', '#6b4c3a'), tono('Verde', '#2f6b4f')] },
     FOTO_ESPEJADO: { id: 'go-foto-espejado', label: 'Fotocromático espejado (Grupo Óptico)', tonos: [tono('Azul', '#2a4b8d'), tono('Dorado', '#c9a227'), tono('Verde', '#2f6b4f'), tono('Púrpura', '#7b4b9c'), tono('Rojo', '#a52a2a'), tono('Plateado', '#9aa0a6')] },
     POLARIZADO: { id: 'go-polarizado', label: 'Polarizado (Grupo Óptico)', tonos: [tono('Gris', '#555555'), tono('Sepia', '#6b4c3a'), tono('Verde', '#2f6b4f'), tono('Amarillo', '#d4b106')] },
     ESPEJADO: { id: 'go-espejado', label: 'Espejado (Grupo Óptico)', tonos: [tono('Azul', '#2a4b8d'), tono('Plateado', '#9aa0a6')] },
 };
-/** La paleta de un cristal de Grupo Óptico, por su nombre normalizado; null si no es uno de varios colores. */
+/**
+ * La paleta de un cristal de Grupo Óptico, por su nombre normalizado; null si
+ * no es uno de varios colores. Los colores salen del NOMBRE del producto
+ * ("Polarizado Gris / Brown", "Smart Color (Brown/Green/Blue/Pink/Purple)",
+ * "Espejado Azul / Plata"), que es lo que el catálogo nuestro declara; si el
+ * nombre no lista ninguno, la paleta fija del material. El portal valida al
+ * cargar (catalogo.ts, MATERIALES_LAB.colores) y dice qué ofrece si no cuadra.
+ */
 export function paletaDeGrupoOptico(nombreNormalizado: string): Paleta | null {
     const n = nombreNormalizado;
     if (n.includes('xperio') || n.includes('transitions')) return null; // esos son de Optovisión
-    if (n.includes('smart color')) return PALETAS_GRUPO_OPTICO.SMART_COLOR;
-    if (/fotocromatic\w*\s+espejado|foto espejado/.test(n)) return PALETAS_GRUPO_OPTICO.FOTO_ESPEJADO;
-    if (n.includes('polarizado')) return PALETAS_GRUPO_OPTICO.POLARIZADO;
-    if (n.includes('espejado')) return PALETAS_GRUPO_OPTICO.ESPEJADO;
-    return null;
+    const base = n.includes('smart color') ? PALETAS_GRUPO_OPTICO.SMART_COLOR
+        : /fotocromatic\w*\s+espejado|foto espejado/.test(n) ? PALETAS_GRUPO_OPTICO.FOTO_ESPEJADO
+            : n.includes('polarizado') ? PALETAS_GRUPO_OPTICO.POLARIZADO
+                : n.includes('espejado') ? PALETAS_GRUPO_OPTICO.ESPEJADO
+                    : null;
+    if (!base) return null;
+    // Los colores que el nombre lista después de la tecnología ("espejado azul / plata", "(brown/green/…)", "— gris / sepia").
+    const cola = n.replace(/^.*?(smart color|espejado|polarizado)/, '').replace(/\b1\.\d\d\b.*$/, '');
+    const delNombre = TONOS_GO.filter(t => t.patron.test(cola)).map(t => t.tono);
+    return delNombre.length ? { ...base, tonos: delNombre } : base;
 }
 
 export function paletaDeFotocromatico(product: any): Paleta | null {
