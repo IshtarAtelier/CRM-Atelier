@@ -74,7 +74,7 @@ export const FERIADOS_ARGENTINA: Feriado[] = ([
     { fecha: '2026-07-09', nombre: 'Independencia' },
     { fecha: '2026-07-10', nombre: 'Puente turístico', tipo: 'NO_LABORABLE' },
     { fecha: '2026-08-17', nombre: 'San Martín' },
-    { fecha: '2026-09-26', nombre: 'Día del Empleado de Comercio', tipo: 'EMPLEADOS_COMERCIO' },
+    { fecha: '2026-09-28', nombre: 'Día del Empleado de Comercio (trasladado del 26/9)', tipo: 'EMPLEADOS_COMERCIO' },
     { fecha: '2026-10-12', nombre: 'Diversidad Cultural', apertura: HORARIO_FERIADO },
     { fecha: '2026-11-09', nombre: 'Visita del Papa', apertura: HORARIO_FERIADO },
     { fecha: '2026-11-23', nombre: 'Soberanía Nacional (trasladado del 20/11)', apertura: HORARIO_FERIADO },
