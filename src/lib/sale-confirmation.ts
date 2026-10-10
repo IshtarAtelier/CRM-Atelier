@@ -635,10 +635,15 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     };
 }
 
-/** `venta_confirmada_v2` si el espejo de Meta la da por aprobada; si no, la v1. */
+/** ¿El espejo de Meta (`WhatsAppTemplate`, lo sincroniza whatsapp-calidad) da la plantilla por aprobada? */
+async function plantillaAprobada(nombre: string): Promise<boolean> {
+    const fila = await prisma.whatsAppTemplate.findFirst({ where: { name: nombre, language: 'es_AR' }, select: { status: true } }).catch(() => null);
+    return fila?.status === 'APPROVED';
+}
+
+/** `venta_confirmada_v2` si Meta la aprobó; si no, la v1. */
 async function plantillaCortaAprobada(): Promise<'venta_confirmada' | 'venta_confirmada_v2'> {
-    const fila = await prisma.whatsAppTemplate.findFirst({ where: { name: 'venta_confirmada_v2', language: 'es_AR' }, select: { status: true } }).catch(() => null);
-    return fila?.status === 'APPROVED' ? 'venta_confirmada_v2' : 'venta_confirmada';
+    return (await plantillaAprobada('venta_confirmada_v2')) ? 'venta_confirmada_v2' : 'venta_confirmada';
 }
 
 /**
@@ -795,19 +800,24 @@ export async function sendSaleConfirmation(
                 // mirar para reconocer su armazón — el único control que puede
                 // hacer de verdad. El endpoint del bot manda un archivo por
                 // mensaje, así que van de a una.
-                // Con la API oficial las fotos sueltas solo pueden ir con la ventana
-                // abierta (una plantilla lleva un solo encabezado): si el
-                // principal salió como plantilla, las fotos ya están en el PDF.
-                if (res.ok && res.via !== 'template') {
+                // Con la ventana cerrada una foto suelta no puede ir (solo
+                // plantillas, y cada una lleva un solo encabezado): entonces va
+                // en SU plantilla, `venta_confirmada_foto`, con la foto de
+                // encabezado — cuando Meta la tenga aprobada. Hasta entonces, como
+                // antes: solo dentro del PDF.
+                const plantillaFoto = res.ok && res.via === 'template' ? await plantillaAprobada('venta_confirmada_foto') : false;
+                if (res.ok && (res.via !== 'template' || plantillaFoto)) {
                     for (const foto of conf.fotosArmazon) {
                         const img = await bytesDeImagen(foto.valor);
                         if (!img) continue;
+                        const media = { base64: img.base64, mimetype: img.mimetype, filename: img.filename };
                         await sendWhatsApp({
                             chatId: `${normalizeArgentinePhone(tel)}@c.us`,
                             message: foto.titulo,
                             senderName: 'Sistema Atelier',
                             isProactive: true,
-                            media: { base64: img.base64, mimetype: img.mimetype, filename: img.filename },
+                            media,
+                            ...(res.via === 'template' ? { forceTemplate: true, template: templateSpec('venta_confirmada_foto', [String(order.client.name || '').trim(), nro]), templateMedia: media } : {}),
                         }).catch(err => console.error('[Confirmación de compra] No se pudo enviar la foto del armazón:', err));
                     }
                 }

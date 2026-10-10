@@ -46,7 +46,8 @@ check('el WhatsApp pide el OK antes de fabricar, con suavidad', sc.includes('Ant
 check('el WhatsApp avisa las 24 h y la responsabilidad', sc.includes('Si en 24 horas no recibimos tu respuesta, lo tomamos como confirmado') && sc.includes('bajo tu responsabilidad'));
 check('ya no dice "ya salió a fabricación"', !sc.includes('ya salió a fabricación'));
 check('el mail dice lo mismo', sc.includes('Antes de que tu pedido pase a fabricación, abajo está el detalle') && (sc.match(/Si en 24 horas no recibimos tu respuesta/g) || []).length >= 2);
-check('la plantilla corta nueva solo si Meta la aprobó', sc.includes("fila?.status === 'APPROVED' ? 'venta_confirmada_v2' : 'venta_confirmada'"));
+check('la plantilla corta nueva solo si Meta la aprobó', sc.includes("(await plantillaAprobada('venta_confirmada_v2')) ? 'venta_confirmada_v2' : 'venta_confirmada'"));
+check('10/10 · la foto del armazón sale SIEMPRE: con la ventana cerrada va en su propia plantilla con imagen', sc.includes("templateSpec('venta_confirmada_foto'") && sc.includes("plantillaAprobada('venta_confirmada_foto')") && tpl.includes("name: 'venta_confirmada_foto'") && /venta_confirmada_foto[\s\S]{0,400}header: 'IMAGE'/.test(tpl));
 const tpl = leer('../../src/lib/whatsapp/templates.ts');
 check('venta_confirmada_v2 existe en el catálogo y pide el OK', tpl.includes("name: 'venta_confirmada_v2'") && /venta_confirmada_v2[\s\S]{0,900}respondé OK/.test(tpl));
 const cron = leer('../../src/app/api/cron/confirmacion-completa/route.ts');
