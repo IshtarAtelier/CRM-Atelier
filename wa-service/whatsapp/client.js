@@ -403,7 +403,12 @@ function getStatus() {
     return { isReady: canSend(), qrCode, connectedPhone, state: connectionState };
 }
 
-async function sendMessage(waId, content, media = null, options = {}) {
+/**
+ * Versión CRUDA. Se exporta envuelta en el punto de salida único
+ * (`shared/punto-de-salida.js`): origen obligatorio y saneado del modelo
+ * adentro, igual que el transporte cloud.
+ */
+async function enviarCrudo(waId, content, media = null, options = {}) {
     if (!canSend() && !(await waitUntilSendable())) {
         // Mensaje explícito: el caller (CRM o bot) necesita poder decirle al
         // vendedor que NO se envió nada, sin la duda de "¿le habrá llegado?".
@@ -432,6 +437,8 @@ async function sendMessage(waId, content, media = null, options = {}) {
 
     return await antiBanQueue.enqueue(waId, content, media, mergedOptions);
 }
+
+const sendMessage = require('../shared/punto-de-salida').conPuntoDeSalida(enviarCrudo, { transporte: 'webjs' });
 
 async function sendTypingState(waId) {
     if (!canSend()) return;

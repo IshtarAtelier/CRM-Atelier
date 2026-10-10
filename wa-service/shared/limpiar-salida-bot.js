@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Saneador de lo que el bot le manda al cliente.
  *
@@ -10,56 +12,104 @@
  * `[IMAGE: url]`: TODO el resto viajaba tal cual a WhatsApp, y el cliente leía
  * cosas como "[INSTRUCCIÓN INTERNA] Error al ejecutar la herramienta".
  *
- * Es el ÚNICO lugar donde se limpia la salida: lo usan los dos bots
- * (`bot-cloud.js` para la Cloud API y `index.js` para Baileys), que hasta ahora
- * tenían la lista de frases duplicada y divergiendo.
+ * QUIÉN LO LLAMA (10/10/2026): nadie a mano. Lo usan dos lugares y nada más:
+ *   - `shared/punto-de-salida.js`, que corre en CADA envío con origen 'llm'
+ *     (los dos transportes lo tienen adentro);
+ *   - `shared/respuesta-del-turno.js`, que arma las burbujas del turno del bot.
+ * `npm run check:envios-bot` falla si alguien más lo importa.
  *
- * REGLA: `[IMAGE: url]` NO se toca — lo consume el que parte los bloques, más
- * abajo en el pipeline, para adjuntar la foto.
+ * CÓMO TRABAJA (10/10/2026, tras la auditoría):
+ *   - Sobre una LISTA DE BLOQUES (= burbujas), de punta a punta. Antes cada
+ *     paso recibía un string y lo volvía a partir: `quitarRepeticiones`
+ *     aplastaba los `\n\n` y la respuesta entera salía en una sola burbuja.
+ *   - Lo que se saca se saca por ORACIÓN ENTERA, y la oración la decide
+ *     `partir-oraciones.js`, que no parte precios ni links. La regex vieja
+ *     (`[^.!?\n]*X[^.!?\n]*[.!?]*`) dejaba "$185." de un "$185.000".
+ *   - Lo que no tiene arreglo (anotaciones del historial, otro idioma) no se
+ *     recorta: se RECHAZA la respuesta entera (`rechazo`).
+ *   - La derivación ya no se reemplaza acá por una promesa: se informa
+ *     (`derivo`, `promete`) y decide el turno, que sabe si de verdad corrió una
+ *     herramienta que deje una tarea (ver `respuesta-del-turno.js`).
+ *
+ * REGLA: `[IMAGE: url]` NO se toca — lo consume el que arma las burbujas.
+ * Y es IDEMPOTENTE: sanear dos veces da lo mismo que una (el punto de salida
+ * vuelve a pasar cada burbuja ya saneada; el check lo verifica).
  */
 
-/** Frases que narran trabajo interno. Se borra la ORACIÓN entera, no la subcadena. */
+const { oraciones, quitarOraciones, llevaDato } = require('./partir-oraciones');
+const { detectarIdioma } = require('./idioma');
+
+/**
+ * Relleno cosmético ("ahí te paso", "un momentito"). Se saca la oración, SALVO
+ * que lleve un precio, un link o una foto: perder el relleno no le cuesta nada
+ * a nadie; perder "$185.000" sí.
+ */
 const FRASES_DE_RELLENO = [
     'dame un segundito', 'esperame que busco', 'ahí te paso',
     'dejame verificar', 'te calculo los precios', 'ahí te busco',
     'dejame chequear', 'ya te busco', 'un momentito',
-    // Narración de trabajo interno / sistema (el cliente jamás debe verlo)
-    'reviso en el sistema', 'consulto en el sistema', 'verifico en el sistema',
-    'busco en el sistema', 'en el sistema veo', 'en el sistema figura',
-    'según nuestros registros', 'segun nuestros registros',
     'estoy revisando', 'estoy consultando', 'estoy verificando',
     'dejame revisar', 'aguardame un momento',
 ];
 
 /**
+ * Narración del sistema. Estas están TAMBIÉN en el guardrail
+ * (`guardrail-salida.js`), que no borra: descarta el mensaje entero. Por eso
+ * acá la oración se va SIEMPRE, lleve lo que lleve — si quedara, el guardrail
+ * tiraría la respuesta completa.
+ */
+const NARRACION_DEL_SISTEMA = [
+    'reviso en el sistema', 'consulto en el sistema', 'verifico en el sistema',
+    'busco en el sistema', 'en el sistema veo', 'en el sistema figura',
+    'según nuestros registros', 'segun nuestros registros',
+];
+
+/**
  * DERIVACIÓN — regla estricta de Ishtar (10/9/2026): el bot NUNCA le dice al
  * cliente que lo deriva, que lo pasa con alguien, ni que lo va a atender
- * "alguien del equipo". Estaba en el prompt como EJEMPLO a copiar ("Te paso con
- * alguien del equipo que te va a responder a la brevedad"). Una instrucción en
- * el prompt no alcanza (lección del 10/9: el modelo la ignora cuando quiere),
- * así que acá es un candado: la oración se reemplaza por la frase aprobada, que
- * habla en primera persona y no anuncia ningún traspaso.
+ * "alguien del equipo".
+ *
+ * 10/10/2026: se sacaron `/\bdel equipo\b/` y `/\bcon el equipo\b/` sueltos.
+ * Eran tan amplios que "lo hacemos con el equipo de laboratorio" o "el armazón
+ * del equipo de Ray-Ban" contaban como derivar. Ahora cada patrón exige el
+ * VERBO de la derivación.
  */
 const FRASES_DE_DERIVACION = [
-    /te deriv/i, /\bderiv(o|amos|arte|arlo|arla)\b/i,
-    /te paso (con|a) (alguien|una persona|otra persona|un compa|una compa|un asesor|una asesora|el equipo)/i,
-    /alguien del equipo/i, /\bcon el equipo\b/i, /\bdel equipo\b/i,
-    /te va(n)? a (atender|responder|contactar|escribir) (alguien|una persona|otra persona|un asesor|una asesora)/i,
-    /un (asesor|humano|agente|compañero|compa[ñn]ero) (te|va)/i,
+    /\bte deriv/i, /\bderiv(?:o|amos|arte|arlo|arla)\b/i,
+    /\bte paso (?:con|a) (?:alguien|una persona|otra persona|un compa|una compa|un asesor|una asesora|el equipo|mis? compa)/i,
+    /\balguien del equipo\b/i,
+    /\b(?:lo|la|te) (?:veo|vea|consulto|consulte|charlo|hablo|chequeo|reviso) con (?:el|mi) equipo\b/i,
+    /\bel equipo (?:te|se) (?:va a )?(?:contactar|contacta|escribir|escribe|responder|responde|llamar|llama|atender|atiende|comunica)/i,
+    /\b(?:le|les) (?:paso|aviso|consulto) (?:a|al) (?:mis? )?(?:equipo|compañer[oa]s?|compa[ñn]er[oa]s?|asesor)/i,
+    /\bte va(?:n)? a (?:atender|responder|contactar|escribir|llamar) (?:alguien|una persona|otra persona|un asesor|una asesora|el equipo)/i,
+    /\bun (?:asesor|humano|agente|compañero|compa[ñn]ero) (?:te|va)\b/i,
 ];
+
+/**
+ * La frase aprobada para apartarse. La pone el CÓDIGO (respuesta-del-turno.js)
+ * y solo cuando hay detrás una tarea real.
+ */
 const FRASE_EN_VEZ_DE_DERIVAR = 'Lo confirmo y te escribo en un ratito 😊';
+
+/**
+ * Una promesa de volver a escribir. Si nadie quedó encargado (no corrió
+ * create_task / pedir_ayuda / report_complaint), es una promesa que nadie va a
+ * cumplir: el turno crea la tarea desde el código.
+ */
+const PROMESA_DE_VOLVER = /\b(?:lo confirmo|te (?:escribo|confirmo|aviso|respondo|contesto|cuento))\b[^.!?\n]{0,40}\b(?:en un rat(?:o|ito)|enseguida|más tarde|mas tarde|en breve|a la brevedad|al toque|ahora te)\b/i;
+
 /** Marcadores que, si aparecen, se llevan la LÍNEA entera: lo que sigue es interno. */
 const MARCADORES_DE_LINEA = [
-    /^\s*.{0,3}\[\s*INSTRUCCI[ÓO]N\s+INTERNA\s*\].*$/gim,
-    /^\s*.{0,3}\[\s*HITO\s*\].*$/gim,
+    /^\s*.{0,3}\[\s*INSTRUCCI[ÓO]N\s+INTERNA\s*\]/i,
+    /^\s*.{0,3}\[\s*HITO\s*\]/i,
     // Ecos del historial que se le inyecta al modelo entre corchetes.
-    /^\s*\[\s*(?:El cliente|Imagen adjunta|Mensaje vacío|Mensaje vacio|Media)\b.*$/gim,
+    /^\s*\[\s*(?:El cliente|Imagen adjunta|Mensaje vacío|Mensaje vacio|Media)\b/i,
 ];
 
 /**
  * Placeholders del prompt y marcadores sueltos. Un token TODO-MAYÚSCULAS entre
  * corchetes nunca es texto que le escribiríamos a un cliente; `IMAGE` es la
- * única excepción y va explícita.
+ * única excepción y va explícita. Se saca el TOKEN, no la oración.
  */
 const TOKEN_INTERNO = /\[(?!IMAGE\s*:)\s*(?:[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9_]*(?:[ _][A-ZÁÉÍÓÚÑ0-9_]+)*|nombre|telefono|teléfono)\s*(?::[^\]]*)?\]/g;
 
@@ -70,14 +120,10 @@ const TOKEN_INTERNO = /\[(?!IMAGE\s*:)\s*(?:[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9
  * `Intl.DateTimeFormat('es-AR', {weekday, month, day, hour, minute})`, o sea
  * `[mié, 2 sept, 09:19 a. m.]`. La primera versión de esta regex exigía que el
  * corchete arrancara con dígitos y se le escapaban todos: 17 mensajes salieron
- * al cliente con la fecha pegada adelante.
- *
- * Ahora se matchea cualquier corchete al principio de línea que contenga una
- * HORA (`\d{1,2}:\d{2}`). Es lo que tienen en común todos los formatos, y es
- * lo bastante específico como para no comerse un corchete legítimo.
+ * al cliente con la fecha pegada adelante. Se matchea cualquier corchete al
+ * principio de línea que contenga una HORA (`\d{1,2}:\d{2}`).
  */
 const SELLO_DE_HORA = /^\s*\[[^\]\n]*\d{1,2}:\d{2}[^\]\n]*\]\s*/gm;
-
 
 /**
  * Autoidentificación como automático. PROHIBIDO decirlo (decisión de Ishtar,
@@ -88,9 +134,6 @@ const SELLO_DE_HORA = /^\s*\[[^\]\n]*\d{1,2}:\d{2}[^\]\n]*\]\s*/gm;
  * mismas palabras estaban ahí y el resultado era que a un "sos un bot?" el
  * cliente no recibía NADA, nunca más. Acá se saca la ORACIÓN y el resto del
  * mensaje sale igual: el cliente siempre recibe una respuesta.
- *
- * El prompt ya no lo enseña, pero el prompt vivo sale de `SystemSetting.
- * bot_prompt` y puede seguir teniendo el texto viejo. Esta capa rige igual.
  */
 const FRASES_DE_IDENTIDAD = [
     /\b(?:soy|sos)\s+(?:un|una|el|la)?\s*(?:asistente\s+(?:automátic[oa]|virtual)|bot\b|chatbot|robot|ia\b|inteligencia\s+artificial)/i,
@@ -109,34 +152,10 @@ const FRASES_DE_IDENTIDAD = [
 const RESPUESTA_SIN_IDENTIDAD = 'Te estoy ayudando desde la óptica 😊 Contame qué necesitás y lo vemos.';
 
 /**
- * IDIOMA Y RAZONAMIENTO INTERNO — candado (Ishtar, 10/10/2026: "no puede volver
- * a ocurrir"). El 4/10 un cliente dijo "Bueno gracias" y el modelo, en vez de
- * callarse, mandó su razonamiento EN INGLÉS: "I have already confirmed that a
- * call will be scheduled for tomorrow and the user has thanked me. According to
- * the instructions, I should not respond further…". El prompt no alcanza: se
- * saca acá toda línea que esté en inglés o que narre al cliente en tercera
- * persona / cite las instrucciones. Si no queda nada, no se manda nada — que es
- * justo lo que correspondía en ese caso.
+ * Razonamiento interno en castellano: habla DEL cliente, no CON el cliente
+ * ("El cliente agradeció", 21/9/2026). El razonamiento EN INGLÉS no se busca
+ * acá: lo agarra `idioma.js` sobre la respuesta entera y la rechaza.
  */
-const PALABRAS_INGLES = new Set(('the and is are was were have has had i you he she it we they should would will ' +
-    'not no to of in on for with that this these those if does do did according instructions user client ' +
-    'customer respond reply message already been be my me further because so then there what which ' +
-    'can could need needs any about from as at by an or but').split(' '));
-const PALABRAS_ESPANOL = new Set(('el la los las de que y en un una por para con se lo le te tu es son está ' +
-    'estás tenés querés hola gracias dale si sí no muy más pero como al del').split(' '));
-
-function esLineaEnIngles(linea) {
-    const palabras = linea.toLowerCase().replace(/https?:\/\/\S+/g, ' ').match(/[a-záéíóúñü']+/g) || [];
-    if (palabras.length < 3) return false;
-    let en = 0, es = 0;
-    for (const p of palabras) {
-        if (PALABRAS_INGLES.has(p)) en++;
-        if (PALABRAS_ESPANOL.has(p)) es++;
-    }
-    return en >= 3 && en > es * 2;
-}
-
-/** Razonamiento interno en castellano: habla DEL cliente, no CON el cliente. */
 const RAZONAMIENTO_INTERNO = [
     /\b(?:el|la) (?:cliente|usuari[oa]) (?:ya |me )?(?:agradeci[óo]|dijo|respondi[óo]|confirm[óo]|pregunt[óo]|escribi[óo]|mand[óo]|envi[óo]|est[áa]|quiere|no requiere)/i,
     /\bseg[úu]n (?:las|mis) instrucciones\b/i,
@@ -148,120 +167,134 @@ const RAZONAMIENTO_INTERNO = [
  * Anotaciones que el pipeline le pone al HISTORIAL entre corchetes (bot-cloud.js
  * `armarHistorial`). El 8 y el 9/10 el modelo las copió y el cliente recibió
  * "Respetá lo que ya dijo y no lo repitas.] Hola Juanma buen dia!…" — incluso
- * sin el corchete de apertura. Se saca el fragmento hasta el `]`, abierto o no.
+ * sin el corchete de apertura. Una anotación en la salida significa que el
+ * modelo está regurgitando la charla (el 8/10 reenvió 7 mensajes de Mile):
+ * no se rescata nada, se RECHAZA la respuesta.
  */
 const CLAVES_DE_ANOTACION = String.raw`(?:Lo escribi[óo]|NO vos|Respet[áa] lo que ya dijo|no lo repitas|Imagen adjunta|Mensaje del cliente|El cliente (?:adjunt[óo]|envi[óo])|audio transcrito|Texto que la acompa[ñn]aba|del equipo de la [óo]ptica)`;
-const ANOTACION_CERRADA = new RegExp(String.raw`\[?[^\[\]\n]*${CLAVES_DE_ANOTACION}[^\[\]\n]*\]`, 'gi');
-const ANOTACION_ABIERTA = new RegExp(String.raw`\[[^\]\n]*${CLAVES_DE_ANOTACION}[^\]\n]*$`, 'gim');
+const ANOTACION_CERRADA = new RegExp(String.raw`\[?[^\[\]\n]*${CLAVES_DE_ANOTACION}[^\[\]\n]*\]`, 'i');
+const ANOTACION_ABIERTA = new RegExp(String.raw`\[[^\]\n]*${CLAVES_DE_ANOTACION}[^\]\n]*$`, 'im');
 
 /** Placeholders en minúscula que el modelo dejó sin completar ("desde [precio]"). */
-const PLACEHOLDER_MINUSCULA = /\[\s*(?:precio|monto|importe|fecha|hora|link|url|direcci[óo]n|cliente|nombre del cliente|producto|modelo)\s*\]/gi;
+const PLACEHOLDER_MINUSCULA = /\[\s*(?:precio|monto|importe|fecha|hora|link|url|direcci[óo]n|cliente|nombre del cliente|producto|modelo)\s*\]/i;
 
 /**
- * Limpia el texto crudo del modelo. Devuelve `{ texto, quitado }` — `quitado`
- * lista qué se sacó, para que el log diga por qué el mensaje salió distinto.
+ * Listas de patrones que se usan con `.test()`. NINGUNA puede llevar la bandera
+ * `g`: con `g`, `.test()` recuerda `lastIndex` entre llamadas y la SEGUNDA
+ * vez que se prueba el mismo patrón empieza a buscar por la mitad — un filtro
+ * que funciona un mensaje sí y otro no. Se exporta para que el check lo mire.
  */
-function limpiarSalidaBot(crudo) {
+const PATRONES_CON_TEST = {
+    FRASES_DE_DERIVACION, MARCADORES_DE_LINEA, FRASES_DE_IDENTIDAD, RAZONAMIENTO_INTERNO,
+    ANOTACION_CERRADA: [ANOTACION_CERRADA], ANOTACION_ABIERTA: [ANOTACION_ABIERTA],
+    PLACEHOLDER_MINUSCULA: [PLACEHOLDER_MINUSCULA], PROMESA_DE_VOLVER: [PROMESA_DE_VOLVER],
+};
+
+const incluyeAlguna = (o, frases) => { const l = o.toLowerCase(); return frases.some(f => l.includes(f)); };
+
+/** Entrada → lista de bloques. Acepta un string o un array de mensajes. */
+function aBloques(entrada) {
+    const lista = Array.isArray(entrada) ? entrada : [entrada];
+    return lista
+        .map(x => String(x ?? ''))
+        .flatMap(x => x.split(/\n[ \t]*\n+/))
+        .map(b => b.replace(/\r/g, ''));
+}
+
+/**
+ * Sanea la salida del modelo.
+ *
+ * @param {string|string[]} entrada  texto crudo, o los `mensajes` de `responder_al_cliente`
+ * @returns {{
+ *   bloques: string[],               // una entrada por burbuja, ya limpias
+ *   quitado: string[],               // qué se sacó (para el log)
+ *   rechazo: null | { tipo: 'anotacion'|'idioma', motivo: string },
+ *   derivo: boolean,                 // se sacó una frase de derivación
+ *   promete: boolean,                // promete volver a escribir
+ * }}
+ */
+function sanearBloques(entrada) {
     const quitado = [];
+    const sinRechazo = (bloques, extra = {}) => ({ bloques, quitado, rechazo: null, derivo: false, promete: false, ...extra });
+
     // Los signos de apertura se sacan por regla de estilo (tono humano en AR).
-    let texto = String(crudo ?? '').replace(/¿/g, '').replace(/¡/g, '');
+    let bloques = aBloques(entrada).map(b => b.replace(/¿/g, '').replace(/¡/g, ''));
+    const todo = bloques.join('\n\n');
+    if (!todo.trim()) return sinRechazo([]);
 
-    // Una anotación del historial en la salida significa que el modelo está
-    // regurgitando la charla (el 8/10 reenvió 7 mensajes de Mile). No se
-    // rescata nada: la respuesta entera se descarta y el turno queda en silencio.
-    ANOTACION_CERRADA.lastIndex = 0; ANOTACION_ABIERTA.lastIndex = 0;
-    if (ANOTACION_CERRADA.test(texto) || ANOTACION_ABIERTA.test(texto)) {
-        ANOTACION_CERRADA.lastIndex = 0; ANOTACION_ABIERTA.lastIndex = 0;
-        return { texto: '', quitado: ['anotación del historial: respuesta entera descartada'] };
+    // ── Lo que no tiene arreglo: se rechaza entero ──────────────────────────
+    if (ANOTACION_CERRADA.test(todo) || ANOTACION_ABIERTA.test(todo)) {
+        return { bloques: [], quitado: ['anotación del historial'], rechazo: { tipo: 'anotacion', motivo: 'copió una anotación del historial' }, derivo: false, promete: false };
     }
-    // Un placeholder sin completar deja la oración rota ("desde ."): se va la oración.
-    PLACEHOLDER_MINUSCULA.lastIndex = 0;
-    if (PLACEHOLDER_MINUSCULA.test(texto)) {
-        texto = texto.replace(new RegExp(String.raw`[^.!?\n]*${PLACEHOLDER_MINUSCULA.source}[^.!?\n]*[.!?]*`, 'gi'), '');
-        quitado.push('placeholder sin completar (oración)');
+    const idioma = detectarIdioma(todo);
+    if (idioma.idioma !== 'es') {
+        return { bloques: [], quitado: [`respuesta en ${idioma.idioma}`], rechazo: { tipo: 'idioma', motivo: `no está en castellano (${idioma.idioma}: en=${idioma.en} es=${idioma.es} pt=${idioma.pt})` }, derivo: false, promete: false };
     }
 
-    // Idioma / razonamiento interno: va primero y se lleva la LÍNEA entera.
-    const lineas = texto.split('\n');
-    const quedan = lineas.filter(l => !(esLineaEnIngles(l) || RAZONAMIENTO_INTERNO.some(re => re.test(l))));
-    if (quedan.length !== lineas.length) {
-        texto = quedan.join('\n');
-        quitado.push('razonamiento interno o texto en inglés (línea completa)');
-    }
-
-    for (const re of MARCADORES_DE_LINEA) {
-        re.lastIndex = 0;
-        if (re.test(texto)) {
-            re.lastIndex = 0;
-            texto = texto.replace(re, '');
-            quitado.push('marcador interno (línea completa)');
-        }
-    }
-
-    SELLO_DE_HORA.lastIndex = 0;
-    if (SELLO_DE_HORA.test(texto)) {
+    // ── Por línea: marcadores internos y sellos de hora ─────────────────────
+    bloques = bloques.map(b => {
+        const lineas = b.split('\n').filter(l => {
+            if (MARCADORES_DE_LINEA.some(re => re.test(l))) { quitado.push('marcador interno (línea completa)'); return false; }
+            return true;
+        });
+        let t = lineas.join('\n');
         SELLO_DE_HORA.lastIndex = 0;
-        texto = texto.replace(SELLO_DE_HORA, '');
-        quitado.push('sello de hora del historial');
-    }
+        if (SELLO_DE_HORA.test(t)) { quitado.push('sello de hora del historial'); SELLO_DE_HORA.lastIndex = 0; t = t.replace(SELLO_DE_HORA, ''); }
+        // Un "[PRECIO]" sin completar NO se saca como token: quedaría "desde ."
+        // con la oración rota. Lo deja pasar para que se vaya la oración entera.
+        t = t.replace(TOKEN_INTERNO, (m) => {
+            if (PLACEHOLDER_MINUSCULA.test(m)) return m;
+            quitado.push('placeholder del prompt');
+            return '';
+        });
+        return t;
+    });
 
-    TOKEN_INTERNO.lastIndex = 0;
-    if (TOKEN_INTERNO.test(texto)) {
-        TOKEN_INTERNO.lastIndex = 0;
-        texto = texto.replace(TOKEN_INTERNO, '');
-        quitado.push('placeholder del prompt');
-    }
-
-    // Derivación: se reemplaza la ORACIÓN por la frase aprobada, una sola vez.
+    // ── Por oración (entera, nunca a la mitad) ──────────────────────────────
     let derivo = false;
-    for (const re of FRASES_DE_DERIVACION) {
-        if (!re.test(texto)) continue;
-        const global = new RegExp(`[^.!?\\n]*${re.source}[^.!?\\n]*[.!?]*`, 'gi');
-        texto = texto.replace(global, '');
-        derivo = true;
-    }
-    if (derivo) {
-        texto = texto.trim() ? `${texto.trim()}\n${FRASE_EN_VEZ_DE_DERIVAR}` : FRASE_EN_VEZ_DE_DERIVAR;
-        quitado.push('frase de derivación (reemplazada)');
-    }
+    let identidad = false;
+    bloques = bloques.map(b => quitarOraciones(b, (o) => {
+        if (PLACEHOLDER_MINUSCULA.test(o)) { quitado.push('placeholder sin completar (oración)'); return true; }
+        if (RAZONAMIENTO_INTERNO.some(re => re.test(o))) { quitado.push('razonamiento interno (oración)'); return true; }
+        if (FRASES_DE_DERIVACION.some(re => re.test(o))) { derivo = true; quitado.push('frase de derivación (oración)'); return true; }
+        if (FRASES_DE_IDENTIDAD.some(re => re.test(o))) { identidad = true; quitado.push('autoidentificación como automático'); return true; }
+        if (incluyeAlguna(o, NARRACION_DEL_SISTEMA)) { quitado.push('narración del sistema (oración)'); return true; }
+        if (incluyeAlguna(o, FRASES_DE_RELLENO) && !llevaDato(o)) { quitado.push('relleno (oración)'); return true; }
+        return false;
+    }).bloque);
 
-    // La autoidentificación se saca por ORACIÓN, antes que el relleno.
-    for (const re of FRASES_DE_IDENTIDAD) {
-        if (!re.test(texto)) continue;
-        const global = new RegExp(`[^.!?\\n]*${re.source}[^.!?\\n]*[.!?]*`, 'gi');
-        texto = texto.replace(global, '');
-        quitado.push('autoidentificación como automático');
-    }
-    // Sacar la oración puede dejar un resto inservible ("Hola!"): el emoji y las
-    // comas no cortan oración, así que a veces se lleva puesto lo que seguía.
-    // Con muy poco texto útil se repone una línea que atiende de verdad — el
-    // cliente nunca se queda sin respuesta ni con un saludo suelto.
-    if (quitado.includes('autoidentificación como automático')) {
-        const util = texto.replace(/[\s.,!?¿¡:;–—-]/g, '');
+    // Normalizar lo que dejaron los borrados, SIN tocar la estructura: espacios
+    // dobles y colgando, y líneas vacías de más DENTRO de un bloque.
+    bloques = bloques
+        .map(b => b.split('\n').map(l => l.replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+$/, '')).join('\n').replace(/\n{2,}/g, '\n').trim())
+        .filter(b => b.replace(/[\s.,!?:;–—-]/g, '') !== '');
+
+    // Sacar la identidad puede dejar un resto inservible ("Hola!"). Con muy
+    // poco texto útil se repone una línea que atiende de verdad.
+    if (identidad) {
+        const util = bloques.join('').replace(/[\s.,!?:;–—-]/g, '');
         if (util.length < 18) {
-            texto = texto.trim() ? `${texto.trim()} ${RESPUESTA_SIN_IDENTIDAD}` : RESPUESTA_SIN_IDENTIDAD;
+            bloques.push(RESPUESTA_SIN_IDENTIDAD);
             quitado.push('(se repuso una respuesta, para no dejar al cliente con un saludo suelto)');
         }
     }
 
-    for (const frase of FRASES_DE_RELLENO) {
-        if (texto.toLowerCase().includes(frase)) {
-            const esc = frase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            texto = texto.replace(new RegExp(`[^.!?\\n]*${esc}[^.!?\\n]*[.!?]*`, 'gi'), '');
-            quitado.push(`relleno: "${frase}"`);
-        }
-    }
+    const promete = bloques.some(b => PROMESA_DE_VOLVER.test(b));
+    return { bloques, quitado: [...new Set(quitado)], rechazo: null, derivo, promete };
+}
 
-    // Normalizar lo que dejaron los borrados: espacios dobles, líneas vacías de
-    // más (pero conservando el \n\n, que es lo que parte los mensajes) y
-    // espacios colgando al final de cada línea.
-    texto = texto
-        .replace(/[ \t]{2,}/g, ' ')
-        .replace(/[ \t]+$/gm, '')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+/**
+ * Versión de texto (string → string), para lo que todavía trabaja con texto
+ * plano (scripts de evaluación, checks). Un rechazo devuelve texto vacío.
+ */
+function limpiarSalidaBot(crudo) {
+    const r = sanearBloques(crudo);
+    return { texto: r.rechazo ? '' : r.bloques.join('\n\n'), quitado: r.rechazo ? [...r.quitado, `RECHAZADA: ${r.rechazo.motivo}`] : r.quitado };
+}
 
-    return { texto, quitado };
+/** Compatibilidad: true si la línea, sola, no está en castellano. */
+function esLineaEnIngles(linea) {
+    return detectarIdioma(linea).idioma === 'en';
 }
 
 
@@ -273,11 +306,8 @@ function limpiarSalidaBot(crudo) {
 // probarte los armazones, te esperamos en el local" y, al toque, con "Cuando
 // tengas tu recetita o quieras ver los armazones, aquí estamos". Para una
 // persona es la MISMA frase; para una comparación literal, dos textos distintos.
-//
-// `bot-cloud.js` (el bot que está en uso) no tenía NINGÚN anti-repetición: el
-// que existía vivía solo en `index.js`, el transporte viejo, y encima era
-// literal. Acá se compara por palabras con peso, que es lo que hace que dos
-// frases se sientan iguales aunque cambien los diminutivos y el orden.
+// Acá se compara por palabras con peso, que es lo que hace que dos frases se
+// sientan iguales aunque cambien los diminutivos y el orden.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Palabras vacías: no aportan a decidir si dos frases dicen lo mismo. */
@@ -285,14 +315,13 @@ const VACIAS = new Set(['de','la','el','los','las','un','una','unos','unas','y',
 
 /** Minúsculas, sin acentos ni puntuación: "recetita" y "receta" siguen distintas, pero "Receta." y "receta" no. */
 function normalizar(t) {
-    return String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9ñ\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    return String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /** Raíz aproximada: aplasta diminutivos y plurales ("recetita"/"recetas" → "recet"). */
 function raiz(palabra) {
     // El recorte va DESPUÉS de sacar el sufijo y es corto a propósito: si no,
-    // "recetita" quedaba en "recet" y "receta" en "receta", o sea distintas —
-    // justo el par que había que emparejar.
+    // "recetita" quedaba en "recet" y "receta" en "receta", o sea distintas.
     return palabra.replace(/(cita|cito|itas|itos|ita|ito|ciones|cion|es|s)$/, '').slice(0, 5);
 }
 
@@ -301,11 +330,8 @@ function palabrasClave(frase) {
 }
 
 /**
- * Qué parte de la frase NUEVA ya está dicha en la vieja, 0 a 1.
- *
- * Es contención, no Jaccard: la pregunta no es "se parecen", es "¿esto que voy
- * a decir ya lo dije?". Con Jaccard, una frase vieja más larga bajaba el
- * puntaje aunque contuviera entera a la nueva.
+ * Qué parte de la frase NUEVA ya está dicha en la vieja, 0 a 1. Es contención,
+ * no Jaccard: la pregunta es "¿esto que voy a decir ya lo dije?".
  */
 function yaEstaDicho(nueva, vieja) {
     const A = palabrasClave(nueva); const B = palabrasClave(vieja);
@@ -318,39 +344,42 @@ function yaEstaDicho(nueva, vieja) {
 /**
  * Umbral DELIBERADAMENTE alto. Lo que se borra acá no se puede recuperar, y
  * entre "el bot se despidió dos veces" y "el bot se comió el precio", lo caro
- * es lo segundo. Con 0.75 caen las frases prácticamente idénticas (cambios de
- * diminutivo, de orden, de puntuación) y no las que apenas comparten tema.
- * Las paráfrasis más sueltas quedan para el prompt, no para el filtro.
+ * es lo segundo.
  */
 const UMBRAL_PARECIDO = 0.75;
 
 /**
- * Saca del texto las oraciones que ya se dijeron en los mensajes previos del bot.
+ * Saca las oraciones que ya se dijeron en los mensajes previos.
  *
- * @param {string}   texto
- * @param {string[]} mensajesPreviosDelBot  los últimos salientes del bot (no de humanos)
- * @returns {{ texto: string, quitadas: string[] }}
+ * Trabaja sobre BLOQUES y los devuelve como bloques (10/10/2026): la versión
+ * anterior recibía un string, lo partía por `\n`, descartaba las líneas vacías
+ * y lo volvía a unir con `\n` — o sea, convertía cada `\n\n` en `\n`. Como las
+ * burbujas se separan por `\n\n`, después de este paso TODA la respuesta salía
+ * en una sola burbuja (y `limitarEmojis` le dejaba un solo emoji).
+ *
+ * @param {string[]|string} bloques
+ * @param {string[]} mensajesPreviosDelBot
+ * @returns {{ bloques: string[], texto: string, quitadas: string[] }}
  */
-function quitarRepeticiones(texto, mensajesPreviosDelBot = []) {
+function quitarRepeticiones(bloques, mensajesPreviosDelBot = []) {
+    const lista = Array.isArray(bloques) ? bloques : aBloques(bloques);
     const previos = (mensajesPreviosDelBot || []).map(String).filter(Boolean);
-    if (!previos.length) return { texto, quitadas: [] };
+    if (!previos.length) return { bloques: lista, texto: lista.join('\n\n'), quitadas: [] };
+    const previosNorm = previos.map(normalizar);
 
     const quitadas = [];
-    // Se parte por oración pero se conservan los saltos: son los que separan burbujas.
-    const salida = texto.split('\n').map(linea => {
-        const oraciones = linea.split(/(?<=[.!?])\s+/);
-        const quedan = oraciones.filter(o => {
-            // Las frases muy cortas ("Dale!", "Perfecto") se repiten por naturaleza.
-            if (normalizar(o).length < 25) return true;
-            const repetida = previos.some(p =>
-                normalizar(p).includes(normalizar(o)) || yaEstaDicho(o, p) >= UMBRAL_PARECIDO);
-            if (repetida) quitadas.push(o.trim());
-            return !repetida;
+    const salida = lista.map(b => {
+        // Un precio o un link no se borran por "repetidos": el cliente puede
+        // necesitarlo de nuevo, y es lo único caro de perder.
+        const r = quitarOraciones(b, (o) => {
+            if (normalizar(o).length < 25 || llevaDato(o)) return false;
+            const n = normalizar(o);
+            return previos.some((p, i) => previosNorm[i].includes(n) || yaEstaDicho(o, p) >= UMBRAL_PARECIDO);
         });
-        return quedan.join(' ').trim();
-    }).filter(l => l !== '').join('\n');
-
-    return { texto: salida.trim(), quitadas };
+        quitadas.push(...r.quitadas);
+        return r.bloque.trim();
+    }).filter(b => b !== '');
+    return { bloques: salida, texto: salida.join('\n\n'), quitadas };
 }
 
 
@@ -364,14 +393,11 @@ function quitarRepeticiones(texto, mensajesPreviosDelBot = []) {
 //   % de 40 o menos        11%       57%
 //   % con emoji            52%       19%
 //
-// El prompt tiene estas reglas escritas desde el 31/8 y no se cumplen: el bot
-// escribe CUATRO VECES más largo y usa el triple de emojis. La conclusión es
-// que una regla de estilo en el prompt es una sugerencia; la que se cumple es
-// la que está en el código. (Prueba: la regla de no usar `¿` ni `¡` SÍ se
-// cumple —0% contra 2% del equipo— y es la única que estaba en código.)
+// Una regla de estilo en el prompt es una sugerencia; la que se cumple es la
+// que está en el código.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const EMOJI = /(?:\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
+const EMOJI = /(?:\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic})*)/gu;
 
 /** Deja como mucho UN emoji por burbuja: el primero. */
 function limitarEmojis(texto) {
@@ -380,39 +406,38 @@ function limitarEmojis(texto) {
         if (visto) return '';
         visto = true;
         return m;
-    }).replace(/[ \t]{2,}/g, ' ').replace(/\s+([.,!?])/g, '$1').trim();
+    }).replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+([,!?])/g, '$1').replace(/[ \t]+\.(?!\d)/g, '.').trim();
 }
 
 /**
  * ¿Este bloque tiene estructura que NO hay que partir? Los presupuestos, la
- * dirección con el mapa y las listas de opciones se leen mejor juntos: son lo
- * único largo que el equipo también manda largo.
+ * dirección con el mapa y las listas de opciones se leen mejor juntos.
  */
 function tieneEstructura(bloque) {
-    return /^\s*[•\-*]\s/m.test(bloque)          // viñetas
-        || /\*\$[\d.]+\*/.test(bloque)            // precios en negrita
-        || /\[IMAGE:/i.test(bloque)               // foto adjunta
-        || /https?:\/\//.test(bloque)             // links (mapa, tienda, ficha)
-        || (bloque.match(/\n/g) || []).length >= 2; // ya viene armado en renglones
+    return /^\s*[•\-*]\s/m.test(bloque)
+        || /\*\$[\d.]+\*/.test(bloque)
+        || /\[IMAGE:/i.test(bloque)
+        || /https?:\/\//.test(bloque)
+        || (bloque.match(/\n/g) || []).length >= 2;
 }
 
 /** A partir de acá una burbuja de prosa se siente un párrafo, no un mensaje. */
 const LARGO_MAXIMO_BURBUJA = 160;
 
 /**
- * Parte un bloque largo de PROSA en varias burbujas, cortando por oración.
- * Lo estructurado no se toca. Nunca deja una burbuja huérfana de menos de 25
- * caracteres: se la pega a la anterior.
+ * Parte un bloque largo de PROSA en varias burbujas, cortando por oración (con
+ * el mismo divisor que protege precios y links). Nunca deja una burbuja
+ * huérfana de menos de 25 caracteres: se la pega a la anterior.
  */
 function partirEnBurbujas(bloque) {
-    if (bloque.length <= LARGO_MAXIMO_BURBUJA || tieneEstructura(bloque)) return [bloque];
+    if (bloque.length <= LARGO_MAXIMO_BURBUJA || tieneEstructura(bloque) || bloque.includes('\n')) return [bloque];
 
-    const oraciones = bloque.split(/(?<=[.!?])\s+/).filter(Boolean);
-    if (oraciones.length < 2) return [bloque];
+    const os = oraciones(bloque);
+    if (os.length < 2) return [bloque];
 
     const burbujas = [];
     let actual = '';
-    for (const o of oraciones) {
+    for (const o of os) {
         if (!actual) { actual = o; continue; }
         if ((actual + ' ' + o).length <= LARGO_MAXIMO_BURBUJA) actual += ' ' + o;
         else { burbujas.push(actual); actual = o; }
@@ -424,4 +449,8 @@ function partirEnBurbujas(bloque) {
     return burbujas;
 }
 
-module.exports = { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas, FRASES_DE_RELLENO, FRASES_DE_IDENTIDAD, esLineaEnIngles };
+module.exports = {
+    sanearBloques, limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas,
+    FRASES_DE_RELLENO, NARRACION_DEL_SISTEMA, FRASES_DE_IDENTIDAD, FRASE_EN_VEZ_DE_DERIVAR,
+    PATRONES_CON_TEST, esLineaEnIngles,
+};

@@ -13,8 +13,7 @@ const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 const { generateFollowUpMessage } = require('../followups/message-generator');
 const { evaluateConversationGate, applyCancelVerdict } = require('../followups/conversation-gate');
-const { runOutputGuardrail } = require('../services/ai.service');
-const { limpiarSalidaBot } = require('../shared/limpiar-salida-bot');
+const { revisarSalidaLLM } = require('../shared/punto-de-salida');
 const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
 
 // Pool de variantes de RESPALDO: solo se usa si la generación personalizada falla.
@@ -218,26 +217,18 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         selectedText = pool[Math.floor(Math.random() * pool.length)];
                     }
 
-                    // Saneado ANTES del guardrail (mismo orden que los bots y
-                    // que `followups/sender.js`): este camino no pasa por
-                    // `sendFollowUp`, llama a `sendMessage` directo, así que
-                    // necesita su propio saneado o el recordatorio sale con
-                    // marcadores internos — o lo descarta entero una frase que
-                    // el anti-relleno solo habría recortado.
-                    const { texto: textoSaneado, quitado } = limpiarSalidaBot(selectedText);
-                    if (quitado.length) console.log(`  🧹 [Follow-Up] Saneado de salida: ${quitado.join(' · ')}`);
-                    if (!textoSaneado.trim()) {
-                        console.warn(`  ⏹️ [Follow-Up] Vacío tras el saneado para ${chat.profileName || chat.waId}. Se saltea.`);
+                    // El recordatorio sale con origen 'llm' y el transporte lo
+                    // sanea y lo pasa por el guardrail (shared/punto-de-salida.js).
+                    // La misma revisión corre acá por adelantado para no
+                    // reclamar el cooldown con un texto que igual se rechazaría
+                    // y para guardar en el buzón lo que de verdad sale.
+                    const revision = revisarSalidaLLM(selectedText);
+                    if (revision.quitado.length) console.log(`  🧹 [Follow-Up] Saneado de salida: ${revision.quitado.join(' · ')}`);
+                    if (!revision.ok) {
+                        console.warn(`  🚫 [Follow-Up] Recordatorio rechazado (${revision.motivo}) para ${chat.profileName || chat.waId}: "${String(selectedText).substring(0, 80)}"`);
                         continue;
                     }
-                    selectedText = textoSaneado;
-
-                    // Guardrail de salida: mismo filtro final que el bot conversacional
-                    const guardrail = runOutputGuardrail(selectedText);
-                    if (!guardrail.safe) {
-                        console.warn(`  🚫 [Follow-Up] Bloqueado por guardrail (${guardrail.reason}) para ${chat.profileName || chat.waId}: "${selectedText.substring(0, 80)}"`);
-                        continue;
-                    }
+                    selectedText = revision.texto;
 
                     // Reclamo ANTES de encolar: si esta corrida se solapa con la
                     // siguiente (la cola anti-ban puede demorar más que los 15
@@ -254,6 +245,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                     await new Promise(r => setTimeout(r, 2000));
 
                     const sent = await sendMessage(chat.waId, selectedText, null, {
+                        origen: 'llm',
                         isProactive: true,
                         // Revalidación al momento del envío físico: el mensaje
                         // puede esperar en la cola anti-ban mucho más que estos

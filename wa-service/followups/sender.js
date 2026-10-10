@@ -7,9 +7,8 @@ const { prisma } = require('../db');
 const outbox = require('./outbox');
 const { evaluarElegibilidad } = require('./politica');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
-const { runOutputGuardrail } = require('../services/ai.service');
 const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
-const { limpiarSalidaBot } = require('../shared/limpiar-salida-bot');
+const { revisarSalidaLLM } = require('../shared/punto-de-salida');
 const {
     TEST_MODE,
     TEST_PHONE,
@@ -92,17 +91,18 @@ async function preSendValidation(chatId, waId) {
 async function sendFollowUp({ waId, text: textoCrudo, chatId, label, clientName, followUpType, claim, origen, outboxId }) {
     const logPrefix = TEST_MODE ? '[TEST Follow-Up]' : '[Follow-Up]';
 
-    // Saneado ANTES de todo (mismo helper y mismo orden que los dos bots): el
-    // texto del seguimiento también lo escribe el modelo, así que puede traer
-    // marcadores internos, y las ocho frases que comparten el guardrail y el
-    // anti-relleno acá descartaban el seguimiento entero (SKIPPED) en vez de
-    // perder solo su oración. Se sanea antes de persistir en la outbox para que
-    // lo guardado sea EXACTAMENTE lo que se manda.
-    const { texto: text, quitado } = limpiarSalidaBot(textoCrudo);
-    if (quitado.length) console.log(`  🧹 ${logPrefix} Saneado de salida: ${quitado.join(' · ')}`);
+    // El texto del seguimiento lo escribe el modelo: sale con origen 'llm' y el
+    // transporte lo sanea y lo pasa por el guardrail (shared/punto-de-salida.js).
+    // Acá se corre la MISMA revisión por adelantado solo para dos cosas: guardar
+    // en la outbox exactamente lo que va a salir, y no encolar algo que el
+    // transporte igual va a rechazar. No es un segundo saneador: es el mismo,
+    // y es idempotente.
+    const revision = revisarSalidaLLM(textoCrudo);
+    if (revision.quitado.length) console.log(`  🧹 ${logPrefix} Saneado de salida: ${revision.quitado.join(' · ')}`);
+    const text = revision.texto;
     if (!text.trim()) {
-        console.warn(`  ⏹️ ${logPrefix} Vacío tras el saneado para ${clientName}. No se envía.`);
-        return { sent: false, reason: 'Vacío tras el saneado' };
+        console.warn(`  ⏹️ ${logPrefix} Vacío o rechazado tras el saneado para ${clientName} (${revision.motivo}). No se envía.`);
+        return { sent: false, reason: `Saneado: ${revision.motivo}` };
     }
 
     // Outbox (Fase 1 del motor): el envío queda persistido desde acá hasta su
@@ -119,13 +119,12 @@ async function sendFollowUp({ waId, text: textoCrudo, chatId, label, clientName,
     }
 
     try {
-        // 0. Guardrail de salida: mismo filtro final que el bot conversacional
-        // (datos prohibidos, títulos, narración interna, CUIDs, revelación de bot)
-        const guardrail = runOutputGuardrail(text);
-        if (!guardrail.safe) {
-            console.warn(`  🚫 ${logPrefix} Bloqueado por guardrail (${guardrail.reason}): "${(text || '').substring(0, 80)}"`);
-            await outbox.marcar(filaOutbox, 'SKIPPED', `Guardrail: ${guardrail.reason}`);
-            return { sent: false, reason: `Guardrail: ${guardrail.reason}` };
+        // 0. Guardrail de salida (el mismo que corre el transporte): datos
+        // prohibidos, títulos, narración interna, CUIDs, revelación de bot.
+        if (!revision.ok) {
+            console.warn(`  🚫 ${logPrefix} Bloqueado (${revision.motivo}): "${(text || '').substring(0, 80)}"`);
+            await outbox.marcar(filaOutbox, 'SKIPPED', revision.motivo);
+            return { sent: false, reason: revision.motivo };
         }
 
         // 1. Re-validar estado del chat
@@ -172,6 +171,7 @@ async function sendFollowUp({ waId, text: textoCrudo, chatId, label, clientName,
 
         console.log(`  ✉️ ${logPrefix} Enviando mensaje a ${clientName} (${targetWaId.substring(0, 15)}...)${media ? ' con foto adjunta' : ''}`);
         const sent = await sendMessage(targetWaId, messageText, media, {
+            origen: 'llm',
             isProactive: true,
             preflight: async () => {
                 const recheck = await preSendValidation(chatId, waId);

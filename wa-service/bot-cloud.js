@@ -35,7 +35,8 @@ const { BotService } = require('./services/bot.service');
 const { runOutputGuardrail } = require('./services/ai.service');
 const { generateAndSaveHandoffSummary } = require('./tools');
 const { TAGS_SIN_BOT } = require('./utils');
-const { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas } = require('./shared/limpiar-salida-bot');
+const { leerSalidaDelGrafo, armarRespuesta, crearTurno } = require('./shared/respuesta-del-turno');
+const { escalarAHumano } = require('./shared/escalar');
 const { esConsulta } = require('./shared/tipos-entrantes');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano, NOMBRES_NO_HUMANOS } = require('./shared/remitentes');
@@ -44,7 +45,6 @@ const { resolveWaMessageId } = require('./shared/message-id');
 const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
 const { leerReceta, MAX_FOTOS_POR_LECTURA } = require('./shared/leer-receta');
 const { urlDelMedio } = require('./shared/url-del-medio');
-const { setSender } = require('./shared/sender');
 
 // Cuánto se espera antes de contestar, para juntar las burbujas que el cliente
 // manda seguidas (mismo criterio que el transporte legacy). Configurable por
@@ -116,7 +116,9 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
 
     // ── Salida: SIEMPRE por el transporte cloud ─────────────────────────────
     // `options.chat` le ahorra al transporte la consulta de la ventana cuando ya
-    // tenemos el chat; el chequeo de 24 h corre igual.
+    // tenemos el chat; el chequeo de 24 h corre igual. `options.origen` es
+    // obligatorio: el transporte rechaza el envío sin él, y si es 'llm' sanea
+    // y pasa por el guardrail cada burbuja (shared/punto-de-salida.js).
     const sendViaCloud = (waId, content, media = null, options = {}) =>
         transport.sendMessage(waId, content, adaptMedia(media), options);
 
@@ -628,6 +630,9 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 }).catch(() => freshChat.client);
             }
 
+            // La cola de envíos del turno: las herramientas (send_product_photos)
+            // encolan acá y nada sale hasta el bucle de burbujas de abajo.
+            const turno = crearTurno();
             const state = {
                 messages,
                 userPhone: realPhone || freshChat.realPhone || '',
@@ -639,18 +644,35 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 clientData: freshChat.client || null,
                 chatSummary: freshChat.chatSummary || null,
             };
+            // Corte del turno que de verdad CORTA (10/10/2026). Antes era un
+            // Promise.race: el turno "terminaba" a los 30 s pero el grafo seguía
+            // corriendo de fondo, y una herramienta que mandaba fotos las
+            // mandaba igual, sin respuesta del bot detrás. Ahora la señal llega
+            // al grafo (LangGraph corta entre pasos y la pasa a los modelos y a
+            // las herramientas) y el turno queda cancelado: lo encolado se tira.
+            const abortar = new AbortController();
             // recursionLimit acá y no en compile(): LangGraph lo ignora en compile().
-            const config = { configurable: { thread_id: waId }, recursionLimit: RECURSION_LIMIT };
+            const config = { configurable: { thread_id: waId, turno }, recursionLimit: RECURSION_LIMIT, signal: abortar.signal };
 
             let result;
+            let reloj = null;
             try {
                 result = await Promise.race([
                     graph.invoke(state, config),
-                    new Promise((_, rej) => setTimeout(() => rej(new Error(`Bot timeout: graph.invoke superó ${GRAPH_TIMEOUT_MS}ms`)), GRAPH_TIMEOUT_MS)),
+                    new Promise((_, rej) => {
+                        reloj = setTimeout(() => {
+                            turno.cancelar();
+                            abortar.abort(new Error(`Bot timeout: graph.invoke superó ${GRAPH_TIMEOUT_MS}ms`));
+                            rej(new Error(`Bot timeout: graph.invoke superó ${GRAPH_TIMEOUT_MS}ms`));
+                        }, GRAPH_TIMEOUT_MS);
+                    }),
                 ]);
             } catch (graphErr) {
                 console.error(`  ❌ [BotCloud] graph.invoke: ${graphErr.message}`);
+                turno.cancelar();
                 result = { messages: [] };
+            } finally {
+                clearTimeout(reloj);
             }
 
             const salida = Array.isArray(result && result.messages) ? result.messages : [];
@@ -672,8 +694,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // óptica los contienen: medido contra la base real, el 5,3% de los
             // productos y el 15% de los presupuestos de 3 opciones disparaban la
             // falsa alarma, y el turno se descartaba entero — el cliente no
-            // recibía NADA. Encima era ciego a caídas de verdad (ETIMEDOUT,
-            // fetch failed, timeout). Lo cuida `npm run check:bot-errores`.
+            // recibía NADA. Lo cuida `npm run check:bot-errores`.
             const conError = salida.find(m => {
                 const esTool = m.tool_call_id !== undefined || (typeof m.getType === 'function' && m.getType() === 'tool');
                 return esTool && esFallaTransitoriaDeHerramienta(m);
@@ -684,51 +705,53 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 return;
             }
 
-            if (salida.length === 0) {
+            if (salida.length === 0 || turno.cancelado) {
                 await fallaTransitoria(chat, waId, profileName, 'Respuesta vacía: posible timeout o límite de recursión');
                 return;
             }
 
-            const responseText = salida[salida.length - 1].content;
-            if (!responseText) return;
-
-            // ── Saneado ANTES del guardrail ─────────────────────────────────
-            // El orden importa y estaba al revés. Ocho frases ("reviso en el
-            // sistema", "según nuestros registros", …) están en las DOS listas:
-            // en `internalErrorKeywords` del guardrail y en el anti-relleno.
-            // Con el guardrail primero ganaba siempre el guardrail, que no
-            // borra la oración: DESCARTA el mensaje entero (el cliente no
-            // recibe nada) y suma una falla; a la tercera seguida el bot se
-            // apaga en ese chat con "Errores técnicos persistentes". El
-            // anti-relleno, que solo habría sacado esa oración, era código
-            // muerto para esas frases.
-            // Saneando primero, el guardrail juzga LO QUE EL CLIENTE VA A VER,
-            // y ya no se le puede disparar con un marcador interno que el
-            // modelo repitió y que igual íbamos a borrar.
-            const { texto: saneado, quitado } = limpiarSalidaBot(responseText);
-            if (quitado.length) console.log(`  🧹 [BotCloud] Saneado de salida: ${quitado.join(' · ')}`);
-
-            // No repetirse. Se compara SOLO contra lo que dijo el bot: lo que
-            // escribió una persona del equipo no se toca (y si el bot lo
-            // repitiera, el problema es otro). `bot-cloud.js` no tenía ningún
-            // anti-repetición — el que había vivía en `index.js`, el transporte
-            // viejo, y era literal.
-            // También lo que escribió el equipo: el 8/10 el bot le re-mandó al
-            // cliente, palabra por palabra, los mensajes que le había escrito Mile.
-            const dichoPorElBot = [
+            // ── Qué quiere decir el turno → burbujas ─────────────────────────
+            // Una sola función para los dos bots (shared/respuesta-del-turno.js):
+            // lee la salida estructurada (responder_al_cliente / no_responder) o
+            // el texto suelto, sanea, saca lo repetido, decide si hace falta
+            // dejar una tarea y arma las burbujas — las fotos que encolaron las
+            // herramientas primero, el texto del modelo después.
+            //
+            // No repetirse: se compara contra lo último del bot Y del equipo. El
+            // 8/10 el bot le re-mandó al cliente, palabra por palabra, los
+            // mensajes que le había escrito Mile.
+            const dichoAntes = [
                 ...recientes.filter(m => m.direction === 'OUTBOUND' && !esRemitenteHumano(m.senderName)).slice(0, 3),
                 ...recientes.filter(m => m.direction === 'OUTBOUND' && esRemitenteHumano(m.senderName)).slice(0, 10),
             ].map(m => m.content || '');
-            const { texto: textoLimpio, quitadas } = quitarRepeticiones(saneado, dichoPorElBot);
-            if (quitadas.length) console.log(`  🔄 [BotCloud] Ya lo había dicho, se saca: ${quitadas.map(q => `"${q.slice(0, 50)}…"`).join(' · ')}`);
+            const lecturaDelGrafo = leerSalidaDelGrafo(result, messages.length);
+            const respuesta = armarRespuesta({ salida: lecturaDelGrafo, encolados: turno.envios, dichoAntes });
+            if (respuesta.quitado.length) console.log(`  🧹 [BotCloud] Saneado de salida: ${respuesta.quitado.join(' · ')}`);
+            if (respuesta.repetidas.length) console.log(`  🔄 [BotCloud] Ya lo había dicho, se saca: ${respuesta.repetidas.map(q => `"${q.slice(0, 50)}…"`).join(' · ')}`);
 
-            if (!textoLimpio.trim()) {
+            if (respuesta.accion === 'callar') {
+                console.log(`  🤐 [BotCloud] El modelo decidió no responder (${profileName}): ${String(respuesta.motivo || '').slice(0, 120)}`);
+                chatErrorCounts.delete(chat.id);
+                return;
+            }
+            if (respuesta.accion === 'rechazar') {
+                // Otro idioma o una anotación del historial copiada: no se
+                // rescata nada (el grafo ya le pidió una vez que la rehiciera).
+                console.warn(`  🛑 [BotCloud] Respuesta rechazada (${profileName}): ${respuesta.motivo}`);
+                await fallaTransitoria(chat, waId, profileName, `Salida rechazada: ${respuesta.motivo}`);
+                return;
+            }
+            if (respuesta.accion !== 'enviar') {
                 console.log('  ⏹️ [BotCloud] No quedó nada para decir (era todo repetido o interno). No se envía nada.');
                 return;
             }
 
-            // ── Guardrail de salida ─────────────────────────────────────────
-            const guardrail = runOutputGuardrail(textoLimpio);
+            // ── Guardrail de salida (del turno) ─────────────────────────────
+            // El transporte vuelve a pasar cada burbuja del modelo por el
+            // guardrail, pero las CONSECUENCIAS (apagar el bot, la nota en la
+            // ficha, la tarea urgente) se deciden acá, mirando la respuesta
+            // entera y antes de mandar la primera burbuja.
+            const guardrail = runOutputGuardrail(respuesta.textoLLM);
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [BotCloud] Respuesta bloqueada por el guardrail: ${guardrail.reason}`);
                 if (guardrail.reason === 'Narración de Error Interno' || guardrail.reason === 'Solicitud de Dato Prohibido o Presentación Indebida') {
@@ -738,12 +761,15 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 const esSospechaDeBot = guardrail.reason.includes('Revelación de Identidad');
                 await disableBotForChatById(chat.id, `Brecha de seguridad (Guardrail: ${guardrail.reason})`);
                 if (freshChat.clientId) {
+                    // En la ficha va lo SANEADO: la nota la leen las vendedoras
+                    // y el texto crudo puede traer justo lo que se bloqueó
+                    // (antes se guardaba `responseText` tal cual salió del modelo).
                     await prisma.interaction.create({
                         data: {
                             clientId: freshChat.clientId,
                             type: 'NOTE',
                             userName: 'Bot',
-                            content: `⚠️ [Output Guardrail] Bot desactivado. ${esSospechaDeBot ? 'El cliente sospecha que habla con un bot; se apagó en silencio.' : 'Se bloqueó una respuesta con datos internos.'} Respuesta original: "${String(responseText).substring(0, 150)}..."`,
+                            content: `⚠️ [Output Guardrail] Bot desactivado. ${esSospechaDeBot ? 'El cliente sospecha que habla con un bot; se apagó en silencio.' : 'Se bloqueó una respuesta con datos internos.'} Respuesta bloqueada: "${respuesta.textoLLM.substring(0, 150)}..."`,
                         },
                     }).catch(e => console.error('[BotCloud] No se pudo guardar la nota del guardrail:', e.message));
                     if (esSospechaDeBot) {
@@ -763,7 +789,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                     where: { chatId: chat.id, direction: 'INBOUND', createdAt: { gt: masNuevoProcesado.createdAt } },
                 });
                 if (nuevos > 0) {
-                    console.log('  ⏳ [BotCloud] Llegaron mensajes nuevos: se descarta esta respuesta.');
+                    console.log('  ⏳ [BotCloud] Llegaron mensajes nuevos: se descarta esta respuesta (fotos incluidas).');
                     return; // botReplyingTo todavía no se marcó: no hay que limpiar nada
                 }
             }
@@ -775,15 +801,14 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // este turno y termina el modelo pasan 10-30 s, y en ese hueco una
             // vendedora puede contestar desde el teléfono. Medido el 16/9/2026
             // sobre 45 días: 2 casos así (7/9 y 9/9), los dos con el bot
-            // hablando "0 minutos después" de la persona. Es el último control
-            // antes de mandar, y es el único lugar donde se puede ver.
+            // hablando "0 minutos después" de la persona.
             // Se pregunta ANTES DE CADA BURBUJA, no una sola vez. El 17/9/2026
             // el control existía pero corría solo acá arriba: el turno arrancó
             // 12:08:21, Milena mandó un audio 12:08:23 —después de este
             // chequeo— y las dos burbujas salieron igual, 12:08:26 y 12:08:28,
-            // encimadas con ella. Entre burbuja y burbuja hay pausas y bajadas
-            // de media: son segundos en los que una persona puede entrar, y el
-            // único momento en que eso se puede ver es justo antes de mandar.
+            // encimadas con ella. Desde el 10/10/2026 las fotos de
+            // send_product_photos pasan por acá también (antes salían desde
+            // adentro del grafo, sin este control).
             const humanoSeAdelanto = async () => {
                 const humano = await prisma.whatsAppMessage.findFirst({
                     where: {
@@ -798,8 +823,6 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 console.log(`  🙋 [BotCloud] ${humano.senderName} contestó mientras el bot hablaba: se corta el turno y el bot se calla en este chat.`);
                 // El MISMO helper que los otros dos caminos de traspaso: además
                 // de apagar, deja la etiqueta que marca "acá entró una persona".
-                // Sin ella este apagado no sería un traspaso a los ojos del
-                // resto del sistema y el bot no volvería solo a las 3 horas.
                 await marcarTraspasoHumano({
                     prisma, chatId: chat.id, disableBotForChatById,
                     motivo: 'Intervención humana durante el turno del bot',
@@ -809,54 +832,29 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
 
             if (await humanoSeAdelanto()) return;
 
-            botReplyingTo.add(waId);
-
-            let texto = textoLimpio;
-            if (!texto.trim()) {
-                console.log('  ⏹️ [BotCloud] Respuesta vacía tras el filtrado. No se envía nada.');
-                botReplyingTo.delete(waId);
-                return;
+            // ── Promesa sin encargado → la tarea la crea el código ──────────
+            // "Lo confirmo y te escribo en un ratito" solo vale si alguien va a
+            // escribir. Si el modelo derivó o prometió sin llamar a pedir_ayuda /
+            // create_task / report_complaint (o el grafo cortó un bucle con esa
+            // frase), se escala desde acá: tarea, nota y aviso, y el bot se
+            // aparta de este chat — igual que si hubiera llamado a pedir_ayuda.
+            if (respuesta.escalar) {
+                console.log(`  🙋 [BotCloud] ${respuesta.escalar.motivo}: se deja la tarea desde el código (${profileName}).`);
+                await escalarAHumano(
+                    { notifyAdminDown: transport.notifyAdminDown, disableBotForChatById },
+                    { chatId: chat.id, motivo: respuesta.escalar.motivo },
+                ).catch(e => console.error('  ❌ [BotCloud] No se pudo escalar:', e.message));
             }
 
-            // Un mismo bloque no sale dos veces en el mismo turno. El 5/9/26 el
-            // bot mandó DOS veces idéntico el mensaje de la dirección + foto de
-            // la fachada, con un minuto de diferencia cero: el modelo lo escribió
-            // repetido y acá se enviaba tal cual, una burbuja por bloque. El
-            // transporte no duplica (su reintento respeta `ambiguous`), así que
-            // el único lugar donde se puede cortar es éste.
-            const vistos = new Set();
-            const bloques = texto.split('\n\n').map(b => b.trim()).filter(Boolean).filter(b => {
-                const firma = b.toLowerCase().replace(/\s+/g, ' ');
-                if (vistos.has(firma)) {
-                    console.log(`  ♻️ [BotCloud] Bloque repetido en el mismo turno, no se manda: "${b.slice(0, 60)}…"`);
-                    return false;
-                }
-                vistos.add(firma);
-                return true;
-            })
-            // Escribir como el equipo, no como un folleto. Medido en producción:
-            // el bot manda 129 caracteres de mediana contra 31 del equipo, y usa
-            // emoji en el 52% de las burbujas contra el 19%. Las mismas reglas
-            // están en el prompt desde el 31/8 y no se cumplen — una regla de
-            // estilo en el prompt es una sugerencia; la que rige es la del código.
-            // Los presupuestos, la dirección y todo lo que tiene viñetas, precios
-            // o links NO se parte: eso el equipo también lo manda largo.
-                .flatMap(partirEnBurbujas)
-                .map(limitarEmojis)
-                .filter(Boolean);
-            for (let i = 0; i < bloques.length; i++) {
-                let bloque = bloques[i];
-                const urls = [];
-                const re = /\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi;
-                let m;
-                while ((m = re.exec(bloque)) !== null) urls.push(m[1]);
-                bloque = bloque.replace(/\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi, '').trim();
-                if (!bloque && urls.length === 0) continue;
+            botReplyingTo.add(waId);
+
+            const { burbujas } = respuesta;
+            for (let i = 0; i < burbujas.length; i++) {
+                const { texto: bloque, imagenes: urls, origen } = burbujas[i];
 
                 // Lo que ya salió, salió; lo que falta, no. Cortar a mitad de
                 // turno deja al cliente con media respuesta, y eso es mejor que
-                // dos voces hablándole encima: la persona que entró ve lo que
-                // se mandó y sigue desde ahí.
+                // dos voces hablándole encima.
                 if (await humanoSeAdelanto()) {
                     botReplyingTo.delete(waId);
                     return;
@@ -871,31 +869,41 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 }
                 if (urls.length && !urlsVivas.length && !bloque) continue;
 
-                if (urlsVivas.length > 0) {
-                    for (let j = 0; j < urlsVivas.length; j++) {
-                        const caption = j === 0 ? bloque : '';
-                        let enviado = null;
-                        let salioConFoto = true;
-                        try {
-                            enviado = await sendViaCloud(waId, caption, { url: urlsVivas[j] }, { chat: freshChat });
-                        } catch (e) {
-                            // Una foto caída no puede voltear el turno: se manda el texto solo.
-                            console.error(`  ⚠️ [BotCloud] Falló la imagen ${urlsVivas[j].substring(0, 80)}: ${e.message}`);
-                            salioConFoto = false;
-                            if (caption) enviado = await sendViaCloud(waId, caption, null, { chat: freshChat }).catch(() => null);
+                try {
+                    if (urlsVivas.length > 0) {
+                        for (let j = 0; j < urlsVivas.length; j++) {
+                            const caption = j === 0 ? bloque : '';
+                            let enviado = null;
+                            let salioConFoto = true;
+                            try {
+                                enviado = await sendViaCloud(waId, caption, { url: urlsVivas[j] }, { chat: freshChat, origen });
+                            } catch (e) {
+                                if (e.code === 'SALIDA_RECHAZADA') throw e;
+                                // Una foto caída no puede voltear el turno: se manda el texto solo.
+                                console.error(`  ⚠️ [BotCloud] Falló la imagen ${urlsVivas[j].substring(0, 80)}: ${e.message}`);
+                                salioConFoto = false;
+                                if (caption) enviado = await sendViaCloud(waId, caption, null, { chat: freshChat, origen }).catch(() => null);
+                            }
+                            // El tipo sale del envío REAL, no de la intención: cuando la
+                            // foto falla y sale el texto solo, acá se anotaba igual
+                            // 'IMAGE' y el buzón mostraba "Imagen de WhatsApp" en un
+                            // mensaje que nunca llevó foto.
+                            const contenido = (enviado && enviado.textoEnviado) || caption || '[Media]';
+                            await guardarSaliente(chat.id, waId, enviado, contenido, salioConFoto ? 'IMAGE' : 'TEXT', salioConFoto ? urlsVivas[j] : null);
                         }
-                        // El tipo sale del envío REAL, no de la intención: cuando la
-                        // foto falla y sale el texto solo, acá se anotaba igual
-                        // 'IMAGE' y el buzón mostraba "Imagen de WhatsApp" en un
-                        // mensaje que nunca llevó foto.
-                        await guardarSaliente(chat.id, waId, enviado, caption || '[Media]', salioConFoto ? 'IMAGE' : 'TEXT');
+                    } else {
+                        const enviado = await sendViaCloud(waId, bloque, null, { chat: freshChat, origen });
+                        await guardarSaliente(chat.id, waId, enviado, (enviado && enviado.textoEnviado) || bloque, 'TEXT');
                     }
-                } else {
-                    const enviado = await sendViaCloud(waId, bloque, null, { chat: freshChat });
-                    await guardarSaliente(chat.id, waId, enviado, bloque, 'TEXT');
+                } catch (e) {
+                    // El transporte no aprobó ESTA burbuja (saneado + guardrail
+                    // por burbuja): se saltea y siguen las demás. Cualquier otro
+                    // error sube como siempre.
+                    if (e.code !== 'SALIDA_RECHAZADA') throw e;
+                    console.warn(`  🛑 [BotCloud] Burbuja rechazada por el punto de salida: ${e.motivo || e.message}`);
                 }
 
-                if (i < bloques.length - 1) await new Promise(r => setTimeout(r, 800));
+                if (i < burbujas.length - 1) await new Promise(r => setTimeout(r, 800));
             }
 
             // Margen para que el eco del propio envío no se lea como una persona.
@@ -903,7 +911,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             t.unref?.();
             chatErrorCounts.delete(chat.id);
             broadcastChatUpdate(chat.id);
-            console.log(`  ✅ [BotCloud] Respondido a ${profileName} con ${bloques.length} mensaje(s).`);
+            console.log(`  ✅ [BotCloud] Respondido a ${profileName} con ${burbujas.length} mensaje(s).`);
         } catch (err) {
             botReplyingTo.delete(waId);
             console.error('  ❌ [BotCloud] Error en el turno:', err.message);
@@ -924,23 +932,22 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
     }
 
     /** Deja la burbuja del bot en el buzón, firmada. */
-    async function guardarSaliente(chatId, waId, enviado, contenido, tipo) {
+    // `mediaUrl` (10/10/2026): las fotos de armazones las mandaba la
+    // herramienta y las guardaba con su URL; ahora salen por acá y la burbuja
+    // sigue mostrando la imagen en el buzón.
+    async function guardarSaliente(chatId, waId, enviado, contenido, tipo, mediaUrl = null) {
         if (!enviado) return;
         try {
             const waMessageId = resolveWaMessageId(enviado, { waId, direction: 'OUTBOUND', content: contenido });
             await prisma.whatsAppMessage.upsert({
                 where: { waMessageId },
-                update: { senderName: 'Bot' },
-                create: { chatId, direction: 'OUTBOUND', type: tipo, content: contenido, waMessageId, senderName: 'Bot', status: 'SENT' },
+                update: mediaUrl ? { senderName: 'Bot', mediaUrl } : { senderName: 'Bot' },
+                create: { chatId, direction: 'OUTBOUND', type: tipo, content: contenido, waMessageId, senderName: 'Bot', status: 'SENT', ...(mediaUrl ? { mediaUrl } : {}) },
             });
         } catch (e) {
             console.error('[BotCloud] No se pudo guardar el saliente del bot:', e.message);
         }
     }
-
-    // Desde acá en adelante, TODA salida de las herramientas del bot
-    // (`tools.js`) va por el transporte cloud y pasa por la ventana de 24 h.
-    setSender(sendViaCloud);
 
     return {
         init, stop, loadConfig, isEnabled,

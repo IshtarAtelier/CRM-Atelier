@@ -16,6 +16,7 @@ const { getFileExtension, clasificarFalloDeEnvio } = require('../utils');
 const { resolveWaMessageId } = require('../shared/message-id');
 const { marcarTraspasoHumano } = require('../shared/traspaso-humano');
 const { esRemitenteHumano } = require('../shared/remitentes');
+const { ORIGENES } = require('../shared/punto-de-salida');
 const { olvidarInterruptor } = require('../followups/politica');
 
 const configPath = path.join(__dirname, '..', 'agent_config.json');
@@ -430,8 +431,17 @@ function createApiRouter(deps) {
 
             const sendOpts = proactive ? { isProactive: true, isAutomated: true } : { isProactive: false, isAutomated: false };
             if (template) sendOpts.template = template;
+            // De quién es el texto (lo exige el transporte, ver
+            // shared/punto-de-salida.js). Una plantilla es 'plantilla'. Si no,
+            // el CRM puede decirlo (`origen` en el body: los seguimientos que
+            // redacta la IA mandan 'llm' y el transporte los sanea); si no lo
+            // dice, una persona del equipo es 'humano' y el resto, 'sistema'.
+            const origenPedido = typeof req.body.origen === 'string' && ORIGENES.includes(req.body.origen) ? req.body.origen : null;
+            const origen = template ? 'plantilla'
+                : (origenPedido && origenPedido !== 'plantilla' ? origenPedido
+                    : (esRemitenteHumano(senderName || 'CRM') ? 'humano' : 'sistema'));
             if (media?.base64) {
-                sent = await sendMessage(waId, message, media, sendOpts);
+                sent = await sendMessage(waId, message, media, { ...sendOpts, origen });
 
                 // Subir al CRM para tener el pre-render
                 try {
@@ -469,7 +479,7 @@ function createApiRouter(deps) {
                     console.error("Error subiendo media saliente a CRM:", err.message);
                 }
             } else {
-                sent = await sendMessage(waId, message, null, sendOpts);
+                sent = await sendMessage(waId, message, null, { ...sendOpts, origen });
             }
 
             // Si el mensaje SALIÓ y no sabemos dónde guardarlo, se crea el chat
@@ -509,7 +519,7 @@ function createApiRouter(deps) {
                                     : 'DOCUMENT')))
                         : 'TEXT';
 
-                    const content = message || (template ? `[Plantilla ${template.name}]` : '[Media]');
+                    const content = (sent && sent.textoEnviado) || message || (template ? `[Plantilla ${template.name}]` : '[Media]');
                     const waMessageId = resolveWaMessageId(sent, { waId, direction: 'OUTBOUND', content });
 
                     await prisma.whatsAppMessage.upsert({
@@ -571,7 +581,7 @@ function createApiRouter(deps) {
                 botReplyingTo.delete(waId);
                 return res.status(409).json({ error: e.message, code, notSent: true, needsTemplate: true, lastInboundAt: e.lastInboundAt || null });
             }
-            if (code === 'INVALID_NUMBER' || code === 'RECIPIENT_NOT_ALLOWED' || code === 'TEMPLATE_ERROR') {
+            if (code === 'INVALID_NUMBER' || code === 'RECIPIENT_NOT_ALLOWED' || code === 'TEMPLATE_ERROR' || code === 'SALIDA_RECHAZADA' || code === 'ORIGEN_REQUERIDO') {
                 botReplyingTo.delete(waId);
                 return res.status(422).json({ error: e.message, code, notSent: true });
             }
@@ -857,7 +867,11 @@ function createApiRouter(deps) {
             });
 
             // State idéntico al de processBotTurn
-            const config = { configurable: { thread_id: TEST_CHAT_ID } };
+            // Con turno, como el flujo real: las fotos de send_product_photos se
+            // encolan y se muestran acá como bloques (nunca se mandan a nadie).
+            const { crearTurno, leerSalidaDelGrafo, armarRespuesta } = require('../shared/respuesta-del-turno');
+            const turno = crearTurno();
+            const config = { configurable: { thread_id: TEST_CHAT_ID, turno } };
             const state = { 
                 messages: allMessages,
                 userPhone: testPhone || '1111111111',
@@ -908,24 +922,22 @@ function createApiRouter(deps) {
                 return res.json({ response: null, blocks: [], apiError: true, reason: apiErrorMessage, toolCalls });
             }
 
-            const lastMessage = result.messages[result.messages.length - 1];
-            let responseText = lastMessage.content;
-
-            if (responseText) {
-                // Output Guardrail (igual que el flujo real)
-                const guardrail = runOutputGuardrail(responseText);
-                if (!guardrail.safe) {
-                    console.warn(`  ⚠️ [Test Chat Guardrail] Respuesta bloqueada: ${guardrail.reason}`);
-                    return res.json({ response: 'Dejame revisarlo bien y en un ratito te respondo con la info exacta.', blocks: ['Dejame revisarlo bien y en un ratito te respondo con la info exacta.'], guardrailBlocked: true, guardrailReason: guardrail.reason, toolCalls });
-                }
-                
-                // Limpieza de signos de apertura (igual que el flujo real)
-                responseText = responseText.replace(/¿/g, '');
+            // Misma lectura y mismo armado de burbujas que el turno real
+            // (shared/respuesta-del-turno.js): salida estructurada, saneado,
+            // fotos encoladas primero.
+            const lectura = leerSalidaDelGrafo(result, allMessages.length);
+            const respuesta = armarRespuesta({ salida: lectura, encolados: turno.envios });
+            if (respuesta.accion === 'callar' || respuesta.accion === 'rechazar') {
+                return res.json({ response: null, blocks: [], silent: true, reason: respuesta.motivo, toolCalls });
             }
+            const guardrail = runOutputGuardrail(respuesta.textoLLM);
+            if (!guardrail.safe) {
+                console.warn(`  ⚠️ [Test Chat Guardrail] Respuesta bloqueada: ${guardrail.reason}`);
+                return res.json({ response: null, blocks: [], guardrailBlocked: true, guardrailReason: guardrail.reason, toolCalls });
+            }
+            const blocks = respuesta.burbujas.map(b => [b.texto, ...b.imagenes.map(u => `[IMAGE: ${u}]`)].filter(Boolean).join('\n'));
+            const responseText = blocks.join('\n\n');
 
-            // Splitear en bloques (igual que el flujo real en index.js:680)
-            const blocks = responseText ? responseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0) : [];
-            
             res.json({ response: responseText, blocks, toolCalls });
         } catch (e) {
             console.error("Error in Test Chat:", e);

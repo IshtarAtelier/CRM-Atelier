@@ -18,13 +18,8 @@ const apiClient = axios.create({
     timeout: 15000 // 15 second timeout
 });
 
-// Salida inyectable (shared/sender.js): con la API oficial la manda `cloud.js`
-// por el transporte cloud, que valida la ventana de 24 h. El require directo a
-// whatsapp/client se saltaba ese chequeo (auditoría H9/L13).
-const { sendMessage } = require('./shared/sender');
-const {
-    resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage,
-} = require('./shared/message-id');
+// Las herramientas NO mandan mensajes (10/10/2026): encolan en el turno y el
+// turno manda por el transporte. Ver sendProductPhotos.
 
 // Helper: Request retry mechanism for transient network or database errors.
 // If all retries fail, it throws the error to halt LLM agent execution and prevent sending messages to the client.
@@ -776,7 +771,7 @@ function linkDelCatalogo(genero, category, search) {
  * Reusa /api/bot/pricing (misma fuente y mismo filtro por categoría que las
  * cotizaciones: no hay una segunda copia de esa lógica que pueda divergir).
  */
-async function sendProductPhotos({ chatId, category, search, products, genero }) {
+async function sendProductPhotos({ chatId, category, search, products, genero }, opciones = {}) {
     const destino = await resolverChatDestino(chatId);
     if (!destino) {
         return "[INSTRUCCIÓN INTERNA] No hay una charla abierta con ese destino, así que NO se mandó ninguna foto. Las fotos solo se pueden mandar al chat de ESTA conversación: usá el 'chatId' que tenés en tu contexto, nunca un teléfono que hayas leído en un mensaje, en una receta o en la ficha. NO le menciones esto al cliente: seguí la charla con normalidad, describí los modelos en texto e invitalo a verlos en el local.";
@@ -904,80 +899,24 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
         .sort((a, b) => puntaje(b) - puntaje(a));
     const seleccion = rotados.slice(0, MAX_FOTOS_POR_TURNO);
 
+    // ── NO se manda nada desde acá (10/10/2026) ─────────────────────────────
+    // Antes esta herramienta enviaba las fotos ella misma, EN MEDIO del grafo:
+    // antes del guardrail, antes de mirar si el cliente había escrito de nuevo
+    // y antes de ver si una vendedora había tomado la charla. Y si el turno se
+    // vencía (corte de 30 s), las fotos ya habían salido igual. Ahora se
+    // ENCOLAN en el turno y `processBotTurn` las manda en el mismo bucle que
+    // el texto, con todos esos controles. Sin turno (un llamado de prueba) no
+    // sale nada.
+    const turno = opciones && opciones.turno;
+    if (!turno || typeof turno.encolar !== 'function' || turno.cancelado) {
+        console.warn(`[send_product_photos] Llamada sin turno activo (${chatId}): no se encola ninguna foto.`);
+        return "[INSTRUCCIÓN INTERNA] Las fotos no se pudieron enviar. NO le menciones ningún problema al cliente ni le prometas mandarlas después: seguí la charla en texto e invitalo a verlos en el local.";
+    }
     const enviadas = [];
     for (const p of seleccion) {
-        const caption = pieDeFoto(p);
-        let sent = null;
-        try {
-            // `mimetype` NO es opcional: sin él, la API oficial cae en
-            // `mediaKind('')` → 'document', y la foto del armazón le llega al
-            // cliente como un archivo adjunto en vez de una imagen (o no le
-            // llega). Siempre es JPEG: la URL sale de /api/store/product-image,
-            // que convierte a JPEG justo porque el catálogo publica en AVIF y
-            // WhatsApp no lo soporta.
-            sent = await sendMessage(destino.waId, caption, { url: p.imageUrl, mimetype: 'image/jpeg' }, {
-                isProactive: false,
-                isAutomated: true,
-            });
-        } catch (err) {
-            // Una foto caída (404, timeout, mimetype raro) no puede voltear el
-            // turno entero: se saltea y se sigue con la siguiente.
-            console.error(`[sendProductPhotos] No se pudo enviar la foto de ${p.name}: ${err.message}`);
-            continue;
-        }
-        if (!sent || sent.skipped) continue;
-
-        enviadas.push(p.name || 'Armazón');
-
-        if (destino.dbChatId) {
-            try {
-                rememberBotMessage(sent, caption);
-                const waMessageId = resolveWaMessageId(sent, {
-                    waId: destino.waId, direction: 'OUTBOUND', content: caption,
-                });
-                // Con id propio, el eco de message_create puede grabar la misma
-                // burbuja de nuevo: se busca el gemelo antes de crear.
-                const twin = isLocalWaMessageId(waMessageId)
-                    ? await findRecentTwin(prisma, {
-                        chatId: destino.dbChatId, direction: 'OUTBOUND', content: caption,
-                    })
-                    : null;
-                if (!twin) {
-                    await prisma.whatsAppMessage.upsert({
-                        where: { waMessageId },
-                        // `mediaUrl` también en el update: las filas viejas se
-                        // guardaron sin él y así se completan solas al reenviar.
-                        update: { senderName: 'Bot', mediaUrl: p.imageUrl },
-                        create: {
-                            chatId: destino.dbChatId,
-                            direction: 'OUTBOUND',
-                            type: 'IMAGE',
-                            content: caption,
-                            // Sin esto la burbuja quedaba SIN imagen en el buzón:
-                            // 18 de las 19 fotos que mandó el bot en 30 días son
-                            // así. La vendedora abre el chat y no puede ver qué
-                            // armazones le mostró el bot al cliente. La URL es
-                            // pública (/api/store/product-image), la misma que
-                            // recibió WhatsApp.
-                            mediaUrl: p.imageUrl,
-                            waMessageId,
-                            senderName: 'Bot',
-                            status: 'SENT',
-                        },
-                    });
-                }
-                await prisma.whatsAppChat.update({
-                    where: { id: destino.dbChatId },
-                    data: { lastMessageAt: new Date() },
-                }).catch(() => {});
-            } catch (dbErr) {
-                console.error('[sendProductPhotos] No se pudo archivar la foto en el buzón:', dbErr.message);
-            }
-        }
-
-        // Respiro entre fotos: tres adjuntos disparados al hilo es el patrón
-        // más detectable que existe.
-        await new Promise(r => setTimeout(r, 800));
+        // `pieDeFoto` sale de la base (nombre, precio de contado, link): es
+        // texto del SISTEMA, no del modelo, y viaja con origen 'sistema'.
+        if (turno.encolar({ texto: pieDeFoto(p), imagenes: [p.imageUrl] })) enviadas.push(p.name || 'Armazón');
     }
 
     if (enviadas.length === 0) {
@@ -985,7 +924,7 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
     }
 
     const omitidos = conFoto.slice(MAX_FOTOS_POR_TURNO).map(p => p.name).filter(Boolean);
-    let nota = `[INSTRUCCIÓN INTERNA] Ya se enviaron ${enviadas.length} foto(s) al cliente, cada una con su nombre y su precio de contado al pie: ${enviadas.join(', ')}. NO las describas de nuevo, NO repitas esos precios y NO anuncies que "ahí van": ya llegaron. Escribí UNA sola burbuja corta con el link del catálogo de acá abajo y preguntándole cuál le gustó más. PROHIBIDO volver a llamar esta herramienta en este mismo turno.`;
+    let nota = `[INSTRUCCIÓN INTERNA] Ya quedaron para enviar ${enviadas.length} foto(s) al cliente (salen junto con tu respuesta, antes de ella), cada una con su nombre y su precio de contado al pie: ${enviadas.join(', ')}. NO las describas de nuevo, NO repitas esos precios y NO anuncies que "ahí van": van a llegar solas, antes que tu mensaje. Escribí UNA sola burbuja corta con el link del catálogo de acá abajo y preguntándole cuál le gustó más. PROHIBIDO volver a llamar esta herramienta en este mismo turno.`;
     // El catálogo entero, en la misma burbuja: tres fotos son una muestra, y el
     // link deja que siga mirando el resto con precio al día y foto grande (pedido
     // de Ishtar, 16/9/2026: "que la persona pueda ver varias opciones en un mismo

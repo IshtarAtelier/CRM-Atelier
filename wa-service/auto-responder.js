@@ -227,6 +227,8 @@ function createAutoResponder(deps = {}) {
             const texto = buildAutoReplyText();
             const destino = chat.waId;
             const sent = await sendMessage(destino, texto, null, {
+                // Texto fijo armado por el código (buildAutoReplyText).
+                origen: 'sistema',
                 chat: { id: chat.id, lastInboundAt: chat.lastInboundAt || ahora },
             });
 

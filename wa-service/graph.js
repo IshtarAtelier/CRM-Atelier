@@ -1,13 +1,17 @@
 const { StateGraph, MessagesAnnotation, Annotation } = require("@langchain/langgraph");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ToolNode } = require("@langchain/langgraph/prebuilt");
-const { SystemMessage, AIMessage } = require("@langchain/core/messages");
+const { SystemMessage, AIMessage, HumanMessage } = require("@langchain/core/messages");
 const { salesToolsList, executiveToolsList } = require("./agent-tools");
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { prisma } = require('./db');
 const DEFAULT_SALES_PROMPT = require('./prompts/salesPrompt');
 const { interesSegunReceta } = require('./shared/tipo-de-lente');
+const { noEsCastellano } = require('./shared/idioma');
+const {
+  HERRAMIENTAS_DE_SALIDA, HERRAMIENTA_RESPONDER, HERRAMIENTA_NO_RESPONDER, textoDe, mensajesDeResponder,
+} = require('./shared/respuesta-del-turno');
 
 /**
  * Las fechas que el modelo recibe como contexto del cliente, en argentino.
@@ -47,7 +51,7 @@ function getModel() {
       console.warn('WARNING: GOOGLE_GENAI_API_KEY is not set. Bot will crash si se invoca.');
     }
     // Nota: este paquete no soporta `timeout` por request; el corte real
-    // lo hace el Promise.race de 30s alrededor de graph.invoke en index.js.
+    // lo hace la señal de cancelación (AbortSignal) que bot-cloud.js pasa en el config de graph.invoke y que llega hasta acá.
     modelInstance = new ChatGoogleGenerativeAI({
       model: "gemini-2.5-flash",
       maxOutputTokens: 8192,
@@ -200,12 +204,19 @@ function registrarToolCalls(state, result, agentType, chatId, ms) {
 }
 
 function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
-    return async (state) => {
+    // `config` se pasa SIEMPRE a la ToolNode (10/10/2026): por ahí viajan la
+    // cola de envíos del turno (`configurable.turno`, la usa
+    // send_product_photos) y la señal de cancelación del turno vencido. Antes
+    // se llamaba `invoke(state)` a secas y las herramientas no tenían forma de
+    // saber de qué turno eran.
+    return async (state, config) => {
         pruneToolErrorTracker();
         const chatId = state.chatId || 'unknown';
         const firma = firmaDeToolCalls(state);
+        const ultimo = (state.messages || [])[(state.messages || []).length - 1];
+        const declaroSalida = ((ultimo && ultimo.tool_calls) || []).some(c => HERRAMIENTAS_DE_SALIDA.has(c.name));
         const t0 = Date.now();
-        const result = await originalToolNode.invoke(state);
+        const result = await originalToolNode.invoke(state, config);
         registrarToolCalls(state, result, agentType, chatId, Date.now() - t0);
 
         // ── Bucle de la MISMA tool con los MISMOS argumentos ────────────────
@@ -276,7 +287,11 @@ function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
             }
         }
 
-        return firma ? { ...result, toolCallLog: [firma] } : result;
+        // Si en este paso el modelo además declaró su salida (responder_al_cliente
+        // o no_responder junto con otra herramienta), el turno termina acá: volver
+        // al agente sería pedirle que conteste dos veces.
+        const conSalida = declaroSalida ? { ...result, salidaDeclarada: true } : result;
+        return firma ? { ...conSalida, toolCallLog: [firma] } : conSalida;
     };
 }
 
@@ -492,6 +507,7 @@ const CORE_RULES = `
      - El orden de la charla: (a) entender qué necesita y para qué (uso, si ya usa anteojos, qué le molesta); (b) si tiene receta; (c) si lo hace por alguna obra social. De a UNA pregunta por mensaje, y cada pregunta va después de aportar algo útil sobre lo que contó. Es una charla amena, no una encuesta: si el cliente ya lo dijo, no lo preguntes.
      - El precio llega cuando ya sabés qué necesita, y va con asesoramiento: por qué esa opción le sirve a esa persona, no la lista pelada.
   11. EL HISTORIAL TRAE NOTAS ENTRE CORCHETES (la hora, "[Lo escribió Mile, del equipo]", "[Imagen adjunta…]"). Son para vos: JAMÁS copies un corchete ni su contenido en tu respuesta. Lo marcado "Lo escribió X, del equipo" lo dijo una compañera, no vos: respetalo y NUNCA lo repitas ni lo reenvíes. Tu respuesta es solo lo NUEVO que le decís al cliente, en castellano, hablándole a él/ella, nunca sobre él/ella.
+  12. CÓMO TERMINÁS CADA TURNO: con una herramienta, nunca con texto suelto. Para hablarle al cliente usá 'responder_al_cliente' con 'mensajes' (una entrada por burbuja, en castellano, dirigidas al cliente). Si no corresponde decir nada (te agradeció y ya estaba todo dicho, mandó un "ok", un emoji), usá 'no_responder' con el 'motivo'. Lo que pensás, lo que decidís y por qué NUNCA va en 'mensajes': va en 'motivo' o en ningún lado.
 </reglas_innegociables_finales>`;
 
 // El nombre con el que se saluda lo decide el código, no el modelo: un perfil
@@ -518,7 +534,7 @@ function sanitizeFirstName(rawName) {
 // Misma mecánica de invocación/reintentos; solo cambian el prompt por defecto,
 // las herramientas y la regla para descartar un prompt custom que no corresponde al rol.
 function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, rejectCustomPrompt }) {
-  return async function agentNode(state) {
+  return async function agentNode(state, config) {
     const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
     const custom = state.customPrompt || "";
     const clientInfoText = await formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
@@ -556,12 +572,22 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
       .replace(/\[telefono\]/g, state.userPhone || "")
       .replace(/\[nombre\]/g, sanitizeFirstName(state.clientData?.name || state.userName)) + coreRules(sanitizeFirstName(state.clientData?.name || state.userName));
 
-    const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
+    let messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
     const MAX_RETRIES = 3;
+    // Salida estricta (opt-in): el modelo TIENE que llamar una herramienta en
+    // cada paso, así que el turno siempre termina en responder_al_cliente o
+    // no_responder y el texto suelto deja de existir. Queda detrás de una
+    // variable porque cambia cómo contesta Gemini y no se probó contra la API
+    // real todavía (10/10/2026); sin ella, el texto suelto se sigue aceptando
+    // y pasa por el mismo validador.
+    const modelo = process.env.BOT_SALIDA_ESTRICTA === '1'
+      ? getModel().bindTools(toolsList, { tool_choice: 'any' })
+      : getModel().bindTools(toolsList);
+    let reintentoPorIdioma = false;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       let response;
       try {
-        response = await getModel().bindTools(toolsList).invoke(messagesWithSystem);
+        response = await modelo.invoke(messagesWithSystem, config);
       } catch (llmError) {
         console.error(`❌ ${nodeName}: Error en invocación LLM (intento ${attempt}/${MAX_RETRIES}):`, llmError.message);
         if (attempt < MAX_RETRIES) {
@@ -589,10 +615,38 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
           throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
         }
       }
+      // ── Idioma: si la respuesta FINAL no está en castellano, se le pide
+      // que la rehaga, una vez. El 4/10/2026 un cliente recibió el
+      // razonamiento del modelo en inglés ("I should not respond further…").
+      // El validador de salida igual la rechaza; esto es para que el cliente
+      // reciba la respuesta buena en vez de silencio.
+      const candidata = textoFinalCandidato(response);
+      if (candidata && noEsCastellano(candidata) && !reintentoPorIdioma) {
+        reintentoPorIdioma = true;
+        console.warn(`⚠️ ${nodeName}: la respuesta no está en castellano, se pide de nuevo: "${candidata.slice(0, 80)}"`);
+        messagesWithSystem = [...messagesWithSystem, new HumanMessage(CORRECCION_DE_IDIOMA)];
+        attempt--;
+        continue;
+      }
       return { messages: [response] };
     }
   };
 }
+
+/**
+ * Lo que el cliente leería si este paso fuera el último: el texto suelto o los
+ * `mensajes` de responder_al_cliente. Vacío si el paso pide otras herramientas
+ * (todavía no es la respuesta).
+ */
+function textoFinalCandidato(response) {
+  const calls = (response && response.tool_calls) || [];
+  const responder = calls.find(c => c.name === HERRAMIENTA_RESPONDER);
+  if (responder) return mensajesDeResponder(responder.args).join('\n\n');
+  if (calls.length) return '';
+  return textoDe(response && response.content);
+}
+
+const CORRECCION_DE_IDIOMA = 'AVISO DEL SISTEMA (no lo escribió el cliente): tu respuesta anterior NO se envió porque no estaba en castellano. Escribí de nuevo tu respuesta en castellano rioplatense, hablándole directamente al cliente, con responder_al_cliente. Si no corresponde decirle nada, usá no_responder. Nunca escribas lo que pensás.';
 
 const salesNode = createAgentNode({
   nodeName: 'salesNode',
@@ -612,21 +666,39 @@ const executiveNode = createAgentNode({
 });
 
 // ── NODO 4: AUDITORIA ──
+/**
+ * Resuelve QUÉ quiere decir el turno y lo deja en `salidaFinal`:
+ *   { tipo: 'responder', mensajes } — llamó responder_al_cliente
+ *   { tipo: 'callar', motivo }      — llamó no_responder
+ *   { tipo: 'texto', mensajes }     — contestó con texto suelto (compatibilidad)
+ *
+ * 10/10/2026: antes concatenaba el `.text` de TODAS las partes del contenido
+ * sin mirar el tipo. Gemini 2.5 devuelve su razonamiento como partes aparte
+ * ('thinking'): se toman solo las partes de texto (`textoDe`). Y "callarse"
+ * dejó de ser algo que el modelo narra en prosa ("I should not respond
+ * further…"): es una herramienta.
+ */
 async function auditorNode(state) {
-  const lastMessage = state.messages[state.messages.length - 1];
-  if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) return state;
-
-  const rawContent = lastMessage.content;
-  let safeContent;
-    if (typeof rawContent === 'string') {
-        safeContent = rawContent.trim();
-    } else if (Array.isArray(rawContent)) {
-        safeContent = rawContent.map(p => typeof p === 'string' ? p : (p.text || '')).join('').trim();
-    } else {
-        safeContent = rawContent ? String(rawContent).trim() : '';
-    }
-  if (!safeContent) return state;
-  return { messages: [new AIMessage(safeContent)] };
+  const msgs = state.messages || [];
+  // Las herramientas de salida de ESTE turno: desde el final hasta el último
+  // mensaje del cliente (lo anterior es historial).
+  let declarada = null;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i];
+    const tipo = typeof m.getType === 'function' ? m.getType() : m._getType?.();
+    if (tipo === 'human') break;
+    const c = (m.tool_calls || []).find(x => HERRAMIENTAS_DE_SALIDA.has(x.name));
+    if (c) { declarada = c; break; }
+  }
+  if (declarada && declarada.name === HERRAMIENTA_NO_RESPONDER) {
+    return { salidaFinal: { tipo: 'callar', motivo: String((declarada.args || {}).motivo || '') } };
+  }
+  if (declarada) {
+    return { salidaFinal: { tipo: 'responder', mensajes: mensajesDeResponder(declarada.args) } };
+  }
+  const ultimo = msgs[msgs.length - 1];
+  const texto = ultimo && !(ultimo.tool_calls && ultimo.tool_calls.length) ? textoDe(ultimo.content).trim() : '';
+  return { salidaFinal: { tipo: texto ? 'texto' : 'vacio', mensajes: texto ? [texto] : [] } };
 }
 
 // ── FUNCIONES CONDICIONALES DE RUTEO ──
@@ -636,7 +708,10 @@ function routeAfterRouter(state) {
 
 function processAgentReturn(state) {
   const lastMessage = state.messages[state.messages.length - 1];
-  if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
+  const calls = lastMessage.tool_calls || [];
+  // Solo herramientas de salida (responder_al_cliente / no_responder): no hay
+  // nada que ejecutar, el turno termina en el auditor.
+  if (calls.length > 0 && !calls.every(c => HERRAMIENTAS_DE_SALIDA.has(c.name))) {
     return state.agentType === 'EXECUTIVE' ? 'executiveTools' : 'salesTools';
   }
   return 'auditor';
@@ -644,10 +719,10 @@ function processAgentReturn(state) {
 
 /** Tras las tools: si se cortó un bucle, el turno termina; si no, vuelve al agente. */
 function routeAfterTools(state) {
-  return state.loopBroken ? 'auditor' : 'salesAgent';
+  return state.loopBroken || state.salidaDeclarada ? 'auditor' : 'salesAgent';
 }
 function routeAfterExecutiveTools(state) {
-  return state.loopBroken ? 'auditor' : 'executiveAgent';
+  return state.loopBroken || state.salidaDeclarada ? 'auditor' : 'executiveAgent';
 }
 
 // ── GRAFO DE AGENTES (LANGGRAPH) ──
@@ -671,6 +746,10 @@ const GraphAnnotation = Annotation.Root({
   // el estado es por invocación, así que repetir una consulta en otro turno es legítimo.
   toolCallLog: Annotation({ reducer: (prev, v) => [...(prev || []), ...(Array.isArray(v) ? v : [v])], default: () => [] }),
   loopBroken: Annotation({ reducer: (prev, v) => v ?? prev ?? false, default: () => false }),
+  // Salida estructurada del turno (ver auditorNode). Sin declararlos acá,
+  // LangGraph los descartaría en silencio, igual que pasó con toolCallLog.
+  salidaDeclarada: Annotation({ reducer: (prev, v) => v ?? prev ?? false, default: () => false }),
+  salidaFinal: Annotation({ reducer: (_, v) => v, default: () => null }),
 });
 
 const workflow = new StateGraph(GraphAnnotation)

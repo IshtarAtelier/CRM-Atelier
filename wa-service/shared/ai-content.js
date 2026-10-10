@@ -16,7 +16,12 @@ function contenidoATexto(content) {
     if (typeof content === 'string') return content;
     if (Array.isArray(content)) {
         return content
-            .map(p => (typeof p === 'string' ? p : (p && typeof p.text === 'string' ? p.text : '')))
+            // Solo partes de TEXTO. Gemini 2.5 devuelve su razonamiento como
+            // partes `type: 'thinking'` (y otros proveedores, 'reasoning'):
+            // concatenarlas a ciegas es mandarle al cliente lo que el modelo
+            // pensó. El 4/10/2026 un cliente recibió "I should not respond
+            // further…". Una parte sin `type` se trata como texto (formato viejo).
+            .map(p => (typeof p === 'string' ? p : (p && typeof p.text === 'string' && (!p.type || p.type === 'text') ? p.text : '')))
             .join('');
     }
     if (content && typeof content.text === 'string') return content.text;
