@@ -88,7 +88,8 @@
     "check:lab-modulos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/lab-modulos.check.mjs",
     "check:meta-anuncios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/meta-anuncios-identificados.mjs",
     "check:referral": "node scripts/checks/referral-anuncio.check.cjs",
-    "check:meta-compras": "node scripts/checks/compras-informadas-a-meta.mjs"
+    "check:meta-compras": "node scripts/checks/compras-informadas-a-meta.mjs",
+    "check:salida-bot": "node scripts/checks/salida-bot-sin-fugas.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

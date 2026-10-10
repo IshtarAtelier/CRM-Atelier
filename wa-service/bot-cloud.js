@@ -457,7 +457,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 // cotizó, prometió una fecha o pidió la receta, y sigue desde
                 // ahí — repitiendo o contradiciendo a la vendedora.
                 if (esRemitenteHumano(m.senderName)) {
-                    return { role: 'ai', content: `${ts}[Lo escribió ${m.senderName}, del equipo de la óptica, NO vos. Respetá lo que ya dijo y no lo repitas.] ${m.content || ''}`.trim() };
+                    return { role: 'ai', content: `${ts}[Lo escribió ${m.senderName}, del equipo] ${m.content || ''}`.trim() };
                 }
                 return { role: 'ai', content: ts + (m.content || '') };
             }
@@ -713,10 +713,12 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // repitiera, el problema es otro). `bot-cloud.js` no tenía ningún
             // anti-repetición — el que había vivía en `index.js`, el transporte
             // viejo, y era literal.
-            const dichoPorElBot = recientes
-                .filter(m => m.direction === 'OUTBOUND' && !esRemitenteHumano(m.senderName))
-                .slice(0, 3)
-                .map(m => m.content || '');
+            // También lo que escribió el equipo: el 8/10 el bot le re-mandó al
+            // cliente, palabra por palabra, los mensajes que le había escrito Mile.
+            const dichoPorElBot = [
+                ...recientes.filter(m => m.direction === 'OUTBOUND' && !esRemitenteHumano(m.senderName)).slice(0, 3),
+                ...recientes.filter(m => m.direction === 'OUTBOUND' && esRemitenteHumano(m.senderName)).slice(0, 10),
+            ].map(m => m.content || '');
             const { texto: textoLimpio, quitadas } = quitarRepeticiones(saneado, dichoPorElBot);
             if (quitadas.length) console.log(`  🔄 [BotCloud] Ya lo había dicho, se saca: ${quitadas.map(q => `"${q.slice(0, 50)}…"`).join(' · ')}`);
 

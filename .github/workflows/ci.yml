@@ -144,6 +144,9 @@ jobs:
       - name: Prompts del bot (nada prohibido, nada obligatorio que falte)
         run: npm run check:prompt-bot
 
+      - name: El bot no le manda al cliente inglés, notas internas ni placeholders
+        run: npm run check:salida-bot
+
       - name: Fuera de horario el bot se prende solo (y el tilde lo frena)
         run: npm run check:horario-bot
 

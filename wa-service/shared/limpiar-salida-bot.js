@@ -145,6 +145,19 @@ const RAZONAMIENTO_INTERNO = [
 ];
 
 /**
+ * Anotaciones que el pipeline le pone al HISTORIAL entre corchetes (bot-cloud.js
+ * `armarHistorial`). El 8 y el 9/10 el modelo las copió y el cliente recibió
+ * "Respetá lo que ya dijo y no lo repitas.] Hola Juanma buen dia!…" — incluso
+ * sin el corchete de apertura. Se saca el fragmento hasta el `]`, abierto o no.
+ */
+const CLAVES_DE_ANOTACION = String.raw`(?:Lo escribi[óo]|NO vos|Respet[áa] lo que ya dijo|no lo repitas|Imagen adjunta|Mensaje del cliente|El cliente (?:adjunt[óo]|envi[óo])|audio transcrito|Texto que la acompa[ñn]aba|del equipo de la [óo]ptica)`;
+const ANOTACION_CERRADA = new RegExp(String.raw`\[?[^\[\]\n]*${CLAVES_DE_ANOTACION}[^\[\]\n]*\]`, 'gi');
+const ANOTACION_ABIERTA = new RegExp(String.raw`\[[^\]\n]*${CLAVES_DE_ANOTACION}[^\]\n]*$`, 'gim');
+
+/** Placeholders en minúscula que el modelo dejó sin completar ("desde [precio]"). */
+const PLACEHOLDER_MINUSCULA = /\[\s*(?:precio|monto|importe|fecha|hora|link|url|direcci[óo]n|cliente|nombre del cliente|producto|modelo)\s*\]/gi;
+
+/**
  * Limpia el texto crudo del modelo. Devuelve `{ texto, quitado }` — `quitado`
  * lista qué se sacó, para que el log diga por qué el mensaje salió distinto.
  */
@@ -152,6 +165,21 @@ function limpiarSalidaBot(crudo) {
     const quitado = [];
     // Los signos de apertura se sacan por regla de estilo (tono humano en AR).
     let texto = String(crudo ?? '').replace(/¿/g, '').replace(/¡/g, '');
+
+    // Una anotación del historial en la salida significa que el modelo está
+    // regurgitando la charla (el 8/10 reenvió 7 mensajes de Mile). No se
+    // rescata nada: la respuesta entera se descarta y el turno queda en silencio.
+    ANOTACION_CERRADA.lastIndex = 0; ANOTACION_ABIERTA.lastIndex = 0;
+    if (ANOTACION_CERRADA.test(texto) || ANOTACION_ABIERTA.test(texto)) {
+        ANOTACION_CERRADA.lastIndex = 0; ANOTACION_ABIERTA.lastIndex = 0;
+        return { texto: '', quitado: ['anotación del historial: respuesta entera descartada'] };
+    }
+    // Un placeholder sin completar deja la oración rota ("desde ."): se va la oración.
+    PLACEHOLDER_MINUSCULA.lastIndex = 0;
+    if (PLACEHOLDER_MINUSCULA.test(texto)) {
+        texto = texto.replace(new RegExp(String.raw`[^.!?\n]*${PLACEHOLDER_MINUSCULA.source}[^.!?\n]*[.!?]*`, 'gi'), '');
+        quitado.push('placeholder sin completar (oración)');
+    }
 
     // Idioma / razonamiento interno: va primero y se lleva la LÍNEA entera.
     const lineas = texto.split('\n');

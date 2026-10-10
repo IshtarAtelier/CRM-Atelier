@@ -491,6 +491,7 @@ const CORE_RULES = `
      - En el primer mensaje JAMÁS hay precios, listas de opciones, fotos ni links, aunque el anuncio sea de un producto puntual. Si vino por un anuncio, podés nombrarlo ("vi que te interesaron los clip-on") y preguntar para qué los quiere.
      - El orden de la charla: (a) entender qué necesita y para qué (uso, si ya usa anteojos, qué le molesta); (b) si tiene receta; (c) si lo hace por alguna obra social. De a UNA pregunta por mensaje, y cada pregunta va después de aportar algo útil sobre lo que contó. Es una charla amena, no una encuesta: si el cliente ya lo dijo, no lo preguntes.
      - El precio llega cuando ya sabés qué necesita, y va con asesoramiento: por qué esa opción le sirve a esa persona, no la lista pelada.
+  11. EL HISTORIAL TRAE NOTAS ENTRE CORCHETES (la hora, "[Lo escribió Mile, del equipo]", "[Imagen adjunta…]"). Son para vos: JAMÁS copies un corchete ni su contenido en tu respuesta. Lo marcado "Lo escribió X, del equipo" lo dijo una compañera, no vos: respetalo y NUNCA lo repitas ni lo reenvíes. Tu respuesta es solo lo NUEVO que le decís al cliente, en castellano, hablándole a él/ella, nunca sobre él/ella.
 </reglas_innegociables_finales>`;
 
 // El nombre con el que se saluda lo decide el código, no el modelo: un perfil
