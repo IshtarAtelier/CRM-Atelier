@@ -10,6 +10,7 @@ import { avisoDeRoles, type RolesDePares } from '../../../lib/laboratorios/roles
 import { rolDeLaPromo, rolesDeLaPromoHoya } from '../../../lib/laboratorios/vitolen-promo';
 import { precioConSigno } from '../../../lib/format-precio';
 import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-frames';
+import { esCristalDeLab } from '../../../lib/laboratorios/identidad';
 
 /**
  * La carga asistida de Vitolen detrás del contrato común (carga/contrato.ts).
@@ -20,8 +21,7 @@ import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-fra
 // Las 12 tarjetas "Forma OD - N" del formulario del portal (docs/vitolen-portal.md).
 export const FORMAS_PORTAL_VITOLEN = Array.from({ length: 12 }, (_, i) => `Forma ${i + 1}`);
 
-const esCristalVitolen = (i: { laboratorySnapshot: string | null; productCategorySnapshot: string | null }) =>
-    /vitolen/i.test(i.laboratorySnapshot || '') && /cristal/i.test(i.productCategorySnapshot || '');
+const esCristalVitolen = (i: { laboratorySnapshot: string | null; productCategorySnapshot: string | null }) => esCristalDeLab(i, 'VITOLEN');
 
 /** Los roles de la promo del 2º par, con la regla del CRM (promo.ts). */
 const rolesDeLaPromo = (venta: { items: any[] }): RolesDePares | null => rolesDeLaPromoHoya(venta.items);
@@ -50,7 +50,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
         return {
             pares: pares.map(pair => {
                 const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0, rolPromo: rolDe(roles, pair) });
-                const cristal = cristalVitolenPorNombre(venta.items.find(i => (i.framePosition ?? 1) === pair && /vitolen/i.test(i.laboratorySnapshot || ''))?.productNameSnapshot);
+                const cristal = cristalVitolenPorNombre(((cristalesPorArmazon(venta as any).get(pair) || []) as any[]).find(esCristalVitolen)?.productNameSnapshot);
                 const variantes = cristal?.variantes ?? [];
                 const campos: CampoDePreparacion[] = [
                     ...(variantes.length > 1 ? [{ clave: 'variante', etiqueta: 'Variante', tipo: 'select' as const, opciones: variantes.map(v => ({ value: v, label: v })), obligatorio: true }] : []),

@@ -132,10 +132,18 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
     const faltaOtroPar = !paresCompletos(paresEsperados, pedidosVivos);
     let conjunto = estadoConjuntoDeVenta(a.pedidos.map(p => p.status), paresEsperados);
     // Venta mixta (un par en OTRO laboratorio): lo que este lab termina no termina
-    // la venta — el otro par sigue en fábrica y el aviso de retiro saldría antes
-    // de tiempo (auditoría de robustez, M7). Queda "en proceso" hasta que el otro
-    // lab (o una persona) la cierre.
-    if (conjunto === 'TERMINADO' && order.items.some(i => esCristal(i) && deOtroLab(i))) conjunto = 'EN_PROCESO';
+    // la venta por sí solo — el otro par sigue en fábrica y el aviso de retiro
+    // saldría antes de tiempo (auditoría de robustez, M7). Se cierra cuando los
+    // pedidos de TODOS los labs (espejo) cubren todos los pares de la venta y
+    // están terminados/despachados; si no, queda "en proceso" (y una persona
+    // siempre puede cerrarla a mano).
+    if ((conjunto === 'TERMINADO' || conjunto === 'DESPACHADO') && order.items.some(i => esCristal(i) && deOtroLab(i))) {
+        const otros = await prisma.labPortalOrder.findMany({ where: { orderId: a.orderId, lab: { not: a.lab }, status: { not: 'ANULADO' } }, select: { status: true } });
+        const totalPares = cantidadDeArmazones(order as any);
+        const terminadosAjenos = otros.filter(p => p.status === 'TERMINADO' || p.status === 'DESPACHADO').length;
+        const terminadosPropios = a.pedidos.filter(p => p.status === 'TERMINADO' || p.status === 'DESPACHADO').length;
+        if (terminadosPropios + terminadosAjenos < totalPares) conjunto = 'EN_PROCESO';
+    }
     const nuevo = transicionDeVenta(order.labStatus, conjunto);
     const numeros = a.pedidos.map(p => p.portalNumber);
     // El nº se escribe si la venta tiene uno provisorio, o si al campo le falta

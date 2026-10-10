@@ -6,7 +6,6 @@ import { pedidosEnEspejo } from '@/services/lab-modules/espejo';
 import { cargaDe } from '@/services/lab-modules/carga/registro';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
 
 /**
  * Carga asistida de un pedido en el portal del laboratorio (cualquier lab con
@@ -40,7 +39,7 @@ export async function GET(request: Request) {
         // Cada borrador con SU vista: la ficha dibuja igual cualquier laboratorio.
         borradores: borradores.map(b => {
             // Un borrador viejo con otra forma de payload no puede tirar abajo la ficha entera.
-            const acciones = accionesDe(b, { conBorradorEnPortal: !!carga.cancelarEnPortal, puedeReleer: !!carga.releerPortal });
+            const acciones = accionesDe(b, { conBorradorEnPortal: !!carga.cancelarEnPortal, puedeReleer: !!carga.releerPortal }, new Date(), { bloqueadoPorExistente: !!analisis.pares.find(p => p.pair === b.pair)?.yaCargado });
             try { return { ...b, vista: carga.vistaDeBorrador(b), acciones }; } catch (err) {
                 console.error('[lab-modulos/borradores] vista del borrador', b.id, err);
                 return { ...b, vista: { textoRevision: '', filas: [], avisos: [] }, acciones };
@@ -67,7 +66,7 @@ export async function POST(request: Request) {
         return NextResponse.json(ok ? { ok: true, ...resto } : resto, { status });
     } catch (error: any) {
         const msg = error?.message || 'No se pudo preparar el pedido.';
-        const status = httpDeError(error) === 500 && /Ya hay un borrador|dejó el pedido/.test(msg) ? 409 : httpDeError(error);
+        const status = httpDeError(error);
         if (status === 500) console.error('[lab-modulos/borradores] POST:', error);
         return NextResponse.json({ error: msg }, { status });
     }

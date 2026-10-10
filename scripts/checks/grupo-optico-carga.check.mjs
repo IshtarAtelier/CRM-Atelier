@@ -121,9 +121,17 @@ ok('el mensaje a la dueña lleva el motivo completo y la venta entera; la ficha,
 ok('qué puede hacer una persona con un borrador lo calcula el servidor', () => {
     const lab = { conBorradorEnPortal: false, puedeReleer: false };
     const ahora = new Date('2026-10-10T12:00:00Z');
-    assert.deepEqual(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: {} }, lab, ahora), { aprobar: true, rechazar: true, reintentar: false, anular: false, releer: false, cancelarPortal: false });
+    assert.deepEqual(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: {} }, lab, ahora), { aprobar: true, rechazar: true, reintentar: false, anular: false, releer: false, cancelarPortal: false, robotEnCurso: false });
     // aprobado que nunca mandó nada y falló: reintentar o anular
-    assert.deepEqual(accionesDe({ status: 'APROBADO', error: 'no es producción', approvedAt: ahora, resumenPortal: {} }, lab, ahora), { aprobar: false, rechazar: false, reintentar: true, anular: true, releer: false, cancelarPortal: false });
+    assert.deepEqual(accionesDe({ status: 'APROBADO', error: 'no es producción', approvedAt: ahora, updatedAt: ahora, resumenPortal: {} }, lab, ahora), { aprobar: false, rechazar: false, reintentar: true, anular: true, releer: false, cancelarPortal: false, robotEnCurso: false });
+    // con un robot trabajando encima (reintento en curso) no se reintenta ni se anula
+    const robot = accionesDe({ status: 'APROBADO', error: null, approvedAt: ahora, updatedAt: ahora, resumenPortal: { robotDesde: ahora.toISOString() } }, lab, ahora);
+    assert.deepEqual([robot.reintentar, robot.anular, robot.robotEnCurso], [false, false, true]);
+    // un PREPARADO colgado (sin novedades hace más de 10 min) se puede anular
+    assert.equal(accionesDe({ status: 'PREPARADO', error: null, approvedAt: null, updatedAt: new Date(ahora.getTime() - 11 * 60000), resumenPortal: {} }, lab, ahora).anular, true);
+    assert.equal(accionesDe({ status: 'PREPARADO', error: null, approvedAt: null, updatedAt: ahora, resumenPortal: {} }, lab, ahora).anular, false);
+    // un EN_REVISION cuyo par ya tiene pedido no se aprueba
+    assert.equal(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: {} }, lab, ahora, { bloqueadoPorExistente: true }).aprobar, false);
     // con envío iniciado o nº creado NO se anula
     assert.equal(accionesDe({ status: 'APROBADO', error: 'x', approvedAt: ahora, resumenPortal: { envioIniciadoEl: '2026-10-10T11:00:00Z' } }, lab, ahora).anular, false);
     assert.equal(accionesDe({ status: 'APROBADO', error: 'x', approvedAt: ahora, resumenPortal: { numeroCreado: '80000001' } }, lab, ahora).anular, false);
@@ -134,8 +142,8 @@ ok('qué puede hacer una persona con un borrador lo calcula el servidor', () => 
     assert.equal(accionesDe({ status: 'RECHAZADO', error: 'no', approvedAt: null, resumenPortal: { portalDraftId: '1' } }, vit, ahora).cancelarPortal, true);
     assert.equal(accionesDe({ status: 'RECHAZADO', error: 'no', approvedAt: null, resumenPortal: { portalDraftId: '1', canceladoEl: 'x' } }, vit, ahora).cancelarPortal, false);
     // aprobado sin error pero demorado: reintentar
-    assert.equal(accionesDe({ status: 'APROBADO', error: null, approvedAt: new Date(ahora.getTime() - 6 * 60000), resumenPortal: {} }, lab, ahora).reintentar, true);
-    assert.equal(accionesDe({ status: 'APROBADO', error: null, approvedAt: ahora, resumenPortal: {} }, lab, ahora).reintentar, false);
+    assert.equal(accionesDe({ status: 'APROBADO', error: null, approvedAt: new Date(ahora.getTime() - 6 * 60000), updatedAt: new Date(ahora.getTime() - 6 * 60000), resumenPortal: {} }, lab, ahora).reintentar, true);
+    assert.equal(accionesDe({ status: 'APROBADO', error: null, approvedAt: ahora, updatedAt: ahora, resumenPortal: {} }, lab, ahora).reintentar, false);
 });
 console.log('\nLa identidad de los laboratorios, en un solo lugar (lib/laboratorios/identidad.ts)');
 ok('qué laboratorio es un ítem: lo que se guardó al vender, o el del producto; sin nada, ninguno (salvo que se pida un default)', () => {

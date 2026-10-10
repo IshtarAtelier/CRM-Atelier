@@ -77,6 +77,6 @@ export async function pedidoExistenteDelPar(lab: string, orderId: string, pair: 
 
 export function mensajeExistente(e: PedidoExistente, pair: number): string {
     return e.ambiguo
-        ? `La venta tiene el nº ${e.numero} y no se sabe de qué par es (¿se cargó a mano?): no se carga ningún par hasta aclararlo. Revisalo en el portal y dejá en la venta solo los nº que correspondan.`
+        ? `La venta tiene el nº ${e.numero} y no se sabe de qué armazón es (¿se cargó a mano?): no se carga ningún par hasta aclararlo. Para aclararlo: en el portal, agregale al código interno de ese pedido "1°par" o "2°par" (Actualizar pedido) y esperá el seguimiento (media hora), o tipeá en la venta solo el nº del par que ya está cargado.`
         : `El par ${pair} ya tiene pedido en el laboratorio (nº ${e.numero}): no se carga otro.`;
 }

@@ -1,7 +1,8 @@
 import { prisma } from '../../lib/db';
-import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, VENTANA_REPORTE_DIAS } from './types';
+import { REPROCESO_CON_CARGO_MIN, TOLERANCE, VENTANA_REPORTE_DIAS } from './types';
 import { esVenta2x1, LABS_FACTURA_A, labConfigDe, parBonificadoCobrado, systemCostForLab } from './cost-matching';
 import { LABS_DEL_SEMANAL } from './types';
+import { labDeItem } from '../../lib/laboratorios/identidad';
 import { aReclamarDeNota, tieneSegundoParCobrado } from '../../lib/lab-factura';
 import { clasificarHuerfanos } from './alerts';
 import { detectarDobleCobro } from './dos-por-uno';
@@ -508,8 +509,6 @@ export async function searchReport(query?: string, day?: string) {
 
 /** Arma el reporte (filas + cruce con facturas + totales) a partir de un set de órdenes ya traído. */
 export async function assembleReport(orders: any[], monthLabel: string) {
-    const anyLab = /(optovision|grupo[\s\-]?[oó]ptico|vitolen)/i;
-    const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
     // La config de cada lab (calibrado e IVA): la misma que usa el cruce, así la
     // pantalla y el LabCostEntry dicen el mismo costo de sistema (Vitolen valúa
     // el 2º par de la promo con ella).
@@ -517,11 +516,12 @@ export async function assembleReport(orders: any[], monthLabel: string) {
 
     const rows = orders
         .map(order => {
-            const labItems = (order.items || []).filter((i: any) => anyLab.test(labOf(i)));
-            if (labItems.length === 0) return null;
-
-            const lab = labItems.some((i: any) => LAB_ITEM_PATTERNS.OPTOVISION.test(labOf(i)))
-                ? 'OPTOVISION' : labItems.some((i: any) => LAB_ITEM_PATTERNS.VITOLEN?.test(labOf(i))) ? 'VITOLEN' : 'GRUPO_OPTICO';
+            const labsDeLaVenta = (order.items || []).map((i: any) => labDeItem(i)).filter((l: string | null): l is string => !!l && LABS_DEL_SEMANAL.includes(l));
+            if (labsDeLaVenta.length === 0) return null;
+            // Una venta con pares de dos labs se muestra en UNO (límite conocido de esta
+            // pantalla): el orden es el del reporte semanal.
+            const lab = LABS_DEL_SEMANAL.find(l => labsDeLaVenta.includes(l))!;
+            const labItems = (order.items || []).filter((i: any) => labDeItem(i) === lab);
             // El costo de sistema sale de la REGLA ÚNICA del cruce (medio par,
             // cantidad y el par bonificado del 2x1 en $0). Esta pantalla tenía
             // su propia suma, que contaba los DOS pares de un 2x1: mostraba el

@@ -22,7 +22,7 @@ import { formatDate } from '@/lib/format-date';
 
 interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
-interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; releer: boolean; cancelarPortal: boolean }
+interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
@@ -95,7 +95,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     useEffect(() => { cargar(); }, [cargar]);
     // El robot trabaja fuera del request: mientras haya un borrador en manos del
     // robot (armando, o aprobado sin novedad), la ficha se refresca sola.
-    const robotTrabajando = !!datos?.borradores.some(b => b.status === 'PREPARADO' || (b.status === 'APROBADO' && !b.error));
+    const robotTrabajando = !!datos?.borradores.some(b => b.acciones?.robotEnCurso ?? (b.status === 'PREPARADO' || (b.status === 'APROBADO' && !b.error)));
     useEffect(() => {
         if (!robotTrabajando) return;
         const t = setInterval(() => { cargar(); }, 4000);
@@ -165,7 +165,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
             <div className="space-y-1.5">
                 {bloqueo && <p className={`text-xs font-bold flex items-start gap-1 ${claro ? 'text-rose-200' : 'text-rose-700 dark:text-rose-400'}`}><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {bloqueo} Rechazá este borrador.</p>}
                 <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" disabled={ocupado !== null || !!bloqueo || sinPantalla} title={sinPantalla ? 'Sin ver la pantalla del portal no se aprueba' : undefined} onClick={() => aprobar(b)} className={`${boton} bg-emerald-600 px-4`}>
+                    <button type="button" disabled={ocupado !== null || !!bloqueo || sinPantalla || b.acciones?.aprobar === false} title={sinPantalla ? 'Sin ver la pantalla del portal no se aprueba' : undefined} onClick={() => aprobar(b)} className={`${boton} bg-emerald-600 px-4`}>
                         {ocupado === `aprobar-${b.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Aprobar y cargar
                     </button>
                     <input value={motivo[b.id] || ''} onChange={e => setMotivo(m => ({ ...m, [b.id]: e.target.value }))} placeholder="Motivo del rechazo"
@@ -293,7 +293,18 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                             )
                         )}
 
-                        {b?.status === 'PREPARADO' && <p className="text-xs text-stone-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está armando el pedido en el portal; en unos segundos trae la pantalla para revisar. Preparado por {b.preparedBy}.</p>}
+                        {b?.status === 'PREPARADO' && (
+                            <div className="text-xs text-stone-500 space-y-1">
+                                <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está armando el pedido en el portal; en unos segundos trae la pantalla para revisar. Preparado por {b.preparedBy}.</p>
+                                {b.acciones?.anular && (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-amber-800">Lleva demasiado sin novedades (¿se reinició el servidor?).</span>
+                                        <input value={motivo[b.id] || ''} onChange={e => setMotivo(m => ({ ...m, [b.id]: e.target.value }))} placeholder="Motivo para anular" className="flex-1 min-w-[10rem] text-xs rounded border border-stone-300 bg-white text-stone-900 px-2 py-2" />
+                                        <button type="button" disabled={ocupado !== null || !(motivo[b.id] || '').trim()} onClick={() => decidir(b.id, 'anular')} className={`${boton} bg-stone-500`}><X className="w-3 h-3" /> Anular y preparar de nuevo</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         {b?.status === 'APROBADO' && !b.error && (
                             <div className="text-xs text-stone-500 space-y-1">
                                 <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Aprobado por {b.approvedBy}. El robot está cargando el pedido en el laboratorio.</p>

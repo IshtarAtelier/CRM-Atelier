@@ -1,4 +1,5 @@
 import type { PedidoEnPortal } from '../contrato';
+import { parDelCodigoInterno } from '../../../lib/laboratorios/identidad';
 import { estadoDe } from './estados';
 
 /**
@@ -126,7 +127,7 @@ export function normalizarPedido(fila: FilaListado): PedidoEnPortal {
     return {
         portalNumber: fila.numero.trim(),
         internalRef: ref || null,
-        pair: /\b(2\s*d?o\.?|segundo)\s*par\b/i.test(ref) ? 2 : null,
+        pair: parDelCodigoInterno(ref),
         statusRaw: fila.estado.trim(),
         status: estadoDe(fila.estado),
         cliente: ref || null,

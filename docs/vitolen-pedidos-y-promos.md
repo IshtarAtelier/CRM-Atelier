@@ -88,7 +88,7 @@ Primer Hoya no participa; un solo 2º par por venta. Lo fija
 `npm run check:promo-hoya`. **En el cruce de costos** (desde el 8/10/2026,
 regla de Ishtar: "si se cobran ambos pares, más del 20 % el segundo, avisar")
 el 2º par de la promo —el de **menor valor de lista**— se espera al 20 % del
-pelado (`Product.baseCost`) + calibrado, con IVA (`vitolen/promo.ts`); el 1º
+pelado (`Product.baseCost`) + calibrado, con IVA (`lib/laboratorios/vitolen-promo.ts`); el 1º
 entero. Con los dos pedidos facturados, si el más barato vino por encima de
 eso (5 % de tolerancia) la venta queda en **SOBRECOSTO** con la nota
 "2º PAR DE LA PROMO COBRADO DE MÁS … a reclamar $X", aunque la suma cierre

@@ -288,7 +288,13 @@ export class ConfirmarNoDisponibleError extends Error {
 
 async function abrirBorrador(page: Page, portalDraftId: string): Promise<string> {
     const res = await page.goto(urlBorrador(portalDraftId), { waitUntil: 'domcontentloaded' });
-    if (res?.status() === 404) throw new BorradorInexistenteError(portalDraftId);
+    if (res?.status() === 404) {
+        // Un 404 solo vale como "lo cancelaron" si la sesión sigue viva: una sesión
+        // vencida o un mantenimiento no pueden dar por desaparecido un borrador.
+        const prueba = await page.goto(`${BASE_VITOLEN}/ventas/pedidos_laboratorio/new`, { waitUntil: 'domcontentloaded' }).catch(() => null);
+        if (!prueba || prueba.status() !== 200 || /session\/new/.test(page.url())) throw new Error(`El portal de ${NOMBRE_VITOLEN} respondió 404 al borrador ${portalDraftId} pero la sesión no está viva: no se da por cancelado.`);
+        throw new BorradorInexistenteError(portalDraftId);
+    }
     await page.waitForTimeout(1500);
     const texto = (await page.innerText('body').catch(() => '')) || '';
     if (!/Pedido de Laboratorio/i.test(texto)) throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el borrador ${portalDraftId} (${page.url()}).`);

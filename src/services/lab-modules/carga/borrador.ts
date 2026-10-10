@@ -73,8 +73,25 @@ export interface RastroPortal {
     preparadoPorId?: string | null;
     /** El resumen del portal ya recortado a lo que se compara al confirmar (resumenComparable). */
     textoComparable?: string;
-    [k: string]: unknown;
+    /** Grupo Óptico: el nº que el portal devolvió al crear (la barrera contra el pedido duplicado). */
+    numeroCreado?: string;
+    /** Grupo Óptico: cuándo salió el POST de creación (antes de saber la respuesta); null si el portal contestó. */
+    envioIniciadoEl?: string | null;
+    /** En qué anda el robot (mueve `updatedAt`); null cuando terminó. */
+    etapa?: string | null;
+    /** Desde cuándo hay un robot trabajando sobre este borrador; null cuando terminó. Frena un segundo robot y el "anular" a destiempo. */
+    robotDesde?: string | null;
+    /** El borrador del portal desapareció (lo cancelaron a mano). */
+    desaparecioDelPortal?: boolean;
+    /** Vitolen: el resumen cambió / se releyó después de aprobar. */
+    cambiadoEl?: string;
+    releidoEl?: string;
+    /** Grupo Óptico: el nº se adoptó de un pedido ya existente en el portal. */
+    adoptadoDelPortal?: boolean;
+    /** Vitolen: cuándo "Crear" dejó el borrador en el portal. */
+    creadoEnPortalEl?: string;
 }
+
 
 /**
  * ¿Este borrador dejó un pedido en el portal que nadie resolvió? Resuelto es
@@ -89,8 +106,8 @@ export function portalSinResolver(b: { status: string; resumenPortal: unknown })
 }
 
 /**
- * Qué borradores vivos quedaron colgados (el robot corre dentro del request:
- * un redeploy o un OOM lo cortan sin pasar por ERROR). Puro.
+ * Qué borradores vivos quedaron colgados (el robot corre fuera del request
+ * pero en el mismo proceso: un redeploy o un OOM lo cortan sin pasar por ERROR). Puro.
  *  · PREPARADO viejo: el robot no terminó de llenar → ERROR.
  *  · APROBADO viejo: la confirmación no terminó → se anota para reintentar,
  *    nunca ERROR (el portal puede haberla tomado).
@@ -136,7 +153,8 @@ async function cambiarEstado(id: string, a: EstadoBorrador, datos: Record<string
  * pedido duplicado: dos escrituras cruzadas no pueden pisarse. Una clave con
  * valor `null` se guarda como null (así se borra `envioIniciadoEl`).
  */
-async function mezclarRastro(id: string, datos: RastroPortal) {
+// Genérico: cada lab guarda además lo suyo (Vitolen: el texto del resumen, los pasos…).
+async function mezclarRastro<T extends RastroPortal>(id: string, datos: T) {
     const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify(datos)}::jsonb, "updatedAt" = NOW() WHERE id = ${id}`;
     if (n !== 1) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
     return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
@@ -144,24 +162,39 @@ async function mezclarRastro(id: string, datos: RastroPortal) {
 
 /** Qué puede hacer una persona con un borrador, calculado UNA vez acá (la ficha no deduce nada de la prosa). Puro. */
 export function accionesDe(
-    b: { status: string; error: string | null; approvedAt: Date | string | null; resumenPortal: unknown },
+    b: { status: string; error: string | null; approvedAt: Date | string | null; updatedAt?: Date | string | null; resumenPortal: unknown },
     lab: { conBorradorEnPortal: boolean; puedeReleer: boolean },
     ahora = new Date(),
-): { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; releer: boolean; cancelarPortal: boolean } {
-    const r = (b.resumenPortal && typeof b.resumenPortal === 'object' ? b.resumenPortal : {}) as RastroPortal & { numeroCreado?: string; envioIniciadoEl?: string | null };
+    contexto: { bloqueadoPorExistente?: boolean } = {},
+): { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean } {
+    const r = (b.resumenPortal && typeof b.resumenPortal === 'object' ? b.resumenPortal : {}) as RastroPortal;
     const enRevision = b.status === 'EN_REVISION';
     const aprobado = b.status === 'APROBADO';
-    const demorado = !!b.approvedAt && ahora.getTime() - new Date(b.approvedAt).getTime() > APROBADO_DEMORADO_MS;
+    const preparado = b.status === 'PREPARADO';
+    const hace = (d: Date | string | null | undefined) => (d ? ahora.getTime() - new Date(d).getTime() : 0);
+    // Un robot con `robotDesde` reciente está trabajando: ni reintentar ni anular encima.
+    const robotEnCurso = !!r.robotDesde && hace(r.robotDesde) < ROBOT_EN_CURSO_MAX_MS;
+    // "Demorado" se mide desde la última novedad (updatedAt), no desde la aprobación:
+    // después de un reintento, el reloj arranca de nuevo.
+    const demorado = aprobado && !b.error && hace(b.updatedAt ?? b.approvedAt) > APROBADO_DEMORADO_MS;
+    // Un PREPARADO que lleva demasiado sin novedades: el robot murió (redeploy) y nadie lo anotó.
+    const preparadoColgado = preparado && hace(b.updatedAt) > PREPARADO_COLGADO_MS;
+    const sinNadaEnElPortal = !r.numeroCreado && !r.envioIniciadoEl && !r.portalDraftId;
     return {
-        aprobar: enRevision,
+        aprobar: enRevision && !contexto.bloqueadoPorExistente,
         rechazar: enRevision,
-        reintentar: aprobado && (!!b.error || demorado),
-        // Solo un APROBADO que NUNCA mandó nada: sin envío iniciado, sin nº y sin borrador en el portal.
-        anular: aprobado && !!b.error && !r.numeroCreado && !r.envioIniciadoEl && !r.portalDraftId && !lab.conBorradorEnPortal,
-        releer: enRevision && lab.puedeReleer && !!r.portalDraftId,
-        cancelarPortal: (b.status === 'RECHAZADO' || b.status === 'ERROR') && lab.conBorradorEnPortal && portalSinResolver(b),
+        reintentar: aprobado && !robotEnCurso && (!!b.error || demorado),
+        // Solo un borrador que NUNCA mandó nada, y sin robot encima.
+        anular: !robotEnCurso && sinNadaEnElPortal && ((aprobado && !!b.error) || preparadoColgado),
+        releer: enRevision && lab.puedeReleer && !!r.portalDraftId && !robotEnCurso,
+        cancelarPortal: (b.status === 'RECHAZADO' || b.status === 'ERROR') && lab.conBorradorEnPortal && portalSinResolver(b) && !robotEnCurso,
+        robotEnCurso: robotEnCurso || (preparado && !preparadoColgado) || (aprobado && !b.error && !demorado),
     };
 }
+/** Más de esto sin terminar, el robot se da por muerto: se permite otro reintento / anular. */
+export const ROBOT_EN_CURSO_MAX_MS = 25 * 60_000;
+/** Un PREPARADO sin novedades después de esto se puede anular desde la ficha (el tick lo vence a los 30). */
+export const PREPARADO_COLGADO_MS = 10 * 60_000;
 /** Un APROBADO sin novedades después de esto ya no está "cargando": se ofrece reintentar. */
 export const APROBADO_DEMORADO_MS = 5 * 60_000;
 
@@ -181,11 +214,11 @@ export const Borradores = {
             orderBy: { createdAt: 'desc' },
         });
         const vivo = previos.find(p => borradorVivo(p.status as EstadoBorrador));
-        if (vivo) throw new Error(`Ya hay un borrador ${vivo.status} para esta venta (par ${input.pair}).`);
+        if (vivo) throw new ErrorDeCarga(`Ya hay un borrador ${vivo.status} para esta venta (par ${input.pair}).`, 'ESTADO');
         const colgadoEnPortal = previos.find(portalSinResolver);
         if (colgadoEnPortal) {
             const r = colgadoEnPortal.resumenPortal as RastroPortal;
-            throw new Error(`Un borrador anterior (${colgadoEnPortal.status}) dejó el pedido ${r.portalDraftId} en el portal sin confirmar ni cancelar: cancelalo desde la ficha (o confirmalo) antes de preparar otro.`);
+            throw new ErrorDeCarga(`Un borrador anterior (${colgadoEnPortal.status}) dejó el pedido ${r.portalDraftId} en el portal sin confirmar ni cancelar: cancelalo desde la ficha (o confirmalo) antes de preparar otro.`, 'ESTADO');
         }
         let borrador;
         try {
@@ -193,7 +226,7 @@ export const Borradores = {
                 data: { lab: input.lab, orderId: input.orderId, pair: input.pair, payload: input.payload as any, preparedBy: input.actor.name, resumenPortal: { preparadoPorId: input.actor.id ?? null } as any },
             });
         } catch (err: any) {
-            if (err?.code === 'P2002') throw new Error(`Ya hay un borrador vivo para esta venta (par ${input.pair}).`);
+            if (err?.code === 'P2002') throw new ErrorDeCarga(`Ya hay un borrador vivo para esta venta (par ${input.pair}).`, 'ESTADO');
             throw err;
         }
         await logAudit({
@@ -209,7 +242,7 @@ export const Borradores = {
     },
 
     /** El robot sacó la captura del resumen del portal: queda para revisar. */
-    enRevision(id: string, robot: Actor, datos: { screenshotUrl: string; resumenPortal: RastroPortal }) {
+    enRevision<T extends RastroPortal>(id: string, robot: Actor, datos: { screenshotUrl: string; resumenPortal: T }) {
         return cambiarEstado(id, 'EN_REVISION', { screenshotUrl: datos.screenshotUrl, resumenPortal: datos.resumenPortal as any, error: null }, robot);
     },
 
@@ -246,8 +279,18 @@ export const Borradores = {
     },
 
     /** Al confirmar, el portal mostraba otra cosa que lo aprobado: vuelve a revisión con la captura nueva. */
-    volverARevision(id: string, robot: Actor, datos: { screenshotUrl: string; resumenPortal: RastroPortal; motivo: string }) {
-        return cambiarEstado(id, 'EN_REVISION', { screenshotUrl: datos.screenshotUrl, resumenPortal: datos.resumenPortal as any, approvedBy: null, approvedAt: null, error: datos.motivo }, robot, { motivo: datos.motivo });
+    async volverARevision<T extends RastroPortal>(id: string, robot: Actor, datos: { screenshotUrl: string; resumenPortal: T; motivo: string }) {
+        // Solo desde APROBADO, y el rastro se MEZCLA (jsonb ||): lo que otro anotó
+        // mientras el robot estaba en el portal no se pisa.
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
+        if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
+        if (!transicionValida(b.status as EstadoBorrador, 'EN_REVISION')) throw new ErrorDeCarga(`El borrador está ${b.status}: no puede pasar a EN_REVISION.`, 'ESTADO');
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET status = 'EN_REVISION', "screenshotUrl" = ${datos.screenshotUrl}, "approvedBy" = NULL, "approvedAt" = NULL, error = ${datos.motivo},
+            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ ...datos.resumenPortal, robotDesde: null, etapa: null })}::jsonb, "updatedAt" = NOW()
+            WHERE id = ${id} AND status = ${b.status}`;
+        if (n !== 1) throw new ErrorDeCarga(`El borrador cambió de estado mientras tanto (ya no está ${b.status}): volvé a cargar la ficha.`, 'ESTADO');
+        await logAudit({ userId: robot.id, userName: robot.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { lab: b.lab, orderId: b.orderId, pair: b.pair, de: b.status, a: 'EN_REVISION', motivo: datos.motivo } });
+        return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
     },
 
     /** Falló el robot antes de que el portal tuviera nada confirmado (PREPARADO / EN_REVISION): queda el motivo. */
@@ -265,8 +308,8 @@ export const Borradores = {
     async invalidarSinPedido(id: string, robot: Actor, motivo: string) {
         const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, resumenPortal: true, orderId: true, lab: true, pair: true } });
         if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
-        const r = (b.resumenPortal || {}) as RastroPortal & { numeroCreado?: string };
-        if (b.status !== 'APROBADO' || r.numeroCreado || r.portalDraftId) throw new Error(`El borrador está ${b.status}${r.numeroCreado ? ` con el pedido ${r.numeroCreado}` : ''}: no se puede invalidar.`);
+        const r = (b.resumenPortal || {}) as RastroPortal;
+        if (b.status !== 'APROBADO' || r.numeroCreado || r.portalDraftId) throw new ErrorDeCarga(`El borrador está ${b.status}${r.numeroCreado ? ` con el pedido ${r.numeroCreado}` : ''}: no se puede invalidar.`, 'ESTADO');
         const u = await prisma.labOrderDraft.updateMany({ where: { id, status: 'APROBADO' }, data: { status: 'ERROR', error: motivo } });
         if (u.count !== 1) throw new Error('El borrador cambió de estado mientras tanto: volvé a cargar la ficha.');
         await logAudit({
@@ -277,8 +320,57 @@ export const Borradores = {
     },
 
     /** Falló algo sin cambiar de estado (la confirmación, el cancelado): se anota para reintentar. */
-    anotarFalla(id: string, motivo: string) {
-        return prisma.labOrderDraft.update({ where: { id }, data: { error: motivo } });
+    /**
+     * Anota el motivo de una falla. `soloSi`: solo si el borrador sigue en ese
+     * estado — un intento que llega tarde no puede escribir "no se pudo cargar"
+     * sobre un CARGADO. Siempre apaga `robotDesde`/`etapa`: el robot terminó.
+     */
+    async anotarFalla(id: string, motivo: string, opts: { soloSi?: EstadoBorrador } = {}) {
+        const soloSi = opts.soloSi ?? null;
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET error = ${motivo},
+            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde: null, etapa: null })}::jsonb, "updatedAt" = NOW()
+            WHERE id = ${id} AND (${soloSi}::text IS NULL OR status = ${soloSi})`;
+        return n === 1;
+    },
+
+    /**
+     * Anota en el rastro SOLO si el borrador sigue en ese estado; devuelve si lo
+     * hizo. Es la barrera del robot: "voy a mandar el pedido" (`envioIniciadoEl`)
+     * no se anota sobre un borrador que una persona anuló mientras tanto
+     * (auditoría de robustez 2, A1).
+     */
+    async anotarRastroSi(id: string, datos: RastroPortal, soloSi: EstadoBorrador): Promise<boolean> {
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify(datos)}::jsonb, "updatedAt" = NOW() WHERE id = ${id} AND status = ${soloSi}`;
+        return n === 1;
+    },
+
+    /**
+     * Una persona pide reintentar la carga de un APROBADO: se limpia el error
+     * viejo (si no, la ficha mostraba "no se cargó" con el robot ya en el
+     * portal) y se marca `robotDesde`, que frena un segundo clic mientras el
+     * primer robot trabaja (auditoría de arquitectura 2, A1). Atómico.
+     */
+    async reintentar(id: string, actor: Actor) {
+        if (!puedeAprobar(actor)) throw new ErrorDeCarga('El reintento tiene que hacerlo una persona identificada.', 'PERMISO');
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
+        if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
+        if (b.status !== 'APROBADO') throw new ErrorDeCarga(`El borrador está ${b.status}: solo se reintenta un APROBADO.`, 'ESTADO');
+        const limite = new Date(Date.now() - ROBOT_EN_CURSO_MAX_MS).toISOString();
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET error = NULL,
+            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde: new Date().toISOString(), etapa: `reintento pedido por ${actor.name}` })}::jsonb, "updatedAt" = NOW()
+            WHERE id = ${id} AND status = 'APROBADO' AND (("resumenPortal"->>'robotDesde') IS NULL OR ("resumenPortal"->>'robotDesde') < ${limite})`;
+        if (n !== 1) throw new ErrorDeCarga('El robot ya está cargando este pedido: esperá a que termine (la ficha se actualiza sola).', 'ESTADO');
+        await logAudit({ userId: actor.id, userName: actor.name, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { lab: b.lab, orderId: b.orderId, pair: b.pair, reintentoDeCarga: true } });
+    },
+
+    /** El robot arranca con este borrador (confirmar, cancelar, releer): desde ahora hay robot en curso. */
+    robotArranca(id: string, etapa: string) {
+        return mezclarRastro(id, { robotDesde: new Date().toISOString(), etapa }).catch(() => null);
+    },
+
+    /** El robot terminó (bien o mal) con este borrador: ya no hay robot en curso. */
+    robotTermino(id: string) {
+        return mezclarRastro(id, { robotDesde: null, etapa: null }).catch(() => null);
     },
 
     /**
@@ -292,15 +384,19 @@ export const Borradores = {
         if (!motivo?.trim()) throw new ErrorDeCarga('Decí por qué se anula: es lo que el vendedor va a leer.', 'DATOS');
         const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, resumenPortal: true, orderId: true, lab: true, pair: true } });
         if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
-        const r = (b.resumenPortal || {}) as RastroPortal & { numeroCreado?: string; envioIniciadoEl?: string | null };
-        if (b.status !== 'APROBADO') throw new ErrorDeCarga(`El borrador está ${b.status}: solo se anula un APROBADO que no pudo cargar.`, 'ESTADO');
-        if (r.numeroCreado || r.envioIniciadoEl || r.portalDraftId) throw new ErrorDeCarga('Este aprobado ya mandó algo al portal (o dejó un borrador ahí): no se anula a mano, se reintenta o se cancela en el portal.', 'ESTADO');
+        const r = (b.resumenPortal || {}) as RastroPortal;
+        if (b.status !== 'APROBADO' && b.status !== 'PREPARADO') throw new ErrorDeCarga(`El borrador está ${b.status}: solo se anula un APROBADO que no pudo cargar o un PREPARADO colgado.`, 'ESTADO');
+        if (r.numeroCreado || r.envioIniciadoEl || r.portalDraftId) throw new ErrorDeCarga('Este borrador ya mandó algo al portal (o dejó un borrador ahí): no se anula a mano, se reintenta o se cancela en el portal.', 'ESTADO');
+        if (r.robotDesde && Date.now() - Date.parse(r.robotDesde) < ROBOT_EN_CURSO_MAX_MS) throw new ErrorDeCarga('El robot está trabajando con este pedido ahora mismo: esperá a que termine antes de anularlo.', 'ESTADO');
         const texto = motivo.trim().slice(0, 500);
-        const u = await prisma.labOrderDraft.updateMany({ where: { id, status: 'APROBADO' }, data: { status: 'ERROR', error: `Anulado por ${actor.name}: ${texto}` } });
-        if (u.count !== 1) throw new Error('El borrador cambió de estado mientras tanto: volvé a cargar la ficha.');
+        // Condicionado al estado Y a que ningún robot haya marcado envío mientras tanto.
+        const u = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET status = 'ERROR', error = ${`Anulado por ${actor.name}: ${texto}`}, "updatedAt" = NOW()
+            WHERE id = ${id} AND status = ${b.status} AND ("resumenPortal"->>'envioIniciadoEl') IS NULL AND ("resumenPortal"->>'numeroCreado') IS NULL`;
+        const uCount = { count: u };
+        if (uCount.count !== 1) throw new ErrorDeCarga('El borrador cambió mientras tanto (¿el robot empezó a cargarlo?): volvé a cargar la ficha.', 'ESTADO');
         await logAudit({
             userId: actor.id, userName: actor.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
-            details: { lab: b.lab, orderId: b.orderId, pair: b.pair, de: 'APROBADO', a: 'ERROR', motivo: texto, anuladoAMano: true },
+            details: { lab: b.lab, orderId: b.orderId, pair: b.pair, de: b.status, a: 'ERROR', motivo: texto, anuladoAMano: true },
         });
         return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
     },
@@ -328,18 +424,24 @@ export const Borradores = {
     },
 
     /** El robot volvió a mirar el portal (sin cambiar de estado): captura y resumen nuevos para revisar. */
-    async vistaReleida(id: string, actor: Actor, datos: { screenshotUrl: string; resumenPortal: RastroPortal }) {
+    async vistaReleida<T extends RastroPortal>(id: string, actor: Actor, datos: { screenshotUrl: string; resumenPortal: T }) {
         const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
         if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
         if (b.status !== 'EN_REVISION') throw new ErrorDeCarga(`El borrador está ${b.status}: solo se relee uno para revisar.`, 'ESTADO');
-        const r = await prisma.labOrderDraft.update({ where: { id }, data: { screenshotUrl: datos.screenshotUrl, resumenPortal: datos.resumenPortal as any } });
+        // Solo mientras siga EN_REVISION, y mezclando el rastro: si "Aprobar" ganó la
+        // carrera, no se pisa su `aprobadoPorId`.
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "screenshotUrl" = ${datos.screenshotUrl},
+            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ ...datos.resumenPortal, robotDesde: null, etapa: null })}::jsonb, "updatedAt" = NOW()
+            WHERE id = ${id} AND status = 'EN_REVISION'`;
+        if (n !== 1) throw new ErrorDeCarga('El borrador cambió de estado mientras se releía el portal: volvé a cargar la ficha.', 'ESTADO');
+        const r = await prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
         await logAudit({ userId: actor.id, userName: actor.name, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { lab: b.lab, orderId: b.orderId, pair: b.pair, releido: true } }).catch(console.error);
         return r;
     },
 
     /** El robot canceló el borrador en el portal: ya no bloquea preparar otro. Firmado por quien lo pidió. */
     async canceladoEnPortal(id: string, actor?: Actor) {
-        const b = await mezclarRastro(id, { canceladoEl: new Date().toISOString() });
+        const b = await mezclarRastro(id, { canceladoEl: new Date().toISOString(), robotDesde: null, etapa: null });
         await logAudit({
             userId: actor?.id ?? null, userName: actor?.name ?? null, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
             details: { lab: b.lab, orderId: b.orderId, pair: b.pair, canceladoEnPortal: true },
@@ -349,7 +451,7 @@ export const Borradores = {
 
     /** Al ir a cancelar, el robot encontró el pedido confirmado a mano: queda resuelto con ese nº. */
     async confirmadoAManoEnPortal(id: string, portalNumber: string, actor?: Actor) {
-        const b = await mezclarRastro(id, { confirmadoAManoEl: new Date().toISOString(), confirmadoAManoNumero: portalNumber });
+        const b = await mezclarRastro(id, { confirmadoAManoEl: new Date().toISOString(), confirmadoAManoNumero: portalNumber, robotDesde: null, etapa: null });
         await logAudit({
             userId: actor?.id ?? null, userName: actor?.name ?? null, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
             details: { lab: b.lab, orderId: b.orderId, pair: b.pair, confirmadoAManoEnPortal: portalNumber },

@@ -235,7 +235,12 @@ export async function confirmarBorradorAprobado(borradorId: string) {
     }
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo carga los APROBADOS.`);
     const rastro0 = (b.resumenPortal || {}) as RastroGO;
-    if (!rastro0.payloadPortal || !rastro0.resuelto) throw new Error('El borrador no tiene el pedido preparado: hay que volver a prepararlo.');
+    if (!rastro0.payloadPortal || !rastro0.resuelto) {
+        const motivo = 'El borrador no tiene el pedido preparado: hay que volver a prepararlo (anulalo y preparalo de nuevo).';
+        await Borradores.anotarFalla(b.id, motivo, { soloSi: 'APROBADO' }).catch(() => null);
+        throw new Error(motivo);
+    }
+    await Borradores.robotArranca(b.id, `cargando en el portal desde ${new Date().toISOString()}`);
     const guardado = b.payload as unknown as PayloadBorradorGO;
     const payloadAprobado = rastro0.payloadPortal;
     const codigoVenta = codigoCortoDeVenta(b.orderId);
@@ -313,7 +318,11 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                     if (hoy !== r.plan.pedidoOrigen) throw new AprobacionInvalidaError(`El nº del par con cargo cambió (el borrador decía ${r.plan.pedidoOrigen ?? '—'}; hoy ${hoy ?? 'no hay ninguno válido'}): volvé a prepararlo. No se mandó nada.`);
                 }
                 // 4. Crear: se anota ANTES que salió el envío, y el nº apenas vuelve.
-                await mezclar(b.id, { envioIniciadoEl: new Date().toISOString() });
+                // La barrera: "voy a mandar" solo se anota si el borrador SIGUE aprobado.
+                // Si una persona lo anuló mientras el robot buscaba en el portal, acá se
+                // frena y no se crea nada (auditoría de robustez 2, A1).
+                const sigueAprobado = await Borradores.anotarRastroSi(b.id, { envioIniciadoEl: new Date().toISOString() }, 'APROBADO');
+                if (!sigueAprobado) throw new YaCargadoError();
                 try {
                     numero = (await crearPedidoEnPortal(page, payloadAprobado)).numero;
                 } catch (e) {
@@ -377,14 +386,16 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             pedidos: [...pedidos.values()],
             aprobadoPor,
         });
+        await Borradores.robotTermino(b.id);
         const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_GRUPO_OPTICO, { portalNumber: resultado.numero, screenshotFinalUrl: capturaFinalUrl ?? pdfUrl });
         if (resultado.diferencias.length) {
-            await Borradores.anotarFalla(b.id, `Cargado con el nº ${resultado.numero}, pero: ${resultado.diferencias.join(' · ')}.`);
+            await Borradores.anotarFalla(b.id, `Cargado con el nº ${resultado.numero}, pero: ${resultado.diferencias.join(' · ')}.`, { soloSi: 'CARGADO' });
         }
         // Lo que se cargó SIN estar cobrado (Essential), ahora que existe de verdad.
         await avisarExtrasNoCobrados(b, rastro0, resultado.numero);
         return cargado;
     } catch (err: any) {
+        await Borradores.robotTermino(b.id);
         if (err instanceof YaCargadoError) return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
         if (err instanceof PedidoRechazadoError) {
             // El portal dijo que NO crea ese pedido (datos que no acepta): reintentar
@@ -412,7 +423,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 ? `El envío al portal quedó sin respuesta (${motivo}). Reintentar desde la ficha en unos minutos: el robot busca el pedido en el portal antes de crear otro. No lo cargues a mano.`
                 : `No se pudo cargar en el portal: ${motivo}. Reintentar desde la ficha (nunca se duplica: el robot busca el pedido antes de crearlo).`;
         // Solo si sigue APROBADO: un error después de cargar no puede pisar el CARGADO.
-        await prisma.labOrderDraft.updateMany({ where: { id: b.id, status: 'APROBADO' }, data: { error: texto } })
+        await Borradores.anotarFalla(b.id, texto, { soloSi: 'APROBADO' })
             .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador GO:', e));
         throw err;
     }

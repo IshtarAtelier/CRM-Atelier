@@ -62,6 +62,31 @@ export function esDeLab(item: ItemConLaboratorio | null | undefined, lab: LabKey
     return (opciones.sinLaboratorio ?? null) === lab;
 }
 
+/** ¿El ítem es un cristal (no un armazón ni un tratamiento)? La categoría guardada al vender, o la del producto. */
+export function esCristal(item: { productCategorySnapshot?: string | null; product?: { category?: string | null } | null } | null | undefined): boolean {
+    return /cristal|lens/i.test(String(item?.productCategorySnapshot ?? item?.product?.category ?? ''));
+}
+
+/** ¿El ítem es un cristal de ESTE laboratorio? (la pregunta que la carga, el cruce y la ficha hacían cada uno a su manera). */
+export function esCristalDeLab(item: (ItemConLaboratorio & { productCategorySnapshot?: string | null; product?: { category?: string | null; laboratory?: string | null } | null }) | null | undefined, lab: LabKey, opciones: { sinLaboratorio?: LabKey | null } = {}): boolean {
+    return esCristal(item) && esDeLab(item, lab, opciones);
+}
+
+/**
+ * El par (armazón 1 o 2) que dice un código interno escrito en un portal:
+ * "1°par", "2° par", "2do par", "1er par", "primer/segundo par". Es lo que el
+ * robot escribe en los dos portales y lo que el seguimiento lee para saber de
+ * qué armazón es un pedido. null si no lo dice. Puro.
+ */
+export function parDelCodigoInterno(texto: string | null | undefined): 1 | 2 | null {
+    const t = String(texto || '').toLowerCase();
+    const dos = /(?:^|\D)2\s*(?:[°ºo]|do)?\s*par\b|segundo\s+par/.test(t);
+    const uno = /(?:^|\D)1\s*(?:[°ºo]|er|ro)?\s*par\b|primer\s+par/.test(t);
+    if (dos) return 2;
+    if (uno) return 1;
+    return null;
+}
+
 /**
  * La forma del nº de pedido de cada laboratorio, para no atribuirle a uno un
  * nº del otro cuando una venta tiene pedidos de dos (venta mixta):

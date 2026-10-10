@@ -1,6 +1,6 @@
 import { prisma } from '../../../lib/db';
 import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../../../lib/order-frames';
-import { codigoCortoDeVenta } from '../../../lib/laboratorios/identidad';
+import { codigoCortoDeVenta, esCristalDeLab } from '../../../lib/laboratorios/identidad';
 import { cristalVitolenPorNombre, type CristalVitolen } from '../../../lib/laboratorios/vitolen-catalogo';
 import { disenoDelPortal, materialDelPortal } from './materiales';
 
@@ -175,7 +175,7 @@ export function armarFormulario(
     // Un ítem sin posición de armazón es del par 1: no puede "prestarse" al par 2.
     // Agrupados por armazón con la MISMA regla que el resto del CRM (cristalesPorArmazon):
     // los sin armazón asignado se reparten por orden, y con dos pares eso es un faltante.
-    const esDeVitolen = (i: any) => /cristal/i.test(i.productCategorySnapshot || '') && /vitolen/i.test(i.laboratorySnapshot || '');
+    const esDeVitolen = (i: any) => esCristalDeLab(i, 'VITOLEN');
     const totalPares = cantidadDeArmazones(venta as any);
     if (totalPares > 1 && venta.items.some(i => esDeVitolen(i) && i.framePosition == null)) {
         faltantes.push('hay cristales sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal');
@@ -246,7 +246,8 @@ export function armarFormulario(
     const payload: PayloadVitolen = {
         lista: 'L96',
         par: pair,
-        nroCasoInterno: codigoCortoDeVenta(venta.id),
+        // Con dos pares, el nº de caso dice cuál es ("#A1B2 2°par"): es lo que el seguimiento lee para vincularlo al armazón.
+        nroCasoInterno: totalPares > 1 ? `${codigoCortoDeVenta(venta.id)} ${pair}°par` : codigoCortoDeVenta(venta.id),
         paciente: venta.clienteNombre,
         ojos: od && oi ? 'AMBOS' : od ? 'OD' : 'OI',
         tipoReceta: tipoReceta ?? 'Monofocal',

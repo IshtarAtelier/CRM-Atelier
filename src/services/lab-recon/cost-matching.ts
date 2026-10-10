@@ -164,13 +164,13 @@ export function costoDeItemParaCruce(item: any, is2x1: boolean): number {
     const esCristal = /cristal/i.test(categoria);
     // El par bonificado no suma nada: lo pone el laboratorio. Vitolen es la
     // excepción: su promo NO es 2x1, el 2º par se factura al 20 % de lista más
-    // calibrado (bases del 30/9/2026, lab-modules/vitolen/promo.ts), así que
+    // calibrado (bases del 30/9/2026, lib/laboratorios/vitolen-promo.ts), así que
     // ponerlo en $0 acusaría sobrecosto en cada venta. Acá (por ítem) se cuenta
     // entero; la regla del 20 % la aplica `systemCostForLab` a nivel venta
     // (`segundoParDePromoVitolen`, desde el 8/10/2026). La pantalla de Gastos
     // (`costoPorLaboratorioDeVenta`) sigue contándolo entero: ahí importa lo que
     // se paga de verdad, no lo que se espera.
-    const esVitolen = /vitolen/i.test(item.laboratorySnapshot || item.product?.laboratory || '');
+    const esVitolen = labDeItem(item) === 'VITOLEN';
     if (is2x1 && esCristal && item.price === 0 && !esVitolen) return 0;
     const perEyeHalf = item.eye ? 0.5 : 1;
     const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;

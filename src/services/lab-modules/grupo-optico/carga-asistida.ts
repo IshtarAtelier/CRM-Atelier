@@ -3,7 +3,7 @@ import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { planDeCarga, rolesDel2x1, type OpcionesCarga, type TipoArmazon, type TipoAro } from './carga';
 import { numeroDelParConCargo } from './origen';
-import { esDeLab } from '../../../lib/laboratorios/identidad';
+import { esCristalDeLab } from '../../../lib/laboratorios/identidad';
 import { especificacionDe, tieneEssential, familiaDelNombre } from './catalogo';
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { TIPO_ARMAZON, TIPO_ARO } from './catalogo';
@@ -23,8 +23,7 @@ import { mensajeExistente, pedidoExistenteDelPar, type PedidoExistente } from '.
 
 const texto = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
 // Un cristal sin laboratorio cargado (ventas viejas) es de Grupo Óptico acá, como en planDeCarga.
-const esCristalGO = (i: any) => /cristal/i.test(i.productCategorySnapshot || i.product?.category || '')
-    && esDeLab(i, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' });
+const esCristalGO = (i: any) => esCristalDeLab(i, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' });
 
 
 function opcionesDelBody(body: Record<string, unknown>): OpcionesCarga {

@@ -1,4 +1,5 @@
 import { parseLabNumbers } from '../../../lib/lab-order-numbers';
+import { parDelCodigoInterno } from '../../../lib/laboratorios/identidad';
 import type { InvoiceRef } from '../../lab-recon/types';
 import type { EstadoEnPortal, PedidoEnPortal } from '../contrato';
 import { numeroProvisorio } from '../estados';
@@ -110,14 +111,7 @@ export function estadoDeFila(row: FilaApiSmartLab): EstadoEnPortal {
 }
 
 /** El par que dice un texto ("1°par", "2° par", "2do par", "primer/segundo par"). null si no dice. Puro. */
-function parEnTexto(texto: string): 1 | 2 | null {
-    const t = texto.toLowerCase();
-    const dos = /(?:^|\D)2\s*(?:[°ºo]|do)?\s*par\b|segundo\s+par/.test(t);
-    const uno = /(?:^|\D)1\s*(?:[°ºo]|er|ro)?\s*par\b|primer\s+par/.test(t);
-    if (dos) return 2; // la observación del 2º par nombra al 1º ("1° par n° 80…"): manda el 2
-    if (uno) return 1;
-    return null;
-}
+const parEnTexto = (texto: string): 1 | 2 | null => parDelCodigoInterno(texto);
 
 /** El par que dice el "Código interno" (es lo que escribe el robot: "#XXXX Nombre 2°par"). Puro. */
 export function parDelCodigo(codigoOptica: string | null | undefined): 1 | 2 | null {
