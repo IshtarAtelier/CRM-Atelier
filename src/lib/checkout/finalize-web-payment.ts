@@ -30,8 +30,23 @@ import { recordServerEvent } from '@/lib/analytics';
  */
 
 export type FinalizeResult =
-  | { ok: true; alreadyProcessed: boolean; orderId: string }
+  | { ok: true; alreadyProcessed: boolean; orderId: string; stockDevuelto?: boolean }
   | { ok: false; reason: string };
+
+/**
+ * Una reserva de stock de más de este tiempo ya no se devuelve sola al
+ * cancelar el pago. El cron que vence los pagos no estuvo programado hasta el
+ * 10/10/2026: había reservas de agosto (Orión C1, Frida C3) que, devueltas de
+ * golpe, inflaban el stock si alguien ya lo había contado a mano. En la
+ * marcha normal el cron cancela a las 2 h, muy lejos de este límite; un pago
+ * en efectivo que Mercado Pago tiene "pendiente" varios días sí se devuelve.
+ */
+const DIAS_MAX_PARA_DEVOLVER_STOCK = 30;
+/**
+ * El aviso "no pagó: escribile" solo tiene sentido si el abandono es fresco.
+ * Uno viejo se cierra sin subirlo a la campana (regla: nada viejo se reenvía).
+ */
+const HORAS_MAX_PARA_AVISAR_NO_PAGO = 24;
 
 /**
  * Lo que el checkout guarda al abrir el pago para que el correo del cliente
@@ -516,10 +531,14 @@ export async function failWebPayment(opts: {
     return { ok: true, alreadyProcessed: true, orderId: order.id };
   }
 
+  const edadHoras = (Date.now() - new Date(intent.createdAt).getTime()) / 3_600_000;
+  const devolverStock = edadHoras <= DIAS_MAX_PARA_DEVOLVER_STOCK * 24;
+  const avisoFresco = edadHoras <= HORAS_MAX_PARA_AVISAR_NO_PAGO;
+
   // Reponer el stock reservado al crear la orden. Solo armazones/accesorios:
   // los cristales no descuentan stock (se fabrican), igual que en el checkout.
   const restaurados: string[] = [];
-  for (const item of order.items) {
+  for (const item of devolverStock ? order.items : []) {
     if (!item.productId) continue;
     if (item.productCategorySnapshot === 'Cristal' || item.productCategorySnapshot === 'Tratamiento') continue;
     try {
@@ -543,9 +562,10 @@ export async function failWebPayment(opts: {
     nombre = nombre || cliente?.name || '';
     telefono = telefono || cliente?.phone || '';
   }
+  const queStock = devolverStock ? 'el stock volvió' : 'el stock NO se tocó: era una reserva vieja, revisarlo a mano';
   const queFue = gatewayStatus === 'expired'
-    ? 'no pagó en Mercado Pago y la venta se canceló sola (el stock volvió)'
-    : `Mercado Pago no aprobó el pago (${gatewayStatus}) y la venta se canceló`;
+    ? `no pagó en Mercado Pago y la venta se canceló sola (${queStock})`
+    : `Mercado Pago no aprobó el pago (${gatewayStatus}) y la venta se canceló (${queStock})`;
   const mensajeNoPago = `Venta Web #${order.id.slice(-4).toUpperCase()} de ${nombre || 'Cliente'} por $${formatearPrecio(ctx?.emailTotal ?? order.total)}: ${queFue}. Llegó hasta la pantalla de pago: escribile${telefono ? ` al WhatsApp ${telefono}` : ''}.`;
 
   await prisma.$transaction(async (tx) => {
@@ -553,7 +573,11 @@ export async function failWebPayment(opts: {
     if (esperando) {
       await tx.notification.update({
         where: { id: esperando.id },
-        data: { message: mensajeNoPago, createdAt: new Date() },
+        // Fresco: queda pendiente y sube arriba para que alguien le escriba.
+        // Viejo: se cierra con lo que pasó, sin volver a la campana.
+        data: avisoFresco
+          ? { message: mensajeNoPago, createdAt: new Date() }
+          : { message: mensajeNoPago.replace(/Llegó hasta la pantalla de pago: escribile.*$/, 'Se cerró tarde, sin aviso.'), status: 'REJECTED' },
         select: { id: true },
       });
     }
@@ -565,7 +589,7 @@ export async function failWebPayment(opts: {
         // Se libera la clave de idempotencia para que el comprador pueda
         // reintentar con otro medio sin quedar trabado para siempre.
         idempotencyKey: null,
-        labNotes: `[PAGO NO CONCRETADO - MERCADO PAGO]: ${motivo}\n\n` + (order.labNotes || ''),
+        labNotes: `[PAGO NO CONCRETADO - MERCADO PAGO]: ${motivo}${devolverStock ? '' : ` Stock NO devuelto: la reserva tenía más de ${DIAS_MAX_PARA_DEVOLVER_STOCK} días (revisar el stock a mano).`}\n\n` + (order.labNotes || ''),
       },
     });
     await tx.webPaymentIntent.update({
@@ -581,7 +605,8 @@ export async function failWebPayment(opts: {
   });
 
   console.log(
-    `[MP FINALIZE] Orden ${order.id} cancelada por "${gatewayStatus}". Stock repuesto: ${restaurados.length} línea(s).`,
+    `[MP FINALIZE] Orden ${order.id} cancelada por "${gatewayStatus}". ` +
+      (devolverStock ? `Stock repuesto: ${restaurados.length} línea(s).` : `Stock NO repuesto: reserva de más de ${DIAS_MAX_PARA_DEVOLVER_STOCK} días.`),
   );
 
   logAudit({
@@ -590,8 +615,8 @@ export async function failWebPayment(opts: {
     action: 'STATUS_CHANGE',
     entityType: 'ORDER',
     entityId: order.id,
-    details: { status: 'CANCELED', gatewayStatus, motivo },
+    details: { status: 'CANCELED', gatewayStatus, motivo, stockDevuelto: devolverStock },
   }).catch((err) => console.error('Error en logAudit de pago rechazado:', err));
 
-  return { ok: true, alreadyProcessed: false, orderId: order.id };
+  return { ok: true, alreadyProcessed: false, orderId: order.id, stockDevuelto: devolverStock };
 }

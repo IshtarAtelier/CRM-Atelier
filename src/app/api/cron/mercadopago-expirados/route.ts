@@ -67,6 +67,8 @@ export async function GET(request: Request) {
   let liberados = 0;
   let rescatados = 0;
   const errores: string[] = [];
+  /** Cancelados sin devolver stock por ser reservas viejas: hay que contar ese stock a mano. */
+  const sinDevolverStock: string[] = [];
 
   for (const intento of vencidos) {
     try {
@@ -104,7 +106,10 @@ export async function GET(request: Request) {
         gatewayStatus: 'expired',
         motivo: `Sin pago acreditado tras ${HORAS_PARA_VENCER}h. Liberado automáticamente.`,
       });
-      if (r.ok && !r.alreadyProcessed) liberados++;
+      if (r.ok && !r.alreadyProcessed) {
+        liberados++;
+        if (r.stockDevuelto === false) sinDevolverStock.push(intento.orderId);
+      }
     } catch (err: any) {
       // Un intento que falla no puede frenar a los demás: cada uno tiene stock
       // real esperando que se libere.
@@ -127,5 +132,6 @@ export async function GET(request: Request) {
     liberados,
     rescatados,
     errores: errores.length ? errores : undefined,
+    sinDevolverStock: sinDevolverStock.length ? sinDevolverStock : undefined,
   });
 }
