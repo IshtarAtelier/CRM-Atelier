@@ -32,7 +32,7 @@ for (const f of FERIADOS_ARGENTINA) {
     const jpg = path.join(RAIZ, 'public', 'social', pieza.id, '01.jpg');
     // Si el texto no cambió y la placa existe, no se re-renderiza: un JPEG
     // nuevo con los mismos píxeles igual ensucia el git.
-    if (existsSync(json) && existsSync(jpg) && readFileSync(json, 'utf-8') === texto) { iguales++; continue; }
+    if (existsSync(json) && existsSync(jpg) && readFileSync(json, 'utf-8').replace(/\r\n/g, '\n') === texto) { iguales++; continue; }
     writeFileSync(json, texto);
     execFileSync('node', [path.join(RAIZ, 'scripts', 'social', 'render.mjs'), json], { stdio: 'inherit' });
     hechas++;

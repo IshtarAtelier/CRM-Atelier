@@ -4,14 +4,14 @@
   "theme": "dark",
   "pilar": "accion",
   "fuente": "business-info",
-  "caption": "El viernes 1/1 el local está cerrado.",
+  "caption": "El viernes 1/1 el local está cerrado. El sábado abrimos como siempre.",
   "slides": [
     {
       "type": "cta",
       "role": "portada",
       "image": "blog/vidriera-atelier.jpg",
       "title": "El viernes 1/1 *cerramos*",
-      "body": "Feriado de Año Nuevo\n\nTe esperamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba"
+      "body": "Feriado de Año Nuevo\nEl sábado abrimos como siempre\n\nTe esperamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba"
     }
   ]
 }

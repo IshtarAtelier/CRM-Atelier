@@ -84,7 +84,7 @@ export const FERIADOS_ARGENTINA: Feriado[] = ([
     { fecha: '2026-12-25', nombre: 'Navidad', apertura: { cerrado: true, nota: 'el sábado abrimos como siempre' } },
     { fecha: '2026-12-31', nombre: 'Fin de año', tipo: 'HORARIO_ESPECIAL', apertura: { abre: '09:00', cierra: '18:00' } },
     // 2027 (por regla; revisar con el decreto)
-    { fecha: '2027-01-01', nombre: 'Año Nuevo', apertura: { cerrado: true } },
+    { fecha: '2027-01-01', nombre: 'Año Nuevo', apertura: { cerrado: true, nota: 'el sábado abrimos como siempre' } },
     { fecha: '2027-02-08', nombre: 'Carnaval' },
     { fecha: '2027-02-09', nombre: 'Carnaval' },
     { fecha: '2027-03-24', nombre: 'Día de la Memoria' },
