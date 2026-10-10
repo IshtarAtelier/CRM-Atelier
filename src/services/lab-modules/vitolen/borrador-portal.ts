@@ -8,7 +8,7 @@ import type { PayloadVitolen } from './carga';
 import { cancelarBorrador, confirmar, crearYLeerResumen, leerBorrador, llenarFormulario, ResumenCambiadoError } from './llenar';
 import { conSesionVitolen, LAB_VITOLEN, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
-import { rolDeLaPromo, rolesDeLaPromoHoya } from './promo';
+import { rolDeLaPromo, rolesDeLaPromoHoya } from '../../../lib/laboratorios/vitolen-promo';
 import { leerVentaParaCarga } from './carga';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { resumenComparable } from './resumen';

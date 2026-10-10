@@ -205,18 +205,8 @@ export const UNMATCHED_GRACE_MS = 60 * 60 * 1000;
  * —armazón, accesorios— no lo factura el lab y no debe entrar en el cruce).
  * SUMAR UN LABORATORIO = agregar su patrón acá + su proveedor en lab-providers.
  */
-export const LAB_ITEM_PATTERNS: Record<string, RegExp> = {
-    OPTOVISION: /optovision/i,
-    GRUPO_OPTICO: /grupo[\s\-]?[oó]ptico/i,
-    // Fideicomiso Cámara de Ópticas de Córdoba (LabCOC): los bifocales Flat Top.
-    // Sin portal ni correo parseable: sus comprobantes se cargan a mano desde
-    // la venta (30/9/2026: tres facturas con el bifocal Blue Cut a $114.841
-    // contra $23.100 cargados en el sistema, y nadie lo veía).
-    LA_CAMARA: /c[aá]mara/i,
-    // Vitolen (Hoya + Pentax), desde el 30/9/2026: su portal lo lee el módulo
-    // de src/services/lab-modules/vitolen.
-    VITOLEN: /vitolen/i,
-};
+import { LAB_ITEM_PATTERNS } from '../../lib/laboratorios/identidad';
+export { LAB_ITEM_PATTERNS };
 
 /**
  * Clave del cruce a partir del nombre del laboratorio tal como está en el

@@ -21,7 +21,7 @@ import assert from 'node:assert/strict';
 import { descuentoSegundoParHoya, paresHoya, lineaHoyaDe } from '../../src/lib/promo-segundo-par-hoya.ts';
 import { PricingService, calculateQuoteTotals } from '../../src/services/PricingService.ts';
 import { DESCUENTO_SEGUNDO_PAR_HOYA } from '../../src/lib/constants/descuentos.ts';
-import { CATALOGO_VITOLEN } from '../../src/services/lab-modules/vitolen/catalogo.ts';
+import { CATALOGO_VITOLEN } from '../../src/lib/laboratorios/vitolen-catalogo.ts';
 
 let fallas = 0;
 const ok = (desc, fn) => {

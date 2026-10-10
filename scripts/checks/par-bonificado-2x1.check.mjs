@@ -22,7 +22,7 @@
 
 import assert from 'node:assert/strict';
 import { esVenta2x1, parBonificadoCobrado, systemCostForLab, segundoParDePromoVitolen } from '../../src/services/lab-recon/cost-matching.ts';
-import { importeEsperadoSegundoPar, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
+import { importeEsperadoSegundoPar, segundoParCobradoDeMas } from '../../src/lib/laboratorios/vitolen-promo.ts';
 import { MARCA_SEGUNDO_PAR_PROMO_COBRADO, tieneSegundoParCobrado, aReclamarDeNota } from '../../src/lib/lab-factura.ts';
 import { TOPE_PAR_BONIFICADO_2X1 } from '../../src/services/lab-recon/types.ts';
 import { MARCA_PAR_BONIFICADO_COBRADO, estaResuelta, sinNotaParBonificado, tieneParBonificadoCobrado } from '../../src/lib/lab-factura.ts';

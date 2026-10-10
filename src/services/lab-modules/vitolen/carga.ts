@@ -1,6 +1,6 @@
 import { prisma } from '../../../lib/db';
 import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../../../lib/order-frames';
-import { cristalVitolenPorNombre, type CristalVitolen } from './catalogo';
+import { cristalVitolenPorNombre, type CristalVitolen } from '../../../lib/laboratorios/vitolen-catalogo';
 import { disenoDelPortal, materialDelPortal } from './materiales';
 
 /**

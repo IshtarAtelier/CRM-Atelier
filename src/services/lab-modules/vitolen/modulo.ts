@@ -3,7 +3,7 @@ import { LAB_ITEM_PATTERNS } from '../../lab-recon/types';
 import type { EstadoEnPortal, LabModule, OpcionesCorrida, ResultadoSeguimiento } from '../contrato';
 import { pedidosAtrasados, reflejar, ventasActivasDelLab, ventasSinPedidoEnPortal } from '../espejo';
 import { aplicarEstadoEnVenta } from '../estados';
-import { LabCostReconciliationService } from '../../lab-cost-reconciliation.service';
+import { upsertEntry } from '../../lab-recon/cost-matching';
 import { conTurno } from '../portal/turno';
 import { BASE_VITOLEN, normalizarPedido, periodoDeListado, type FilaListado } from './pedidos';
 import { conSesionVitolen, LAB_VITOLEN, leerCuentaCorriente, leerListado, NOMBRE_VITOLEN, pedirBytesDesdeLaPagina, ROBOT_VITOLEN } from './portal';
@@ -139,7 +139,7 @@ async function recolectarCostos(opts: OpcionesCorrida = {}): Promise<Record<stri
         if (!fiable.confiable) invoiceErrors.push(`${numero}: ${fiable.motivo}`);
         const tieneImporte = costo.billedTotal !== null;
         if (tieneImporte) conFactura++; else sinFactura++;
-        const entrada = await LabCostReconciliationService.upsertEntry({
+        const entrada = await upsertEntry({
             lab: LAB_VITOLEN,
             labOrderNumber: numero,
             // Importes solo con PDF de fiar; si no, nada (ni en una entrada nueva).

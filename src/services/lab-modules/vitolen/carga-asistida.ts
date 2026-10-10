@@ -3,12 +3,12 @@ import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { armarFormulario, esSegundoParDePromo, leerVentaParaCarga } from './carga';
-import { cristalVitolenPorNombre } from './catalogo';
+import { cristalVitolenPorNombre } from '../../../lib/laboratorios/vitolen-catalogo';
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, releerBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
-import { avisoDeRoles, type RolesDePares } from '../carga/roles-2x1';
-import { rolDeLaPromo, rolesDeLaPromoHoya } from './promo';
+import { avisoDeRoles, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
+import { rolDeLaPromo, rolesDeLaPromoHoya } from '../../../lib/laboratorios/vitolen-promo';
 import { formatearPrecio } from '../../../lib/format-precio';
 import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-frames';
 

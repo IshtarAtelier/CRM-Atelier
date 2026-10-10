@@ -24,9 +24,9 @@ import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
 import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo } from '../../src/services/lab-modules/vitolen/carga.ts';
-import { rolesDeLaPromoHoya, rolDeLaPromo } from '../../src/services/lab-modules/vitolen/promo.ts';
-import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
-import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
+import { rolesDeLaPromoHoya, rolDeLaPromo } from '../../src/lib/laboratorios/vitolen-promo.ts';
+import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/lib/laboratorios/vitolen-catalogo.ts';
+import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/lib/laboratorios/vitolen-promo.ts';
 import { estadoDe } from '../../src/services/lab-modules/vitolen/estados.ts';
 import { materialDelPortal, disenoDelPortal, colorDe } from '../../src/services/lab-modules/vitolen/materiales.ts';
 import { DISENOS_PORTAL } from '../../src/services/lab-modules/vitolen/portal-materiales.ts';

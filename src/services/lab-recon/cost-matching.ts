@@ -3,11 +3,12 @@ import { RESOLUCIONES_CONOCIDAS } from '../lab-providers/resoluciones';
 import { isQuietLab } from './backfill';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
-import { LAB_ITEM_PATTERNS, LABS_FACTURA_A, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
+import { LABS_FACTURA_A, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
 import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
 import { cristalesPorArmazon } from '../../lib/order-frames';
-import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../lab-modules/vitolen/promo';
-import { rolesDeDosPares } from '../lab-modules/carga/roles-2x1';
+import { patronDeLab } from '../../lib/laboratorios/identidad';
+import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../lib/laboratorios/vitolen-promo';
+import { rolesDeDosPares } from '../../lib/laboratorios/roles-2x1';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de
@@ -38,7 +39,7 @@ export function systemCostForLab(order: any, lab: string): number {
     const items: any[] = order.items || [];
     if (items.length === 0) return 0;
 
-    const pattern = LAB_ITEM_PATTERNS[lab];
+    const pattern = patronDeLab(lab);
     const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
     const categoryOf = (item: any) => item.productCategorySnapshot || item.product?.category || '';
 

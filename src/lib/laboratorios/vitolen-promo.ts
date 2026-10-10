@@ -1,6 +1,6 @@
-import { cristalVitolenPorNombre } from './catalogo';
-import { descuentoSegundoParHoya, type LineaDeCarrito } from '../../../lib/promo-segundo-par-hoya';
-import type { RolesDePares } from '../carga/roles-2x1';
+import { cristalVitolenPorNombre } from './vitolen-catalogo';
+import { descuentoSegundoParHoya, type LineaDeCarrito } from '../promo-segundo-par-hoya';
+import type { RolesDePares } from './roles-2x1';
 
 /**
  * EL SEGUNDO PAR DE VITOLEN NO ES GRATIS: se factura al 20 % del precio de

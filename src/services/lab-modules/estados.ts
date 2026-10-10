@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/db';
 import { logAudit } from '../../lib/audit';
 import { enviarAvisoProcesado } from '../../lib/avisos/aviso-procesado';
-import { LAB_ITEM_PATTERNS } from '../lab-recon/types';
+import { patronDeLab } from '../../lib/laboratorios/identidad';
 import { parseLabNumbers, findLabNumberConflicts, duplicateMessage } from '../../lib/lab-order-numbers';
 import { alertDuplicateLabOrderNumber } from '../../lib/duplicate-lab-order-alert';
 import { cantidadDeArmazones } from '../../lib/order-frames';
@@ -121,7 +121,7 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
 
     // Los pares que se esperan de ESTE laboratorio: un 2x1 con el 2º par en otro
     // lab no puede quedar esperando acá un pedido que nunca va a llegar (I5).
-    const patron = LAB_ITEM_PATTERNS[a.lab];
+    const patron = patronDeLab(a.lab);
     const esCristal = (i: (typeof order.items)[number]) => /cristal|lens/i.test(i.productCategorySnapshot || i.product?.category || '');
     // Solo se descartan los cristales de OTRO laboratorio conocido: uno sin
     // laboratorio cargado cuenta, para no dar por terminado un 2x1 con un par.

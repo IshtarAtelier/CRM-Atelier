@@ -1,5 +1,5 @@
 /**
- * Genera `src/services/lab-modules/vitolen/catalogo.ts` a partir de la lista
+ * Genera `src/lib/laboratorios/vitolen-catalogo.ts` a partir de la lista
  * L96 (hoya-pentax-L96-sep-2026.json): para cada cristal cargado en el sistema,
  * su código de producto en el portal de Vitolen, su diseño y su material.
  *
@@ -16,7 +16,7 @@ import path from 'node:path';
 import { leerLista, armarFichas } from './subir-catalogo-vitolen.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
-const DESTINO = path.resolve(AQUI, '../../../src/services/lab-modules/vitolen/catalogo.ts');
+const DESTINO = path.resolve(AQUI, '../../../src/lib/laboratorios/vitolen-catalogo.ts');
 
 /** Cómo se llama cada línea en el portal (los logos de la pantalla de carga). */
 const DISENO_EN_PORTAL = {

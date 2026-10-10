@@ -2,7 +2,7 @@ import { armarPedidoSmartLab, codigoInternoSmartLab, type VentaParaSmartLab } fr
 import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones } from '../../../lib/order-frames';
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { formatearPrecio } from '../../../lib/format-precio';
-import { avisoDeRoles, rolesDeDosPares, type RolesDePares } from '../carga/roles-2x1';
+import { avisoDeRoles, rolesDeDosPares, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
 import { esNumeroSmartLab } from './existentes';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import {

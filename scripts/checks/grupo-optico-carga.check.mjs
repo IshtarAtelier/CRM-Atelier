@@ -14,7 +14,7 @@
 import assert from 'node:assert/strict';
 import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/services/lab-modules/grupo-optico/catalogo.ts';
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
-import { rolesPorValor, valorDeCristales, avisoDeRoles, rolesDeDosPares } from '../../src/services/lab-modules/carga/roles-2x1.ts';
+import { rolesPorValor, valorDeCristales, avisoDeRoles, rolesDeDosPares } from '../../src/lib/laboratorios/roles-2x1.ts';
 import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo-optico/origen.ts';
 import { textoDeExtraNoCobrado, lineaDeFicha } from '../../src/services/lab-modules/carga/extras-no-cobrados.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
