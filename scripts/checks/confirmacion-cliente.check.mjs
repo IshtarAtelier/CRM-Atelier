@@ -11,6 +11,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { leerRespuestaDeConfirmacion, estadoConfirmacionCliente, HORAS_PARA_CONFIRMACION_TACITA } from '../../src/lib/confirmacion-cliente.ts';
+import { faltantesDeConfirmacion } from '../../src/lib/sale-confirmation.ts';
 const require = createRequire(import.meta.url);
 const bot = require('../../wa-service/shared/confirmacion-cliente.js');
 
@@ -40,6 +41,22 @@ check('tácita → gris y lo dice', /24 h sin respuesta/.test(estadoConfirmacion
 check('observación → rojo con el texto', /«el armazón/.test(estadoConfirmacionCliente({ clientConfirmation: 'OBSERVACION', clientConfirmationText: 'el armazón era el negro', clientConfirmedAt: new Date(now - H), labSentAt: new Date(now - 2 * H) }).texto));
 check(`las 24 h son ${HORAS_PARA_CONFIRMACION_TACITA}`, HORAS_PARA_CONFIRMACION_TACITA === 24);
 
+console.log('\nSiempre de la misma forma, y nunca incompleto (10/10/2026)');
+{
+    const sc0 = readFileSync(new URL('../../src/lib/sale-confirmation.ts', import.meta.url), 'utf8');
+    check('el WhatsApp sale SIEMPRE como plantilla + PDF (con ventana abierta o cerrada)', sc0.includes('forceTemplate: !!pdf'));
+    check('si falta algo crítico NO se manda y se avisa al equipo', sc0.includes('if (faltan.criticos.length)') && sc0.includes('return { ...resultado, omitida: true }') && sc0.includes('avisarAlEquipo({'));
+    const base = { id: 'x', client: { name: 'Ana', phone: '3515551234', email: 'a@b.c' }, items: [{ product: { name: 'Cristal X', category: 'Cristales' }, price: 1000, quantity: 1 }], total: 1000, subtotalWithMarkup: 1000, paid: 0, prescriptionSnapshot: { sphereOD: -1, sphereOI: -1 }, labFrameSource: 'own', userFrameBrand: 'Ray-Ban', userFrameModel: 'RB1', userFrameColor: 'negro' };
+    const sinTel = faltantesDeConfirmacion({ ...base, client: { ...base.client, phone: '' } }, { fotosArmazon: [] });
+    check('sin teléfono → crítico', sinTel.criticos.some(f => f.includes('teléfono')));
+    const sinItems = faltantesDeConfirmacion({ ...base, items: [] }, { fotosArmazon: [] });
+    check('sin productos → crítico', sinItems.criticos.some(f => f.includes('productos')));
+    const sinRx = faltantesDeConfirmacion({ ...base, prescriptionSnapshot: null, prescription: null }, { fotosArmazon: [] });
+    check('cristales sin receta → crítico', sinRx.criticos.some(f => f.includes('receta')));
+    const sinFoto = faltantesDeConfirmacion(base, { fotosArmazon: [] });
+    check('sin foto del armazón → aviso, no frena', !sinFoto.criticos.some(f => f.includes('foto')) && sinFoto.avisos.some(f => f.includes('foto')));
+}
+
 console.log('\nEl mensaje y el circuito');
 const sc = leer('../../src/lib/sale-confirmation.ts');
 check('el WhatsApp pide el OK antes de fabricar, con suavidad', sc.includes('Antes de que tu pedido pase a fabricación') && sc.includes('respondenos *OK* y lo mandamos a fabricar'));
@@ -47,9 +64,8 @@ check('el WhatsApp avisa las 24 h y la responsabilidad', sc.includes('Si en 24 h
 check('ya no dice "ya salió a fabricación"', !sc.includes('ya salió a fabricación'));
 check('el mail dice lo mismo', sc.includes('Antes de que tu pedido pase a fabricación, abajo está el detalle') && (sc.match(/Si en 24 horas no recibimos tu respuesta/g) || []).length >= 2);
 check('la plantilla corta nueva solo si Meta la aprobó', sc.includes("(await plantillaAprobada('venta_confirmada_v2')) ? 'venta_confirmada_v2' : 'venta_confirmada'"));
-check('10/10 · la foto del armazón sale SIEMPRE: con la ventana cerrada va en su propia plantilla con imagen', sc.includes("templateSpec('venta_confirmada_foto'") && sc.includes("plantillaAprobada('venta_confirmada_foto')") && tpl.includes("name: 'venta_confirmada_foto'") && /venta_confirmada_foto[\s\S]{0,400}header: 'IMAGE'/.test(tpl));
 const tpl = leer('../../src/lib/whatsapp/templates.ts');
-check('venta_confirmada_v2 existe en el catálogo y pide el OK', tpl.includes("name: 'venta_confirmada_v2'") && /venta_confirmada_v2[\s\S]{0,900}respondé OK/.test(tpl));
+check('10/10 · la foto del armazón sale SIEMPRE: con la ventana cerrada va en su propia plantilla con imagen', sc.includes("templateSpec('venta_confirmada_foto'") && sc.includes("plantillaAprobada('venta_confirmada_foto')") && tpl.includes("name: 'venta_confirmada_foto'") && /venta_confirmada_foto[\s\S]{0,400}header: 'IMAGE'/.test(tpl)); check('venta_confirmada_v2 existe en el catálogo y pide el OK', tpl.includes("name: 'venta_confirmada_v2'") && /venta_confirmada_v2[\s\S]{0,900}respondé OK/.test(tpl));
 const cron = leer('../../src/app/api/cron/confirmacion-completa/route.ts');
 check('el cron marca las tácitas a las 24 h', cron.includes('confirmacionesTacitas()'));
 const inbound = leer('../../wa-service/transport/inbound.js');

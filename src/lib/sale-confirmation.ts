@@ -669,6 +669,34 @@ export async function confirmacionesTacitas(now = Date.now()): Promise<number> {
     return marcadas;
 }
 
+/**
+ * ¿Está TODO lo que el cliente necesita para confirmar? (Ishtar, 10/10/2026:
+ * "siempre nos aseguremos que esté absolutamente todo lo necesario").
+ *
+ * `criticos`: sin esto el repaso miente o no sirve, y NO se manda — queda una
+ * nota en la ficha y un aviso al equipo para que lo completen y vuelvan a
+ * confirmar. `avisos`: se manda igual, pero queda anotado qué faltó.
+ */
+export function faltantesDeConfirmacion(order: any, conf: Pick<SaleConfirmation, 'fotosArmazon'>): { criticos: string[]; avisos: string[] } {
+    const criticos: string[] = [];
+    const avisos: string[] = [];
+    const items: any[] = order.items || [];
+    const tel = String(order.client?.phone || '').replace(/\D/g, '');
+    if (tel.length < 10) criticos.push('teléfono del cliente (sin él no hay WhatsApp)');
+    if (!items.length) criticos.push('productos (la venta no tiene ítems)');
+    const esCristal = (it: any) => `${it.product?.category || it.productCategorySnapshot || ''}`.toLowerCase().includes('cristal');
+    if (items.some(esCristal)) {
+        const rx = recetaDeLaVenta(order);
+        if (!rx || !prescriptionRecapText(rx, true)) criticos.push('receta (lleva cristales y no hay receta cargada)');
+    }
+    if (!frameRecapText(order, true)) criticos.push('armazón (no se sabe cuál es ni cómo es)');
+    const fin = PricingService.calculateOrderFinancials(order);
+    if (!(fin.listPrice > 0)) criticos.push('precio (el total es cero)');
+    if (!conf.fotosArmazon.length) avisos.push('foto del armazón (el cliente no va a poder reconocerlo en una imagen)');
+    if (!String(order.client?.email || '').includes('@')) avisos.push('email del cliente (solo va por WhatsApp)');
+    return { criticos, avisos };
+}
+
 /** Todo lo que la confirmación necesita leer de la orden, en un solo lugar. */
 const SELECT_CONFIRMACION = SELECT_REPASO_CON_CLIENTE;
 
@@ -725,6 +753,22 @@ export async function sendSaleConfirmation(
         if (yaHay && !reenviar) return { ...resultado, yaEnviada: true };
 
         const conf = buildSaleConfirmation(order, esActualizacion);
+        const nroCorto = String(order.id).slice(-4).toUpperCase();
+
+        // ¿Está todo? Si falta algo crítico, NO se manda: un repaso incompleto
+        // es peor que ninguno (el cliente confirma algo que no es su pedido).
+        const faltan = faltantesDeConfirmacion(order, conf);
+        if (faltan.criticos.length) {
+            const lista = faltan.criticos.map(f => `• ${f}`).join('\n');
+            await prisma.interaction.create({
+                data: { clientId: order.client.id, type: 'NOTE', userName: 'Sistema', content: `⛔ Confirmación de compra del pedido #${nroCorto} NO enviada: faltan datos.\n${lista}\nCompletarlos en la venta y volver a confirmar para que salga.` },
+            }).catch(() => {});
+            await avisarAlEquipo({
+                asunto: `⛔ Pedido #${nroCorto} (${order.client.name}): la confirmación no salió, faltan datos`,
+                cuerpo: `Falta:\n${lista}\n\nCompletarlo en la venta y volver a confirmar; recién ahí le llega el repaso al cliente. Ficha: /admin/contactos?id=${order.client.id}`,
+            });
+            return { ...resultado, omitida: true };
+        }
         // La plantilla corta nueva (pide el OK y avisa las 24 h) solo cuando Meta
         // la tenga aprobada; hasta entonces, la de siempre.
         const plantillaCorta = await plantillaCortaAprobada();
@@ -760,14 +804,20 @@ export async function sendSaleConfirmation(
         const tel = (order.client.phone || '').replace(/\D/g, '');
         if (tel.length >= 10) {
             try {
-                // Texto libre + PDF dentro de la ventana de 24 h; si está
-                // cerrada, plantilla "venta_confirmada" (A2) con el PDF de encabezado.
-                const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
+                // SIEMPRE DE LA MISMA FORMA (Ishtar, 10/10/2026): la plantilla
+                // con el PDF de encabezado, esté o no abierta la ventana de 24 h
+                // — antes, con la ventana abierta iba el repaso largo como texto y
+                // con la ventana cerrada la plantilla corta, y dos clientes del
+                // mismo día recibían cosas distintas. El repaso largo le llega
+                // cuando contesta (cron `confirmacion-completa`, cada 10 min),
+                // que es cuando lo va a leer. Sin PDF no hay plantilla: texto.
+                const nro = `#${nroCorto}`;
                 const res = await sendWhatsAppConReintento({
                     chatId: `${normalizeArgentinePhone(tel)}@c.us`,
                     message: conf.waText,
                     senderName: 'Sistema Atelier',
                     isProactive: true,
+                    forceTemplate: !!pdf,
                     media: pdf ? { base64: pdf.base64, mimetype: 'application/pdf', filename: pdf.filename } : null,
                     // Sin PDF la plantilla con documento no se puede armar: se
                     // deja sin plantilla y, si la ventana está cerrada, queda
@@ -805,8 +855,13 @@ export async function sendSaleConfirmation(
                 // en SU plantilla, `venta_confirmada_foto`, con la foto de
                 // encabezado — cuando Meta la tenga aprobada. Hasta entonces, como
                 // antes: solo dentro del PDF.
-                const plantillaFoto = res.ok && res.via === 'template' ? await plantillaAprobada('venta_confirmada_foto') : false;
-                if (res.ok && (res.via !== 'template' || plantillaFoto)) {
+                const plantillaFoto = res.ok ? await plantillaAprobada('venta_confirmada_foto') : false;
+                // Mientras Meta no apruebe la plantilla de la foto: suelta, y solo
+                // si el cliente nos escribió en las últimas 24 h (si no, rebota).
+                const ventanaAbierta = !plantillaFoto && res.ok ? await prisma.whatsAppChat.findFirst({
+                    where: { client: { id: order.client.id }, lastInboundAt: { gte: new Date(Date.now() - 23 * 3_600_000) } }, select: { id: true },
+                }).then(c => !!c).catch(() => false) : false;
+                if (res.ok && (plantillaFoto || ventanaAbierta)) {
                     for (const foto of conf.fotosArmazon) {
                         const img = await bytesDeImagen(foto.valor);
                         if (!img) continue;
@@ -817,7 +872,7 @@ export async function sendSaleConfirmation(
                             senderName: 'Sistema Atelier',
                             isProactive: true,
                             media,
-                            ...(res.via === 'template' ? { forceTemplate: true, template: templateSpec('venta_confirmada_foto', [String(order.client.name || '').trim(), nro]), templateMedia: media } : {}),
+                            ...(plantillaFoto ? { forceTemplate: true, template: templateSpec('venta_confirmada_foto', [String(order.client.name || '').trim(), nro]), templateMedia: media } : {}),
                         }).catch(err => console.error('[Confirmación de compra] No se pudo enviar la foto del armazón:', err));
                     }
                 }
@@ -841,6 +896,7 @@ export async function sendSaleConfirmation(
                     : `✅ enviado al ${order.client.phone}`)
                 : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
             pdfUrl ? `PDF del pedido: ${resolveStorageUrl(pdfUrl)}` : `PDF del pedido: ❌ no se pudo generar`,
+            ...(faltan.avisos.length ? [`⚠️ Salió, pero faltó: ${faltan.avisos.join('; ')}`] : []),
         ].join('\n') + DETALLE_MARK + conf.waText;
 
         await prisma.interaction.create({
