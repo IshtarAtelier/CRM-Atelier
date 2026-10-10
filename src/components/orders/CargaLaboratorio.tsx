@@ -123,9 +123,11 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
         try {
             const res = await fetch(`/api/lab-modulos/borradores/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, motivo: motivo[id] || '' }) });
             const json = await res.json().catch(() => ({}));
-            // Tras cualquier error se recarga: un 409 ("cambió de estado mientras tanto") deja la ficha vieja si no.
-            if (!res.ok) { setError(json.error || 'No se pudo guardar la decisión.'); await cargar(); return; }
+            // Tras cualquier decisión se cierra la vista ampliada y se recarga: si la
+            // carga falló, el estado nuevo y el error se leen en la ficha (dentro de la
+            // vista ampliada ya no hay botones que mostrar).
             setAmpliada(null);
+            if (!res.ok) { setError(json.error || 'No se pudo guardar la decisión.'); await cargar(); return; }
             await cargar(); onChanged?.();
         } finally { setOcupado(null); }
     };
