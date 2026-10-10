@@ -8,6 +8,10 @@
  * No vino, o Sin cargar. Solo un ADMIN edita; el resto la ve. Debajo de cada
  * feriado se listan los pedidos del equipo para ese día (novedades de
  * /api/equipo/novedades) y un botón para anotar uno nuevo.
+ *
+ * Los NO LABORABLES (puentes) se trabajan con normalidad y van siempre con
+ * todo el equipo (Ishtar, 10/10/2026): no se programan, no piden carga y no
+ * suman horas a favor — son un día común.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -39,6 +43,7 @@ const ETIQUETA_TIPO = {
     NO_LABORABLE:       { texto: 'No laborable',          clase: 'border-violet-400 text-violet-800 dark:text-violet-200' },
     EMPLEADOS_COMERCIO: { texto: 'Empleados de comercio', clase: 'border-orange-400 text-orange-800 dark:text-orange-200' },
 } as const;
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const fmtHoras = (n: number) => `${n.toLocaleString('es-AR', { maximumFractionDigits: 1 })} h`;
 
 /** Hasta cuántos meses adelante se muestran los próximos feriados. */
@@ -78,7 +83,9 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
         return m;
     }, [coberturas]);
 
+    // Los no laborables se trabajan normal: no entran en la cobertura ni en el saldo.
     const pasados = feriados.filter(f => f.fecha <= hoyK);
+    const pasadosQueSeCubren = pasados.filter(f => f.tipo !== 'NO_LABORABLE');
     const proximos = feriados.filter(f => f.fecha > hoyK);
     /** Las novedades (pedidos, francos, etc.) que tocan un día dado. */
     const novedadesDe = (k: string) => novedades.filter(n => claveDia.format(new Date(n.startsAt)) <= k && claveDia.format(new Date(n.endsAt)) >= k);
@@ -105,7 +112,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
      */
     const totales = useMemo(() => equipo.map(p => {
         let cubiertos = 0, noVino = 0, hs = 0, sinHoras = 0, hsCompensadas = 0, hsExtra = 0;
-        for (const f of pasados) {
+        for (const f of pasadosQueSeCubren) {
             const c = porClave.get(`${f.fecha}|${p.id}`);
             if (!c) continue;
             if (c.worked) {
@@ -121,33 +128,48 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
             if (n.type === TIPO_QUE_DESCUENTA_FERIADO && n.status === 'APROBADO') hsCompensadas += horasDeRango(n.horario) ?? 0;
         }
         return { ...p, cubiertos, noVino, hs, sinHoras, hsCompensadas, hsExtra, saldo: Math.round((hs + hsExtra - hsCompensadas) * 10) / 10 };
-    }), [equipo, pasados, porClave, novedades, hoyK]);
+    }), [equipo, pasadosQueSeCubren, porClave, novedades, hoyK]);
 
     const Tabla = ({ lista, futuro }: { lista: Feriado[]; futuro: boolean }) => (
-        <div className="divide-y divide-stone-100 dark:divide-stone-800">
+        <div className="space-y-3 p-3 sm:p-4">
             {lista.map(f => {
-                const sinCargar = !futuro && equipo.some(p => !porClave.has(`${f.fecha}|${p.id}`));
+                const normal = f.tipo === 'NO_LABORABLE';
+                const cargadas = equipo.filter(p => porClave.has(`${f.fecha}|${p.id}`)).length;
+                const aviso = normal ? null
+                    : cargadas === equipo.length ? null
+                    : futuro ? (cargadas === 0 ? 'Sin programar' : 'Programado a medias')
+                    : 'Falta cargar quién cubrió';
+                const [, mm, dd] = f.fecha.split('-');
                 return (
-                    <div key={f.fecha} className="p-3 sm:p-4">
-                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
-                            <span className="font-mono text-sm text-stone-500">{formatDate(f.fecha + 'T12:00:00-03:00')}</span>
-                            <span className="capitalize text-sm text-stone-600 dark:text-stone-300">{diaSemana(f.fecha)}</span>
-                            <span className="font-black flex items-center gap-1.5"><Flag className="w-4 h-4 text-primary" aria-hidden />{f.nombre}</span>
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].clase}`}>
-                                {ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].texto}
-                            </span>
-                            {sinCargar && <span className="text-xs text-amber-700 dark:text-amber-300 font-bold">Sin cargar quién cubrió</span>}
-                            {futuro && equipo.every(p => !porClave.has(`${f.fecha}|${p.id}`)) && <span className="text-xs text-stone-500">Sin programar</span>}
-                        </div>
-                        <table className="w-full text-sm">
-                            <thead className="sr-only"><tr><th>Persona</th><th>Cubrió o no le tocó</th><th>Desde</th><th>Hasta</th><th>Total</th><th>Notas</th></tr></thead>
-                            <tbody>
+                    <article key={f.fecha} className={`rounded-xl border ${aviso && !futuro ? 'border-amber-300 dark:border-amber-800' : 'border-stone-200 dark:border-stone-700'} ${normal ? 'bg-stone-50 dark:bg-stone-950/40' : ''}`}>
+                        <header className="flex items-center gap-3 p-3">
+                            <div className="shrink-0 w-14 text-center rounded-xl py-1 bg-stone-100 dark:bg-stone-800">
+                                <span className="block text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300">{diaSemana(f.fecha).slice(0, 3)}</span>
+                                <span className="block text-xl font-black leading-none">{Number(dd)}</span>
+                                <span className="block text-[10px] text-stone-500">{MESES_CORTOS[Number(mm) - 1]}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-black flex items-center gap-1.5"><Flag className="w-4 h-4 text-primary shrink-0" aria-hidden /><span className="truncate">{f.nombre}</span></p>
+                                <p className="text-xs text-stone-500 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <span className={`font-bold px-2 py-0.5 rounded-full border ${ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].clase}`}>{ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].texto}</span>
+                                    <span className="capitalize">{diaSemana(f.fecha)} {formatDate(f.fecha + 'T12:00:00-03:00')}</span>
+                                </p>
+                            </div>
+                            {aviso && <span className={`text-xs font-bold px-2 py-1 rounded-lg ${futuro ? 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300' : 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200'}`}>{aviso}</span>}
+                        </header>
+                        {normal ? (
+                            <p className="px-3 pb-3 text-sm text-stone-700 dark:text-stone-300">
+                                <Check className="inline w-4 h-4 text-emerald-600 mr-1" aria-hidden />
+                                Se trabaja con normalidad: <strong>{equipo.map(p => p.name.split(' ')[0]).join(' y ') || 'todo el equipo'}</strong>, horario de siempre. No suma horas.
+                            </p>
+                        ) : (
+                            <div className="divide-y divide-stone-100 dark:divide-stone-800 border-t border-stone-100 dark:border-stone-800">
                                 {equipo.map(p => (
                                     <FilaPersona key={p.id} persona={p} fecha={f.fecha} c={porClave.get(`${f.fecha}|${p.id}`)} esAdmin={esAdmin} futuro={futuro} onGuardar={guardar} onLimpiar={limpiar} />
                                 ))}
-                            </tbody>
-                        </table>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            </div>
+                        )}
+                        <div className="px-3 pb-3 pt-2 flex flex-wrap items-center gap-1.5">
                             {novedadesDe(f.fecha).map(n => (
                                 <button key={n.id} onClick={() => onVerNovedad(n)}
                                     className={`text-xs px-2 py-1 rounded-lg border ${NOVEDAD_INFO[n.type].clase} ${n.status === 'RECHAZADO' ? 'line-through opacity-60' : ''} ${n.status === 'PENDIENTE' ? 'border-dashed' : ''}`}
@@ -159,7 +181,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
                                 <Plus className="w-3 h-3" /> Alguien pidió algo para este día
                             </button>
                         </div>
-                    </div>
+                    </article>
                 );
             })}
         </div>
@@ -170,22 +192,30 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
             <div className="p-3 sm:p-4 border-b border-stone-200 dark:border-stone-700 flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h2 className="text-lg font-black">Feriados: quién cubrió</h2>
-                    <p className="text-xs text-stone-500">Desde el {formatDate(DESDE_COBERTURA_FERIADOS + 'T12:00:00-03:00')} (cuando empezó Milena). {esAdmin ? 'Tocá Cubrió en quien trabajó y cargá el horario; el guion es para quien no le tocó.' : 'La carga un administrador.'}</p>
+                    <p className="text-xs text-stone-500">Desde el {formatDate(DESDE_COBERTURA_FERIADOS + 'T12:00:00-03:00')} (cuando empezó Milena). {esAdmin ? 'Tocá Cubrió en quien trabajó y cargá el horario. Los no laborables se trabajan normal y no suman horas.' : 'La carga un administrador.'}</p>
                 </div>
                 {cargando && <Loader2 className="w-4 h-4 animate-spin text-stone-400" />}
             </div>
             {error && <p className="p-4 text-red-700 dark:text-red-300 font-bold">No se pudo cargar: {error}</p>}
 
             {!cargando && totales.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 sm:p-4 border-b border-stone-100 dark:border-stone-800 text-xs">
+                <div className="grid gap-3 sm:grid-cols-2 p-3 sm:p-4 border-b border-stone-100 dark:border-stone-800">
                     {totales.filter(t => esAdmin || t.id === yo.id).map(t => (
-                        <span key={t.id} className="px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 leading-tight">
-                            <strong>{t.name.split(' ')[0]}</strong>: cubrió {t.cubiertos} feriado{t.cubiertos === 1 ? '' : 's'} ({fmtHoras(t.hs)}) · extras {fmtHoras(t.hsExtra)} · no le tocó {t.noVino} · se tomó {fmtHoras(t.hsCompensadas)}
-                            <span className={`block font-black ${t.saldo > 0 ? 'text-amber-700 dark:text-amber-300' : t.saldo < 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
-                                {t.saldo > 0 ? `Se le deben ${fmtHoras(t.saldo)}` : t.saldo < 0 ? `Se tomó ${fmtHoras(-t.saldo)} de más` : 'Al día'}
-                            </span>
-                            {t.sinHoras > 0 && <span className="block text-amber-700 dark:text-amber-300">{t.sinHoras} feriado{t.sinHoras === 1 ? '' : 's'} cubierto{t.sinHoras === 1 ? '' : 's'} sin horario: no suma</span>}
-                        </span>
+                        <div key={t.id} className="rounded-xl border border-stone-200 dark:border-stone-700 p-3">
+                            <div className="flex items-baseline justify-between gap-2">
+                                <strong className="text-base">{t.name.split(' ')[0]}</strong>
+                                <span className={`text-sm font-black ${t.saldo > 0 ? 'text-amber-700 dark:text-amber-300' : t.saldo < 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                                    {t.saldo > 0 ? `Se le deben ${fmtHoras(t.saldo)}` : t.saldo < 0 ? `Se tomó ${fmtHoras(-t.saldo)} de más` : 'Al día'}
+                                </span>
+                            </div>
+                            <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-xs text-stone-600 dark:text-stone-300">
+                                <dt>Feriados cubiertos ({t.cubiertos})</dt><dd className="tabular-nums text-right">+ {fmtHoras(t.hs)}</dd>
+                                <dt>Horas extra</dt><dd className="tabular-nums text-right">+ {fmtHoras(t.hsExtra)}</dd>
+                                <dt>Francos que se tomó</dt><dd className="tabular-nums text-right">− {fmtHoras(t.hsCompensadas)}</dd>
+                                <dt className="text-stone-500">Feriados que no le tocaron</dt><dd className="tabular-nums text-right text-stone-500">{t.noVino}</dd>
+                            </dl>
+                            {t.sinHoras > 0 && <p className="mt-1 text-xs font-bold text-amber-700 dark:text-amber-300">{t.sinHoras} feriado{t.sinHoras === 1 ? '' : 's'} cubierto{t.sinHoras === 1 ? '' : 's'} sin horario: no suma</p>}
+                        </div>
                     ))}
                 </div>
             )}
@@ -195,7 +225,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
 
             <div className="p-3 sm:p-4 border-t-4 border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950/40">
                 <h3 className="font-black">Próximos feriados: programar quién cubre</h3>
-                <p className="text-xs text-stone-500">Los próximos {MESES_ADELANTE} meses. {esAdmin ? 'Marcá quién cubre y en qué horario; el guion es para quien no le toca.' : 'Si necesitás algo para uno de estos días, pedilo con el botón de ese feriado.'}</p>
+                <p className="text-xs text-stone-500">Los próximos {MESES_ADELANTE} meses. {esAdmin ? 'Marcá quién cubre y en qué horario. Los no laborables se trabajan normal y no se programan.' : 'Si necesitás algo para uno de estos días, pedilo con el botón de ese feriado.'}</p>
             </div>
             {!cargando && proximos.length === 0 && <p className="p-6 text-center text-sm text-stone-500">No hay feriados en los próximos {MESES_ADELANTE} meses.</p>}
             <Tabla lista={proximos} futuro />
@@ -220,36 +250,34 @@ function FilaPersona({ persona, fecha, c, esAdmin, futuro, onGuardar, onLimpiar 
     const estado = c === undefined ? (futuro ? 'sin programar' : 'sin cargar') : c.worked ? txtSi.toLowerCase() : '— —';
     const input = 'rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm w-[5.5rem]';
 
+    const seg = (activo: boolean, colorActivo: string) => `px-3 py-1.5 inline-flex items-center gap-1 ${activo ? colorActivo : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`;
+    const guardarSi = () => onGuardar({ fecha, userId: persona.id, worked: true, startTime: desde || null, endTime: hasta || null, notes: notas || null });
+
     return (
-        <tr className="align-middle">
-            <td className="py-1 pr-2 font-bold whitespace-nowrap">{persona.name.split(' ')[0]}</td>
-            <td className="py-1 pr-2">
-                {esAdmin ? (
-                    <span className="inline-flex rounded-lg border border-stone-300 dark:border-stone-600 overflow-hidden text-xs font-bold">
-                        <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: true, startTime: desde || null, endTime: hasta || null, notes: notas || null })}
-                            className={`px-2 py-1 inline-flex items-center gap-1 ${c?.worked ? 'bg-emerald-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c?.worked}><Check className="w-3 h-3" />{txtSi}</button>
-                        <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: false, notes: notas || null })}
-                            className={`px-2 py-1 inline-flex items-center gap-1 border-l border-stone-300 dark:border-stone-600 ${c && !c.worked ? 'bg-stone-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c && !c.worked} aria-label="No le tocó" title="No le tocó (no trabaja este feriado)"><span aria-hidden>— —</span></button>
-                        <button onClick={() => onLimpiar(fecha, persona.id)} title="Volver a sin cargar"
-                            className={`px-2 py-1 border-l border-stone-300 dark:border-stone-600 ${c === undefined ? 'bg-stone-200 dark:bg-stone-700' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-label="Sin cargar"><Minus className="w-3 h-3" /></button>
-                    </span>
-                ) : (
-                    <span className={`text-xs font-bold ${c?.worked ? 'text-emerald-700 dark:text-emerald-300' : c ? 'text-stone-500' : 'text-stone-400'}`} aria-label={c && !c.worked ? 'No le tocó' : undefined}>{estado}</span>
-                )}
-            </td>
-            {c?.worked ? (<>
-                <td className="py-1 pr-2">{esAdmin ? <input type="time" value={desde} onChange={e => setDesde(e.target.value)} className={input} aria-label="Desde" /> : (c.startTime ?? '—')}</td>
-                <td className="py-1 pr-2">{esAdmin ? <input type="time" value={hasta} onChange={e => setHasta(e.target.value)} className={input} aria-label="Hasta" /> : (c.endTime ?? '—')}</td>
-                <td className="py-1 pr-2 tabular-nums whitespace-nowrap">{total !== null ? fmtHoras(total) : '—'}</td>
-                <td className="py-1 w-full">
-                    <div className="flex items-center gap-1">
-                        {esAdmin ? <input value={notas} onChange={e => setNotas(e.target.value)} placeholder="notas" maxLength={200} className="rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm w-full min-w-[6rem]" aria-label="Notas" /> : <span className="text-xs text-stone-500">{c.notes}</span>}
-                        {sucio && <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: true, startTime: desde || null, endTime: hasta || null, notes: notas || null })} className="text-xs font-bold px-2 py-1 rounded-md bg-primary text-white whitespace-nowrap">Guardar</button>}
-                    </div>
-                </td>
-            </>) : (
-                <td colSpan={4} className="py-1 text-xs text-stone-500">{c?.notes ?? ''}</td>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 text-sm">
+            <span className="w-20 font-bold">{persona.name.split(' ')[0]}</span>
+            {esAdmin ? (
+                <span className="inline-flex rounded-lg border border-stone-300 dark:border-stone-600 overflow-hidden text-xs font-bold">
+                    <button onClick={guardarSi} className={seg(!!c?.worked, 'bg-emerald-600 text-white')} aria-pressed={!!c?.worked}><Check className="w-3 h-3" />{txtSi}</button>
+                    <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: false, notes: notas || null })}
+                        className={`${seg(!!c && !c.worked, 'bg-stone-600 text-white')} border-l border-stone-300 dark:border-stone-600`} aria-pressed={!!c && !c.worked} aria-label="No le toca" title="No le toca (no trabaja este feriado)"><span aria-hidden>— —</span></button>
+                    <button onClick={() => onLimpiar(fecha, persona.id)} title="Volver a sin cargar"
+                        className={`${seg(c === undefined, 'bg-stone-200 dark:bg-stone-700')} border-l border-stone-300 dark:border-stone-600`} aria-label="Sin cargar"><Minus className="w-3 h-3" /></button>
+                </span>
+            ) : (
+                <span className={`text-xs font-bold ${c?.worked ? 'text-emerald-700 dark:text-emerald-300' : c ? 'text-stone-500' : 'text-stone-400'}`}>{estado}</span>
             )}
-        </tr>
+            {c?.worked && (<>
+                <span className="inline-flex items-center gap-1.5">
+                    {esAdmin ? <input type="time" value={desde} onChange={e => setDesde(e.target.value)} className={input} aria-label="Desde" /> : (c.startTime ?? '—')}
+                    <span className="text-stone-400">a</span>
+                    {esAdmin ? <input type="time" value={hasta} onChange={e => setHasta(e.target.value)} className={input} aria-label="Hasta" /> : (c.endTime ?? '—')}
+                    <span className="tabular-nums font-bold whitespace-nowrap ml-1">{total !== null ? fmtHoras(total) : <span className="text-amber-700 dark:text-amber-300">sin horario</span>}</span>
+                </span>
+                {esAdmin ? <input value={notas} onChange={e => setNotas(e.target.value)} placeholder="notas" maxLength={200} className="flex-1 min-w-[8rem] rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm" aria-label="Notas" /> : c.notes && <span className="text-xs text-stone-500">{c.notes}</span>}
+                {sucio && <button onClick={guardarSi} className="text-xs font-bold px-2.5 py-1 rounded-md bg-primary text-white whitespace-nowrap">Guardar</button>}
+            </>)}
+            {c && !c.worked && c.notes && <span className="text-xs text-stone-500">{c.notes}</span>}
+        </div>
     );
 }
