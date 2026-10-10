@@ -22,6 +22,7 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generoSchemaOrg } from '../../src/lib/catalog/genero-schema.ts';
 import { urlAbsoluta } from '../../src/lib/url-absoluta.ts';
+import { SLUGS_HISTORICOS, slugVigenteDe } from '../../src/lib/catalog/slugs-historicos.ts';
 
 const raiz = fileURLToPath(new URL('../..', import.meta.url));
 const casos = [];
@@ -71,6 +72,21 @@ for (const archivo of paginas(join(raiz, 'src/app'))) {
     }
 }
 esperar('ninguna página pública define openGraph sin imagen', sinImagen.length === 0, sinImagen.join(', '));
+
+// ── Fichas renombradas: la dirección vieja redirige (10/10/2026) ──
+{
+    const viejos = Object.keys(SLUGS_HISTORICOS);
+    const destinos = new Set(Object.values(SLUGS_HISTORICOS));
+    const cadenas = viejos.filter((v) => destinos.has(v));
+    esperar('ningún destino del mapa es a su vez una dirección vieja (sin cadenas de redirects)', cadenas.length === 0, cadenas.join(', '));
+    esperar('ningún slug viejo redirige a sí mismo', viejos.every((v) => SLUGS_HISTORICOS[v] !== v));
+    esperar('slugVigenteDe: dirección vieja → vigente, desconocida → null',
+        slugVigenteDe('atelier-tg2807-c1-116i') === 'helios-c1' && slugVigenteDe('no-existe') === null && slugVigenteDe('constructor') === null);
+    const ficha = readFileSync(new URL('../../src/app/producto/[slug]/page.tsx', import.meta.url), 'utf8');
+    const pagina = ficha.slice(ficha.indexOf('export default async function ProductPage'));
+    esperar('la ficha busca el producto ANTES de mirar el mapa (un slug vigente nunca se redirige)',
+        pagina.indexOf('getProduct(') > -1 && pagina.indexOf('slugVigenteDe(') > pagina.indexOf('getProduct('));
+}
 
 const fallas = casos.filter((c) => !c.ok);
 for (const c of casos) console.log(`${c.ok ? '✅' : '❌'} ${c.nombre}${c.ok || !c.detalle ? '' : `\n     ${c.detalle}`}`);

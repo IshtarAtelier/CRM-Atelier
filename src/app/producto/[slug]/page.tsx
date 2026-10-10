@@ -15,13 +15,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { armarNombreVisible, baseDelNombre } from '@/lib/catalog/display-name';
 import { precioConOferta } from '@/lib/precio-oferta';
+import { slugVigenteDe } from '@/lib/catalog/slugs-historicos';
 
-// Slugs históricos de productos renombrados (julio 2026): la URL vieja redirige a la definitiva
-const LEGACY_SLUGS: Record<string, string> = {
-  'poseidon': 'dionisio-c2',
-  'venus-c4': 'hera-c4',
-  'clip-on-roma-7036-c2-lentes-de-sol-armazon': 'clip-on-genova-7036-c2-lentes-de-sol-armazon',
-};
 
 // Constante para el producto demo
 const DEMO_PRODUCT = {
@@ -324,14 +319,16 @@ function specsDeCandidato(candidato: {
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
-  if (LEGACY_SLUGS[resolvedParams.slug]) {
-    permanentRedirect(`/producto/${LEGACY_SLUGS[resolvedParams.slug]}`);
-  }
   const product = await getProduct(resolvedParams.slug);
 
   if (!product) {
-    // Producto discontinuado que ya no existe (y no es un renombrado conocido de
-    // LEGACY_SLUGS): 404 REAL, que es lo que Google espera de una ficha que se
+    // Ficha renombrada: la dirección vieja manda a la vigente (ver
+    // src/lib/catalog/slugs-historicos.ts). Se mira DESPUÉS de buscar el
+    // producto, así un slug vigente nunca se redirige.
+    const vigente = slugVigenteDe(resolvedParams.slug);
+    if (vigente) permanentRedirect(`/producto/${vigente}`);
+    // Producto discontinuado que ya no existe (y no es un renombre conocido):
+    // 404 REAL, que es lo que Google espera de una ficha que se
     // dio de baja. Redirigir a /tienda parecía más amable pero Google lo cuenta
     // como soft-404 igual (redirect a página genérica), y encima acá ni siquiera
     // llegaba a ser un 307: como la ruta streamea, el status ya salía 200 y el
