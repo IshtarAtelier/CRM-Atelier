@@ -824,6 +824,38 @@ export async function register() {
             }
         };
 
+        // ---- PAGOS DE MERCADO PAGO QUE NO SE CONCRETARON, cada tick (10 min) ----
+        // Al elegir Mercado Pago el pedido se crea y el stock se RESERVA. Si la
+        // persona no paga, esta ruta lo cancela a las 2 h (antes le pregunta a
+        // Mercado Pago si entró la plata), devuelve el stock y cambia el aviso
+        // a "no pagó: escribile". Existía desde agosto pero NO estaba
+        // programada en ningún lado (10/10/2026): cada abandono dejaba un
+        // armazón reservado para siempre.
+        let mpExpiradosRunning = false;
+        const maybeRunMpExpirados = async () => {
+            if (mpExpiradosRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            mpExpiradosRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/mercadopago-expirados`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(2 * 60 * 1000),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) console.error(`[CRON mercadopago-expirados] HTTP ${res.status}: ${data.error || ''}`);
+                else if (data.liberados || data.rescatados) {
+                    console.log(`[CRON mercadopago-expirados] liberados ${data.liberados} · rescatados ${data.rescatados}` +
+                        (data.sinDevolverStock ? ` · sin devolver stock (reservas viejas): ${data.sinDevolverStock.join(', ')}` : ''));
+                }
+            } catch (err) {
+                console.error('[CRON mercadopago-expirados] Error (se reintenta):', err);
+            } finally {
+                mpExpiradosRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
@@ -845,6 +877,7 @@ export async function register() {
             maybeRunCierreBot().catch(err => console.error('[Vigilante bot] maybeRunCierreBot:', err));
             maybeRunMetaConversiones().catch(err => console.error('[CRON meta-conversiones] maybeRunMetaConversiones:', err));
             maybeRunCobrosMp().catch(err => console.error('[CRON cobros-mercadopago] maybeRunCobrosMp:', err));
+            maybeRunMpExpirados().catch(err => console.error('[CRON mercadopago-expirados] maybeRunMpExpirados:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');

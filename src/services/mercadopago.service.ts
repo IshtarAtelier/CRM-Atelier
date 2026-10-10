@@ -267,6 +267,22 @@ export async function getPayment(paymentId: string): Promise<MpPayment> {
 }
 
 /**
+ * Todos los pagos que Mercado Pago tiene para una orden nuestra
+ * (`external_reference` = id de la orden, ver createPreference).
+ *
+ * La usa el cron que vence los pagos no concretados ANTES de cancelar: el
+ * intento guardado no tiene el id del pago mientras está pendiente, así que
+ * sin esta consulta una venta cobrada cuyo aviso se perdió se cancelaba a las
+ * 2 h (revisión del 10/10/2026). Si falla, lanza: quien llama no cancela.
+ */
+export async function buscarPagosDeOrden(orderId: string): Promise<MpPayment[]> {
+  const q = new URLSearchParams({ external_reference: orderId, limit: '50' });
+  const data = await mpFetch(`/v1/payments/search?${q.toString()}`);
+  const resultados: any[] = Array.isArray(data?.results) ? data.results : [];
+  return resultados.map(normalizePayment);
+}
+
+/**
  * Los pagos de una merchant_order.
  *
  * MP manda dos familias de aviso al mismo webhook: `payment` (un pago concreto)

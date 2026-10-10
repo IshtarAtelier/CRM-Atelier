@@ -15,6 +15,7 @@
     "check:gate": "node --experimental-strip-types scripts/checks/factory-gate.check.mjs",
     "check:ficha": "node scripts/checks/ficha-visible.check.mjs",
     "check:humo": "node scripts/checks/humo-tienda.check.mjs",
+    "check:mp-vencimientos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/mp-vencimientos.check.mjs",
     "check:catalog": "node --experimental-strip-types scripts/checks/catalog-resilience.check.mjs",
     "check:comprobantes": "node --experimental-strip-types scripts/checks/receipt-references.check.mjs",
     "check:origen": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/origen-deterministico.check.mjs",
