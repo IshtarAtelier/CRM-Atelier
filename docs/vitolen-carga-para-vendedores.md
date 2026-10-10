@@ -48,6 +48,9 @@ Hoya no entra.
      "pedido procesado"** (igual que cuando se carga el nº a mano).
    - Si algo está mal → **Rechazar** con el motivo. El robot cancela el
      borrador en el portal. Corregí la venta y volvé a preparar.
+   - Si hiciste un cambio a mano en el portal ("Modificar"), tocá **"releé el
+     portal"** en la ficha y recién ahí aprobá: así lo que aprobás es lo que
+     quedó.
 
 Es **la misma forma de trabajar que con Grupo Óptico**: preparar, mirar la
 pantalla real del laboratorio, aprobar.

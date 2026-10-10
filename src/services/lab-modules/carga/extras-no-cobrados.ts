@@ -2,7 +2,7 @@ import { prisma } from '../../../lib/db';
 import { codigoCortoDeVenta } from '../../../lib/laboratorios/identidad';
 import { logAudit } from '../../../lib/audit';
 import type { Actor } from '../../../lib/actor';
-import { formatearPrecio } from '../../../lib/format-precio';
+import { formatearPrecio, precioConSigno } from '../../../lib/format-precio';
 import { formatDate } from '../../../lib/format-date';
 import { InternalMessagingService } from '../../internal-messaging.service';
 import { appUrl } from '../../lab-recon/types';
@@ -100,7 +100,7 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
         fechaVenta: formatDate(order.createdAt),
         nombreLab: args.nombreLab, pair: args.pair, pares: args.pares,
         renglones: order.items.map(i => `${i.product?.name ?? i.productNameSnapshot ?? 'ítem'}${i.eye ? ` (${i.eye})` : ''}${i.framePosition ? ` · par ${i.framePosition}` : ''}${(i.quantity || 1) > 1 ? ` ×${i.quantity}` : ''}: $ ${formatearPrecio(i.price)}`),
-        total: `$ ${formatearPrecio(order.total)}`,
+        total: precioConSigno(order.total),
         promo: order.appliedPromoName || null,
         loQueSeCarga: args.loQueSeCarga,
         extra: args.extra,
@@ -109,8 +109,9 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
     };
 
     // Ya avisado (un reintento, o un borrador preparado antes del 10/10/2026 que avisaba al preparar): no se repite.
+    const firmaDeLinea = `agregó ${args.extra.nombre} al pedido de ${args.nombreLab}${args.pares > 1 ? ` (par ${args.pair})` : ''}`;
     const yaEnFicha = await prisma.interaction.findFirst({
-        where: { clientId: order.clientId, type: 'LAB_STATUS', content: { contains: `agregó ${args.extra.nombre} al pedido de ${args.nombreLab}` }, createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+        where: { clientId: order.clientId, type: 'LAB_STATUS', content: { contains: firmaDeLinea }, createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
         select: { id: true, content: true },
     }).catch(() => null);
     if (yaEnFicha && yaEnFicha.content.includes(datos.codigoVenta)) return;

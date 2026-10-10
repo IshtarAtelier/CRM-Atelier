@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/db';
 import { logAudit } from '../../lib/audit';
 import { enviarAvisoProcesado } from '../../lib/avisos/aviso-procesado';
-import { codigoCortoDeVenta, patronDeLab } from '../../lib/laboratorios/identidad';
+import { codigoCortoDeVenta, labDeItem, patronDeLab } from '../../lib/laboratorios/identidad';
 import { parseLabNumbers, findLabNumberConflicts, duplicateMessage } from '../../lib/lab-order-numbers';
 import { alertDuplicateLabOrderNumber } from '../../lib/duplicate-lab-order-alert';
 import { cantidadDeArmazones } from '../../lib/order-frames';
@@ -125,15 +125,17 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
     const esCristal = (i: (typeof order.items)[number]) => /cristal|lens/i.test(i.productCategorySnapshot || i.product?.category || '');
     // Solo se descartan los cristales de OTRO laboratorio conocido: uno sin
     // laboratorio cargado cuenta, para no dar por terminado un 2x1 con un par.
-    const deOtroLab = (i: (typeof order.items)[number]) => {
-        const lab = i.laboratorySnapshot || i.product?.laboratory || '';
-        return !!lab.trim() && !patron!.test(lab);
-    };
+    const deOtroLab = (i: (typeof order.items)[number]) => { const l = labDeItem(i); return !!l && !patron!.test(l); };
     const itemsDelLab = patron ? order.items.filter(i => !esCristal(i) || !deOtroLab(i)) : order.items;
     const paresEsperados = cantidadDeArmazones({ ...order, items: itemsDelLab as any });
     const pedidosVivos = a.pedidos.filter(p => p.status !== 'ANULADO').length;
     const faltaOtroPar = !paresCompletos(paresEsperados, pedidosVivos);
-    const conjunto = estadoConjuntoDeVenta(a.pedidos.map(p => p.status), paresEsperados);
+    let conjunto = estadoConjuntoDeVenta(a.pedidos.map(p => p.status), paresEsperados);
+    // Venta mixta (un par en OTRO laboratorio): lo que este lab termina no termina
+    // la venta — el otro par sigue en fábrica y el aviso de retiro saldría antes
+    // de tiempo (auditoría de robustez, M7). Queda "en proceso" hasta que el otro
+    // lab (o una persona) la cierre.
+    if (conjunto === 'TERMINADO' && order.items.some(i => esCristal(i) && deOtroLab(i))) conjunto = 'EN_PROCESO';
     const nuevo = transicionDeVenta(order.labStatus, conjunto);
     const numeros = a.pedidos.map(p => p.portalNumber);
     // El nº se escribe si la venta tiene uno provisorio, o si al campo le falta

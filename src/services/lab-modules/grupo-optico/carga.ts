@@ -1,13 +1,13 @@
 import { armarPedidoSmartLab, codigoInternoSmartLab, type VentaParaSmartLab } from '../../../lib/grupo-optico/armar-pedido';
 import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones } from '../../../lib/order-frames';
 import { itemsDeTenido } from '../../../lib/crystal-color';
-import { formatearPrecio } from '../../../lib/format-precio';
+import { precioConSigno } from '../../../lib/format-precio';
 import { avisoDeRoles, rolesDeDosPares, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
-import { esNumeroDeLab } from '../../../lib/laboratorios/identidad';
+import { esDeLab, esNumeroDeLab } from '../../../lib/laboratorios/identidad';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import {
     especificacionDe, TENIDO_COLOR, TENIDO_INTENSIDADES, TENIDO_TIPO, TIPO_ARMAZON, TIPO_ARO,
-    type Especificacion,
+    type Especificacion, tieneEssential, familiaDelNombre,
 } from './catalogo';
 
 /**
@@ -118,13 +118,13 @@ export function observacionDelPedido(opts: { es2x1: boolean; sinCargo: boolean; 
  * 2x1 propia de la óptica (armazones) o un 2º par de otro laboratorio no es la
  * promo de Grupo Óptico, y escribir "2° par SIN CARGO" ahí confundiría al lab. Puro.
  */
-export function esVenta2x1(venta: VentaParaSmartLab): boolean {
+export function esVenta2x1DeGrupoOptico(venta: VentaParaSmartLab): boolean {
     if (cantidadDeArmazones(venta as any) < 2) return false;
     const porPar = cristalesPorArmazon(venta);
     const nombreDe = (i: any) => texto(i?.product?.name ?? i?.productNameSnapshot);
     // Sin laboratorio cargado en el ítem se asume Grupo Óptico (se llama dentro de su carga).
-    const esGO = (i: any) => /grupo[\s_-]?[oó]ptico/i.test(texto(i?.laboratorySnapshot ?? i?.product?.laboratory) || 'grupo optico');
-    const familia = (i: any) => nombreDe(i).split('·')[0].trim().toLowerCase();
+    const esGO = (i: any) => esDeLab(i, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' });
+    const familia = (i: any) => familiaDelNombre(nombreDe(i)).toLowerCase();
     const p1 = ((porPar.get(1) || []) as any[]).filter(esGO);
     const p2 = ((porPar.get(2) || []) as any[]).filter(esGO);
     if (!p1.length || !p2.length || familia(p1[0]) !== familia(p2[0])) return false;
@@ -137,7 +137,7 @@ export function esVenta2x1(venta: VentaParaSmartLab): boolean {
  * se cobra (Ishtar, 8/10/2026); con el mismo cristal en los dos, el par 1. Puro.
  */
 export function rolesDel2x1(venta: VentaParaSmartLab): RolesDePares | null {
-    if (!esVenta2x1(venta)) return null;
+    if (!esVenta2x1DeGrupoOptico(venta)) return null;
     const porPar = cristalesPorArmazon(venta);
     const cristales = (pair: number) => ((porPar.get(pair) || []) as any[]).filter(i => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot) || 'cristal'));
     return rolesDeDosPares([{ pair: 1, items: cristales(1) }, { pair: 2, items: cristales(2) }]);
@@ -154,7 +154,7 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     // edición de la venta (auditoría 5, 8/10/2026) — y de eso dependen el rol
     // (con cargo / sin cargo), la graduación y hasta qué ojo va en cada pedido.
     const esCristalDelLab = (i: any) => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot))
-        && /grupo[\s_-]?[oó]ptico/i.test(texto(i?.laboratorySnapshot ?? i?.product?.laboratory) || 'grupo optico');
+        && esDeLab(i, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' });
     if (pares > 1 && (venta.items as any[]).some(i => esCristalDelLab(i) && i.framePosition == null)) {
         faltantes.push('hay cristales sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal');
     }
@@ -195,14 +195,14 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     const rol2x1: Rol2x1 | null = roles ? (sinCargo ? 'SIN_CARGO' : 'CON_CARGO') : null;
     const pedidoOrigen = sinCargo ? texto(opciones.pedidoOrigen) || null : null;
     if (sinCargo && !esNumeroDeLab(pedidoOrigen || '', 'GRUPO_OPTICO')) faltantes.push(`el par sin cargo del 2x1 se carga con el par con cargo (par ${roles!.conCargo}) ya cargado: hace falta su nº de pedido para la observación`);
-    const avisoRoles = roles ? avisoDeRoles(roles, n => `$ ${formatearPrecio(n)}`) : null;
+    const avisoRoles = roles ? avisoDeRoles(roles, precioConSigno) : null;
     if (avisoRoles) avisos.push(avisoRoles);
     const colorItem = cristales.map(c => texto(c.crystalColor)).find(Boolean) || null;
     // Essential como extra NO cobrado: solo con motivo (la ficha lo exige) y
     // solo si el producto no lo trae ya.
     const motivoEssential = texto(opciones.extras?.essential).slice(0, 500) || null;
     const extrasNoCobrados: PlanDeCarga['extrasNoCobrados'] = [];
-    const yaEssential = /·\s*essential\b/i.test(producto);
+    const yaEssential = tieneEssential(producto);
     const res = especificacionDe(producto, { colorItem, conTenido: !!lineaTenido, conEssential: !!motivoEssential && !yaEssential });
     if (!res.ok) { faltantes.push(res.motivo); return { ok: false, faltantes, avisos }; }
     const esp = res.especificacion;

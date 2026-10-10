@@ -1,4 +1,5 @@
 import { prisma } from '../../../lib/db';
+import { CARGA_GRUPO_OPTICO } from './carga-asistida';
 import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import { LAB_ITEM_PATTERNS } from '../../lab-recon/types';
 import { registerPortalOrphans } from '../../lab-recon/cost-matching';
@@ -196,7 +197,8 @@ export const MODULO_GRUPO_OPTICO: LabModule = {
     nombre: NOMBRE_GRUPO_OPTICO,
     patronProducto: PATRON_GRUPO_OPTICO,
     // Costos: GrupoOpticoProvider (lab-providers), por LAB_PROVIDERS. Carga: otra tarea.
-    capacidades: { seguimiento: true, costos: false, carga: false },
+    capacidades: { seguimiento: true, costos: false, carga: true },
+    carga: CARGA_GRUPO_OPTICO,
     // Sin cadencia: cada tick de 10 min, como hizo siempre el sync de SmartLab.
     // El aviso de retiro automático (24 h después de terminado) queda prendido:
     // es el circuito de siempre de Grupo Óptico.

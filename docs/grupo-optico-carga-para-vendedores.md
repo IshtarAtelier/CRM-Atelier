@@ -32,7 +32,8 @@ En la ficha, columna derecha, el bloque **"Grupo Óptico · carga del pedido"**.
 1. Elegí **tipo de armazón** (plástico o metálico). Tipo de aro (aro entero,
    ranurado, perforado) y forma son opcionales.
 2. Apretá **"Preparar en Grupo Óptico"**. El robot entra al portal (solo a
-   leer) y arma el pedido. Tarda unos segundos.
+   leer) y arma el pedido. Tarda unos segundos (a veces minutos, si el portal
+   está ocupado): la ficha se va actualizando sola, no hace falta recargar.
 3. En la ficha aparece **la pantalla de SmartLab con el pedido cargado** (todavía sin guardar). Tocá **"Ver el portal en grande y decidir"** y revisala contra la venta: artículo de cada ojo, material, graduación, DNP, altura, armazón, teñido y observación.
 4. Ahí mismo, abajo de la pantalla, decidí:
    - **Aprobar y cargar**: el robot crea el pedido, el **nº de pedido** queda
@@ -53,10 +54,12 @@ agregarlo sin cobrar (se lo prometieron, es una compensación, etc.), al lado
 de "Preparar" hay un link **"+ Agregar Essential (NO está en la venta)"**:
 1. Sale un cartel: "No está cobrado. ¿Estás seguro?", con la explicación.
 2. Hay que **escribir el motivo** (sin motivo no deja).
-3. Al preparar, queda anotado en la ficha del cliente con tu nombre, en el
-   registro del sistema, y **le llega a Ishtar por la mensajería interna**
-   (urgente, con copia al celular) con tu motivo tal cual y los datos de la
-   venta. El cruce de costos lo va a ver como sobrecosto, porque lo es.
+3. **Cuando el pedido se carga** (no al preparar: si se rechaza, no pasó
+   nada), queda anotado en la ficha del cliente con tu nombre y el de quien
+   aprobó, en el registro del sistema, y **le llega a Ishtar por la
+   mensajería interna** (urgente, con copia al celular) con tu motivo tal
+   cual y los datos de la venta. El cruce de costos lo va a ver como
+   sobrecosto, porque lo es.
 
 ## 2x1 Smart Free
 

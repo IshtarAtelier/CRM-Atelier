@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { labDeItem } from '@/lib/laboratorios/identidad';
 import { CRIZALES, ventaExigeCrizal } from '@/lib/constants/crizal';
 import {
     FlaskConical,
@@ -147,12 +148,10 @@ export function OrderDetailPanel({
         const labName = (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase();
         return labName.includes('OPTOVISION');
     }) || false;
-    const isVitolen = order.items?.some((it: any) =>
-        (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase().includes('VITOLEN')) || false;
+    const isVitolen = order.items?.some((it: any) => labDeItem(it) === 'VITOLEN') || false;
     // Grupo Óptico: carga asistida en SmartLab (src/services/lab-modules/grupo-optico).
     const isGrupoOptico = order.items?.some((it: any) =>
-        /grupo[\s-]?[oó]ptico/i.test(it.laboratorySnapshot || it.product?.laboratory || '')
-        && /cristal/i.test(it.productCategorySnapshot || it.product?.category || '')) || false;
+        labDeItem(it) === 'GRUPO_OPTICO' && /cristal/i.test(it.productCategorySnapshot || it.product?.category || '')) || false;
 
     const [fullImageOpen, setFullImageOpen] = useState(false);
     // Los campos del caso los maneja PostSaleServiceForm; acá solo se sigue la

@@ -185,3 +185,8 @@ export function pedidosAtrasados(
         }))
         .filter(p => p.diasDeAtraso >= 1 && p.diasDeAtraso <= ventanaDias);
 }
+
+/** Los pedidos de una venta en el portal de un lab, como los muestra la ficha. */
+export function pedidosEnEspejo(lab: string, orderId: string) {
+    return prisma.labPortalOrder.findMany({ where: { orderId, lab }, orderBy: { portalNumber: 'asc' } });
+}

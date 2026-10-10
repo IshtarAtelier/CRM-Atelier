@@ -6,9 +6,9 @@ import type { LabCostInput, LabName } from './types';
 import { LABS_FACTURA_A, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
 import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
 import { cristalesPorArmazon } from '../../lib/order-frames';
-import { patronDeLab } from '../../lib/laboratorios/identidad';
+import { labDeItem, patronDeLab } from '../../lib/laboratorios/identidad';
 import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../lib/laboratorios/vitolen-promo';
-import { rolesDeDosPares } from '../../lib/laboratorios/roles-2x1';
+import { rolesDeLaPromoHoya } from '../../lib/laboratorios/vitolen-promo';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de
@@ -92,17 +92,19 @@ export function systemCostForLab(order: any, lab: string, labConfig?: { calibrad
  * como antes). Puro: la config del lab (calibrado e IVA) se pasa explícita.
  */
 export function segundoParDePromoVitolen(order: any, config?: { calibrado: number; iva: number } | null): { items: any[]; esperado: number | null; nombre: string; pair: number } | null {
-    const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
-    const conPromo = /2[ºo°]\s*par|segundo par|2\s*x\s*1|hoya/i.test(order?.appliedPromoName || '') || esVenta2x1(order);
-    if (!conPromo) return null;
-    const esVitolen = (i: any) => /vitolen/i.test(labOf(i));
+    // La promo del 2º par la decide LA MISMA regla con la que el CRM la cobra
+    // (promo-segundo-par-hoya.ts: líneas que la encienden, Tact solo 2º, el caro es el 1º).
+    // La promo tiene que estar en la VENTA (el nombre de la promo aplicada, o un
+    // cristal en $0): dos pares comprados aparte no son promo aunque el diseño calce.
+    const laVentaLoDice = /2[ºo°]\s*par|segundo par|2\s*x\s*1|hoya/i.test(order?.appliedPromoName || '') || esVenta2x1(order);
+    const roles = laVentaLoDice ? rolesDeLaPromoHoya((order?.items || []) as any[]) : null;
+    if (!roles) return null;
+    const esVitolen = (i: any) => labDeItem(i) === 'VITOLEN';
     const pares = [...cristalesPorArmazon(order).entries()]
         .map(([pair, items]) => ({ pair, items: (items as any[]).filter(esVitolen) }))
         .filter(p => p.items.length > 0);
-    if (pares.length < 2) return null;
-    // Mismo producto en los dos pares → empate (par 1 el 1º); distintos → por lista (roles-2x1.ts).
-    const roles = rolesDeDosPares(pares);
-    const segundo = pares.find(p => p.pair === roles!.sinCargo)!;
+    const segundo = pares.find(p => p.pair === roles.sinCargo);
+    if (!segundo) return null;
     const cristal = segundo.items[0];
     const nombre = cristal.productNameSnapshot || cristal.product?.name || '';
     const cfg = config;

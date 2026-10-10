@@ -192,7 +192,13 @@ export type Especificacion = EspecificacionLab | EspecificacionStock;
 export type Resolucion = { ok: true; especificacion: Especificacion } | { ok: false; motivo: string };
 
 // "Familia · Material [· Essential]"; unos pocos productos viejos usan " - ".
-const partes = (nombre: string): string[] => (nombre.includes('·') ? nombre.split('·') : nombre.split(/\s+-\s+/)).map(p => p.trim());
+/** Las partes del nombre de un producto del CRM: "Familia · Material [· Essential] [2x1]" (los viejos usan " - "). Puro. */
+export const partesDelNombre = (nombre: string | null | undefined): string[] => { const n = String(nombre || '').replace(/\s+/g, ' ').trim(); return (n.includes('·') ? n.split('·') : n.split(/\s+-\s+/)).map(p => p.trim()); };
+const partes = partesDelNombre;
+/** ¿El producto trae Essential (el antirreflejo) en su nombre? Puro. */
+export const tieneEssential = (nombre: string | null | undefined): boolean => partesDelNombre(nombre).slice(1).some(p => /^essential\b/i.test(p));
+/** La familia del producto (lo que va antes del primer separador). Puro. */
+export const familiaDelNombre = (nombre: string | null | undefined): string => partesDelNombre(nombre)[0] || '';
 const familiaDe = (nombre: string): string => partes(nombre)[0] || '';
 const materialDe = (nombre: string): string => partes(nombre)[1] || '';
 
@@ -220,7 +226,7 @@ export function especificacionDe(nombreProducto: string | null | undefined, opts
 
     // Essential: lo dice el producto, o lo pide quien prepara como extra NO cobrado
     // (carga/extras-no-cobrados.ts: avisa, exige motivo y le llega a la dueña).
-    const essential = /·\s*essential\b/i.test(nombre) || !!opts.conEssential;
+    const essential = tieneEssential(nombre) || !!opts.conEssential;
     let material = MATERIALES_LAB.find(m => m.crm.test(mat));
     if (!material) return { ok: false, motivo: `"${nombre}": el material "${mat}" no tiene equivalencia en SmartLab declarada (catalogo.ts)` };
 

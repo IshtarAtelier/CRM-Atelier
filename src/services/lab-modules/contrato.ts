@@ -1,4 +1,5 @@
 import type { InvoiceRef } from '../lab-recon/types';
+import type { CargaAsistida } from './carga/contrato';
 
 /**
  * MÓDULOS DE LABORATORIO: un módulo por laboratorio, todos con la misma forma.
@@ -78,6 +79,8 @@ export interface LabModule {
     /** Reconoce el `Product.laboratory` de sus cristales (igual que LAB_ITEM_PATTERNS). */
     patronProducto: RegExp;
     capacidades: { seguimiento: boolean; costos: boolean; carga: boolean };
+    /** La carga asistida del lab (carga/contrato.ts), si la tiene: carga/registro.ts la toma de acá. */
+    carga?: CargaAsistida;
     /**
      * Mínimo de minutos entre dos pases rápidos. El tick llama cada 10 min; un
      * portal con pocos pedidos no necesita 70 logins por día. Sin valor = cada tick.

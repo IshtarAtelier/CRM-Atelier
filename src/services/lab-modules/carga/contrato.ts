@@ -55,8 +55,8 @@ export interface ParParaCargar {
     espera?: string | null;
     /** Si viene, el par ya tiene pedido en el laboratorio: no se carga otro. */
     yaCargado?: string | null;
-    /** Rol en una promo de dos pares ("con cargo · 2x1", "SIN CARGO · 2x1"), para el título. */
-    rol?: string | null;
+    /** Rol en una promo de dos pares: el tipo decide el color; la etiqueta, el texto ("SIN CARGO · 2x1", "2º par · promo"). */
+    rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null;
 }
 
 /** Cómo se muestra un borrador, igual para todos los laboratorios. */

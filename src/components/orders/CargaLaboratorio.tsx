@@ -21,11 +21,12 @@ import { formatDate } from '@/lib/format-date';
  */
 
 interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
-interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: string | null }
+interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
+interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; releer: boolean; cancelarPortal: boolean }
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
-    preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista;
+    preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista; acciones?: Acciones;
 }
 interface PedidoEspejo { portalNumber: string; status: string; statusRaw: string | null; estimatedAt: string | null; lastSeenAt: string }
 interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean }
@@ -40,8 +41,6 @@ const ESTADO: Record<string, { texto: string; clase: string }> = {
 };
 const ESTADO_PORTAL: Record<string, string> = { INGRESADO: 'Ingresado', EN_PROCESO: 'En proceso', TERMINADO: 'Terminado', DESPACHADO: 'Despachado', ANULADO: 'Anulado', DESCONOCIDO: 'Sin interpretar' };
 const VIVOS = ['PREPARADO', 'EN_REVISION', 'APROBADO'];
-/** Un APROBADO sin novedades después de esto ya no está "cargando": se ofrece reintentar. */
-const APROBADO_DEMORADO_MS = 5 * 60_000;
 const esImagen = (url: string | null | undefined) => { if (!url) return false; try { return !/\.pdf(\?|$|%)/i.test(decodeURIComponent(url)); } catch { return false; } };
 
 /** Colores por laboratorio (clases completas: Tailwind no arma nombres dinámicos). */
@@ -94,6 +93,14 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
         }
     }, [lab, orderId]);
     useEffect(() => { cargar(); }, [cargar]);
+    // El robot trabaja fuera del request: mientras haya un borrador en manos del
+    // robot (armando, o aprobado sin novedad), la ficha se refresca sola.
+    const robotTrabajando = !!datos?.borradores.some(b => b.status === 'PREPARADO' || (b.status === 'APROBADO' && !b.error));
+    useEffect(() => {
+        if (!robotTrabajando) return;
+        const t = setInterval(() => { cargar(); }, 4000);
+        return () => clearInterval(t);
+    }, [robotTrabajando, cargar]);
 
     const valorDe = (pair: number, c: Campo) => valores[`${pair}:${c.clave}`] ?? c.porDefecto ?? '';
 
@@ -207,7 +214,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         <div className="flex items-center justify-between gap-2">
                             <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">
                                 {datos.pares.length > 1 ? `Par ${par.pair}` : 'Pedido'}{par.titulo ? ` · ${par.titulo}` : ''}
-                                {par.rol && <span className={`ml-1.5 normal-case tracking-normal px-1.5 py-0.5 rounded ${/sin cargo|2º par/i.test(par.rol) ? 'bg-amber-100 text-amber-900' : 'bg-stone-200 text-stone-700'}`}>{par.rol}</span>}
+                                {par.rol && <span className={`ml-1.5 normal-case tracking-normal px-1.5 py-0.5 rounded ${par.rol.tipo === 'SIN_CARGO' ? 'bg-amber-100 text-amber-900' : 'bg-stone-200 text-stone-700'}`}>{par.rol.etiqueta}</span>}
                             </span>
                             {mostrado && (mostrado.status === 'APROBADO' && mostrado.error
                                 ? <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded whitespace-nowrap bg-rose-100 text-rose-800">Aprobado · no se cargó</span>
@@ -236,7 +243,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         {ultimo && !b && !cargado && ultimo.error && (
                             <p className="text-xs text-rose-700 dark:text-rose-400 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {ultimo.error}</p>
                         )}
-                        {ultimo && !b && !cargado && ultimo.vista.pendienteEnPortal && datos.puedeCancelarEnPortal && (
+                        {ultimo && !b && !cargado && ultimo.vista.pendienteEnPortal && ultimo.acciones?.cancelarPortal && (
                             <div className="text-xs text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2 space-y-1">
                                 <p><strong>Quedó un pedido sin confirmar en el portal</strong> ({ultimo.vista.pendienteEnPortal.id}{ultimo.vista.pendienteEnPortal.url ? <>, <a href={ultimo.vista.pendienteEnPortal.url} target="_blank" rel="noreferrer" className="underline">verlo</a></> : null}). Hasta cancelarlo no se puede preparar otro.</p>
                                 <button type="button" disabled={ocupado !== null} onClick={() => decidir(ultimo.id, 'cancelar-portal')} className={`${boton} bg-amber-600`}>
@@ -291,7 +298,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                             <div className="text-xs text-stone-500 space-y-1">
                                 <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Aprobado por {b.approvedBy}. El robot está cargando el pedido en el laboratorio.</p>
                                 {/* Si el servidor se reinició a mitad de la carga, nadie anota el error: pasados unos minutos se ofrece reintentar (nunca duplica). */}
-                                {b.approvedAt && Date.now() - Date.parse(b.approvedAt) > APROBADO_DEMORADO_MS && (
+                                {b.acciones?.reintentar && (
                                     <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')} className={`${boton} bg-emerald-600`}>
                                         {ocupado === `reintentar-${b.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Está tardando: reintentar la carga
                                     </button>
@@ -305,7 +312,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                     <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')} className={`${boton} bg-emerald-600`}>
                                         {ocupado === `reintentar-${b.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reintentar la carga
                                     </button>
-                                    {!datos.puedeCancelarEnPortal && !/YA está creado|quedó sin respuesta/.test(b.error) && (
+                                    {b.acciones?.anular && (
                                         <>
                                             <input value={motivo[b.id] || ''} onChange={e => setMotivo(m => ({ ...m, [b.id]: e.target.value }))} placeholder="Motivo para anular" className="flex-1 min-w-[10rem] text-xs rounded border border-stone-300 bg-white text-stone-900 px-2 py-2" />
                                             <button type="button" disabled={ocupado !== null || !(motivo[b.id] || '').trim()} onClick={() => decidir(b.id, 'anular')} title="Solo si el robot nunca mandó nada al portal" className={`${boton} bg-stone-500`}>
@@ -322,7 +329,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                             <div className="space-y-2">
                                 <p className="text-xs text-stone-600 dark:text-stone-300">
                                     {b.vista.textoRevision}
-                                    {b.vista.enlacePortal ? <> Para corregir algo antes, <a href={b.vista.enlacePortal} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> y después <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'releer')} className="underline font-bold">{ocupado === `releer-${b.id}` ? 'releyendo…' : 'releé el portal'}</button> para ver cómo quedó.</> : null}
+                                    {b.vista.enlacePortal && b.acciones?.releer ? <> Para corregir algo antes, <a href={b.vista.enlacePortal} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> y después <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'releer')} className="underline font-bold">{ocupado === `releer-${b.id}` ? 'releyendo…' : 'releé el portal'}</button> para ver cómo quedó.</> : null}
                                     {b.error ? <span className="block mt-1 text-rose-700 dark:text-rose-400">{b.error}</span> : null}
                                 </p>
                                 {b.vista.avisos.length > 0 && (

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
-import { Borradores } from '@/services/lab-modules/carga/borrador';
+import { accionesDe, Borradores } from '@/services/lab-modules/carga/borrador';
+import { httpDeError } from '@/services/lab-modules/carga/errores';
+import { pedidosEnEspejo } from '@/services/lab-modules/espejo';
 import { cargaDe } from '@/services/lab-modules/carga/registro';
 
 export const dynamic = 'force-dynamic';
@@ -32,16 +33,17 @@ export async function GET(request: Request) {
     if (!analisis) return NextResponse.json({ error: 'Venta no encontrada.' }, { status: 404 });
     const [borradores, espejo] = await Promise.all([
         Borradores.deVenta(orderId).then(bs => bs.filter(b => b.lab === carga.lab)),
-        prisma.labPortalOrder.findMany({ where: { orderId, lab: carga.lab }, orderBy: { portalNumber: 'asc' } }),
+        pedidosEnEspejo(carga.lab, orderId),
     ]);
     return NextResponse.json({
         lab: carga.lab, nombre: carga.nombre,
         // Cada borrador con SU vista: la ficha dibuja igual cualquier laboratorio.
         borradores: borradores.map(b => {
             // Un borrador viejo con otra forma de payload no puede tirar abajo la ficha entera.
-            try { return { ...b, vista: carga.vistaDeBorrador(b) }; } catch (err) {
+            const acciones = accionesDe(b, { conBorradorEnPortal: !!carga.cancelarEnPortal, puedeReleer: !!carga.releerPortal });
+            try { return { ...b, vista: carga.vistaDeBorrador(b), acciones }; } catch (err) {
                 console.error('[lab-modulos/borradores] vista del borrador', b.id, err);
-                return { ...b, vista: { textoRevision: '', filas: [], avisos: [] } };
+                return { ...b, vista: { textoRevision: '', filas: [], avisos: [] }, acciones };
             }
         }),
         espejo, pares: analisis.pares,
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
         return NextResponse.json(ok ? { ok: true, ...resto } : resto, { status });
     } catch (error: any) {
         const msg = error?.message || 'No se pudo preparar el pedido.';
-        const status = /Ya hay un borrador|dejó el pedido/.test(msg) ? 409 : 500;
+        const status = httpDeError(error) === 500 && /Ya hay un borrador|dejó el pedido/.test(msg) ? 409 : httpDeError(error);
         if (status === 500) console.error('[lab-modulos/borradores] POST:', error);
         return NextResponse.json({ error: msg }, { status });
     }

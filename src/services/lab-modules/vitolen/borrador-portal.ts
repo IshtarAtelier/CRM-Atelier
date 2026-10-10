@@ -5,11 +5,11 @@ import { Borradores, type RastroPortal } from '../carga/borrador';
 import { aplicarEstadoEnVenta } from '../estados';
 import { conTurno } from '../portal/turno';
 import type { PayloadVitolen } from './carga';
-import { cancelarBorrador, confirmar, crearYLeerResumen, leerBorrador, llenarFormulario, ResumenCambiadoError } from './llenar';
+import { BorradorInexistenteError, cancelarBorrador, confirmar, ConfirmarNoDisponibleError, crearYLeerResumen, leerBorrador, llenarFormulario, ResumenCambiadoError } from './llenar';
 import { conSesionVitolen, LAB_VITOLEN, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { rolDeLaPromo, rolesDeLaPromoHoya } from '../../../lib/laboratorios/vitolen-promo';
-import { leerVentaParaCarga } from './carga';
+import { armarFormulario, diferenciasDePayloadVitolen, leerVentaParaCarga } from './carga';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { resumenComparable } from './resumen';
 
@@ -36,6 +36,7 @@ import { resumenComparable } from './resumen';
  * Nada se confirma sin la aprobación de una persona (regla de Ishtar).
  */
 class ParYaConPedidoError extends Error { constructor(m: string) { super(m); this.name = 'ParYaConPedidoError'; } }
+class VentaCambiadaError extends Error { constructor(m: string) { super(m); this.name = 'VentaCambiadaError'; } }
 
 export const ROBOT_ACTOR_VITOLEN: Actor = { id: null, name: ROBOT_VITOLEN, role: null };
 
@@ -148,6 +149,14 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             const payload = (b.payload || {}) as Partial<PayloadVitolen>;
             const venta = await leerVentaParaCarga(b.orderId);
             const rolHoy = venta ? rolDeLaPromo(rolesDeLaPromoHoya(venta.items as any), b.pair) : null;
+            // La venta de HOY tiene que armar el mismo pedido que se aprobó (receta,
+            // diseño, armazón): si la vendedora corrigió un esférico después de
+            // preparar, lo que está en el portal es viejo (auditoría de robustez, A3).
+            if (venta && payload.od !== undefined) {
+                const hoy = armarFormulario(venta, { pair: b.pair, forma: payload.armazon?.forma ?? null, ejeDiagonal: payload.armazon?.ejeDiagonal ?? null, variante: payload.variante ?? null, rolPromo: payload.rolPromo, pedidoOrigen: payload.pedidoOrigen ?? null });
+                const cambios = diferenciasDePayloadVitolen(payload as PayloadVitolen, hoy.payload);
+                if (!hoy.ok || cambios.length) throw new VentaCambiadaError(`La venta cambió después de preparar (${cambios.join(', ') || hoy.faltantes.join(', ')}): rechazá el borrador y volvé a prepararlo. No se confirmó nada.`);
+            }
             // Un borrador de antes del 8/10/2026 no guardó rol: no hay con qué comparar.
             if (venta && payload.rolPromo !== undefined && rolHoy !== payload.rolPromo) throw new ParYaConPedidoError(`El lugar de este par en la promo cambió después de aprobar (era ${payload.rolPromo ?? 'sin promo'}, hoy ${rolHoy ?? 'sin promo'}): rechazá el borrador y volvé a prepararlo.`);
             return confirmar(page, rastro.portalDraftId, rastro.textoComparable ?? rastro.texto);
@@ -163,6 +172,19 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         });
         return await Borradores.cargado(b.id, ROBOT_ACTOR_VITOLEN, { portalNumber: r.portalNumber, screenshotFinalUrl });
     } catch (err: any) {
+        if (err instanceof BorradorInexistenteError) {
+            // Lo cancelaron a mano en el portal: no hay nada que confirmar; el par se
+            // puede preparar de nuevo (auditoría de robustez, A2).
+            await Borradores.invalidarPorBorradorDesaparecido(b.id, ROBOT_ACTOR_VITOLEN, `${err.message} Prepará el pedido de nuevo.`)
+                .catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador Vitolen desaparecido:', e));
+            throw err;
+        }
+        if (err instanceof ConfirmarNoDisponibleError || err instanceof VentaCambiadaError) {
+            // Nada se confirmó: vuelve a revisión con el motivo, para que una persona decida.
+            await Borradores.volverARevision(b.id, ROBOT_ACTOR_VITOLEN, { screenshotUrl: b.screenshotUrl ?? '', resumenPortal: rastro, motivo: err.message })
+                .catch(e => console.error('[lab-modulos] no se pudo devolver a revisión el borrador Vitolen (queda APROBADO):', e));
+            throw err;
+        }
         if (err instanceof ParYaConPedidoError) {
             // No se confirmó nada: vuelve a revisión con el motivo para que la persona rechace.
             await Borradores.volverARevision(b.id, ROBOT_ACTOR_VITOLEN, { screenshotUrl: b.screenshotUrl ?? '', resumenPortal: rastro, motivo: err.message })

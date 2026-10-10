@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
 import { Borradores, puedeAprobar } from '@/services/lab-modules/carga/borrador';
+import { httpDeError } from '@/services/lab-modules/carga/errores';
 import { cargaDe } from '@/services/lab-modules/carga/registro';
 
 export const dynamic = 'force-dynamic';
@@ -29,8 +29,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const actor = getActor(request);
         const body = await request.json().catch(() => ({}));
         const accion = String(body.accion || '');
-        const fila = await prisma.labOrderDraft.findUnique({ where: { id }, select: { lab: true } });
-        if (!fila) return NextResponse.json({ error: 'El borrador no existe.' }, { status: 404 });
+        const labDelBorrador = await Borradores.labDe(id);
+        if (!labDelBorrador) return NextResponse.json({ error: 'El borrador no existe.' }, { status: 404 });
+        const fila = { lab: labDelBorrador };
         const carga = cargaDe(fila.lab);
         if (!carga) return NextResponse.json({ error: `El laboratorio ${fila.lab} no tiene carga asistida.` }, { status: 400 });
 
@@ -41,12 +42,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 if (!puedeAprobar(actor)) return NextResponse.json({ error: 'El reintento tiene que hacerlo una persona identificada.' }, { status: 403 });
                 logAudit({ userId: actor.id, userName: actor.name, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { reintentoDeCarga: true, lab: fila.lab } }).catch(console.error);
             }
-            try {
-                const borrador = await carga.confirmar(id);
-                return NextResponse.json({ ok: true, borrador });
-            } catch (err: any) {
-                return NextResponse.json({ error: `${accion === 'aprobar' ? 'Aprobado, pero' : 'Todavía'} no se pudo cargar en el portal: ${err?.message || err}`, borradorId: id }, { status: 502 });
-            }
+            // El robot carga FUERA del request (turno, login, portal: minutos). La
+            // ficha sondea el borrador: CARGADO, o APROBADO con el error anotado.
+            void Promise.resolve(carga.confirmar(id)).catch(err => console.error(`[lab-modulos] ${accion} ${id}:`, err?.message || err));
+            return NextResponse.json({ ok: true, enCurso: true }, { status: 202 });
         }
         if (accion === 'rechazar') {
             const borrador = await Borradores.rechazar(id, actor, String(body.motivo || ''));
@@ -70,7 +69,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         return NextResponse.json({ error: 'La acción tiene que ser "aprobar", "reintentar", "rechazar", "anular", "releer" o "cancelar-portal".' }, { status: 400 });
     } catch (error: any) {
         const msg = error?.message || 'No se pudo actualizar el borrador.';
-        const status = /no existe/.test(msg) ? 404 : /no puede pasar|tiene que hacerla|tiene que hacerlo|Decí por qué|mientras tanto|solo se cancela|solo se anula|solo se relee|no se anula a mano/.test(msg) ? 409 : 500;
+        const status = httpDeError(error);
         if (status === 500) console.error('[lab-modulos/borradores] PATCH:', error);
         return NextResponse.json({ error: msg }, { status });
     }

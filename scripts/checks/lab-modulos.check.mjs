@@ -23,7 +23,7 @@ import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
-import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo, diferenciasDePayloadVitolen } from '../../src/services/lab-modules/vitolen/carga.ts';
 import { rolesDeLaPromoHoya, rolDeLaPromo } from '../../src/lib/laboratorios/vitolen-promo.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/lib/laboratorios/vitolen-catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/lib/laboratorios/vitolen-promo.ts';
@@ -480,6 +480,14 @@ ok('Vitolen: los roles de la promo salen de la MISMA regla con la que el CRM la 
     // un 3er par no tiene rol
     assert.equal(rolDeLaPromo(r, 3), null); assert.equal(rolDeLaPromo(r, 2), 'SEGUNDO_PAR'); assert.equal(rolDeLaPromo(null, 2), null);
 });
+ok('Vitolen: al confirmar, la venta de HOY tiene que armar lo aprobado (receta, diseño, armazón)', () => {
+    const r = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0 });
+    assert.deepEqual(diferenciasDePayloadVitolen(r.payload, r.payload), []);
+    const v = ventaBase(); v.items[0].sphereVal = 1.5;
+    const hoy = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
+    assert.deepEqual(diferenciasDePayloadVitolen(r.payload, hoy.payload), ['OD']);
+    assert.deepEqual(diferenciasDePayloadVitolen(r.payload, null), ['la venta ya no arma el pedido']);
+});
 ok('Vitolen: qué payload es el 2º par de la promo (con rol manda el rol; sin rol, el par 2; o si lleva pedido origen)', () => {
     assert.equal(esSegundoParDePromo({ par: 2, rolPromo: null }), false); // null = la regla dijo "sin promo"
     assert.equal(esSegundoParDePromo({ par: 2 }), true); // sin el campo = borrador viejo: el par 2 era el 2º
@@ -858,7 +866,8 @@ ok('la fecha de la API ("2026-10-02 18:02:01.000") es hora argentina, no la del 
 ok('qué par es, si el vendedor lo escribió (1°par, 2° par, 1º par, primer par)', () => {
     assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho 1°par' }), 1);
     assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho 2° par' }), 2);
-    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho', Observacion: '1º par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho', Observacion: '2° par SIN CARGO' }), null); // la observación no decide el armazón
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho', Observacion: '1º par' }), null);
     // "2do par" / "1er par" son como lo escribe el equipo en el portal (auditoría del 3/10/2026).
     assert.equal(parDeFila({ CodigoOptica: 'Pérez 2do par' }), 2);
     assert.equal(parDeFila({ CodigoOptica: 'Pérez 1er par' }), 1);
@@ -963,7 +972,8 @@ ok('un nº que el portal no tiene queda a la vista en la ficha (antes la venta q
 ok('el módulo está registrado, hace seguimiento y deja los costos al provider', () => {
     assert.equal(MODULO_GRUPO_OPTICO.clave, 'GRUPO_OPTICO');
     assert.equal(MODULO_GRUPO_OPTICO.nombre, 'Grupo Óptico');
-    assert.deepEqual(MODULO_GRUPO_OPTICO.capacidades, { seguimiento: true, costos: false, carga: false });
+    assert.deepEqual(MODULO_GRUPO_OPTICO.capacidades, { seguimiento: true, costos: false, carga: true });
+    assert.equal(MODULO_GRUPO_OPTICO.carga?.lab, 'GRUPO_OPTICO', 'la carga asistida se declara en el módulo');
     assert.equal(MODULO_GRUPO_OPTICO.cadenciaRapidaMin, undefined, 'cada tick de 10 min, como siempre');
     assert.notEqual(MODULO_GRUPO_OPTICO.avisoDeRetiroAutomatico, false, 'el retiro automático a las 24 h es el circuito de Grupo Óptico');
     assert.ok(MODULO_GRUPO_OPTICO.patronProducto.test('Grupo Óptico') && MODULO_GRUPO_OPTICO.patronProducto.test('grupo optico') && !MODULO_GRUPO_OPTICO.patronProducto.test('Vitolen'));

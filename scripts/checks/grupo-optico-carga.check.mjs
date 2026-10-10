@@ -12,8 +12,9 @@
 // Sin base ni red. Corre en CI.   npm run check:carga-go
 // ────────────────────────────────────────────────────────────────────────────
 import assert from 'node:assert/strict';
-import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/services/lab-modules/grupo-optico/catalogo.ts';
-import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
+import { especificacionDe, elegirArticulo, colorDelItem, tieneEssential, partesDelNombre } from '../../src/services/lab-modules/grupo-optico/catalogo.ts';
+import { accionesDe } from '../../src/services/lab-modules/carga/borrador.ts';
+import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1DeGrupoOptico, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
 import { rolesPorValor, valorDeCristales, avisoDeRoles, rolesDeDosPares } from '../../src/lib/laboratorios/roles-2x1.ts';
 import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo-optico/origen.ts';
 import { labDeItem, esDeLab, labDeNumero, esNumeroDeLab, codigoCortoDeVenta, esCodigoCorto, soloDigitos as soloDigitosId } from '../../src/lib/laboratorios/identidad.ts';
@@ -116,6 +117,26 @@ ok('el mensaje a la dueña lleva el motivo completo y la venta entera; la ficha,
     assert.match(lineaDeFicha(d), /^⚠️ Matías agregó Essential .* SIN estar cobrado\. Motivo: se lo prometimos$/);
 });
 
+
+ok('qué puede hacer una persona con un borrador lo calcula el servidor', () => {
+    const lab = { conBorradorEnPortal: false, puedeReleer: false };
+    const ahora = new Date('2026-10-10T12:00:00Z');
+    assert.deepEqual(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: {} }, lab, ahora), { aprobar: true, rechazar: true, reintentar: false, anular: false, releer: false, cancelarPortal: false });
+    // aprobado que nunca mandó nada y falló: reintentar o anular
+    assert.deepEqual(accionesDe({ status: 'APROBADO', error: 'no es producción', approvedAt: ahora, resumenPortal: {} }, lab, ahora), { aprobar: false, rechazar: false, reintentar: true, anular: true, releer: false, cancelarPortal: false });
+    // con envío iniciado o nº creado NO se anula
+    assert.equal(accionesDe({ status: 'APROBADO', error: 'x', approvedAt: ahora, resumenPortal: { envioIniciadoEl: '2026-10-10T11:00:00Z' } }, lab, ahora).anular, false);
+    assert.equal(accionesDe({ status: 'APROBADO', error: 'x', approvedAt: ahora, resumenPortal: { numeroCreado: '80000001' } }, lab, ahora).anular, false);
+    // un lab que deja borrador en el portal (Vitolen) no anula a mano, pero relee y cancela en el portal
+    const vit = { conBorradorEnPortal: true, puedeReleer: true };
+    assert.equal(accionesDe({ status: 'APROBADO', error: 'x', approvedAt: ahora, resumenPortal: { portalDraftId: '1' } }, vit, ahora).anular, false);
+    assert.equal(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: { portalDraftId: '1' } }, vit, ahora).releer, true);
+    assert.equal(accionesDe({ status: 'RECHAZADO', error: 'no', approvedAt: null, resumenPortal: { portalDraftId: '1' } }, vit, ahora).cancelarPortal, true);
+    assert.equal(accionesDe({ status: 'RECHAZADO', error: 'no', approvedAt: null, resumenPortal: { portalDraftId: '1', canceladoEl: 'x' } }, vit, ahora).cancelarPortal, false);
+    // aprobado sin error pero demorado: reintentar
+    assert.equal(accionesDe({ status: 'APROBADO', error: null, approvedAt: new Date(ahora.getTime() - 6 * 60000), resumenPortal: {} }, lab, ahora).reintentar, true);
+    assert.equal(accionesDe({ status: 'APROBADO', error: null, approvedAt: ahora, resumenPortal: {} }, lab, ahora).reintentar, false);
+});
 console.log('\nLa identidad de los laboratorios, en un solo lugar (lib/laboratorios/identidad.ts)');
 ok('qué laboratorio es un ítem: lo que se guardó al vender, o el del producto; sin nada, ninguno (salvo que se pida un default)', () => {
     assert.equal(labDeItem({ laboratorySnapshot: 'GRUPO OPTICO' }), 'GRUPO_OPTICO');
@@ -284,6 +305,16 @@ ok('la forma del armazón: 0 del formulario del portal equivale a "sin forma"', 
     assert.deepEqual(diferenciasDeVista({ frameShape: null }, { frameShape: 0 }), []);
     assert.equal(diferenciasDeVista({ frameShape: null }, { frameShape: 3 }).length, 1);
 });
+console.log('\nEl nombre del producto se lee de una sola manera (" · " o " - ")');
+ok('un nombre viejo con " - " tiene la misma familia, material y Essential que uno con " · "', () => {
+    assert.deepEqual(partesDelNombre('Multifocal Smart FREE - Orgánico Blue Light 1.56 - Essential 2x1'), ['Multifocal Smart FREE', 'Orgánico Blue Light 1.56', 'Essential 2x1']);
+    assert.equal(tieneEssential('Multifocal Smart FREE - Orgánico Blue Light 1.56 - Essential'), true);
+    assert.equal(tieneEssential('Multifocal Smart FREE · Orgánico Blue Light 1.56 · Essential 2x1'), true);
+    assert.equal(tieneEssential('Multifocal Smart FREE · Orgánico Blue Light 1.56'), false);
+    assert.equal(especificacionDe('Multifocal Smart FREE - Orgánico Blue Light 1.56 - Essential').especificacion.essential, true);
+    const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, product: { ...i.product, name: 'Multifocal Smart FREE - Orgánico Blue Light 1.56 - Essential 2x1' } } : i));
+    assert.equal(esVenta2x1DeGrupoOptico(v), true);
+});
 ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin cargo (como siempre)', () => {
     const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 80000 } : i));
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [1, 2]);
@@ -348,8 +379,8 @@ ok('la venta dice Stock y el cristal es de laboratorio: no carga', () => {
     assert.ok(r.faltantes.some(f => /dice Stock/.test(f)));
 });
 ok('es 2x1 solo con dos pares y la promo', () => {
-    assert.equal(esVenta2x1(venta2x1()), true);
-    assert.equal(esVenta2x1({ ...venta2x1(), appliedPromoName: '', items: venta2x1().items.map(i => ({ ...i, product: { ...i.product, name: String(i.product.name).replace(' 2x1', '') } })) }), false);
+    assert.equal(esVenta2x1DeGrupoOptico(venta2x1()), true);
+    assert.equal(esVenta2x1DeGrupoOptico({ ...venta2x1(), appliedPromoName: '', items: venta2x1().items.map(i => ({ ...i, product: { ...i.product, name: String(i.product.name).replace(' 2x1', '') } })) }), false);
 });
 ok('observación del 1er par y de un pedido suelto', () => {
     assert.equal(observacionDelPedido({ es2x1: true, sinCargo: false, producto: 'Multifocal Smart FREE · X' }), 'Promo 2x1 Smart Free - 1° par');
@@ -381,8 +412,10 @@ ok('reintento o carga a mano: adopta el pedido de ESE par por el código de la v
 ok('N1: en una venta de dos pares, un pedido con el código y sin par marcado es AMBIGUO (ni se adopta ni se crea)', () => {
     const filas = [{ IdPedido: '80562222', CodigoOptica: '#S3EP Ana', Observacion: 'anteojo de sol', Anulado: '0' }];
     assert.deepEqual(pedidoYaCreado(filas, '#S3EP', 1), { numero: '80562222', ambiguo: true });
-    // si la observación dice el par, ya no es ambiguo
-    assert.equal(pedidoYaCreado([{ ...filas[0], Observacion: 'Promo 2x1 - 2do par' }], '#S3EP', 1), null);
+    // la observación habla de la PROMO ("2do par" = el sin cargo), no del armazón: sigue siendo ambiguo
+    assert.deepEqual(pedidoYaCreado([{ ...filas[0], Observacion: 'Promo 2x1 - 2do par' }], '#S3EP', 1), { numero: '80562222', ambiguo: true });
+    // con el par en el CÓDIGO, no
+    assert.equal(pedidoYaCreado([{ ...filas[0], CodigoOptica: '#S3EP Ana 2°par' }], '#S3EP', 1), null);
 });
 ok('N2/C5: un par con pedido (robot, seguimiento o nº tipeado) no se vuelve a cargar; un anulado no cuenta; un nº sin par es ambiguo', () => {
     const base = { pair: 1, pares: 2, cargadosPorPar: [], espejo: [], numerosEnVenta: [] };
@@ -395,12 +428,14 @@ ok('N2/C5: un par con pedido (robot, seguimiento o nº tipeado) no se vuelve a c
     assert.deepEqual(decidirExistente({ ...base, pares: 1, numerosEnVenta: ['80570007'] }), { numero: '80570007', ambiguo: false });
     assert.equal(decidirExistente({ ...base, cargadosPorPar: [{ pair: 1, numero: '80570001' }], excluir: '80570001' }), null, 'el propio nº no cuenta');
 });
-ok('el par de una fila del portal: la observación del 2º par nombra al 1º y tiene que ganar el 2', () => {
-    assert.equal(parDeFila({ CodigoOptica: 'Nestor Bocco', Observacion: 'Promo 2x1 Smart Free - 2° par SIN CARGO - 1° par n° 80547989' }), 2);
-    assert.equal(parDeFila({ CodigoOptica: 'Ana Zorrilla', Observacion: 'Promo smart free 2x1 vincular al 1°par pedido 80548395' }), 1);
+ok('el par de una fila del portal sale SOLO del código interno (la observación habla de la promo, no del armazón)', () => {
+    // la observación habla de la PROMO, no del armazón: sin par en el código, no se sabe (ambiguo)
+    assert.equal(parDeFila({ CodigoOptica: 'Nestor Bocco', Observacion: 'Promo 2x1 Smart Free - 2° par SIN CARGO - 1° par n° 80547989' }), null);
+    assert.equal(parDeFila({ CodigoOptica: 'Ana Zorrilla', Observacion: 'Promo smart free 2x1 vincular al 1°par pedido 80548395' }), null);
     assert.equal(parDeFila({ CodigoOptica: 'Ana Zorrilla 2°par', Observacion: 'vincular al 1°par pedido 80548395' }), 2, 'el código interno manda');
-    assert.equal(parDeFila({ CodigoOptica: 'Graciela 2do', Observacion: 'Promo 2x1 Smart Free - 2do par - 1er par n°80515332' }), 2);
-    assert.equal(parDeFila({ CodigoOptica: 'x', Observacion: 'Promo 2x1 Smart Free - 1° par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Graciela 2do', Observacion: 'Promo 2x1 Smart Free - 2do par - 1er par n°80515332' }), null, '"2do" sin "par" en el código no dice el armazón');
+    assert.equal(parDeFila({ CodigoOptica: 'Graciela 2do par', Observacion: '' }), 2);
+    assert.equal(parDeFila({ CodigoOptica: 'x', Observacion: 'Promo 2x1 Smart Free - 1° par' }), null);
 });
 ok('lo guardado se compara con lo aprobado', () => {
     const aprobado = { rightEyeArticle: 28463, leftEyeArticle: 28463, materialId: 20, lensTypeId: '5', rightEyeFarSpherical: '+0.75', leftEyeFarSpherical: '+0.75', tintedId: null };
@@ -429,7 +464,7 @@ ok('C1: cambiar el producto de la venta cambia la huella (no se carga el de ante
 });
 ok('C3: con dos pares, el código interno lleva el par aunque no sea 2x1', () => {
     const v = venta2x1(false); v.appliedPromoName = ''; v.items = v.items.map(i => i.product?.category === 'Cristal' ? { ...i, product: { ...i.product, name: 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Essential' } } : i);
-    assert.equal(esVenta2x1(v), false);
+    assert.equal(esVenta2x1DeGrupoOptico(v), false);
     const r = planDeCarga(v, 2, { tipoArmazon: 'PLASTICO' });
     assert.ok(r.ok, r.faltantes?.join(' | '));
     assert.match(r.plan.codigoOptica, /2°par$/);
@@ -441,12 +476,12 @@ ok('I7: un teñido asignado a un armazón que no existe frena', () => {
 });
 ok('I8: la 2x1 del lab también se reconoce por la promo aplicada aunque el cristal no diga "2x1"', () => {
     const v = venta2x1(); v.items = v.items.map(i => i.product?.category === 'Cristal' ? { ...i, product: { ...i.product, name: 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Essential' } } : i);
-    assert.equal(esVenta2x1(v), true);
-    assert.equal(esVenta2x1({ ...v, appliedPromoName: '' }), false);
+    assert.equal(esVenta2x1DeGrupoOptico(v), true);
+    assert.equal(esVenta2x1DeGrupoOptico({ ...v, appliedPromoName: '' }), false);
 });
 ok('I8: una promo 2x1 que no es de dos cristales Grupo Óptico de la misma familia no es la 2x1 del laboratorio', () => {
     const v = venta2x1(); v.items = v.items.map(i => i.product?.category === 'Cristal' && i.framePosition === 2 ? { ...i, product: { ...i.product, name: 'Multifocal Smart ONE · Orgánico Blue Light 1.56 · Essential 2x1' } } : i);
-    assert.equal(esVenta2x1(v), false);
+    assert.equal(esVenta2x1DeGrupoOptico(v), false);
 });
 ok('I10: el 2º par multifocal sin altura de SU armazón frena (no toma la de la ficha)', () => {
     const v = venta2x1(); v.frames = [v.frames[0], { ...v.frames[1], heightOD: null, heightOI: null }];

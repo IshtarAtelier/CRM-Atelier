@@ -1,4 +1,5 @@
 import { prisma } from '../../../lib/db';
+import { CARGA_VITOLEN } from './carga-asistida';
 import { LAB_ITEM_PATTERNS } from '../../lab-recon/types';
 import type { EstadoEnPortal, LabModule, OpcionesCorrida, ResultadoSeguimiento } from '../contrato';
 import { pedidosAtrasados, reflejar, ventasActivasDelLab, ventasSinPedidoEnPortal } from '../espejo';
@@ -180,6 +181,7 @@ export const MODULO_VITOLEN: LabModule = {
     nombre: NOMBRE_VITOLEN,
     patronProducto: PATRON_VITOLEN,
     capacidades: { seguimiento: true, costos: true, carga: true },
+    carga: CARGA_VITOLEN,
     cadenciaRapidaMin: 30,
     // Todavía no se sabe cuánto tarda un pedido terminado en llegar al local:
     // el aviso de retiro al cliente lo manda el vendedor, no el cron.

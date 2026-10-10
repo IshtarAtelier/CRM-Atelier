@@ -3,7 +3,8 @@ import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { planDeCarga, rolesDel2x1, type OpcionesCarga, type TipoArmazon, type TipoAro } from './carga';
 import { numeroDelParConCargo } from './origen';
-import { especificacionDe } from './catalogo';
+import { esDeLab } from '../../../lib/laboratorios/identidad';
+import { especificacionDe, tieneEssential, familiaDelNombre } from './catalogo';
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { TIPO_ARMAZON, TIPO_ARO } from './catalogo';
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_GRUPO_OPTICO, type PayloadBorradorGO } from './borrador-portal';
@@ -21,8 +22,9 @@ import { mensajeExistente, pedidoExistenteDelPar, type PedidoExistente } from '.
  */
 
 const texto = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
+// Un cristal sin laboratorio cargado (ventas viejas) es de Grupo Óptico acá, como en planDeCarga.
 const esCristalGO = (i: any) => /cristal/i.test(i.productCategorySnapshot || i.product?.category || '')
-    && /grupo/i.test(i.laboratorySnapshot || i.product?.laboratory || '');
+    && esDeLab(i, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' });
 
 
 function opcionesDelBody(body: Record<string, unknown>): OpcionesCarga {
@@ -42,7 +44,7 @@ function opcionesDelBody(body: Record<string, unknown>): OpcionesCarga {
 
 /** Essential se ofrece como extra NO cobrado solo a un cristal de laboratorio que no lo trae. */
 function campoEssential(nombreProducto: string, conTenido: boolean): CampoDePreparacion | null {
-    if (/·\s*essential\b/i.test(nombreProducto)) return null;
+    if (tieneEssential(nombreProducto)) return null;
     const r = especificacionDe(nombreProducto, { conTenido });
     if (!r.ok || r.especificacion.clase !== 'LAB' || r.especificacion.pasoATenible || r.especificacion.material.arIncluido) return null;
     return {
@@ -82,7 +84,7 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                 const items = (porPar.get(pair) || []) as any[];
                 const existente = yaCargados.get(pair);
                 const nombreProducto = texto(items[0]?.product?.name ?? items[0]?.productNameSnapshot);
-                const esStock = /^stock\b/i.test(nombreProducto.split('·')[0]);
+                const esStock = /^stock\b/i.test(familiaDelNombre(nombreProducto));
                 const extraEssential = campoEssential(nombreProducto, itemsDeTenido(venta.items as any[]).some((t: any) => (pares.length > 1 ? t.framePosition : (t.framePosition ?? 1)) === pair));
                 return {
                     pair,
@@ -93,7 +95,7 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                     campos: [...(esStock ? campos.filter(c => c.clave !== 'forma') : campos), ...(extraEssential ? [extraEssential] : [])],
                     espera: esSinCargo && !origen ? `Es el par SIN CARGO del 2x1: se prepara cuando el par con cargo (par ${roles!.conCargo}) esté cargado (lleva su nº de operación en la observación, para que el laboratorio no lo cobre).` : null,
                     yaCargado: existente ? mensajeExistente(existente, pair) : null,
-                    rol: roles ? (esSinCargo ? 'SIN CARGO · 2x1' : 'con cargo · 2x1') : null,
+                    rol: roles ? (esSinCargo ? { tipo: 'SIN_CARGO' as const, etiqueta: 'SIN CARGO · 2x1' } : { tipo: 'CON_CARGO' as const, etiqueta: 'con cargo · 2x1' }) : null,
                 };
             }),
         };
@@ -165,14 +167,11 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
             avisos: r.avisos,
         };
         const preparado = await Borradores.preparar({ lab: LAB_GRUPO_OPTICO, orderId, pair, payload, actor });
-        try {
-            // El extra NO cobrado se registra y se avisa recién cuando el pedido se
-            // CARGA (borrador-portal.ts): si se rechaza, no pasó nada que contar.
-            const borrador = await prepararEnPortal(preparado.id);
-            return { ok: true, status: 200, borrador, avisos: r.avisos };
-        } catch (err: any) {
-            return { ok: false, status: 502, error: `El robot no pudo preparar el pedido: ${err?.message || err}`, borradorId: preparado.id };
-        }
+        // El robot trabaja FUERA del request (puede tardar minutos: turno, login,
+        // formulario): la ficha sondea el estado del borrador. Si falla, el borrador
+        // queda en ERROR con el motivo. El extra NO cobrado se registra recién al CARGAR.
+        void prepararEnPortal(preparado.id).catch(err => console.error('[lab-modulos] preparar en el portal de Grupo Óptico:', err?.message || err));
+        return { ok: true, status: 202, borrador: preparado, avisos: r.avisos };
     },
 
     confirmar: confirmarBorradorAprobado,

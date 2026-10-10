@@ -1,13 +1,13 @@
 import type { Actor } from '../../../lib/actor';
 import type { CargaAsistida } from './contrato';
-import { CARGA_VITOLEN } from '../vitolen/carga-asistida';
-import { CARGA_GRUPO_OPTICO } from '../grupo-optico/carga-asistida';
+import { REGISTRO_MODULOS } from '../registro';
 
 /**
- * Los laboratorios con carga asistida. Sumar uno = implementar CargaAsistida
- * (carga/contrato.ts) y agregarlo acá; las rutas y la ficha lo toman solos.
+ * Los laboratorios con carga asistida: los módulos del registro que la
+ * declaran (`LabModule.carga`). Sumar uno = implementar CargaAsistida
+ * (carga/contrato.ts) y ponerlo en su módulo; las rutas y la ficha lo toman solos.
  */
-export const CARGAS: CargaAsistida[] = [CARGA_VITOLEN, CARGA_GRUPO_OPTICO];
+export const CARGAS: CargaAsistida[] = REGISTRO_MODULOS.flatMap(m => (m.carga ? [m.carga] : []));
 
 export function cargaDe(lab: string | null | undefined): CargaAsistida | null {
     const k = String(lab || '').trim().toUpperCase();

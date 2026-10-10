@@ -277,8 +277,18 @@ export async function crearYLeerResumen(page: Page): Promise<ResumenDelPortal> {
 const urlBorrador = (portalDraftId: string) => `${BASE_VITOLEN}/ventas/pedidos_laboratorio/${portalDraftId}`;
 
 /** Abre el borrador y comprueba que siga sin confirmar ("Por Asignar"). */
+/** El borrador ya no existe en el portal (404: lo cancelaron a mano). */
+export class BorradorInexistenteError extends Error {
+    constructor(portalDraftId: string) { super(`El borrador ${portalDraftId} ya no existe en el portal de ${NOMBRE_VITOLEN} (lo cancelaron a mano).`); this.name = 'BorradorInexistenteError'; }
+}
+/** El borrador está, pero el portal no ofrece "Confirmar" (sin nº y sin botón): nada se confirmó. */
+export class ConfirmarNoDisponibleError extends Error {
+    constructor(m: string) { super(m); this.name = 'ConfirmarNoDisponibleError'; }
+}
+
 async function abrirBorrador(page: Page, portalDraftId: string): Promise<string> {
-    await page.goto(urlBorrador(portalDraftId), { waitUntil: 'domcontentloaded' });
+    const res = await page.goto(urlBorrador(portalDraftId), { waitUntil: 'domcontentloaded' });
+    if (res?.status() === 404) throw new BorradorInexistenteError(portalDraftId);
     await page.waitForTimeout(1500);
     const texto = (await page.innerText('body').catch(() => '')) || '';
     if (!/Pedido de Laboratorio/i.test(texto)) throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el borrador ${portalDraftId} (${page.url()}).`);
@@ -321,7 +331,7 @@ export async function confirmar(page: Page, portalDraftId: string, resumenAproba
     }
 
     const boton = page.locator('form[action$="/confirmar"] input[type=submit], form[action$="/confirmar"] button').first();
-    if (await boton.count() === 0) throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el botón "Confirmar".`);
+    if (await boton.count() === 0) throw new ConfirmarNoDisponibleError(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el botón "Confirmar".`);
     await boton.click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
@@ -338,8 +348,13 @@ export async function confirmar(page: Page, portalDraftId: string, resumenAproba
  * anula hablando con el laboratorio— y se devuelve ese nº para que el CRM lo
  * tome por resuelto.
  */
-export async function cancelarBorrador(page: Page, portalDraftId: string): Promise<{ url: string; captura: Buffer; confirmadoAMano: string | null }> {
-    const texto = await abrirBorrador(page, portalDraftId);
+export async function cancelarBorrador(page: Page, portalDraftId: string): Promise<{ url: string; captura: Buffer; confirmadoAMano: string | null; yaNoExistia?: boolean }> {
+    let texto: string;
+    try { texto = await abrirBorrador(page, portalDraftId); } catch (err) {
+        // Ya no existe: alguien lo canceló a mano en el portal. Es lo que se quería.
+        if (err instanceof BorradorInexistenteError) return { url: page.url(), captura: await page.screenshot({ fullPage: true }), confirmadoAMano: null, yaNoExistia: true };
+        throw err;
+    }
     const yaConfirmado = numeroDeTrabajoDe(texto);
     if (yaConfirmado) return { url: page.url(), captura: await page.screenshot({ fullPage: true }), confirmadoAMano: yaConfirmado };
     const link = page.locator('a[data-method="delete"]:has-text("Cancelar")').first();

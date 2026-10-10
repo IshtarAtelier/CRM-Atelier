@@ -1,4 +1,3 @@
-import { prisma } from '../../../lib/db';
 import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { armarFormulario, esSegundoParDePromo, leerVentaParaCarga } from './carga';
@@ -9,7 +8,7 @@ import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { pedidoOrigenDeVitolen } from './origen';
 import { avisoDeRoles, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
 import { rolDeLaPromo, rolesDeLaPromoHoya } from '../../../lib/laboratorios/vitolen-promo';
-import { formatearPrecio } from '../../../lib/format-precio';
+import { precioConSigno } from '../../../lib/format-precio';
 import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-frames';
 
 /**
@@ -47,7 +46,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
         const totalPares = Math.max(cantidadDeArmazones(venta as any), pares.length);
         for (const p of pares) { const e = await pedidoExistenteDelPar(orderId, p, totalPares); yaCargados.set(p, e ? mensajeExistente(e, p) : null); }
         const roles = rolesDeLaPromo(venta);
-        const avisoRoles = roles ? avisoDeRoles(roles, n => `$ ${formatearPrecio(n)}`) : null;
+        const avisoRoles = roles ? avisoDeRoles(roles, precioConSigno) : null;
         return {
             pares: pares.map(pair => {
                 const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0, rolPromo: rolDe(roles, pair) });
@@ -65,7 +64,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
                     avisos: avisoRoles ? [...r.avisos, avisoRoles] : r.avisos,
                     campos,
                     yaCargado: yaCargados.get(pair) ?? null,
-                    rol: rolDe(roles, pair) === 'SEGUNDO_PAR' ? '2º par · promo' : rolDe(roles, pair) === 'PRIMER_PAR' ? '1er par · promo' : null,
+                    rol: rolDe(roles, pair) === 'SEGUNDO_PAR' ? { tipo: 'SIN_CARGO' as const, etiqueta: '2º par · promo' } : rolDe(roles, pair) === 'PRIMER_PAR' ? { tipo: 'CON_CARGO' as const, etiqueta: '1er par · promo' } : null,
                 };
             }),
         };
@@ -135,12 +134,9 @@ export const CARGA_VITOLEN: CargaAsistida = {
         // El robot entra al portal, llena, aprieta "Crear" (borrador en el
         // portal) y deja la captura del resumen para revisar. Tarda unos
         // segundos; si falla, el borrador queda en ERROR con el motivo.
-        try {
-            const borrador = await llenarBorradorEnPortal(preparado.id);
-            return { ok: true, status: 200, borrador, avisos: r.avisos };
-        } catch (err: any) {
-            return { ok: false, status: 502, error: `El robot no pudo llenar el pedido en el portal: ${err?.message || err}`, borradorId: preparado.id };
-        }
+        // El robot trabaja FUERA del request: la ficha sondea el estado del borrador.
+        void llenarBorradorEnPortal(preparado.id).catch(err => console.error('[lab-modulos] llenar en el portal de Vitolen:', err?.message || err));
+        return { ok: true, status: 202, borrador: preparado, avisos: r.avisos };
     },
 
     confirmar: confirmarBorradorAprobado,

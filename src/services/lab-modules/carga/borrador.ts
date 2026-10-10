@@ -1,5 +1,6 @@
 import { prisma } from '../../../lib/db';
 import { logAudit } from '../../../lib/audit';
+import { ErrorDeCarga } from './errores';
 import type { Actor } from '../../../lib/actor';
 
 /**
@@ -113,13 +114,13 @@ export function colgados(
 
 async function cambiarEstado(id: string, a: EstadoBorrador, datos: Record<string, unknown>, actor: Actor, detalle?: Record<string, unknown>) {
     const actual = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
-    if (!actual) throw new Error('El borrador no existe.');
+    if (!actual) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
     if (!transicionValida(actual.status as EstadoBorrador, a)) {
-        throw new Error(`El borrador está ${actual.status}: no puede pasar a ${a}.`);
+        throw new ErrorDeCarga(`El borrador está ${actual.status}: no puede pasar a ${a}.`, 'ESTADO');
     }
     // Atómico: si otro request lo movió entre la lectura y acá, no se pisa.
     const r = await prisma.labOrderDraft.updateMany({ where: { id, status: actual.status }, data: { status: a, ...datos } });
-    if (r.count !== 1) throw new Error(`El borrador cambió de estado mientras tanto (ya no está ${actual.status}): volvé a cargar la ficha.`);
+    if (r.count !== 1) throw new ErrorDeCarga(`El borrador cambió de estado mientras tanto (ya no está ${actual.status}): volvé a cargar la ficha.`, 'ESTADO');
     const borrador = await prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
     await logAudit({
         userId: actor.id, userName: actor.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
@@ -137,9 +138,32 @@ async function cambiarEstado(id: string, a: EstadoBorrador, datos: Record<string
  */
 async function mezclarRastro(id: string, datos: RastroPortal) {
     const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify(datos)}::jsonb, "updatedAt" = NOW() WHERE id = ${id}`;
-    if (n !== 1) throw new Error('El borrador no existe.');
+    if (n !== 1) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
     return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
 }
+
+/** Qué puede hacer una persona con un borrador, calculado UNA vez acá (la ficha no deduce nada de la prosa). Puro. */
+export function accionesDe(
+    b: { status: string; error: string | null; approvedAt: Date | string | null; resumenPortal: unknown },
+    lab: { conBorradorEnPortal: boolean; puedeReleer: boolean },
+    ahora = new Date(),
+): { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; releer: boolean; cancelarPortal: boolean } {
+    const r = (b.resumenPortal && typeof b.resumenPortal === 'object' ? b.resumenPortal : {}) as RastroPortal & { numeroCreado?: string; envioIniciadoEl?: string | null };
+    const enRevision = b.status === 'EN_REVISION';
+    const aprobado = b.status === 'APROBADO';
+    const demorado = !!b.approvedAt && ahora.getTime() - new Date(b.approvedAt).getTime() > APROBADO_DEMORADO_MS;
+    return {
+        aprobar: enRevision,
+        rechazar: enRevision,
+        reintentar: aprobado && (!!b.error || demorado),
+        // Solo un APROBADO que NUNCA mandó nada: sin envío iniciado, sin nº y sin borrador en el portal.
+        anular: aprobado && !!b.error && !r.numeroCreado && !r.envioIniciadoEl && !r.portalDraftId && !lab.conBorradorEnPortal,
+        releer: enRevision && lab.puedeReleer && !!r.portalDraftId,
+        cancelarPortal: (b.status === 'RECHAZADO' || b.status === 'ERROR') && lab.conBorradorEnPortal && portalSinResolver(b),
+    };
+}
+/** Un APROBADO sin novedades después de esto ya no está "cargando": se ofrece reintentar. */
+export const APROBADO_DEMORADO_MS = 5 * 60_000;
 
 export const Borradores = {
     /** Mezcla datos en el rastro (jsonb ||, atómico). Es la ÚNICA forma de anotar en `resumenPortal`. */
@@ -191,17 +215,17 @@ export const Borradores = {
 
     /** Una persona miró la captura y aprobó. */
     async aprobar(id: string, actor: Actor) {
-        if (!puedeAprobar(actor)) throw new Error('La aprobación tiene que hacerla una persona identificada.');
+        if (!puedeAprobar(actor)) throw new ErrorDeCarga('La aprobación tiene que hacerla una persona identificada.', 'PERMISO');
         // Nombre, fecha e id de quien aprobó en UN solo UPDATE, con el rastro mezclado
         // en la base (jsonb ||): sin leer-modificar-escribir, un "Releer el portal"
         // que termine en el medio no se pisa, y una falla no deja la venta sin id.
         const actual = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
-        if (!actual) throw new Error('El borrador no existe.');
-        if (!transicionValida(actual.status as EstadoBorrador, 'APROBADO')) throw new Error(`El borrador está ${actual.status}: no puede pasar a APROBADO.`);
+        if (!actual) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
+        if (!transicionValida(actual.status as EstadoBorrador, 'APROBADO')) throw new ErrorDeCarga(`El borrador está ${actual.status}: no puede pasar a APROBADO.`, 'ESTADO');
         const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET status = 'APROBADO', "approvedBy" = ${actor.name}, "approvedAt" = NOW(), error = NULL,
             "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ aprobadoPorId: actor.id })}::jsonb, "updatedAt" = NOW()
             WHERE id = ${id} AND status = ${actual.status}`;
-        if (n !== 1) throw new Error(`El borrador cambió de estado mientras tanto (ya no está ${actual.status}): volvé a cargar la ficha.`);
+        if (n !== 1) throw new ErrorDeCarga(`El borrador cambió de estado mientras tanto (ya no está ${actual.status}): volvé a cargar la ficha.`, 'ESTADO');
         await logAudit({
             userId: actor.id, userName: actor.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
             details: { lab: actual.lab, orderId: actual.orderId, pair: actual.pair, de: actual.status, a: 'APROBADO' },
@@ -210,8 +234,8 @@ export const Borradores = {
     },
 
     async rechazar(id: string, actor: Actor, motivo: string) {
-        if (!puedeAprobar(actor)) throw new Error('El rechazo tiene que hacerlo una persona identificada.');
-        if (!motivo?.trim()) throw new Error('Decí por qué se rechaza: es lo que el vendedor va a leer.');
+        if (!puedeAprobar(actor)) throw new ErrorDeCarga('El rechazo tiene que hacerlo una persona identificada.', 'PERMISO');
+        if (!motivo?.trim()) throw new ErrorDeCarga('Decí por qué se rechaza: es lo que el vendedor va a leer.', 'DATOS');
         const texto = motivo.trim().slice(0, 500);
         return cambiarEstado(id, 'RECHAZADO', { error: texto }, actor, { motivo: texto });
     },
@@ -240,7 +264,7 @@ export const Borradores = {
      */
     async invalidarSinPedido(id: string, robot: Actor, motivo: string) {
         const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, resumenPortal: true, orderId: true, lab: true, pair: true } });
-        if (!b) throw new Error('El borrador no existe.');
+        if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
         const r = (b.resumenPortal || {}) as RastroPortal & { numeroCreado?: string };
         if (b.status !== 'APROBADO' || r.numeroCreado || r.portalDraftId) throw new Error(`El borrador está ${b.status}${r.numeroCreado ? ` con el pedido ${r.numeroCreado}` : ''}: no se puede invalidar.`);
         const u = await prisma.labOrderDraft.updateMany({ where: { id, status: 'APROBADO' }, data: { status: 'ERROR', error: motivo } });
@@ -264,13 +288,13 @@ export const Borradores = {
      * Con envío iniciado no se anula: primero el reintento busca el pedido.
      */
     async anular(id: string, actor: Actor, motivo: string) {
-        if (!puedeAprobar(actor)) throw new Error('La anulación tiene que hacerla una persona identificada.');
-        if (!motivo?.trim()) throw new Error('Decí por qué se anula: es lo que el vendedor va a leer.');
+        if (!puedeAprobar(actor)) throw new ErrorDeCarga('La anulación tiene que hacerla una persona identificada.', 'PERMISO');
+        if (!motivo?.trim()) throw new ErrorDeCarga('Decí por qué se anula: es lo que el vendedor va a leer.', 'DATOS');
         const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, resumenPortal: true, orderId: true, lab: true, pair: true } });
-        if (!b) throw new Error('El borrador no existe.');
+        if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
         const r = (b.resumenPortal || {}) as RastroPortal & { numeroCreado?: string; envioIniciadoEl?: string | null };
-        if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: solo se anula un APROBADO que no pudo cargar.`);
-        if (r.numeroCreado || r.envioIniciadoEl || r.portalDraftId) throw new Error('Este aprobado ya mandó algo al portal (o dejó un borrador ahí): no se anula a mano, se reintenta o se cancela en el portal.');
+        if (b.status !== 'APROBADO') throw new ErrorDeCarga(`El borrador está ${b.status}: solo se anula un APROBADO que no pudo cargar.`, 'ESTADO');
+        if (r.numeroCreado || r.envioIniciadoEl || r.portalDraftId) throw new ErrorDeCarga('Este aprobado ya mandó algo al portal (o dejó un borrador ahí): no se anula a mano, se reintenta o se cancela en el portal.', 'ESTADO');
         const texto = motivo.trim().slice(0, 500);
         const u = await prisma.labOrderDraft.updateMany({ where: { id, status: 'APROBADO' }, data: { status: 'ERROR', error: `Anulado por ${actor.name}: ${texto}` } });
         if (u.count !== 1) throw new Error('El borrador cambió de estado mientras tanto: volvé a cargar la ficha.');
@@ -281,11 +305,33 @@ export const Borradores = {
         return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
     },
 
+    /**
+     * El borrador del PORTAL desapareció (lo cancelaron a mano) estando este
+     * APROBADO: no hay nada que confirmar. Queda ERROR con el motivo y el
+     * rastro dice que en el portal no quedó nada (`canceladoEl`), así el par se
+     * puede preparar de nuevo.
+     */
+    async invalidarPorBorradorDesaparecido(id: string, robot: Actor, motivo: string) {
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
+        if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
+        if (b.status !== 'APROBADO') throw new ErrorDeCarga(`El borrador está ${b.status}: no se invalida.`, 'ESTADO');
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET status = 'ERROR', error = ${motivo}, "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ canceladoEl: new Date().toISOString(), desaparecioDelPortal: true })}::jsonb, "updatedAt" = NOW() WHERE id = ${id} AND status = 'APROBADO'`;
+        if (n !== 1) throw new ErrorDeCarga('El borrador cambió de estado mientras tanto: volvé a cargar la ficha.', 'ESTADO');
+        await logAudit({ userId: robot.id, userName: robot.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { lab: b.lab, orderId: b.orderId, pair: b.pair, de: 'APROBADO', a: 'ERROR', motivo, desaparecioDelPortal: true } });
+        return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
+    },
+
+    /** El laboratorio del borrador (para que la ruta no toque Prisma). */
+    async labDe(id: string): Promise<string | null> {
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { lab: true } });
+        return b?.lab ?? null;
+    },
+
     /** El robot volvió a mirar el portal (sin cambiar de estado): captura y resumen nuevos para revisar. */
     async vistaReleida(id: string, actor: Actor, datos: { screenshotUrl: string; resumenPortal: RastroPortal }) {
         const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
-        if (!b) throw new Error('El borrador no existe.');
-        if (b.status !== 'EN_REVISION') throw new Error(`El borrador está ${b.status}: solo se relee uno para revisar.`);
+        if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
+        if (b.status !== 'EN_REVISION') throw new ErrorDeCarga(`El borrador está ${b.status}: solo se relee uno para revisar.`, 'ESTADO');
         const r = await prisma.labOrderDraft.update({ where: { id }, data: { screenshotUrl: datos.screenshotUrl, resumenPortal: datos.resumenPortal as any } });
         await logAudit({ userId: actor.id, userName: actor.name, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { lab: b.lab, orderId: b.orderId, pair: b.pair, releido: true } }).catch(console.error);
         return r;

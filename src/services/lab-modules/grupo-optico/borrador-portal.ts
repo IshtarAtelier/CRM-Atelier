@@ -110,6 +110,21 @@ export function huellaDelPlan(plan: PlanDeCarga): string {
         : { producto: plan.producto, clase: 'LAB', familia: e.familia.nombre, material: e.material.materialId, color: e.colorId, essential: e.essential, tenido: plan.tenido });
 }
 
+/**
+ * Ficha del cliente, AuditLog y aviso a la dueña por lo que se cargó SIN estar
+ * cobrado (Essential), firmado por quien lo pidió y quien lo aprobó (regla de
+ * Ishtar, 8/10/2026). Idempotente: si ya está en la ficha, no repite.
+ */
+async function avisarExtrasNoCobrados(b: { id: string; orderId: string; pair: number; payload: unknown; preparedBy: string | null; approvedBy: string | null }, rastro: RastroGO, numero: string | null) {
+    const guardado = b.payload as unknown as PayloadBorradorGO;
+    for (const extra of guardado.plan?.extrasNoCobrados || []) {
+        const firma = { id: rastro.preparadoPorId ?? rastro.aprobadoPorId ?? null, name: b.preparedBy || b.approvedBy || 'Equipo', role: null };
+        const quien = b.preparedBy && b.approvedBy && b.preparedBy !== b.approvedBy ? `${b.preparedBy} (aprobó ${b.approvedBy})` : (b.preparedBy || b.approvedBy || 'Equipo');
+        await registrarExtraNoCobrado({ orderId: b.orderId, nombreLab: NOMBRE_GRUPO_OPTICO, pair: b.pair, pares: guardado.plan.pares ?? 1, extra, actor: firma, quien, loQueSeCarga: `${guardado.plan.producto} + ${extra.nombre}${numero ? ` · pedido nº ${numero}` : ''}` })
+            .catch(err => console.error('[lab-modulos] no se pudo registrar el extra no cobrado:', err));
+    }
+}
+
 /** Arma el plan desde la venta tal como está hoy. */
 async function planActual(orderId: string, par: number, opciones: OpcionesCarga) {
     const venta = await leerVentaParaCargaGO(orderId);
@@ -210,9 +225,14 @@ async function numerosDeOtrosPares(orderId: string, pair: number): Promise<Set<s
  *  4. se crea, se anota el nº en el acto, se lee de vuelta, se baja el PDF.
  */
 export async function confirmarBorradorAprobado(borradorId: string) {
-    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, payload: true, resumenPortal: true, approvedBy: true, preparedBy: true } });
+    const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, payload: true, resumenPortal: true, approvedBy: true, preparedBy: true, portalNumber: true } });
     if (!b) throw new Error('El borrador no existe.');
-    if (b.status === 'CARGADO') return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
+    if (b.status === 'CARGADO') {
+        // Un reintento sobre un CARGADO: si el aviso del extra no cobrado se había
+        // perdido (la mensajería falló), se vuelve a intentar; es idempotente.
+        await avisarExtrasNoCobrados(b, (b.resumenPortal || {}) as RastroGO, b.portalNumber ?? null);
+        return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
+    }
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo carga los APROBADOS.`);
     const rastro0 = (b.resumenPortal || {}) as RastroGO;
     if (!rastro0.payloadPortal || !rastro0.resuelto) throw new Error('El borrador no tiene el pedido preparado: hay que volver a prepararlo.');
@@ -276,6 +296,14 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 }
                 const cambios = cambiosEntrePayloads(payloadAprobado, payloadCreateUpdate(r.plan, rastro0.resuelto!));
                 if (cambios.length) throw new AprobacionInvalidaError(`La venta cambió después de aprobar (${cambios.join(', ')}): volvé a prepararlo para revisar el pedido nuevo. No se mandó nada.`);
+                // Y el PORTAL tiene que seguir resolviendo los mismos ids (artículos,
+                // material, color, aro): un borrador de días con listas que rotaron
+                // fabricaría otra cosa con el nº correcto (auditoría de robustez, M5).
+                const hoyEnPortal = await resolverEnPortal(page, r.plan);
+                const idsCambiados = (['materialId', 'colorId', 'brandId', 'articuloOD', 'articuloOI', 'typeRimArticleId'] as const).filter(k => String((hoyEnPortal.resuelto as any)[k] ?? '') !== String((rastro0.resuelto as any)?.[k] ?? ''));
+                if (idsCambiados.length || JSON.stringify(hoyEnPortal.resuelto.tinted ?? null) !== JSON.stringify(rastro0.resuelto?.tinted ?? null)) {
+                    throw new AprobacionInvalidaError(`El portal ya no ofrece los mismos artículos que se aprobaron (${[...idsCambiados, ...(idsCambiados.length ? [] : ['teñido'])].join(', ')}): volvé a prepararlo. No se mandó nada.`);
+                }
                 // Par sin cargo: el nº del par con cargo que va en la observación tiene
                 // que ser el de HOY (el 1er par pudo anularse y recargarse mientras
                 // este borrador esperaba; auditoría 5, 8/10/2026).
@@ -353,15 +381,8 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         if (resultado.diferencias.length) {
             await Borradores.anotarFalla(b.id, `Cargado con el nº ${resultado.numero}, pero: ${resultado.diferencias.join(' · ')}.`);
         }
-        // Lo que se cargó SIN estar cobrado (Essential), ahora que existe de verdad:
-        // ficha del cliente, AuditLog y aviso a la dueña, firmado por quien lo pidió
-        // y quien lo aprobó (regla de Ishtar, 8/10/2026).
-        for (const extra of guardado.plan?.extrasNoCobrados || []) {
-            const firma = { id: rastro0.preparadoPorId ?? rastro0.aprobadoPorId ?? null, name: b.preparedBy || b.approvedBy || 'Equipo', role: null };
-            const quien = b.preparedBy && b.approvedBy && b.preparedBy !== b.approvedBy ? `${b.preparedBy} (aprobó ${b.approvedBy})` : (b.preparedBy || b.approvedBy || 'Equipo');
-            await registrarExtraNoCobrado({ orderId: b.orderId, nombreLab: NOMBRE_GRUPO_OPTICO, pair: b.pair, pares: guardado.plan.pares ?? 1, extra, actor: firma, quien, loQueSeCarga: `${guardado.plan.producto} + ${extra.nombre} · pedido nº ${resultado.numero}` })
-                .catch(err => console.error('[lab-modulos] no se pudo registrar el extra no cobrado:', err));
-        }
+        // Lo que se cargó SIN estar cobrado (Essential), ahora que existe de verdad.
+        await avisarExtrasNoCobrados(b, rastro0, resultado.numero);
         return cargado;
     } catch (err: any) {
         if (err instanceof YaCargadoError) return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });

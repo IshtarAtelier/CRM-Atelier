@@ -301,3 +301,23 @@ export async function leerVentaParaCarga(orderId: string): Promise<VentaParaCarg
     if (!o) return null;
     return { ...o, clienteNombre: o.client?.name || '' };
 }
+
+/**
+ * Lo que, si cambia entre preparar y aprobar, invalida la aprobación: la
+ * receta de cada ojo, el diseño y su variante, el armazón y los tratamientos.
+ * (El resumen comparable del portal cubre lo que el PORTAL muestra; esto cubre
+ * lo que la VENTA dice hoy.) Puro: check:lab-modulos.
+ */
+export function diferenciasDePayloadVitolen(aprobado: Partial<PayloadVitolen>, hoy: PayloadVitolen | null): string[] {
+    if (!hoy) return ['la venta ya no arma el pedido'];
+    const j = (v: unknown) => JSON.stringify(v ?? null);
+    const campos: [string, unknown, unknown][] = [
+        ['OD', aprobado.od, hoy.od], ['OI', aprobado.oi, hoy.oi],
+        ['diseño', aprobado.diseno, hoy.diseno], ['variante', aprobado.variante ?? null, hoy.variante ?? null],
+        ['tipo de receta', aprobado.tipoReceta, hoy.tipoReceta],
+        ['armazón', aprobado.armazon, hoy.armazon],
+        ['tratamientos', aprobado.tratamientos, hoy.tratamientos],
+        ['pedido origen', aprobado.pedidoOrigen ?? null, hoy.pedidoOrigen ?? null],
+    ];
+    return campos.filter(([, a, b]) => j(a) !== j(b)).map(([n]) => n);
+}

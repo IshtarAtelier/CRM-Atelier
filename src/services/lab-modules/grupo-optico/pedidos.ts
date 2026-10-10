@@ -130,7 +130,11 @@ export function parDelCodigo(codigoOptica: string | null | undefined): 1 | 2 | n
  * ("2° par SIN CARGO - 1° par n° 80…", "vincular al 1°par pedido 80…"). Puro.
  */
 export function parDeFila(row: Pick<FilaApiSmartLab, 'CodigoOptica' | 'Observacion'>): 1 | 2 | null {
-    return parDelCodigo(row.CodigoOptica) ?? parEnTexto(String(row.Observacion || ''));
+    // SOLO el código interno. La observación dice "2° par" en el sentido de la
+    // PROMO (el par sin cargo), que desde el 8/10/2026 puede ser el armazón 1:
+    // leerla de ahí ponía el pedido en el par equivocado (auditoría de robustez,
+    // M2). Sin par en el código, el pedido queda sin par: ambiguo, lo aclara una persona.
+    return parDelCodigo(row.CodigoOptica);
 }
 
 /**
