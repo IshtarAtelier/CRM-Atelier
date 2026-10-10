@@ -12,7 +12,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createResilientSource, defaultIsEmpty } from '../../src/lib/catalog/resilience.ts';
-import { CATALOG_SOURCE_KEYS, RECETA_BASE_WHERE, SOL_BASE_WHERE } from '../../src/lib/catalog/queries.ts';
+import { CATALOG_SOURCE_KEYS, RECETA_BASE_WHERE, SOL_BASE_WHERE, FICHA_EN_TIENDA, FICHA_PUBLICADA } from '../../src/lib/catalog/queries.ts';
 import { formatProducts as formatProductsRaw, countProducts, hasProducts } from '../../src/lib/home-fallback.ts';
 import { resolveStorageUrl } from '../../src/lib/utils/storage.ts';
 
@@ -181,5 +181,36 @@ for (const [archivo, constante] of [['src/app/receta/page.tsx', 'RECETA_BASE_WHE
   const fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8');
   check(`${archivo} usa ${constante} (no una copia propia del filtro)`, new RegExp(`whereClause = ${constante}`).test(fuente));
 }
+
+console.log('\n— Una sola regla de qué se ve en la tienda (10/10/2026) —\n');
+check('FICHA_EN_TIENDA: activa, publicada, con stock y nunca un cristal',
+  FICHA_EN_TIENDA.isActive === true && FICHA_EN_TIENDA.product.publishToWeb === true
+  && FICHA_EN_TIENDA.product.stock?.gt === 0 && FICHA_EN_TIENDA.product.category?.not === 'Cristal');
+check('FICHA_PUBLICADA (abrir por dirección): activa, publicada y nunca un cristal',
+  FICHA_PUBLICADA.isActive === true && FICHA_PUBLICADA.product.publishToWeb === true
+  && FICHA_PUBLICADA.product.category?.not === 'Cristal');
+// Todo lo público que lee fichas: ninguno escribe su propio `isActive: true`.
+// Eran ~20 copias a mano y habían divergido (la ficha abría cualquier producto
+// del CRM por su id; el home no excluía cristales en Sol/Receta).
+const PUBLICOS = [
+  'src/lib/catalog/queries.ts',
+  'src/app/producto/[slug]/page.tsx',
+  'src/app/sitemap.ts',
+  'src/app/receta/page.tsx',
+  'src/app/lentes-de-sol/page.tsx',
+  'src/components/Storefront/ListadoCategoria.tsx',
+  'src/app/api/catalog/route.ts',
+  'src/app/api/health/route.ts',
+];
+for (const archivo of PUBLICOS) {
+  let fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8');
+  // En queries.ts la regla se DEFINE: se mira solo lo que viene después.
+  if (archivo.endsWith('queries.ts')) fuente = fuente.slice(fuente.indexOf('export const SOL_BASE_WHERE'));
+  const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  check(`${archivo}: sin un \`isActive: true\` propio (usa FICHA_EN_TIENDA / FICHA_PUBLICADA)`, !/isActive:\s*true/.test(sinComentarios));
+}
+const ficha = readFileSync(new URL('../../src/app/producto/[slug]/page.tsx', import.meta.url), 'utf8');
+check('la ficha no abre un Product suelto por id (cristales, internos, desmarcados)', !/prisma\.product\.find(Unique|First)\(/.test(ficha));
+check('la ficha busca con FICHA_PUBLICADA', /\.\.\.FICHA_PUBLICADA,\s*\n\s*OR:/.test(ficha));
 
 console.log(`\n✅ ${passed} checks OK — el storefront no puede quedar sin productos\n`);

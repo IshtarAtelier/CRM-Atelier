@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
+import { FICHA_EN_TIENDA } from '@/lib/catalog/queries';
 import { getFileBuffer } from '@/lib/storage';
 import { medidasCompactas } from '@/lib/medidas-armazon';
 import fs from 'fs';
@@ -72,8 +73,10 @@ export async function GET(req: NextRequest) {
   try {
     const { jsPDF } = await import('jspdf');
 
+    // El PDF del catálogo muestra lo mismo que la tienda: sin cristales ni
+    // agotados (antes traía toda ficha activa, cristales incluidos).
     const webProductsData = await prisma.webProduct.findMany({
-      where: { isActive: true },
+      where: FICHA_EN_TIENDA,
       include: { product: true }
     });
 

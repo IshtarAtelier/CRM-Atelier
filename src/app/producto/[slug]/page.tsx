@@ -16,6 +16,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { armarNombreVisible, baseDelNombre } from '@/lib/catalog/display-name';
 import { precioConOferta } from '@/lib/precio-oferta';
 import { slugVigenteDe } from '@/lib/catalog/slugs-historicos';
+import { FICHA_EN_TIENDA, FICHA_PUBLICADA } from '@/lib/catalog/queries';
 
 
 // Constante para el producto demo
@@ -41,9 +42,12 @@ const getProduct = cache(async (slug: string) => {
   }
 
   try {
-    // 1) Intentar por WebProduct.slug o productId
+    // Por la dirección de la ficha o por el id del producto (links viejos del
+    // catálogo), y SOLO si la ficha está publicada: la misma regla que la
+    // tienda (FICHA_PUBLICADA, src/lib/catalog/queries.ts).
     const webProduct = await prisma.webProduct.findFirst({
-      where: { 
+      where: {
+        ...FICHA_PUBLICADA,
         OR: [
           { slug },
           { productId: slug }
@@ -52,7 +56,7 @@ const getProduct = cache(async (slug: string) => {
       include: { product: true }
     });
 
-    if (webProduct && webProduct.isActive) {
+    if (webProduct) {
       // Nombre visible: sin sufijo de color si este estelar tiene una sola
       // variante activa (misma regla que la grilla — ver display-name.ts).
       const nombreCrudo = webProduct.name || webProduct.product.model || '';
@@ -62,11 +66,8 @@ const getProduct = cache(async (slug: string) => {
         // startsWith es un pre-filtro barato; la igualdad real de estelar la
         // decide baseDelNombre ("Gaia" no debe contar a "Gaiana C1").
         const candidatos = await prisma.webProduct.findMany({
-          where: {
-            isActive: true,
-            name: { startsWith: base, mode: 'insensitive' },
-            product: { publishToWeb: true },
-          },
+          // Las variantes que cuenta la grilla: la misma regla de la tienda.
+          where: { ...FICHA_EN_TIENDA, name: { startsWith: base, mode: 'insensitive' } },
           select: { name: true },
         });
         const nombres = candidatos
@@ -107,38 +108,11 @@ const getProduct = cache(async (slug: string) => {
       };
     }
 
-    // 2) Fallback: buscar directamente por Product.id (para links del catálogo que usan el id)
-    const product = await prisma.product.findUnique({
-      where: { id: slug },
-    });
-
-    if (!product) return null;
-
-    return {
-      id: product.id,
-      brand: product.brand || 'ATELIER',
-      model: product.model || 'Sin modelo',
-      modelCode: product.model,
-      price: product.price,
-      salePrice: product.salePrice,
-      wholesalePrice: 0, // idem: el precio neto no viaja en el HTML público
-      stock: product.stock,
-      imagenesCatalogo: product.imagenesCatalogo,
-      imageAlts: [],
-      category: product.category || 'Receta',
-      description: null,
-      slug: product.id,
-      lensWidth: product.lensWidth,
-      bridgeWidth: product.bridgeWidth,
-      templeLength: product.templeLength,
-      frameHeight: product.frameHeight,
-      seoTitle: product.seoTitle,
-      seoDescription: product.seoDescription,
-      seoTags: product.seoTags,
-      mpn: product.mpn,
-      gender: product.gender,
-      ageGroup: product.ageGroup,
-    };
+    // Sin ficha publicada no hay página. Hasta el 10/10/2026 acá había un
+    // segundo intento que abría CUALQUIER Product por su id —cristales, lo
+    // desmarcado de la web, los 834 productos internos del CRM— con precio y
+    // botón de compra, aunque la tienda no los listara.
+    return null;
   } catch (error) {
     // Falla de DB ≠ producto inexistente: en runtime lanzamos para no cachear
     // un redirect a /tienda sobre una página de producto que sí existe.
@@ -170,7 +144,7 @@ export async function generateStaticParams(): Promise<{ slug: string }[]> {
     // El slug vive en WebProduct, no en Product: es la entidad de la tienda
     // (la misma que consulta getProduct acá arriba).
     const publicados = await prisma.webProduct.findMany({
-      where: { isActive: true },
+      where: FICHA_EN_TIENDA,
       select: { slug: true },
     });
     return publicados
@@ -366,9 +340,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       if (!baseModel) return [];
       const siblings = await prisma.webProduct.findMany({
         where: {
-          isActive: true,
+          ...FICHA_PUBLICADA,
           product: {
-            publishToWeb: true,
+            ...FICHA_PUBLICADA.product,
             model: { startsWith: baseModel, mode: 'insensitive' }
           }
         },
@@ -409,15 +383,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       // excluye. Así una ficha de Sol, que tiene pocos hermanos, completa los
       // cuatro lugares en vez de quedarse con dos.
       const candidatos = await prisma.webProduct.findMany({
-        where: {
-          isActive: true,
-          productId: { not: product.id },
-          product: {
-            publishToWeb: true,
-            // Recomendar lo que no se puede comprar es regalar el clic.
-            stock: { gt: 0 }
-          }
-        },
+        // Recomendar lo que no se puede comprar es regalar el clic: solo lo
+        // que la tienda lista (con stock, nunca un cristal).
+        where: { ...FICHA_EN_TIENDA, productId: { not: product.id } },
         // select explícito: la fila entera de Product no entra acá y además
         // contra producción devolverla revienta (el schema local va adelantado).
         select: {

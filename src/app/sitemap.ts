@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
+import { FICHA_EN_TIENDA } from '@/lib/catalog/queries';
 import { categoriasConPosts } from '@/lib/blog-categorias';
 
 export const dynamic = 'force-dynamic';
@@ -169,9 +170,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productRoutes: any[] = [];
   try {
     const products = await prisma.webProduct.findMany({
-      // Espejamos el catálogo: solo lo publicado y sin Cristal, para no indexar
-      // URLs que la ficha redirige o que no representan productos comprables.
-      where: { isActive: true, product: { publishToWeb: true, stock: { gt: 0 }, category: { not: 'Cristal' } } },
+      // Espejamos el catálogo (la misma regla, no una copia): solo lo que la
+      // tienda lista, para no indexar URLs que no representan productos comprables.
+      where: FICHA_EN_TIENDA,
       select: { slug: true, updatedAt: true, product: { select: { imagenesCatalogo: true } } }
     });
     productRoutes = products.map((product) => {
