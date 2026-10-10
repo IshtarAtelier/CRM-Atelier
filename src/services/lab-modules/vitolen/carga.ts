@@ -179,9 +179,9 @@ export function armarFormulario(
     if (totalPares > 1 && venta.items.some(i => esDeVitolen(i) && i.framePosition == null)) {
         faltantes.push('hay cristales sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal');
     }
-    const porArmazon = ((cristalesPorArmazon(venta as any).get(pair) || []) as typeof venta.items).filter(esDeVitolen);
-    // Si la venta no tiene ese armazón numerado (datos viejos con un solo frame "2"), vale la posición del ítem.
-    const cristales = porArmazon.length ? porArmazon : venta.items.filter(i => esDeVitolen(i) && (i.framePosition ?? 1) === pair);
+    const fueraDeRango = venta.items.find(i => esDeVitolen(i) && i.framePosition != null && (i.framePosition < 1 || i.framePosition > totalPares));
+    if (fueraDeRango) faltantes.push(`hay un cristal asignado al armazón ${fueraDeRango.framePosition}, que la venta no tiene: reasignalo`);
+    const cristales = ((cristalesPorArmazon(venta as any).get(pair) || []) as typeof venta.items).filter(esDeVitolen);
     if (cristales.length === 0) {
         return { ok: false, payload: null, faltantes: [`la venta no tiene cristales de Vitolen para el par ${pair}`], avisos };
     }

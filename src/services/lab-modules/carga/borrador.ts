@@ -30,6 +30,8 @@ import type { Actor } from '../../../lib/actor';
  * misma venta y par.
  */
 export type EstadoBorrador = 'PREPARADO' | 'EN_REVISION' | 'APROBADO' | 'CARGADO' | 'RECHAZADO' | 'ERROR';
+// APROBADO → ERROR no está en la tabla a propósito: solo lo hacen `invalidarSinPedido`
+// (el robot comprobó que no hay pedido) y `anular` (una persona, sin envío iniciado).
 
 const TRANSICIONES: Record<EstadoBorrador, EstadoBorrador[]> = {
     PREPARADO: ['EN_REVISION', 'ERROR'],
@@ -179,11 +181,21 @@ export const Borradores = {
     /** Una persona miró la captura y aprobó. */
     async aprobar(id: string, actor: Actor) {
         if (!puedeAprobar(actor)) throw new Error('La aprobación tiene que hacerla una persona identificada.');
-        // Nombre e id de quien aprobó en UN solo write: si fueran dos, una falla en
-        // el segundo firmaría la venta sin id.
-        const previo = await prisma.labOrderDraft.findUnique({ where: { id }, select: { resumenPortal: true } });
-        const rastro = (previo?.resumenPortal && typeof previo.resumenPortal === 'object' ? previo.resumenPortal : {}) as RastroPortal;
-        return cambiarEstado(id, 'APROBADO', { approvedBy: actor.name, approvedAt: new Date(), error: null, resumenPortal: { ...rastro, aprobadoPorId: actor.id } as any }, actor);
+        // Nombre, fecha e id de quien aprobó en UN solo UPDATE, con el rastro mezclado
+        // en la base (jsonb ||): sin leer-modificar-escribir, un "Releer el portal"
+        // que termine en el medio no se pisa, y una falla no deja la venta sin id.
+        const actual = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
+        if (!actual) throw new Error('El borrador no existe.');
+        if (!transicionValida(actual.status as EstadoBorrador, 'APROBADO')) throw new Error(`El borrador está ${actual.status}: no puede pasar a APROBADO.`);
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET status = 'APROBADO', "approvedBy" = ${actor.name}, "approvedAt" = NOW(), error = NULL,
+            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ aprobadoPorId: actor.id })}::jsonb, "updatedAt" = NOW()
+            WHERE id = ${id} AND status = ${actual.status}`;
+        if (n !== 1) throw new Error(`El borrador cambió de estado mientras tanto (ya no está ${actual.status}): volvé a cargar la ficha.`);
+        await logAudit({
+            userId: actor.id, userName: actor.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
+            details: { lab: actual.lab, orderId: actual.orderId, pair: actual.pair, de: actual.status, a: 'APROBADO' },
+        });
+        return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
     },
 
     async rechazar(id: string, actor: Actor, motivo: string) {

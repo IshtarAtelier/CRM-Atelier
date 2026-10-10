@@ -140,7 +140,8 @@ export function paletaDeFotocromatico(product: any): Paleta | null {
     //    vendedor tiene que elegir uno en la venta, si no el robot no puede
     //    cargarlo (lab-modules/grupo-optico/catalogo.ts, MATERIALES_LAB).
     //    Los nombres son los que el catálogo reconoce (COLOR_DEL_ITEM).
-    const paletaGO = paletaDeGrupoOptico(n);
+    const lab = normalizar(product?.laboratory);
+    const paletaGO = !lab || /grupo/.test(lab) ? paletaDeGrupoOptico(n) : null;
     if (paletaGO) return paletaGO;
 
     if (!esGenS && !esXtractive && !esAcclimates && !esXperio && !esFotocromatico) return null;

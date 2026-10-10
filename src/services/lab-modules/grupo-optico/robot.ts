@@ -175,7 +175,15 @@ export function pedidoYaCreado(filas: FilaApiSmartLab[], codigoVenta: string, pa
     let ambiguo: string | null = null;
     for (const f of filas) {
         if (!re.test(String(f.CodigoOptica || ''))) continue;
-        if (!esDeEsteCliente(String(f.CodigoOptica || ''))) continue;
+        if (String(f.Anulado ?? '0') === '1') continue;
+        if (!esDeEsteCliente(String(f.CodigoOptica || ''))) {
+            // El código es el de esta venta pero al lado hay OTRO nombre: puede ser
+            // otra venta con el mismo código corto, o esta misma cargada a mano con
+            // una nota ("#L4AU sol"). No se adopta ni se crea otro: lo mira una persona.
+            const num = numeroDeFila(f);
+            if (num && !excluir.has(num) && !ambiguo) ambiguo = num;
+            continue;
+        }
         if (String(f.Anulado ?? '0') === '1') continue;
         const num = numeroDeFila(f);
         if (!num || excluir.has(num)) continue;

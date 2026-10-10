@@ -232,11 +232,11 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
 
     // Receta, medidas y validaciones de siempre: el armado único (armar-pedido.ts).
     const armado = armarPedidoSmartLab({ ...venta, labType: clase }, par);
-    // El armado común deduce "necesita adición" del nombre ("ocupacional"); en el
-    // portal manda el tipo de lente de la FAMILIA (Ocupacional Ultra Relax es monofocal).
-    const familiaMonofocal = esp.clase === 'LAB' && esp.familia.lensTypeId === 1;
-    faltantes.push(...armado.faltantes.filter(f => !(familiaMonofocal && /adici[oó]n/i.test(f))));
+    faltantes.push(...armado.faltantes);
     avisos.push(...armado.avisos);
+    // Sin payload del armado no hay pedido: nunca seguir con un plan vacío (un
+    // pedido sin graduación "ok" se aprobaría de un vistazo; verificación del 10/10/2026).
+    if (!armado.payload) return { ok: false, faltantes: faltantes.length ? faltantes : ['no se pudo armar el pedido desde la venta'], avisos };
 
     // 2x1: el par SIN CARGO (el de menor valor) se prepara con el nº del par con
     // cargo, que va en la observación: es lo que hace que el laboratorio no lo cobre.

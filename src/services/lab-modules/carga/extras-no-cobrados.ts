@@ -106,6 +106,12 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
         baseUrl: (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, ''),
     };
 
+    // Ya avisado (un reintento, o un borrador preparado antes del 10/10/2026 que avisaba al preparar): no se repite.
+    const yaEnFicha = await prisma.interaction.findFirst({
+        where: { clientId: order.clientId, type: 'LAB_STATUS', content: { contains: `agregó ${args.extra.nombre} al pedido de ${args.nombreLab}` }, createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+        select: { id: true, content: true },
+    }).catch(() => null);
+    if (yaEnFicha && yaEnFicha.content.includes(datos.codigoVenta)) return;
     // 1. La ficha del cliente, firmada por quien lo decidió.
     await prisma.interaction.create({
         data: { clientId: order.clientId, type: 'LAB_STATUS', content: lineaDeFicha(datos), userId: actor.id, userName: quien },

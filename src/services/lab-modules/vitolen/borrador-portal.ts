@@ -237,7 +237,7 @@ export async function releerBorradorEnPortal(borradorId: string, actor: Actor) {
     if (r.numeroPrevio) {
         // Lo confirmaron a mano en el portal: queda resuelto con ese nº, como al cancelar.
         await Borradores.confirmadoAManoEnPortal(b.id, r.numeroPrevio, actor);
-        throw new Error(`El borrador ya está confirmado en el portal con el nº ${r.numeroPrevio}: no hay nada que aprobar acá.`);
+        throw new Error(`El borrador ya está confirmado en el portal con el nº ${r.numeroPrevio}: rechazalo desde la ficha (con ese motivo) y el nº pasa a la venta; no hay nada más que aprobar acá.`);
     }
     const screenshotUrl = await guardarCaptura(b.id, 'releido', r.captura);
     return Borradores.vistaReleida(b.id, actor, {

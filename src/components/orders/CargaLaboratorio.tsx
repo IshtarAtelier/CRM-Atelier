@@ -303,7 +303,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                     <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')} className={`${boton} bg-emerald-600`}>
                                         {ocupado === `reintentar-${b.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reintentar la carga
                                     </button>
-                                    {!/YA está creado|quedó sin respuesta/.test(b.error) && (
+                                    {!datos.puedeCancelarEnPortal && !/YA está creado|quedó sin respuesta/.test(b.error) && (
                                         <>
                                             <input value={motivo[b.id] || ''} onChange={e => setMotivo(m => ({ ...m, [b.id]: e.target.value }))} placeholder="Motivo para anular" className="flex-1 min-w-[10rem] text-xs rounded border border-stone-300 bg-white text-stone-900 px-2 py-2" />
                                             <button type="button" disabled={ocupado !== null || !(motivo[b.id] || '').trim()} onClick={() => decidir(b.id, 'anular')} title="Solo si el robot nunca mandó nada al portal" className={`${boton} bg-stone-500`}>

@@ -166,6 +166,8 @@ export function tipoDeLenteSmartLab(productType: string | null | undefined, prod
     if (dice('multi') || dice('progresiv')) return 'Multifocal';
     if (dice('bifo') && dice('kri')) return 'Bifocal Kri';
     if (dice('bifo')) return 'Bifocal Ft';
+    // "Ocupacional Ultra Relax" (anti-fatiga) el portal lo carga como Monofocal: sin adición.
+    if (dice('ultra relax')) return 'Monofocal';
     if (dice('ocupa') || dice('intermedio')) return 'Ocupacional';
     return 'Monofocal';
 }

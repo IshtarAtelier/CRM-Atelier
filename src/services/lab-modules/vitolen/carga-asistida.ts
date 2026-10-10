@@ -39,7 +39,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
         // Qué pares de Vitolen tiene la venta y qué le falta a cada uno para armarse
         // (sin forma ni variante elegidas todavía: eso lo decide quien prepara).
         // Los pares con cristales de Vitolen, agrupados como el resto del CRM; la carga asistida va hasta 2.
-        const pares = [...new Set([...[...cristalesPorArmazon(venta as any).entries()].filter(([, items]) => (items as any[]).some(esCristalVitolen)).map(([p]) => p), ...venta.items.filter(esCristalVitolen).map(i => i.framePosition ?? 1)])].filter(p => p <= 2).sort((a, b) => a - b);
+        const pares = [...cristalesPorArmazon(venta as any).entries()].filter(([p, items]) => p <= 2 && (items as any[]).some(esCristalVitolen)).map(([p]) => p).sort((a, b) => a - b);
         // ¿Algún par ya tiene pedido (robot, seguimiento o nº tipeado)? La ficha
         // no ofrece preparar y deshabilita "Aprobar" (misma regla que Grupo Óptico).
         const yaCargados = new Map<number, string | null>();
@@ -112,7 +112,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
         if (venta.labStatus !== 'SENT' && venta.labStatus !== 'IN_PROGRESS') {
             return { ok: false, status: 409, error: `La venta tiene que estar enviada a fábrica antes de cargarla en el portal (hoy está ${venta.labStatus || 'sin enviar'}).` };
         }
-        const paresDeLaVenta = new Set([...[...cristalesPorArmazon(venta as any).entries()].filter(([, items]) => (items as any[]).some(esCristalVitolen)).map(([p]) => p), ...venta.items.filter(esCristalVitolen).map(i => i.framePosition ?? 1)]);
+        const paresDeLaVenta = new Set([...cristalesPorArmazon(venta as any).entries()].filter(([, items]) => (items as any[]).some(esCristalVitolen)).map(([p]) => p));
         if (!paresDeLaVenta.has(pair)) return { ok: false, status: 400, error: `La venta no tiene cristales de Vitolen para el par ${pair}.` };
         const existente = await pedidoExistenteDelPar(orderId, pair, Math.max(cantidadDeArmazones(venta as any), paresDeLaVenta.size));
         if (existente) return { ok: false, status: 409, error: mensajeExistente(existente, pair) };

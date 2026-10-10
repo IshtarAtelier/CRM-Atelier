@@ -420,8 +420,9 @@ ok('sin cristales de Vitolen para ese par, no arma nada', () => {
 });
 ok('el segundo par lleva el pedido origen del primero', () => {
     const v = ventaBase();
-    v.items.forEach(i => { i.framePosition = 2; });
-    v.frames = [{ position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
+    // dos pares de verdad: los cristales del par 1 y una copia en el armazón 2
+    v.items.push(...v.items.filter(i => i.eye).map(i => ({ ...i, framePosition: 2 })));
+    v.frames = [v.frames[0], { position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
     const r = armarFormulario(v, { pair: 2, forma: 'Forma 3', ejeDiagonal: 20, pedidoOrigen: '5001234' });
     assert.equal(r.ok, true);
     assert.equal(r.payload.pedidoOrigen, '5001234');
@@ -808,9 +809,12 @@ ok('una factura anulada queda en los comprobantes sin importe (la pantalla la mu
 ok('el payload sabe qué par es; el 2º par sin pedido origen igual queda pendiente a mano', () => {
     const v = ventaBase();
     assert.equal(armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 }).payload.par, 1);
-    v.items.forEach(i => { i.framePosition = 2; });
-    v.frames = [{ position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
+    v.items.push(...v.items.filter(i => i.eye).map(i => ({ ...i, framePosition: 2 })));
+    v.frames = [v.frames[0], { position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
     assert.equal(armarFormulario(v, { pair: 2, forma: 'Forma 1', ejeDiagonal: 0 }).payload.par, 2);
+    // un cristal asignado a un armazón que la venta no tiene: frena (no se ofrece como otro par)
+    const w = ventaBase(); w.items.forEach(i => { i.framePosition = 2; });
+    assert.ok(armarFormulario(w, { pair: 1, forma: 'Forma 1', ejeDiagonal: 0 }).faltantes.some(f => /asignado al armazón 2/.test(f)));
 });
 ok('ninguna migración borra el índice único parcial de los borradores', () => {
     const dir = new URL('../../prisma/migrations/', import.meta.url).pathname;

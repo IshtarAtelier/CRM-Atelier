@@ -222,7 +222,19 @@ ok('Ocupacional Ultra Relax: el portal lo carga como monofocal, no pide adición
     const v = venta2x1(); v.frames = [v.frames[0]];
     v.items = v.items.filter(i => i.framePosition === 1 && i.eye).map(i => ({ ...i, additionVal: null, product: { ...i.product, name: 'Ocupacional Ultra Relax · Orgánico Blue Light 1.56 · Essential', type: 'Cristal Ocupacional' } }));
     const r = planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' });
-    assert.ok(!(r.faltantes || []).some(f => /adici/i.test(f)), (r.faltantes || []).join(' | '));
+    assert.ok(r.ok, (r.faltantes || []).join(' | '));
+    assert.ok(r.plan.od && r.plan.od.esferico && r.plan.oi, 'el plan tiene que traer la graduación');
+    assert.equal(r.plan.od.adicion, 0);
+});
+ok('un pedido del portal con el código de la venta pero OTRO nombre al lado es AMBIGUO: ni se adopta ni se crea otro', () => {
+    const filas = [{ CodigoOptica: '#L4AU sol', Observacion: '', Anulado: '0', IdPedido: '80111111' }];
+    const r = pedidoYaCreado(filas, '#L4AU', null, new Set(), 'Laura Santucho');
+    assert.ok(r && r.ambiguo, JSON.stringify(r));
+    // el propio pedido del robot, con acentos y mayúsculas distintas, se reconoce
+    const propio = pedidoYaCreado([{ CodigoOptica: '#L4AU LAURA SANTUCHÓ 1°par', Observacion: '', Anulado: '0', IdPedido: '80111112' }], '#L4AU', 1, new Set(), 'Laura Santucho');
+    assert.ok(propio && !propio.ambiguo, JSON.stringify(propio));
+    // sin nombre al lado, también
+    assert.ok(!pedidoYaCreado([{ CodigoOptica: '#L4AU', Observacion: '', Anulado: '0', IdPedido: '80111113' }], '#L4AU', null, new Set(), 'Laura Santucho').ambiguo);
 });
 ok('el estilo del teñido lo dice el producto (Degradé) aunque el ítem traiga otro type; y sin product, el snapshot', () => {
     const v = venta2x1(); v.items = v.items.map(i => (i.product.category === 'Tratamiento' ? { ...i, crystalColorType: 'COMPACTO', product: { ...i.product, name: 'Teñido Degradé' } } : i));

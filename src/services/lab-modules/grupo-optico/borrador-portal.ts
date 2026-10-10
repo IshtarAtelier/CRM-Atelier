@@ -167,6 +167,7 @@ async function guardarPdf(borradorId: string, numero: string, pdf: Buffer): Prom
 }
 
 /** La aprobación ya no vale y en el portal NO hay pedido: se invalida (ERROR) sin mandar nada. */
+class AdopcionNoVerificadaError extends Error { constructor(m: string) { super(m); this.name = 'AdopcionNoVerificadaError'; } }
 class AprobacionInvalidaError extends Error {
     constructor(motivo: string) { super(motivo); this.name = 'AprobacionInvalidaError'; }
 }
@@ -234,6 +235,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             if (actual?.status !== 'APROBADO') throw new Error(`El borrador pasó a ${actual?.status} mientras tanto.`);
             let numero = ((actual.resumenPortal || {}) as RastroGO).numeroCreado ?? null;
             let adoptado = false;
+            let adoptadoDe: 'venta' | 'portal' | null = null;
 
             if (!numero) {
                 // 2a. ¿El par ya tiene pedido por otro camino (carga a mano, seguimiento)
@@ -246,7 +248,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                     // seguimiento lo vinculó al par antes del reintento. Se adopta, no se
                     // invalida (auditoría 4, M4).
                     numero = existente.numero;
-                    adoptado = true;
+                    adoptado = true; adoptadoDe = 'venta';
                 } else if (existente) {
                     throw new AprobacionInvalidaError(`${mensajeExistente(existente, b.pair)} No se creó nada.`);
                 }
@@ -256,7 +258,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 const ventaHoy = await leerVentaParaCargaGO(b.orderId);
                 const pares = cantidadDeArmazones(ventaHoy as any);
                 numero = await buscarPedidoYaCreado(page, codigoVenta, pares > 1 ? b.pair : null, await numerosDeOtrosPares(b.orderId, b.pair), ventaHoy?.client?.name ?? null);
-                adoptado = !!numero;
+                adoptado = !!numero; if (numero) adoptadoDe = 'portal';
             }
             if (!numero) {
                 // Un envío anterior salió y no volvió la respuesta: el portal puede
@@ -299,10 +301,13 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             // venta en su código interno). Un dedazo en la venta no se adopta.
             if (adoptado) {
                 const fila = await leerPedido(page, numero).catch(() => null);
+                const anulado = String((fila as any)?.Anulado ?? (fila as any)?.anulado ?? '0') === '1';
                 const codigoDeLaFila = String((fila as any)?.CodigoOptica ?? (fila as any)?.opticsCode ?? '').toUpperCase();
-                if (!fila || !codigoDeLaFila.includes(codigoVenta.toUpperCase())) {
-                    throw new Error(`el pedido ${numero} que figura para este par no se pudo leer en el portal como de la venta ${codigoVenta}: no se adopta ni se crea otro. Revisá el nº en la venta y en el portal`);
-                }
+                // Desde la venta (el nº lo tipeó una persona o lo vinculó el seguimiento):
+                // alcanza con que exista y no esté anulado — lo cargado a mano no suele
+                // llevar "#XXXX". Desde el listado del portal: además el código de la venta.
+                if (!fila || anulado) throw new AdopcionNoVerificadaError(`el nº ${numero} que la venta tiene para este par ${!fila ? 'no existe' : 'está ANULADO'} en el portal: corregí el nº en la venta y reintentá. No se creó nada`);
+                if (adoptadoDe === 'portal' && !codigoDeLaFila.includes(codigoVenta.toUpperCase())) throw new AdopcionNoVerificadaError(`el pedido ${numero} del portal no lleva el código ${codigoVenta}: no se adopta ni se crea otro. Revisalo en el portal`);
             }
             // Anotado en el acto: de acá en más un reintento no vuelve a crear.
             await mezclar(b.id, { numeroCreado: numero, portalDraftId: numero, ...(adoptado ? { adoptadoDelPortal: true } : {}) } as RastroGO);
@@ -378,7 +383,9 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         // Si el pedido YA existe (falló lo de después: anotar la venta, el PDF), decirlo
         // con todas las letras: "no se pudo cargar" invitaba a cargarlo a mano = duplicado.
         const rastroAhora = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { resumenPortal: true } }).then(x => (x?.resumenPortal || {}) as RastroGO).catch(() => ({} as RastroGO));
-        const texto = rastroAhora.numeroCreado
+        const texto = err instanceof AdopcionNoVerificadaError
+            ? `${motivo}.`
+            : rastroAhora.numeroCreado
             ? `El pedido YA está creado en el laboratorio con el nº ${rastroAhora.numeroCreado}; falta anotarlo en la venta (${motivo}). Reintentar desde la ficha: NO se crea otro, solo se termina de anotar. No lo cargues a mano.`
             : rastroAhora.envioIniciadoEl
                 ? `El envío al portal quedó sin respuesta (${motivo}). Reintentar desde la ficha en unos minutos: el robot busca el pedido en el portal antes de crear otro. No lo cargues a mano.`
