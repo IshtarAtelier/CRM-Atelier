@@ -30,8 +30,14 @@ export const LAB_ITEM_PATTERNS: Record<LabKey, RegExp> = {
 
 export const LAB_KEYS = Object.keys(LAB_ITEM_PATTERNS) as LabKey[];
 
+/** La clave de un laboratorio escrito como string (`LabCostEntry.lab`, `LabOrderDraft.lab`: "GRUPO_OPTICO", "vitolen"); null si no es uno conocido. Puro. */
+export function labKeyDe(lab: string | null | undefined): LabKey | null {
+    const k = String(lab || '').toUpperCase() as LabKey;
+    return k in LAB_ITEM_PATTERNS ? k : null;
+}
+
 /** El patrón de un laboratorio nombrado como string (claves de LabCostEntry.lab); undefined si no es uno conocido. */
-export const patronDeLab = (lab: string | null | undefined): RegExp | undefined => LAB_ITEM_PATTERNS[String(lab || '').toUpperCase() as LabKey];
+export const patronDeLab = (lab: string | null | undefined): RegExp | undefined => { const k = labKeyDe(lab); return k ? LAB_ITEM_PATTERNS[k] : undefined; };
 
 /** El laboratorio que nombra un texto ("Grupo Óptico", "VITOLEN"); null si ninguno. */
 export function labDeNombre(nombre: string | null | undefined): LabKey | null {
@@ -62,9 +68,19 @@ export function esDeLab(item: ItemConLaboratorio | null | undefined, lab: LabKey
     return (opciones.sinLaboratorio ?? null) === lab;
 }
 
-/** ¿El ítem es un cristal (no un armazón ni un tratamiento)? La categoría guardada al vender, o la del producto. */
-export function esCristal(item: { productCategorySnapshot?: string | null; product?: { category?: string | null } | null } | null | undefined): boolean {
-    return /cristal|lens/i.test(String(item?.productCategorySnapshot ?? item?.product?.category ?? ''));
+/**
+ * ¿El ítem es un cristal (no un armazón ni un tratamiento)? Por la categoría
+ * guardada al vender, o la del producto; si no hay categoría (ítems viejos),
+ * por el tipo ("Cristal Multifocal"). Vale para un ítem de venta o para un
+ * producto suelto. OJO: un tratamiento ("Tratamiento Colores de Cristal") NO es
+ * un cristal aunque su tipo lo nombre — por eso el tipo solo decide sin
+ * categoría. Los cristales DE UN PAR (OD+OI por armazón) los reparte
+ * `cristalesPorArmazon` (lib/order-frames), que además saca los teñidos.
+ */
+export function esCristal(x: { productCategorySnapshot?: string | null; productTypeSnapshot?: string | null; category?: string | null; type?: string | null; product?: { category?: string | null; type?: string | null } | null } | null | undefined): boolean {
+    const categoria = String(x?.productCategorySnapshot ?? x?.product?.category ?? x?.category ?? '');
+    if (categoria) return /cristal|lens/i.test(categoria);
+    return /cristal/i.test(String(x?.productTypeSnapshot ?? x?.product?.type ?? x?.type ?? ''));
 }
 
 /** ¿El ítem es un cristal de ESTE laboratorio? (la pregunta que la carga, el cruce y la ficha hacían cada uno a su manera). */

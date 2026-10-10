@@ -261,9 +261,11 @@ export interface ResumenDelPortal {
  * rechaza (un campo vacío), vuelve al formulario con los errores y no crea
  * nada. NO confirma. Devuelve siempre la captura: un rechazo también se mira.
  */
-export async function crearYLeerResumen(page: Page): Promise<ResumenDelPortal> {
+export async function crearYLeerResumen(page: Page, opts: { antesDeCrear?: () => Promise<void> } = {}): Promise<ResumenDelPortal> {
     const boton = page.locator('input[type=submit][value="Crear"], button:has-text("Crear")').first();
     if (await boton.count() === 0) throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el botón "Crear".`);
+    // El último control antes de crear en el portal (el borrador del CRM sigue PREPARADO).
+    if (opts.antesDeCrear) await opts.antesDeCrear();
     await boton.click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
@@ -328,7 +330,7 @@ export async function leerBorrador(page: Page, portalDraftId: string): Promise<{
     return { texto, url: page.url(), captura: await page.screenshot({ fullPage: true }), numeroPrevio: numeroDeTrabajoDe(texto) };
 }
 
-export async function confirmar(page: Page, portalDraftId: string, resumenAprobado?: string | null): Promise<{ portalNumber: string; url: string; captura: Buffer; yaEstaba: boolean }> {
+export async function confirmar(page: Page, portalDraftId: string, resumenAprobado?: string | null, opts: { antesDeConfirmar?: () => Promise<void> } = {}): Promise<{ portalNumber: string; url: string; captura: Buffer; yaEstaba: boolean }> {
     const antes = await abrirBorrador(page, portalDraftId);
     const previo = numeroDeTrabajoDe(antes);
     if (previo) return { portalNumber: previo, url: page.url(), captura: await page.screenshot({ fullPage: true }), yaEstaba: true };
@@ -338,6 +340,8 @@ export async function confirmar(page: Page, portalDraftId: string, resumenAproba
 
     const boton = page.locator('form[action$="/confirmar"] input[type=submit], form[action$="/confirmar"] button').first();
     if (await boton.count() === 0) throw new ConfirmarNoDisponibleError(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el botón "Confirmar".`);
+    // La barrera: justo antes del clic irreversible (el CRM anota "voy a mandar" o frena).
+    if (opts.antesDeConfirmar) await opts.antesDeConfirmar();
     await boton.click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);

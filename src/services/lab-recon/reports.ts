@@ -268,7 +268,8 @@ export async function weeklyReport(from: Date, to: Date) {
                 parMasBarato: v.par.masBarato,
                 // Vitolen: el 2º par de la promo cobrado de más (lo dice la nota del cruce).
                 segundoParCobrado: tieneSegundoParCobrado(e.notes),
-                aReclamar: aReclamarDeNota(e.notes),
+                // El número que el cruce guardó; la nota solo para filas de antes del 10/10/2026.
+                aReclamar: e.reclamo ?? aReclamarDeNota(e.notes),
             };
         });
 

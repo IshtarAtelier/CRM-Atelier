@@ -80,7 +80,12 @@ export const tieneParBonificadoCobrado = (notes: string | null | undefined): boo
 export const tieneSegundoParCobrado = (notes: string | null | undefined): boolean =>
     (notes || '').includes(MARCA_SEGUNDO_PAR_PROMO_COBRADO);
 
-/** El "a reclamar $X" que el cruce escribió en la nota del 2º par cobrado de más; null si no está. Puro. */
+/**
+ * El "a reclamar $X" que el cruce escribió en la nota del 2º par cobrado de
+ * más; null si no está. Puro. Desde el 10/10/2026 el cruce guarda el número en
+ * `LabCostEntry.reclamo`: esto queda SOLO para las filas de antes, hasta que
+ * el cruce las vuelva a pasar (el reporte lee `reclamo ?? aReclamarDeNota`).
+ */
 export function aReclamarDeNota(notes: string | null | undefined): number | null {
     const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // "… ; a reclamar $29.500]" (fmtARS: miles con punto, sin decimales).

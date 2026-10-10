@@ -1224,6 +1224,10 @@ model LabCostEntry {
   billedNet      Float? // subtotal de la factura (neto, sin IVA)
   billedTotal    Float? // total de la factura
   difference     Float? // costo facturado comparable - systemCost (positivo = sobrecosto)
+  // Lo que el cruce calculó para reclamarle al laboratorio en este pedido
+  // (el par bonificado del 2x1 cobrado; el 2º par de la promo de Vitolen por
+  // encima del 20 %): un número, no la prosa de `notes` (10/10/2026).
+  reclamo        Float?
   source         String // IMAP_PDF | CSV | SCRAPER | MANUAL
   sourceFile     String?
   invoiceDate    DateTime?

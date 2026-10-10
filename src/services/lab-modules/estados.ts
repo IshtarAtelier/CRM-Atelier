@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/db';
 import { logAudit } from '../../lib/audit';
 import { enviarAvisoProcesado } from '../../lib/avisos/aviso-procesado';
-import { codigoCortoDeVenta, labDeItem, patronDeLab } from '../../lib/laboratorios/identidad';
+import { codigoCortoDeVenta, esCristal, esDeLab, labKeyDe } from '../../lib/laboratorios/identidad';
 import { parseLabNumbers, findLabNumberConflicts, duplicateMessage } from '../../lib/lab-order-numbers';
 import { alertDuplicateLabOrderNumber } from '../../lib/duplicate-lab-order-alert';
 import { cantidadDeArmazones } from '../../lib/order-frames';
@@ -121,12 +121,10 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
 
     // Los pares que se esperan de ESTE laboratorio: un 2x1 con el 2º par en otro
     // lab no puede quedar esperando acá un pedido que nunca va a llegar (I5).
-    const patron = patronDeLab(a.lab);
-    const esCristal = (i: (typeof order.items)[number]) => /cristal|lens/i.test(i.productCategorySnapshot || i.product?.category || '');
+    const lab = labKeyDe(a.lab);
     // Solo se descartan los cristales de OTRO laboratorio conocido: uno sin
     // laboratorio cargado cuenta, para no dar por terminado un 2x1 con un par.
-    const deOtroLab = (i: (typeof order.items)[number]) => { const l = labDeItem(i); return !!l && !patron!.test(l); };
-    const itemsDelLab = patron ? order.items.filter(i => !esCristal(i) || !deOtroLab(i)) : order.items;
+    const itemsDelLab = lab ? order.items.filter(i => !esCristal(i) || esDeLab(i, lab, { sinLaboratorio: lab })) : order.items;
     const paresEsperados = cantidadDeArmazones({ ...order, items: itemsDelLab as any });
     const pedidosVivos = a.pedidos.filter(p => p.status !== 'ANULADO').length;
     const faltaOtroPar = !paresCompletos(paresEsperados, pedidosVivos);
@@ -137,7 +135,7 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
     // pedidos de TODOS los labs (espejo) cubren todos los pares de la venta y
     // están terminados/despachados; si no, queda "en proceso" (y una persona
     // siempre puede cerrarla a mano).
-    if ((conjunto === 'TERMINADO' || conjunto === 'DESPACHADO') && order.items.some(i => esCristal(i) && deOtroLab(i))) {
+    if ((conjunto === 'TERMINADO' || conjunto === 'DESPACHADO') && order.items.some(i => lab && esCristal(i) && !esDeLab(i, lab, { sinLaboratorio: lab }))) {
         const otros = await prisma.labPortalOrder.findMany({ where: { orderId: a.orderId, lab: { not: a.lab }, status: { not: 'ANULADO' } }, select: { status: true } });
         const totalPares = cantidadDeArmazones(order as any);
         const terminadosAjenos = otros.filter(p => p.status === 'TERMINADO' || p.status === 'DESPACHADO').length;

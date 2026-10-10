@@ -80,6 +80,23 @@ export async function esperarTurno(lab: string, pasada: Pasada, maxMs: number, c
     }
 }
 
+/**
+ * Renueva el turno mientras la tarea sigue viva: solo si la fila todavía dice
+ * ESTE turno (si venció y otro lo tomó, no se le roba). Devuelve el turno nuevo
+ * o null. Sin esto, un robot más lento que los 45 min (login de hasta 15 min
+ * por intento en un portal pésimo) perdía el turno con el navegador abierto y
+ * otro entraba a crear al mismo tiempo (auditoría de robustez 3, A1).
+ */
+export async function renovarTurno(lab: string, hasta: string, duracionMin = 45): Promise<string | null> {
+    const pasada = leerTurno(hasta)?.pasada;
+    if (!pasada) return null;
+    const nuevo = `${new Date(Date.now() + duracionMin * 60000).toISOString()}|${pasada}`;
+    const r = await prisma.systemSetting.updateMany({ where: { key: claveDeModulo(lab, 'turno'), value: hasta }, data: { value: nuevo } });
+    return r.count === 1 ? nuevo : null;
+}
+/** Cada cuánto se renueva el turno mientras la tarea corre (mucho antes de los 45 min). */
+export const RENOVAR_TURNO_CADA_MS = 10 * 60_000;
+
 export async function soltarTurno(lab: string, hasta: string): Promise<void> {
     await prisma.systemSetting.updateMany({
         where: { key: claveDeModulo(lab, 'turno'), value: hasta },
@@ -110,9 +127,15 @@ export async function conTurno<T>(
         turno = 'sin-turno';
     }
     if (!turno) return { skipped: true, reason: `otra pasada contra el portal de ${lab} está en curso` };
+    // Mientras la tarea corre, el turno se renueva solo: una tarea viva nunca lo pierde.
+    const renovacion = turno === 'sin-turno' ? null : setInterval(() => {
+        renovarTurno(lab, turno!).then(nuevo => { if (nuevo) turno = nuevo; })
+            .catch(err => console.error(`[lab-modulos] No se pudo renovar el turno de ${lab}:`, err));
+    }, RENOVAR_TURNO_CADA_MS);
     try {
         return await tarea();
     } finally {
+        if (renovacion) clearInterval(renovacion);
         if (turno !== 'sin-turno') await soltarTurno(lab, turno);
     }
 }

@@ -10,8 +10,9 @@ import { payloadCreateUpdate, planDeCarga, type OpcionesCarga, type PlanDeCarga,
 import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, PedidoRechazadoError, PortalRespondioError, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
 import { leerVentaParaCargaGO } from './venta';
 import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
-import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
+import { pedidoExistenteDelPar } from './existentes';
 import { numeroDelParConCargo } from './origen';
+import { decidirConAprobado } from './decision';
 import { codigoCortoDeVenta } from '../../../lib/laboratorios/identidad';
 import { registrarExtraNoCobrado } from '../carga/extras-no-cobrados';
 import { rolesDel2x1 } from './carga';
@@ -138,6 +139,9 @@ export async function prepararEnPortal(borradorId: string) {
     if (!b) throw new Error('El borrador no existe.');
     if (b.status !== 'PREPARADO') throw new Error(`El borrador está ${b.status}: el robot solo prepara los PREPARADOS.`);
     const guardado = b.payload as unknown as PayloadBorradorGO;
+    // Como robot del borrador (late cada 2 min): mientras prepara no se puede
+    // anular "colgado" encima (auditoría de arquitectura 3).
+    return Borradores.conRobot(b.id, `preparando desde ${new Date().toISOString()}`, async () => {
     try {
         const r = await planActual(b.orderId, b.pair, guardado.opciones);
         if (!r.ok) throw new Error(`Faltan datos: ${r.faltantes.join(' · ')}`);
@@ -167,6 +171,7 @@ export async function prepararEnPortal(borradorId: string) {
         await Borradores.error(b.id, ROBOT_ACTOR_GRUPO_OPTICO, motivo).catch(e => console.error('[lab-modulos] no se pudo marcar el error del borrador GO:', e));
         throw err;
     }
+    });
 }
 
 async function guardarCaptura(borradorId: string, sufijo: string, png: Buffer): Promise<string> {
@@ -240,15 +245,16 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         await Borradores.anotarFalla(b.id, motivo, { soloSi: 'APROBADO' }).catch(() => null);
         throw new Error(motivo);
     }
-    await Borradores.robotArranca(b.id, `cargando en el portal desde ${new Date().toISOString()}`);
     const guardado = b.payload as unknown as PayloadBorradorGO;
     const payloadAprobado = rastro0.payloadPortal;
     const codigoVenta = codigoCortoDeVenta(b.orderId);
 
+    // Como robot del borrador: late mientras trabaja y solo se apaga a sí mismo.
+    return Borradores.conRobot(b.id, `cargando en el portal desde ${new Date().toISOString()}`, async (robot) => {
     // Fuera de producción no se crea nada real: se corta antes de entrar al portal.
     if (!rastro0.numeroCreado && !puedeCrearPedidosReales()) {
         const motivo = 'Este servidor no es producción: no crea pedidos reales en el laboratorio (para probar a propósito: SMARTLAB_PERMITIR_CARGA=1). No se mandó nada';
-        await Borradores.anotarFalla(b.id, `${motivo}.`).catch(() => null);
+        await Borradores.anotarFalla(b.id, `${motivo}.`, { robot }).catch(() => null);
         throw new Error(motivo);
     }
 
@@ -258,41 +264,30 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             const actual = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { status: true, resumenPortal: true } });
             if (actual?.status === 'CARGADO') throw new YaCargadoError();
             if (actual?.status !== 'APROBADO') throw new Error(`El borrador pasó a ${actual?.status} mientras tanto.`);
-            let numero = ((actual.resumenPortal || {}) as RastroGO).numeroCreado ?? null;
-            let adoptado = false;
-            let adoptadoDe: 'venta' | 'portal' | null = null;
+            const rastroActual = (actual.resumenPortal || {}) as RastroGO;
 
-            if (!numero) {
-                // 2a. ¿El par ya tiene pedido por otro camino (carga a mano, seguimiento)
-                //     mientras este borrador esperaba revisión? (auditoría 2, N2)
-                const pares = cantidadDeArmazones((await leerVentaParaCargaGO(b.orderId)) as any);
-                const existente = await pedidoExistenteDelPar(b.orderId, b.pair, pares);
-                const envioAnterior = !!((actual.resumenPortal || {}) as RastroGO).envioIniciadoEl;
-                if (existente && !existente.ambiguo && envioAnterior) {
-                    // Es el pedido que ESTE borrador mandó y cuya respuesta se perdió: el
-                    // seguimiento lo vinculó al par antes del reintento. Se adopta, no se
-                    // invalida (auditoría 4, M4).
-                    numero = existente.numero;
-                    adoptado = true; adoptadoDe = 'venta';
-                } else if (existente) {
-                    throw new AprobacionInvalidaError(`${mensajeExistente(existente, b.pair)} No se creó nada.`);
-                }
+            // 2. Qué hacer con lo que YA hay (decisión pura, `decision.ts`): el nº que
+            //    este borrador creó, el pedido que el par recibió por otro camino
+            //    (carga a mano, seguimiento) o el que está en el portal con el
+            //    código de la venta; un envío reciente sin respuesta espera.
+            const ventaHoy = await leerVentaParaCargaGO(b.orderId);
+            const pares = cantidadDeArmazones(ventaHoy as any);
+            const existente = rastroActual.numeroCreado ? null : await pedidoExistenteDelPar(b.orderId, b.pair, pares);
+            const datos = { pair: b.pair, numeroCreado: rastroActual.numeroCreado ?? null, existente, envioIniciadoEl: rastroActual.envioIniciadoEl ?? null, esperaMs: ESPERA_TRAS_ENVIO_INCIERTO_MS };
+            let decision = decidirConAprobado(datos);
+            if (decision.accion === 'BUSCAR_EN_PORTAL') {
+                const numeroEnPortal = await buscarPedidoYaCreado(page, codigoVenta, pares > 1 ? b.pair : null, await numerosDeOtrosPares(b.orderId, b.pair), ventaHoy?.client?.name ?? null);
+                decision = decidirConAprobado({ ...datos, numeroEnPortal });
             }
-            if (!numero) {
-                // 2b. ¿Ya existe ese pedido en el portal con el código de la venta?
-                const ventaHoy = await leerVentaParaCargaGO(b.orderId);
-                const pares = cantidadDeArmazones(ventaHoy as any);
-                numero = await buscarPedidoYaCreado(page, codigoVenta, pares > 1 ? b.pair : null, await numerosDeOtrosPares(b.orderId, b.pair), ventaHoy?.client?.name ?? null);
-                adoptado = !!numero; if (numero) adoptadoDe = 'portal';
-            }
-            if (!numero) {
-                // Un envío anterior salió y no volvió la respuesta: el portal puede
-                // haberlo guardado tarde. No se reenvía a ciegas hasta que pase un rato
-                // y el listado siga sin mostrarlo (auditoría 2, I2).
-                const iniciado = ((actual.resumenPortal || {}) as RastroGO).envioIniciadoEl;
-                if (iniciado && Date.now() - Date.parse(iniciado) < ESPERA_TRAS_ENVIO_INCIERTO_MS) {
-                    throw new Error(`un envío anterior (${new Date(iniciado).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}) quedó sin respuesta; el robot no reenvía hasta comprobar que el portal no lo guardó. Reintentá en 15 minutos`);
-                }
+            if (decision.accion === 'INVALIDAR') throw new AprobacionInvalidaError(decision.motivo);
+            if (decision.accion === 'ESPERAR') throw new Error(decision.motivo);
+            if (decision.accion === 'BUSCAR_EN_PORTAL') throw new Error('la decisión pidió buscar en el portal dos veces (no debería pasar)');
+            const adoptado = decision.accion === 'VERIFICAR';
+            const adoptadoDe = decision.accion === 'VERIFICAR' ? decision.adoptadoDe : null;
+            let numero: string;
+            if (decision.accion !== 'CREAR') {
+                numero = decision.numero;
+            } else {
                 // 3. ¿La venta de hoy sigue dando EXACTAMENTE lo aprobado?
                 const r = await planActual(b.orderId, b.pair, guardado.opciones);
                 if (!r.ok) throw new AprobacionInvalidaError(`La venta ya no arma el pedido (${r.faltantes.join(' · ')}): volvé a prepararlo.`);
@@ -318,13 +313,16 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                     if (hoy !== r.plan.pedidoOrigen) throw new AprobacionInvalidaError(`El nº del par con cargo cambió (el borrador decía ${r.plan.pedidoOrigen ?? '—'}; hoy ${hoy ?? 'no hay ninguno válido'}): volvé a prepararlo. No se mandó nada.`);
                 }
                 // 4. Crear: se anota ANTES que salió el envío, y el nº apenas vuelve.
-                // La barrera: "voy a mandar" solo se anota si el borrador SIGUE aprobado.
-                // Si una persona lo anuló mientras el robot buscaba en el portal, acá se
-                // frena y no se crea nada (auditoría de robustez 2, A1).
-                const sigueAprobado = await Borradores.anotarRastroSi(b.id, { envioIniciadoEl: new Date().toISOString() }, 'APROBADO');
+                // La barrera (atómica en la base): "voy a mandar" solo se anota si el
+                // borrador SIGUE aprobado, sin nº y sin otro envío reciente. Si una
+                // persona lo anuló mientras el robot buscaba en el portal, o si otro
+                // robot ya mandó, acá se frena y no se crea nada (auditorías de
+                // robustez 2 y 3, A1).
+                const sigueAprobado = await Borradores.marcarEnvio(b.id, { esperaMs: ESPERA_TRAS_ENVIO_INCIERTO_MS });
                 if (!sigueAprobado) throw new YaCargadoError();
+                let creado: string;
                 try {
-                    numero = (await crearPedidoEnPortal(page, payloadAprobado)).numero;
+                    creado = (await crearPedidoEnPortal(page, payloadAprobado)).numero;
                 } catch (e) {
                     // Solo un 4xx prueba que el portal NO creó nada. Un 5xx (502/504 del
                     // proxy) puede llegar después de que PHP ya hizo el INSERT: el envío
@@ -332,6 +330,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                     if (e instanceof PedidoRechazadoError || (e instanceof PortalRespondioError && e.status < 500)) await mezclar(b.id, { envioIniciadoEl: null }).catch(() => null);
                     throw e;
                 }
+                numero = creado;
             }
             // Un nº ADOPTADO (no creado por este envío) se verifica contra el portal
             // antes de anotarlo: tiene que ser un pedido de ESTA venta (código de
@@ -386,7 +385,6 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             pedidos: [...pedidos.values()],
             aprobadoPor,
         });
-        await Borradores.robotTermino(b.id);
         const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_GRUPO_OPTICO, { portalNumber: resultado.numero, screenshotFinalUrl: capturaFinalUrl ?? pdfUrl });
         if (resultado.diferencias.length) {
             await Borradores.anotarFalla(b.id, `Cargado con el nº ${resultado.numero}, pero: ${resultado.diferencias.join(' · ')}.`, { soloSi: 'CARGADO' });
@@ -395,7 +393,6 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         await avisarExtrasNoCobrados(b, rastro0, resultado.numero);
         return cargado;
     } catch (err: any) {
-        await Borradores.robotTermino(b.id);
         if (err instanceof YaCargadoError) return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
         if (err instanceof PedidoRechazadoError) {
             // El portal dijo que NO crea ese pedido (datos que no acepta): reintentar
@@ -422,9 +419,11 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             : rastroAhora.envioIniciadoEl
                 ? `El envío al portal quedó sin respuesta (${motivo}). Reintentar desde la ficha en unos minutos: el robot busca el pedido en el portal antes de crear otro. No lo cargues a mano.`
                 : `No se pudo cargar en el portal: ${motivo}. Reintentar desde la ficha (nunca se duplica: el robot busca el pedido antes de crearlo).`;
-        // Solo si sigue APROBADO: un error después de cargar no puede pisar el CARGADO.
-        await Borradores.anotarFalla(b.id, texto, { soloSi: 'APROBADO' })
+        // Solo si sigue APROBADO y este sigue siendo SU robot: un error después de
+        // cargar no puede pisar el CARGADO, ni un robot viejo al que lo reemplazó.
+        await Borradores.anotarFalla(b.id, texto, { soloSi: 'APROBADO', robot })
             .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador GO:', e));
         throw err;
     }
+    });
 }

@@ -139,7 +139,10 @@ export function esVenta2x1DeGrupoOptico(venta: VentaParaSmartLab): boolean {
 export function rolesDel2x1(venta: VentaParaSmartLab): RolesDePares | null {
     if (!esVenta2x1DeGrupoOptico(venta)) return null;
     const porPar = cristalesPorArmazon(venta);
-    const cristales = (pair: number) => ((porPar.get(pair) || []) as any[]).filter(i => /cristal/i.test(texto(i?.product?.category ?? i?.productCategorySnapshot) || 'cristal'));
+    // Los MISMOS ítems que usan `esVenta2x1DeGrupoOptico` y el plan: lo que
+    // `cristalesPorArmazon` reparte (ya son cristales, sin teñidos) y es de GO.
+    const esGO = (i: any) => esDeLab(i, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' });
+    const cristales = (pair: number) => ((porPar.get(pair) || []) as any[]).filter(esGO);
     return rolesDeDosPares([{ pair: 1, items: cristales(1) }, { pair: 2, items: cristales(2) }]);
 }
 

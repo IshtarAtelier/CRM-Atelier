@@ -17,7 +17,8 @@ import { accionesDe } from '../../src/services/lab-modules/carga/borrador.ts';
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1DeGrupoOptico, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
 import { rolesPorValor, valorDeCristales, avisoDeRoles, rolesDeDosPares } from '../../src/lib/laboratorios/roles-2x1.ts';
 import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo-optico/origen.ts';
-import { labDeItem, esDeLab, labDeNumero, esNumeroDeLab, codigoCortoDeVenta, esCodigoCorto, soloDigitos as soloDigitosId } from '../../src/lib/laboratorios/identidad.ts';
+import { labDeItem, esDeLab, esCristal, labKeyDe, labDeNumero, esNumeroDeLab, codigoCortoDeVenta, esCodigoCorto, soloDigitos as soloDigitosId } from '../../src/lib/laboratorios/identidad.ts';
+import { decidirConAprobado } from '../../src/services/lab-modules/grupo-optico/decision.ts';
 import { textoDeExtraNoCobrado, lineaDeFicha } from '../../src/services/lab-modules/carga/extras-no-cobrados.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
@@ -130,6 +131,18 @@ ok('qué puede hacer una persona con un borrador lo calcula el servidor', () => 
     // un PREPARADO colgado (sin novedades hace más de 10 min) se puede anular
     assert.equal(accionesDe({ status: 'PREPARADO', error: null, approvedAt: null, updatedAt: new Date(ahora.getTime() - 11 * 60000), resumenPortal: {} }, lab, ahora).anular, true);
     assert.equal(accionesDe({ status: 'PREPARADO', error: null, approvedAt: null, updatedAt: ahora, resumenPortal: {} }, lab, ahora).anular, false);
+    // …también si el robot llegó a dejar un borrador en el portal (Vitolen apretó "Crear" y murió): se anula y después se cancela allá
+    const hace11 = new Date(ahora.getTime() - 11 * 60000);
+    assert.equal(accionesDe({ status: 'PREPARADO', error: null, approvedAt: null, updatedAt: hace11, resumenPortal: { portalDraftId: '10441994' } }, { conBorradorEnPortal: true, puedeReleer: true }, ahora).anular, true);
+    // …pero no mientras el robot late (preparar también toma el candado)
+    assert.equal(accionesDe({ status: 'PREPARADO', error: null, approvedAt: null, updatedAt: hace11, resumenPortal: { robotDesde: hace11.toISOString(), robotLatidoEl: new Date(ahora.getTime() - 60000).toISOString() } }, lab, ahora).anular, false);
+    // "robot en curso" se mide desde el último LATIDO, no desde que arrancó: un robot que arrancó hace 40 min y latió hace 1 sigue vivo
+    const viejoPeroVivo = accionesDe({ status: 'APROBADO', error: null, approvedAt: ahora, updatedAt: ahora, resumenPortal: { robotDesde: new Date(ahora.getTime() - 40 * 60000).toISOString(), robotLatidoEl: new Date(ahora.getTime() - 60000).toISOString() } }, lab, ahora);
+    assert.deepEqual([viejoPeroVivo.robotEnCurso, viejoPeroVivo.reintentar], [true, false]);
+    // y uno que arrancó hace 40 min sin latir está muerto
+    assert.equal(accionesDe({ status: 'APROBADO', error: 'x', approvedAt: ahora, updatedAt: ahora, resumenPortal: { robotDesde: new Date(ahora.getTime() - 40 * 60000).toISOString() } }, lab, ahora).reintentar, true);
+    // con un "releer" en vuelo no se aprueba (el confirm compararía contra el texto viejo)
+    assert.equal(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: { portalDraftId: '1', robotDesde: ahora.toISOString() } }, { conBorradorEnPortal: true, puedeReleer: true }, ahora).aprobar, false);
     // un EN_REVISION cuyo par ya tiene pedido no se aprueba
     assert.equal(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: {} }, lab, ahora, { bloqueadoPorExistente: true }).aprobar, false);
     // con envío iniciado o nº creado NO se anula
@@ -322,6 +335,45 @@ ok('un nombre viejo con " - " tiene la misma familia, material y Essential que u
     assert.equal(especificacionDe('Multifocal Smart FREE - Orgánico Blue Light 1.56 - Essential').especificacion.essential, true);
     const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, product: { ...i.product, name: 'Multifocal Smart FREE - Orgánico Blue Light 1.56 - Essential 2x1' } } : i));
     assert.equal(esVenta2x1DeGrupoOptico(v), true);
+});
+ok('qué hace el robot con un APROBADO se decide en seco (decision.ts): lo que ya existe, antes que crear', () => {
+    const base = { pair: 2, numeroCreado: null, existente: null, envioIniciadoEl: null, esperaMs: 15 * 60000, ahora: Date.parse('2026-10-10T12:00:00Z') };
+    // 0. este borrador ya creó el pedido y la respuesta se perdió después: solo se anota
+    assert.deepEqual(decidirConAprobado({ ...base, numeroCreado: '80000001' }), { accion: 'ANOTAR', numero: '80000001' });
+    // 1. sin nada: primero hay que mirar el listado del portal
+    assert.deepEqual(decidirConAprobado(base), { accion: 'BUSCAR_EN_PORTAL' });
+    // 2. el listado tiene un pedido con el código de la venta: se adopta tras verificarlo
+    assert.deepEqual(decidirConAprobado({ ...base, numeroEnPortal: '80000002' }), { accion: 'VERIFICAR', numero: '80000002', adoptadoDe: 'portal' });
+    // 3. el par recibió pedido por otro camino (carga a mano) sin envío nuestro: la aprobación no vale, no se crea
+    const inv = decidirConAprobado({ ...base, existente: { numero: '80000003', ambiguo: false } });
+    assert.equal(inv.accion, 'INVALIDAR'); assert.match(inv.motivo, /80000003/); assert.match(inv.motivo, /No se creó nada/);
+    // 3b. …pero si ESTE borrador mandó un envío sin respuesta y el seguimiento lo vinculó al par, es el nuestro: se adopta
+    assert.deepEqual(decidirConAprobado({ ...base, existente: { numero: '80000003', ambiguo: false }, envioIniciadoEl: '2026-10-10T11:00:00Z' }), { accion: 'VERIFICAR', numero: '80000003', adoptadoDe: 'venta' });
+    // 3c. ambiguo (no se sabe de qué par es) nunca se adopta, ni con envío previo
+    assert.equal(decidirConAprobado({ ...base, existente: { numero: '80000003', ambiguo: true }, envioIniciadoEl: '2026-10-10T11:00:00Z' }).accion, 'INVALIDAR');
+    // 4. nada en el portal pero un envío salió hace 5 min sin respuesta: se espera, no se reenvía
+    const esp = decidirConAprobado({ ...base, numeroEnPortal: null, envioIniciadoEl: '2026-10-10T11:55:00Z' });
+    assert.equal(esp.accion, 'ESPERAR'); assert.match(esp.motivo, /15 minutos/);
+    // 5. el envío fue hace 20 min y el listado sigue sin mostrarlo: recién ahí se crea
+    assert.deepEqual(decidirConAprobado({ ...base, numeroEnPortal: null, envioIniciadoEl: '2026-10-10T11:40:00Z' }), { accion: 'CREAR' });
+    assert.deepEqual(decidirConAprobado({ ...base, numeroEnPortal: null }), { accion: 'CREAR' });
+    // el nº creado manda sobre todo lo demás (ni se busca ni se invalida)
+    assert.equal(decidirConAprobado({ ...base, numeroCreado: '80000001', existente: { numero: '80000009', ambiguo: false } }).accion, 'ANOTAR');
+});
+ok('la identidad del laboratorio por su clave escrita (lab de LabCostEntry/LabOrderDraft) y "es cristal" son la fuente única', () => {
+    assert.equal(labKeyDe('GRUPO_OPTICO'), 'GRUPO_OPTICO'); assert.equal(labKeyDe('vitolen'), 'VITOLEN'); assert.equal(labKeyDe('OTRO'), null); assert.equal(labKeyDe(null), null);
+    assert.equal(esCristal({ productCategorySnapshot: 'Cristal' }), true);
+    assert.equal(esCristal({ product: { category: 'Lens' } }), true);
+    assert.equal(esCristal({ product: { category: 'Armazón' } }), false);
+    assert.equal(esCristal({}), false);
+    // sin categoría (ítems viejos) decide el tipo; un tratamiento con "cristal" en el tipo NO es un cristal
+    assert.equal(esCristal({ product: { type: 'Cristal Multifocal' } }), true);
+    assert.equal(esCristal({ productCategorySnapshot: 'Tratamiento', product: { type: 'Tratamiento Colores de Cristal' } }), false);
+    // los roles del 2x1 cuentan los MISMOS ítems que esVenta2x1DeGrupoOptico y el plan (cristalesPorArmazon): con dos
+    // cristales distintos, el de mayor valor va con cargo también cuando el ítem viene sin categoría
+    const v = venta2x1(false); v.items = v.items.map(i => (i.eye ? { ...i, price: 0, productCategorySnapshot: null, product: { ...i.product, category: undefined, name: i.framePosition === 2 ? 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Premium 2x1' : i.product.name, price: i.framePosition === 2 ? 120000 : 80000 } } : i));
+    assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [2, 1]);
+    assert.equal(planDeCarga(v, 2, { tipoArmazon: 'PLASTICO' }).plan.rol2x1, 'CON_CARGO');
 });
 ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin cargo (como siempre)', () => {
     const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 80000 } : i));

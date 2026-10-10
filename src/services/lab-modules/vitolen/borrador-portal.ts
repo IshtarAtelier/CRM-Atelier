@@ -80,10 +80,20 @@ export async function llenarBorradorEnPortal(borradorId: string) {
     if (b.status !== 'PREPARADO') throw new Error(`El borrador está ${b.status}: el robot solo llena los PREPARADOS.`);
     if (rastroDe(b)) throw new Error(`El borrador ya tiene un pedido en el portal (${rastroDe(b)!.portalDraftId}): no se vuelve a crear.`);
 
+    // Como robot del borrador (late cada 2 min): mientras llena no se puede
+    // anular "colgado" encima (auditoría de arquitectura 3).
+    return Borradores.conRobot(b.id, `llenando el portal desde ${new Date().toISOString()}`, async () => {
     try {
         const r = await enElPortal(() => conSesionVitolen(async (page) => {
             const llenado = await llenarFormulario(page, b.payload as unknown as PayloadVitolen);
-            const resumen = await crearYLeerResumen(page);
+            const resumen = await crearYLeerResumen(page, {
+                // Justo antes de "Crear": si una persona anuló el borrador mientras el
+                // robot esperaba turno o llenaba, no se deja nada en el portal.
+                antesDeCrear: async () => {
+                    const sigue = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { status: true } });
+                    if (sigue?.status !== 'PREPARADO') throw new YaNoPreparadoError(`El borrador pasó a ${sigue?.status ?? 'inexistente'} mientras el robot lo llenaba: no se creó nada en el portal.`);
+                },
+            });
             // Apenas existe en el portal, queda anotado: una falla de acá en más
             // no puede terminar en "volver a crear".
             if (resumen.portalDraftId) await Borradores.anotarPortal(b.id, { portalDraftId: resumen.portalDraftId, url: resumen.url });
@@ -106,14 +116,27 @@ export async function llenarBorradorEnPortal(borradorId: string) {
         return await Borradores.enRevision(b.id, ROBOT_ACTOR_VITOLEN, { screenshotUrl, resumenPortal });
     } catch (err: any) {
         const motivo = err?.message || String(err);
-        if (!/rechazó el pedido/.test(motivo)) {
+        // Ya no está PREPARADO (lo anularon): no hay estado que marcar.
+        if (!(err instanceof YaNoPreparadoError) && !/rechazó el pedido/.test(motivo)) {
             const conPortal = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { resumenPortal: true } }).then(x => x && rastroDe(x)).catch(() => null);
             const nota = conPortal ? ` El pedido ${conPortal.portalDraftId} quedó creado en el portal sin confirmar: cancelalo desde la ficha o confirmalo a mano.` : '';
             await Borradores.error(b.id, ROBOT_ACTOR_VITOLEN, motivo + nota).catch(e => console.error('[lab-modulos] no se pudo marcar el error del borrador:', e));
         }
         throw err;
     }
+    });
 }
+
+/** El borrador del CRM dejó de estar PREPARADO antes de "Crear" (lo anularon): no se crea nada. */
+class YaNoPreparadoError extends Error {
+    constructor(motivo: string) { super(motivo); this.name = 'YaNoPreparadoError'; }
+}
+/** El borrador del CRM dejó de estar APROBADO adentro del turno (lo devolvieron a revisión, lo cargó otro robot): no se confirma nada. */
+class YaNoAprobadoError extends Error {
+    constructor(motivo: string) { super(motivo); this.name = 'YaNoAprobadoError'; }
+}
+/** Tras un POST sin respuesta, cuánto esperar antes de volver a confirmar (el portal puede guardarlo tarde). */
+const ESPERA_TRAS_ENVIO_INCIERTO_MS = 15 * 60_000;
 
 /**
  * Tras la aprobación humana: comprueba que el portal siga mostrando lo
@@ -131,10 +154,18 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         throw new Error(motivo);
     }
     const aprobadoPor = b.approvedBy ? { id: rastro.aprobadoPorId ?? null, name: b.approvedBy } : null;
-    await Borradores.robotArranca(b.id, `confirmando en el portal desde ${new Date().toISOString()}`);
 
+    // Como robot del borrador: late mientras trabaja y solo se apaga a sí mismo.
+    return Borradores.conRobot(b.id, `confirmando en el portal desde ${new Date().toISOString()}`, async (robot) => {
     try {
         const r = await enElPortal(() => conSesionVitolen(async (page) => {
+            // 1. Releer adentro del turno (como GO): el estado y el resumen aprobado
+            //    de ANTES de esperar el turno y el login pueden ser viejos — otro
+            //    robot pudo devolverlo a revisión y la persona volver a aprobar con
+            //    otro texto (auditoría de robustez 3, M1).
+            const actual = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { status: true, resumenPortal: true } });
+            if (actual?.status !== 'APROBADO') throw new YaNoAprobadoError(`El borrador pasó a ${actual?.status ?? 'inexistente'} mientras el robot esperaba el portal: no se confirmó nada.`);
+            const rastroHoy = rastroDe(actual) ?? rastro;
             // ¿El par recibió pedido por otro camino mientras el borrador esperaba
             // (nº tipeado a mano, seguimiento)? Confirmar sería un segundo trabajo.
             // Los pares se cuentan desde la VENTA (como en analizar), no desde los
@@ -168,7 +199,14 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             }
             // Un borrador de antes del 8/10/2026 no guardó rol: no hay con qué comparar.
             if (venta && payload.rolPromo !== undefined && rolHoy !== payload.rolPromo) throw new ParYaConPedidoError(`El lugar de este par en la promo cambió después de aprobar (era ${payload.rolPromo ?? 'sin promo'}, hoy ${rolHoy ?? 'sin promo'}): rechazá el borrador y volvé a prepararlo.`);
-            return confirmar(page, rastro.portalDraftId, rastro.textoComparable ?? rastro.texto);
+            return confirmar(page, rastroHoy.portalDraftId, rastroHoy.textoComparable ?? rastroHoy.texto, {
+                // La barrera (atómica en la base) justo antes del clic: sigue APROBADO,
+                // sin nº y sin otra confirmación reciente sin respuesta.
+                antesDeConfirmar: async () => {
+                    const pasa = await Borradores.marcarEnvio(b.id, { esperaMs: ESPERA_TRAS_ENVIO_INCIERTO_MS });
+                    if (!pasa) throw new YaNoAprobadoError('El borrador cambió mientras el robot estaba en el portal (ya no está aprobado, o una confirmación anterior quedó sin respuesta hace menos de 15 min): no se confirmó nada. Reintentá en 15 minutos.');
+                },
+            });
         }));
         const screenshotFinalUrl = await guardarCaptura(b.id, 'confirmado', r.captura).catch(() => null);
         // Primero la venta (nº, estado, aviso), después el borrador: si la venta
@@ -179,9 +217,13 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             pedidos: [{ portalNumber: r.portalNumber, status: 'INGRESADO', statusRaw: 'Confirmación' }],
             aprobadoPor,
         });
-        await Borradores.robotTermino(b.id);
         return await Borradores.cargado(b.id, ROBOT_ACTOR_VITOLEN, { portalNumber: r.portalNumber, screenshotFinalUrl });
     } catch (err: any) {
+        if (err instanceof YaNoAprobadoError) {
+            // No se confirmó nada y el estado ya lo cambió otro: no se anota encima.
+            await Borradores.anotarFalla(b.id, err.message, { soloSi: 'APROBADO', robot }).catch(() => null);
+            throw err;
+        }
         if (err instanceof BorradorInexistenteError) {
             // Lo cancelaron a mano en el portal: no hay nada que confirmar; el par se
             // puede preparar de nuevo (auditoría de robustez, A2).
@@ -211,10 +253,11 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             throw err;
         }
         const motivo = err?.message || String(err);
-        await Borradores.anotarFalla(b.id, `No se pudo confirmar en el portal: ${motivo}. Reintentar desde la ficha (si el portal ya lo tomó, el robot lee el nº).`, { soloSi: 'APROBADO' })
+        await Borradores.anotarFalla(b.id, `No se pudo confirmar en el portal: ${motivo}. Reintentar desde la ficha (si el portal ya lo tomó, el robot lee el nº).`, { soloSi: 'APROBADO', robot })
             .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador:', e));
         throw err;
     }
+    });
 }
 
 /**
@@ -233,7 +276,7 @@ export async function cancelarEnPortal(borradorId: string, actor?: Actor): Promi
         if (rastro.confirmadoAManoNumero) await aplicarEstadoEnVenta({ orderId: b.orderId, lab: LAB_VITOLEN, nombreLab: NOMBRE_VITOLEN, robot: ROBOT_VITOLEN, pedidos: [{ portalNumber: rastro.confirmadoAManoNumero, status: 'INGRESADO', statusRaw: 'Confirmado a mano en el portal' }], aprobadoPor: null }).catch(e => console.error('[lab-modulos] no se pudo anotar en la venta el nº confirmado a mano:', e));
         return { cancelado: true };
     }
-    await Borradores.robotArranca(b.id, `cancelando en el portal desde ${new Date().toISOString()}`);
+    return Borradores.conRobot(b.id, `cancelando en el portal desde ${new Date().toISOString()}`, async (robot) => {
     try {
         const r = await enElPortal(() => conSesionVitolen(page => cancelarBorrador(page, rastro.portalDraftId)));
         if (r.confirmadoAMano) {
@@ -255,9 +298,10 @@ export async function cancelarEnPortal(borradorId: string, actor?: Actor): Promi
         const motivo = err?.message || String(err);
         // Un solo renglón de "no se pudo cancelar": no se acumula con cada clic.
         const base = String(b.error || '').split('\n').filter(l => !/NO se pudo cancelar/.test(l)).join('\n');
-        await Borradores.anotarFalla(b.id, `${base}\nNO se pudo cancelar el borrador ${rastro.portalDraftId} en el portal (${motivo}): cancelarlo a mano en ${rastro.url}`.trim()).catch(() => null);
+        await Borradores.anotarFalla(b.id, `${base}\nNO se pudo cancelar el borrador ${rastro.portalDraftId} en el portal (${motivo}): cancelarlo a mano en ${rastro.url}`.trim(), { robot }).catch(() => null);
         return { cancelado: false, motivo };
     }
+    });
 }
 
 /**
@@ -272,10 +316,10 @@ export async function releerBorradorEnPortal(borradorId: string, actor: Actor) {
     if (b.status !== 'EN_REVISION') throw new Error(`El borrador está ${b.status}: solo se relee uno para revisar.`);
     const rastro = rastroDe(b);
     if (!rastro) throw new Error('El borrador no tiene el id del portal: hay que volver a prepararlo.');
-    await Borradores.robotArranca(b.id, `releyendo el portal desde ${new Date().toISOString()}`);
+    return Borradores.conRobot(b.id, `releyendo el portal desde ${new Date().toISOString()}`, async (robot) => {
     let r: Awaited<ReturnType<typeof leerBorrador>>;
     try { r = await enElPortal(() => conSesionVitolen(page => leerBorrador(page, rastro.portalDraftId))); }
-    catch (err: any) { await Borradores.anotarFalla(b.id, `No se pudo releer el portal: ${err?.message || err}`, { soloSi: 'EN_REVISION' }).catch(() => null); throw err; }
+    catch (err: any) { await Borradores.anotarFalla(b.id, `No se pudo releer el portal: ${err?.message || err}`, { soloSi: 'EN_REVISION', robot }).catch(() => null); throw err; }
     if (r.numeroPrevio) {
         // Lo confirmaron a mano en el portal: queda resuelto con ese nº, como al cancelar.
         await Borradores.confirmadoAManoEnPortal(b.id, r.numeroPrevio, actor);
@@ -285,5 +329,6 @@ export async function releerBorradorEnPortal(borradorId: string, actor: Actor) {
     return Borradores.vistaReleida(b.id, actor, {
         screenshotUrl,
         resumenPortal: { ...rastro, texto: r.texto.slice(0, 4000), textoComparable: resumenComparable(r.texto), url: r.url, releidoEl: new Date().toISOString() },
+    });
     });
 }

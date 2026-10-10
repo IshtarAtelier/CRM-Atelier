@@ -72,6 +72,8 @@ const casos = [
         () => assert.equal(esVenta2x1(ventaUnPar()), false)],
     ['la promo aplicada también la enciende',
         () => assert.equal(esVenta2x1({ appliedPromoName: '2x1 Multifocal (Armazón Bonificado)', items: [] }), true)],
+    ['un cristal a $0 con categoría "Lens" también es 2x1: el cruce y el resto del sistema reconocen el mismo conjunto (identidad.esCristal)',
+        () => assert.equal(esVenta2x1({ appliedPromoName: null, items: [{ product: { category: 'Lens' }, price: 0 }] }), true)],
     ['el costo de sistema del 2x1 cuenta UN par (370.399), no dos',
         () => assert.equal(systemCostForLab(venta2x1(), 'OPTOVISION'), 370399)],
     ['el costo de sistema de un par solo es el mismo par',

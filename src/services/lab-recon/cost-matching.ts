@@ -6,7 +6,7 @@ import type { LabCostInput, LabName } from './types';
 import { LABS_FACTURA_A, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
 import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
 import { cristalesPorArmazon } from '../../lib/order-frames';
-import { labDeItem, patronDeLab } from '../../lib/laboratorios/identidad';
+import { esCristal, esDeLab, labDeItem, labKeyDe } from '../../lib/laboratorios/identidad';
 import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../lib/laboratorios/vitolen-promo';
 import { rolesDeLaPromoHoya } from '../../lib/laboratorios/vitolen-promo';
 
@@ -39,12 +39,10 @@ export function systemCostForLab(order: any, lab: string, labConfig?: { calibrad
     const items: any[] = order.items || [];
     if (items.length === 0) return 0;
 
-    const pattern = patronDeLab(lab);
-    const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
-    const categoryOf = (item: any) => item.productCategorySnapshot || item.product?.category || '';
+    const labKey = labKeyDe(lab);
 
-    let relevant = pattern ? items.filter(i => pattern.test(labOf(i))) : [];
-    if (relevant.length === 0) relevant = items.filter(i => /cristal/i.test(categoryOf(i)));
+    let relevant = labKey ? items.filter(i => esDeLab(i, labKey)) : [];
+    if (relevant.length === 0) relevant = items.filter(i => esCristal(i));
     if (relevant.length === 0) relevant = items;
 
     // En una venta 2x1 el par gratis (cristal con price 0) le cuesta al lab SOLO el
@@ -121,9 +119,8 @@ export function segundoParDePromoVitolen(order: any, config?: { calibrado: numbe
 /** Una venta es 2x1 si lo dice la promo aplicada o si trae un cristal a precio 0. */
 export function esVenta2x1(order: any): boolean {
     const items: any[] = order.items || [];
-    const categoryOf = (item: any) => item.productCategorySnapshot || item.product?.category || '';
     return (order.appliedPromoName || '').toLowerCase().includes('2x1')
-        || items.some((i: any) => /cristal/i.test(categoryOf(i)) && i.price === 0);
+        || items.some((i: any) => esCristal(i) && i.price === 0);
 }
 
 /**
@@ -160,8 +157,7 @@ export function parBonificadoCobrado(importesPorPedido: number[]): { cobrado: bo
  * comentario grande de acá arriba explica el porqué. Una copia iba a divergir.
  */
 export function costoDeItemParaCruce(item: any, is2x1: boolean): number {
-    const categoria = item.productCategorySnapshot || item.product?.category || '';
-    const esCristal = /cristal/i.test(categoria);
+    const cristal = esCristal(item);
     // El par bonificado no suma nada: lo pone el laboratorio. Vitolen es la
     // excepción: su promo NO es 2x1, el 2º par se factura al 20 % de lista más
     // calibrado (bases del 30/9/2026, lib/laboratorios/vitolen-promo.ts), así que
@@ -171,7 +167,7 @@ export function costoDeItemParaCruce(item: any, is2x1: boolean): number {
     // (`costoPorLaboratorioDeVenta`) sigue contándolo entero: ahí importa lo que
     // se paga de verdad, no lo que se espera.
     const esVitolen = labDeItem(item) === 'VITOLEN';
-    if (is2x1 && esCristal && item.price === 0 && !esVitolen) return 0;
+    if (is2x1 && cristal && item.price === 0 && !esVitolen) return 0;
     const perEyeHalf = item.eye ? 0.5 : 1;
     const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
     return cost * perEyeHalf * (item.quantity || 1);
@@ -565,6 +561,10 @@ export async function upsertEntry(input: LabCostInput) {
     const reworkMark = existing?.notes?.includes(REWORK_MARK) && !baseNotes?.includes(REWORK_MARK)
         ? REWORK_MARK : null;
     const notes = [resolucionNote, pvNote, baseNotes, multiNote, aliasNote, reworkMark, parBonificadoNote].filter(Boolean).join(' ') || null;
+    // El mismo importe que dice la nota, como número: es lo que leen el reporte y el semanal.
+    const reclamo = parBonificado.cobrado
+        ? parBonificado.masBarato
+        : segundoCobrado ? Math.max(0, segundoCobrado.masBarato - segundoCobrado.esperado) : null;
 
     // Los comprobantes del pedido (con su link): se suman a los que ya tenía.
     const invoiceRefs = juntarComprobantes(existing?.invoiceRefs, input.invoiceRefs);
@@ -578,6 +578,7 @@ export async function upsertEntry(input: LabCostInput) {
         billedNet,
         billedTotal,
         difference,
+        reclamo,
         source,
         sourceFile,
         invoiceDate,

@@ -18,7 +18,7 @@ import { leerTurno, turnoVigente, debeEsperar } from '../../src/services/lab-mod
 import { decidirAlertaDeCaida, debeAvisarRecuperacion, UMBRAL_CAIDA_MS, REPETIR_ALERTA_MS } from '../../src/services/lab-modules/portal/salud.ts';
 import { transicionDeVenta, estadoConjunto, estadoConjuntoDeVenta, paresCompletos, numeroProvisorio, numerosQueFaltan } from '../../src/services/lab-modules/estados.ts';
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
-import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados } from '../../src/services/lab-modules/carga/borrador.ts';
+import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados, SALIDAS_A_ERROR_CON_PRUEBA, Borradores } from '../../src/services/lab-modules/carga/borrador.ts';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
@@ -451,10 +451,24 @@ ok('cobrado de más solo por encima del 5 % de tolerancia', () => {
 });
 
 console.log('\n— Carga asistida: lo que la auditoría del 3/10 pidió —');
-ok('APROBADO nunca va a ERROR (el portal puede haber confirmado); puede volver a revisión', () => {
+ok('APROBADO no va a ERROR por la tabla (el portal puede haber confirmado); puede volver a revisión', () => {
     assert.equal(transicionValida('APROBADO', 'ERROR'), false);
     assert.equal(transicionValida('APROBADO', 'EN_REVISION'), true);
     assert.equal(transicionValida('PREPARADO', 'ERROR'), true);
+});
+ok('las salidas a ERROR con prueba en el WHERE están declaradas, y son exactamente las que Borradores tiene', () => {
+    // La tabla dice que APROBADO → ERROR no existe "en general"; estas tres son
+    // las excepciones, cada una con su prueba de que no hay pedido en el portal.
+    // Si aparece una cuarta función que escriba ERROR con SQL crudo, tiene que
+    // declararse acá (auditoría de arquitectura 3).
+    assert.deepEqual(Object.keys(SALIDAS_A_ERROR_CON_PRUEBA).sort(), ['anular', 'invalidarPorBorradorDesaparecido', 'invalidarSinPedido']);
+    for (const via of Object.keys(SALIDAS_A_ERROR_CON_PRUEBA)) assert.equal(typeof Borradores[via], 'function', `Borradores.${via} no existe`);
+    for (const texto of Object.values(SALIDAS_A_ERROR_CON_PRUEBA)) assert.match(texto, /^(APROBADO|PREPARADO)/);
+});
+ok('el turno guarda quién lo tiene y hasta cuándo; renovarlo conserva la pasada', () => {
+    const t = leerTurno('2026-10-10T12:45:00.000Z|robot');
+    assert.deepEqual(t, { vence: '2026-10-10T12:45:00.000Z', pasada: 'robot' });
+    assert.equal(leerTurno('basura'), null);
 });
 ok('un borrador que dejó un pedido en el portal bloquea preparar otro hasta cancelarlo o confirmarlo', () => {
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { portalDraftId: '10441994' } }), true);
