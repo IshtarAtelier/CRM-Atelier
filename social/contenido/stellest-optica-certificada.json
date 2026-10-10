@@ -1,0 +1,58 @@
+{
+  "id": "stellest-optica-certificada",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "Si el oftalmopediatra le recetó Stellest a tu hijo, hay algo que conviene saber antes de encargarlo: Essilor no lo vende en cualquier óptica.\n\nStellest se fabrica solo para ópticas certificadas. ¿Por qué? Porque sus 1.021 micro-lentes tienen que quedar centradas en la pupila del chico durante todo el día, y eso depende de cómo se elige el armazón, cómo se toman las medidas y cómo se monta el cristal. Si se hace mal, corrige la visión igual, pero pierde parte de su efecto de control. Y nadie lo nota.\n\nAtelier Óptica es óptica certificada y habilitada por Essilor para trabajar Stellest en Córdoba. Elegimos el armazón con el chico, medimos con el armazón puesto, controlamos el cristal al llegar y reajustamos sin cargo después de cada control.\n\nSegún el ensayo clínico de 2 años de Essilor, Stellest ralentiza la progresión de la miopía un 67% de media (con uso de al menos 12 horas por día). Es control de la progresión, no una cura.\n\nTraé la receta y te explicamos todo, sin apuro.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "stellest/stellest-3-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Somos óptica *certificada* para",
+      "dato": "Stellest",
+      "body": "La lente de *Essilor* para frenar el avance de la miopía en chicos. No se vende en cualquier óptica.",
+      "cta": "Deslizá: por qué, y qué cambia para tu hijo."
+    },
+    {
+      "type": "list",
+      "title": "¿Por qué Essilor no lo vende en cualquier lado?",
+      "items": [
+        "Las 1.021 micro-lentes tienen que quedar centradas en la pupila todo el día",
+        "Eso depende del armazón, de las medidas y del montaje, no solo del cristal",
+        "Si se hace mal, corrige igual, pero pierde parte del control. Y nadie lo nota"
+      ]
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Lo que dice el ensayo clínico de 2 años de *Essilor*:",
+      "dato": "67%",
+      "body": "menos progresión de la miopía *de media*, con uso de al menos 12 horas por día. Es control de la progresión, no una cura.",
+      "cta": "Para que funcione, tiene que estar bien hecho."
+    },
+    {
+      "type": "list",
+      "title": "Qué hacemos en Atelier con cada Stellest",
+      "items": [
+        "Elegimos el armazón con el chico, probando el calce real",
+        "Medimos con el armazón ya ajustado a su cara",
+        "Controlamos el cristal al llegar y reajustamos sin cargo después de cada control"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "¿Te recetaron *Stellest*? Traenos la receta",
+      "body": "*Atelier* es óptica certificada y habilitada por Essilor en Córdoba.\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo, o escribinos por WhatsApp."
+    }
+  ]
+}

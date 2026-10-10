@@ -1,3 +1,5 @@
+import { NOTAS_STELLEST, CATEGORIA_STELLEST } from '@/lib/constants/stellest-notas';
+
 export interface StaticBlogPost {
   slug: string;
   title: string;
@@ -24,14 +26,17 @@ export const staticPosts: StaticBlogPost[] = [
     category: 'Cristales',
     imageUrl: '/images/smartlens/myolens-portada.webp'
   },
-  {
-    slug: 'stellest',
-    title: 'Lentes Stellest: qué son, cómo funcionan y qué esperar de verdad',
-    excerpt: 'Si el oftalmopediatra te nombró Stellest y saliste con la palabra anotada en un papel: qué tiene adentro ese cristal, de dónde sale el 67% y qué necesita para funcionar.',
-    date: '2026-09-09',
-    category: 'Control de miopía',
-    imageUrl: '/images/stellest/stellest-2.jpeg'
-  },
+  // Las notas de Stellest (la madre y las de cada intención de búsqueda) viven
+  // en stellest-notas.ts: una sola lista para el listado, el sitemap y los
+  // links cruzados entre ellas.
+  ...NOTAS_STELLEST.map((n) => ({
+    slug: n.slug,
+    title: n.title,
+    excerpt: n.excerpt,
+    date: n.date,
+    category: CATEGORIA_STELLEST,
+    imageUrl: n.imageUrl,
+  })),
   {
     slug: 'anteojos-obras-de-arte',
     title: 'Los anteojos son auténticas obras de arte: más de 100 procesos detrás de cada par',

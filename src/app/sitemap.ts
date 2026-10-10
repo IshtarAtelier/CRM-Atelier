@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
 import { categoriasConPosts } from '@/lib/blog-categorias';
+import { NOTAS_STELLEST } from '@/lib/constants/stellest-notas';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const physicalBlogRoutes = [
+    // Las notas de Stellest salen de su lista única (stellest-notas.ts).
+    ...NOTAS_STELLEST.map((n) => `/blog/${n.slug}`),
     '/blog/anteojos-obras-de-arte',
     '/blog/myofix',
     '/blog/myolens',
