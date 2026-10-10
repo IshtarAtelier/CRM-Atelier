@@ -33,6 +33,9 @@ export type TipoFeriado = 'FERIADO' | 'NO_LABORABLE' | 'EMPLEADOS_COMERCIO' | 'H
 export type AperturaLocal =
     | { abre: string; cierra: string }      // "09:00" / "17:00"
     | { cerrado: true; nota?: string };      // nota: "el sábado abrimos como siempre"
+/** Todo feriado que el local abre, abre de 9 a 17 (Ishtar, 10/10/2026). */
+export const HORARIO_FERIADO = { abre: '09:00', cierra: '17:00' } as const;
+
 export interface Feriado { fecha: string; nombre: string; tipo?: TipoFeriado; apertura?: AperturaLocal }
 
 /** "09:00" → "9"; "18:30" → "18:30". */
@@ -72,11 +75,11 @@ export const FERIADOS_ARGENTINA: Feriado[] = ([
     { fecha: '2026-07-10', nombre: 'Puente turístico', tipo: 'NO_LABORABLE' },
     { fecha: '2026-08-17', nombre: 'San Martín' },
     { fecha: '2026-09-26', nombre: 'Día del Empleado de Comercio', tipo: 'EMPLEADOS_COMERCIO' },
-    { fecha: '2026-10-12', nombre: 'Diversidad Cultural', apertura: { abre: '09:00', cierra: '17:00' } },
-    { fecha: '2026-11-09', nombre: 'Visita del Papa', apertura: { abre: '09:00', cierra: '17:00' } },
-    { fecha: '2026-11-23', nombre: 'Soberanía Nacional (trasladado del 20/11)', apertura: { abre: '09:00', cierra: '17:00' } },
+    { fecha: '2026-10-12', nombre: 'Diversidad Cultural', apertura: HORARIO_FERIADO },
+    { fecha: '2026-11-09', nombre: 'Visita del Papa', apertura: HORARIO_FERIADO },
+    { fecha: '2026-11-23', nombre: 'Soberanía Nacional (trasladado del 20/11)', apertura: HORARIO_FERIADO },
     { fecha: '2026-12-07', nombre: 'Puente turístico', tipo: 'NO_LABORABLE' },
-    { fecha: '2026-12-08', nombre: 'Inmaculada Concepción', apertura: { abre: '09:00', cierra: '17:00' } },
+    { fecha: '2026-12-08', nombre: 'Inmaculada Concepción', apertura: HORARIO_FERIADO },
     { fecha: '2026-12-24', nombre: 'Nochebuena', tipo: 'HORARIO_ESPECIAL', apertura: { abre: '09:00', cierra: '18:00' } },
     { fecha: '2026-12-25', nombre: 'Navidad', apertura: { cerrado: true, nota: 'el sábado abrimos como siempre' } },
     { fecha: '2026-12-31', nombre: 'Fin de año', tipo: 'HORARIO_ESPECIAL', apertura: { abre: '09:00', cierra: '18:00' } },
