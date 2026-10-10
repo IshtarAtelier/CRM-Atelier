@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { NOMBRES_NO_HUMANOS } from '@/lib/whatsapp/remitentes';
 import { SYSTEM_ACTOR } from '@/lib/actor';
 import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
@@ -37,7 +38,11 @@ const PLANTILLA = 'ultimo_seguimiento' as const;
 const DIAS_MIN = VENTANA_EMBUDO_DIAS + 1;
 const DIAS_MAX = 120;
 const EXCLUSION = ['no interesado', 'cancelar bot', 'spam', 'no bot', 'cerrado', 'post-venta', 'sin seguimiento', ...TAGS_NO_CLIENTE];
-const REMITENTES_AUTOMATICOS = ['Bot', 'Sistema', 'Sistema Atelier'];
+// Lista exacta compartida (fuente única: `src/lib/whatsapp/remitentes.ts`).
+// OJO: acá se usa `notIn` y NO `whereSalienteHumano()` A PROPÓSITO: las
+// campañas ("Campaña …") siguen contando como "ya le escribimos", así esta
+// campaña no le cae encima a alguien que otra campaña acaba de tocar.
+const REMITENTES_AUTOMATICOS = [...NOMBRES_NO_HUMANOS];
 const D = 86_400_000;
 
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));

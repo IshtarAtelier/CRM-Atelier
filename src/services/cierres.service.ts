@@ -1,3 +1,4 @@
+import { whereSalienteHumano } from '@/lib/whatsapp/remitentes';
 import { prisma } from '@/lib/db';
 import { SIN_ROBOTS } from '@/lib/checkout/robots';
 import { logAudit } from '@/lib/audit';
@@ -6,7 +7,7 @@ import { SOLO_CLIENTES_POSIBLES } from '@/lib/no-cliente';
 import { ensureClientForAbandonedCart } from '@/services/cart-recovery.service';
 import {
     DIAS_PARA_ENFRIARSE, DIAS_TICKET_ALTO, DIAS_PRESUPUESTO_COMUN, DIAS_SIN_PRESUPUESTO,
-    DIAS_CARRITO, DIAS_ESCONDIDA_TRAS_ESCRIBIRLE, REMITENTES_AUTOMATICOS,
+    DIAS_CARRITO, DIAS_ESCONDIDA_TRAS_ESCRIBIRLE,
 } from '@/lib/constants/cierres';
 import {
     type Oportunidad, type TipoCierre, type YaEscrito,
@@ -302,7 +303,7 @@ async function ultimosContactos(fichas: string[]): Promise<Map<string, YaEscrito
                     // OJO: `notIn` descarta también los senderName NULL (en SQL
                     // `NULL NOT IN (...)` no es TRUE). Medido: entre los candidatos no
                     // hay salientes sin remitente — no "arreglarlo" sumando null sin mirar.
-                    where: { direction: 'OUTBOUND', senderName: { notIn: [...REMITENTES_AUTOMATICOS] }, createdAt: { gte: desde } },
+                    where: { direction: 'OUTBOUND', ...whereSalienteHumano(), createdAt: { gte: desde } },
                     orderBy: { createdAt: 'desc' },
                     take: 1,
                     select: { createdAt: true, senderName: true },
