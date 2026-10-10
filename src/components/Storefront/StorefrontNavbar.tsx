@@ -10,7 +10,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/client-analytics";
-import { CARTEL_PROMO_POR_DEFECTO } from "@/lib/promo-cuotas";
+import { cartelQueSePuedeMostrar } from "@/lib/promo-cuotas";
 import { coincideBusquedaTienda } from "@/lib/catalog/busqueda-tienda";
 import { precioConSigno } from "@/lib/format-precio";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
@@ -180,7 +180,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   const showAnnouncement = isWholesaleSession || (webSettings ? webSettings.web_announcement_active : true);
   const announcementText = isWholesaleSession
     ? "Canal Mayorista Ópticas • Precios Netos • Envío y Pago a Convenir"
-    : (webSettings ? webSettings.web_announcement_text : CARTEL_PROMO_POR_DEFECTO);
+    : cartelQueSePuedeMostrar(webSettings?.web_announcement_text);
   const announcementLink = isWholesaleSession ? "/tienda" : (webSettings ? webSettings.web_announcement_link : "/tienda");
 
   // A-26: los pedazos del cartel, para rotarlos de a uno en pantallas chicas.

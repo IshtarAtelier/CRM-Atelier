@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { problemasDeConfiguracion } from "@/lib/web-settings-reglas";
 import { Selector2x1Web } from "@/components/admin/Selector2x1Web";
 import { 
   Globe, 
@@ -540,6 +541,14 @@ export default function WebManagementPage() {
 
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
+    // El cartel se revisa ANTES de guardar nada: las claves se guardan de a una
+    // y en paralelo, así que un cartel rechazado por el servidor dejaba el
+    // resto guardado (p. ej. una promo prendida) y el texto tipeado perdido.
+    const problemasCartel = problemasDeConfiguracion('web_announcement_text', configForm.web_announcement_text);
+    if (problemasCartel.length > 0) {
+      alert(`No se guardó nada. El cartel de la tienda:\n\n${problemasCartel.join('\n')}`);
+      return;
+    }
     setSavingConfig(true);
     try {
       const promises = Object.entries(configForm).map(([key, value]) => {

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { CARTEL_PROMO_POR_DEFECTO } from '@/lib/promo-cuotas';
 import { cargarJsPDF } from '@/lib/cargar-jspdf';
 import { prisma } from '@/lib/db';
 import { FICHA_EN_TIENDA } from '@/lib/catalog/queries';
@@ -69,6 +70,12 @@ async function getEditorialImageData(imagePath: string) {
     return null;
   }
 }
+
+// La banda de arriba de cada hoja: el mismo texto que el cartel de la tienda
+// (CARTEL_PROMO_POR_DEFECTO, "… hasta 12 cuotas fijas • 15% OFF por
+// transferencia …"). Decía "HASTA 12 CUOTAS" sin el "fijas" y "15% OFF EN
+// EFECTIVO O TRANSFERENCIA", las dos cosas que el cartel ya no puede decir.
+const BANDA_PROMO_CATALOGO = CARTEL_PROMO_POR_DEFECTO.toUpperCase().replace(/\s*•\s*/g, '  ·  ');
 
 export async function GET(req: NextRequest) {
   try {
@@ -170,7 +177,7 @@ export async function GET(req: NextRequest) {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
-    doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 CUOTAS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+    doc.text(BANDA_PROMO_CATALOGO, pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
 
     // Home-like Metadata text
     doc.setTextColor(150, 150, 150);
@@ -361,7 +368,7 @@ export async function GET(req: NextRequest) {
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(6);
-      doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 CUOTAS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+      doc.text(BANDA_PROMO_CATALOGO, pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
 
       // Frida Metadata
       doc.setTextColor(150, 150, 150);
@@ -435,7 +442,7 @@ export async function GET(req: NextRequest) {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
-    doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 CUOTAS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+    doc.text(BANDA_PROMO_CATALOGO, pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
 
     // Back Cover texts matching slide design
     doc.setTextColor(150, 150, 150);

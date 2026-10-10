@@ -210,7 +210,9 @@ for (const archivo of PUBLICOS) {
   check(`${archivo}: sin un \`isActive: true\` propio (usa FICHA_EN_TIENDA / FICHA_PUBLICADA)`, !/isActive:\s*true/.test(sinComentarios));
   // Y usa la regla: sin esto, un \`where: {}\` (que lista TODO) también pasaba.
   if (!archivo.endsWith('queries.ts')) {
-    check(`${archivo}: usa la regla común`, /\b(FICHA_EN_TIENDA|FICHA_PUBLICADA|FICHA_MAYORISTA|RECETA_BASE_WHERE|SOL_BASE_WHERE|PRODUCTO_EN_TIENDA)\b/.test(sinComentarios));
+    // Sin las líneas de import: el import solo no cuenta como usarla.
+    const cuerpo = sinComentarios.replace(/^\s*import[\s\S]*?;\s*$/gm, '');
+    check(`${archivo}: usa la regla común`, /\b(FICHA_EN_TIENDA|FICHA_PUBLICADA|FICHA_MAYORISTA|RECETA_BASE_WHERE|SOL_BASE_WHERE|PRODUCTO_EN_TIENDA)\b/.test(cuerpo));
   }
 }
 // El catálogo mayorista, el checkout y los links del bot: la misma regla.

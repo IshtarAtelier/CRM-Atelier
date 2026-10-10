@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { formatearPrecio } from '@/lib/format-precio';
 import { prisma } from '@/lib/db';
 import {
   getMerchantOrderPayments,
@@ -131,9 +132,14 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
   // tocar la venta. MP reintenta el mismo aviso y además lo manda por dos vías.
   const yaProcesado = await prisma.webPaymentIntent.findUnique({
     where: { paymentId: pago.id },
-    select: { id: true, orderId: true, status: true },
+    select: { id: true, orderId: true, status: true, gatewayStatus: true },
   });
-  if (yaProcesado && yaProcesado.status !== 'PENDING') {
+  // Una devolución o un contracargo llegan SOBRE un pago ya procesado: el
+  // candado los cortaba acá y el aviso de abajo no salía nunca (revisión del
+  // 10/10/2026). Pasan, una vez por estado (gatewayStatus guarda el último).
+  const esReclamo = pago.status === 'refunded' || pago.status === 'charged_back';
+  const reclamoNuevo = esReclamo && yaProcesado?.gatewayStatus !== pago.status;
+  if (yaProcesado && yaProcesado.status !== 'PENDING' && !reclamoNuevo) {
     console.log(`[MP WEBHOOK] Pago ${pago.id} ya procesado (${yaProcesado.status}). Se ignora.`);
     return { detalle: 'Ya procesado', orderId: yaProcesado.orderId };
   }
@@ -214,6 +220,10 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
     case 'charged_back': {
       // Una devolución o un contracargo NO se procesan solos: deshacer una
       // venta ya entregada es una decisión del negocio, no del webhook.
+      // Un aviso por estado: el reintento del mismo aviso no repite el mail.
+      if (intent.gatewayStatus === pago.status) {
+        return { detalle: `${pago.status}: ya avisado`, orderId: intent.orderId };
+      }
       console.warn(`[MP WEBHOOK] ${pago.status} del pago ${pago.id} sobre la orden ${intent.orderId}.`);
       await prisma.webPaymentIntent.update({
         where: { id: intent.id },
@@ -224,7 +234,7 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
       await sendEmail({
         to: ADMIN_ALERT_EMAILS,
         subject: `⚠️ Mercado Pago informó "${pago.status}" en una venta web`,
-        html: `<p>El pago <b>${pago.id}</b> de la venta <b>${intent.orderId}</b> pasó a <b>${pago.status}</b> por $${pago.amount.toLocaleString('es-AR')}.</p>
+        html: `<p>El pago <b>${pago.id}</b> de la venta <b>${intent.orderId}</b> pasó a <b>${pago.status}</b> por $${formatearPrecio(pago.amount)}.</p>
                <p>La venta NO se modificó automáticamente. Revisar en el panel de Mercado Pago y decidir qué hacer.</p>`,
       }).catch((err) => console.error('Error avisando devolución/contracargo:', err));
       return { detalle: `${pago.status}: avisado, sin cambios automáticos`, orderId: intent.orderId };

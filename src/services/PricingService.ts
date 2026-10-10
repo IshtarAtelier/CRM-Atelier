@@ -325,6 +325,8 @@ export class PricingService {
             cuotas,
             valorCuota: Math.round(final / cuotas),
             cuota12: v.cuota12,
+            /** Total financiado en 12 cuotas fijas (con el costo financiero adentro). */
+            total12: v.total12,
         };
     }
 

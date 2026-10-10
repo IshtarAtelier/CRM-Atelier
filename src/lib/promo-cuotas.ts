@@ -143,10 +143,49 @@ export function problemasDelCartel(texto: string): string[] {
   if (/\befectivo\b/.test(t)) {
     problemas.push('En la tienda online el descuento es solo por transferencia: el efectivo es del local. Escribí "por Transferencia".');
   }
-  // "12 cuotas sin interés", "12 s/interés", "12 pagos sin interés": nunca.
-  // Las 12 son FIJAS; sin interés son solo 3 y 6 (CLAUDE.md).
-  if (/\b12\b[^•|·,.;]*\b(sin interes|s\/ ?interes)/.test(t)) {
-    problemas.push(`Las 12 cuotas no son sin interés: van como "${TEXTO_MP_CUOTAS_LARGAS}". Sin interés son solo 3 y 6.`);
+  // Las 12 son FIJAS; sin interés son solo 3 y 6 (CLAUDE.md). Se mira cada
+  // tramo como lo muestra la barra (separado por • · |) y, dentro, a qué
+  // número queda pegado cada "sin interés": "12 cuotas fijas y 3 o 6 sin
+  // interés" está bien; "hasta 12 cuotas, sin interés" y "sin interés hasta en
+  // 12 cuotas" no. Fechas y precios ("12/10", "12 de octubre", "$12.000",
+  // "12 mil") no son cuotas.
+  for (const tramo of t.split(/\s*[•·|]\s*/)) {
+    if (tramoPrometeDoceSinInteres(tramo)) {
+      problemas.push(`Las 12 cuotas no son sin interés: van como "${TEXTO_MP_CUOTAS_LARGAS}". Sin interés son solo 3 y 6.`);
+      break;
+    }
   }
   return problemas;
+}
+
+/** Sinónimos de "sin interés" que se usan en carteles. */
+const SIN_INTERES = /sin\s+interes|s\/\s*i(nt(eres)?)?\b|sin\s+recargo|0\s*%\s*(de\s+)?interes|\bcsi\b/g;
+/** Números de cuotas, no de fechas ni de precios. */
+const NUMERO_DE_CUOTAS = /(?<![\d$./,])\b(3|6|12|tres|seis|doce)\b(?![\d./,%])(?!\s*(mil|de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)))/g;
+
+function tramoPrometeDoceSinInteres(tramo: string): boolean {
+  const numeros = [...tramo.matchAll(NUMERO_DE_CUOTAS)].map((m) => ({ pos: m.index ?? 0, doce: m[1] === '12' || m[1] === 'doce' }));
+  if (!numeros.some((n) => n.doce)) return false;
+  for (const m of tramo.matchAll(SIN_INTERES)) {
+    const pos = m.index ?? 0;
+    // El número más cercano ANTES del "sin interés" es el que lo lleva; si no
+    // hay ninguno antes, el primero de después ("sin interés hasta 12…").
+    const antes = numeros.filter((n) => n.pos < pos).pop();
+    const despues = numeros.find((n) => n.pos > pos);
+    const dueno = antes ?? despues;
+    if (dueno?.doce) return true;
+  }
+  return false;
+}
+
+/**
+ * El cartel que se MUESTRA: el de /admin/web si cumple las reglas, y si no el
+ * de por defecto. La regla se aplica también al leer, no solo al guardar: el
+ * texto que ya estaba en la base ("15% OFF en Efectivo o Transferencia", 10/10/2026)
+ * dejaba de valer apenas se deploya, sin tocar la base a mano.
+ */
+export function cartelQueSePuedeMostrar(guardado: string | null | undefined): string {
+  const texto = (guardado || '').trim();
+  if (!texto || problemasDelCartel(texto).length > 0) return CARTEL_PROMO_POR_DEFECTO;
+  return texto;
 }

@@ -5,7 +5,7 @@ import { decrypt } from '@/lib/auth';
 import { defaultWebSettings } from '@/lib/web-settings';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
-import { problemasDelCartel } from '@/lib/promo-cuotas';
+import { problemasDeConfiguracion } from '@/lib/web-settings-reglas';
 
 export async function GET(request: Request) {
     try {
@@ -83,13 +83,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
         }
 
-        // El cartel de arriba de la tienda tiene reglas de redacción que la
-        // tienda tiene que cumplir (ver problemasDelCartel).
-        if (key === 'web_announcement_text') {
-            const problemas = problemasDelCartel(String(value));
-            if (problemas.length > 0) {
-                return NextResponse.json({ error: problemas.join(' ') }, { status: 400 });
-            }
+        // Reglas de redacción que la tienda tiene que cumplir (el cartel: ni
+        // "efectivo" ni "12 cuotas sin interés"). Antes de escribir nada.
+        const problemas = problemasDeConfiguracion(key, value);
+        if (problemas.length > 0) {
+            return NextResponse.json({ error: problemas.join(' ') }, { status: 400 });
         }
 
         // Leer el valor previo antes del upsert para dejar before/after en la auditoría

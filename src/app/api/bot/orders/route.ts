@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService } from '@/services/PricingService';
+import { precioConOferta } from '@/lib/precio-oferta';
 import { applyTeñidoPromoDiscount, isCrystal, isTeñidoAddon, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { BOT_ACTOR } from '@/lib/actor';
 
@@ -128,7 +129,10 @@ export async function POST(request: Request) {
                 product: dbProd,
                 eye: it.eye || null,
                 quantity: esCristalPorPar ? cantidad * 2 : cantidad,
-                price: dbProd.price ?? 0,
+                // Armazón con su oferta, como el cotizador del CRM
+                // (precioConOferta, admin/cotizador/page.tsx). Antes el bot
+                // cotizaba a lista y el presupuesto salía más caro que la ficha.
+                price: isCrystal(dbProd) ? (dbProd.price ?? 0) : precioConOferta(dbProd).final,
             };
         });
 

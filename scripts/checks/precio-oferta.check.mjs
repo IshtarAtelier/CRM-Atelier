@@ -32,7 +32,8 @@ import { dirname, resolve } from 'node:path';
 import { precioConOferta } from '../../src/lib/precio-oferta.ts';
 import { effectiveFramePrice } from '../../src/lib/checkout/checkout-pricing.ts';
 import { PricingService } from '../../src/services/PricingService.ts';
-import { problemasDelCartel, CARTEL_PROMO_POR_DEFECTO } from '../../src/lib/promo-cuotas.ts';
+import { problemasDelCartel, CARTEL_PROMO_POR_DEFECTO, cartelQueSePuedeMostrar } from '../../src/lib/promo-cuotas.ts';
+import { problemasDeConfiguracion } from '../../src/lib/web-settings-reglas.ts';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const raiz = resolve(aqui, '../..');
@@ -180,9 +181,27 @@ for (const [archivo, queEs] of TARJETAS) {
     else mal('"12 cuotas sin interés" se puede guardar', '');
     if (problemasDelCartel(CARTEL_PROMO_POR_DEFECTO).length === 0 && problemasDelCartel('3 y 6 cuotas sin interés, y hasta 12 cuotas fijas').length === 0) ok('el cartel por defecto y la fórmula de Ishtar pasan');
     else mal('el cartel correcto se rechaza', JSON.stringify(problemasDelCartel(CARTEL_PROMO_POR_DEFECTO)));
-    const ruta = readFileSync(resolve(raiz, 'src/app/api/settings/route.ts'), 'utf8');
-    if (/web_announcement_text[\s\S]{0,200}problemasDelCartel/.test(ruta)) ok('la ruta que guarda la configuración aplica las reglas del cartel');
-    else mal('la ruta de configuración no valida el cartel', 'src/app/api/settings/route.ts');
+    // Frases reales (revisión del 10/10/2026): las que se escapaban y las que se bloqueaban mal.
+    const prohibidas = ['12 s/interés', 'Hasta 12 cuotas, sin interés', 'Sin interés hasta en 12 cuotas', '12 cuotas s/i', '12 CSI', 'Doce cuotas sin interés', '12 cuotas sin recargo'];
+    const validas = ['Hasta 12 cuotas fijas y 3 o 6 sin interés', 'Hasta el 12/10: 6 cuotas sin interés', 'Solo hasta el 12 de octubre: 3 y 6 cuotas sin interés', 'Armazones desde $12 mil en 6 cuotas sin interés', '6 cuotas sin interés de $12.000'];
+    const seEscapan = prohibidas.filter((t) => problemasDelCartel(t).length === 0);
+    const seBloquean = validas.filter((t) => problemasDelCartel(t).length > 0);
+    if (!seEscapan.length) ok(`las ${prohibidas.length} variantes de "12 sin interés" se rechazan`); else mal('variantes de "12 sin interés" que pasan', seEscapan.join(' | '));
+    if (!seBloquean.length) ok(`las ${validas.length} frases válidas (fechas, precios, orden inverso) pasan`); else mal('frases válidas rechazadas', seBloquean.join(' | '));
+    if (problemasDeConfiguracion('web_announcement_text', vivo).length > 0 && problemasDeConfiguracion('web_store_phone', 'efectivo').length === 0) ok('problemasDeConfiguracion aplica la regla al cartel y a ninguna otra clave');
+    else mal('problemasDeConfiguracion no aplica bien la regla', '');
+    const ruta = readFileSync(resolve(raiz, 'src/app/api/settings/route.ts'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    const valida = ruta.indexOf('problemasDeConfiguracion(key, value)');
+    const responde400 = ruta.indexOf('status: 400', valida);
+    const escribe = ruta.indexOf('systemSetting.upsert');
+    if (valida > -1 && responde400 > valida && escribe > responde400) ok('la ruta de configuración valida y responde 400 ANTES de escribir');
+    else mal('la ruta de configuración no valida antes de escribir', `valida ${valida} · 400 ${responde400} · upsert ${escribe}`);
+    // Al mostrar: lo que ya estaba guardado deja de verse apenas se deploya.
+    if (cartelQueSePuedeMostrar(vivo) === CARTEL_PROMO_POR_DEFECTO && cartelQueSePuedeMostrar('Envío gratis a todo el país') === 'Envío gratis a todo el país' && cartelQueSePuedeMostrar('') === CARTEL_PROMO_POR_DEFECTO) ok('el cartel guardado que rompe las reglas no se muestra (sale el de por defecto)');
+    else mal('el cartel que rompe las reglas se sigue mostrando', '');
+    const barra = readFileSync(resolve(raiz, 'src/components/Storefront/StorefrontNavbar.tsx'), 'utf8');
+    if (/cartelQueSePuedeMostrar\(webSettings\?\.web_announcement_text\)/.test(barra)) ok('la barra de la tienda muestra el cartel con cartelQueSePuedeMostrar');
+    else mal('la barra muestra el cartel guardado sin revisarlo', 'src/components/Storefront/StorefrontNavbar.tsx');
 }
 
 // ── Salida ───────────────────────────────────────────────────────────────────

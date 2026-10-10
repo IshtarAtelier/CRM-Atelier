@@ -172,26 +172,6 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
     return { ok: true, alreadyProcessed: true, orderId: order.id };
   }
 
-  // La orden ya está paga por otra vía (p. ej. alguien la cobró a mano en el
-  // CRM mientras el comprador pagaba online). No se toca la venta; se deja el
-  // intento marcado para que el rastro quede y un humano concilie.
-  if (order.status === 'WEB_PAID' || order.status === 'PAID') {
-    await prisma.webPaymentIntent.update({
-      where: { id: intentId },
-      data: {
-        status: 'APPROVED',
-        paymentId: gatewayPaymentId,
-        gatewayStatus,
-        processedAt: new Date(),
-        lastError: `La orden ya figuraba como ${order.status} antes de acreditar este pago. Revisar que no haya cobro duplicado.`,
-      },
-    });
-    console.warn(
-      `[MP FINALIZE] Orden ${order.id} ya estaba en ${order.status} al llegar el pago ${gatewayPaymentId}. Requiere conciliación manual.`,
-    );
-    return { ok: true, alreadyProcessed: true, orderId: order.id };
-  }
-
   const ctx = parseCheckoutContext(intent.checkoutContext);
   const client = order.client;
 
@@ -228,11 +208,59 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
     // el cron cancela y el aviso de pago aprobado llegan a la vez, pasan de a
     // uno y el segundo ve lo que dejó el primero (revisión del 10/10/2026).
     await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${order.id} FOR UPDATE`;
+    // El intento, releído DESPUÉS del bloqueo: dos avisos del mismo pago
+    // (payment y merchant_order) que llegan juntos pasan de a uno, y el
+    // segundo corta acá en vez de repetir el aviso a conciliar.
+    const intentoFresco = await tx.webPaymentIntent.findUnique({
+      where: { id: intentId },
+      select: { status: true, paymentId: true },
+    });
+    if (intentoFresco?.status === 'APPROVED' && intentoFresco.paymentId === gatewayPaymentId) return { tipo: 'ya-paga' as const };
     const fresca = await tx.order.findUnique({
       where: { id: order.id },
       select: { status: true, isDeleted: true, deletedReason: true },
     });
-    if (!fresca || fresca.status === 'WEB_PAID' || fresca.status === 'PAID') return { tipo: 'ya-paga' as const };
+    if (!fresca) return { tipo: 'ya-paga' as const };
+    // Los cobros cargados a mano son la prueba de que una persona ya se ocupó
+    // (CLAUDE.md: la venta real se mide por filas de Payment, no por `paid`).
+    const cobrosCargados = await tx.payment.count({ where: { orderId: order.id } });
+
+    // El intento se cierra en los casos que no acreditan: si quedara PENDING,
+    // el chequeo periódico lo volvería a encontrar cada 10 minutos y mandaría
+    // el mismo aviso para siempre (revisión del 10/10/2026). APPROVED es lo
+    // que dijo Mercado Pago; lastError, por qué no se acreditó. Un id de pago
+    // que ya estaba no se pisa: es el candado del primer cobro.
+    const cerrarIntentoSinAcreditar = (porQue: string) =>
+      tx.webPaymentIntent.update({
+        where: { id: intentId },
+        data: {
+          status: 'APPROVED',
+          paymentId: intentoFresco?.paymentId || gatewayPaymentId,
+          gatewayStatus,
+          processedAt: new Date(),
+          lastError: porQue,
+        },
+        select: { id: true },
+      });
+    // Un aviso por pago: el reintento del mismo aviso no lo duplica.
+    const avisarParaConciliar = async (mensaje: string) => {
+      const ya = await tx.notification.findFirst({
+        where: { orderId: order.id, type: 'WEB_SALE', message: { contains: gatewayPaymentId } },
+        select: { id: true },
+      });
+      if (ya) return;
+      await tx.notification.create({
+        data: { type: 'WEB_SALE', message: mensaje, orderId: order.id, requestedBy: actorName, status: 'PENDING' },
+      });
+    };
+
+    // Ya estaba pagada (otro pago de Mercado Pago, o cobrada por otra vía):
+    // si es OTRO pago, puede ser un cobro duplicado. No se carga nada.
+    if (fresca.status === 'WEB_PAID' || fresca.status === 'PAID') {
+      await cerrarIntentoSinAcreditar(`Pago ${gatewayPaymentId} aprobado sobre una venta que ya figuraba como ${fresca.status}: no se registró otro cobro. Revisar que no se haya cobrado dos veces.`);
+      await avisarParaConciliar(`⚠️ Mercado Pago aprobó OTRO pago de $${formatearPrecio(amount)} (pago ${gatewayPaymentId}) para la Venta Web #${numero} de ${client?.name || 'Cliente'}, que ya estaba pagada. No se cargó: revisá en Mercado Pago si se cobró dos veces y, si es así, devolvé uno.`);
+      return { tipo: 'a-conciliar' as const, estado: fresca.status };
+    }
 
     // Pago aprobado sobre una venta que ya no estaba esperándolo:
     //  · la borró una persona desde el CRM → no se revive sola: es un cobro
@@ -241,48 +269,35 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
     //    2 h) y la persona igual pagó → se reactiva y se vuelve a reservar el
     //    stock, que la cancelación había devuelto.
     const cancelada = fresca.status === 'CANCELED' || fresca.isDeleted;
-    // El intento se cierra en los dos casos que no acreditan: si quedara
-    // PENDING, el chequeo periódico lo volvería a encontrar cada 10 minutos y
-    // mandaría el mismo aviso urgente para siempre (revisión del 10/10/2026).
-    // APPROVED es lo que dijo Mercado Pago; lastError, por qué no se acreditó.
-    const cerrarIntentoSinAcreditar = (porQue: string) =>
-      tx.webPaymentIntent.update({
-        where: { id: intentId },
-        data: { status: 'APPROVED', paymentId: gatewayPaymentId, gatewayStatus, processedAt: new Date(), lastError: porQue },
-        select: { id: true },
-      });
     if (cancelada && fresca.deletedReason) {
       await cerrarIntentoSinAcreditar(`Pago aprobado sobre una venta que borró una persona desde el CRM (motivo: "${fresca.deletedReason}"). Cobro sin venta: resolver a mano.`);
       return { tipo: 'borrada-por-una-persona' as const, motivo: fresca.deletedReason };
     }
     // La venta ya no esperaba este pago: un vendedor la confirmó a mano
     // (confirm-web la pasa a PENDING, p. ej. porque el aviso de Mercado Pago no
-    // llegó y la persona mostró el comprobante) o ya está en el laboratorio.
+    // llegó y la persona mostró el comprobante), ya está en el laboratorio, o
+    // sigue "esperando el pago" pero alguien ya le cargó el cobro a mano.
     // Acreditarla de nuevo la devolvía a "A confirmar", cargaba un SEGUNDO
     // cobro por el total y pedía otra factura. No se toca: aviso para conciliar.
-    if (!cancelada && fresca.status !== 'WEB_PENDING') {
-      await cerrarIntentoSinAcreditar(`Pago aprobado sobre una venta que ya estaba en ${fresca.status} (confirmada a mano): no se registró otro cobro. Revisar que no se haya cobrado dos veces.`);
-      await tx.notification.create({
-        data: {
-          type: 'WEB_SALE',
-          message: `⚠️ Mercado Pago acreditó $${formatearPrecio(amount)} de la Venta Web #${numero} de ${client?.name || 'Cliente'}, que ya estaba confirmada a mano. No se cargó un segundo cobro: revisá en Mercado Pago (pago ${gatewayPaymentId}) que no se haya cobrado dos veces y que el pago cargado en la venta sea este.`,
-          orderId: order.id,
-          requestedBy: actorName,
-          status: 'PENDING',
-        },
-      });
+    if (!cancelada && (fresca.status !== 'WEB_PENDING' || cobrosCargados > 0)) {
+      const como = fresca.status !== 'WEB_PENDING' ? 'ya estaba confirmada a mano' : 'ya tenía un cobro cargado a mano';
+      await cerrarIntentoSinAcreditar(`Pago aprobado sobre una venta que ${como} (estado ${fresca.status}, ${cobrosCargados} cobro/s): no se registró otro cobro. Revisar que no se haya cobrado dos veces.`);
+      await avisarParaConciliar(`⚠️ Mercado Pago acreditó $${formatearPrecio(amount)} de la Venta Web #${numero} de ${client?.name || 'Cliente'}, que ${como}. No se cargó un segundo cobro: revisá en Mercado Pago (pago ${gatewayPaymentId}) que no se haya cobrado dos veces y que el cobro cargado en la venta sea este.`);
       return { tipo: 'a-conciliar' as const, estado: fresca.status };
     }
     const sinStock: string[] = [];
     if (cancelada) {
+      // Se descuenta SIEMPRE, aunque quede en negativo: si se salteara cuando
+      // no alcanza y después alguien borra la venta desde el CRM (que devuelve
+      // todo), aparecería stock que no existe y la web lo vendería. El negativo
+      // queda marcado en la venta y en el aviso para revisarlo.
       for (const item of order.items) {
         if (!item.productId) continue;
         if (item.productCategorySnapshot === 'Cristal' || item.productCategorySnapshot === 'Tratamiento') continue;
-        const r = await tx.product.updateMany({
-          where: { id: item.productId, stock: { gte: item.quantity } },
-          data: { stock: { decrement: item.quantity } },
-        });
-        if (r.count !== 1) sinStock.push(item.productId);
+        const antes = await tx.product.findUnique({ where: { id: item.productId }, select: { stock: true } });
+        if (!antes) continue;
+        await tx.product.update({ where: { id: item.productId }, data: { stock: { decrement: item.quantity } }, select: { id: true } });
+        if ((antes.stock ?? 0) < item.quantity) sinStock.push(item.productId);
       }
     }
 
@@ -368,19 +383,38 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
   });
 
   if (resultado.tipo === 'ya-paga') return { ok: true, alreadyProcessed: true, orderId: order.id };
-  if (resultado.tipo === 'a-conciliar') {
-    console.warn(`[MP FINALIZE] Orden ${order.id} ya estaba en ${resultado.estado} al llegar el pago ${gatewayPaymentId}: no se acredita, queda para conciliar.`);
+  // Los dos casos que NO acreditan también quedan firmados en la ficha del
+  // cliente y en el AuditLog (regla de trazabilidad de CLAUDE.md).
+  const firmarSinAcreditar = (texto: string, descripcion: string, extra: Record<string, unknown>) => {
+    if (order.clientId) {
+      prisma.interaction
+        .create({ data: { clientId: order.clientId, type: 'SISTEMA', content: texto, userId: null, userName: actorName } })
+        .catch((err) => console.error('Error creando Interaction de pago sin acreditar:', err));
+    }
     logAudit({
       userId: null,
       userName: actorName,
       action: 'UPDATE',
       entityType: 'ORDER',
       entityId: order.id,
-      details: { descripcion: 'Pago de Mercado Pago sobre una venta ya confirmada: no se acreditó, a conciliar', estado: resultado.estado, gatewayPaymentId, amount },
-    }).catch((err) => console.error('Error en logAudit de pago a conciliar:', err));
+      details: { descripcion, gatewayPaymentId, amount, ...extra },
+    }).catch((err) => console.error('Error en logAudit de pago sin acreditar:', err));
+  };
+  if (resultado.tipo === 'a-conciliar') {
+    console.warn(`[MP FINALIZE] Orden ${order.id} (${resultado.estado}) no esperaba el pago ${gatewayPaymentId}: no se acredita, queda para conciliar.`);
+    firmarSinAcreditar(
+      `💳 ${actorName}: Mercado Pago aprobó $${formatearPrecio(amount)} (pago ${gatewayPaymentId}) de la Venta #${numero}, que ya estaba confirmada, cobrada o pagada. No se cargó otro cobro: revisar que no se haya cobrado dos veces.`,
+      'Pago de Mercado Pago sobre una venta que no lo esperaba: no se acreditó, a conciliar',
+      { estado: resultado.estado },
+    );
     return { ok: true, alreadyProcessed: true, orderId: order.id, aConciliar: resultado.estado };
   }
   if (resultado.tipo === 'borrada-por-una-persona') {
+    firmarSinAcreditar(
+      `💳 ${actorName}: Mercado Pago aprobó $${formatearPrecio(amount)} (pago ${gatewayPaymentId}) de la Venta #${numero}, que estaba borrada (motivo: "${resultado.motivo}"). Cobro sin venta: devolver el pago o recrear la venta.`,
+      'Pago de Mercado Pago sobre una venta borrada por una persona: cobro sin venta',
+      { motivo: resultado.motivo },
+    );
     return { ok: false, reason: `la venta #${numero} la había borrado una persona desde el CRM (motivo: "${resultado.motivo}"); no se reactiva sola` };
   }
 
@@ -687,10 +721,13 @@ export async function failWebPayment(opts: {
     if (intentoReclamado.count !== 1) return 'ya-procesado' as const;
 
     // 2. La orden: solo se cancela si sigue esperando el pago. Si un vendedor
-    // la confirmó (pasa a PENDING) o alguien la borró del CRM, la resolvió una
-    // persona y no se toca: el intento queda cerrado y nada más.
+    // la confirmó (pasa a PENDING), le cargó un cobro o alguien la borró del
+    // CRM, la resolvió una persona y no se toca: el intento queda cerrado.
     const ordenReclamada = await tx.order.updateMany({
-      where: { id: order.id, status: 'WEB_PENDING', isDeleted: false },
+      // Sin cobros cargados: si un vendedor ya le cargó el pago a mano (sin
+      // tocar "Confirmar"), cancelarla ocultaba la venta, sacaba el cobro de la
+      // caja y devolvía el stock de un armazón vendido.
+      where: { id: order.id, status: 'WEB_PENDING', isDeleted: false, payments: { none: {} } },
       data: {
         isDeleted: true,
         status: 'CANCELED',

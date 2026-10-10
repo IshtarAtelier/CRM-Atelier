@@ -11,7 +11,16 @@ import type { ArmazonAlDia } from "@/services/armazones-al-dia.service";
 /** Evento para pedir una puesta al día ya (lo dispara el checkout ante un rechazo por precio o stock). */
 const EVENTO_REFRESCAR = "atelier:carrito-al-dia";
 
+// El carrito lateral vive en la barra de navegación, así que el hook corre en
+// cada página: sin esto, cada navegación con algo en el carrito era una
+// consulta a la base. La misma consulta se reusa un minuto; un rechazo del
+// checkout (refrescarCarrito) siempre pregunta de nuevo.
+const VIGENCIA_MS = 60_000;
+let ultimaRespuesta: { url: string; at: number; data: unknown } | null = null;
 export function refrescarCarrito() {
+  // Se descarta lo guardado ANTES de avisar: si el efecto se vuelve a correr
+  // antes de que llegue la respuesta forzada, igual pregunta de nuevo.
+  ultimaRespuesta = null;
   if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENTO_REFRESCAR));
 }
 
@@ -28,12 +37,6 @@ function esMayorista(): boolean {
 // /checkout): sin esto, un mismo cambio se avisaba dos veces.
 let ultimaFirmaAvisada = "";
 
-// El carrito lateral vive en la barra de navegación, así que el hook corre en
-// cada página: sin esto, cada navegación con algo en el carrito era una
-// consulta a la base. La misma consulta se reusa un minuto; un rechazo del
-// checkout (refrescarCarrito) siempre pregunta de nuevo.
-const VIGENCIA_MS = 60_000;
-let ultimaRespuesta: { url: string; at: number; data: unknown } | null = null;
 async function traerPrecios(url: string, forzar: boolean): Promise<unknown> {
   if (!forzar && ultimaRespuesta && ultimaRespuesta.url === url && Date.now() - ultimaRespuesta.at < VIGENCIA_MS) {
     return ultimaRespuesta.data;
@@ -97,6 +100,7 @@ export function useCarritoAlDia() {
         const armazones = new Map((data.armazones ?? []).map(a => [a.id, a]));
         const sacados: string[] = [];
         const subieron: string[] = [];
+        const menosUnidades: string[] = [];
         for (const item of useCart.getState().items) {
           const nombre = `${item.brand || ""} ${item.model || ""}`.trim() || "Un anteojo";
           const armazon = mayorista ? undefined : armazones.get(item.productId);
@@ -136,6 +140,7 @@ export function useCarritoAlDia() {
           const stock = armazon ? armazon.stock : item.stock;
           const cantidad = typeof stock === "number" && stock > 0 ? Math.min(item.quantity, stock) : item.quantity;
           if (precio > item.price) subieron.push(`${nombre}: ahora ${precioConSigno(precio)}`);
+          if (cantidad < item.quantity) menosUnidades.push(`${nombre}: quedan ${cantidad}`);
           if (precio !== item.price || base !== (item.basePrice ?? item.price) || lensConfig !== item.lensConfig
               || stock !== item.stock || cantidad !== item.quantity) {
             ponerItemAlDia(item.id, { price: precio, basePrice: base, lensConfig, stock, quantity: cantidad });
@@ -144,6 +149,7 @@ export function useCarritoAlDia() {
         const aviso = [
           sacados.length ? `Sacamos del carrito ${sacados.join(", ")}: ya no está a la venta.` : "",
           subieron.length ? `Actualizamos el precio: ${subieron.join(" · ")}.` : "",
+          menosUnidades.length ? `Ajustamos la cantidad al stock: ${menosUnidades.join(" · ")}.` : "",
         ].filter(Boolean).join(" ");
         if (aviso && aviso !== ultimaFirmaAvisada) {
           ultimaFirmaAvisada = aviso;

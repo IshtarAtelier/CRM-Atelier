@@ -113,6 +113,15 @@ check('api.whatsapp.com/send?phone= también se reconoce',
 check('los espacios viajan como %20, no como "+"', !String(hrefConOrigen({ ...base, href: wa(TIENDA, 'Hola che') })).includes('+'));
 const attribution = readFileSync(resolve(raiz, 'src/components/Storefront/WhatsAppAttribution.tsx'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 check('WhatsAppAttribution decide con hrefConOrigen (sin lógica propia)', /hrefConOrigen\(\{/.test(attribution) && !/conMarcaDeLaWeb|searchParams/.test(attribution));
+// Y le pasa lo que corresponde: la página real (para no marcar desde el CRM),
+// la frase del anuncio, el número de la tienda; y aplica el resultado en el clic.
+check('…con la página real, la frase del anuncio y el número de la tienda',
+  /pathname:\s*window\.location\.pathname/.test(attribution) && /fraseAnuncio:\s*adPlatformSentence\(\)/.test(attribution) && /telefonoTienda:\s*WHATSAPP_PHONE\b/.test(attribution));
+check('…y reescribe el link en la fase de captura del clic', /link\.href\s*=\s*nuevo/.test(attribution) && /addEventListener\('click',\s*onClick,\s*true\)/.test(attribution));
+{
+  const primero = hrefConOrigen({ ...base, fraseAnuncio: 'Los vi en Meta.', href: wa(TIENDA, 'Hola, precio?') });
+  check('doble clic con anuncio: la frase no se repite', primero !== null && hrefConOrigen({ ...base, fraseAnuncio: 'Los vi en Meta.', href: primero }) === null);
+}
 
 console.log('El bot decide con la MISMA lista de frases');
 const tools = readFileSync(resolve(raiz, 'wa-service/tools.js'), 'utf8');

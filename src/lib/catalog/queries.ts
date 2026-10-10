@@ -191,13 +191,16 @@ export const FICHA_MAYORISTA = {
  * Una óptica compra lo mismo: todo lo mayorista es parte de lo publicado.
  */
 export function sePuedeVenderEnLaWeb(p: {
-  publishToWeb?: boolean | null;
-  category?: string | null;
-  webProducts?: { isActive: boolean | null }[] | null;
+  publishToWeb: boolean | null;
+  category: string | null;
+  // OBLIGATORIO a propósito: si una consulta deja de traer las fichas, la
+  // regla daría "no se vende" para todo (cada compra rechazada, cada carrito
+  // vaciado) sin que nada fallara. Así el que se olvida el include no compila.
+  webProducts: { isActive: boolean | null }[];
 }): boolean {
   if (p.category === FICHA_PUBLICADA.product.category.not) return false;
   if (p.publishToWeb !== FICHA_PUBLICADA.product.publishToWeb) return false;
-  return (p.webProducts ?? []).some((w) => w.isActive === FICHA_PUBLICADA.isActive);
+  return p.webProducts.some((w) => w.isActive === FICHA_PUBLICADA.isActive);
 }
 
 /**
@@ -207,12 +210,12 @@ export function sePuedeVenderEnLaWeb(p: {
  * medio del chat (revisión del 10/10/2026).
  */
 export function slugDeFichaPublicada(p: {
-  publishToWeb?: boolean | null;
-  category?: string | null;
-  webProducts?: { slug?: string | null; isActive: boolean | null }[] | null;
+  publishToWeb: boolean | null;
+  category: string | null;
+  webProducts: { slug: string | null; isActive: boolean | null }[];
 }): string | null {
   if (!sePuedeVenderEnLaWeb(p)) return null;
-  return (p.webProducts ?? []).find((w) => w.isActive === FICHA_PUBLICADA.isActive && w.slug)?.slug ?? null;
+  return p.webProducts.find((w) => w.isActive === FICHA_PUBLICADA.isActive && w.slug)?.slug ?? null;
 }
 
 /** WHERE base (sin filtros del usuario) de cada listado parametrizado. */

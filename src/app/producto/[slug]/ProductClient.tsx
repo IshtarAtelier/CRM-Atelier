@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { WHATSAPP_PHONE } from "@/lib/constants";
+import { WHATSAPP_PHONE, WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
@@ -240,7 +240,10 @@ export function ProductClient({
   const wholesalePriceOf = (id: string) => wholesalePrices[id] || 0;
   const productWholesalePrice = wholesalePriceOf(product.id);
 
-  const whatsappPhoneId = (settings?.web_store_whatsapp_id || WHATSAPP_PHONE).replace(/\D/g, '');
+  // Una óptica escribe al número mayorista (Cápsula Escarlata), como el botón
+  // flotante: su "Soy de la óptica…, mayorista por $neto" caía en la línea de
+  // la tienda, con el bot y los vendedores minoristas (revisión del 10/10/2026).
+  const whatsappPhoneId = (isWholesale ? WHOLESALE_WHATSAPP_PHONE : (settings?.web_store_whatsapp_id || WHATSAPP_PHONE)).replace(/\D/g, '');
   const conGarantiaAdaptacion = fichaMuestraGarantiaDeAdaptacion(product.category);
   // Las dos lecturas de /admin/web con las reglas de toda la tienda.
   // `web_promo_installments` es texto libre y SOLO lo interpreta
@@ -682,10 +685,13 @@ export function ProductClient({
                             </span>
                           </>
                         ) : (
-                          // Sin oferta, el de lista al lado y más chico: así el
-                          // descuento por transferencia se ve.
-                          <span className="text-sm font-medium text-stone-500 line-through">
-                            ${formatearPrecio(effectivePrice)}
+                          // Sin oferta, el precio con tarjeta SIN tachar: es el
+                          // de lista, el que declaran el JSON-LD y el feed de
+                          // Merchant. Tachado se leía como "precio anterior"
+                          // (no lo es: es el que paga quien usa tarjeta). El
+                          // descuento ya lo dice "15% OFF por transferencia".
+                          <span className="basis-full text-sm font-medium text-stone-600">
+                            o ${formatearPrecio(v.precio)} con tarjeta
                           </span>
                         )}
                       </div>

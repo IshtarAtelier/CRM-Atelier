@@ -6,6 +6,9 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import { getWebSettings } from '@/lib/web-settings';
 import { generoDeNombre } from '@/lib/nombre-genero';
 import { PricingService } from '@/services/PricingService';
+import { descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
+import { leerPromoCuotas } from '@/lib/promo-cuotas';
+import { RECARGO_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO } from '@/lib/receta/graduacion';
 import { cubreLaReceta, tieneGraduacion, motivoDeDescarte } from '@/lib/receta/rango-de-cristal';
 import { tipoDeRecetaSegunNumeros } from '@/lib/receta/tipo-de-lente';
@@ -335,6 +338,7 @@ export async function GET(req: NextRequest) {
             botLabel: true,
             laboratory: true,
             publishToWeb: true,
+            salePrice: true,
             gender: true,
             rawImageUrls: true,
             webProducts: {
@@ -365,6 +369,7 @@ export async function GET(req: NextRequest) {
                 botLabel: true,
                 laboratory: true,
                 publishToWeb: true,
+                salePrice: true,
                 gender: true,
                 rawImageUrls: true,
                 webProducts: { select: { slug: true, imageUrl: true, isActive: true } },
@@ -406,6 +411,7 @@ export async function GET(req: NextRequest) {
                 botLabel: true,
                 laboratory: true,
                 publishToWeb: true,
+                salePrice: true,
                 gender: true,
                 rawImageUrls: true,
                 webProducts: { select: { slug: true, imageUrl: true, isActive: true } },
@@ -419,7 +425,11 @@ export async function GET(req: NextRequest) {
     // (`web_promo_cash_discount`), no de un número escrito acá. Si el dueño lo
     // cambia en el panel, el bot y la web cambian juntos.
     const settings = await getWebSettings().catch(() => null);
-    const descuentoContadoPct = settings?.web_promo_cash_discount ?? 15;
+    // Las mismas lecturas que la tienda: descuentoTransferenciaDe (vacío o 0 →
+    // 15) y leerPromoCuotas (3 o 6). Con `?? 15` un 0 cargado daba 0 % en el
+    // bot y 15 % en la web, y las cuotas iban fijas en 6.
+    const descuentoContadoPct = descuentoTransferenciaDe(settings?.web_promo_cash_discount);
+    const cuotasSinInteres = leerPromoCuotas(settings?.web_promo_installments).cantidad;
 
     // ── Cruce con el RANGO que cubre cada cristal ───────────────────────────
     // El rango va declarado en el nombre ("… · Esf -10/+8 Cil -6/6"). Ofrecer
@@ -474,7 +484,17 @@ export async function GET(req: NextRequest) {
         //
         // El factor de las cuotas largas (10% fijo de MP Ishtar) vive en
         // FACTOR_MP_CUOTAS_LARGAS y lo aplica PricingService — no se replica acá.
-        const precios = PricingService.preciosVidriera(p.price ?? 0, descuentoContadoPct);
+        //
+        // 10/10/2026: con la OFERTA resuelta, igual que la tienda
+        // (vidrieraDeProducto). Antes el bot cotizaba a precio de lista: con
+        // 58 de 160 armazones en oferta, al pie de la foto decía "contado
+        // $182.750" y el link llevaba a una ficha con $136.000. La oferta es
+        // solo de armazones: los cristales de la web se cobran a su precio.
+        const esCristal = p.category === 'Cristal' || p.category === 'Tratamiento';
+        const precios = PricingService.vidrieraDeProducto(
+            { price: p.price ?? 0, salePrice: esCristal ? null : p.salePrice },
+            { descuentoTransferenciaPct: descuentoContadoPct, cuotasSinInteres },
+        );
 
         return {
             id: p.id,
@@ -484,12 +504,13 @@ export async function GET(req: NextRequest) {
             // El precio de LISTA es el precio en cuotas; el contado lleva el
             // descuento de la tienda aplicado. Mismos números que ve el comprador
             // en la web para ese producto.
-            priceCash: precios.contado,
-            priceCredit: precios.lista,
-            creditMonths: 6,
+            priceCash: precios.transferencia,
+            priceCredit: precios.precio,
+            /** Cuántas cuotas sin interés (3 o 6, /admin/web). */
+            creditMonths: precios.cuotas,
             // ── Cuotas YA calculadas (el bot las escribe tal cual) ──────────
-            /** Cuota de 3 y 6 SIN interés: lista ÷ 6. */
-            cuota6: precios.cuota6,
+            /** Cuota SIN interés en `creditMonths` cuotas (el nombre quedó de cuando eran siempre 6). */
+            cuota6: precios.valorCuota,
             /** Cuota de 12 por Mercado Pago: (lista × 1,10) ÷ 12. NUNCA "sin interés". */
             cuota12: precios.cuota12,
             /** Total financiado a 12 cuotas: lista × 1,10. El 10% se aclara SIEMPRE. */
@@ -525,11 +546,11 @@ export async function GET(req: NextRequest) {
         category: 'SYSTEM',
         priceCash: 0,
         priceCredit: 0,
-        creditMonths: 6,
+        creditMonths: cuotasSinInteres,
         cuota6: 0,
         cuota12: 0,
         total12: 0,
-        notes: '⚠️ INSTRUCCIÓN CRÍTICA PARA EL BOT: Al enviar opciones al cliente, SIEMPRE ordenalas destacando primero el pago en EFECTIVO/TRANSFERENCIA. 🔴 PROHIBIDO CALCULAR: todos los importes vienen resueltos en este mismo payload y se escriben TAL CUAL, sin multiplicar, dividir ni redondear nada. Usá "priceCash" para el contado, "cuota6" para las 6 cuotas sin interés (total "priceCredit"), y "cuota12"/"total12" para las 12 cuotas fijas — esos números YA TRAEN el recargo adentro. Jamás digas "12 cuotas sin interés"; el costo financiero no se menciona espontáneamente, solo si el cliente pregunta por qué el total de 12 es más alto (la verdad: 10% de costo financiero).'
+        notes: `⚠️ INSTRUCCIÓN CRÍTICA PARA EL BOT: Al enviar opciones al cliente, SIEMPRE ordenalas destacando primero el pago en EFECTIVO/TRANSFERENCIA. 🔴 PROHIBIDO CALCULAR: todos los importes vienen resueltos en este mismo payload y se escriben TAL CUAL, sin multiplicar, dividir ni redondear nada. Usá "priceCash" para el contado, "cuota6" para las ${cuotasSinInteres} cuotas sin interés ("creditMonths"; total "priceCredit"), y "cuota12"/"total12" para las 12 cuotas fijas — esos números YA TRAEN el recargo adentro. Jamás digas "12 cuotas sin interés"; el costo financiero no se menciona espontáneamente, solo si el cliente pregunta por qué el total de 12 es más alto (la verdad: ${RECARGO_MP_CUOTAS_LARGAS}% de costo financiero).`
     };
 
     return NextResponse.json([formattingInstruction, ...productsMapped]);
