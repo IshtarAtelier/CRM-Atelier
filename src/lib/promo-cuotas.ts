@@ -126,3 +126,27 @@ export function leerPromoCuotas(textoCrudo?: string | null): PromoCuotas {
 export const CARTEL_PROMO_POR_DEFECTO =
   `6 Cuotas Sin Interés • Hasta 12 Cuotas Fijas • ` +
   `${BUSINESS_INFO.discountTransferPercent}% OFF por Transferencia • Envío Gratis`;
+
+/**
+ * Lo que el cartel de arriba de la tienda NO puede decir, con el motivo que
+ * ve quien lo edita en /admin/web. Vacío = se puede guardar.
+ *
+ * El texto vivo está en la base y le gana al default: el 10/10/2026 en
+ * producción decía "15% OFF en Efectivo o Transferencia", que la tienda no
+ * cumple (online el descuento es solo por transferencia; el efectivo es del
+ * local). Nada impedía guardarlo, así que las reglas se fijan acá y las
+ * aplica la ruta que guarda la configuración.
+ */
+export function problemasDelCartel(texto: string): string[] {
+  const t = (texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const problemas: string[] = [];
+  if (/\befectivo\b/.test(t)) {
+    problemas.push('En la tienda online el descuento es solo por transferencia: el efectivo es del local. Escribí "por Transferencia".');
+  }
+  // "12 cuotas sin interés", "12 s/interés", "12 pagos sin interés": nunca.
+  // Las 12 son FIJAS; sin interés son solo 3 y 6 (CLAUDE.md).
+  if (/\b12\b[^•|·,.;]*\b(sin interes|s\/ ?interes)/.test(t)) {
+    problemas.push(`Las 12 cuotas no son sin interés: van como "${TEXTO_MP_CUOTAS_LARGAS}". Sin interés son solo 3 y 6.`);
+  }
+  return problemas;
+}

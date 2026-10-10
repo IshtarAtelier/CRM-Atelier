@@ -556,7 +556,14 @@ export default function WebManagementPage() {
         alert("¡Configuración y promociones web guardadas exitosamente!");
         loadWebConfig();
       } else {
-        alert("Ocurrió un error al guardar algunas configuraciones.");
+        // El motivo del rechazo (p. ej. el cartel dice "efectivo" o "12 cuotas
+        // sin interés") es lo único que dice qué corregir.
+        const motivos = await Promise.all(
+          results.filter(res => !res.ok).map(res => res.json().then(d => d?.error).catch(() => null)),
+        );
+        const detalle = motivos.filter(Boolean).join("\n");
+        alert(`No se guardó todo.${detalle ? `\n\n${detalle}` : ""}`);
+        loadWebConfig();
       }
     } catch (error) {
       alert("Error de conexión al guardar los ajustes.");

@@ -32,6 +32,7 @@ import { dirname, resolve } from 'node:path';
 import { precioConOferta } from '../../src/lib/precio-oferta.ts';
 import { effectiveFramePrice } from '../../src/lib/checkout/checkout-pricing.ts';
 import { PricingService } from '../../src/services/PricingService.ts';
+import { problemasDelCartel, CARTEL_PROMO_POR_DEFECTO } from '../../src/lib/promo-cuotas.ts';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const raiz = resolve(aqui, '../..');
@@ -168,6 +169,20 @@ for (const [archivo, queEs] of TARJETAS) {
     const carrito = readFileSync(resolve(raiz, 'src/components/Storefront/CartSidebar.tsx'), 'utf8');
     if (!/preciosVidriera\([^)]*,\s*15\)|>6 cuotas sin interés</.test(carrito)) ok('carrito: el % y las cuotas salen de /admin/web (usePromo2x1)');
     else mal('carrito: el 15 % o las 6 cuotas siguen escritos a mano', 'usar descuentoTransferenciaPct / cuotasSinInteres de usePromo2x1');
+}
+
+// ── 7. El cartel de arriba no promete lo que la tienda no cumple (10/10/2026) ─
+{
+    const vivo = '6 Cuotas Sin Interés • Hasta 12 Pagos • 15% OFF en Efectivo o Transferencia • Envío Gratis';
+    if (problemasDelCartel(vivo).length === 1) ok('el cartel que había en producción ("en Efectivo o Transferencia") no se puede guardar');
+    else mal('el cartel con "efectivo" se puede guardar', JSON.stringify(problemasDelCartel(vivo)));
+    if (problemasDelCartel('Hasta 12 cuotas sin interés • Envío gratis').length === 1 && problemasDelCartel('12 s/interés').length === 1) ok('"12 cuotas sin interés" no se puede guardar');
+    else mal('"12 cuotas sin interés" se puede guardar', '');
+    if (problemasDelCartel(CARTEL_PROMO_POR_DEFECTO).length === 0 && problemasDelCartel('3 y 6 cuotas sin interés, y hasta 12 cuotas fijas').length === 0) ok('el cartel por defecto y la fórmula de Ishtar pasan');
+    else mal('el cartel correcto se rechaza', JSON.stringify(problemasDelCartel(CARTEL_PROMO_POR_DEFECTO)));
+    const ruta = readFileSync(resolve(raiz, 'src/app/api/settings/route.ts'), 'utf8');
+    if (/web_announcement_text[\s\S]{0,200}problemasDelCartel/.test(ruta)) ok('la ruta que guarda la configuración aplica las reglas del cartel');
+    else mal('la ruta de configuración no valida el cartel', 'src/app/api/settings/route.ts');
 }
 
 // ── Salida ───────────────────────────────────────────────────────────────────

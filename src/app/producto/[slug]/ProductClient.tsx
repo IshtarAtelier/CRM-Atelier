@@ -263,7 +263,7 @@ export function ProductClient({
 
   // Precio de oferta ("precio tachado"). La regla vive en src/lib/precio-oferta.ts:
   // la misma que usan la grilla de la tienda, el JSON-LD y el cotizador.
-  const { lista: listPrice, final: effectivePrice, enOferta: hasSale, descuentoPct: pctOff } =
+  const { final: effectivePrice, enOferta: hasSale, descuentoPct: pctOff } =
     precioConOferta(product as any);
 
   // La ficha abre ARRIBA, siempre. Ishtar (3/10/2026): entrando desde la
