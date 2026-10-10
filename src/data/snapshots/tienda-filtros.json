@@ -1,739 +1,51 @@
 {
-  "generatedAt": "2026-07-15T14:49:56.543Z",
+  "generatedAt": "2026-10-10T15:55:22.101Z",
   "key": "tienda-filtros",
   "data": [
     {
-      "name": "Minerva C4-1",
+      "name": "Calisto C5",
       "product": {
-        "brand": "Atelier",
-        "model": "HY238014 C4-1",
-        "seoTags": "Hexagonal, Metal"
+        "brand": "Cápsula Escarlata",
+        "model": "S11105K C5",
+        "seoTags": "s11105k c5, calisto c5, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Aviador"
       }
     },
     {
-      "name": "Andrómeda C7",
+      "name": "Nashira C3",
       "product": {
-        "brand": "Atelier",
-        "model": "57201LJH-C7",
-        "seoTags": "Cuadrado, Acetato"
+        "brand": "Cápsula Escarlata",
+        "model": "FG1596 C3",
+        "seoTags": "fg1596 c3, nashira c3, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cat-Eye"
       }
     },
     {
-      "name": "Polaris C5",
+      "name": "Cánopo C2",
       "product": {
-        "brand": "Atelier",
-        "model": "57202LJH-C5",
-        "seoTags": "Cuadrado, Acetato"
+        "brand": "Cápsula Escarlata",
+        "model": "YD1331 C2",
+        "seoTags": "yd1331 c2, cánopo c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Redondo"
       }
     },
     {
-      "name": "Polaris C7",
+      "name": "Fénix C1",
       "product": {
-        "brand": "Atelier",
-        "model": "57202LJH-C7",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Niobe",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL5207 C4",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Minerva C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "HY238014 C2",
-        "seoTags": "Hexagonal, Metal"
-      }
-    },
-    {
-      "name": "Polaris C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "57202LJH-C2",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Helena C5",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5205-C5",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Calliope",
-      "product": {
-        "brand": "Atelier",
-        "model": "M7027 C4",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Euterpe",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL3704A C5",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Ariadne C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "M7237 C2",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Helena C8",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5205-C8",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Semele",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL5213 C4",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Helena C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5205-C3",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Leda C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL5217 C4",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Pandora C5",
-      "product": {
-        "brand": "Atelier",
-        "model": "HK011 C5",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Andrómeda C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "57201LJH-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Andrómeda C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "57201LJH-C3",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Andrómeda C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "57201LJH-C4",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Andrómeda C6",
-      "product": {
-        "brand": "Atelier",
-        "model": "57201LJH-C6",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Polaris C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "57202LJH-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Leda C5",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL5217 C5",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Diana C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL3932 C3",
-        "seoTags": "Cat-Eye, Metal"
-      }
-    },
-    {
-      "name": "Diana C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL3932 C4",
-        "seoTags": "Cat-Eye, Metal"
-      }
-    },
-    {
-      "name": "Iris C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "GS7015 C1",
-        "seoTags": "Cat-Eye, Metal"
-      }
-    },
-    {
-      "name": "Rhea",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL5208 C2",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Cleopatra C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "FD88821-C4",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Roma C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "FD88810-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Gala C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5005-C2",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Gala C6",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5005-C6",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Gala C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5005-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Poseidon C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "9004M C3",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Frida C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q8013-C2",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Frida C5",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q8013-C5",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Victoria C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q6013-C4",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Ariadne C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "M7237 C1",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Hebe",
-      "product": {
-        "brand": "Atelier",
-        "model": "M7011 C4",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Hestia C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "M7033 C1",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Hestia C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "M7033 C2",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Poseidon C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "9004M C2",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Poseidon C5",
-      "product": {
-        "brand": "Atelier",
-        "model": "9004M C5",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Clotho",
-      "product": {
-        "brand": "Atelier",
-        "model": "M7239 C4",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Ulises",
-      "product": {
-        "brand": "Atelier",
-        "model": "V99011 C4",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Hermes C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "9006M C2",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Orfeo C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "YX05 C1",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Orfeo C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "YX05 C3",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Teseo C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "TG2809 C4",
-        "seoTags": "Cuadrado, Titanio"
-      }
-    },
-    {
-      "name": "Helena C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5205-C4",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Gala C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5005-C4",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Gala C7",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5005-C7",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Frida C6",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q8013-C6",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Polaris C6",
-      "product": {
-        "brand": "Atelier",
-        "model": "57202LJH-C6",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Helena C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5205-C2",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Poseidon C6",
-      "product": {
-        "brand": "Atelier",
-        "model": "9004M C6",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Frida C7",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q8013-C7",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Victoria C6",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q6013-C6",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Helios",
-      "product": {
-        "brand": "Atelier",
-        "model": "TG2807 C1",
-        "seoTags": "Cuadrado, Titanio"
-      }
-    },
-    {
-      "name": "Atenea C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "P5783-C3",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Hermes C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "9006M C1",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Hermes C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "9006M C3",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Hermes C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "9006M C4",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Maia",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL5206 C4",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Cronos C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "V99018 C1",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Cronos C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "V99018 C3",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Aquiles C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "TG2810 C4",
-        "seoTags": "Cuadrado, Titanio"
-      }
-    },
-    {
-      "name": "Leda C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL5217 C2",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Pandora C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "HK011 C3",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Iris C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "GS7015 C3",
-        "seoTags": "Cat-Eye, Metal"
-      }
-    },
-    {
-      "name": "Artemis",
-      "product": {
-        "brand": "Atelier",
-        "model": "G7013 C1",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Athena",
-      "product": {
-        "brand": "Atelier",
-        "model": "91501 C6",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Minerva C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "HY238014 C3",
-        "seoTags": "Hexagonal, Metal"
-      }
-    },
-    {
-      "name": "Diana C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL3932 C2",
-        "seoTags": "Cat-Eye, Metal"
-      }
-    },
-    {
-      "name": "Frida C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q8013-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Orfeo C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "YX05 C4",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Pegaso C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "BC3063-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Olimpia C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "P5786-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Venus C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "P5787-C4",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Gala C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5005-C3",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Gala C8",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5005-C8",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Frida C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q8013-C3",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Victoria C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q6013-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Victoria C5",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q6013-C5",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Catalina C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "YF3090-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Gaia",
-      "product": {
-        "brand": "Atelier",
-        "model": "HY238013 C1",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Orfeo C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "YX05 C2",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
-      "name": "Teseo C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "TG2809 C1",
-        "seoTags": "Cuadrado, Titanio"
-      }
-    },
-    {
-      "name": "Aquiles C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "TG2810 C1",
-        "seoTags": "Cuadrado, Titanio"
-      }
-    },
-    {
-      "name": "Anastasia C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "BC3059-C1",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Electra",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL3704A C4",
-        "seoTags": "Cuadrado, Metal"
+        "brand": "Cápsula Escarlata",
+        "model": "J853T19 C1",
+        "seoTags": "j853t19 c1, fénix c1, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cuadrado"
       }
     },
     {
       "name": "Orión C1",
       "product": {
-        "brand": "Atelier",
+        "brand": "Cápsula Escarlata",
         "model": "G7012 C1",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Néstor C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "G7013 C1",
-        "seoTags": "Metal"
+        "seoTags": "g7012 c1, orión c1, lentes de receta, armazones de receta, anteojos de receta, lentes graduados, optica cordoba, atelier optica, unisex, premium, Metal, Redondo"
       }
     },
     {
       "name": "Mizar C2",
       "product": {
-        "brand": "Atelier",
+        "brand": "Cápsula Escarlata",
         "model": "YD1335 C2",
         "seoTags": "yd1335 c2, mizar c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Redondo"
       }
@@ -741,33 +53,1233 @@
     {
       "name": "Adhara C4",
       "product": {
-        "brand": "Atelier",
+        "brand": "Cápsula Escarlata",
         "model": "YD1330 C4",
         "seoTags": "yd1330 c4, adhara c4, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cuadrado"
       }
     },
     {
-      "name": "Cánopo C4",
+      "name": "Gala C7",
       "product": {
-        "brand": "Atelier",
-        "model": "YD1331 C4",
-        "seoTags": "yd1331 c4, cánopo c4, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Redondo"
+        "brand": "Cápsula Escarlata",
+        "model": "Q5005-C7",
+        "seoTags": "q5005-c7, gala c7, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Cat-Eye"
       }
     },
     {
-      "name": "Nashira C3",
+      "name": "Andrómeda C7",
       "product": {
-        "brand": "Atelier",
-        "model": "FG1596 C3",
-        "seoTags": "fg1596 c3, nashira c3, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cat-Eye"
+        "brand": "Cápsula Escarlata",
+        "model": "57201LJH-C7",
+        "seoTags": "57201ljh-c7, andrómeda c7, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Sirio C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "GS7008S C1",
+        "seoTags": "gs7008s c1, sirio c1, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Minerva C4-1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "HY238014 C4-1",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, hera, anteojos mujer, optica cordoba, lentes graduados, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Vega C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "GS7010S C1",
+        "seoTags": "gs7010s c1, vega c1, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Antares C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "GS7017S C1",
+        "seoTags": "gs7017s c1, antares c1, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Calliope C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "M7027 C4",
+        "seoTags": "m7027 c4, calliope, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Redondo, Metal"
+      }
+    },
+    {
+      "name": "Torino C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "8125S C3",
+        "seoTags": "lentes de sol, gafas de sol, anteojos de sol, clip-on, torino, armazon, modelo 8125s, calidad premium, envio gratis, Metal, Redondo"
+      }
+    },
+    {
+      "name": "Poseidon C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "9004M C3",
+        "seoTags": "9004m c3, poseidon c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Vega C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "GS7010S C2",
+        "seoTags": "gs7010s c2, vega c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Rigel C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G7008 C3",
+        "seoTags": "g7008 c3, rigel c3, lentes de receta, armazones de receta, anteojos de receta, lentes graduados, optica cordoba, atelier optica, unisex, premium, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Perseo C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "S11110K C4",
+        "seoTags": "s11110k c4, perseo c4, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Aviador"
+      }
+    },
+    {
+      "name": "Calipso Oval Carey",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Carey Oval",
+        "seoTags": "armazon receta, gafas graduadas, montura oval, capsula escarlata, calipso, carey, lentes opticos, anteojos de receta"
+      }
+    },
+    {
+      "name": "Plutón C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "6313 C4-P130",
+        "seoTags": "6313 c4-p130, plutón c4, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Aviador"
+      }
+    },
+    {
+      "name": "Calipso Oval Negro",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Negro",
+        "seoTags": "armazon de receta, anteojos graduados, capsula escarlata, calipso oval, montura negra, gafas de vista, optica online, calidad premium"
+      }
+    },
+    {
+      "name": "Deneb C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "GS7016S C2",
+        "seoTags": "gs7016s c2, deneb c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Redondo"
+      }
+    },
+    {
+      "name": "Victoria C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q6013-C1",
+        "seoTags": "q6013-c1, victoria c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Hexagonal"
+      }
+    },
+    {
+      "name": "Deneb C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "GS7016S C1",
+        "seoTags": "gs7016s c1, deneb c1, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Redondo"
+      }
+    },
+    {
+      "name": "Torino C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "8125S C4",
+        "seoTags": "lentes de sol, clip-on, torino, 8125s c4, anteojos de sol, gafas de sol, armazon, Redondo, Metal"
+      }
+    },
+    {
+      "name": "Venus C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "JYB238015 C1",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, venus, anteojos mujer, optica cordoba, lentes graduados, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Perseo C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "S11110K C5",
+        "seoTags": "s11110k c5, perseo c5, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Aviador"
+      }
+    },
+    {
+      "name": "Artemis C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G7013 C1",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, artemis, anteojos mujer, optica cordoba, lentes graduados, Hexagonal, Metal"
+      }
+    },
+    {
+      "name": "Frida C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q8013-C3",
+        "seoTags": "q8013-c3, frida c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Acetato"
+      }
+    },
+    {
+      "name": "Venus C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "JYB238015 C2",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, flora, anteojos mujer, optica cordoba, lentes graduados, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Cratos",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "1111 C3",
+        "seoTags": "Rectangular, Titanio"
+      }
+    },
+    {
+      "name": "Isis",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "10006 C1",
+        "seoTags": "Hexagonal, Titanio"
+      }
+    },
+    {
+      "name": "Mercurio",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TG2808 C4",
+        "seoTags": "Rectangular, Titanio"
+      }
+    },
+    {
+      "name": "Plutón C7",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "6313 C7-P08",
+        "seoTags": "6313 c7-p08, plutón c7, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Aviador"
+      }
+    },
+    {
+      "name": "Semele C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL5213 C3",
+        "seoTags": "Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Hermes C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "9006M C3",
+        "seoTags": "9006m c4, hermes c4, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Victoria C6",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q6013-C6",
+        "seoTags": "q6013-c6, victoria c6, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Acetato"
+      }
+    },
+    {
+      "name": "Riviera C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G5970 C1",
+        "seoTags": "lentes de sol, gafas de sol, anteojos de sol, clip-on, riviera, g5970 c1, armazon, proteccion uv, moda, estilo, Acetato, Redondo"
+      }
+    },
+    {
+      "name": "Gala C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q5005-C1",
+        "seoTags": "q5005-c1, gala c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Cat-Eye"
+      }
+    },
+    {
+      "name": "Hestia C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "M7033 C1",
+        "seoTags": "m7033 c1, hestia c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Aviador, Metal"
+      }
+    },
+    {
+      "name": "Neptuno",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "GT9615 C1",
+        "seoTags": "Rectangular, Titanio"
+      }
+    },
+    {
+      "name": "Saturno",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "009208",
+        "seoTags": "009208, saturno, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Milano C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "MLT25026 C1",
+        "seoTags": "lentes de sol, gafas de sol, clipon, milano, mlt25026, armazon, proteccion uv, moda, optica, Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Pandora C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "HK011 C5",
+        "seoTags": "armazon receta, lentes receta, anteojos receta, gafas graduadas, monturas opticas, armazones escarlata, pandora c5, hk011, Metal, Redondo"
+      }
+    },
+    {
+      "name": "Hermes C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "9006M C1",
+        "seoTags": "9006m c1, hermes c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Eunice C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "7605 C3",
+        "seoTags": "7605 c3, eunice c3, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Aviador"
+      }
+    },
+    {
+      "name": "Eunice C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "7605 C4",
+        "seoTags": "7605 c4, eunice c4, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Aviador"
+      }
+    },
+    {
+      "name": "Olimpo Pink",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3391 C4-P39",
+        "seoTags": "tr3391 c4-p39, olimpo c4-p39, lentes de sol, gafas de sol, anteojos de sol, polarizado, deportivo, optica cordoba, atelier optica, proteccion uv, unisex, Metal, Rectangular"
+      }
+    },
+    {
+      "name": "Polaris C6",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "57202LJH-C6",
+        "seoTags": "57202ljh-c6, polaris c6, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Monaco A12183 C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "A12183 C2",
+        "seoTags": "lentes de sol, gafas de sol, clip-on, monaco, armazon, proteccion uv, anteojos de sol, TR90, Cuadrado"
+      }
+    },
+    {
+      "name": "Olimpo Blue",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3391 C10-P71",
+        "seoTags": "tr3391 c10-p71, olimpo c10-p71, lentes de sol, gafas de sol, anteojos de sol, polarizado, deportivo, optica cordoba, atelier optica, proteccion uv, unisex, Metal, Rectangular"
+      }
+    },
+    {
+      "name": "Selene C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL3684 C4",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, selene, anteojos mujer, optica cordoba, lentes graduados, Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Andrómeda C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "57201LJH-C3",
+        "seoTags": "57201ljh-c3, andrómeda c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Andrómeda C6",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "57201LJH-C6",
+        "seoTags": "57201ljh-c6, andrómeda c6, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Olimpo Sepia",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3391 C22-P90",
+        "seoTags": "tr3391 c22-p90, olimpo c22-p90, lentes de sol, gafas de sol, anteojos de sol, polarizado, deportivo, optica cordoba, atelier optica, proteccion uv, unisex, Metal, Rectangular"
+      }
+    },
+    {
+      "name": "Helena C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q5205-C2",
+        "seoTags": "q5205-c2, helena c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Helios C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TG2807 C1",
+        "seoTags": "tg2807 c1, helios, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Titanio, Cuadrado"
+      }
+    },
+    {
+      "name": "Lumen C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "BC3059-C1",
+        "seoTags": "bc3059-c1, Lumen c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Rigel C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G7008 C1",
+        "seoTags": "g7008 c1, rigel c1, lentes de receta, armazones de receta, anteojos de receta, lentes graduados, optica cordoba, atelier optica, unisex, premium, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Aquiles C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TG2810 C1",
+        "seoTags": "tg2810 c1, aquiles c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Titanio, Cuadrado"
+      }
+    },
+    {
+      "name": "Cronos C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "V99018 C1",
+        "seoTags": "v99018 c1, cronos c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Orfeo C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YX05 C1",
+        "seoTags": "yx05 c1, orfeo c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Orfeo C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YX05 C2",
+        "seoTags": "yx05 c2, orfeo c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Ariadne C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "M7237 C2",
+        "seoTags": "armazon de receta, armazon optico, armazones, lentes de receta, gafas de ver, atelier, ariadne c2, Redondo, Metal"
+      }
+    },
+    {
+      "name": "Roma C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "FD88810-C1",
+        "seoTags": "fd88810-c1, roma c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Cuadrado"
+      }
+    },
+    {
+      "name": "Hestia C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "M7033 C2",
+        "seoTags": "m7033 c2, hestia c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Aviador, Metal"
+      }
+    },
+    {
+      "name": "Zafiro",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YD1310 C3",
+        "seoTags": "yd1310 c3, zafiro, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado"
+      }
+    },
+    {
+      "name": "Urano",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "009206",
+        "seoTags": "009206, urano, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Eva C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YD1224S C3",
+        "seoTags": "yd1224s c3, eva c3, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Rectangular"
+      }
+    },
+    {
+      "name": "Clotho C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "M7239 C4",
+        "seoTags": "m7239 c4, clotho, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Redondo, Metal"
+      }
+    },
+    {
+      "name": "Diana C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL3932 C3",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, diana, anteojos mujer, optica cordoba, lentes graduados, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Frida C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q8013-C1",
+        "seoTags": "q8013-c1, frida c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Cuadrado"
+      }
+    },
+    {
+      "name": "Frida C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q8013-C2",
+        "seoTags": "q8013-c2, frida c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Cuadrado"
+      }
+    },
+    {
+      "name": "Olimpo Black",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3391 C4-P97",
+        "seoTags": "tr3391 c4-p97, olimpo c4-p97, lentes de sol, gafas de sol, anteojos de sol, polarizado, deportivo, optica cordoba, atelier optica, proteccion uv, unisex, Metal, Rectangular"
+      }
+    },
+    {
+      "name": "Aquiles C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TG2810 C4",
+        "seoTags": "tg2810 c4, aquiles c4, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Titanio"
+      }
+    },
+    {
+      "name": "Hera C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "P5787-C4",
+        "seoTags": "p5787-c4, hera c4, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Acetato"
+      }
+    },
+    {
+      "name": "Orfeo C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YX05 C4",
+        "seoTags": "yx05 c4, orfeo c4, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Andrómeda C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "57201LJH-C4",
+        "seoTags": "57201ljh-c4, andrómeda c4, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Diana C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL3932 C2",
+        "seoTags": "tl3932 c2, diana c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cat-Eye"
+      }
+    },
+    {
+      "name": "Olimpo Grey",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3391 C22-P101",
+        "seoTags": "tr3391 c22-p101, olimpo c22-p101, lentes de sol, gafas de sol, anteojos de sol, polarizado, deportivo, optica cordoba, atelier optica, proteccion uv, unisex, Metal, Rectangular"
+      }
+    },
+    {
+      "name": "Poseidon C6",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "9004M C6",
+        "seoTags": "9004m c6, poseidon c6, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Rhea C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL5208 C2",
+        "seoTags": "tl5208 c2, rhea, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Minerva C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "HY238014 C3",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, clio, anteojos mujer, optica cordoba, lentes graduados, Hexagonal, Metal"
+      }
+    },
+    {
+      "name": "Lucca",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G5919 C1",
+        "seoTags": "g5919 c1, lucca, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado"
+      }
+    },
+    {
+      "name": "Sirio C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "GS7008S C2",
+        "seoTags": "gs7008s c2, sirio c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Calisto C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "S11105K C4",
+        "seoTags": "s11105k c4, calisto c4, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Aviador"
+      }
+    },
+    {
+      "name": "Hermes C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "9006M C4",
+        "seoTags": "9006m c3, hermes c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Poseidon C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "9004M C2",
+        "seoTags": "9004m c2, poseidon c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Cronos C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "V99018 C3",
+        "seoTags": "v99018 c3, cronos c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Electra C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL3704A C5",
+        "seoTags": "tl3704a c5, euterpe, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Edipo",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "6307 C87-P130",
+        "seoTags": "6307 c87-p130, edipo, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Aviador"
+      }
+    },
+    {
+      "name": "Frida C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q8013-C5",
+        "seoTags": "q8013-c5, frida c5, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Acetato"
+      }
+    },
+    {
+      "name": "Deméter",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "S11107K C2",
+        "seoTags": "s11107k c2, deméter, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Polaris C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "57202LJH-C2",
+        "seoTags": "57202ljh-c2, polaris c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Frida C6",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q8013-C6",
+        "seoTags": "q8013-c6, frida c6, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Atenea C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "P5783-C3",
+        "seoTags": "p5783-c3, atenea c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Acetato"
+      }
+    },
+    {
+      "name": "Electra C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL3704A C4",
+        "seoTags": "tl3704a c4, electra, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Meteoro C275",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3399 C275-P37",
+        "seoTags": "tr3399 c275-p37, meteoro c275, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Cuadrado"
+      }
+    },
+    {
+      "name": "Zeus C33-P18-1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3381 C33-P18-1",
+        "seoTags": "tr3381 c33-p18-1, zeus c33-p18-1, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Victoria C7",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q6013-C7",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Zeus C33-P18-2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3381 C33-P18-2",
+        "seoTags": "tr3381 c33-p18-2, zeus c33-p18-2, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Gala C8",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q5005-C8",
+        "seoTags": "q5005-c8, gala c8, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Acetato"
+      }
+    },
+    {
+      "name": "Helena C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q5205-C4",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Dionisio C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "FG1643 C4",
+        "seoTags": "fg1643 c4, dionisio, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Receta, Acetato, Cuadrado, XL"
+      }
+    },
+    {
+      "name": "Minerva C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "HY238014 C2",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, minerva, anteojos mujer, optica cordoba, lentes graduados, Metal, Hexagonal"
+      }
+    },
+    {
+      "name": "Gala C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q5005-C3",
+        "seoTags": "q5005-c3, gala c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Dionisio C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "FG1643 C2",
+        "seoTags": "fg1643 c2, dionisio c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Receta, Acetato, Cuadrado, XL"
+      }
+    },
+    {
+      "name": "Eva C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YD1224S C2",
+        "seoTags": "yd1224s c2, eva c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Rectangular"
+      }
+    },
+    {
+      "name": "Semele C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL5213 C4",
+        "seoTags": "tl5213 c4, semele, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cat-Eye"
+      }
+    },
+    {
+      "name": "Frida C7",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q8013-C7",
+        "seoTags": "q8013-c7, frida c7, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Acetato"
+      }
+    },
+    {
+      "name": "Venus C2-1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "JYB238015 C2-1",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, aurora, anteojos mujer, optica cordoba, lentes graduados, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Hermes C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "9006M C2",
+        "seoTags": "9006m c2, hermes c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Gema",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YD1283 C4",
+        "seoTags": "yd1283 c4, gema, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado"
+      }
+    },
+    {
+      "name": "Diana C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL3932 C4",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, ceres, anteojos mujer, optica cordoba, lentes graduados, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Pandora C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "HK011 C3",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, pandora, anteojos mujer, optica cordoba, lentes graduados, Redondo, Metal"
+      }
+    },
+    {
+      "name": "Zeus C33-P86",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3381 C33-P86",
+        "seoTags": "tr3381 c33-p86, zeus c33-p86, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
       }
     },
     {
       "name": "Fénix C2",
       "product": {
-        "brand": "Atelier",
+        "brand": "Cápsula Escarlata",
         "model": "J853T19 C2",
-        "seoTags": "j853t19 c2, fénix c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cuadrado"
+        "seoTags": "j853t19 c2, fénix c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado"
+      }
+    },
+    {
+      "name": "Pegaso C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "BC3063-C2",
+        "seoTags": "bc3063-C2, pegaso C2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Redondo"
+      }
+    },
+    {
+      "name": "Polaris C7",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "57202LJH-C7",
+        "seoTags": "57202ljh-c7, polaris c7, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Redondo"
+      }
+    },
+    {
+      "name": "Athena C6",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "91501 C6",
+        "seoTags": "armazon receta, gafas graduadas, lentes de aumento, monturas opticas, atelier athena, 91501 c6, lentes de ver, armazones de vista, calidad premium, Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Gala C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q5005-C2",
+        "seoTags": "q5005-c2, gala c2, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Cat-Eye"
+      }
+    },
+    {
+      "name": "Hebe C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "M7011 C4",
+        "seoTags": "m7011 c4, hebe, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Redondo, Metal"
+      }
+    },
+    {
+      "name": "Ariadne C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "M7237 C1",
+        "seoTags": "armazon de receta, armazon optico, anteojos de receta, lentes de aumento, monturas, atelier, ariadne c1, Redondo, Metal"
+      }
+    },
+    {
+      "name": "Gaia C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "HY238013 C1",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, gaia, anteojos mujer, optica cordoba, lentes graduados, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Onix Negro",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Tendencia Rectangular Negro",
+        "seoTags": "armazon receta, lentes receta, anteojos receta, armazon rectangular, lentes negros, capsula escarlata, onix tendencia, gafas receta, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Osiris C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "FD88821-C4",
+        "seoTags": "fd88821-c4, cleopatra c4, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Redondo, Acetato"
+      }
+    },
+    {
+      "name": "Kalishta",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "S1105 C3",
+        "seoTags": "s1105 c3, kalishta, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, Silicona, Rectangular"
+      }
+    },
+    {
+      "name": "Palermo C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "8005S C3",
+        "seoTags": "lentes de sol, gafas de sol, armazon, clip-on, palermo, 8005s c3, lentes polarizados, proteccion uv, moda, Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Luna",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "S31102 C3",
+        "seoTags": "s31102 c3, luna, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Redondo"
+      }
+    },
+    {
+      "name": "Meteoro C26",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3399 C26-P96",
+        "seoTags": "tr3399 c26-p96, meteoro c26, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Cuadrado"
+      }
+    },
+    {
+      "name": "Orfeo C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YX05 C3",
+        "seoTags": "yx05 c3, orfeo c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Metal, Cuadrado"
+      }
+    },
+    {
+      "name": "Helena C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q5205-C5",
+        "seoTags": "q5205-c5, helena c5, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Cat-Eye"
+      }
+    },
+    {
+      "name": "Victoria C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q6013-C4",
+        "seoTags": "q6013-c4, victoria c4, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cat-Eye, Acetato"
+      }
+    },
+    {
+      "name": "Altair C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "YF3090-C1",
+        "seoTags": "yf3090-c1, orion c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Redondo, Acetato"
+      }
+    },
+    {
+      "name": "Onix Carey",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Tendencia Rectangular Carey",
+        "seoTags": null
+      }
+    },
+    {
+      "name": "Olimpia C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "P5786-C1",
+        "seoTags": "p5786-c1, olimpia c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Redondo"
+      }
+    },
+    {
+      "name": "Helena C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q5205-C3",
+        "seoTags": "q5205-c3, helena c3, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Cat-Eye"
+      }
+    },
+    {
+      "name": "Selene C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TL3684 C5",
+        "seoTags": "anteojos de receta, armazones de receta, lentes de receta, atelier optica, freya, anteojos mujer, optica cordoba, lentes graduados, XL, Metal"
+      }
+    },
+    {
+      "name": "Florence C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR12173",
+        "seoTags": "lentes de sol, gafas de sol, anteojos de sol, clip-on, florence, tr12173, armazon, calidad premium, envio gratis, TR90, Cuadrado"
+      }
+    },
+    {
+      "name": "Venice C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "7018 C5",
+        "seoTags": "Clip on, lentes de sol, gafas de sol, anteojos de sol, Ateliers, Venice, armazon, moda, proteccion UV, premium, Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Meteoro C280",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3399 C280-P111",
+        "seoTags": "tr3399 c280-p111, meteoro c280, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Cuadrado"
+      }
+    },
+    {
+      "name": "Génova C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "7036 C2",
+        "seoTags": "lentes de sol, gafas de sol, anteojos de sol, clip-on, génova, 7036 c2, armazon, optica, calidad premium, envio gratis, Hexagonal, Metal"
+      }
+    },
+    {
+      "name": "Siena C2",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G5921 C2",
+        "seoTags": "lentes de sol, gafas de sol, clip-on, siena, g5921 c2, anteojos de sol, armazon, proteccion uv, moda, Acetato, Aviador"
+      }
+    },
+    {
+      "name": "Verona C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G5959 C1",
+        "seoTags": "lentes de sol, gafas de sol, anteojos de sol, clip-on, verona, g5959, armazon, proteccion uv, Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Capri C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G5929 C5",
+        "seoTags": "lentes de sol, clipon, capri C5, g5929, gafas de sol, anteojos de sol, armazon, proteccion uv, envio gratis, Redondo, Acetato"
+      }
+    },
+    {
+      "name": "Ulises C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "V99011 C4",
+        "seoTags": "v99011 c4, ulises, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Victoria C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "Q6013-C5",
+        "seoTags": "q6013-c5, victoria c5, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Acetato, Hexagonal"
+      }
+    },
+    {
+      "name": "Teseo C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TG2809 C4",
+        "seoTags": "tg2809 c4, teseo c4, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Titanio, Cuadrado"
+      }
+    },
+    {
+      "name": "Teseo C1",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TG2809 C1",
+        "seoTags": "tg2809 c1, teseo c1, lentes graduados, optica cordoba, atelier optica, lentes de receta, armazones de receta, anteojos de receta, Titanio, Cuadrado"
+      }
+    },
+    {
+      "name": "Bari",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G5903 C2",
+        "seoTags": "g5903 c2, bari, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, unisex, premium, Acetato, Cuadrado"
+      }
+    },
+    {
+      "name": "Meteoro C4",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3399 C4-P109",
+        "seoTags": "tr3399 c4-p109, meteoro c4, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Cuadrado"
+      }
+    },
+    {
+      "name": "Módena",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "G5910 C3",
+        "seoTags": "g5910 c3, módena, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, masculino, premium, Acetato, Rectangular"
+      }
+    },
+    {
+      "name": "Odiseo",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "8548 C5",
+        "seoTags": "8548 c5, odiseo, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Perséfone",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "JS8512 C43-P191",
+        "seoTags": "js8512 c43-p191, perséfone, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, masculino, premium, Metal, Rectangular"
+      }
+    },
+    {
+      "name": "Salerno",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR12219 C2",
+        "seoTags": "tr12219 c2, salerno, lentes de sol, gafas de sol, anteojos de sol, clip-on, armazon con clip, optica cordoba, atelier optica, proteccion uv, unisex, premium, TR90, Redondo"
+      }
+    },
+    {
+      "name": "Sol",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "8383-3 C5",
+        "seoTags": "8383-3 c5, sol, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Tritón C3",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "8546 C3",
+        "seoTags": "8546 c3, tritón c3, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Tritón C5",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "8546 C5",
+        "seoTags": "8546 c5, tritón c5, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
+      }
+    },
+    {
+      "name": "Zeus C33-P01",
+      "product": {
+        "brand": "Cápsula Escarlata",
+        "model": "TR3381 C33-P01",
+        "seoTags": "tr3381 c33-p01, zeus c33-p01, lentes de sol, gafas de sol, anteojos de sol, polarizado, optica cordoba, atelier optica, proteccion uv, masculino, premium, TR90, Rectangular"
       }
     }
   ]

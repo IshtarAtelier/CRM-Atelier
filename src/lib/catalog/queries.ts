@@ -128,15 +128,26 @@ export const ARMA_SELECT = {
   },
 } as const;
 
+/**
+ * Lo que nunca va en una vidriera de armazones: cristales (un Essilor de
+ * $280.000 llegó a listarse en /receta) y lo que no tiene stock (regla 19/8).
+ * Lo usan las páginas Y sus respaldos: hasta el 10/10/2026 el respaldo de
+ * /receta no lo tenía y traía un Xperio de $913.780 sin stock, que la página
+ * en vivo sí excluía.
+ */
+export const SOLO_ARMAZONES_CON_STOCK = { category: { not: "Cristal" }, stock: { gt: 0 } } as const;
+
 /** WHERE base (sin filtros del usuario) de cada listado parametrizado. */
 export const SOL_BASE_WHERE = {
   category: { contains: "Sol", mode: "insensitive" },
   isActive: true,
+  product: SOLO_ARMAZONES_CON_STOCK,
 } as const;
 
 export const RECETA_BASE_WHERE = {
   category: { contains: "Receta", mode: "insensitive" },
   isActive: true,
+  product: SOLO_ARMAZONES_CON_STOCK,
 } as const;
 
 /**
@@ -273,11 +284,7 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
     /** /arma-tus-lentes: armazones de receta con stock. */
     async armaTusLentes() {
       return prisma.webProduct.findMany({
-        where: {
-          category: { contains: "Receta", mode: "insensitive" },
-          isActive: true,
-          product: { stock: { gt: 0 } },
-        },
+        where: RECETA_BASE_WHERE,
         select: ARMA_SELECT,
         orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
       });

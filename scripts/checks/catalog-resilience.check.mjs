@@ -12,7 +12,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createResilientSource, defaultIsEmpty } from '../../src/lib/catalog/resilience.ts';
-import { CATALOG_SOURCE_KEYS } from '../../src/lib/catalog/queries.ts';
+import { CATALOG_SOURCE_KEYS, RECETA_BASE_WHERE, SOL_BASE_WHERE } from '../../src/lib/catalog/queries.ts';
 import { formatProducts as formatProductsRaw, countProducts, hasProducts } from '../../src/lib/home-fallback.ts';
 import { resolveStorageUrl } from '../../src/lib/utils/storage.ts';
 
@@ -169,5 +169,17 @@ check('precio en 6 cuotas formateado', fmt[0].price.startsWith('6 cuotas de $'))
 check('tope de 12 items', formatProducts(Array.from({ length: 30 }, (_, i) => row(`M${i}`))).length === 12);
 check('el snapshot del home formatea productos', formatProducts(home.destacados).length > 0);
 check('countProducts/hasProducts coherentes con el snapshot', hasProducts(home) && countProducts(home) > 0);
+
+console.log('\n— Vidrieras de armazones: página y respaldo con el mismo filtro (10/10/2026) —\n');
+// El respaldo de /receta traía un cristal Xperio de $913.780 sin stock que la
+// página en vivo excluía: las dos usaban filtros distintos.
+for (const [nombre, where] of [['receta', RECETA_BASE_WHERE], ['sol', SOL_BASE_WHERE]]) {
+  check(`${nombre}: el WHERE base excluye cristales y lo que no tiene stock`,
+    where.product?.category?.not === 'Cristal' && where.product?.stock?.gt === 0);
+}
+for (const [archivo, constante] of [['src/app/receta/page.tsx', 'RECETA_BASE_WHERE'], ['src/app/lentes-de-sol/page.tsx', 'SOL_BASE_WHERE']]) {
+  const fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8');
+  check(`${archivo} usa ${constante} (no una copia propia del filtro)`, new RegExp(`whereClause = ${constante}`).test(fuente));
+}
 
 console.log(`\n✅ ${passed} checks OK — el storefront no puede quedar sin productos\n`);
