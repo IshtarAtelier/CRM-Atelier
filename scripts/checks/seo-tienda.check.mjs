@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { generoSchemaOrg } from '../../src/lib/catalog/genero-schema.ts';
 import { urlAbsoluta } from '../../src/lib/url-absoluta.ts';
 import { SLUGS_HISTORICOS, slugVigenteDe } from '../../src/lib/catalog/slugs-historicos.ts';
+import { enlaceDeFichaVigente, nombreDelModelo } from '../../src/lib/catalog/enlace-a-ficha.ts';
 
 const raiz = fileURLToPath(new URL('../..', import.meta.url));
 const casos = [];
@@ -86,6 +87,22 @@ esperar('ninguna página pública define openGraph sin imagen', sinImagen.length
     const pagina = ficha.slice(ficha.indexOf('export default async function ProductPage'));
     esperar('la ficha busca el producto ANTES de mirar el mapa (un slug vigente nunca se redirige)',
         pagina.indexOf('getProduct(') > -1 && pagina.indexOf('slugVigenteDe(') > pagina.indexOf('getProduct('));
+}
+
+// ── Notas de la base con links a fichas dadas de baja (10/10/2026) ──
+{
+    const vivas = new Set(['hera-c4', 'pandora-c3', 'osiris-c4', 'armazon-receta-atelier-athena-91501-c6', 'helios-c1']);
+    esperar('link a una ficha publicada: queda igual', enlaceDeFichaVigente('/producto/hera-c4', vivas) === '/producto/hera-c4');
+    esperar('link absoluto a una publicada: queda igual', enlaceDeFichaVigente('https://atelieroptica.com.ar/producto/hera-c4', vivas) === 'https://atelieroptica.com.ar/producto/hera-c4');
+    esperar('renombrada → la vigente', enlaceDeFichaVigente('/producto/atelier-athena-906p', vivas) === '/producto/armazon-receta-atelier-athena-91501-c6');
+    esperar('dada de baja, el modelo sigue en otro color → búsqueda', enlaceDeFichaVigente('/producto/atelier-hera-dwcn', vivas) === '/tienda?q=hera');
+    esperar('dada de baja sin equivalente → /tienda', enlaceDeFichaVigente('/producto/aurora-c1', vivas) === '/tienda');
+    esperar('"iris" no se confunde con "osiris"', enlaceDeFichaVigente('/producto/atelier-iris-8u55', vivas) === '/tienda');
+    esperar('sin dato de fichas (base caída) no se toca', enlaceDeFichaVigente('/producto/aurora-c1', null) === '/producto/aurora-c1');
+    esperar('otros links no se tocan', enlaceDeFichaVigente('/blog/stellest', vivas) === '/blog/stellest' && enlaceDeFichaVigente('https://otro.com/producto/x', vivas) === 'https://otro.com/producto/x');
+    esperar('nombreDelModelo saca prefijos, color y códigos', nombreDelModelo('armazon-receta-escarlata-pandora-c5-hk011') === 'pandora' && nombreDelModelo('atelier-diana-k0k7') === 'diana');
+    const blog = readFileSync(new URL('../../src/app/blog/[slug]/page.tsx', import.meta.url), 'utf8');
+    esperar('las notas de la base pasan sus links por enlaceDeFichaVigente', /a:\s*\(tagName[^)]*\)\s*=>[\s\S]{0,200}enlaceDeFichaVigente/.test(blog));
 }
 
 const fallas = casos.filter((c) => !c.ok);
