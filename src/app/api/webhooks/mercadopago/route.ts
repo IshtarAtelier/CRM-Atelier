@@ -240,7 +240,8 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
       // pierde (el reclamo ya quedó marcado y no se vuelve a mandar).
       await prisma.notification.create({
         data: {
-          type: 'WEB_SALE',
+          // MP_COBRO (de admin): confirmar la venta no lo cierra.
+          type: 'MP_COBRO',
           message: `⚠️ Mercado Pago informó "${pago.status === 'refunded' ? 'devolución' : 'contracargo'}" del pago ${pago.id} por $${formatearPrecio(pago.amount)} en la Venta Web #${intent.orderId.slice(-4).toUpperCase()}. La venta NO se modificó: revisar en Mercado Pago y decidir qué hacer.`,
           orderId: intent.orderId,
           requestedBy: 'Sistema (Mercado Pago)',

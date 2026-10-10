@@ -183,11 +183,11 @@ for (const [archivo, queEs] of TARJETAS) {
     else mal('el cartel de producción no se bloquea como corresponde', JSON.stringify(rv));
     const doce = ['Hasta 12 cuotas sin interés', 'Hasta 12 cuotas, sin interés', 'Sin interés hasta en 12 cuotas', '12 s/interés', '12 CSI', 'Doce cuotas sin interés',
         'Hasta 12x sin interés', 'Cuotas x12 sin interés', '3/6/12 cuotas sin interés', '3,6,12 sin interés', 'Hasta 12 cuotas • Sin interés', '12 cuotas sin-interés',
-        '12 cuotas libres de interés', 'Sin interés en 3, 6 y 12 cuotas', 'Cuotas sin interés: 6 o 12', '12 y 6 cuotas sin interés', '12 cuotas sin costo financiero', '12 cuotas tasa 0'];
+        '12 cuotas libres de interés', 'Hasta 12 cuotas fijas sin interés', '12 cuotas de $5.000 sin interés', 'Hasta 12 cuotas - Sin interés', 'Hasta 12 cuotas. Sin interés', '12 cuotas con todas las tarjetas sin interés', 'Sin interés en 3, 6 y 12 cuotas', 'Cuotas sin interés: 6 o 12', '12 y 6 cuotas sin interés', '12 cuotas sin costo financiero', '12 cuotas tasa 0'];
     const validos = [CARTEL_PROMO_POR_DEFECTO, '3 y 6 cuotas sin interés, y hasta 12 cuotas fijas', 'Hasta 12 cuotas fijas y 3 o 6 sin interés', 'Hasta el 12/10: 6 cuotas sin interés',
         'Solo hasta el 12 de octubre: 3 y 6 cuotas sin interés', 'Armazones desde $12 mil en 6 cuotas sin interés', '6 cuotas sin interés de $12.000', 'Envío en 24 hs • 6 cuotas sin interés',
         'Hasta 12 cuotas fijas • Sin interés en 3 y 6 cuotas', 'Hasta 12 cuotas fijas • Débito sin recargo', 'Garantía de 12 meses • Cuotas sin interés',
-        'Más de 20 años de experiencia • Cuotas sin interés', 'Hot Sale del 13 al 15 de mayo • Cuotas sin interés', 'Hasta el 24/12 • Cuotas sin interés en 3 y 6'];
+        'Más de 20 años de experiencia • Cuotas sin interés', 'Hot Sale del 13 al 15 de mayo • Cuotas sin interés', 'Hasta el 24/12 • Cuotas sin interés en 3 y 6', 'Hasta 12 cuotas fijas sin interés en 3 y 6', '6 cuotas de $25.000 sin interés • hasta 12 fijas', 'Envío gratis - 6 cuotas sin interés'];
     const seEscapan = doce.filter((t) => revisarCartel(t).dudosos.length === 0);
     const seMarcan = validos.filter((t) => problemasDelCartel(t).length > 0);
     if (!seEscapan.length) ok(`las ${doce.length} formas de "12 sin interés" se detectan`); else mal('formas de "12 sin interés" que pasan', seEscapan.join(' | '));

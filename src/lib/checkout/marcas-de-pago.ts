@@ -15,5 +15,6 @@ export function tieneMarca(lastError: string | null | undefined, marca: string):
 export function conMarca(lastError: string | null | undefined, marca: string, texto: string): string {
   const previas = (lastError || '').match(MARCA) || [];
   const marcas = [...new Set([...previas, marca])];
-  return `${marcas.join('')} ${texto}`.slice(0, 2000);
+  // Se recorta el texto, nunca las marcas: son el candado.
+  return `${marcas.join('')} ${texto.slice(0, 500)}`;
 }

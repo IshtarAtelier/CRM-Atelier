@@ -253,12 +253,15 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
     // Un aviso por pago: el reintento del mismo aviso no lo duplica.
     const avisarParaConciliar = async (mensaje: string) => {
       const ya = await tx.notification.findFirst({
-        where: { orderId: order.id, type: 'WEB_SALE', message: { contains: gatewayPaymentId } },
+        where: { orderId: order.id, type: 'MP_COBRO', message: { contains: gatewayPaymentId } },
         select: { id: true },
       });
       if (ya) return;
       await tx.notification.create({
-        data: { type: 'WEB_SALE', message: mensaje, orderId: order.id, requestedBy: actorName, status: 'PENDING' },
+        // MP_COBRO y no WEB_SALE: confirmar la venta cierra todos sus WEB_SALE
+        // pendientes (confirm-web), y este aviso tiene que quedar hasta que
+        // alguien concilie. Es de admin: plata que entró de más.
+        data: { type: 'MP_COBRO', message: mensaje, orderId: order.id, requestedBy: actorName, status: 'PENDING' },
       });
     };
 

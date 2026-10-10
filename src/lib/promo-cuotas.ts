@@ -164,8 +164,12 @@ export function problemasDelCartel(texto: string): string[] {
 const SIN_INTERES = /sin[\s-]+interes|sin\s+int\b\.?|s\/\s*i(nt(eres)?)?\b|\bs\.\s*i\b\.?|sin\s+recargo|sin\s+costo\s+financiero|libres?\s+de\s+interes|0\s*%\s*(de\s+)?interes|\b0\s+interes|interes\s*0\b|\b(tasa|tna)\s*0\b|\bcsi\b/g;
 /** Una lista de cantidades de cuotas: "12", "3 y 6", "3, 6 y 12", "3/6/12", "6 o 12". */
 const LISTA = String.raw`\d+(?:\s*(?:,|\/|-|\by\b|\bo\b)\s*\d+)*`;
-/** Lo que puede ir entre la lista y el "sin interés": "12 cuotas, sin interés". */
-const DESPUES_DE_LISTA = String.raw`\s*(?:cuotas?|pagos?)?\s*,?\s*`;
+/**
+ * Lo que puede ir entre la lista y el "sin interés": "12 cuotas, sin interés",
+ * "12 cuotas fijas sin interés", "12 cuotas de $5.000 sin interés", "12 cuotas
+ * con todas las tarjetas sin interés". El grupo 2 avisa si dijo "fijas".
+ */
+const DESPUES_DE_LISTA = String.raw` ?(?:(?:cuotas?|pagos?)(?: (fijas?|promocionales?))?)?(?: de \$ ?[\d.]+)?(?: con (?:todas las )?tarjetas?(?: de credito)?)? ?[,:]? ?`;
 const PALABRAS_SIN_SUJETO = new Set(['cuotas', 'cuota', 'sin', 'interes', 'en', 'todas', 'las', 'con', 'tarjeta', 'tarjetas', 'de', 'credito', 'y', 'hasta', 'pagos', 'pago', 'todos', 'los', 'medios', 'para', 'vos', 'tu', 'compra']);
 
 const numerosDe = (lista: string) => (lista.match(/\d+/g) || []).map(Number);
@@ -185,11 +189,16 @@ const numerosDe = (lista: string) => (lista.match(/\d+/g) || []).map(Number);
  *     • Sin interés").
  */
 function prometeDoceSinInteres(textoNormalizado: string): boolean {
+  // Espacios colapsados y largo acotado: el cartel es una línea, y así
+  // ninguna expresión puede tardar (corre en la barra de cada visitante).
   const t = textoNormalizado
+    .replace(/\s+/g, ' ').slice(0, 400)
     .replace(/\bdoce\b/g, '12').replace(/\bseis\b/g, '6').replace(/\btres\b/g, '3')
     // "12x", "x12" → "12 cuotas"
-    .replace(/(\d+)\s*x\b/g, '$1 cuotas').replace(/\bx\s*(\d+)/g, '$1 cuotas');
-  const tramos = t.split(/\s*[•·|]\s*/);
+    .replace(/(\d+) ?x\b/g, '$1 cuotas').replace(/\bx ?(\d+)/g, '$1 cuotas');
+  // Tramos: lo que la barra rota (• · |) y lo que se lee como frase aparte
+  // (" - ", " — ", ". ", " / ").
+  const tramos = t.split(/ ?[•·|] ?| [-–—] | \/ |\. /);
   for (let i = 0; i < tramos.length; i++) {
     const tramo = tramos[i];
     for (const m of tramo.matchAll(SIN_INTERES)) {
@@ -198,8 +207,10 @@ function prometeDoceSinInteres(textoNormalizado: string): boolean {
       const despues = tramo.slice(pos + m[0].length);
       let duenos: number[] = [];
       const listaAntes = new RegExp(`(?:^|[^\\d$.,/])(${LISTA})${DESPUES_DE_LISTA}$`).exec(antes);
-      const listaDespues = new RegExp(`^\\s*[:,]?\\s*(?:hasta\\s+)?(?:en\\s+)?(?:hasta\\s+)?(${LISTA})(?!\\s*(?:mil|%|hs?\\b|horas?|dias?|meses?|anos?))`).exec(despues);
-      if (listaAntes) duenos = numerosDe(listaAntes[1]);
+      const listaDespues = new RegExp(`^ ?[:,]? ?(?:hasta )?(?:en )?(?:hasta )?(${LISTA})(?! ?(?:mil|%|hs?\\b|horas?|dias?|meses?|anos?))`).exec(despues);
+      // "Hasta 12 cuotas fijas sin interés en 3 y 6": si antes dijo "fijas" y
+      // después viene una lista, el "sin interés" es de la que sigue.
+      if (listaAntes && !(listaAntes[2] && listaDespues)) duenos = numerosDe(listaAntes[1]);
       else if (listaDespues) duenos = numerosDe(listaDespues[1]);
       else if (!/\d/.test(tramo) && i > 0) {
         const otras = (antes + ' ' + despues).split(/[^a-z]+/).filter((w) => w && !PALABRAS_SIN_SUJETO.has(w));

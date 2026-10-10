@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { revisarConfiguracion } from "@/lib/web-settings-reglas";
 import { Selector2x1Web } from "@/components/admin/Selector2x1Web";
 import { 
@@ -507,12 +507,16 @@ export default function WebManagementPage() {
     loadWebConfig();
   }, []);
 
+  // El cartel tal como está guardado: si no cambió, no se vuelve a pedir
+  // confirmación por lo dudoso (ya se confirmó cuando se guardó).
+  const cartelCargadoRef = useRef<string | null>(null);
   const loadWebConfig = async () => {
     setLoadingConfig(true);
     try {
       const res = await fetch('/api/settings');
       if (res.ok) {
         const data = await res.json();
+        cartelCargadoRef.current = data.web_announcement_text ?? null;
         setConfigForm({
           // Mismo default que la tienda (`promo-cuotas.ts`). Acá decía otra cosa
           // —sin las 12 cuotas— así que el formulario proponía un cartel que no
@@ -549,14 +553,20 @@ export default function WebManagementPage() {
       alert(`No se guardó nada. El cartel de la tienda:\n\n${revision.bloqueantes.join('\n')}`);
       return;
     }
-    // Lo dudoso lo decide quien edita: la regla lee el texto y puede equivocarse.
-    const cartelConfirmado = revision.dudosos.length > 0
+    // Lo dudoso lo decide quien edita: la regla lee el texto y puede
+    // equivocarse. Solo si el cartel CAMBIÓ: uno ya confirmado no vuelve a
+    // preguntar cada vez que se guarda otra cosa.
+    const cartelCambio = configForm.web_announcement_text !== cartelCargadoRef.current;
+    const preguntar = cartelCambio && revision.dudosos.length > 0;
+    const cartelConfirmado = preguntar
       ? window.confirm(`El cartel de la tienda:\n\n${revision.dudosos.join('\n')}\n\n¿Guardarlo igual?`)
       : false;
-    if (revision.dudosos.length > 0 && !cartelConfirmado) return;
+    if (preguntar && !cartelConfirmado) return;
     setSavingConfig(true);
     try {
-      const promises = Object.entries(configForm).map(([key, value]) => {
+      // El cartel sin cambios no se reenvía (si era dudoso, el servidor
+      // volvería a pedir la confirmación que ya se dio).
+      const promises = Object.entries(configForm).filter(([key]) => key !== 'web_announcement_text' || cartelCambio).map(([key, value]) => {
         return fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

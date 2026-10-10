@@ -36,8 +36,11 @@ const PROHIBIDO = [
   [/\.(findLast|findLastIndex|toSorted|toReversed|toSpliced)\(/, 'métodos de array de ES2023 (Safari < 15.4/16)'],
 ];
 // crypto.randomUUID existe desde Safari 15.4: solo con guarda (?.() o typeof) o por idAleatorio().
-const UUID_SIN_GUARDA = /crypto\.randomUUID\(\)/;
-const UUID_CON_GUARDA = /randomUUID\?\.\(|typeof crypto|'randomUUID' in crypto|typeof crypto\.randomUUID/;
+// Guarda válida: preguntar por randomUUID mismo ("'randomUUID' in crypto",
+// "typeof crypto.randomUUID", "crypto.randomUUID ?", "randomUUID?.()").
+// "typeof crypto" NO alcanza: en iOS 15.0–15.3 crypto existe y randomUUID no.
+const UUID_SIN_GUARDA = /crypto\??\.randomUUID\(\)/;
+const UUID_CON_GUARDA = /randomUUID\?\.\(|crypto\.randomUUID(?![(?])|'randomUUID' in crypto/;
 
 const malos = [];
 const recorrer = (dir) => {
