@@ -1,0 +1,23 @@
+{
+  "id": "story-stellest-25-dias",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "Un Stellest tarda alrededor de 25 días hábiles: Essilor lo fabrica a pedido para la receta de tu hijo, con las 1.021 micro-lentes posicionadas para sus medidas. Si tenés una fecha límite, avisanos al pedirlo. Atelier es óptica certificada para Stellest en Córdoba. José Luis de Tejeda 4380, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "¿Cuánto tarda un *Stellest*?",
+      "dato": "25",
+      "body": "días hábiles, aproximadamente. *Essilor* lo fabrica a pedido para la receta de tu hijo. Por eso tarda más que un cristal común.",
+      "cta": "¿Fecha límite? Avisanos al pedirlo. Somos óptica certificada."
+    }
+  ]
+}

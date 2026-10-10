@@ -4,6 +4,7 @@ import { AccordionItem } from "@/components/Storefront/Accordion";
 import { CristalHero } from "@/components/cristales/CristalHero";
 import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
+import { MasSobreStellest } from "@/components/blog/NotaStellest";
 
 export const metadata: Metadata = {
   alternates: { canonical: '/cristales-opticos/stellest' },
@@ -189,6 +190,19 @@ export default function StellestPage() {
           <div className="relative h-64 md:h-80 w-full rounded-2xl overflow-hidden shadow-lg">
             <Image src="/images/stellest/stellest-3.jpeg" alt="Stellest Control Miopía 3" fill className="object-cover" />
           </div>
+        </div>
+      </section>
+
+      <section className="w-full py-12 px-6">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--dorado-texto)] mb-2">
+            Óptica certificada Stellest en Córdoba
+          </p>
+          <p className="text-black/70 mb-6">
+            Essilor fabrica Stellest solo para ópticas certificadas. Atelier lo está. Todo lo que
+            escribimos sobre Stellest, en un lugar:
+          </p>
+          <MasSobreStellest />
         </div>
       </section>
 

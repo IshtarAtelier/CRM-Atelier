@@ -27,7 +27,7 @@
     "día). Si avanzara de a 2 como antes, la tarde repetiría exactamente lo de la",
     "mañana. El PLAN del cron es la única fuente de esos números.",
     "",
-    "Ciclos: contenido 66 piezas ÷ 4 = 16,5 días. Agostina 90 modelos ÷ 2 = 45 días.",
+    "Ciclos: contenido 68 piezas ÷ 4 = 17 días. Agostina 90 modelos ÷ 2 = 45 días.",
     "Ninguno es múltiplo exacto de lo que consume el día, así que los grupos",
     "diarios rotan entre vueltas — es deseado, no un bug: la misma pieza no cae",
     "siempre en la misma compañía.",
@@ -69,7 +69,8 @@
     "Reseñas (31/8/26): story-resena-anita, story-resena-claudia,",
     "story-resena-silvia y story-700-resenas son prueba social con reseñas",
     "REALES de Google (regla R7: cita textual + autor + fuente + fecha).",
-    "Van separadas ~10 posiciones para que no caigan dos el mismo día."
+    "Van separadas ~10 posiciones para que no caigan dos el mismo día.",
+    "10/10/26: +story-stellest-certificada (pos. 8, propuesta) y +story-stellest-25-dias (pos. 58, educación). Ishtar pidió mucho contenido de Stellest; van a ≥5 posiciones de cualquier otra de Stellest. Carril: 68 piezas."
   ],
   "carriles": {
     "contenido": [
@@ -104,6 +105,10 @@
       {
         "id": "story-marean",
         "tipo": "educacion"
+      },
+      {
+        "id": "story-stellest-certificada",
+        "tipo": "propuesta"
       },
       {
         "id": "donde-estamos",
@@ -299,6 +304,10 @@
       },
       {
         "id": "story-dato-bifocal-sin-medio",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-stellest-25-dias",
         "tipo": "educacion"
       },
       {
