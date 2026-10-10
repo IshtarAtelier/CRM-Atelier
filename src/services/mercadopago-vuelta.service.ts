@@ -45,7 +45,11 @@ export async function resolverVueltaSinPago(orderId: string): Promise<ResultadoV
       gatewayInstallments: pago.installments,
     });
     if (!r.ok) await avisarCobroSinVenta(pago, `al volver al sitio no se pudo acreditar: ${r.reason}`);
-    return r.ok && !r.aConciliar ? 'acreditada' : 'a-revisar';
+    if (!r.ok || r.aConciliar) return 'a-revisar';
+    // "Ya procesado" puede ser que el webhook la acreditó primero, o que la
+    // cerró sin acreditar (borrada, a conciliar): se mira cómo quedó la venta.
+    const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { status: true, isDeleted: true } });
+    return venta && !venta.isDeleted && (venta.status === 'WEB_PAID' || venta.status === 'PAID') ? 'acreditada' : 'a-revisar';
   }
   const r = await failWebPayment({
     intentId: intento.id,

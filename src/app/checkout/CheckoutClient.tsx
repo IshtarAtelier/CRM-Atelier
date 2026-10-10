@@ -403,7 +403,7 @@ export function CheckoutClient({
     }
 
     try { track('checkout_error', { value: totalConPromo2x1, meta: { motivo: 'mercado_pago_' + estado, metodo: 'MERCADO_PAGO' } }); } catch { /* nunca frena */ }
-    toast.error("El pago no se completó. Tu carrito sigue acá: podés reintentar o elegir otro medio de pago.", { duration: 10000 });
+    const avisoNoSeCompleto = toast.error("El pago no se completó. Tu carrito sigue acá: podés reintentar o elegir otro medio de pago.", { duration: 10000 });
     // Que el "podés reintentar" sea cierto: la reserva de este intento se
     // resuelve ya (el servidor le pregunta a Mercado Pago). Sin esto quedaba 2
     // horas y el reintento chocaba con su propio stock o con "ya fue procesado".
@@ -415,6 +415,7 @@ export function CheckoutClient({
       })
         .then(r => r.json().catch(() => ({})))
         .then((d: { resultado?: string }) => {
+          if (d?.resultado === 'acreditada' || d?.resultado === 'a-revisar') toast.dismiss(avisoNoSeCompleto);
           if (d?.resultado === 'acreditada') {
             // Mercado Pago sí lo aprobó (volvió por la pantalla equivocada).
             toast.success("¡Tu pago se acreditó! Te mandamos la confirmación por email.", { duration: 10000 });
@@ -422,7 +423,8 @@ export function CheckoutClient({
             clearCart();
             setIsSuccess(true);
           } else if (d?.resultado === 'a-revisar') {
-            toast.info("Mercado Pago nos informó un pago: lo estamos revisando y te escribimos por WhatsApp.", { duration: 10000 });
+            // Hay un pago aprobado: que no pague dos veces.
+            toast.info("Mercado Pago nos informó un pago aprobado. No vuelvas a pagar: lo estamos revisando y te escribimos por WhatsApp.", { duration: 15000 });
           } else if (d?.resultado === 'liberada') {
             refrescarCarrito();
           }

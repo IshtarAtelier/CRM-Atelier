@@ -5,7 +5,7 @@ import { decrypt } from '@/lib/auth';
 import { defaultWebSettings } from '@/lib/web-settings';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
-import { problemasDeConfiguracion } from '@/lib/web-settings-reglas';
+import { revisarConfiguracion } from '@/lib/web-settings-reglas';
 
 export async function GET(request: Request) {
     try {
@@ -77,17 +77,22 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { key, value } = body;
+        const { key, value, confirmado } = body;
 
         if (!key || value === undefined) {
             return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
         }
 
-        // Reglas de redacción que la tienda tiene que cumplir (el cartel: ni
-        // "efectivo" ni "12 cuotas sin interés"). Antes de escribir nada.
-        const problemas = problemasDeConfiguracion(key, value);
-        if (problemas.length > 0) {
-            return NextResponse.json({ error: problemas.join(' ') }, { status: 400 });
+        // Reglas de redacción que la tienda tiene que cumplir, antes de
+        // escribir nada: lo inequívoco ("efectivo" en el cartel online) no se
+        // guarda; lo dudoso ("12 cuotas sin interés" leído en el texto) solo
+        // con la confirmación de quien edita.
+        const revision = revisarConfiguracion(key, value);
+        if (revision.bloqueantes.length > 0) {
+            return NextResponse.json({ error: revision.bloqueantes.join(' ') }, { status: 400 });
+        }
+        if (revision.dudosos.length > 0 && confirmado !== true) {
+            return NextResponse.json({ error: revision.dudosos.join(' '), dudoso: true }, { status: 409 });
         }
 
         // Leer el valor previo antes del upsert para dejar before/after en la auditoría

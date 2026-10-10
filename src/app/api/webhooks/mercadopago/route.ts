@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { conMarca } from '@/lib/checkout/marcas-de-pago';
 import { formatearPrecio } from '@/lib/format-precio';
 import { prisma } from '@/lib/db';
 import {
@@ -229,12 +230,23 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
           id: intent.id,
           OR: [{ lastError: null }, { NOT: { lastError: { contains: marca } } }],
         },
-        data: { gatewayStatus: pago.status, lastError: `${marca} Mercado Pago informó "${pago.status}". Requiere revisión manual.` },
+        data: { gatewayStatus: pago.status, lastError: conMarca(intent.lastError, marca, `Mercado Pago informó "${pago.status}". Requiere revisión manual.`) },
       });
       if (reclamado.count !== 1) {
         return { detalle: `${pago.status}: ya avisado`, orderId: intent.orderId };
       }
       console.warn(`[MP WEBHOOK] ${pago.status} del pago ${pago.id} sobre la orden ${intent.orderId}.`);
+      // Queda también en la campana del CRM: si el mail falla, el aviso no se
+      // pierde (el reclamo ya quedó marcado y no se vuelve a mandar).
+      await prisma.notification.create({
+        data: {
+          type: 'WEB_SALE',
+          message: `⚠️ Mercado Pago informó "${pago.status === 'refunded' ? 'devolución' : 'contracargo'}" del pago ${pago.id} por $${formatearPrecio(pago.amount)} en la Venta Web #${intent.orderId.slice(-4).toUpperCase()}. La venta NO se modificó: revisar en Mercado Pago y decidir qué hacer.`,
+          orderId: intent.orderId,
+          requestedBy: 'Sistema (Mercado Pago)',
+          status: 'PENDING',
+        },
+      }).catch((err) => console.error('Error creando el aviso de devolución/contracargo:', err));
       const { sendEmail } = await import('@/lib/email');
       const { ADMIN_ALERT_EMAILS } = await import('@/lib/constants');
       await sendEmail({

@@ -128,83 +128,88 @@ export const CARTEL_PROMO_POR_DEFECTO =
   `${BUSINESS_INFO.discountTransferPercent}% OFF por Transferencia • Envío Gratis`;
 
 /**
- * Lo que el cartel de arriba de la tienda NO puede decir, con el motivo que
- * ve quien lo edita en /admin/web. Vacío = se puede guardar.
+ * Lo que el cartel de arriba de la tienda NO puede decir, separado por cuán
+ * seguro es:
+ *  · `bloqueantes`: inequívoco. "Efectivo" en la tienda online (el descuento es
+ *    solo por transferencia; el efectivo es del local). No se guarda, y si ya
+ *    estaba guardado tampoco se muestra.
+ *  · `dudosos`: parece prometer 12 cuotas sin interés (sin interés son solo 3
+ *    y 6; las 12 son fijas). La detección lee el texto, así que puede
+ *    equivocarse: al guardar pide confirmación, y al mostrar NO reemplaza nada
+ *    (un falso positivo no puede tapar un cartel legítimo en vivo).
  *
- * El texto vivo está en la base y le gana al default: el 10/10/2026 en
- * producción decía "15% OFF en Efectivo o Transferencia", que la tienda no
- * cumple (online el descuento es solo por transferencia; el efectivo es del
- * local). Nada impedía guardarlo, así que las reglas se fijan acá y las
- * aplica la ruta que guarda la configuración.
+ * El texto vivo está en la base y le gana al default: el 10/10/2026 producción
+ * decía "15% OFF en Efectivo o Transferencia" y nada impedía guardarlo.
  */
-export function problemasDelCartel(texto: string): string[] {
+export function revisarCartel(texto: string): { bloqueantes: string[]; dudosos: string[] } {
   const t = (texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  const problemas: string[] = [];
+  const bloqueantes: string[] = [];
+  const dudosos: string[] = [];
   if (/\befectivo\b/.test(t)) {
-    problemas.push('En la tienda online el descuento es solo por transferencia: el efectivo es del local. Escribí "por Transferencia".');
+    bloqueantes.push('En la tienda online el descuento es solo por transferencia: el efectivo es del local. Escribí "por Transferencia".');
   }
-  // Las 12 son FIJAS; sin interés son solo 3 y 6 (CLAUDE.md). Se mira a qué
-  // número queda pegado cada "sin interés": "12 cuotas fijas y 3 o 6 sin
-  // interés" está bien; "hasta 12 cuotas, sin interés", "12x sin interés",
-  // "3/6/12 sin interés" y "sin interés hasta en 12 cuotas" no. Fechas,
-  // precios y horas ("12/10", "12 de octubre", "$12.000", "12 mil") no son
-  // cuotas. Se mira el texto entero y no por tramo: "Hasta 12 cuotas • Sin
-  // interés" se lee igual en la barra que rota.
   if (prometeDoceSinInteres(t)) {
-    problemas.push(`Las 12 cuotas no son sin interés: van como "${TEXTO_MP_CUOTAS_LARGAS}". Sin interés son solo 3 y 6.`);
+    dudosos.push(`Parece decir que las 12 cuotas son sin interés: van como "${TEXTO_MP_CUOTAS_LARGAS}". Sin interés son solo 3 y 6.`);
   }
-  return problemas;
+  return { bloqueantes, dudosos };
+}
+
+/** Todo lo que el cartel no debería decir (bloqueante o dudoso). */
+export function problemasDelCartel(texto: string): string[] {
+  const r = revisarCartel(texto);
+  return [...r.bloqueantes, ...r.dudosos];
 }
 
 /** Sinónimos de "sin interés" que se usan en carteles. */
-const SIN_INTERES = /sin[\s-]+interes|s\/\s*i(nt(eres)?)?\b|sin\s+recargo|libres?\s+de\s+interes|0\s*%\s*(de\s+)?interes|interes\s*0\b|\bcsi\b/g;
-const MESES = 'enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre';
-/** Cantidades de cuotas que se escriben en listas ("3/6/12", "3, 6 y 12"). */
-const CUOTAS_POSIBLES = new Set([3, 6, 12, 18, 24]);
+const SIN_INTERES = /sin[\s-]+interes|sin\s+int\b\.?|s\/\s*i(nt(eres)?)?\b|\bs\.\s*i\b\.?|sin\s+recargo|sin\s+costo\s+financiero|libres?\s+de\s+interes|0\s*%\s*(de\s+)?interes|\b0\s+interes|interes\s*0\b|\b(tasa|tna)\s*0\b|\bcsi\b/g;
+/** Una lista de cantidades de cuotas: "12", "3 y 6", "3, 6 y 12", "3/6/12", "6 o 12". */
+const LISTA = String.raw`\d+(?:\s*(?:,|\/|-|\by\b|\bo\b)\s*\d+)*`;
+/** Lo que puede ir entre la lista y el "sin interés": "12 cuotas, sin interés". */
+const DESPUES_DE_LISTA = String.raw`\s*(?:cuotas?|pagos?)?\s*,?\s*`;
+const PALABRAS_SIN_SUJETO = new Set(['cuotas', 'cuota', 'sin', 'interes', 'en', 'todas', 'las', 'con', 'tarjeta', 'tarjetas', 'de', 'credito', 'y', 'hasta', 'pagos', 'pago', 'todos', 'los', 'medios', 'para', 'vos', 'tu', 'compra']);
+
+const numerosDe = (lista: string) => (lista.match(/\d+/g) || []).map(Number);
 
 /**
- * Los números de CUOTAS del texto (no fechas, precios, horas ni porcentajes),
- * con su posición. Sin lookbehind a propósito: este módulo lo carga el
- * navegador en toda la tienda, y Safari anterior a 16.4 no lo entiende — el
- * archivo entero dejaba de cargar en iPhones con iOS 15 (revisión del 10/10/2026).
+ * ¿Algún "sin interés" queda pegado a 12 o más? Sin lookbehind a propósito:
+ * este módulo lo carga el navegador en toda la tienda, y Safari anterior a
+ * 16.4 no lo entiende (el archivo entero dejaba de cargar en iOS 15).
+ *
+ * Solo cuentan los números pegados a "cuotas"/"pagos" o al "sin interés":
+ * "garantía de 12 meses", "envío en 24 horas", "del 13 al 15 de mayo", "hasta
+ * el 24/12" no son cuotas. Se mira tramo por tramo (como rota la barra):
+ *  1. la lista justo ANTES ("3 y 6 cuotas sin interés", "hasta 12 cuotas, sin interés");
+ *  2. si no, la lista justo DESPUÉS ("sin interés en 3, 6 y 12 cuotas");
+ *  3. si el tramo no tiene números ni otro sujeto ("Cuotas sin interés"), la
+ *     lista de cuotas del tramo anterior que no diga "fijas" ("Hasta 12 cuotas
+ *     • Sin interés").
  */
-function numerosDeCuotas(t: string): { pos: number; valor: number }[] {
-  const salida: { pos: number; valor: number }[] = [];
-  const palabras: Record<string, number> = { tres: 3, seis: 6, doce: 12 };
-  const re = /(\$\s*)?(\d+(?:\.\d{3})+|\d+)|\b(tres|seis|doce)\b/g;
-  for (const m of t.matchAll(re)) {
-    const pos = m.index ?? 0;
-    if (m[3]) {
-      salida.push({ pos, valor: palabras[m[3]] });
-      continue;
-    }
-    if (m[1] || m[2].includes('.')) continue; // precio: "$12.000", "12.000"
-    const valor = Number(m[2]);
-    const despues = t.slice(pos + m[0].length);
-    if (/^\s*(mil\b|%|hs?\b|:\d)/.test(despues)) continue; // "12 mil", "15%", "12 hs", "12:30"
-    if (new RegExp(`^\\s+de\\s+(${MESES})`).test(despues)) continue; // "12 de octubre"
-    const barra = /^\/(\d+)/.exec(despues);
-    const antesBarra = /(\d+)\/$/.exec(t.slice(0, pos));
-    // "12/10" es una fecha; "3/6/12" es una lista de cuotas (todos posibles).
-    if (barra && !CUOTAS_POSIBLES.has(Number(barra[1]))) continue;
-    if (antesBarra && !(CUOTAS_POSIBLES.has(Number(antesBarra[1])) && CUOTAS_POSIBLES.has(valor))) continue;
-    salida.push({ pos, valor });
-  }
-  return salida;
-}
-
 function prometeDoceSinInteres(textoNormalizado: string): boolean {
-  // "12x", "x12" → "12 cuotas" (la x pegada al número es lo mismo).
-  const t = textoNormalizado.replace(/(\d+)\s*x\b/g, '$1 cuotas').replace(/\bx\s*(\d+)/g, '$1 cuotas');
-  const numeros = numerosDeCuotas(t);
-  if (!numeros.some((n) => n.valor >= 12)) return false;
-  for (const m of t.matchAll(SIN_INTERES)) {
-    const pos = m.index ?? 0;
-    // El número más cercano ANTES del "sin interés" es el que lo lleva; si no
-    // hay ninguno antes, el primero de después ("sin interés hasta 12…").
-    const antes = numeros.filter((n) => n.pos < pos).pop();
-    const dueno = antes ?? numeros.find((n) => n.pos > pos);
-    if (dueno && dueno.valor >= 12) return true;
+  const t = textoNormalizado
+    .replace(/\bdoce\b/g, '12').replace(/\bseis\b/g, '6').replace(/\btres\b/g, '3')
+    // "12x", "x12" → "12 cuotas"
+    .replace(/(\d+)\s*x\b/g, '$1 cuotas').replace(/\bx\s*(\d+)/g, '$1 cuotas');
+  const tramos = t.split(/\s*[•·|]\s*/);
+  for (let i = 0; i < tramos.length; i++) {
+    const tramo = tramos[i];
+    for (const m of tramo.matchAll(SIN_INTERES)) {
+      const pos = m.index ?? 0;
+      const antes = tramo.slice(0, pos);
+      const despues = tramo.slice(pos + m[0].length);
+      let duenos: number[] = [];
+      const listaAntes = new RegExp(`(?:^|[^\\d$.,/])(${LISTA})${DESPUES_DE_LISTA}$`).exec(antes);
+      const listaDespues = new RegExp(`^\\s*[:,]?\\s*(?:hasta\\s+)?(?:en\\s+)?(?:hasta\\s+)?(${LISTA})(?!\\s*(?:mil|%|hs?\\b|horas?|dias?|meses?|anos?))`).exec(despues);
+      if (listaAntes) duenos = numerosDe(listaAntes[1]);
+      else if (listaDespues) duenos = numerosDe(listaDespues[1]);
+      else if (!/\d/.test(tramo) && i > 0) {
+        const otras = (antes + ' ' + despues).split(/[^a-z]+/).filter((w) => w && !PALABRAS_SIN_SUJETO.has(w));
+        if (otras.length === 0) {
+          const previas = [...tramos[i - 1].matchAll(new RegExp(`(${LISTA})\\s*(?:cuotas?|pagos?)\\b(?!\\s+fijas?)`, 'g'))];
+          if (previas.length) duenos = numerosDe(previas[previas.length - 1][1]);
+        }
+      }
+      if (duenos.some((n) => n >= 12)) return true;
+    }
   }
   return false;
 }
@@ -217,6 +222,8 @@ function prometeDoceSinInteres(textoNormalizado: string): boolean {
  */
 export function cartelQueSePuedeMostrar(guardado: string | null | undefined): string {
   const texto = (guardado || '').trim();
-  if (!texto || problemasDelCartel(texto).length > 0) return CARTEL_PROMO_POR_DEFECTO;
+  // Solo lo inequívoco lo reemplaza: un "dudoso" puede ser un falso positivo
+  // y no puede tapar un cartel legítimo en vivo (se confirma al guardarlo).
+  if (!texto || revisarCartel(texto).bloqueantes.length > 0) return CARTEL_PROMO_POR_DEFECTO;
   return texto;
 }

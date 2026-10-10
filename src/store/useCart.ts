@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { idAleatorio } from '@/lib/id-aleatorio';
 import { persist } from 'zustand/middleware';
 import { trackAddToCart } from '@/lib/tracking';
 
@@ -85,7 +86,7 @@ export const useCart = create<CartState>()(
           }
 
           return {
-            items: [...state.items, { ...item, id: crypto.randomUUID(), basePrice: item.basePrice ?? item.price }],
+            items: [...state.items, { ...item, id: idAleatorio('item'), basePrice: item.basePrice ?? item.price }],
             isOpen: true,
           };
         });

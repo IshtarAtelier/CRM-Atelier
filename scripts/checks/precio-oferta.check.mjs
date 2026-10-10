@@ -32,8 +32,8 @@ import { dirname, resolve } from 'node:path';
 import { precioConOferta } from '../../src/lib/precio-oferta.ts';
 import { effectiveFramePrice } from '../../src/lib/checkout/checkout-pricing.ts';
 import { PricingService } from '../../src/services/PricingService.ts';
-import { problemasDelCartel, CARTEL_PROMO_POR_DEFECTO, cartelQueSePuedeMostrar } from '../../src/lib/promo-cuotas.ts';
-import { problemasDeConfiguracion } from '../../src/lib/web-settings-reglas.ts';
+import { problemasDelCartel, revisarCartel, CARTEL_PROMO_POR_DEFECTO, cartelQueSePuedeMostrar } from '../../src/lib/promo-cuotas.ts';
+import { revisarConfiguracion } from '../../src/lib/web-settings-reglas.ts';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const raiz = resolve(aqui, '../..');
@@ -173,32 +173,39 @@ for (const [archivo, queEs] of TARJETAS) {
 }
 
 // ── 7. El cartel de arriba no promete lo que la tienda no cumple (10/10/2026) ─
+// Dos niveles: "efectivo" es inequívoco (no se guarda y no se muestra);
+// "12 sin interés" lo detecta una lectura del texto que puede equivocarse
+// (al guardar pide confirmación; al mostrar no reemplaza nada).
 {
     const vivo = '6 Cuotas Sin Interés • Hasta 12 Pagos • 15% OFF en Efectivo o Transferencia • Envío Gratis';
-    if (problemasDelCartel(vivo).length === 1) ok('el cartel que había en producción ("en Efectivo o Transferencia") no se puede guardar');
-    else mal('el cartel con "efectivo" se puede guardar', JSON.stringify(problemasDelCartel(vivo)));
-    if (problemasDelCartel('Hasta 12 cuotas sin interés • Envío gratis').length === 1 && problemasDelCartel('12 s/interés').length === 1) ok('"12 cuotas sin interés" no se puede guardar');
-    else mal('"12 cuotas sin interés" se puede guardar', '');
-    if (problemasDelCartel(CARTEL_PROMO_POR_DEFECTO).length === 0 && problemasDelCartel('3 y 6 cuotas sin interés, y hasta 12 cuotas fijas').length === 0) ok('el cartel por defecto y la fórmula de Ishtar pasan');
-    else mal('el cartel correcto se rechaza', JSON.stringify(problemasDelCartel(CARTEL_PROMO_POR_DEFECTO)));
-    // Frases reales (revisión del 10/10/2026): las que se escapaban y las que se bloqueaban mal.
-    const prohibidas = ['Hasta 12x sin interés', 'Cuotas x12 sin interés', '3/6/12 cuotas sin interés', '3,6,12 sin interés', 'Hasta 12 cuotas • Sin interés', '12 cuotas sin-interés', '12 cuotas libres de interés', '12 s/interés', 'Hasta 12 cuotas, sin interés', 'Sin interés hasta en 12 cuotas', '12 cuotas s/i', '12 CSI', 'Doce cuotas sin interés', '12 cuotas sin recargo'];
-    const validas = ['3/6 cuotas sin interés • hasta 12 fijas', 'Envío en 24 hs • 6 cuotas sin interés', 'Hasta 12x fijas • 3 y 6 sin interés', 'Hasta 12 cuotas fijas y 3 o 6 sin interés', 'Hasta el 12/10: 6 cuotas sin interés', 'Solo hasta el 12 de octubre: 3 y 6 cuotas sin interés', 'Armazones desde $12 mil en 6 cuotas sin interés', '6 cuotas sin interés de $12.000'];
-    const seEscapan = prohibidas.filter((t) => problemasDelCartel(t).length === 0);
-    const seBloquean = validas.filter((t) => problemasDelCartel(t).length > 0);
-    if (!seEscapan.length) ok(`las ${prohibidas.length} variantes de "12 sin interés" se rechazan`); else mal('variantes de "12 sin interés" que pasan', seEscapan.join(' | '));
-    if (!seBloquean.length) ok(`las ${validas.length} frases válidas (fechas, precios, orden inverso) pasan`); else mal('frases válidas rechazadas', seBloquean.join(' | '));
-    if (problemasDeConfiguracion('web_announcement_text', vivo).length > 0 && problemasDeConfiguracion('web_store_phone', 'efectivo').length === 0) ok('problemasDeConfiguracion aplica la regla al cartel y a ninguna otra clave');
-    else mal('problemasDeConfiguracion no aplica bien la regla', '');
+    const rv = revisarCartel(vivo);
+    if (rv.bloqueantes.length === 1 && rv.dudosos.length === 0) ok('el cartel que había en producción ("en Efectivo o Transferencia") se bloquea');
+    else mal('el cartel de producción no se bloquea como corresponde', JSON.stringify(rv));
+    const doce = ['Hasta 12 cuotas sin interés', 'Hasta 12 cuotas, sin interés', 'Sin interés hasta en 12 cuotas', '12 s/interés', '12 CSI', 'Doce cuotas sin interés',
+        'Hasta 12x sin interés', 'Cuotas x12 sin interés', '3/6/12 cuotas sin interés', '3,6,12 sin interés', 'Hasta 12 cuotas • Sin interés', '12 cuotas sin-interés',
+        '12 cuotas libres de interés', 'Sin interés en 3, 6 y 12 cuotas', 'Cuotas sin interés: 6 o 12', '12 y 6 cuotas sin interés', '12 cuotas sin costo financiero', '12 cuotas tasa 0'];
+    const validos = [CARTEL_PROMO_POR_DEFECTO, '3 y 6 cuotas sin interés, y hasta 12 cuotas fijas', 'Hasta 12 cuotas fijas y 3 o 6 sin interés', 'Hasta el 12/10: 6 cuotas sin interés',
+        'Solo hasta el 12 de octubre: 3 y 6 cuotas sin interés', 'Armazones desde $12 mil en 6 cuotas sin interés', '6 cuotas sin interés de $12.000', 'Envío en 24 hs • 6 cuotas sin interés',
+        'Hasta 12 cuotas fijas • Sin interés en 3 y 6 cuotas', 'Hasta 12 cuotas fijas • Débito sin recargo', 'Garantía de 12 meses • Cuotas sin interés',
+        'Más de 20 años de experiencia • Cuotas sin interés', 'Hot Sale del 13 al 15 de mayo • Cuotas sin interés', 'Hasta el 24/12 • Cuotas sin interés en 3 y 6'];
+    const seEscapan = doce.filter((t) => revisarCartel(t).dudosos.length === 0);
+    const seMarcan = validos.filter((t) => problemasDelCartel(t).length > 0);
+    if (!seEscapan.length) ok(`las ${doce.length} formas de "12 sin interés" se detectan`); else mal('formas de "12 sin interés" que pasan', seEscapan.join(' | '));
+    if (!seMarcan.length) ok(`los ${validos.length} carteles legítimos (fechas, garantía, horas, orden inverso) no se marcan`); else mal('carteles legítimos marcados', seMarcan.join(' | '));
+    const rc = revisarConfiguracion('web_announcement_text', vivo), ro = revisarConfiguracion('web_store_phone', 'efectivo');
+    if (rc.bloqueantes.length > 0 && ro.bloqueantes.length === 0 && ro.dudosos.length === 0) ok('revisarConfiguracion aplica la regla al cartel y a ninguna otra clave');
+    else mal('revisarConfiguracion no aplica bien la regla', '');
     const ruta = readFileSync(resolve(raiz, 'src/app/api/settings/route.ts'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-    const valida = ruta.indexOf('problemasDeConfiguracion(key, value)');
-    const responde400 = ruta.indexOf('status: 400', valida);
+    const revisa = ruta.indexOf('revisarConfiguracion(key, value)');
+    const r400 = ruta.indexOf('status: 400', revisa), r409 = ruta.indexOf('status: 409', revisa);
     const escribe = ruta.indexOf('systemSetting.upsert');
-    if (valida > -1 && responde400 > valida && escribe > responde400) ok('la ruta de configuración valida y responde 400 ANTES de escribir');
-    else mal('la ruta de configuración no valida antes de escribir', `valida ${valida} · 400 ${responde400} · upsert ${escribe}`);
-    // Al mostrar: lo que ya estaba guardado deja de verse apenas se deploya.
-    if (cartelQueSePuedeMostrar(vivo) === CARTEL_PROMO_POR_DEFECTO && cartelQueSePuedeMostrar('Envío gratis a todo el país') === 'Envío gratis a todo el país' && cartelQueSePuedeMostrar('') === CARTEL_PROMO_POR_DEFECTO) ok('el cartel guardado que rompe las reglas no se muestra (sale el de por defecto)');
-    else mal('el cartel que rompe las reglas se sigue mostrando', '');
+    if (revisa > -1 && r400 > revisa && r409 > revisa && escribe > Math.max(r400, r409) && /confirmado !== true/.test(ruta)) ok('la ruta revisa ANTES de escribir: 400 lo inequívoco, 409 lo dudoso sin confirmación');
+    else mal('la ruta de configuración no revisa antes de escribir', `revisa ${revisa} · 400 ${r400} · 409 ${r409} · upsert ${escribe}`);
+    // Al mostrar: lo inequívoco ya guardado deja de verse; lo dudoso NO se tapa.
+    if (cartelQueSePuedeMostrar(vivo) === CARTEL_PROMO_POR_DEFECTO && cartelQueSePuedeMostrar('') === CARTEL_PROMO_POR_DEFECTO
+        && cartelQueSePuedeMostrar('Garantía de 12 meses • Cuotas sin interés') === 'Garantía de 12 meses • Cuotas sin interés'
+        && cartelQueSePuedeMostrar('Hasta 12 cuotas sin interés') === 'Hasta 12 cuotas sin interés') ok('al mostrar, solo lo inequívoco reemplaza el cartel (un falso positivo no tapa uno legítimo)');
+    else mal('el cartel al mostrarse no respeta los dos niveles', '');
     const barra = readFileSync(resolve(raiz, 'src/components/Storefront/StorefrontNavbar.tsx'), 'utf8');
     if (/cartelQueSePuedeMostrar\(webSettings\?\.web_announcement_text\)/.test(barra)) ok('la barra de la tienda muestra el cartel con cartelQueSePuedeMostrar');
     else mal('la barra muestra el cartel guardado sin revisarlo', 'src/components/Storefront/StorefrontNavbar.tsx');

@@ -1,4 +1,5 @@
 import { describirConfiguracion, tieneCristales } from '@/lib/cristales-web/claves';
+import { conMarca, tieneMarca } from '@/lib/checkout/marcas-de-pago';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
@@ -221,7 +222,7 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
     // acá. Sin esto, si el intento guardaba el id de OTRO pago (un rechazo
     // previo, o el primer cobro), cada aviso volvía a firmar la ficha y a
     // mandar el mail urgente de cobro sin venta (revisión del 10/10/2026).
-    if (intentoFresco?.status === 'APPROVED' && intentoFresco.lastError?.includes(`pago ${gatewayPaymentId}`)) return { tipo: 'ya-paga' as const };
+    if (intentoFresco?.status === 'APPROVED' && tieneMarca(intentoFresco.lastError, `[pago ${gatewayPaymentId}]`)) return { tipo: 'ya-paga' as const };
     const fresca = await tx.order.findUnique({
       where: { id: order.id },
       select: { status: true, isDeleted: true, deletedReason: true },
@@ -245,7 +246,7 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
           paymentId: intentoFresco?.status === 'APPROVED' && intentoFresco.paymentId ? intentoFresco.paymentId : gatewayPaymentId,
           gatewayStatus,
           processedAt: new Date(),
-          lastError: `[pago ${gatewayPaymentId}] ${porQue}`,
+          lastError: conMarca(intentoFresco?.lastError, `[pago ${gatewayPaymentId}]`, porQue),
         },
         select: { id: true },
       });

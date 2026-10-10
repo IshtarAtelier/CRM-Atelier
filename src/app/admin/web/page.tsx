@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { problemasDeConfiguracion } from "@/lib/web-settings-reglas";
+import { revisarConfiguracion } from "@/lib/web-settings-reglas";
 import { Selector2x1Web } from "@/components/admin/Selector2x1Web";
 import { 
   Globe, 
@@ -544,18 +544,23 @@ export default function WebManagementPage() {
     // El cartel se revisa ANTES de guardar nada: las claves se guardan de a una
     // y en paralelo, así que un cartel rechazado por el servidor dejaba el
     // resto guardado (p. ej. una promo prendida) y el texto tipeado perdido.
-    const problemasCartel = problemasDeConfiguracion('web_announcement_text', configForm.web_announcement_text);
-    if (problemasCartel.length > 0) {
-      alert(`No se guardó nada. El cartel de la tienda:\n\n${problemasCartel.join('\n')}`);
+    const revision = revisarConfiguracion('web_announcement_text', configForm.web_announcement_text);
+    if (revision.bloqueantes.length > 0) {
+      alert(`No se guardó nada. El cartel de la tienda:\n\n${revision.bloqueantes.join('\n')}`);
       return;
     }
+    // Lo dudoso lo decide quien edita: la regla lee el texto y puede equivocarse.
+    const cartelConfirmado = revision.dudosos.length > 0
+      ? window.confirm(`El cartel de la tienda:\n\n${revision.dudosos.join('\n')}\n\n¿Guardarlo igual?`)
+      : false;
+    if (revision.dudosos.length > 0 && !cartelConfirmado) return;
     setSavingConfig(true);
     try {
       const promises = Object.entries(configForm).map(([key, value]) => {
         return fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, value })
+          body: JSON.stringify({ key, value, ...(key === 'web_announcement_text' && cartelConfirmado ? { confirmado: true } : {}) })
         });
       });
       

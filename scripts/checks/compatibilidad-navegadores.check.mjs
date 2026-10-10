@@ -25,7 +25,19 @@ const SOLO_SERVIDOR_O_CRM = [
   /^src\/app\/api\//, /^src\/services\//, /^src\/app\/admin\//, /^src\/components\/admin\//,
   /^src\/components\/whatsapp\//, /^src\/lib\/server\//, /^src\/instrumentation\.ts$/, /^src\/middleware\.ts$/,
 ];
-const LOOKBEHIND = /\(\?<[=!]/;
+// Services que SÍ llegan al navegador (los importan el carrito, el checkout y
+// la ficha): se revisan aunque estén en src/services.
+const SERVICES_DEL_NAVEGADOR = [/^src\/services\/PricingService\.ts$/, /^src\/services\/lab-modules\//];
+// Lo que Next NO transpila ni rellena y Safari 15 no tiene. (Sí rellena
+// Array.at, Object.hasOwn, flat y fromEntries; la sintaxis la baja a Safari 12.)
+const PROHIBIDO = [
+  [/\(\?<[=!]/, 'lookbehind de regex (Safari < 16.4)'],
+  [/\bstructuredClone\(/, 'structuredClone (Safari < 15.4)'],
+  [/\.(findLast|findLastIndex|toSorted|toReversed|toSpliced)\(/, 'métodos de array de ES2023 (Safari < 15.4/16)'],
+];
+// crypto.randomUUID existe desde Safari 15.4: solo con guarda (?.() o typeof) o por idAleatorio().
+const UUID_SIN_GUARDA = /crypto\.randomUUID\(\)/;
+const UUID_CON_GUARDA = /randomUUID\?\.\(|typeof crypto|'randomUUID' in crypto|typeof crypto\.randomUUID/;
 
 const malos = [];
 const recorrer = (dir) => {
@@ -34,17 +46,21 @@ const recorrer = (dir) => {
     if (statSync(p).isDirectory()) { recorrer(p); continue; }
     if (!/\.(ts|tsx|js|mjs)$/.test(n)) continue;
     const rel = relative(raiz, p).split('\\').join('/');
-    if (SOLO_SERVIDOR_O_CRM.some((r) => r.test(rel))) continue;
+    if (SOLO_SERVIDOR_O_CRM.some((r) => r.test(rel)) && !SERVICES_DEL_NAVEGADOR.some((r) => r.test(rel))) continue;
     const src = readFileSync(p, 'utf8');
-    src.split('\n').forEach((linea, i) => { if (LOOKBEHIND.test(linea)) malos.push(`${rel}:${i + 1}`); });
+    src.split('\n').forEach((linea, i) => {
+      if (/^\s*(\/\/|\*)/.test(linea)) return; // comentarios
+      for (const [re, que] of PROHIBIDO) if (re.test(linea)) malos.push(`${rel}:${i + 1} — ${que}`);
+      if (UUID_SIN_GUARDA.test(linea) && !UUID_CON_GUARDA.test(linea)) malos.push(`${rel}:${i + 1} — crypto.randomUUID() sin guarda (Safari < 15.4): usar idAleatorio()`);
+    });
   }
 };
 recorrer(join(raiz, 'src'));
 
 console.log('\n▶ Sintaxis que un iPhone con iOS 15 no entiende\n');
 if (malos.length) {
-  console.error(`  ❌ lookbehind de regex (?<= / (?<! en código de la tienda:\n     ${malos.join('\n     ')}`);
-  console.error('\n  Safari anterior a 16.4 no lo soporta y el archivo entero no carga. Reescribir sin lookbehind.\n');
+  console.error(`  ❌ sintaxis o funciones que Safari de iOS 15 no tiene, en código de la tienda:\n     ${malos.join('\n     ')}`);
+  console.error('\n  En un iPhone con iOS 15 el archivo no carga o la acción falla. Reescribir sin eso.\n');
   process.exit(1);
 }
-console.log('  ✅ ningún lookbehind de regex en código que llega al navegador de la tienda\n');
+console.log('  ✅ nada que un Safari de iOS 15 no entienda en el código que llega a la tienda (lookbehind, ES2023, randomUUID sin guarda)\n');
