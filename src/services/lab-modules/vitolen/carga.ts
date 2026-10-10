@@ -1,5 +1,6 @@
 import { prisma } from '../../../lib/db';
 import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../../../lib/order-frames';
+import { codigoCortoDeVenta } from '../../../lib/laboratorios/identidad';
 import { cristalVitolenPorNombre, type CristalVitolen } from '../../../lib/laboratorios/vitolen-catalogo';
 import { disenoDelPortal, materialDelPortal } from './materiales';
 
@@ -245,7 +246,7 @@ export function armarFormulario(
     const payload: PayloadVitolen = {
         lista: 'L96',
         par: pair,
-        nroCasoInterno: `#${venta.id.slice(-4).toUpperCase()}`,
+        nroCasoInterno: codigoCortoDeVenta(venta.id),
         paciente: venta.clienteNombre,
         ojos: od && oi ? 'AMBOS' : od ? 'OD' : 'OI',
         tipoReceta: tipoReceta ?? 'Monofocal',

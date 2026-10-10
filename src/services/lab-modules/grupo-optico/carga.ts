@@ -3,7 +3,7 @@ import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones } from '../..
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { formatearPrecio } from '../../../lib/format-precio';
 import { avisoDeRoles, rolesDeDosPares, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
-import { esNumeroSmartLab } from './existentes';
+import { esNumeroDeLab } from '../../../lib/laboratorios/identidad';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import {
     especificacionDe, TENIDO_COLOR, TENIDO_INTENSIDADES, TENIDO_TIPO, TIPO_ARMAZON, TIPO_ARO,
@@ -194,7 +194,7 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     const sinCargo = !!roles && par === roles.sinCargo;
     const rol2x1: Rol2x1 | null = roles ? (sinCargo ? 'SIN_CARGO' : 'CON_CARGO') : null;
     const pedidoOrigen = sinCargo ? texto(opciones.pedidoOrigen) || null : null;
-    if (sinCargo && !esNumeroSmartLab(pedidoOrigen || '')) faltantes.push(`el par sin cargo del 2x1 se carga con el par con cargo (par ${roles!.conCargo}) ya cargado: hace falta su nº de pedido para la observación`);
+    if (sinCargo && !esNumeroDeLab(pedidoOrigen || '', 'GRUPO_OPTICO')) faltantes.push(`el par sin cargo del 2x1 se carga con el par con cargo (par ${roles!.conCargo}) ya cargado: hace falta su nº de pedido para la observación`);
     const avisoRoles = roles ? avisoDeRoles(roles, n => `$ ${formatearPrecio(n)}`) : null;
     if (avisoRoles) avisos.push(avisoRoles);
     const colorItem = cristales.map(c => texto(c.crystalColor)).find(Boolean) || null;
@@ -231,7 +231,7 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     if (labType && labType !== clase) faltantes.push(`la venta dice ${labType === 'STOCK' ? 'Stock' : 'Laboratorio'} pero el cristal "${producto}" es de ${clase === 'STOCK' ? 'stock' : 'laboratorio'}`);
 
     // Receta, medidas y validaciones de siempre: el armado único (armar-pedido.ts).
-    const armado = armarPedidoSmartLab({ ...venta, labType: clase }, par);
+    const armado = armarPedidoSmartLab(venta, par, { labType: clase });
     faltantes.push(...armado.faltantes);
     avisos.push(...armado.avisos);
     // Sin payload del armado no hay pedido: nunca seguir con un plan vacío (un

@@ -27,6 +27,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../order-frames';
+import { codigoCortoDeVenta } from '../laboratorios/identidad';
 import { itemsDeTenido, tintItemLabel } from '../crystal-color';
 
 /** Lo que el favorito lee del hash. Las claves son las que espera el bookmarklet: no se renombran. */
@@ -192,13 +193,13 @@ function recetaDePostventa(order: VentaParaSmartLab, pairNum: number): Record<st
  * (auditoría del 3/10/2026, N1). Puro.
  */
 export function codigoInternoSmartLab(order: VentaParaSmartLab, pairNum: number): string {
-    const codigo = `#${String(order.id).slice(-4).toUpperCase()}`;
+    const codigo = codigoCortoDeVenta(String(order.id));
     const cliente = texto(order.client?.name);
     const pares = cantidadDeArmazones(order as any);
     return `${codigo} ${cliente}${pares > 1 ? ` ${pairNum}°par` : ''}`.replace(/\s+/g, ' ').trim();
 }
 
-export function armarPedidoSmartLab(order: VentaParaSmartLab, pairNum: number = 1): ResultadoArmadoSmartLab {
+export function armarPedidoSmartLab(order: VentaParaSmartLab, pairNum: number = 1, opciones: { labType?: 'STOCK' | 'LABORATORY' | null } = {}): ResultadoArmadoSmartLab {
     const faltantes: string[] = [];
     const avisos: string[] = [];
     const items: ItemParaSmartLab[] = Array.isArray(order?.items) ? order.items : [];
@@ -227,7 +228,7 @@ export function armarPedidoSmartLab(order: VentaParaSmartLab, pairNum: number = 
     }
 
     // ── Tipo de pedido: obligatorio ────────────────────────────────────────
-    const labType = texto(order.labType).toUpperCase() as PayloadSmartLab['labType'];
+    const labType = (opciones.labType ?? texto(order.labType).toUpperCase()) as PayloadSmartLab['labType'];
     if (!TIPOS_DE_PEDIDO.includes(labType)) faltantes.push('tipo de pedido (Stock o Laboratorio)');
 
     // ── Receta ─────────────────────────────────────────────────────────────

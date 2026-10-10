@@ -68,6 +68,8 @@ export interface RastroPortal {
     confirmadoAManoNumero?: string;
     /** Id de quien aprobó (el nombre va en `approvedBy`): para firmar la venta sin buscar por nombre. */
     aprobadoPorId?: string | null;
+    /** Id de quien preparó (el nombre va en `preparedBy`): quien decidió lo que se carga (p. ej. un extra no cobrado). */
+    preparadoPorId?: string | null;
     /** El resumen del portal ya recortado a lo que se compara al confirmar (resumenComparable). */
     textoComparable?: string;
     [k: string]: unknown;
@@ -126,14 +128,23 @@ async function cambiarEstado(id: string, a: EstadoBorrador, datos: Record<string
     return borrador;
 }
 
+/**
+ * Mezcla datos en el rastro del borrador EN LA BASE (jsonb ||): nada de
+ * leer-modificar-escribir. El robot anota varias veces por confirmación
+ * (envío iniciado, nº creado, PDF…) y `numeroCreado` es la barrera contra el
+ * pedido duplicado: dos escrituras cruzadas no pueden pisarse. Una clave con
+ * valor `null` se guarda como null (así se borra `envioIniciadoEl`).
+ */
 async function mezclarRastro(id: string, datos: RastroPortal) {
-    const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { resumenPortal: true } });
-    if (!b) throw new Error('El borrador no existe.');
-    const previo = (b.resumenPortal && typeof b.resumenPortal === 'object' ? b.resumenPortal : {}) as RastroPortal;
-    return prisma.labOrderDraft.update({ where: { id }, data: { resumenPortal: { ...previo, ...datos } as any } });
+    const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify(datos)}::jsonb, "updatedAt" = NOW() WHERE id = ${id}`;
+    if (n !== 1) throw new Error('El borrador no existe.');
+    return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
 }
 
 export const Borradores = {
+    /** Mezcla datos en el rastro (jsonb ||, atómico). Es la ÚNICA forma de anotar en `resumenPortal`. */
+    anotarRastro: mezclarRastro,
+
     /**
      * Crea el borrador con lo que se va a cargar. Falla si ya hay uno vivo para
      * la venta y el par (lo garantiza el índice único parcial de la base) o si
@@ -155,7 +166,7 @@ export const Borradores = {
         let borrador;
         try {
             borrador = await prisma.labOrderDraft.create({
-                data: { lab: input.lab, orderId: input.orderId, pair: input.pair, payload: input.payload as any, preparedBy: input.actor.name },
+                data: { lab: input.lab, orderId: input.orderId, pair: input.pair, payload: input.payload as any, preparedBy: input.actor.name, resumenPortal: { preparadoPorId: input.actor.id ?? null } as any },
             });
         } catch (err: any) {
             if (err?.code === 'P2002') throw new Error(`Ya hay un borrador vivo para esta venta (par ${input.pair}).`);

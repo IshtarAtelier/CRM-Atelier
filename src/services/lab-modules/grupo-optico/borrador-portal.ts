@@ -12,6 +12,7 @@ import { leerVentaParaCargaGO } from './venta';
 import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { numeroDelParConCargo } from './origen';
+import { codigoCortoDeVenta } from '../../../lib/laboratorios/identidad';
 import { registrarExtraNoCobrado } from '../carga/extras-no-cobrados';
 import { rolesDel2x1 } from './carga';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
@@ -77,10 +78,9 @@ async function enElPortal<T>(tarea: () => Promise<T>): Promise<T> {
     return r as T;
 }
 
+/** Anota en el rastro del borrador, atómico en la base (Borradores.anotarRastro). */
 async function mezclar(id: string, datos: RastroGO) {
-    const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { resumenPortal: true } });
-    const previo = (b?.resumenPortal && typeof b.resumenPortal === 'object' ? b.resumenPortal : {}) as RastroGO;
-    await prisma.labOrderDraft.update({ where: { id }, data: { resumenPortal: { ...previo, ...datos } as any }, select: { id: true } });
+    await Borradores.anotarRastro(id, datos);
 }
 
 /** Los campos del pedido que, si cambian entre preparar y aprobar, invalidan la aprobación. Puro. */
@@ -218,7 +218,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
     if (!rastro0.payloadPortal || !rastro0.resuelto) throw new Error('El borrador no tiene el pedido preparado: hay que volver a prepararlo.');
     const guardado = b.payload as unknown as PayloadBorradorGO;
     const payloadAprobado = rastro0.payloadPortal;
-    const codigoVenta = `#${b.orderId.slice(-4).toUpperCase()}`;
+    const codigoVenta = codigoCortoDeVenta(b.orderId);
 
     // Fuera de producción no se crea nada real: se corta antes de entrar al portal.
     if (!rastro0.numeroCreado && !puedeCrearPedidosReales()) {
@@ -357,7 +357,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
         // ficha del cliente, AuditLog y aviso a la dueña, firmado por quien lo pidió
         // y quien lo aprobó (regla de Ishtar, 8/10/2026).
         for (const extra of guardado.plan?.extrasNoCobrados || []) {
-            const firma = { id: rastro0.aprobadoPorId ?? null, name: b.approvedBy || b.preparedBy || 'Equipo', role: null };
+            const firma = { id: rastro0.preparadoPorId ?? rastro0.aprobadoPorId ?? null, name: b.preparedBy || b.approvedBy || 'Equipo', role: null };
             const quien = b.preparedBy && b.approvedBy && b.preparedBy !== b.approvedBy ? `${b.preparedBy} (aprobó ${b.approvedBy})` : (b.preparedBy || b.approvedBy || 'Equipo');
             await registrarExtraNoCobrado({ orderId: b.orderId, nombreLab: NOMBRE_GRUPO_OPTICO, pair: b.pair, pares: guardado.plan.pares ?? 1, extra, actor: firma, quien, loQueSeCarga: `${guardado.plan.producto} + ${extra.nombre} · pedido nº ${resultado.numero}` })
                 .catch(err => console.error('[lab-modulos] no se pudo registrar el extra no cobrado:', err));

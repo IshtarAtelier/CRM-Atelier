@@ -1,5 +1,4 @@
 import { prisma } from '../../../lib/db';
-import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { armarFormulario, esSegundoParDePromo, leerVentaParaCarga } from './carga';
@@ -7,6 +6,7 @@ import { cristalVitolenPorNombre } from '../../../lib/laboratorios/vitolen-catal
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, releerBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
+import { pedidoOrigenDeVitolen } from './origen';
 import { avisoDeRoles, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
 import { rolDeLaPromo, rolesDeLaPromoHoya } from '../../../lib/laboratorios/vitolen-promo';
 import { formatearPrecio } from '../../../lib/format-precio';
@@ -126,17 +126,8 @@ export const CARGA_VITOLEN: CargaAsistida = {
         // nº cargado en la venta). Sin él, igual queda como pendiente a mano.
         const roles = rolesDeLaPromo(venta);
         const rolPromo = rolDe(roles, pair);
-        // El pedido origen lo deduce el CRM (borrador cargado, espejo o nº de la venta): no se acepta del navegador.
-        let pedidoOrigen: string | null = null;
-        if (rolPromo === 'SEGUNDO_PAR' && !pedidoOrigen) {
-            const cargado = await prisma.labOrderDraft.findFirst({ where: { orderId, lab: LAB_VITOLEN, pair: roles!.conCargo, status: 'CARGADO' }, select: { portalNumber: true } });
-            if (cargado?.portalNumber) pedidoOrigen = cargado.portalNumber;
-            const enEspejo = pedidoOrigen ? null : await prisma.labPortalOrder.findFirst({ where: { orderId, lab: LAB_VITOLEN, OR: [{ pair: roles!.conCargo }, { pair: null }] }, orderBy: { enteredAt: 'asc' }, select: { portalNumber: true } });
-            const enVenta = await prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true } });
-            // Solo un nº de Vitolen: en una venta mixta el de Grupo Óptico (80xxxxxx) no es origen de nada acá.
-            // Un nº de Vitolen tiene 7 dígitos ("6981382L" en el portal); los de SmartLab (80xxxxxx) u Optovisión (6) no son origen de nada acá.
-            pedidoOrigen = pedidoOrigen ?? enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).filter(n => /^\d{7}$/.test(n)).map(n => `${n}L`)[0] ?? null;
-        }
+        // El pedido origen lo deduce el CRM con la regla común (nunca un anulado ni un reproceso): no se acepta del navegador.
+        const pedidoOrigen = rolPromo === 'SEGUNDO_PAR' ? await pedidoOrigenDeVitolen(orderId, roles!.conCargo) : null;
         const r = armarFormulario(venta, { pair, forma, ejeDiagonal, variante: body.variante ? String(body.variante) : null, pedidoOrigen, rolPromo });
         if (!r.ok) return { ok: false, status: 422, error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos };
 

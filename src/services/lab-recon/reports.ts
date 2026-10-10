@@ -526,8 +526,7 @@ export async function assembleReport(orders: any[], monthLabel: string) {
             // cantidad y el par bonificado del 2x1 en $0). Esta pantalla tenía
             // su propia suma, que contaba los DOS pares de un 2x1: mostraba el
             // doble de costo y un "menor costo" fantasma de un par entero.
-            (order as any).__labConfig = labConfigs[lab] ?? null;
-            const systemCost = systemCostForLab(order, lab);
+            const systemCost = systemCostForLab(order, lab, labConfigs[lab] ?? null);
             const es2x1 = esVenta2x1(order);
             const numbers = order.labOrderNumber?.match(/\d{4,}/g) || [];
 

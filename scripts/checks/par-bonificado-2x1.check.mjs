@@ -57,10 +57,10 @@ const cristalVitolen = (eye, fp, price, baseCost, cost) => ({
     laboratorySnapshot: 'Vitolen', productCostSnapshot: cost,
     product: { name: 'HOYA LIFESTYLE 4 - 1.50 CLEAR', category: 'Cristal', laboratory: 'Vitolen', cost, baseCost },
 });
+const CFG_VITOLEN = { calibrado: 10000, iva: 21 };
 const ventaVitolen = () => ({
     appliedPromoName: '2º par Hoya (HOYA LIFESTYLE 4 - 1.50 CLEAR) -80%',
     labOrderNumber: '6981382-6981390',
-    __labConfig: { calibrado: 10000, iva: 21 },
     items: [cristalVitolen('OD', 1, 250000, 220000, 300000), cristalVitolen('OI', 1, 250000, 220000, 300000),
         cristalVitolen('OD', 2, 180000, 200000, 300000), cristalVitolen('OI', 2, 180000, 200000, 300000), armazon(120000, 40000)],
 });
@@ -128,19 +128,19 @@ const casos = [
     ['Vitolen con la promo del 2º par: el 2º es el de MENOR valor de lista y se espera al 20 % + calibrado (con IVA)',
         () => {
             const v = ventaVitolen();
-            const s = segundoParDePromoVitolen(v);
+            const s = segundoParDePromoVitolen(v, CFG_VITOLEN);
             assert.equal(s.pair, 2); assert.equal(s.nombre, 'HOYA LIFESTYLE 4 - 1.50 CLEAR');
             assert.equal(s.esperado, importeEsperadoSegundoPar(200000, { calibrado: 10000, iva: 21 })); // (40.000 + 10.000) × 1,21 = 60.500
             assert.equal(s.esperado, 60500);
         }],
     ['Vitolen: el costo de sistema cuenta el 1er par entero y el 2º al 20 % + calibrado',
-        () => assert.equal(systemCostForLab(ventaVitolen(), 'VITOLEN'), 300000 + 60500)],
+        () => assert.equal(systemCostForLab(ventaVitolen(), 'VITOLEN', CFG_VITOLEN), 300000 + 60500)],
     ['Vitolen con dos cristales DISTINTOS y el par 1 más barato de lista: el 2º de la promo es el par 1',
-        () => { const v = ventaVitolen(); v.items.forEach(i => { if (i.productCategorySnapshot === 'Cristal' && i.framePosition === 1) { i.productNameSnapshot = 'HOYA LIFESTYLE 4 - 1.50 CLEAR BLUE FILTER'; i.product.name = i.productNameSnapshot; i.product.price = 100000; i.price = 100000; } }); assert.equal(segundoParDePromoVitolen(v).pair, 1); }],
+        () => { const v = ventaVitolen(); v.items.forEach(i => { if (i.productCategorySnapshot === 'Cristal' && i.framePosition === 1) { i.productNameSnapshot = 'HOYA LIFESTYLE 4 - 1.50 CLEAR BLUE FILTER'; i.product.name = i.productNameSnapshot; i.product.price = 100000; i.price = 100000; } }); assert.equal(segundoParDePromoVitolen(v, CFG_VITOLEN).pair, 1); }],
     ['Vitolen sin promo aplicada (dos pares comprados aparte): nada que esperar, cada par entero',
-        () => { const v = ventaVitolen(); v.appliedPromoName = null; assert.equal(segundoParDePromoVitolen(v), null); assert.equal(systemCostForLab(v, 'VITOLEN'), 600000); }],
+        () => { const v = ventaVitolen(); v.appliedPromoName = null; assert.equal(segundoParDePromoVitolen(v, CFG_VITOLEN), null); assert.equal(systemCostForLab(v, 'VITOLEN', CFG_VITOLEN), 600000); }],
     ['Vitolen sin el pelado (baseCost) del cristal: no se puede valuar, se cuenta entero y no se acusa',
-        () => { const v = ventaVitolen(); v.items.forEach(i => { if (i.product) i.product.baseCost = null; }); assert.equal(segundoParDePromoVitolen(v).esperado, null); assert.equal(systemCostForLab(v, 'VITOLEN'), 600000); }],
+        () => { const v = ventaVitolen(); v.items.forEach(i => { if (i.product) i.product.baseCost = null; }); assert.equal(segundoParDePromoVitolen(v, CFG_VITOLEN).esperado, null); assert.equal(systemCostForLab(v, 'VITOLEN', CFG_VITOLEN), 600000); }],
     ['Vitolen: $300.000 + $60.500 es la promo cumplida; $300.000 + $90.000 es el 2º par cobrado de más (5 % de tolerancia)',
         () => {
             assert.equal(segundoParCobradoDeMas(60500, 60500), false);
@@ -149,10 +149,10 @@ const casos = [
             assert.equal(segundoParCobradoDeMas(300000, 60500), true);
         }],
     ['Vitolen sin la config del laboratorio (calibrado e IVA): no se valúa el 2º par, se cuenta entero y no se acusa',
-        () => { const v = ventaVitolen(); delete v.__labConfig; assert.equal(segundoParDePromoVitolen(v).esperado, null); assert.equal(systemCostForLab(v, 'VITOLEN'), 600000);
+        () => { const v = ventaVitolen(); assert.equal(segundoParDePromoVitolen(v, null).esperado, null); assert.equal(systemCostForLab(v, 'VITOLEN', null), 600000);
             assert.equal(segundoParDePromoVitolen(v, { calibrado: 10000, iva: 21 }).esperado, 60500); }],
     ['Vitolen con el mismo cristal en los dos pares y la línea del par 2 en $0: el 2º es el par 2 (empate por nombre, no por la línea)',
-        () => { const v = ventaVitolen(); v.items.forEach(i => { if (i.productCategorySnapshot === 'Cristal') { i.price = i.framePosition === 1 ? 0 : 250000; i.product.price = 250000; } }); assert.equal(segundoParDePromoVitolen(v).pair, 2); }],
+        () => { const v = ventaVitolen(); v.items.forEach(i => { if (i.productCategorySnapshot === 'Cristal') { i.price = i.framePosition === 1 ? 0 : 250000; i.product.price = 250000; } }); assert.equal(segundoParDePromoVitolen(v, CFG_VITOLEN).pair, 2); }],
     ['la marca nueva se reconoce y se le lee el "a reclamar" (formato argentino, con puntos de miles)',
         () => {
             const nota = `Caso: Juan [${MARCA_SEGUNDO_PAR_PROMO_COBRADO}: el pedido más barato (6981390L) costó $90.000 y el 2º par de la promo (HOYA) va al 20 % de lista + calibrado = $60.500; a reclamar $29.500]`;

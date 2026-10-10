@@ -35,7 +35,7 @@ import { rolesDeDosPares } from '../../lib/laboratorios/roles-2x1';
  * — así el total de la venta es un solo par, igual que factura el lab
  * (2 líneas de 0.50 × unitario por par). Un solo ojo vendido = medio par.
  */
-export function systemCostForLab(order: any, lab: string): number {
+export function systemCostForLab(order: any, lab: string, labConfig?: { calibrado: number; iva: number } | null): number {
     const items: any[] = order.items || [];
     if (items.length === 0) return 0;
 
@@ -73,7 +73,7 @@ export function systemCostForLab(order: any, lab: string): number {
     // VITOLEN: el 2º par de la promo no va en $0 ni entero: se espera al 20 % de
     // lista + calibrado (vitolen/promo.ts). Regla de Ishtar del 8/10/2026: si
     // cobran los dos pares, el segundo por más del 20 % es sobrecosto.
-    const segundo = String(lab) === 'VITOLEN' ? segundoParDePromoVitolen(order) : null;
+    const segundo = String(lab) === 'VITOLEN' ? segundoParDePromoVitolen(order, labConfig ?? null) : null;
     if (segundo && segundo.esperado !== null) {
         const delSegundo = new Set(segundo.items);
         return relevant.filter(i => !delSegundo.has(i)).reduce((total, item) => total + costoDeItemParaCruce(item, is2x1), 0) + segundo.esperado;
@@ -89,7 +89,7 @@ export function systemCostForLab(order: any, lab: string): number {
  * cargo); con el mismo valor, el par 2. Lo esperado sale de `baseCost` (el
  * pelado) del cristal de ese par: 20 % de lista + calibrado, con IVA, en las
  * mismas unidades que `cost`. Sin pelado o sin promo, null (se cuenta entero,
- * como antes). Puro: la config del lab viaja en `order.__labConfig`.
+ * como antes). Puro: la config del lab (calibrado e IVA) se pasa explícita.
  */
 export function segundoParDePromoVitolen(order: any, config?: { calibrado: number; iva: number } | null): { items: any[]; esperado: number | null; nombre: string; pair: number } | null {
     const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
@@ -105,7 +105,7 @@ export function segundoParDePromoVitolen(order: any, config?: { calibrado: numbe
     const segundo = pares.find(p => p.pair === roles!.sinCargo)!;
     const cristal = segundo.items[0];
     const nombre = cristal.productNameSnapshot || cristal.product?.name || '';
-    const cfg = config ?? order.__labConfig;
+    const cfg = config;
     if (!cfg) {
         // Sin la config del lab (calibrado e IVA) el esperado saldría bajo y TODA
         // promo sería sobrecosto: mejor no valuar (se cuenta entero, como antes).
@@ -384,11 +384,9 @@ export async function upsertEntry(input: LabCostInput) {
     const billedComparable = comparaTotal
         ? (billedTotal ?? billedNet ?? null)
         : (billedNet ?? billedTotal ?? null);
-    // El calibrado real del lab viaja con la orden: systemCostForLab es sync y
-    // no puede ir a buscarlo, y sin esto valuaba el par bonificado con el
-    // respaldo en vez de con lo que está configurado.
-    if (order) (order as any).__labConfig = await labConfigDe(String(input.lab));
-    const systemCost = order ? systemCostForLab(order, input.lab) : null;
+    // La config del lab (calibrado e IVA) se pasa explícita: así el cruce y la pantalla valúan igual.
+    const labConfig = order ? await labConfigDe(String(input.lab)) : null;
+    const systemCost = order ? systemCostForLab(order, input.lab, labConfig) : null;
 
     // Una venta puede tener varios pedidos de lab ("580841-580844", típico en
     // 2x1: el lab cobra un par real y el otro ~$0). El costo sistema es de TODA
@@ -500,7 +498,7 @@ export async function upsertEntry(input: LabCostInput) {
     // Solo si la venta entera NO vino a favor: si el lab bonificó el par caro en
     // vez del barato, pagamos de menos y no hay nada que reclamar (auditoría 6).
     const segundoVitolen = String(input.lab) === 'VITOLEN' && order && !pvEntry && difference !== null && difference > -TOLERANCE && facturadoPorPedido.length >= 2
-        ? segundoParDePromoVitolen(order) : null;
+        ? segundoParDePromoVitolen(order, labConfig) : null;
     const segundoCobrado = segundoVitolen?.esperado != null && segundoParCobradoDeMas(Math.min(...facturadoPorPedido.map(p => p.importe)), segundoVitolen.esperado)
         ? { masBarato: Math.min(...facturadoPorPedido.map(p => p.importe)), esperado: segundoVitolen.esperado }
         : null;

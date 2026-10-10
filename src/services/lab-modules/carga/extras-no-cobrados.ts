@@ -1,9 +1,11 @@
 import { prisma } from '../../../lib/db';
+import { codigoCortoDeVenta } from '../../../lib/laboratorios/identidad';
 import { logAudit } from '../../../lib/audit';
 import type { Actor } from '../../../lib/actor';
 import { formatearPrecio } from '../../../lib/format-precio';
 import { formatDate } from '../../../lib/format-date';
 import { InternalMessagingService } from '../../internal-messaging.service';
+import { appUrl } from '../../lab-recon/types';
 
 /**
  * ALGO QUE SE CARGA AL LABORATORIO Y NO ESTÁ COBRADO EN LA VENTA (regla de
@@ -91,7 +93,7 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
     if (!order) throw new Error('La venta no existe.');
     const quien = args.quien || actor.name || 'Alguien del equipo';
     const datos: DatosDelAviso = {
-        codigoVenta: `#${orderId.slice(-4).toUpperCase()}`,
+        codigoVenta: codigoCortoDeVenta(orderId),
         orderId,
         cliente: order.client?.name || 'sin cliente',
         vendedor: order.labSentBy || null,
@@ -103,7 +105,7 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
         loQueSeCarga: args.loQueSeCarga,
         extra: args.extra,
         quien,
-        baseUrl: (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, ''),
+        baseUrl: appUrl(),
     };
 
     // Ya avisado (un reintento, o un borrador preparado antes del 10/10/2026 que avisaba al preparar): no se repite.

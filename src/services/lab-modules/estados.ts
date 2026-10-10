@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/db';
 import { logAudit } from '../../lib/audit';
 import { enviarAvisoProcesado } from '../../lib/avisos/aviso-procesado';
-import { patronDeLab } from '../../lib/laboratorios/identidad';
+import { codigoCortoDeVenta, patronDeLab } from '../../lib/laboratorios/identidad';
 import { parseLabNumbers, findLabNumberConflicts, duplicateMessage } from '../../lib/lab-order-numbers';
 import { alertDuplicateLabOrderNumber } from '../../lib/duplicate-lab-order-alert';
 import { cantidadDeArmazones } from '../../lib/order-frames';
@@ -141,7 +141,7 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
     const faltan = numeroProvisorio(order.labOrderNumber) ? numeros : numerosQueFaltan(order.labOrderNumber, numeros);
     let asignarNumero = faltan.length > 0;
     const numeroNuevo = numeroProvisorio(order.labOrderNumber) ? numeros.join(', ') : [order.labOrderNumber, ...faltan].filter(Boolean).join(', ');
-    const codigo = `#${order.id.slice(-4).toUpperCase()}`;
+    const codigo = codigoCortoDeVenta(order.id);
     const detalle = a.pedidos.map(p => `${p.portalNumber}: ${p.statusRaw}`).join(' | ');
     const firma = a.aprobadoPor ? `${a.robot} (aprobó ${a.aprobadoPor.name})` : a.robot;
     const firmaId = a.aprobadoPor?.id ?? null;

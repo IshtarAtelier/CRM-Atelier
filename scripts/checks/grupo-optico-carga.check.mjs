@@ -16,6 +16,7 @@ import { especificacionDe, elegirArticulo, colorDelItem } from '../../src/servic
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
 import { rolesPorValor, valorDeCristales, avisoDeRoles, rolesDeDosPares } from '../../src/lib/laboratorios/roles-2x1.ts';
 import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo-optico/origen.ts';
+import { labDeItem, esDeLab, labDeNumero, esNumeroDeLab, codigoCortoDeVenta, esCodigoCorto, soloDigitos as soloDigitosId } from '../../src/lib/laboratorios/identidad.ts';
 import { textoDeExtraNoCobrado, lineaDeFicha } from '../../src/services/lab-modules/carga/extras-no-cobrados.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
@@ -114,6 +115,32 @@ ok('el mensaje a la dueña lleva el motivo completo y la venta entera; la ficha,
     for (const esperado of ['Matías agregó Essential', 'NO está cobrado', '"se lo prometimos"', 'Laura Santucho', '$ 185.000', 'Total: $ 490.000', 'promo: Promo 2x1', '(par 1)', 'https://crm.atelier/admin/ventas?id=cmu6zfb0e00g6oe07n4rbl4au']) assert.ok(t.includes(esperado), esperado);
     assert.match(lineaDeFicha(d), /^⚠️ Matías agregó Essential .* SIN estar cobrado\. Motivo: se lo prometimos$/);
 });
+
+console.log('\nLa identidad de los laboratorios, en un solo lugar (lib/laboratorios/identidad.ts)');
+ok('qué laboratorio es un ítem: lo que se guardó al vender, o el del producto; sin nada, ninguno (salvo que se pida un default)', () => {
+    assert.equal(labDeItem({ laboratorySnapshot: 'GRUPO OPTICO' }), 'GRUPO_OPTICO');
+    assert.equal(labDeItem({ laboratorySnapshot: 'Grupo Óptico' }), 'GRUPO_OPTICO');
+    assert.equal(labDeItem({ laboratorySnapshot: 'GRUPO_OPTICO' }), 'GRUPO_OPTICO');
+    assert.equal(labDeItem({ laboratorySnapshot: null, product: { laboratory: 'Vitolen' } }), 'VITOLEN');
+    assert.equal(labDeItem({ laboratorySnapshot: 'Optovision' }), 'OPTOVISION');
+    assert.equal(labDeItem({ laboratorySnapshot: 'Cámara de Ópticas' }), 'LA_CAMARA');
+    assert.equal(labDeItem({}), null);
+    assert.equal(esDeLab({}, 'GRUPO_OPTICO'), false);
+    assert.equal(esDeLab({}, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' }), true);
+    assert.equal(esDeLab({ laboratorySnapshot: 'Vitolen' }, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' }), false);
+});
+ok('de qué laboratorio es un nº por su forma: SmartLab 8 dígitos con 8, Vitolen 7 (con o sin L), Optovisión 6', () => {
+    assert.equal(labDeNumero('80549878'), 'GRUPO_OPTICO'); assert.equal(labDeNumero('81000001'), 'GRUPO_OPTICO');
+    assert.equal(labDeNumero('6981382'), 'VITOLEN'); assert.equal(labDeNumero('6981382L'), 'VITOLEN');
+    assert.equal(labDeNumero('619486'), 'OPTOVISION');
+    assert.equal(labDeNumero('12'), null); assert.equal(labDeNumero(''), null);
+    assert.equal(esNumeroDeLab('619486', 'VITOLEN'), false); // un nº de Optovisión en una venta mixta no bloquea a Vitolen
+    assert.equal(soloDigitosId('6981382L'), '6981382');
+});
+ok('el código corto de la venta se arma siempre igual (es lo que el robot busca en el portal)', () => {
+    assert.equal(codigoCortoDeVenta('cmu6zfb0e00g6oe07n4rbl4au'), '#L4AU');
+    assert.equal(esCodigoCorto('#L4AU'), true); assert.equal(esCodigoCorto('L4AU'), false); assert.equal(esCodigoCorto('#L4AU Laura'), false);
+});
 console.log('\nEl orden del 2x1 lo decide el valor (Ishtar, 8/10/2026)');
 ok('el par de mayor valor va con cargo y el de menor valor sin cargo; mismo valor = queda el orden de la venta', () => {
     assert.deepEqual(rolesPorValor([{ pair: 1, valor: 100 }, { pair: 2, valor: 100 }]), { conCargo: 1, sinCargo: 2, porValor: false, valores: { 1: 100, 2: 100 } });
@@ -173,7 +200,7 @@ ok('si el rol gira entre preparar y aprobar, el payload cambia (observación) o 
     assert.equal(planDeCarga(v, 1, { tipoArmazon: 'PLASTICO' }).ok, false);
 });
 ok('el nº del par con cargo: nunca un pedido ANULADO ni un reproceso, y el tipeado solo si no es de otro par', () => {
-    const base = { pair: 2, cargado: null, espejo: [], numerosEnVenta: [], reprocesos: [] };
+    const base = { pair: 2, cargado: null, espejo: [], numerosEnVenta: [], reprocesos: [], esNumeroDelLab: n => esNumeroDeLab(n, 'GRUPO_OPTICO') };
     assert.equal(elegirNumeroDelParConCargo({ ...base, cargado: '80000001' }), '80000001');
     assert.equal(elegirNumeroDelParConCargo({ ...base, cargado: '80000001', espejo: [{ numero: '80000001', pair: 2, anulado: true }] }), null);
     assert.equal(elegirNumeroDelParConCargo({ ...base, espejo: [{ numero: '80000002', pair: 2, anulado: false }] }), '80000002');

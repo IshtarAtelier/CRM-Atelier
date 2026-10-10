@@ -1,4 +1,5 @@
 import { LabCostReconciliationService } from '../lab-cost-reconciliation.service';
+import { fechaDelPortal } from '../lab-modules/grupo-optico/pedidos';
 import { LAB_AUDIT_START_ISO } from '../../lib/constants';
 import { prisma } from '../../lib/db';
 import { buildPedidoAmountMap, normalizeInvoiceNumber } from './grupo-optico-invoices';
@@ -162,8 +163,8 @@ export class GrupoOpticoProvider {
 
                 let vigentesEnPagina = 0;
                 for (const r of rows) {
-                    const fecha = new Date((r.FechaRegistro || '').replace(' ', 'T'));
-                    if (isNaN(fecha.getTime())) continue;
+                    const fecha = fechaDelPortal(r.FechaRegistro);
+                    if (!fecha) continue;
                     if (fecha < auditStart) { summary.preCrm++; continue; }
                     vigentesEnPagina++;
                     const invoiceNumbers = (r.invoices || [])
@@ -299,7 +300,7 @@ export class GrupoOpticoProvider {
                     // guarda. Para este lab es la fecha de ingreso del pedido al
                     // laboratorio (el portal no expone la de emisión de la
                     // factura); para Optovisión sigue siendo la del comprobante.
-                    invoiceDate: new Date(String(o.fecha).replace(' ', 'T')),
+                    invoiceDate: fechaDelPortal(String(o.fecha)) ?? undefined,
                     notes: `Pedido visto en el portal del laboratorio (${detail}).`,
                     invoiceRefs: invoiceRefs.length ? invoiceRefs : undefined,
                     sinImporteDeEstaFuente: importeAutoritativo && billed === null,

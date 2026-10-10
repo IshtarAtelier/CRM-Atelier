@@ -162,6 +162,7 @@ export function comprobantesDeFila(row: FilaApiSmartLab, pedido: string): Invoic
 
 /** El código corto de la venta (#A1B2) dentro del "Código interno"; null si no lo tiene. Puro. */
 export function codigoDeVenta(codigoInterno: string | null | undefined): string | null {
+    // La forma la fija lib/laboratorios/identidad.ts (codigoCortoDeVenta): "#" + 4 letras.
     const m = String(codigoInterno || '').match(/#([A-Za-z0-9]{4})\b/);
     return m ? `#${m[1].toUpperCase()}` : null;
 }
