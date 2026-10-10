@@ -3,6 +3,7 @@
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useState, useEffect } from "react";
 import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
+import { mensajeDelBotonFlotante } from "@/lib/whatsapp-mensaje-flotante";
 import { WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 import { BUSINESS_INFO } from "@/lib/business-info";
 import { trackPhoneClick } from "@/lib/tracking";
@@ -112,34 +113,15 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     return null;
   }
 
-  let defaultText = "¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.";
-
-  if (isOptica) {
-    // Óptica en la tienda mayorista: tono y marca Cápsula Escarlata.
-    defaultText = productName
-      ? `Hola! Consulta mayorista sobre el modelo ${productName} (Cápsula Escarlata).`
-      : "Hola! Consulta sobre el canal mayorista de Cápsula Escarlata.";
-  } else if (productName) {
-    defaultText = `¡Hola! Tengo dudas sobre el modelo ${productName} y me gustaría recibir asesoramiento.`;
-  } else if (message) {
-    defaultText = message;
-  } else if (tituloNota) {
-    defaultText = `¡Hola Atelier! Estaba leyendo "${tituloNota}" y me gustaría recibir asesoramiento.`;
-  } else if (pathname?.includes("/tienda") || pathname?.includes("/producto/")) {
-    defaultText = "¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento.";
-  } else if (pathname?.includes("/arma-tus-lentes")) {
-    defaultText = "¡Hola Atelier! Me gustaría recibir asesoramiento para armar mis lentes.";
-  } else if (enCheckout) {
-    // Quien escribe desde acá está a un paso de pagar: que el asesor lo sepa.
-    defaultText = "¡Hola Atelier! Estoy terminando una compra en la web y tengo una consulta.";
-  }
-
-  // En ficha de producto, tienda y notas del blog mandamos también el link de la
-  // página: WhatsApp arma la previsualización, así el asesor ve qué está mirando
-  // y puede abrir la nota para responder sobre lo mismo que la persona leyó.
-  const sharesPageUrl = Boolean(
-    productName || pathname?.includes("/producto/") || pathname?.includes("/tienda") || tituloNota
-  );
+  // El texto es lo único que le dice al bot y al CRM que el chat vino de la
+  // web: se arma en un solo lugar y `check:origen` prueba cada variante.
+  const { texto: defaultText, compartePagina: sharesPageUrl } = mensajeDelBotonFlotante({
+    pathname,
+    productName,
+    message,
+    tituloNota,
+    isOptica,
+  });
 
   const WHATSAPP_URL = buildWhatsAppUrl(defaultText, {
     pageUrl: sharesPageUrl ? currentPageUrl(pathname || "") : undefined,

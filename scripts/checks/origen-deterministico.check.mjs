@@ -9,7 +9,9 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve } from 'node:path';
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const { origenDeterministico, origenDeChat } = await import(pathToFileURL(resolve(raiz, 'src/lib/origen-deterministico.ts')).href);
+import { readFileSync } from 'node:fs';
+const { origenDeterministico, origenDeChat, FRASES_DEL_SITIO } = await import(pathToFileURL(resolve(raiz, 'src/lib/origen-deterministico.ts')).href);
+const { mensajeDelBotonFlotante } = await import(pathToFileURL(resolve(raiz, 'src/lib/whatsapp-mensaje-flotante.ts')).href);
 let fallos = 0;
 const check = (n, ok, det='') => { console.log(`  ${ok?'✓':'✖'} ${n}${ok||!det?'':' — '+det}`); if(!ok) fallos++; };
 const o = (t) => origenDeterministico(t)?.origen ?? null;
@@ -49,6 +51,29 @@ check('borró el mensajito precargado → igual es Meta', c({ adSourceId: '12025
 check('el id gana a un texto del sitio posterior', c({ adSourceId: '120249083743660023', adTag: null, mensajesEntrantes: ['Los vi en la nueva web de Atelier, quisiera que me asesoren.'] }) === 'Meta');
 check('sin id, todo sigue como antes', c({ adSourceId: null, adTag: 'clip', mensajesEntrantes: [''] }) === 'Meta');
 check('id vacío no decide nada', c({ adSourceId: '  ', adTag: null, mensajesEntrantes: ['Hola'] }) === null);
+console.log('Cada variante del botón flotante se reconoce como de la web (10/10/26)');
+// Lo que de verdad llega al chat: el texto + el link si la página lo comparte
+// (mismo armado que buildWhatsAppUrl). Checkout, configurador y blog no traían
+// ninguna frase de la lista y esos chats quedaban sin origen.
+const paginas = [
+  { nombre: 'home', pathname: '/' },
+  { nombre: 'nuestro local', pathname: '/nuestro-local' },
+  { nombre: 'tienda', pathname: '/tienda' },
+  { nombre: 'ficha de producto', pathname: '/producto/vega-c1' },
+  { nombre: 'configurador', pathname: '/arma-tus-lentes' },
+  { nombre: 'checkout', pathname: '/checkout' },
+  { nombre: 'nota del blog', pathname: '/blog/que-es-la-miopia', tituloNota: '¿Qué es la miopía?' },
+  { nombre: 'ficha con nombre del modelo', pathname: '/producto/vega-c1', productName: 'Vega C1' },
+];
+for (const p of paginas) {
+  const { texto, compartePagina } = mensajeDelBotonFlotante(p);
+  const llega = compartePagina ? `${texto}\n\nhttps://atelieroptica.com.ar${p.pathname}` : texto;
+  check(`${p.nombre} → Tienda online`, o(llega) === 'Tienda online', JSON.stringify(llega));
+}
+check('mayorista NO cuenta como tienda (es otro número y otro público)', o(mensajeDelBotonFlotante({ pathname: '/mayorista', isOptica: true }).texto) === null);
+console.log('El bot decide con la MISMA lista de frases');
+const tools = readFileSync(resolve(raiz, 'wa-service/tools.js'), 'utf8');
+check('wa-service/tools.js tiene la lista idéntica a FRASES_DEL_SITIO', tools.includes(`/${FRASES_DEL_SITIO.source}/i`), 'actualizar las dos copias juntas');
 console.log('');
 if (fallos) { console.error(`${fallos} chequeo(s) fallaron`); process.exit(1); }
 console.log('Todos los chequeos pasaron');

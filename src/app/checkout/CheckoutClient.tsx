@@ -18,6 +18,7 @@ import { CheckoutResumenCelular } from "@/components/checkout/CheckoutResumenCel
 import type { AppliedCoupon } from "@/components/checkout/CouponField";
 import { PricingService } from "@/services/PricingService";
 import { telefonoADigitos, telefonoValido } from "@/lib/checkout/telefono";
+import { emailLimpio, emailValido } from "@/lib/checkout/email";
 import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 import { getAdsMatchData, getSessionId, track } from "@/lib/client-analytics";
@@ -439,14 +440,19 @@ export function CheckoutClient({
         // a medio tipear ("35") no sirve para escribirle y abriría la sesión de
         // recupero con un dato basura.
         const telefonoGuardable = telefonoValido(formData.phone) ? telefonoADigitos(formData.phone) : "";
-        if (formData.email || telefonoGuardable) {
+        // Lo mismo con el email: a medio tipear el servidor lo rechaza (400) y
+        // con él se perdía el pedido entero, nombre y teléfono incluidos. Si
+        // todavía no es válido, no se manda: en el PUT un dato a medio corregir
+        // no pisa el que ya estaba guardado (vale para los dos campos).
+        const emailGuardable = emailValido(formData.email) ? emailLimpio(formData.email) : undefined;
+        if (emailGuardable || telefonoGuardable) {
           const sessionId = localStorage.getItem("atelier-checkout-session-id");
           const payload = {
             sessionId,
-            email: formData.email,
+            email: emailGuardable ?? (sessionId ? undefined : ''),
             firstName: formData.firstName,
             lastName: formData.lastName,
-            phone: telefonoGuardable,
+            phone: telefonoGuardable || (sessionId ? undefined : ''),
             cartData: items,
             shippingData: {
               address: formData.address,
@@ -465,11 +471,16 @@ export function CheckoutClient({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
-            const data = await res.json();
+            // Un 429 o un 502 del proxy no traen JSON: el estado se lee primero
+            // y el cuerpo, si no se puede leer, no se convierte en "sin conexión".
+            const data = await res.json().catch(() => ({}));
             // Si no se pudo guardar el contacto, queda medido una vez por motivo:
             // es la única forma de ver desde afuera un rechazo que la persona
-            // no ve (el formulario sigue igual).
-            if (!res.ok && ultimoErrorDeContactoRef.current !== res.status) {
+            // no ve (el formulario sigue igual). Un guardado bueno rearma la
+            // medición, así un segundo corte también se ve.
+            if (res.ok) {
+              ultimoErrorDeContactoRef.current = null;
+            } else if (ultimoErrorDeContactoRef.current !== res.status) {
               ultimoErrorDeContactoRef.current = res.status;
               try { track('checkout_contact_error', { value: totalConPromo2x1, meta: { status: res.status, motivo: String(data?.error || '').slice(0, 80) } }); } catch { /* nunca frena */ }
             }
