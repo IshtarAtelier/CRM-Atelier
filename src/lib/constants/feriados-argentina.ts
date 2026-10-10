@@ -18,8 +18,17 @@
  * pantalla como novedad tipo "Otro".
  */
 
-export type TipoFeriado = 'FERIADO' | 'NO_LABORABLE' | 'EMPLEADOS_COMERCIO';
-export interface Feriado { fecha: string; nombre: string; tipo?: TipoFeriado }
+/**
+ * HORARIO_ESPECIAL: no es feriado, se trabaja normal pero con otro horario
+ * (24 y 31/12 cierran a las 18). Igual que NO_LABORABLE, va con todo el
+ * equipo y no suma horas.
+ */
+export type TipoFeriado = 'FERIADO' | 'NO_LABORABLE' | 'EMPLEADOS_COMERCIO' | 'HORARIO_ESPECIAL';
+/** `local`: cómo abre el local ese día, tal como lo dijo Ishtar ("Abre 9 a 17", "Cerrado"). */
+export interface Feriado { fecha: string; nombre: string; tipo?: TipoFeriado; local?: string }
+
+/** Los días que se trabajan con normalidad, todo el equipo, sin sumar horas a favor. */
+export const TIPOS_DIA_NORMAL: TipoFeriado[] = ['NO_LABORABLE', 'HORARIO_ESPECIAL'];
 
 /**
  * Desde cuándo se lleva la cobertura de feriados: desde que empezó Milena
@@ -44,13 +53,16 @@ export const FERIADOS_ARGENTINA: Feriado[] = ([
     { fecha: '2026-07-10', nombre: 'Puente turístico', tipo: 'NO_LABORABLE' },
     { fecha: '2026-08-17', nombre: 'San Martín' },
     { fecha: '2026-09-26', nombre: 'Día del Empleado de Comercio', tipo: 'EMPLEADOS_COMERCIO' },
-    { fecha: '2026-10-12', nombre: 'Diversidad Cultural' },
-    { fecha: '2026-11-23', nombre: 'Soberanía Nacional (trasladado del 20/11)' },
+    { fecha: '2026-10-12', nombre: 'Diversidad Cultural', local: 'Abre 9 a 17' },
+    { fecha: '2026-11-09', nombre: 'Visita del Papa', local: 'Abre 9 a 17' },
+    { fecha: '2026-11-23', nombre: 'Soberanía Nacional (trasladado del 20/11)', local: 'Abre 9 a 17' },
     { fecha: '2026-12-07', nombre: 'Puente turístico', tipo: 'NO_LABORABLE' },
-    { fecha: '2026-12-08', nombre: 'Inmaculada Concepción' },
-    { fecha: '2026-12-25', nombre: 'Navidad' },
+    { fecha: '2026-12-08', nombre: 'Inmaculada Concepción', local: 'Abre 9 a 17' },
+    { fecha: '2026-12-24', nombre: 'Nochebuena', tipo: 'HORARIO_ESPECIAL', local: 'Cierra a las 18' },
+    { fecha: '2026-12-25', nombre: 'Navidad', local: 'Cerrado (el sábado abre normal)' },
+    { fecha: '2026-12-31', nombre: 'Fin de año', tipo: 'HORARIO_ESPECIAL', local: 'Cierra a las 18' },
     // 2027 (por regla; revisar con el decreto)
-    { fecha: '2027-01-01', nombre: 'Año Nuevo' },
+    { fecha: '2027-01-01', nombre: 'Año Nuevo', local: 'Cerrado' },
     { fecha: '2027-02-08', nombre: 'Carnaval' },
     { fecha: '2027-02-09', nombre: 'Carnaval' },
     { fecha: '2027-03-24', nombre: 'Día de la Memoria' },

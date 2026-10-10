@@ -19,7 +19,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { NOVEDAD_INFO, ESTADO_INFO, TIPO_QUE_DESCUENTA_FERIADO, TIPO_QUE_SUMA_HORAS, horasDeRango } from '@/lib/constants/novedades-equipo';
 import { rangoNovedad, type Novedad, type Yo } from './CalendarioClient';
 import { formatDate } from '@/lib/format-date';
-import { DESDE_COBERTURA_FERIADOS, type Feriado } from '@/lib/constants/feriados-argentina';
+import { DESDE_COBERTURA_FERIADOS, TIPOS_DIA_NORMAL, type Feriado } from '@/lib/constants/feriados-argentina';
 
 interface Persona { id: string; name: string }
 interface Cobertura {
@@ -42,6 +42,7 @@ const ETIQUETA_TIPO = {
     FERIADO:            { texto: 'Feriado',               clase: 'border-sky-400 text-sky-800 dark:text-sky-200' },
     NO_LABORABLE:       { texto: 'No laborable',          clase: 'border-violet-400 text-violet-800 dark:text-violet-200' },
     EMPLEADOS_COMERCIO: { texto: 'Empleados de comercio', clase: 'border-orange-400 text-orange-800 dark:text-orange-200' },
+    HORARIO_ESPECIAL:   { texto: 'Horario especial',      clase: 'border-stone-400 text-stone-700 dark:text-stone-200' },
 } as const;
 const fmtHoras = (n: number) => `${n.toLocaleString('es-AR', { maximumFractionDigits: 1 })} h`;
 
@@ -84,7 +85,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
 
     // Los no laborables se trabajan normal: no entran en la cobertura ni en el saldo.
     const pasados = feriados.filter(f => f.fecha <= hoyK);
-    const pasadosQueSeCubren = pasados.filter(f => f.tipo !== 'NO_LABORABLE');
+    const pasadosQueSeCubren = pasados.filter(f => !TIPOS_DIA_NORMAL.includes(f.tipo ?? 'FERIADO'));
     const proximos = feriados.filter(f => f.fecha > hoyK);
     /** Las novedades (pedidos, francos, etc.) que tocan un día dado. */
     const novedadesDe = (k: string) => novedades.filter(n => claveDia.format(new Date(n.startsAt)) <= k && claveDia.format(new Date(n.endsAt)) >= k);
@@ -211,7 +212,7 @@ function FilaFeriado({ f, futuro, equipo, esAdmin, coberturas, novedades, onGuar
     novedades: Novedad[]; onGuardar: (b: Record<string, unknown>) => Promise<void>; onLimpiar: (fecha: string, userId: string) => Promise<void>;
     onAnotar: () => void; onVerNovedad: (n: Novedad) => void;
 }) {
-    const normal = f.tipo === 'NO_LABORABLE';
+    const normal = TIPOS_DIA_NORMAL.includes(f.tipo ?? 'FERIADO');
     const cubren = equipo.filter((_, i) => coberturas[i]?.worked);
     const cargado = coberturas.some(Boolean);
     const valor = !cargado ? '' : cubren.length === equipo.length ? 'AMBOS' : cubren.length === 0 ? 'NADIE' : cubren[0].id;
@@ -254,6 +255,7 @@ function FilaFeriado({ f, futuro, equipo, esAdmin, coberturas, novedades, onGuar
             <td className="py-2 px-2">
                 <span className="font-bold">{f.nombre}</span>
                 {f.tipo && f.tipo !== 'FERIADO' && <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${ETIQUETA_TIPO[f.tipo].clase}`}>{ETIQUETA_TIPO[f.tipo].texto}</span>}
+                {f.local && <span className="block text-xs text-stone-500">{f.local}</span>}
             </td>
             <td className="py-2 px-2 whitespace-nowrap">
                 {normal ? <span className="text-stone-600 dark:text-stone-300">Ambos <span className="text-xs text-stone-500">(día normal)</span></span>
@@ -268,7 +270,7 @@ function FilaFeriado({ f, futuro, equipo, esAdmin, coberturas, novedades, onGuar
                 ) : <span className={`font-bold ${pendiente && !futuro ? 'text-amber-700 dark:text-amber-300' : ''}`}>{textoQuien}</span>}
             </td>
             <td className="py-2 px-2 whitespace-nowrap">
-                {normal ? <span className="text-xs text-stone-500">el de siempre · no suma</span>
+                {normal ? <span className="text-xs text-stone-500">{f.tipo === 'HORARIO_ESPECIAL' ? 'especial' : 'el de siempre'} · no suma</span>
                 : ref ? (
                     <span className="inline-flex items-center gap-1.5">
                         {esAdmin ? <input type="time" value={desde} onChange={e => setDesde(e.target.value)} className={input} aria-label="Desde" /> : (ref.startTime ?? '—')}
