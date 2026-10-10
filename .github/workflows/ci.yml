@@ -156,6 +156,21 @@ jobs:
       - name: A un hombre no se le mandan monturas de mujer
         run: npm run check:genero-fotos
 
+      - name: El primer contacto lo decide el código (sin precios, fotos ni links)
+        run: npm run check:primer-contacto
+
+      - name: Solo las consultas disparan turno; el bot respeta al dueño del chat
+        run: npm run check:entrantes
+
+      - name: El bot saluda con un nombre de verdad (o sin nombre)
+        run: npm run check:nombres-bot
+
+      - name: Una sola definición de quién es una persona del equipo
+        run: npm run check:remitentes
+
+      - name: Un clip-on, un precio (cotizar y fotos del mismo universo)
+        run: npm run check:catalogo-bot
+
       - name: Build Next.js app
         run: npm run build
         env:

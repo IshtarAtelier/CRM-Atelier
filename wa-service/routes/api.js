@@ -879,6 +879,7 @@ function createApiRouter(deps) {
                 waId: TEST_WA_ID,
                 chatId: TEST_CHAT_ID,
                 customPrompt: agentState.agentPrompt,
+                customPromptExecutive: agentState.agentPromptExecutive || '',
                 dailyContext: agentState.dailyContext,
                 clientData: null,
                 chatSummary: null,
@@ -926,7 +927,8 @@ function createApiRouter(deps) {
             // (shared/respuesta-del-turno.js): salida estructurada, saneado,
             // fotos encoladas primero.
             const lectura = leerSalidaDelGrafo(result, allMessages.length);
-            const respuesta = armarRespuesta({ salida: lectura, encolados: turno.envios });
+            const { restriccionDeFase } = require('../shared/fase-de-la-charla');
+            const respuesta = armarRespuesta({ salida: lectura, encolados: turno.envios, restriccion: restriccionDeFase(result && result.fase, result && result.nombreSaludo) });
             if (respuesta.accion === 'callar' || respuesta.accion === 'rechazar') {
                 return res.json({ response: null, blocks: [], silent: true, reason: respuesta.motivo, toolCalls });
             }

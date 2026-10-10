@@ -114,6 +114,10 @@ function separarImagenes(bloque) {
  * @param {ReturnType<typeof leerSalidaDelGrafo>} p.salida
  * @param {Array<{ texto: string, imagenes?: string[] }>} [p.encolados]  envíos que encolaron las herramientas (fotos)
  * @param {string[]} [p.dichoAntes]  lo último que dijeron el bot y el equipo (anti-repetición)
+ * @param {null|{ fase: string, validar: (t: string) => { ok: boolean, motivo?: string }, respaldo: string }} [p.restriccion]
+ *        turno de apertura (shared/fase-de-la-charla.js → restriccionDeFase): si
+ *        el modelo calla, falla o mete un precio/foto/link, sale `respaldo`
+ *        (el saludo armado por el código). Un primer contacto nunca queda sin respuesta.
  * @returns {{
  *   accion: 'enviar'|'callar'|'rechazar'|'nada',
  *   burbujas: Array<{ texto: string, imagenes: string[], origen: 'llm'|'sistema' }>,
@@ -122,7 +126,8 @@ function separarImagenes(bloque) {
  *   escalar: null | { motivo: string },  // derivó o prometió sin herramienta → crear la tarea desde el código
  * }}
  */
-function armarRespuesta({ salida, encolados = [], dichoAntes = [] }) {
+function armarRespuesta({ salida, encolados = [], dichoAntes = [], restriccion = null }) {
+    if (restriccion) return armarRespuestaDeApertura({ salida, dichoAntes, restriccion });
     // Lo que encolaron las herramientas lo eligió el SISTEMA (foto + nombre +
     // precio de la base): sale aunque el modelo se calle, y antes del texto,
     // que es "cuál te gustó" sobre esas fotos.
@@ -190,6 +195,30 @@ function armarRespuesta({ salida, encolados = [], dichoAntes = [] }) {
         repetidas: rep.quitadas,
         escalar,
     };
+}
+
+/**
+ * El turno de apertura: lo del modelo, si pasa la validación; si no, el saludo
+ * del código. Lo que hayan encolado las herramientas se descarta (en la
+ * apertura no hay herramientas de fotos; si algo llegó, no sale).
+ */
+function armarRespuestaDeApertura({ salida, dichoAntes, restriccion }) {
+    const respaldo = (motivo) => ({
+        accion: 'enviar',
+        burbujas: [{ texto: restriccion.respaldo, imagenes: [], origen: 'sistema' }],
+        textoLLM: '',
+        quitado: [`saludo de apertura reemplazado por el del código (${motivo})`],
+        repetidas: [],
+        escalar: null,
+    });
+    if (!salida || salida.tipo === 'vacio') return respaldo('el modelo no dijo nada');
+    if (salida.tipo === 'callar') return respaldo('el modelo eligió callarse en un primer contacto');
+    const normal = armarRespuesta({ salida, encolados: [], dichoAntes });
+    if (normal.accion !== 'enviar') return respaldo(normal.motivo || 'no quedó nada para decir');
+    if (normal.burbujas.some(b => b.imagenes.length)) return respaldo('una foto en el saludo');
+    const v = restriccion.validar(normal.textoLLM);
+    if (!v.ok) return respaldo(v.motivo || 'no pasó la validación');
+    return normal;
 }
 
 /**

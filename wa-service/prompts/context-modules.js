@@ -26,6 +26,7 @@ const {
     DISCOUNT_TRANSFER_PERCENT,
     RECARGO_MP_CUOTAS_LARGAS,
 } = require('../shared/business-info');
+const { FASE, esApertura, mensajesNuestros, textoDeMensaje, sinAnotaciones } = require('../shared/fase-de-la-charla');
 
 /**
  * Formas de pago vigentes. Los números salen del espejo de arriba.
@@ -101,41 +102,20 @@ function getConversationSignals(messages, take = 30) {
 // genérica.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Un mensaje del historial que salió de nuestro lado (bot, vendedora o seguimiento). */
-function esMensajeNuestro(m) {
-    if (!m) return false;
-    try {
-        if (typeof m._getType === 'function') return m._getType() === 'ai';
-    } catch {
-        // Un mensaje raro no puede voltear el armado del prompt.
-    }
-    const tipo = m.role || m.type || (m.constructor && m.constructor.name) || '';
-    return /^ai/i.test(String(tipo)) || String(tipo) === 'AIMessage';
-}
-
-/** Texto plano de un mensaje del historial (puede venir multimodal). */
-function textoDeMensaje(m) {
-    const content = m && m.content;
-    if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-        return content.filter(p => p && p.type === 'text' && p.text).map(p => p.text).join(' ');
-    }
-    return '';
-}
+// La definición de "mensaje nuestro" vive en shared/fase-de-la-charla.js
+// (10/10/2026): es la MISMA que decide si el turno es primer contacto, así
+// `conversacion_en_curso` y el saludo de apertura no pueden contradecirse.
+// Las bienvenidas automáticas (Meta / auto-respondedor) no cuentan como
+// "ya hablamos".
 
 /**
  * Señales de "esta charla ya está empezada": si hubo mensajes nuestros y cuál
  * fue el primero (el que ya cumplió la función de saludo y presentación).
  */
 function getHistorySignals(messages) {
-    const nuestros = (messages || []).filter(esMensajeNuestro);
+    const nuestros = mensajesNuestros(messages);
     if (nuestros.length === 0) return { yaHablamos: false, primerMensajeNuestro: '' };
-    const primero = textoDeMensaje(nuestros[0])
-        // Los mensajes del historial llegan con el sello de fecha adelante
-        // ("[mar, 4 ago, 21:26] "): sacarlo deja la frase que se leyó el cliente.
-        .replace(/^\[[^\]]{5,40}\]\s*/, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+    const primero = sinAnotaciones(textoDeMensaje(nuestros[0]));
     return { yaHablamos: true, primerMensajeNuestro: primero.slice(0, 160) };
 }
 
@@ -143,7 +123,10 @@ function getHistorySignals(messages) {
 const MODULES = [
     {
         key: 'conversacion_en_curso',
-        trigger: ({ yaHablamos }) => yaHablamos === true,
+        // En 'anuncio_con_historia' manda el bloque de la fase (saludo breve
+        // para retomar): este módulo dice "PROHIBIDO saludar" y los dos juntos
+        // eran exactamente la contradicción que se veía en 23 de 293 chats.
+        trigger: ({ yaHablamos, fase }) => yaHablamos === true && fase !== FASE.ANUNCIO_CON_HISTORIA,
         text: {
             '*': ({ primerMensajeNuestro }) => `<conversacion_ya_empezada>
   ⛔ ESTA CONVERSACIÓN YA ESTÁ EMPEZADA: en el historial YA hay mensajes enviados por nosotros${primerMensajeNuestro ? `. El primero fue: "${primerMensajeNuestro}"` : '.'}
@@ -158,6 +141,8 @@ const MODULES = [
     },
     {
         key: 'receta',
+        // En la apertura (primer contacto / anuncio) no se cotiza: ver shared/fase-de-la-charla.js.
+        fueraDeLaApertura: true,
         trigger: ({ text, hasImage, clientData }) =>
             hasImage ||
             /recet|graduaci|aumento|oftalmolog|oculista|dioptr|\[imagen adjunta/.test(text) ||
@@ -167,7 +152,7 @@ const MODULES = [
   Si el cliente envía una receta médica, lee AMBOS ojos con precisión (OD y OI: Esfera, Cilindro, Eje).
   - Guarda los valores ORIGINALES (sin transponer) usando 'save_prescription_data'.
   - NO le repitas al cliente los valores de la receta (esferas, cilindros, ejes, etc.). No es necesario y es molesto. Simplemente confirmá que la recibiste con algo breve como "Perfecto, ya la tengo" y pasá directo a cotizar.
-  - Si hay nombre de paciente legible en la receta, ese ES el nombre del cliente: pasalo como 'userName' y usá su nombre de pila en la charla. JAMÁS le preguntes el nombre.
+  - Si hay nombre de paciente legible en la receta, pasalo como 'userName' para la ficha, pero NO lo uses para dirigirte a quien escribe: muchas veces escribe la madre por el hijo o una hija por el padre. JAMÁS le preguntes el nombre.
   - LA FECHA DE LA RECETA NO IMPORTA: cualquier receta, de cuando sea, sirve para presupuestar. Nunca la mires para decidir, nunca la comentes, nunca digas que es vieja o que está vencida y nunca pidas una más nueva.
   - Tampoco le pidas que te dicte los valores ni le digas que la foto no se ve: leelos vos.
   - Después de guardar, cotiza usando 'get_price_list' pasando 'chatId' y 'clientId'.
@@ -184,6 +169,8 @@ const MODULES = [
     },
     {
         key: 'obra_social',
+        // En la apertura (primer contacto / anuncio) no se cotiza: ver shared/fase-de-la-charla.js.
+        fueraDeLaApertura: true,
         trigger: ({ text, clientData }) =>
             !(clientData && clientData.insurance) ||
             /obra social|prepaga|osde|swiss|pami|apross|galeno|omint|ioma|sancor|medife|particular/.test(text),
@@ -241,6 +228,8 @@ const MODULES = [
     },
     {
         key: 'precios',
+        // En la apertura (primer contacto / anuncio) no se cotiza: ver shared/fase-de-la-charla.js.
+        fueraDeLaApertura: true,
         trigger: ({ text }) =>
             /precio|cuest|cuant|valor|presupuest|cotiz|cuota|promo|descuent|barat|caro|oferta|2x1|pagar|pago|efectivo|transferencia|tarjeta|sale[nn]?\b/.test(text),
         text: {
@@ -333,15 +322,17 @@ ${FORMAS_DE_PAGO}`,
     },
     {
         key: 'productos',
+        // En la apertura (primer contacto / anuncio) no se cotiza: ver shared/fase-de-la-charla.js.
+        fueraDeLaApertura: true,
         trigger: ({ text }) => /armazon|marco|clip|wicue|gafa|de sol|anteojos de sol|modelo|estilo/.test(text),
         text: {
             sales: `<armazones_y_productos>
-  - ARMAZONES: Desde $100.000. SÍ tenés fotos para mandarle: usá 'send_product_photos' (manda hasta 3, con el nombre y el precio de contado al pie). Mandalas cuando las pida, cuando te diga que sí a tu ofrecimiento, o cuando te cuente qué modelito le gustó de la tienda (pasá ese nombre en 'search'). Si querés ofrecerlas, ofrecelas UNA vez y esperá el sí. Después de mandarlas, una sola línea corta: cuál te gustó más? E invitalo igual a probárselos en el local.
+  - ARMAZONES: no digas un "desde $" ni un piso de precio de memoria: los precios salen solo de 'get_price_list'. SÍ tenés fotos para mandarle: usá 'send_product_photos' (manda hasta 3, con el nombre y el precio de contado al pie). Mandalas cuando las pida, cuando te diga que sí a tu ofrecimiento, o cuando te cuente qué modelito le gustó de la tienda (pasá ese nombre en 'search'). Si querés ofrecerlas, ofrecelas UNA vez y esperá el sí. Después de mandarlas, una sola línea corta: cuál te gustó más? E invitalo igual a probárselos en el local.
   - CLIP-ONS: Ofrecer únicamente el Clip-on normal. Prohibido ofrecer o mencionar clip-ons de niño/Kids. NO le aclares al cliente que es "para adultos" (es un dato innecesario). El precio va recién cuando sabés para qué lo quiere (si usa receta, si es para manejar, etc.), nunca como primera respuesta.
   - GAFAS WICUE: Se oscurecen con botón, sin graduación. Link: https://atelieroptica.com.ar/producto/wicue-cargador-regulable
 </armazones_y_productos>`,
             executive: `<armazones_y_productos>
-  - ARMAZONES: Desde $100.000. SÍ tenés fotos para mandarle: usá 'send_product_photos' (manda hasta 3, con el nombre y el precio de contado al pie), solo cuando el cliente pida ver modelos o acepte que se las mandes. Después, una sola línea corta preguntando cuál le gustó, e invitalo a probárselos en el local.
+  - ARMAZONES: no digas un "desde $" ni un piso de precio de memoria: los precios salen solo de 'get_price_list'. SÍ tenés fotos para mandarle: usá 'send_product_photos' (manda hasta 3, con el nombre y el precio de contado al pie), solo cuando el cliente pida ver modelos o acepte que se las mandes. Después, una sola línea corta preguntando cuál le gustó, e invitalo a probárselos en el local.
   - CLIP-ONS: Ofrecer únicamente Clip-on de Adulto. Prohibido ofrecer, mencionar o consultar por de niño/Kids. No envíes ningún link de producto para Clip-ons.
   - GAFAS WICUE: Se oscurecen con botón, sin graduación. Link: https://atelieroptica.com.ar/producto/wicue-cargador-regulable
 </armazones_y_productos>`,
@@ -390,9 +381,10 @@ ${FORMAS_DE_PAGO}`,
  * @param {Array}  params.messages - Mensajes LangChain del estado
  * @param {Object} params.clientData - Ficha del cliente (puede ser null)
  * @param {string} params.chatSummary - Resumen persistente del chat (puede ser null)
+ * @param {string|null} [params.fase] - Fase de la charla (shared/fase-de-la-charla.js)
  * @returns {string} Texto de los módulos activos (o cadena vacía)
  */
-function buildContextModules({ agentType, messages, clientData, chatSummary }) {
+function buildContextModules({ agentType, messages, clientData, chatSummary, fase = null }) {
     const { conversationText, hasImage } = getConversationSignals(messages);
     // El resumen persistente también dispara módulos: si dice "cotización entregada
     // de multifocales", las reglas de precios siguen cargadas aunque las palabras
@@ -406,11 +398,14 @@ function buildContextModules({ agentType, messages, clientData, chatSummary }) {
         clientData: clientData || null,
         yaHablamos,
         primerMensajeNuestro,
+        fase,
     };
+    const apertura = esApertura(fase);
 
     const active = [];
     for (const mod of MODULES) {
         if (mod.agentOnly && mod.agentOnly !== agentType) continue;
+        if (apertura && mod.fueraDeLaApertura) continue;
         let triggered = false;
         try {
             triggered = mod.trigger(signals);

@@ -39,9 +39,8 @@
  */
 
 const { isBusinessHours: isBusinessHoursReal } = require('./shared/business-hours');
-const { TIPOS_CON_CONSULTA } = require('./shared/tipos-entrantes');
-const { REMITENTES_NO_HUMANOS, SENDER_NAME_AUTORESPONDEDOR } = require('./shared/remitentes');
-const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
+const { whereSalienteHumano, SENDER_NAME_AUTORESPONDEDOR } = require('./shared/remitentes');
+const { clasificarEntrante, disparaTurno } = require('./shared/clasificar-entrante');
 const { resolveWaMessageId } = require('./shared/message-id');
 const {
     ADDRESS,
@@ -124,16 +123,12 @@ function buildAutoReplyText() {
 }
 
 /** ¿El entrante es una consulta de verdad, o ruido que no hay que contestar? */
+// La definición es la de shared/clasificar-entrante.js, la misma del bot:
+// una reacción, un "gracias" de cierre, nuestra bienvenida automática o el
+// contestador del negocio del cliente no reciben el aviso de fuera de horario.
+// (Un medio sin texto sí: una foto de la receta es una consulta.)
 function esConsultaDeCliente(m) {
-    if (!m) return false;
-    if (m.reaction) return false;
-    const tipo = String(m.type || 'text').toLowerCase();
-    if (!TIPOS_CON_CONSULTA.has(tipo)) return false;
-    // Sin texto se responde igual si es un medio (una foto de la receta es una
-    // consulta); un "text" vacío, en cambio, no existe: es ruido.
-    if (tipo === 'text' && !String(m.text || '').trim()) return false;
-    if (isMetaAutoReplyText(m.text)) return false;
-    return true;
+    return disparaTurno(clasificarEntrante(m));
 }
 
 /**
@@ -171,7 +166,7 @@ async function yaAvisado(prisma, chatId, ahora) {
             chatId,
             direction: 'OUTBOUND',
             createdAt: { gt: ultimoAviso.createdAt },
-            senderName: { notIn: [...REMITENTES_NO_HUMANOS] },
+            ...whereSalienteHumano(),
         },
         select: { id: true },
     });

@@ -90,7 +90,12 @@
     "check:referral": "node scripts/checks/referral-anuncio.check.cjs",
     "check:meta-compras": "node scripts/checks/compras-informadas-a-meta.mjs",
     "check:salida-bot": "node scripts/checks/salida-bot-sin-fugas.check.mjs",
-    "check:envios-bot": "node scripts/checks/envios-bot-con-origen.check.mjs"
+    "check:envios-bot": "node scripts/checks/envios-bot-con-origen.check.mjs",
+    "check:primer-contacto": "node scripts/checks/primer-contacto-bot.check.mjs",
+    "check:entrantes": "node scripts/checks/entrantes-bot.check.mjs",
+    "check:nombres-bot": "node --experimental-strip-types scripts/checks/nombres-bot.check.mjs",
+    "check:remitentes": "node --experimental-strip-types scripts/checks/remitentes-paridad.check.mjs",
+    "check:catalogo-bot": "node --experimental-strip-types scripts/checks/catalogo-bot.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

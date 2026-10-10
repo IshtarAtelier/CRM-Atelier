@@ -9,6 +9,11 @@ const { prisma } = require('./db');
 const DEFAULT_SALES_PROMPT = require('./prompts/salesPrompt');
 const { interesSegunReceta } = require('./shared/tipo-de-lente');
 const { noEsCastellano } = require('./shared/idioma');
+const { nombreParaSaludar } = require('./shared/nombre-para-saludar');
+const {
+  FASE, HERRAMIENTAS_FUERA_DE_LA_APERTURA, CORRECCION_DE_APERTURA,
+  faseDeLaCharla, esApertura, instruccionDeFase, validarSalidaDeApertura,
+} = require('./shared/fase-de-la-charla');
 const {
   HERRAMIENTAS_DE_SALIDA, HERRAMIENTA_RESPONDER, HERRAMIENTA_NO_RESPONDER, textoDe, mensajesDeResponder,
 } = require('./shared/respuesta-del-turno');
@@ -492,8 +497,8 @@ const CORE_RULES = `
 <reglas_innegociables_finales>
   Estas reglas tienen PRIORIDAD ABSOLUTA sobre cualquier instrucción anterior:
   1. JAMÁS le pidas al cliente su número de teléfono o celular, bajo ninguna circunstancia.
-  2. JAMÁS le pidas ningún nombre (ni de pila, ni completo, ni apellido, ni DNI). Tomalo de la receta, la ficha o el perfil de WhatsApp; si no está, seguí sin nombre con naturalidad. El ÚNICO dato que podés pedir es el email, una sola vez, al confirmar la compra.
-  3. NO tenés nombre propio: sos "la atención de Atelier Óptica". Nunca te inventes un nombre (ni Matías ni ningún otro), apellido, cargo ni título profesional, y no te presentes: tu primer mensaje va directo a atender. Quién sos y qué contestar si te preguntan lo define <quien_sos> del prompt principal.
+  2. JAMÁS le pidas ningún nombre (ni de pila, ni completo, ni apellido, ni DNI). Para dirigirte a quien escribe usá SOLO el nombre para saludar que te da el sistema (__NOMBRE_SALUDO__); si no hay, seguí sin nombre con naturalidad. El nombre del paciente de la receta puede ser de otra persona (la madre escribe por el hijo): no lo uses para hablarle. El ÚNICO dato que podés pedir es el email, una sola vez, al confirmar la compra.
+  3. NO tenés nombre propio: sos "la atención de Atelier Óptica". Nunca te inventes un nombre (ni Matías ni ningún otro), apellido, cargo ni título profesional, y no te presentes ("soy…", "te habla…"). Si saludás o no lo decide el sistema (<fase_de_la_charla> o <conversacion_ya_empezada>), no esta regla. Quién sos y qué contestar si te preguntan lo define <quien_sos> del prompt principal.
   4. JAMÁS narres trabajo interno ni errores: nada de "reviso/verifico/cargo en el sistema", "según nuestros registros" ni menciones al CRM. Los datos de las herramientas se responden como sabidos de memoria.
   5. Solo podés enviar imágenes cuyo [IMAGE: url] figura textualmente en tus instrucciones o en lo que te devolvió una herramienta (los armazones de 'get_price_list' vienen con su foto). Copiá esas URLs TAL CUAL, nunca inventes ni modifiques una: nunca prometas fotos que no tenés ni digas que "no encontraste" fotos.
   6. TODAS las recetas sirven, sin importar de cuándo sean. No existe antigüedad, vencimiento ni caducidad de recetas: JAMÁS le digas al cliente que su receta es vieja, antigua, está vencida o desactualizada, JAMÁS le pidas una más nueva y JAMÁS comentes su fecha. Si la recibiste, cotizás con esos valores y listo.
@@ -501,42 +506,45 @@ const CORE_RULES = `
   7-bis. SIN RECETA NO HAY PRECIO DE CRISTALES. Nunca. No existe "para que tengas una idea", "aproximado", "más o menos" ni cotizar monofocales Y multifocales para que compare: el tipo de lente lo dice la receta, no el cliente ni vos. Por eso JAMÁS le preguntes "¿buscás monofocales o multifocales?" ni "¿qué tipo de lente querés?": es pedirle que te diga lo que dice la receta. Y JAMÁS digas "ya tengo tu receta" / "ya la recibí" si no la pudiste leer: fingir que la leíste y después preguntarle el tipo es exactamente cómo se terminó cotizando multifocales a gente con receta monofocal. Si no tenés la receta cargada, pedila; si no la tiene a mano, ofrecele traer los anteojos que usa para medirlos en el local, o un turno para medirle la graduación sin cargo con su compra. Y JAMÁS le digas que su receta "está pendiente de lectura" ni nada que suene a trámite interno.
   8. FLUIDEZ: una sola burbuja por respuesta salvo que estés enviando un presupuesto con opciones. Prohibido encadenar afirmación + pregunta como mensajes sueltos, mandar burbujas de puro relleno ("dale", "entiendo", "perfecto") o corregirte a vos mismo en un mensaje aparte. Respondé completo y de una: contexto y pregunta juntos, en un solo mensaje que se lea natural.
   9. JAMÁS le digas al cliente que lo derivás, que lo pasás con alguien, ni que lo va a atender "alguien del equipo", "un asesor" u "otra persona", y no menciones "el equipo". Si tenés que apartarte, escribí SOLO: "Lo confirmo y te escribo en un ratito 😊" — y nada más. Quien siga la charla la sigue como si fueras vos.
-  10. CÓMO SE ATIENDE (Ishtar, 10/10/2026: "que asesore, no que solo escupa precios"). Vale también cuando el primer mensaje es el texto precargado de un anuncio ("Hola quiero más información de los anteojos clipones, los vi en meta", "[MetaClip]", etc.):
-     - PRIMER MENSAJE de la charla = saludo + pregunta abierta, y NADA más. Nombre para saludar: __NOMBRE_SALUDO__. Con nombre: "Hola Luciano, cómo estás? contame un poquito qué estás necesitando". Sin nombre: "Hola, cómo estás? contame un poquito qué estás buscando". Nunca saludes con un nombre que no sea ese.
-     - En el primer mensaje JAMÁS hay precios, listas de opciones, fotos ni links, aunque el anuncio sea de un producto puntual. Si vino por un anuncio, podés nombrarlo ("vi que te interesaron los clip-on") y preguntar para qué los quiere.
-     - El orden de la charla: (a) entender qué necesita y para qué (uso, si ya usa anteojos, qué le molesta); (b) si tiene receta; (c) si lo hace por alguna obra social. De a UNA pregunta por mensaje, y cada pregunta va después de aportar algo útil sobre lo que contó. Es una charla amena, no una encuesta: si el cliente ya lo dijo, no lo preguntes.
-     - El precio llega cuando ya sabés qué necesita, y va con asesoramiento: por qué esa opción le sirve a esa persona, no la lista pelada.
-  11. EL HISTORIAL TRAE NOTAS ENTRE CORCHETES (la hora, "[Lo escribió Mile, del equipo]", "[Imagen adjunta…]"). Son para vos: JAMÁS copies un corchete ni su contenido en tu respuesta. Lo marcado "Lo escribió X, del equipo" lo dijo una compañera, no vos: respetalo y NUNCA lo repitas ni lo reenvíes. Tu respuesta es solo lo NUEVO que le decís al cliente, en castellano, hablándole a él/ella, nunca sobre él/ella.
+__REGLA_EMBUDO__  11. EL HISTORIAL TRAE NOTAS ENTRE CORCHETES (la hora, "[Lo escribió Mile, del equipo]", "[Imagen adjunta…]"). Son para vos: JAMÁS copies un corchete ni su contenido en tu respuesta. Lo marcado "Lo escribió X, del equipo" lo dijo una compañera, no vos: respetalo y NUNCA lo repitas ni lo reenvíes. Tu respuesta es solo lo NUEVO que le decís al cliente, en castellano, hablándole a él/ella, nunca sobre él/ella.
   12. CÓMO TERMINÁS CADA TURNO: con una herramienta, nunca con texto suelto. Para hablarle al cliente usá 'responder_al_cliente' con 'mensajes' (una entrada por burbuja, en castellano, dirigidas al cliente). Si no corresponde decir nada (te agradeció y ya estaba todo dicho, mandó un "ok", un emoji), usá 'no_responder' con el 'motivo'. Lo que pensás, lo que decidís y por qué NUNCA va en 'mensajes': va en 'motivo' o en ningún lado.
 </reglas_innegociables_finales>`;
 
-// El nombre con el que se saluda lo decide el código, no el modelo: un perfil
-// "Ventas Rapilent" o "🌸Lu🌸" no es un nombre para decir "Hola X".
-function coreRules(nombre) {
-  return CORE_RULES.replace('__NOMBRE_SALUDO__', nombre ? `"${nombre}"` : 'NINGUNO (saludá sin nombre)');
+/**
+ * Regla 10, SOLO para el agente de ventas (prospectos). El agente de clientes
+ * existentes (ejecutivo) la recibía igual —una regla de embudo de prospecto
+ * aplicada a alguien que viene a preguntar por su pedido—. El PRIMER mensaje
+ * (saludo) ya no está acá: lo decide el código en shared/fase-de-la-charla.js
+ * y llega como UN bloque aparte, solo en el turno que corresponde.
+ */
+const REGLA_EMBUDO_VENTAS = `  10. CÓMO SE ATIENDE (Ishtar, 10/10/2026: "que asesore, no que solo escupa precios"):
+     - El orden de la charla: (a) entender qué necesita y para qué (uso, si ya usa anteojos, qué le molesta); (b) si tiene receta; (c) si lo hace por alguna obra social. De a UNA pregunta por mensaje, y cada pregunta va después de aportar algo útil sobre lo que contó. Es una charla amena, no una encuesta: si el cliente ya lo dijo, no lo preguntes.
+     - El precio llega cuando ya sabés qué necesita, y va con asesoramiento: por qué esa opción le sirve a esa persona, no la lista pelada.
+`;
+
+/**
+ * Las reglas innegociables para un rol. El nombre con el que se saluda lo
+ * decide el código (shared/nombre-para-saludar.js), no el modelo.
+ * @param {{ agentType: 'sales'|'executive', nombre: string }} p
+ */
+function coreRules({ agentType, nombre }) {
+  return CORE_RULES
+    .replace('__NOMBRE_SALUDO__', nombre ? `"${nombre}"` : 'NINGUNO')
+    .replace('__REGLA_EMBUDO__', agentType === 'sales' ? REGLA_EMBUDO_VENTAS : '');
 }
 
 // Ningún prompt custom puede presentar al bot con apellido o títulos profesionales:
 // hay prompts legacy en la DB que usan "Óptico Contactólogo" / "Ejecutivo de Cuentas".
 const FORBIDDEN_IN_CUSTOM_PROMPT = [/turchi/i, /contact[oó]log/i, /ejecutiv[oa]\s+de\s+cuentas/i];
 
-const NO_SON_NOMBRES = new Set(['cliente', 'optica', 'óptica', 'ventas', 'info', 'atelier', 'mama', 'mamá', 'papa', 'papá', 'amor', 'gordo', 'gorda', 'negro', 'negra', 'flaco', 'flaca', 'yo', 'hola', 'kiosco', 'tienda', 'local', 'taller', 'estudio', 'consultorio', 'farmacia', 'inmobiliaria', 'abogado', 'abogada', 'dr', 'dra', 'lic', 'ing', 'prof', 'familia', 'casa', 'trabajo', 'whatsapp', 'usuario', 'user', 'business']);
-
-// Solo el primer nombre, capitalizado; descarta frases, comercios, emojis o nombres inválidos.
-function sanitizeFirstName(rawName) {
-  if (!rawName) return "";
-  const first = String(rawName).trim().split(/\s+/)[0] || "";
-  if (!/^[a-záéíóúüñ]{3,20}$/i.test(first) || NO_SON_NOMBRES.has(first.toLowerCase())) return "";
-  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
-}
-
 // ── NODOS 2 y 3: AGENTE DE VENTAS (Prospectos) y EJECUTIVO DE CUENTAS (Clientes) ──
 // Misma mecánica de invocación/reintentos; solo cambian el prompt por defecto,
 // las herramientas y la regla para descartar un prompt custom que no corresponde al rol.
-function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, rejectCustomPrompt }) {
+function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, promptCustomDe }) {
   return async function agentNode(state, config) {
     const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
-    const custom = state.customPrompt || "";
+    // Cada rol lee SU prompt custom (ver promptCustomDe más abajo).
+    const custom = promptCustomDe(state) || "";
     const clientInfoText = await formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
     const tiemposModule = await getTiemposModule();
     const tagsModule = await getTagsModule();
@@ -545,8 +553,7 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
     if (
       !basePrompt ||
       basePrompt.trim().length <= 300 ||
-      FORBIDDEN_IN_CUSTOM_PROMPT.some(p => p.test(custom)) ||
-      (rejectCustomPrompt && rejectCustomPrompt(custom))
+      FORBIDDEN_IN_CUSTOM_PROMPT.some(p => p.test(custom))
     ) {
       basePrompt = defaultPrompt;
     }
@@ -555,11 +562,23 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
     // El resumen persistente del chat también dispara módulos (temas ya tratados
     // siguen cargados en charlas largas o retomadas). Si el prompt (custom) no
     // tiene el placeholder, el replace no altera nada.
+    // ── Fase de la charla: la decide el CÓDIGO (shared/fase-de-la-charla.js) ──
+    // Solo el agente de ventas tiene apertura: el ejecutivo atiende a clientes
+    // existentes con su propio prompt. Si quien llama ya calculó la fase
+    // (bot-cloud.js, con las filas crudas para ver la marca del anuncio), se
+    // usa esa; si no, se calcula acá con el historial.
+    const fase = agentType === 'sales'
+      ? (state.fase || faseDeLaCharla(state.messages, { entroPorAnuncio: state.entroPorAnuncio }))
+      : FASE.EN_CURSO;
+    const apertura = esApertura(fase);
+    const nombre = nombreParaSaludar({ perfil: state.userName, ficha: state.clientData });
+
     const contextModules = buildContextModules({
       agentType,
       messages: state.messages,
       clientData: state.clientData,
       chatSummary: state.chatSummary,
+      fase,
     });
 
     const systemPrompt = basePrompt
@@ -570,7 +589,11 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
       .replace(/\[TIEMPOS_CONFECCION\]/g, tiemposModule)
       .replace(/\[INSTRUCCIONES_CUSTOM\]/g, state.dailyContext || "")
       .replace(/\[telefono\]/g, state.userPhone || "")
-      .replace(/\[nombre\]/g, sanitizeFirstName(state.clientData?.name || state.userName)) + coreRules(sanitizeFirstName(state.clientData?.name || state.userName));
+      .replace(/\[nombre\]/g, nombre)
+      + coreRules({ agentType, nombre })
+      // UN solo bloque de saludo, al final (después de las innegociables): en
+      // la apertura manda sobre el saludo literal que traiga el prompt vivo.
+      + (apertura ? instruccionDeFase(fase, nombre, { porAnuncio: Boolean(state.entroPorAnuncio) }) : '');
 
     let messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
     const MAX_RETRIES = 3;
@@ -580,10 +603,16 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
     // variable porque cambia cómo contesta Gemini y no se probó contra la API
     // real todavía (10/10/2026); sin ella, el texto suelto se sigue aceptando
     // y pasa por el mismo validador.
+    // En la apertura el modelo NO TIENE las herramientas de precio y fotos: no
+    // es una prohibición que pueda desobedecer, es que no existen en el turno.
+    const herramientas = apertura
+      ? toolsList.filter(t => !HERRAMIENTAS_FUERA_DE_LA_APERTURA.has(t.name))
+      : toolsList;
     const modelo = process.env.BOT_SALIDA_ESTRICTA === '1'
-      ? getModel().bindTools(toolsList, { tool_choice: 'any' })
-      : getModel().bindTools(toolsList);
+      ? getModel().bindTools(herramientas, { tool_choice: 'any' })
+      : getModel().bindTools(herramientas);
     let reintentoPorIdioma = false;
+    let reintentoPorApertura = false;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       let response;
       try {
@@ -628,7 +657,17 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
         attempt--;
         continue;
       }
-      return { messages: [response] };
+      // ── Apertura: ni precios, ni fotos, ni links. Se pide una vez que la
+      // rehaga; si insiste, el turno la reemplaza por el saludo del código
+      // (respuesta-del-turno.js → restriccion).
+      if (apertura && candidata && !reintentoPorApertura && !validarSalidaDeApertura(candidata).ok) {
+        reintentoPorApertura = true;
+        console.warn(`⚠️ ${nodeName}: el saludo de apertura traía ${validarSalidaDeApertura(candidata).motivo}, se pide de nuevo: "${candidata.slice(0, 80)}"`);
+        messagesWithSystem = [...messagesWithSystem, new HumanMessage(CORRECCION_DE_APERTURA)];
+        attempt--;
+        continue;
+      }
+      return { messages: [response], fase, nombreSaludo: nombre };
     }
   };
 }
@@ -653,6 +692,8 @@ const salesNode = createAgentNode({
   agentType: 'sales',
   toolsList: salesToolsList,
   defaultPrompt: DEFAULT_SALES_PROMPT,
+  // SystemSetting.bot_prompt (el que se edita desde el panel) es de VENTAS.
+  promptCustomDe: (state) => state.customPrompt,
 });
 
 const executiveNode = createAgentNode({
@@ -660,9 +701,12 @@ const executiveNode = createAgentNode({
   agentType: 'executive',
   toolsList: executiveToolsList,
   defaultPrompt: DEFAULT_EXECUTIVE_PROMPT,
-  // Un prompt custom escrito para el rol de ventas no debe usarse con clientes existentes
-  rejectCustomPrompt: (custom) =>
-    custom.includes("prospectos nuevos") || custom.includes("AGENTE DE VENTAS") || custom.includes("Óptico Contactólogo"),
+  // Clave PROPIA: SystemSetting.bot_prompt_executive. Antes el ejecutivo
+  // recibía `bot_prompt` (que es de ventas) y solo lo descartaba si tenía
+  // ciertas frases; el prompt vivo no las tiene, así que a los clientes
+  // existentes los atendía el prompt de prospectos. Sin la clave, va el
+  // prompt por defecto del ejecutivo — nunca el de ventas.
+  promptCustomDe: (state) => state.customPromptExecutive,
 });
 
 // ── NODO 4: AUDITORIA ──
@@ -734,6 +778,13 @@ const GraphAnnotation = Annotation.Root({
   clientData: Annotation({ reducer: (_, v) => v, default: () => null }),
   chatSummary: Annotation({ reducer: (_, v) => v, default: () => null }),
   customPrompt: Annotation({ reducer: (_, v) => v, default: () => "" }),
+  customPromptExecutive: Annotation({ reducer: (_, v) => v, default: () => "" }),
+  // Fase de la charla (shared/fase-de-la-charla.js). La puede traer quien
+  // invoca; el agente la devuelve resuelta junto con el nombre del saludo,
+  // para que el turno valide la salida con la misma fase.
+  entroPorAnuncio: Annotation({ reducer: (_, v) => v, default: () => false }),
+  fase: Annotation({ reducer: (prev, v) => v ?? prev ?? null, default: () => null }),
+  nombreSaludo: Annotation({ reducer: (prev, v) => v ?? prev ?? '', default: () => '' }),
   dailyContext: Annotation({ reducer: (_, v) => v, default: () => "" }),
   chatId: Annotation({ reducer: (_, v) => v, default: () => "" }),
   waId: Annotation({ reducer: (_, v) => v, default: () => "" }),

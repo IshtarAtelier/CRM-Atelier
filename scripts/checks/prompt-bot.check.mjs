@@ -39,6 +39,8 @@ const DEL_REPO = [
     ['prompts/salesPrompt.js', leer('../../wa-service/prompts/salesPrompt.js')],
     ['prompts/executivePrompt.js', leer('../../wa-service/prompts/executivePrompt.js')],
     ['prompts/context-modules.js', leer('../../wa-service/prompts/context-modules.js')],
+    // El bloque de saludo de la apertura (10/10/2026) también es prompt.
+    ['shared/fase-de-la-charla.js', leer('../../wa-service/shared/fase-de-la-charla.js')],
 ];
 
 console.log('Prompts del repo (solo lo prohibido):');

@@ -30,6 +30,8 @@ const { recuperarExtraccionesPendientes } = require('./cron/extraccion-pendiente
 const { TAGS_SIN_BOT, getFileExtension } = require('./utils');
 const { downloadMediaWithRetry, uploadMediaToCrm } = require('./shared/media');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
+const { clasificarEntrante, disparaTurno } = require('./shared/clasificar-entrante');
+const { entroPorAnuncio, restriccionDeFase } = require('./shared/fase-de-la-charla');
 const { parseAdTag, prefillAdTag, fallbackAdTag, stripAdTags } = require('./shared/ad-tag');
 const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 const { BotReplyingSet } = require('./shared/bot-replying');
@@ -77,6 +79,8 @@ function broadcastChatUpdate(chatId) {
 // ── Estado global ──────────────────────────────
 let agentEnabled = false;
 let agentPrompt = '';
+// Prompt propio del agente de clientes existentes (`bot_prompt_executive`); vacío = el del repo.
+let agentPromptExecutive = '';
 let dailyContext = '';
 // Interruptor propio de los seguimientos salientes (presupuestos, inactividad y
 // tareas). Va separado de agentEnabled a propósito: ése decide si el bot CONTESTA
@@ -156,6 +160,8 @@ async function loadConfig() {
         const promptSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_prompt' } });
         const contextSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_daily_context' } });
         const followupsSetting = await prisma.systemSetting.findUnique({ where: { key: 'followups_enabled' } });
+        const promptEjecutivoSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_prompt_executive' } });
+        agentPromptExecutive = promptEjecutivoSetting ? (promptEjecutivoSetting.value || '') : '';
 
         if (followupsSetting) {
             followupsEnabled = followupsSetting.value === 'true';
@@ -700,6 +706,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             waId: waId,
             chatId: chat.id,
             customPrompt: agentPrompt,
+            customPromptExecutive: agentPromptExecutive,
+            // `recentMessages` ya quedó en orden cronológico (el .reverse() de
+            // arriba lo muta): entroPorAnuncio lo quiere de la más nueva a la más vieja.
+            entroPorAnuncio: entroPorAnuncio([...recentMessages].reverse()),
             dailyContext: dailyContext,
             clientData: freshChat?.client || chat.client || null,
             chatSummary: freshChat.chatSummary || null,
@@ -796,6 +806,8 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             salida: leerSalidaDelGrafo(result, allMessages.length),
             encolados: turno.envios,
             dichoAntes,
+            // Turno de apertura (primer contacto / anuncio): sin precio, foto ni link.
+            restriccion: restriccionDeFase(result && result.fase, result && result.nombreSaludo),
         });
         if (respuesta.quitado.length) console.log(`  🧹 [Bot] Saneado de salida: ${respuesta.quitado.join(' · ')}`);
         if (respuesta.accion === 'callar') console.log(`  🤐 [Bot] El modelo decidió no responder: ${String(respuesta.motivo || '').slice(0, 120)}`);
@@ -1839,7 +1851,15 @@ const handleMessage = async (msg) => {
         }
 
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio) con DEBOUNCE
-        if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsMessage)) {
+        // Solo las CONSULTAS disparan turno: una reacción, un "gracias" de
+        // cierre o el contestador del negocio del cliente se guardan y nada más
+        // (definición única: shared/clasificar-entrante.js).
+        // Tipos de whatsapp-web.js → los del clasificador ('ptt' es la nota de voz).
+        const TIPO_WEBJS = { chat: 'text', ptt: 'audio', vcard: 'contacts', multi_vcard: 'contacts', image: 'image', video: 'video', audio: 'audio', document: 'document', location: 'location', sticker: 'sticker' };
+        const claseDelEntrante = clasificarEntrante({ type: TIPO_WEBJS[String(msg.type || 'chat')] || 'text', text: body });
+        if (!disparaTurno(claseDelEntrante)) {
+            console.log(`  🤏 Entrante "${claseDelEntrante}" de ${profileName}: se guarda, no se responde.`);
+        } else if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsMessage)) {
             console.log(`  🕒 Programando respuesta del bot para ${profileName} en 25s...`);
             
             if (botDebounceTimers.has(chat.id)) {
