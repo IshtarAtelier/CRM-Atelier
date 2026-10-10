@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { FICHA_PUBLICADA } from '@/lib/catalog/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export async function GET() {
   try {
     const products = await Promise.race([
       prisma.webProduct.count({
-        where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } },
+        where: FICHA_PUBLICADA,
       }),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('DB timeout (5s)')), 5000)

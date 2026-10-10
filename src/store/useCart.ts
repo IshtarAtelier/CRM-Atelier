@@ -43,6 +43,8 @@ interface CartState {
   getCartTotal: (isWholesale?: boolean) => number;
   updateItemLensConfig: (id: string, lensConfig: any, additionalPrice: number) => void;
   setItemWholesalePrices: (pricesByProductId: Record<string, number>) => void;
+  /** Pone un ítem al día con el sistema (precio, stock, cristales). Lo usa useCarritoAlDia. */
+  ponerItemAlDia: (id: string, cambios: Partial<Omit<CartItem, 'id' | 'productId'>>) => void;
 }
 
 export const useCart = create<CartState>()(
@@ -128,6 +130,10 @@ export const useCart = create<CartState>()(
           const wp = pricesByProductId[i.productId] || 0;
           return wp !== (i.wholesaleBasePrice || 0) ? { ...i, wholesaleBasePrice: wp } : i;
         }),
+      })),
+
+      ponerItemAlDia: (id, cambios) => set((state) => ({
+        items: state.items.map((i) => (i.id === id ? { ...i, ...cambios } : i)),
       })),
 
       getCartTotal: (isWholesale = false) => {

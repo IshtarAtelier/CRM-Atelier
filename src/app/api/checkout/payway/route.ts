@@ -15,6 +15,7 @@ import { TEXTO_ESPERANDO_PAGO_MP } from '@/lib/checkout/finalize-web-payment';
 import { calcular2x1Armazones } from '@/lib/promo-2x1-armazones';
 import { isFrame } from '@/lib/promo-utils';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
+import { sePuedeVenderEnLaWeb } from '@/lib/catalog/queries';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { notifyPaymentFailed } from '@/lib/payment-failed-alert';
 import { enforceRateLimit } from '@/lib/api-guard';
@@ -326,8 +327,16 @@ export async function POST(req: Request) {
         });
       }
 
-      if (!dbProduct) {
-        throw new Error(`Producto no encontrado en la base de datos: ${item.model}`);
+      // Solo se vende lo que la tienda publica (la regla de los listados, en
+      // src/lib/catalog/queries.ts): un carrito guardado puede traer un
+      // armazón que se despublicó o se borró después, y un id armado a mano,
+      // un cristal. Antes el inexistente salía como error 500 sin motivo.
+      if (!dbProduct || !sePuedeVenderEnLaWeb(dbProduct, isWholesaleUser)) {
+        console.warn(`[PAYWAY CHECKOUT] Producto fuera de la tienda en el carrito: ${safeProductId} (${item.model})`);
+        return NextResponse.json({
+          error: `${item.model || 'Un producto del carrito'} ya no está a la venta en la web. Sacalo del carrito para seguir.`,
+          code: 'PRODUCTO_NO_DISPONIBLE',
+        }, { status: 400 });
       }
 
       // Armazón (con oferta o mayorista) + cristal + teñido, con el MISMO
@@ -396,7 +405,14 @@ export async function POST(req: Request) {
     // sale siempre de recalculatedItemsTotal (el precio más bajo y correcto, de la DB).
     if (recalculatedItemsTotal - total > 5) {
       console.error("[PAYWAY CHECKOUT] DISCREPANCIA DETECTADA (pago de menos) - Backend:", recalculatedItemsTotal, "Frontend:", total);
-      return NextResponse.json({ error: "Discrepancia de precio detectada. Por favor, reintente." }, { status: 400 });
+      // Casi siempre es un carrito guardado con un precio viejo (el carrito se
+      // pone al día solo, pero puede haber cambiado en el medio). Reintentar
+      // igual no lo arreglaba: el navegador, con el código, actualiza el
+      // carrito y la persona ve el precio nuevo antes de confirmar.
+      return NextResponse.json({
+        error: "Un precio de tu carrito cambió mientras comprabas. Ya lo actualizamos: revisá el total y confirmá de nuevo.",
+        code: 'PRECIO_CAMBIO',
+      }, { status: 400 });
     }
     if (total - recalculatedItemsTotal > 5) {
       console.warn("[PAYWAY CHECKOUT] Total del cliente mayor al backend (se cobra el backend):", recalculatedItemsTotal, "vs", total);
@@ -568,7 +584,7 @@ export async function POST(req: Request) {
           where: { id: item.productId }
         });
         if (dbProduct && dbProduct.category !== "Cristal" && dbProduct.category !== "Tratamiento" && dbProduct.stock < item.quantity) {
-          return NextResponse.json({ error: `Stock insuficiente para ${item.model}. Disponible: ${dbProduct.stock}` }, { status: 400 });
+          return NextResponse.json({ error: `Stock insuficiente para ${item.model}. Disponible: ${dbProduct.stock}`, code: 'STOCK_INSUFICIENTE' }, { status: 400 });
         }
       }
     }
@@ -610,7 +626,7 @@ export async function POST(req: Request) {
               // Restaurar lo ya decrementado de items anteriores del carrito y abortar sin cobrar.
               if (globalRestoreStock) await globalRestoreStock();
               return NextResponse.json(
-                { error: `Stock insuficiente para ${item.model}. Otro cliente acaba de reservar la última unidad. No te cobramos.` },
+                { error: `Stock insuficiente para ${item.model}. Otro cliente acaba de reservar la última unidad. No te cobramos.`, code: 'STOCK_INSUFICIENTE' },
                 { status: 409 }
               );
             }

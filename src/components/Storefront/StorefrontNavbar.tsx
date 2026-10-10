@@ -14,6 +14,8 @@ import { CARTEL_PROMO_POR_DEFECTO } from "@/lib/promo-cuotas";
 import { coincideBusquedaTienda } from "@/lib/catalog/busqueda-tienda";
 import { precioFinal } from "@/lib/precio-oferta";
 import { precioConSigno } from "@/lib/format-precio";
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
+import { PricingService } from "@/services/PricingService";
 
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
@@ -76,6 +78,8 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
 
   // Óptica logueada (mayorista): su navegación se reduce a la tienda.
   const isOptica = currentUser?.role === 'OPTICA';
+  // El % por transferencia de /admin/web, con la regla de toda la tienda.
+  const descuentoTransferenciaPct = descuentoTransferenciaDe(webSettings?.web_promo_cash_discount);
 
   useEffect(() => {
     // Si el servidor ya pasó los settings, no hay nada que buscar (y evitamos
@@ -557,9 +561,18 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                             {p.name || p.model}
                           </span>
                           <span className="text-xs text-[#8a6d3b] dark:text-[#c8a55c] font-bold mt-1">
-                            {/* El que se cobra (oferta si la hay): Rigel C3 figuraba a
-                                $215.000 de lista y se cobra $160.000. */}
-                            {precioConSigno(precioFinal(p))}
+                            {/* Al público, el MISMO número que la grilla y la
+                                ficha: el de transferencia, con la oferta
+                                resuelta (PricingService.vidrieraDeProducto).
+                                Hasta el 10/10 acá salía el de tarjeta: el mismo
+                                anteojo decía $215.000 en el buscador y $182.750
+                                en la tienda. A una óptica, su precio. */}
+                            {isOptica ? precioConSigno(precioFinal(p)) : (
+                              <>
+                                {precioConSigno(PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: 6 }).transferencia)}
+                                <span className="font-semibold text-emerald-700 dark:text-emerald-400"> · {descuentoTransferenciaPct}% OFF transf.</span>
+                              </>
+                            )}
                           </span>
                         </div>
                       </Link>

@@ -15,6 +15,8 @@ import { YouTubeEmbed } from '@/components/blog/YouTubeEmbed';
 import { VIDEOS_POR_SLUG } from '@/lib/constants/videos-blog';
 import blogFaqs from '@/lib/blog-faqs.json';
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import { FICHA_PUBLICADA } from '@/lib/catalog/queries';
+import { enlaceDeFichaVigente } from '@/lib/catalog/enlace-a-ficha';
 
 
 // ISR: las notas (estáticas y de DB) se cachean y regeneran cada 5 minutos.
@@ -1620,6 +1622,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     notFound();
   }
 
+  // Fichas publicadas, para corregir al mostrar los links de una nota de la
+  // base que apunten a una ficha dada de baja (ver enlace-a-ficha.ts). Si la
+  // base no responde, los links quedan como están.
+  let fichasVivas: Set<string> | null = null;
+  if (post.isDb) {
+    try {
+      const filas = await prisma.webProduct.findMany({ where: FICHA_PUBLICADA, select: { slug: true } });
+      fichasVivas = new Set(filas.map((f) => f.slug).filter(Boolean));
+    } catch (error) {
+      console.error('[blog] no se pudieron leer las fichas para los links:', error);
+    }
+  }
+
   // Get 3 other posts to suggest
   const otherPosts = await getRelatedPosts(post.slug);
 
@@ -1793,7 +1808,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               // imágenes por nota). Solo se reescriben las locales de /images;
               // una URL externa queda como está. Corre DESPUÉS del filtrado de
               // atributos, así que no abre nada que el sanitizado cerró.
-              transformTags: { img: imagenDelCuerpoOptimizada },
+              transformTags: {
+                img: imagenDelCuerpoOptimizada,
+                a: (tagName: string, attribs: Record<string, string>) => ({
+                  tagName,
+                  attribs: attribs.href ? { ...attribs, href: enlaceDeFichaVigente(attribs.href, fichasVivas) } : attribs,
+                }),
+              },
               allowIframeRelativeUrls: false,
               // Solo embeds de proveedores conocidos; si un embed legítimo desaparece,
               // agregar el hostname acá.

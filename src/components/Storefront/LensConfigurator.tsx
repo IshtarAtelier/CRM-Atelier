@@ -212,6 +212,23 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
     });
   }, [step, lensType, treatment, flowType, nombreProducto, productId]);
 
+  // En celular, al elegir una opción el paso siguiente se abría DEBAJO de la
+  // barra fija del total y no se veía: había que adivinar que había que bajar.
+  // Se lleva a la vista la cabecera del último paso abierto (data-paso-abierto)
+  // después de la animación de apertura. En compu entra todo junto: no se toca.
+  const raizRef = useRef<HTMLDivElement>(null);
+  const primerPaso = useRef(true);
+  useEffect(() => {
+    if (primerPaso.current) { primerPaso.current = false; return; }
+    if (typeof window === "undefined" || window.innerWidth >= 640) return;
+    const t = window.setTimeout(() => {
+      const abiertos = raizRef.current?.querySelectorAll<HTMLElement>("[data-paso-abierto]");
+      const ultimo = abiertos && abiertos.length > 0 ? abiertos[abiertos.length - 1] : null;
+      ultimo?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [step, flowType]);
+
   // ── La configuración y su precio ─────────────────────────────────────────
   // El total sale de `calcularConfiguracion`, la MISMA función con la que el
   // checkout recalcula antes de cobrar. Lo que se ve acá es lo que se cobra.
@@ -279,7 +296,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
   ) : null;
 
   return (
-    <div className="w-full text-black">
+    <div ref={raizRef} className="w-full text-black">
       <div className="flex justify-between items-end mb-12">
         <h3 className="text-2xl font-serif uppercase tracking-tight">Armá tus lentes</h3>
       </div>
@@ -288,7 +305,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
       <div className="mb-12 border-b border-black/10 pb-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c]">Asistencia Personalizada</span>
-          <a href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales.`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-[0.15em] text-black hover:text-[#666] transition-colors flex items-center gap-2">
+          <a href={buildWhatsAppUrl("¡Hola! Estoy armando mis lentes en la web y necesito asesoramiento para elegir los cristales.", { phone: WHATSAPP_PHONE })} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-[0.15em] text-black hover:text-[#666] transition-colors flex items-center gap-2">
             <div className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -371,7 +388,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                   <CompletedStep num="02" subtitle="Estilo" title={opcion(`TENIDO.${tintStyle}`)?.etiqueta || ""} onClick={() => {setStep(2); setLensType(null);}} />
                 ) : (
                   <>
-                    <div className="mb-6 mt-4">
+                    <div className="mb-6 mt-4 scroll-mt-6" data-paso-abierto="">
                       <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">02 / Estilo de Teñido</p>
                       <p className="text-sm font-serif italic text-black">Elegí la forma en que se aplicará el color en tu lente.</p>
                     </div>
@@ -396,7 +413,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                   <CompletedStep num="03" subtitle="Visión" title={tituloTipo(lensType)} onClick={() => setStep(3)} />
                 ) : (
                   <>
-                    <div className="mb-6 mt-4">
+                    <div className="mb-6 mt-4 scroll-mt-6" data-paso-abierto="">
                       <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">03 / Visión</p>
                       <p className="text-sm font-serif italic text-black">Podés hacer que tus anteojos de sol tengan tu receta.</p>
                     </div>
@@ -487,7 +504,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                   <CompletedStep num="02" subtitle="Tratamiento" title={lensConfig.etiqueta || ""} onClick={() => setStep(2)} />
                 ) : (
                   <>
-                    <div className="mb-6 mt-4">
+                    <div className="mb-6 mt-4 scroll-mt-6" data-paso-abierto="">
                       <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">02 / Calidad del Cristal</p>
                       <p className="text-sm font-serif italic text-black">Elegí el tratamiento ideal para cuidar tu vista.</p>
                     </div>
@@ -527,53 +544,62 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden mb-12 mt-4"
           >
-            <div className="mb-6">
+            <div className="mb-6 scroll-mt-6" data-paso-abierto="">
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">
                 {flowType === "SUN" ? "04" : "03"} / Tu Receta
               </p>
               <p className="text-sm font-serif italic text-black">
-                Mandanos tu receta por WhatsApp y los fabricamos exactos.
+                No hace falta tenerla a mano para comprar.
               </p>
             </div>
 
             {/* Acá vivía un dropzone que solo guardaba el NOMBRE del archivo: el
-                cliente veía "¡Archivo Cargado!" y la receta nunca llegaba. */}
-            <div className="border border-black/10 bg-white rounded-[1rem] p-8 text-center shadow-sm flex flex-col items-center">
-              <div className="w-16 h-16 rounded-full bg-[#25D366]/10 flex items-center justify-center mb-5">
-                <svg className="w-7 h-7 fill-[#128C7E]" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d={WHATSAPP_ICON_PATH} />
-                </svg>
+                cliente veía "¡Archivo Cargado!" y la receta nunca llegaba.
+
+                10/10/26: el camino principal es AGREGAR AL CARRITO, no WhatsApp.
+                Medido en celular desde el 29/9: de 45 personas que llegaron a
+                este paso, 11 agregaron al carrito y 2 tocaron WhatsApp; las
+                otras 32 se fueron. El botón verde gigante decía "mandá la receta
+                ahora" (o sea, salí del sitio) y el "podés mandarla después"
+                estaba en letra chica, abajo, tapado por la barra fija. */}
+            <div className="border border-black/10 bg-white rounded-[1rem] p-6 sm:p-8 shadow-sm flex flex-col gap-4">
+              <div className="flex items-start gap-3">
+                <span aria-hidden="true" className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-white text-[12px] font-bold">✓</span>
+                <div>
+                  <h4 className="font-bold text-[13px] uppercase tracking-widest mb-1">
+                    Comprá ahora, la receta la mandás después
+                  </h4>
+                  <p className="text-[12px] text-stone-600 leading-relaxed">
+                    Agregá al carrito y terminá la compra. Antes de fabricar, un asesor te escribe por WhatsApp para pedirte la receta y revisarla con vos.
+                  </p>
+                </div>
               </div>
-              <h4 className="font-bold text-[14px] uppercase tracking-widest mb-2">
-                Enviá tu receta por WhatsApp
-              </h4>
-              <p className="text-[11px] text-[#666] max-w-xs mx-auto leading-relaxed mb-6">
-                Tomale una foto clara con el celular o mandá el PDF. Se abre el chat con tu pedido ya escrito.
-              </p>
-              <a
-                href={buildWhatsAppUrl(textoRecetaWhatsApp, { phone: WHATSAPP_PHONE })}
-                target="_blank"
-                rel="noopener noreferrer"
-                // El evento de WhatsApp que ya mide todo el sitio lo dispara el
-                // listener global (WhatsAppAttribution): acá solo se agrega el
-                // del embudo del configurador, para no contar el clic dos veces.
-                onClick={() =>
-                  track("lens_config_prescription_whatsapp", {
-                    productId,
-                    productName: nombreProducto,
-                    meta: { flujo: flowType, tipo: lensType, tratamiento: treatment },
-                  })
-                }
-                className="w-full sm:w-auto px-8 py-4 bg-[#25D366] hover:bg-[#1da851] text-white font-bold uppercase tracking-[0.2em] text-[11px] rounded-full shadow-lg transition-colors flex justify-center items-center gap-2.5"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d={WHATSAPP_ICON_PATH} />
-                </svg>
-                Abrir WhatsApp
-              </a>
-              <p className="text-[10px] text-stone-500 leading-relaxed max-w-xs mt-5">
-                También podés agregar al carrito ahora y mandarla después: un asesor te la va a pedir antes de fabricar.
-              </p>
+              <div className="border-t border-black/5 pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                <p className="text-[11px] text-stone-600 leading-relaxed sm:flex-1">
+                  ¿La tenés a mano? Mandala ahora y adelantamos el pedido: una foto clara o el PDF.
+                </p>
+                <a
+                  href={buildWhatsAppUrl(textoRecetaWhatsApp, { phone: WHATSAPP_PHONE })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  // El evento de WhatsApp que ya mide todo el sitio lo dispara el
+                  // listener global (WhatsAppAttribution): acá solo se agrega el
+                  // del embudo del configurador, para no contar el clic dos veces.
+                  onClick={() =>
+                    track("lens_config_prescription_whatsapp", {
+                      productId,
+                      productName: nombreProducto,
+                      meta: { flujo: flowType, tipo: lensType, tratamiento: treatment },
+                    })
+                  }
+                  className="w-full sm:w-auto px-5 py-3 border-2 border-[#128C7E] text-[#0d6b60] hover:bg-[#25D366]/10 font-bold uppercase tracking-[0.15em] text-[10px] rounded-full transition-colors flex justify-center items-center gap-2 shrink-0"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d={WHATSAPP_ICON_PATH} />
+                  </svg>
+                  Mandar la receta por WhatsApp
+                </a>
+              </div>
             </div>
           </motion.div>
         )}

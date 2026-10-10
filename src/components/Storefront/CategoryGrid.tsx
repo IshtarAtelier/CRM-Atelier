@@ -7,6 +7,8 @@ import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { precioConOferta } from "@/lib/precio-oferta";
+import { formatearPrecio } from "@/lib/format-precio";
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 
 import Image from "next/image";
 
@@ -43,7 +45,8 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
   // "12 s/interés de $lista/12" — la frase prohibida, con el precio mal.
   const promo = leerPromoCuotas(webSettings.web_promo_installments);
   const installmentsCount = promo.cantidad;
-  const discountRate = webSettings.web_promo_cash_discount / 100;
+  // Misma lectura del % que /tienda y el filtro de precio (vacío o 0 → 15).
+  const descuentoTransferenciaPct = descuentoTransferenciaDe(webSettings.web_promo_cash_discount);
 
   if (products.length === 0) {
     return (
@@ -182,32 +185,30 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     el 15% en el mismo renglón, y las cuotas una debajo de la
                     otra. Los importes salen de PricingService. */}
                 {(() => {
-                  const { enOferta } = precioConOferta(p);
-                  const base = enOferta ? (p.salePrice || 0) : (p.price || 0);
+                  // Los números salen de PricingService.vidrieraDeProducto, los
+                  // mismos de /tienda, el home, la ficha y el buscador.
+                  const v = PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: installmentsCount });
                   return (
                     <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40">
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-sm text-stone-600 dark:text-stone-400 font-medium">
                           <span className="font-black text-base text-stone-900 dark:text-white">
-                            ${Math.round(base * (1 - discountRate)).toLocaleString("es-AR")}
+                            ${formatearPrecio(v.transferencia)}
                           </span>
                           {/* El precio de lista TACHADO, solo cuando hay rebaja
                               de verdad (pedido de Ishtar, 8/9: "la idea es que
-                              la oferta se vea"). Sin el tachado, una rebaja del
-                              26% se leía como un precio normal: el cartel de
-                              arriba decía el porcentaje pero no había contra
-                              qué compararlo. */}
-                          {enOferta && (
+                              la oferta se vea"). */}
+                          {v.transferenciaSinOferta !== null && (
                             <span className="ml-1.5 text-xs font-medium text-stone-400 line-through decoration-1">
-                              ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
+                              ${formatearPrecio(v.transferenciaSinOferta)}
                             </span>
                           )}
-                          <span className="text-emerald-700 dark:text-emerald-400 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                          <span className="text-emerald-700 dark:text-emerald-400 text-xs font-bold"> {descuentoTransferenciaPct}% OFF transf.</span>
                           <span className="block text-xs text-stone-500 dark:text-stone-400">
-                            12 cuotas fijas de ${PricingService.cuotasMpLargas(base).installment12.toLocaleString("es-AR")}
+                            12 cuotas fijas de ${formatearPrecio(v.cuota12)}
                           </span>
                           <span className="block text-xs text-stone-500 dark:text-stone-400">
-                            {installmentsCount} cuotas sin interés de ${Math.round(base / installmentsCount).toLocaleString("es-AR")}
+                            {v.cuotas} cuotas sin interés de ${formatearPrecio(v.valorCuota)}
                           </span>
                         </p>
                         <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0 self-start">Ver anteojos ›</span>

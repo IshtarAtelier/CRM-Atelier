@@ -87,6 +87,7 @@ jobs:
           npm run check:promo-hoya
           npm run check:promo2x1web
           npm run check:oferta
+          npm run check:pdf-respaldo
           npm run check:cristales
           npm run check:comprobantes
           npm run check:adtag

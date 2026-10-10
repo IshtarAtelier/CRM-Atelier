@@ -1,4 +1,5 @@
 import { WHATSAPP_PHONE, WHATSAPP_PHONE_DISPLAY, INSTAGRAM_URL, YOUTUBE_URL, GOOGLE_MAPS_URL, STORE_ORIGIN } from '@/lib/constants';
+import { cargarJsPDF } from '@/lib/cargar-jspdf';
 import { VIGENCIA_PRESUPUESTO_DIAS } from '@/lib/constants';
 
 import { addDays, format } from 'date-fns';
@@ -724,7 +725,7 @@ export async function generateOrderPDF(order: any, contact: any, vendorName?: st
 }
 
 async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: string, vendorName?: string): Promise<{ base64: string, filename: string }> {
-    const { default: jsPDF } = await import('jspdf');
+    const jsPDF = await cargarJsPDF();
     const autoTable = (await import('jspdf-autotable')).default;
     
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });

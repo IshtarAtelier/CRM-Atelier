@@ -1,4 +1,5 @@
 import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
+import { cargarJsPDF } from '@/lib/cargar-jspdf';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as fs from 'fs';
@@ -182,7 +183,7 @@ export async function generateReceiptPDF(payment: any, order: any, contact: any)
 }
 
 async function generateReceiptPDFWithJsPDF(payment: any, order: any, contact: any, filename: string): Promise<{ base64: string, filename: string }> {
-    const { default: jsPDF } = await import('jspdf');
+    const jsPDF = await cargarJsPDF();
     
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     

@@ -128,15 +128,72 @@ export const ARMA_SELECT = {
   },
 } as const;
 
+/**
+ * QUÉ SE VE EN LA TIENDA — la regla ÚNICA. Todo lo público la usa: home,
+ * /tienda, /receta, /lentes-de-sol, /arma-tus-lentes, sus respaldos, el
+ * sitemap, la API de la tienda y la ficha.
+ *
+ * Estaba escrita a mano en ~20 `where` y ya había divergido: el home no
+ * excluía cristales en Sol/Receta, /receta y /lentes-de-sol no miraban
+ * `publishToWeb`, el respaldo de /receta no filtraba stock (traía un Xperio
+ * de $913.780 sin stock que la página en vivo sí excluía, 10/10/2026), y la
+ * ficha abría CUALQUIER producto del CRM por su id —cristales, costos de
+ * laboratorio, los 834 sin publicar— con precio y botón de compra.
+ *
+ * Nunca va en la vidriera: un cristal (un Essilor de $280.000 llegó a listarse
+ * en /receta), lo que no tiene stock (regla 19/8) ni lo desmarcado.
+ */
+export const PRODUCTO_EN_TIENDA = {
+  publishToWeb: true,
+  stock: { gt: 0 },
+  category: { not: "Cristal" },
+} as const;
+
+/** Ficha web que aparece en los listados públicos. */
+export const FICHA_EN_TIENDA = {
+  isActive: true,
+  product: PRODUCTO_EN_TIENDA,
+} as const;
+
+/**
+ * Ficha que se puede ABRIR por su dirección: la de los listados, pero también
+ * agotada (la ficha decide qué mostrar sin stock). Nunca un cristal ni algo
+ * desmarcado. Hoy el sync apaga `isActive` sin stock, así que en la práctica
+ * coincide con FICHA_EN_TIENDA; la diferencia es a propósito, para que la
+ * ficha no dependa de ese detalle del sync.
+ */
+export const FICHA_PUBLICADA = {
+  isActive: true,
+  product: { publishToWeb: true, category: { not: "Cristal" } },
+} as const;
+
+/**
+ * La misma regla para un producto YA leído: el checkout la aplica a cada ítem
+ * del carrito. Hasta el 10/10/2026 aceptaba cualquier id que existiera en la
+ * base, así que un carrito guardado (o armado a mano) compraba un armazón que
+ * la tienda ya había despublicado, o un cristal del CRM a su precio. El stock
+ * NO se mira acá: el checkout lo valida aparte, con su propio mensaje.
+ * Mayorista: su canal es `publishToWholesale`; lo de la tienda minorista que
+ * ya tuviera en el carrito también vale.
+ */
+export function sePuedeVenderEnLaWeb(
+  p: { publishToWeb?: boolean | null; publishToWholesale?: boolean | null; category?: string | null },
+  mayorista: boolean,
+): boolean {
+  if (p.category === FICHA_PUBLICADA.product.category.not) return false;
+  if (p.publishToWeb === FICHA_PUBLICADA.product.publishToWeb) return true;
+  return mayorista && p.publishToWholesale === true;
+}
+
 /** WHERE base (sin filtros del usuario) de cada listado parametrizado. */
 export const SOL_BASE_WHERE = {
+  ...FICHA_EN_TIENDA,
   category: { contains: "Sol", mode: "insensitive" },
-  isActive: true,
 } as const;
 
 export const RECETA_BASE_WHERE = {
+  ...FICHA_EN_TIENDA,
   category: { contains: "Receta", mode: "insensitive" },
-  isActive: true,
 } as const;
 
 /**
@@ -159,50 +216,46 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
       const [destacados, clipon, sol, receta, nuevos, count,
              countClipon, countSol, countReceta] = await Promise.all([
         prisma.webProduct.findMany({
-          where: {
-            isActive: true,
-            isFeatured: true, // solo destacados en el carrusel del home
-            product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } },
-          },
+          where: { ...FICHA_EN_TIENDA, isFeatured: true }, // solo destacados en el carrusel del home
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24, // margen para la dedup de variantes
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, category: "Clip-On", product: { publishToWeb: true, stock: { gt: 0 } } },
+          where: { ...FICHA_EN_TIENDA, category: "Clip-On" },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, category: "Sol", product: { publishToWeb: true, stock: { gt: 0 } } },
+          where: { ...FICHA_EN_TIENDA, category: "Sol" },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, category: "Receta", product: { publishToWeb: true, stock: { gt: 0 } } },
+          where: { ...FICHA_EN_TIENDA, category: "Receta" },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } } },
+          where: FICHA_EN_TIENDA,
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
         }),
         prisma.webProduct.count({
-          where: { isActive: true, product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } } },
+          where: FICHA_EN_TIENDA,
         }),
         prisma.webProduct.count({
-          where: { isActive: true, category: "Clip-On", product: { publishToWeb: true, stock: { gt: 0 } } },
+          where: { ...FICHA_EN_TIENDA, category: "Clip-On" },
         }),
         prisma.webProduct.count({
-          where: { isActive: true, category: "Sol", product: { publishToWeb: true, stock: { gt: 0 } } },
+          where: { ...FICHA_EN_TIENDA, category: "Sol" },
         }),
         prisma.webProduct.count({
-          where: { isActive: true, category: "Receta", product: { publishToWeb: true, stock: { gt: 0 } } },
+          where: { ...FICHA_EN_TIENDA, category: "Receta" },
         }),
       ]);
       return {
@@ -214,10 +267,7 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
     /** Metadatos del sidebar de filtros de /tienda (marcas/formas/materiales). */
     async tiendaFiltros() {
       return prisma.webProduct.findMany({
-        where: {
-          isActive: true,
-          product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } },
-        },
+        where: FICHA_EN_TIENDA,
         select: {
           name: true,
           product: { select: { brand: true, model: true, seoTags: true } },
@@ -228,10 +278,7 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
     /** Catálogo web completo (filas crudas) de /tienda y /api/store/products. */
     async tiendaCatalogo() {
       return prisma.webProduct.findMany({
-        where: {
-          isActive: true,
-          product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } },
-        },
+        where: FICHA_EN_TIENDA,
         select: TIENDA_SELECT,
         // Destacados primero, luego lo más nuevo: la vitrina abre por lo curado.
         orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
@@ -273,11 +320,7 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
     /** /arma-tus-lentes: armazones de receta con stock. */
     async armaTusLentes() {
       return prisma.webProduct.findMany({
-        where: {
-          category: { contains: "Receta", mode: "insensitive" },
-          isActive: true,
-          product: { stock: { gt: 0 } },
-        },
+        where: RECETA_BASE_WHERE,
         select: ARMA_SELECT,
         orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
       });
