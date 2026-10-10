@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getPayment, isMercadoPagoEnabled } from '@/services/mercadopago.service';
+import { buscarPagosDeOrden, isMercadoPagoEnabled } from '@/services/mercadopago.service';
+import { avisarCobroSinVenta } from '@/lib/checkout/aviso-cobro-sin-venta';
+import { decidirVencimiento } from '@/lib/checkout/vencimiento-mp';
 import { failWebPayment, finalizeWebPayment } from '@/lib/checkout/finalize-web-payment';
 
 /**
@@ -67,42 +69,50 @@ export async function GET(request: Request) {
   let liberados = 0;
   let rescatados = 0;
   const errores: string[] = [];
+  /** Intentos que no se pudieron consultar en Mercado Pago (integración apagada): no se cancelan. */
+  let sinConsultar = 0;
   /** Cancelados sin devolver stock por ser reservas viejas: hay que contar ese stock a mano. */
   const sinDevolverStock: string[] = [];
 
   for (const intento of vencidos) {
     try {
-      // Antes de cancelar: ¿habrá entrado la plata sin que nos enteremos?
-      // Solo se puede preguntar si tenemos un id de pago (el webhook alcanzó a
-      // anotarlo) y si la integración está prendida.
-      if (intento.paymentId && isMercadoPagoEnabled()) {
-        const pago = await getPayment(intento.paymentId);
-        if (pago.status === 'approved') {
-          const r = await finalizeWebPayment({
-            intentId: intento.id,
-            gatewayPaymentId: pago.id,
-            gatewayStatus: pago.status,
-            amount: pago.amount,
-            actorName: 'Sistema (Mercado Pago)',
-            paymentNote: 'Pago aprobado por Mercado Pago (recuperado por el chequeo periódico, el aviso no llegó)',
-          });
-          if (r.ok) {
-            rescatados++;
-            console.warn(
-              `[MP CRON] ⚠️ La orden ${intento.orderId} estaba pagada y sin acreditar: el webhook no llegó. Rescatada.`,
-            );
-            continue;
-          }
-        }
-        // pending / in_process: todavía puede prosperar (típico del efectivo,
-        // que la persona paga en el kiosco al otro día). No se toca.
-        if (pago.status === 'pending' || pago.status === 'in_process') {
-          continue;
-        }
+      // Antes de cancelar SIEMPRE se le pregunta a Mercado Pago qué pagos tiene
+      // esta orden. El intento pendiente no guarda el id del pago (el webhook
+      // solo anota el estado), así que hasta el 10/10/2026 esta consulta no
+      // corría nunca: una venta cobrada cuyo aviso se perdió se cancelaba sola.
+      // Sin poder preguntar (integración apagada o consulta caída), no se
+      // cancela nada: se reintenta en la próxima pasada.
+      if (!isMercadoPagoEnabled()) {
+        sinConsultar++;
+        continue;
       }
+      const decision = decidirVencimiento(await buscarPagosDeOrden(intento.orderId));
+      if (decision.accion === 'acreditar') {
+        const aprobado = decision.pago;
+        const r = await finalizeWebPayment({
+          intentId: intento.id,
+          gatewayPaymentId: aprobado.id,
+          gatewayStatus: aprobado.status,
+          amount: aprobado.amount,
+          actorName: 'Sistema (Mercado Pago)',
+          paymentNote: 'Pago aprobado por Mercado Pago (recuperado por el chequeo periódico, el aviso no llegó)',
+          gatewayInstallments: aprobado.installments,
+        });
+        if (r.ok) {
+          rescatados++;
+          console.warn(`[MP CRON] ⚠️ La orden ${intento.orderId} estaba pagada y sin acreditar: el aviso no llegó. Rescatada.`);
+        } else {
+          await avisarCobroSinVenta(aprobado, `el chequeo periódico no pudo acreditarlo: ${r.reason}`);
+          errores.push(`Orden ${intento.orderId}: pago ${aprobado.id} aprobado y no acreditado (${r.reason})`);
+        }
+        continue;
+      }
+      // Pendiente o en revisión: todavía puede prosperar. No se toca.
+      if (decision.accion === 'esperar') continue;
 
       const r = await failWebPayment({
         intentId: intento.id,
+        gatewayPaymentId: decision.ultimoPagoId,
         gatewayStatus: 'expired',
         motivo: `Sin pago acreditado tras ${HORAS_PARA_VENCER}h. Liberado automáticamente.`,
       });
@@ -131,6 +141,7 @@ export async function GET(request: Request) {
     revisados: vencidos.length,
     liberados,
     rescatados,
+    sinConsultar: sinConsultar || undefined,
     errores: errores.length ? errores : undefined,
     sinDevolverStock: sinDevolverStock.length ? sinDevolverStock : undefined,
   });

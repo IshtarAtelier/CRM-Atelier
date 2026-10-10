@@ -65,6 +65,7 @@ jobs:
         run: |
           npm run check:gate
           npm run check:catalog
+          npm run check:mp-vencimientos
 
       # Estos doce existían desde hacía meses y NADIE los corría: estaban en
       # package.json y en ningún workflow. Cubren plata (2x1, precios de

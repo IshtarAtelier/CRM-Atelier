@@ -8,6 +8,7 @@ import {
   type MpPayment,
 } from '@/services/mercadopago.service';
 import { failWebPayment, finalizeWebPayment } from '@/lib/checkout/finalize-web-payment';
+import { avisarCobroSinVenta } from '@/lib/checkout/aviso-cobro-sin-venta';
 
 /**
  * Webhook de Mercado Pago: el aviso de que un pago cambió de estado.
@@ -130,23 +131,6 @@ export async function POST(req: Request) {
  * Nunca lanza: un webhook que explota porque falló el mail le devuelve un 500 a
  * Mercado Pago y dispara reintentos por un problema que no es el del pago.
  */
-async function avisarCobroSinVenta(pago: MpPayment, porQue: string) {
-  try {
-    const { sendEmail } = await import('@/lib/email');
-    const { ADMIN_ALERT_EMAILS } = await import('@/lib/constants');
-    const { formatearPrecio } = await import('@/lib/format-precio');
-    await sendEmail({
-      to: ADMIN_ALERT_EMAILS,
-      subject: '⚠️ URGENTE: cobro de Mercado Pago sin venta asociada',
-      html: `<p>Mercado Pago aprobó el pago <b>${pago.id}</b> por <b>$${formatearPrecio(pago.amount)}</b>, pero ${porQue}.</p>
-             <p>Pagador: ${pago.payerEmail || 'desconocido'}</p>
-             <p>Hay que buscarlo en el panel de Mercado Pago y registrar o devolver la venta a mano. <b>No reponer stock automáticamente.</b></p>`,
-    });
-  } catch (err) {
-    console.error('Error avisando cobro sin venta:', err);
-  }
-}
-
 async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId?: string }> {
   // Candado de idempotencia: si este pago ya se procesó, cortar sin volver a
   // tocar la venta. MP reintenta el mismo aviso y además lo manda por dos vías.
