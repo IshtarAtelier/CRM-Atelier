@@ -39,6 +39,7 @@ import {
     SUFIJO_PLANTILLA,
     UMBRAL_DESACTUALIZADO,
 } from '../social/resenas.mjs';
+import { FERIADOS_ARGENTINA } from '../../src/lib/constants/feriados-argentina.ts';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -226,7 +227,19 @@ if (salud.regenerarAntesDel) {
     console.log(faltan <= 3 ? rojo(`\n${texto}`) : `\n${texto}`);
 }
 
-const roto = faltantes.length > 0 || salud.enRiesgo.length > 0 || salud.regeneracionCaida
+// Feriados con apertura cargada: cada uno necesita su placa para que el cron
+// avise unos días antes (src/lib/social/stories-feriados.ts).
+const feriadosSinPlaca = FERIADOS_ARGENTINA
+    .filter(f => f.apertura && f.fecha >= salud.hoy)
+    .map(f => `feriado-${f.fecha}`)
+    .filter(id => !existsSync(path.join(RAIZ, 'social', 'contenido', `${id}.json`))
+        || !existsSync(path.join(RAIZ, 'public', 'social', id, '01.jpg')));
+if (feriadosSinPlaca.length) {
+    console.log(rojo(`\n  ✗ ${feriadosSinPlaca.length} feriado(s) con horario cargado sin story: ${feriadosSinPlaca.join(', ')}`));
+    console.log(gris('      npx tsx scripts/social/generar-stories-feriados.ts    ← las arma y renderiza'));
+}
+
+const roto = faltantes.length > 0 || feriadosSinPlaca.length > 0 || salud.enRiesgo.length > 0 || salud.regeneracionCaida
     || resenas.errores.length > 0;
 console.log(roto ? rojo('\n  Hay huecos que corregir.\n') : verde('\n  ✓ Todo lo programado puede salir.\n'));
 process.exit(roto ? 1 : 0);
