@@ -12,6 +12,7 @@ const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 import { readFileSync } from 'node:fs';
 const { origenDeterministico, origenDeChat, FRASES_DEL_SITIO } = await import(pathToFileURL(resolve(raiz, 'src/lib/origen-deterministico.ts')).href);
 const { mensajeDelBotonFlotante } = await import(pathToFileURL(resolve(raiz, 'src/lib/whatsapp-mensaje-flotante.ts')).href);
+const { conMarcaDeLaWeb, MARCA_DE_LA_WEB } = await import(pathToFileURL(resolve(raiz, 'src/lib/whatsapp-origen-web.ts')).href);
 let fallos = 0;
 const check = (n, ok, det='') => { console.log(`  ${ok?'✓':'✖'} ${n}${ok||!det?'':' — '+det}`); if(!ok) fallos++; };
 const o = (t) => origenDeterministico(t)?.origen ?? null;
@@ -71,6 +72,27 @@ for (const p of paginas) {
   check(`${p.nombre} → Tienda online`, o(llega) === 'Tienda online', JSON.stringify(llega));
 }
 check('mayorista NO cuenta como tienda (es otro número y otro público)', o(mensajeDelBotonFlotante({ pathname: '/mayorista', isOptica: true }).texto) === null);
+console.log('Links a mano del sitio: la marca la pone WhatsAppAttribution al hacer clic (10/10/26)');
+// Textos reales de notas del blog, FAQ y contacto que no traían ninguna frase.
+for (const texto of [
+  'Hola Atelier! Quiero consultar por lentes de control de miopía para mi hijo.',
+  '¡Hola! Tengo una consulta sobre lentes de contacto.',
+  'Hola, quiero turno para control visual',
+]) {
+  const conMarca = conMarcaDeLaWeb(texto);
+  check(`"${texto.slice(0, 40)}…" → Tienda online con la marca`, o(conMarca) === 'Tienda online' && conMarca.startsWith(texto.trimEnd()), conMarca);
+}
+const conLink = conMarcaDeLaWeb('Hola! Leí la nota de multifocales.\n\nhttps://atelieroptica.com.ar/blog/multifocales');
+check('con link al final: la marca va antes del link (vista previa intacta)', conLink === `Hola! Leí la nota de multifocales. ${MARCA_DE_LA_WEB}\n\nhttps://atelieroptica.com.ar/blog/multifocales`, JSON.stringify(conLink));
+const yaTiene = '¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.';
+check('si ya prueba el origen, no se duplica', conMarcaDeLaWeb(yaTiene) === yaTiene);
+const deAnuncio = 'Los vi en Google Ads. Hola, precio de multifocales?';
+check('si viene de un anuncio, no se pisa el origen', conMarcaDeLaWeb(deAnuncio) === deAnuncio);
+check('texto vacío queda vacío', conMarcaDeLaWeb('') === '');
+const attribution = readFileSync(resolve(raiz, 'src/components/Storefront/WhatsAppAttribution.tsx'), 'utf8');
+check('la marca solo va al número de la tienda y nunca desde el CRM',
+  /conMarcaDeLaWeb/.test(attribution) && /WHATSAPP_PHONE/.test(attribution) && /\(admin\|login\)/.test(attribution));
+
 console.log('El bot decide con la MISMA lista de frases');
 const tools = readFileSync(resolve(raiz, 'wa-service/tools.js'), 'utf8');
 check('wa-service/tools.js tiene la lista idéntica a FRASES_DEL_SITIO', tools.includes(`/${FRASES_DEL_SITIO.source}/i`), 'actualizar las dos copias juntas');
