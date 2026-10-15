@@ -35,6 +35,7 @@
  */
 
 const { isMetaAutoReplyText } = require('./meta-auto-patterns');
+const { SENDER_NAME_AUTORESPONDEDOR } = require('./remitentes');
 
 const FASE = Object.freeze({
     /** No hay ningún mensaje nuestro en el historial. */
@@ -103,7 +104,43 @@ function esSaludoAutomatico(texto) {
     return isMetaAutoReplyText(t) || /^bienvenid[oa]s? a atelier/i.test(t);
 }
 
-/** Los mensajes nuestros del historial que cuentan como "ya hablamos". */
+// ── "Ya hablamos", decidido por la FILA (15/10/2026) ───────────────────────
+//
+// Antes se juzgaba nuestro saliente por el TEXTO (`esSaludoAutomatico`): si el
+// bot saludaba "Hola Ana, gracias por escribirnos! contame…", el patrón de la
+// bienvenida de Meta lo tomaba por automático, el historial quedaba "sin nada
+// nuestro" y el turno siguiente volvía a ser PRIMER_CONTACTO: saludo repetido
+// y sin herramientas de precio. Quién escribió un saliente lo dice su firma
+// (`senderName`, ver shared/remitentes.js), no lo que dice: cualquier saliente
+// del Bot, de una persona, del sistema o de una campaña es "ya hablamos"; solo
+// los dos contestadores automáticos cuentan como bienvenida.
+//
+// El juicio por texto queda SOLO como respaldo para quien arma el historial
+// sin las filas (el transporte legacy `index.js`).
+
+/** Firmas de los salientes que son una bienvenida automática (no "ya hablamos"). */
+const REMITENTES_DE_BIENVENIDA_AUTOMATICA = Object.freeze([SENDER_NAME_AUTORESPONDEDOR, 'Meta (Auto-Reply)']);
+
+function esBienvenidaAutomaticaPorRemitente(senderName) {
+    return REMITENTES_DE_BIENVENIDA_AUTOMATICA.includes(String(senderName || '').trim());
+}
+
+/**
+ * Lo que necesitan la fase y `conversacion_en_curso`, calculado de las filas
+ * CRUDAS de la base.
+ *
+ * @param {Array<{ direction: string, senderName?: string|null, content?: string|null, createdAt?: Date|string }>} filas  en cualquier orden
+ * @returns {{ yaHablamos: boolean, primerMensajeNuestro: string }}
+ */
+function historiaNuestra(filas) {
+    const nuestras = (filas || [])
+        .filter(f => f && f.direction === 'OUTBOUND' && !esBienvenidaAutomaticaPorRemitente(f.senderName))
+        .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    if (!nuestras.length) return { yaHablamos: false, primerMensajeNuestro: '' };
+    return { yaHablamos: true, primerMensajeNuestro: sinAnotaciones(nuestras[0].content || '').slice(0, 160) };
+}
+
+/** Los mensajes nuestros del historial que cuentan como "ya hablamos" (respaldo por texto). */
 function mensajesNuestros(messages) {
     return (messages || []).filter(m => esMensajeNuestro(m) && !esSaludoAutomatico(textoDeMensaje(m)));
 }
@@ -130,11 +167,14 @@ function entroPorAnuncio(filasRecientes) {
 
 /**
  * @param {Array} messages  historial en formato LangChain
- * @param {{ entroPorAnuncio?: boolean }} [opciones]
+ * @param {{ entroPorAnuncio?: boolean, yaHablamos?: boolean }} [opciones]
  * @returns {'primer_contacto'|'anuncio_con_historia'|'en_curso'}
  */
-function faseDeLaCharla(messages, { entroPorAnuncio: porAnuncio = false } = {}) {
-    if (esPrimerContacto(messages)) return FASE.PRIMER_CONTACTO;
+function faseDeLaCharla(messages, { entroPorAnuncio: porAnuncio = false, yaHablamos } = {}) {
+    // `yaHablamos` viene de `historiaNuestra(filas)` cuando quien llama tiene
+    // las filas; el historial (por texto) es solo el respaldo.
+    const primero = typeof yaHablamos === 'boolean' ? !yaHablamos : esPrimerContacto(messages);
+    if (primero) return FASE.PRIMER_CONTACTO;
     if (porAnuncio) return FASE.ANUNCIO_CON_HISTORIA;
     return FASE.EN_CURSO;
 }
@@ -233,6 +273,9 @@ module.exports = {
     textoDeMensaje,
     sinAnotaciones,
     esSaludoAutomatico,
+    REMITENTES_DE_BIENVENIDA_AUTOMATICA,
+    esBienvenidaAutomaticaPorRemitente,
+    historiaNuestra,
     mensajesNuestros,
     esPrimerContacto,
     entroPorAnuncio,

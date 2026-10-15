@@ -568,7 +568,7 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, prompt
     // (bot-cloud.js, con las filas crudas para ver la marca del anuncio), se
     // usa esa; si no, se calcula acá con el historial.
     const fase = agentType === 'sales'
-      ? (state.fase || faseDeLaCharla(state.messages, { entroPorAnuncio: state.entroPorAnuncio }))
+      ? (state.fase || faseDeLaCharla(state.messages, { entroPorAnuncio: state.entroPorAnuncio, yaHablamos: state.historiaNuestra ? state.historiaNuestra.yaHablamos : undefined }))
       : FASE.EN_CURSO;
     const apertura = esApertura(fase);
     const nombre = nombreParaSaludar({ perfil: state.userName, ficha: state.clientData });
@@ -579,6 +579,7 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, prompt
       clientData: state.clientData,
       chatSummary: state.chatSummary,
       fase,
+      historia: state.historiaNuestra,
     });
 
     const systemPrompt = basePrompt
@@ -784,6 +785,9 @@ const GraphAnnotation = Annotation.Root({
   // para que el turno valide la salida con la misma fase.
   entroPorAnuncio: Annotation({ reducer: (_, v) => v, default: () => false }),
   fase: Annotation({ reducer: (prev, v) => v ?? prev ?? null, default: () => null }),
+  // "Ya hablamos" decidido por la firma de las filas (shared/fase-de-la-charla.js
+  // → historiaNuestra). Sin declararlo acá LangGraph lo descarta en silencio.
+  historiaNuestra: Annotation({ reducer: (prev, v) => v ?? prev ?? null, default: () => null }),
   nombreSaludo: Annotation({ reducer: (prev, v) => v ?? prev ?? '', default: () => '' }),
   dailyContext: Annotation({ reducer: (_, v) => v, default: () => "" }),
   chatId: Annotation({ reducer: (_, v) => v, default: () => "" }),

@@ -46,6 +46,40 @@ check('con historia y entra por un anuncio → anuncio_con_historia',
 check('sin historia, aunque sea de anuncio → primer contacto',
     faseDeLaCharla([human('info clip')], { entroPorAnuncio: true }) === FASE.PRIMER_CONTACTO);
 
+console.log('\n"Ya hablamos" se decide por la FIRMA del saliente, no por su texto (15/10/2026)');
+{
+    const { historiaNuestra } = fase;
+    const t = (min) => new Date(Date.UTC(2026, 9, 15, 13, min));
+    const saludoDelBot = 'Hola Ana, gracias por escribirnos! contame qué estás necesitando';
+    const conSaludoDelBot = historiaNuestra([
+        { direction: 'INBOUND', content: 'hola', createdAt: t(0) },
+        { direction: 'OUTBOUND', senderName: 'Bot', content: saludoDelBot, createdAt: t(1) },
+        { direction: 'INBOUND', content: 'info clip', createdAt: t(2) },
+    ]);
+    check('un saludo del Bot que suena a bienvenida de Meta ES "ya hablamos" (antes repetía el saludo)', conSaludoDelBot.yaHablamos === true && conSaludoDelBot.primerMensajeNuestro.startsWith('Hola Ana'));
+    check('…y la fase con esas filas es en curso, no primer contacto',
+        faseDeLaCharla([human('hola'), ai(saludoDelBot), human('info clip')], { yaHablamos: conSaludoDelBot.yaHablamos }) === FASE.EN_CURSO);
+    check('el auto-respondedor y "Meta (Auto-Reply)" NO son "ya hablamos"', historiaNuestra([
+        { direction: 'OUTBOUND', senderName: 'Auto-respondedor', content: 'Bienvenidos a Atelier Optica', createdAt: t(0) },
+        { direction: 'OUTBOUND', senderName: 'Meta (Auto-Reply)', content: '¡Hola! ¿Cómo podemos ayudarte?', createdAt: t(1) },
+        { direction: 'INBOUND', content: 'hola', createdAt: t(2) },
+    ]).yaHablamos === false);
+    check('una persona desde el teléfono ("Contame cómo puedo ayudarte") SÍ es "ya hablamos"', historiaNuestra([
+        { direction: 'OUTBOUND', senderName: 'Teléfono', content: 'Contame cómo puedo ayudarte', createdAt: t(0) },
+    ]).yaHablamos === true);
+    check('el primer mensaje nuestro es el más VIEJO, aunque las filas vengan de la más nueva a la más vieja', historiaNuestra([
+        { direction: 'OUTBOUND', senderName: 'Bot', content: 'segundo', createdAt: t(5) },
+        { direction: 'OUTBOUND', senderName: 'Mile', content: 'primero', createdAt: t(1) },
+    ]).primerMensajeNuestro === 'primero');
+    const conHistoria = buildContextModules({ agentType: 'sales', messages: [human('hola'), ai(saludoDelBot), human('info clip')], fase: FASE.EN_CURSO, historia: conSaludoDelBot });
+    check('conversacion_en_curso usa la misma historia que la fase', /ESTA CONVERSACIÓN YA ESTÁ EMPEZADA/.test(conHistoria));
+    const bc = leer('../../wa-service/bot-cloud.js');
+    check('bot-cloud.js calcula la historia de las filas y la pasa a la fase y al grafo',
+        /const historia = historiaNuestra\(recientes\)/.test(bc) && /historiaNuestra: historia,/.test(bc) && /yaHablamos: historia\.yaHablamos/.test(bc));
+    const g = leer('../../wa-service/graph.js');
+    check('graph.js declara el canal historiaNuestra y se lo pasa a los módulos', /historiaNuestra: Annotation\(/.test(g) && /historia: state\.historiaNuestra/.test(g));
+}
+
 console.log('\nEl anuncio se lee de las filas crudas (antes de que el historial limpie la marca)');
 check('marca [MetaClip] en un entrante de este turno → anuncio', entroPorAnuncio([
     { direction: 'INBOUND', content: 'Hola quiero más información [MetaClip]' },

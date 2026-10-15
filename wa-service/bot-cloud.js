@@ -40,7 +40,7 @@ const { escalarAHumano } = require('./shared/escalar');
 const { clasificarEntrante, disparaTurno } = require('./shared/clasificar-entrante');
 const { duenioDelChat, decidirVuelta } = require('./shared/duenio-del-chat');
 const { isBusinessHours } = require('./shared/business-hours');
-const { entroPorAnuncio, faseDeLaCharla, restriccionDeFase } = require('./shared/fase-de-la-charla');
+const { entroPorAnuncio, faseDeLaCharla, historiaNuestra, restriccionDeFase } = require('./shared/fase-de-la-charla');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano, whereSalienteHumano } = require('./shared/remitentes');
 const { marcarTraspasoHumano, ETIQUETA_BOT_APAGADO } = require('./shared/traspaso-humano');
@@ -691,6 +691,10 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // La fase la decide el código con las filas CRUDAS (el historial ya
             // limpió la marca [metaXxx]). Ver shared/fase-de-la-charla.js.
             const porAnuncio = entroPorAnuncio(recientes);
+            // "Ya hablamos" sale de la FIRMA de cada saliente, no de su texto
+            // (15/10/2026): un saludo del bot que se parecía a la bienvenida de
+            // Meta hacía que el turno siguiente volviera a saludar.
+            const historia = historiaNuestra(recientes);
             const state = {
                 messages,
                 userPhone: realPhone || freshChat.realPhone || '',
@@ -698,7 +702,8 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 waId,
                 chatId: chat.id,
                 entroPorAnuncio: porAnuncio,
-                fase: faseDeLaCharla(messages, { entroPorAnuncio: porAnuncio }),
+                historiaNuestra: historia,
+                fase: faseDeLaCharla(messages, { entroPorAnuncio: porAnuncio, yaHablamos: historia.yaHablamos }),
                 customPrompt: agentState.agentPrompt,
                 customPromptExecutive: agentState.agentPromptExecutive,
                 dailyContext: agentState.dailyContext,

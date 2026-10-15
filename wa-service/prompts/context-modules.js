@@ -384,14 +384,19 @@ ${FORMAS_DE_PAGO}`,
  * @param {string|null} [params.fase] - Fase de la charla (shared/fase-de-la-charla.js)
  * @returns {string} Texto de los módulos activos (o cadena vacía)
  */
-function buildContextModules({ agentType, messages, clientData, chatSummary, fase = null }) {
+function buildContextModules({ agentType, messages, clientData, chatSummary, fase = null, historia = null }) {
     const { conversationText, hasImage } = getConversationSignals(messages);
     // El resumen persistente también dispara módulos: si dice "cotización entregada
     // de multifocales", las reglas de precios siguen cargadas aunque las palabras
     // clave hayan salido de la ventana de mensajes recientes. Sin pérdida de contexto
     // en conversaciones largas o retomadas días después.
     const summaryText = normalizeText(chatSummary || '');
-    const { yaHablamos, primerMensajeNuestro } = getHistorySignals(messages);
+    // Con las filas crudas (bot-cloud.js → `historiaNuestra`) se decide por la
+    // firma del saliente; sin ellas, por el texto del historial (15/10/2026,
+    // ver shared/fase-de-la-charla.js). Tiene que ser la MISMA fuente que la fase.
+    const { yaHablamos, primerMensajeNuestro } = historia && typeof historia.yaHablamos === 'boolean'
+        ? historia
+        : getHistorySignals(messages);
     const signals = {
         text: conversationText + '\n' + summaryText,
         hasImage,
