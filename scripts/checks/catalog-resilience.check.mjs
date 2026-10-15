@@ -12,6 +12,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createResilientSource, defaultIsEmpty } from '../../src/lib/catalog/resilience.ts';
+import { galeriaAlSincronizar } from '../../src/lib/catalog/galeria-web.ts';
 import { CATALOG_SOURCE_KEYS, RECETA_BASE_WHERE, SOL_BASE_WHERE, FICHA_EN_TIENDA, FICHA_PUBLICADA, sePuedeVenderEnLaWeb, slugDeFichaPublicada } from '../../src/lib/catalog/queries.ts';
 import { formatProducts as formatProductsRaw, countProducts, hasProducts } from '../../src/lib/home-fallback.ts';
 import { resolveStorageUrl } from '../../src/lib/utils/storage.ts';
@@ -238,5 +239,27 @@ for (const [archivo, patron, que] of [
 const ficha = readFileSync(new URL('../../src/app/producto/[slug]/page.tsx', import.meta.url), 'utf8');
 check('la ficha no abre un Product suelto por id (cristales, internos, desmarcados)', !/prisma\.product\.find(Unique|First)\(/.test(ficha));
 check('la ficha busca con FICHA_PUBLICADA', /\.\.\.FICHA_PUBLICADA,\s*\n\s*OR:/.test(ficha));
+
+console.log('\n— La galería curada de la ficha no se pisa al editar el producto (15/10/2026) —\n');
+{
+  const P = ['/a.webp', '/a-2.webp'];
+  const curada = { images: ['/a.webp', '/a-look-1.webp', '/a-look-2.webp', '/a-2.webp'], imageAlts: ['frente', 'puesto', 'puesto 2', 'atrás'] };
+  const r1 = galeriaAlSincronizar(curada, P);
+  check('galería con fotos propias (las de la modelo): se respeta entera y en su orden', JSON.stringify(r1.images) === JSON.stringify(curada.images));
+  check('…y cada texto alternativo sigue a su foto', JSON.stringify(r1.imageAlts) === JSON.stringify(curada.imageAlts));
+  const r2 = galeriaAlSincronizar(curada, [...P, '/a-3.webp']);
+  check('una foto nueva del producto se agrega al final de la galería curada', r2.images.at(-1) === '/a-3.webp' && r2.images.length === 5 && r2.imageAlts.at(-1) === '');
+  const r3 = galeriaAlSincronizar({ images: ['/a-2.webp', '/a.webp'], imageAlts: ['atrás', 'frente'] }, P);
+  check('galería reordenada en /admin/web (mismas fotos, otro orden): se respeta', JSON.stringify(r3.images) === JSON.stringify(['/a-2.webp', '/a.webp']));
+  const r4 = galeriaAlSincronizar({ images: [...P], imageAlts: ['frente', 'atrás'] }, ['/a.webp', '/a-2.webp', '/a-3.webp']);
+  check('galería que es copia del producto: se actualiza con las fotos del producto, alts alineados', JSON.stringify(r4.images) === JSON.stringify(['/a.webp', '/a-2.webp', '/a-3.webp']) && JSON.stringify(r4.imageAlts) === JSON.stringify(['frente', 'atrás', '']));
+  const r5 = galeriaAlSincronizar({ images: [], imageAlts: [] }, P);
+  check('galería vacía: toma las fotos del producto', JSON.stringify(r5.images) === JSON.stringify(P) && r5.imageUrl === '/a.webp');
+  for (const archivo of ['src/services/product.service.ts', 'src/services/kazwini-sync.service.ts']) {
+    const fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    const update = fuente.slice(fuente.indexOf('if (existing)'), fuente.indexOf('} else {', fuente.indexOf('if (existing)')));
+    check(`${archivo}: al actualizar la ficha usa galeriaAlSincronizar (no pisa images a mano)`, /galeriaAlSincronizar\(existing, images\)/.test(update) && !/images:\s*images/.test(update));
+  }
+}
 
 console.log(`\n✅ ${passed} checks OK — el storefront no puede quedar sin productos\n`);
