@@ -98,7 +98,8 @@ const TONOS_GO: { patron: RegExp; tono: Tono }[] = [
     { patron: /\b(dorado|golden|gold|oro)\b/, tono: tono('Dorado', '#c9a227') },
     { patron: /\b(amarillo|driver|drive)\b/, tono: tono('Amarillo', '#d4b106') },
 ];
-const PALETAS_GRUPO_OPTICO: Record<string, Paleta> = {
+/** `fijos`: la paleta no toma los colores del nombre del producto (ofrece solo los que el portal arma). */
+const PALETAS_GRUPO_OPTICO: Record<string, Paleta & { fijos?: boolean }> = {
     SMART_COLOR: { id: 'go-smart-color', label: 'Fotocromático Smart Color (Grupo Óptico)', tonos: [tono('Azul', '#2a4b8d'), tono('Púrpura', '#7b4b9c'), tono('Rosa', '#c76b8a'), tono('Sepia', '#6b4c3a'), tono('Verde', '#2f6b4f')] },
     FOTO_ESPEJADO: { id: 'go-foto-espejado', label: 'Fotocromático espejado (Grupo Óptico)', tonos: [tono('Azul', '#2a4b8d'), tono('Dorado', '#c9a227'), tono('Verde', '#2f6b4f'), tono('Púrpura', '#7b4b9c'), tono('Rojo', '#a52a2a'), tono('Plateado', '#9aa0a6')] },
     POLARIZADO: { id: 'go-polarizado', label: 'Polarizado (Grupo Óptico)', tonos: [tono('Gris', '#555555'), tono('Sepia', '#6b4c3a'), tono('Verde', '#2f6b4f'), tono('Amarillo', '#d4b106')] },
@@ -126,7 +127,7 @@ export function paletaDeGrupoOptico(nombreNormalizado: string): Paleta | null {
                 : n.includes('espejado') ? PALETAS_GRUPO_OPTICO.ESPEJADO
                     : null;
     if (!base) return null;
-    const { fijos, ...paleta } = base as Paleta & { fijos?: boolean };
+    const { fijos, ...paleta } = base;
     if (fijos) return paleta;
     // Los colores que el nombre lista después de la tecnología ("espejado azul / plata", "(brown/green/…)", "— gris / sepia").
     const cola = n.replace(/^.*?(smart color|espejado|polarizado)/, '').replace(/\b1\.\d\d\b.*$/, '');
