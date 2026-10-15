@@ -58,11 +58,21 @@ function baseFalsa({ chats = [], mensajes = [], sinColumnas = false } = {}) {
         if (where.direction && m.direction !== where.direction) return false;
         if (where.senderName && !esRemitenteHumano(m.senderName)) return false;
         if (where.createdAt && where.createdAt.gt && !(new Date(m.createdAt) > where.createdAt.gt)) return false;
+        // Orden de llegada (shared/orden-de-llegada.js): receivedAt, con
+        // fallback a createdAt en filas viejas, combinados con AND/OR.
+        if ('receivedAt' in where) {
+            const r = where.receivedAt;
+            if (r === null && m.receivedAt != null) return false;
+            if (r && r.gt && !(m.receivedAt != null && new Date(m.receivedAt) > r.gt)) return false;
+        }
+        if (where.AND && !where.AND.every(w => msgCumple(m, w))) return false;
+        if (where.OR && !where.OR.some(w => msgCumple(m, w))) return false;
         return true;
     };
+    const llegada = (m) => new Date(m.receivedAt || m.createdAt);
     const ordenar = (arr, orderBy) => {
         const dir = orderBy && orderBy.createdAt === 'asc' ? 1 : -1;
-        return [...arr].sort((a, b) => dir * (new Date(a.createdAt) - new Date(b.createdAt)));
+        return [...arr].sort((a, b) => dir * (llegada(a) - llegada(b)));
     };
     const prisma = {
         whatsAppChat: {

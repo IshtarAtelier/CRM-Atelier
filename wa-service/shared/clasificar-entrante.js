@@ -42,6 +42,17 @@
  */
 
 const { TIPOS_CON_CONSULTA } = require('./tipos-entrantes');
+const { recibido } = require('./orden-de-llegada');
+
+/**
+ * Pasado este tiempo desde NUESTRO último mensaje, la charla ya no está viva:
+ * un "gracias", un emoji o un "buen día" del cliente no cierran nada, ABREN
+ * (15/10/2026: de 83 entrantes "de cierre" en 30 días, 49 llegaron sin ningún
+ * saliente nuestro antes y 34 más de 12 h después del último). 12 h cubre una
+ * charla que sigue a la mañana siguiente sin dejar pasar la del día anterior
+ * como "cierre". Criterio, no medido al minuto.
+ */
+const HORAS_DE_CHARLA_VIGENTE = 12;
 
 const CLASE = Object.freeze({
     CONSULTA: 'consulta',
@@ -126,10 +137,14 @@ function esContestadorDelCliente(texto) {
 
 // ── Reacciones escritas ─────────────────────────────────────────────────────
 
-/** Solo emojis / signos, sin una letra. */
+/**
+ * Solo emojis / signos, sin una letra. Un "?" o "???" NO cuenta (15/10/2026):
+ * es el cliente pidiendo que le contesten — 11 casos en 30 días que el bot
+ * dejaba pasar como un emoji.
+ */
 function soloEmojis(texto) {
     const t = String(texto || '').trim();
-    return Boolean(t) && !/[\p{L}\p{N}]/u.test(t);
+    return Boolean(t) && !/[\p{L}\p{N}]/u.test(t) && !/[?¿]/.test(t);
 }
 
 /**
@@ -155,13 +170,18 @@ const PIEZAS_DE_CIERRE = [
     // vocativos
     /(?:chicos|chicas|chiques|che|genia|genio|genias|genios|capo|capa|crack|amigo|amiga|linda|lindo|querida|querido|bella)/.source,
     // despedidas
-    /(?:saludos|saludo|besos|beso|abrazo|abrazos|que tengas (?:un )?buen dia|que tengas buena tarde|buen dia|buenas tardes|buenas noches|nos vemos|hasta luego|chau|slds)/.source,
+    /(?:saludos|saludo|besos|beso|abrazo|abrazos|que tengas (?:un )?buen dia|que tengas buena tarde|nos vemos|hasta luego|chau|slds)/.source,
     // "lo pienso y te aviso"
     /(?:quedo a la espera|espero (?:tu|su) (?:aviso|respuesta)|(?:te|les|le) aviso|(?:te|les|le) confirmo|cualquier cosa (?:te|les|le) (?:aviso|escribo|consulto)|cualquier cosa me comunico|vuelvo a analizar|lo (?:veo|pienso|analizo|charlo)|lo voy a pensar|voy a pensarlo|lo vemos)/.source,
+    // saludos de hora: ÚLTIMA pieza y FUERA del núcleo (15/10/2026). "Gracias,
+    // buenas tardes" es un cierre; "Buenas tardes" solo es alguien que ABRE la
+    // charla — 34 casos en 30 días que el bot no contestaba, 6 de ellos el
+    // primer mensaje de la persona.
+    /(?:buen dia|buenos dias|buenas tardes|buenas noches|buenas)/.source,
 ];
 const CIERRE_CON_GRACIAS = new RegExp(`^(?:(?:${PIEZAS_DE_CIERRE.join('|')})(?:[\\s,.!]+|$))+$`);
 /** Lo que hace que sea un cierre y no un "sí": agradecer, despedirse o "te aviso". */
-const NUCLEO_DE_CIERRE = new RegExp(`\\b(?:${PIEZAS_DE_CIERRE.slice(1, 2).concat(PIEZAS_DE_CIERRE.slice(3)).join('|')})\\b`);
+const NUCLEO_DE_CIERRE = new RegExp(`\\b(?:${PIEZAS_DE_CIERRE.slice(1, 2).concat(PIEZAS_DE_CIERRE.slice(3, 5)).join('|')})\\b`);
 
 /**
  * Una palabra sola que, sin pregunta nuestra pendiente, es un acuse y no una
@@ -193,8 +213,12 @@ function esAcuseSuelto(texto) {
 /**
  * @param {object} msg  entrante normalizado ({ type, text|body, reaction })
  * @param {object} [contexto]
- * @param {boolean} [contexto.ultimoNuestroPregunta]  nuestro último saliente terminó en pregunta:
- *        un emoji solo puede ser la respuesta ("¿te mando fotos?" → "👍").
+ * @param {boolean} [contexto.ultimoNuestroPregunta]  nuestro último saliente terminó en pregunta
+ *        (o fue una plantilla): un emoji solo puede ser la respuesta ("¿te mando fotos?" → "👍").
+ * @param {boolean} [contexto.hayCharlaReciente]  hubo un saliente nuestro en las últimas
+ *        HORAS_DE_CHARLA_VIGENTE. `false` → nada es cierre ni acuse: el mensaje abre la charla.
+ *        Sin el dato (`undefined`) se asume que sí (compatibilidad del legacy).
+ *        Armarlo SIEMPRE con `contextoDeEntrante()`: así el webhook y la base deciden igual.
  * @returns {'consulta'|'reaccion'|'auto_nuestro'|'auto_del_cliente'}
  */
 function clasificarEntrante(msg, contexto = {}) {
@@ -206,9 +230,18 @@ function clasificarEntrante(msg, contexto = {}) {
     if (msg.reaction) return CLASE.REACCION;
     // Sin `type` se asume texto: los transportes viejos no lo mandaban, y
     // callar por una duda de forma es peor que contestar de más.
-    const tipo = msg.type ? String(msg.type).toLowerCase() : 'text';
+    let tipo = msg.type ? String(msg.type).toLowerCase() : 'text';
     if (TIPOS_REACCION.has(tipo)) return CLASE.REACCION;
     if (!TIPOS_CON_CONSULTA.has(tipo)) return CLASE.REACCION;
+    // La respuesta a un BOTÓN de plantilla se decide por su texto, como un
+    // texto (15/10/2026). transport/inbound.js la guarda como TEXT con el
+    // título del botón y la fila no dice que fue botón: si el webhook la
+    // tratara distinto, el control "llegó algo nuevo" y el barrido (que leen
+    // la base) contarían otra cosa que el webhook. Lo que la distingue —que
+    // contesta a una plantilla— viene del saliente anterior (`templateName`
+    // → ultimoNuestroPregunta), que las dos vías leen igual.
+    if (tipo === 'button' || tipo === 'interactive') tipo = 'text';
+    const charlaViva = contexto.hayCharlaReciente !== false;
 
     const texto = String(msg.text ?? msg.body ?? '');
     if (tipo !== 'text') return CLASE.CONSULTA; // una foto, un audio, un documento: siempre consulta
@@ -217,6 +250,10 @@ function clasificarEntrante(msg, contexto = {}) {
 
     if (esContestadorDelCliente(texto)) return CLASE.AUTO_DEL_CLIENTE;
 
+    // Sin charla viva (primer mensaje, o lo último nuestro tiene más de
+    // HORAS_DE_CHARLA_VIGENTE) no hay nada que cerrar: "gracias", "👍" o
+    // "buen día" ABREN la charla y se contestan.
+    if (!charlaViva) return CLASE.CONSULTA;
     if (soloEmojis(texto)) return contexto.ultimoNuestroPregunta ? CLASE.CONSULTA : CLASE.REACCION;
     if (esCierreConGracias(texto)) return CLASE.REACCION;
     if (esAcuseSuelto(texto)) return contexto.ultimoNuestroPregunta ? CLASE.CONSULTA : CLASE.REACCION;
@@ -249,9 +286,51 @@ function filaDisparaTurno(fila, contexto) {
     return disparaTurno(clasificarEntrante(entranteDeFila(fila), contexto));
 }
 
+/**
+ * El contexto de un entrante, armado IGUAL desde el webhook y desde la base.
+ *
+ * @param {object} p
+ * @param {{receivedAt?, createdAt?}|null} [p.entrante]  la fila; null = llegó ahora (webhook)
+ * @param {{content?, templateName?, receivedAt?, createdAt?}|null} p.nuestroAnterior
+ *        nuestro último saliente ANTERIOR al entrante (en orden de llegada); null = no hay
+ * @param {Date} [p.ahora]
+ */
+function contextoDeEntrante({ entrante = null, nuestroAnterior = null, ahora = new Date() } = {}) {
+    if (!nuestroAnterior) return { ultimoNuestroPregunta: false, hayCharlaReciente: false };
+    const texto = String(nuestroAnterior.content || '').trim();
+    const llegada = (entrante && recibido(entrante)) || ahora;
+    const nuestro = recibido(nuestroAnterior);
+    return {
+        // Una plantilla (seguimiento, campaña) espera respuesta aunque su texto
+        // no termine en "?": sus botones son la pregunta.
+        ultimoNuestroPregunta: /\?\s*\W*$/.test(texto) || Boolean(nuestroAnterior.templateName),
+        hayCharlaReciente: Boolean(nuestro) && (llegada - nuestro) <= HORAS_DE_CHARLA_VIGENTE * 3600 * 1000,
+    };
+}
+
+/**
+ * ¿Queda alguna consulta del cliente sin contestar? `filas` en cualquier
+ * orden: se ordenan por LLEGADA al servidor (shared/orden-de-llegada.js), no
+ * por createdAt, que en un entrante es el reloj del teléfono del cliente
+ * (15/10/2026: una foto que llegó después de "Dale, espero tu recetita" pero
+ * venía fechada antes quedaba "contestada" — 13 casos en 30 días).
+ *
+ * @param {Array<{direction, type, content, templateName?, receivedAt?, createdAt}>} filas
+ */
+function quedaAlgoSinContestar(filas) {
+    const orden = [...(filas || [])].sort((a, b) => (recibido(b) || 0) - (recibido(a) || 0));
+    const i = orden.findIndex(m => m.direction === 'OUTBOUND');
+    const nuestro = i === -1 ? null : orden[i];
+    return (i === -1 ? orden : orden.slice(0, i))
+        .some(m => m.direction === 'INBOUND' && filaDisparaTurno(m, contextoDeEntrante({ entrante: m, nuestroAnterior: nuestro })));
+}
+
 /** `true` si el entrante tiene que disparar un turno del bot. */
 function disparaTurno(clase) {
     return clase === CLASE.CONSULTA;
 }
 
-module.exports = { CLASE, clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno, esContestadorDelCliente, esCierreConGracias, esAcuseSuelto };
+module.exports = {
+    CLASE, HORAS_DE_CHARLA_VIGENTE, clasificarEntrante, contextoDeEntrante, quedaAlgoSinContestar, disparaTurno,
+    entranteDeFila, filaDisparaTurno, esContestadorDelCliente, esCierreConGracias, esAcuseSuelto,
+};

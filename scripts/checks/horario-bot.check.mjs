@@ -90,7 +90,9 @@ console.log('\nEl bot se calla cuando interviene una persona');
     // lo que busca es el peor de todos.
     // Desde el 10/10/2026 la pregunta "¿escribió una persona?" va por el
     // filtro único `whereSalienteHumano()` (shared/remitentes.js).
-    const preguntaPorHumano = /\.\.\.whereSalienteHumano\(\),\s*createdAt: \{ gt: new Date\(comienzoDelTurno\) \}/;
+    // Desde el 15/10/2026 compara por LLEGADA al servidor (llegoDespuesDe,
+    // shared/orden-de-llegada.js): el eco del celular trae la hora del teléfono.
+    const preguntaPorHumano = /\.\.\.whereSalienteHumano\(\),[\s\S]{0,200}?\.\.\.llegoDespuesDe\(comienzoDelTurno\)/;
     check('si una persona contesta MIENTRAS el bot piensa, la respuesta se descarta',
         preguntaPorHumano.test(bc) && bc.includes('comienzoDelTurno'));
 

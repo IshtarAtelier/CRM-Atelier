@@ -38,7 +38,7 @@ const { generateAndSaveHandoffSummary } = require('./tools');
 const { TAGS_SIN_BOT } = require('./utils');
 const { leerSalidaDelGrafo, armarRespuesta, crearTurno } = require('./shared/respuesta-del-turno');
 const { escalarAHumano } = require('./shared/escalar');
-const { clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno } = require('./shared/clasificar-entrante');
+const { clasificarEntrante, contextoDeEntrante, quedaAlgoSinContestar, disparaTurno, entranteDeFila, filaDisparaTurno } = require('./shared/clasificar-entrante');
 const { crearVueltaDelBot } = require('./shared/vuelta-del-bot');
 const { crearCandadoDeTurno } = require('./shared/candado-de-turno');
 const { MOTIVO_APAGADO } = require('./shared/motivo-apagado');
@@ -46,6 +46,7 @@ const { isBusinessHours } = require('./shared/business-hours');
 const { entroPorAnuncio, faseDeLaCharla, historiaNuestra, restriccionDeFase } = require('./shared/fase-de-la-charla');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano, whereSalienteHumano } = require('./shared/remitentes');
+const { recibido, ORDEN_DE_LLEGADA_DESC, llegoDespuesDe } = require('./shared/orden-de-llegada');
 const { marcarTraspasoHumano } = require('./shared/traspaso-humano');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
@@ -263,10 +264,16 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         // auto-respondedor).
         const ultimoNuestro = await prisma.whatsAppMessage.findFirst({
             where: { chatId: chat.id, direction: 'OUTBOUND' },
-            orderBy: { createdAt: 'desc' },
-            select: { content: true },
+            // Por llegada, no por createdAt: un eco del celular trae la hora
+            // del teléfono (shared/orden-de-llegada.js).
+            orderBy: ORDEN_DE_LLEGADA_DESC,
+            select: { content: true, templateName: true, createdAt: true, receivedAt: true },
         }).catch(() => null);
-        const clase = clasificarEntrante(msg, { ultimoNuestroPregunta: /\?\s*\W*$/.test(String((ultimoNuestro && ultimoNuestro.content) || '').trim()) });
+        // El contexto se arma con la MISMA función que usan los caminos que
+        // leen la base (contextoDeEntrante): pregunta/plantilla pendiente y si
+        // la charla sigue viva (15/10/2026: "Buen día" solo, o un "gracias" sin
+        // nada nuestro en 12 h, abren la charla y se contestan).
+        const clase = clasificarEntrante(msg, contextoDeEntrante({ entrante: null, nuestroAnterior: ultimoNuestro }));
         if (!disparaTurno(clase)) {
             console.log(`  🤏 [BotCloud] Entrante "${clase}" (tipo ${msg && msg.type}): se guarda, no se responde.`);
             return false;
@@ -603,7 +610,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         const nuestra = recientes.find(m => m.direction === 'OUTBOUND');
         const fotos = recientes
             .filter(m => m.direction === 'INBOUND' && m.type === 'IMAGE' && m.waMessageId && !fotosYaLeidas.has(m.waMessageId))
-            .filter(m => !nuestra || m.createdAt > nuestra.createdAt)
+            .filter(m => !nuestra || recibido(m) > recibido(nuestra)) // reloj del servidor, no el del teléfono
             .slice(0, MAX_FOTOS_POR_LECTURA)
             .reverse(); // cronológico: la primera foto suele ser la principal
         if (!fotos.length) return null;
@@ -653,17 +660,8 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         return { guardada: true };
     }
 
-    /**
-     * `recientes` viene del más nuevo al más viejo. Mismo criterio que el
-     * webhook: un 👍 cuenta si nuestro último mensaje era una pregunta.
-     */
-    function quedaAlgoSinContestar(recientes) {
-        const i = recientes.findIndex(m => m.direction === 'OUTBOUND');
-        const nuestro = i === -1 ? null : recientes[i];
-        const ultimoNuestroPregunta = /\?\s*\W*$/.test(String((nuestro && nuestro.content) || '').trim());
-        return (i === -1 ? recientes : recientes.slice(0, i))
-            .some(m => m.direction === 'INBOUND' && filaDisparaTurno(m, { ultimoNuestroPregunta }));
-    }
+    // quedaAlgoSinContestar vive en shared/clasificar-entrante.js (15/10/2026):
+    // mismo contexto que el webhook y orden de LLEGADA, no el del teléfono.
 
     async function processBotTurn(chat, waId, profileName, realPhone) {
         // Momento en que arranca el turno: todo saliente humano posterior a
@@ -685,9 +683,12 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 return;
             }
 
+            // En ORDEN DE LLEGADA al servidor (15/10/2026): con createdAt, una
+            // foto que el teléfono fechó antes de nuestra burbuja pero llegó
+            // después quedaba "contestada" y el turno no corría.
             const recientes = await prisma.whatsAppMessage.findMany({
                 where: { chatId: chat.id },
-                orderBy: { createdAt: 'desc' },
+                orderBy: ORDEN_DE_LLEGADA_DESC,
                 take: HISTORY_SIZE,
             });
             const masNuevoProcesado = recientes[0] || null;
@@ -896,11 +897,14 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // el candado), lo programa este.
             if (masNuevoProcesado) {
                 const nuevos = await prisma.whatsAppMessage.findMany({
-                    where: { chatId: chat.id, direction: 'INBOUND', createdAt: { gt: masNuevoProcesado.createdAt } },
-                    orderBy: { createdAt: 'desc' },
-                    select: { type: true, content: true, createdAt: true },
+                    where: { chatId: chat.id, direction: 'INBOUND', ...llegoDespuesDe(recibido(masNuevoProcesado)) },
+                    orderBy: ORDEN_DE_LLEGADA_DESC,
+                    select: { type: true, content: true, createdAt: true, receivedAt: true },
                 });
-                const queDisparan = nuevos.filter(f => filaDisparaTurno(f));
+                // Mismo contexto que el webhook: el saliente anterior es el
+                // último nuestro que leyó este turno.
+                const nuestroAnterior = recientes.find(m => m.direction === 'OUTBOUND') || null;
+                const queDisparan = nuevos.filter(f => filaDisparaTurno(f, contextoDeEntrante({ entrante: f, nuestroAnterior })));
                 if (queDisparan.length > 0) {
                     console.log(`  ⏳ [BotCloud] Llegaron ${queDisparan.length} mensaje(s) nuevo(s): se descarta esta respuesta (fotos incluidas) y contesta el turno siguiente.`);
                     if (!debounceTimers.has(chat.id)) {
@@ -931,7 +935,9 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                         chatId: chat.id,
                         direction: 'OUTBOUND',
                         ...whereSalienteHumano(),
-                        createdAt: { gt: new Date(comienzoDelTurno) },
+                        // Llegada al servidor: el eco del celular de la
+                        // vendedora viene con la hora de SU teléfono.
+                        ...llegoDespuesDe(comienzoDelTurno),
                     },
                     select: { senderName: true },
                 }).catch(() => null);

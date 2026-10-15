@@ -60,7 +60,8 @@
  */
 
 const { whereSalienteHumano } = require('./remitentes');
-const { filaDisparaTurno } = require('./clasificar-entrante');
+const { filaDisparaTurno, contextoDeEntrante } = require('./clasificar-entrante');
+const { recibido, ORDEN_DE_LLEGADA_DESC, llegoDespuesDe } = require('./orden-de-llegada');
 const { MOTIVO_APAGADO, puedeVolverSolo, motivoValido, leerMotivo } = require('./motivo-apagado');
 
 /**
@@ -98,19 +99,23 @@ const HORA = 60 * MIN;
  * @param {Array<{createdAt, type, content}>} p.entrantes  INBOUND (cualquier orden)
  */
 function analizarEspera({ ultimoSaliente, ultimoHumano, entrantes }) {
-    const corte = ultimoSaliente ? new Date(ultimoSaliente.createdAt).getTime() : -Infinity;
+    // Todo con la hora de LLEGADA al servidor (receivedAt, o createdAt en
+    // filas viejas): el createdAt de un entrante es el reloj del teléfono del
+    // cliente (15/10/2026, shared/orden-de-llegada.js).
+    const corte = ultimoSaliente ? recibido(ultimoSaliente).getTime() : -Infinity;
     const disparan = (entrantes || [])
-        .filter(f => new Date(f.createdAt).getTime() > corte)
-        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        .filter(f => recibido(f).getTime() > corte)
+        .sort((a, b) => recibido(a) - recibido(b))
         // Una reacción o un "gracias" no arrancan el reloj ni hacen volver al
         // bot a contestarle un 👍 (15/10/2026).
-        .filter(f => filaDisparaTurno(f));
+        // Mismo contexto que el webhook (pregunta/plantilla pendiente, charla viva).
+        .filter(f => filaDisparaTurno(f, contextoDeEntrante({ entrante: f, nuestroAnterior: ultimoSaliente || null })));
     const esperando = disparan.length ? disparan[disparan.length - 1] : null;
     return {
-        desde: ultimoHumano ? new Date(ultimoHumano.createdAt) : null,
+        desde: ultimoHumano ? recibido(ultimoHumano) : null,
         quien: (ultimoHumano && ultimoHumano.senderName) || null,
-        esperandoFechas: disparan.map(f => new Date(f.createdAt)),
-        esperandoDesde: disparan.length ? new Date(disparan[0].createdAt) : null,
+        esperandoFechas: disparan.map(f => recibido(f)),
+        esperandoDesde: disparan.length ? recibido(disparan[0]) : null,
         esperando,
     };
 }
@@ -135,13 +140,13 @@ async function duenioDelChat(prisma, chat) {
     const [ultimoHumano, ultimoSaliente] = await Promise.all([
         prisma.whatsAppMessage.findFirst({
             where: { chatId: chat.id, direction: 'OUTBOUND', ...whereSalienteHumano() },
-            orderBy: { createdAt: 'desc' },
-            select: { createdAt: true, senderName: true },
+            orderBy: ORDEN_DE_LLEGADA_DESC,
+            select: { createdAt: true, receivedAt: true, senderName: true },
         }).catch(() => null),
         prisma.whatsAppMessage.findFirst({
             where: { chatId: chat.id, direction: 'OUTBOUND' },
-            orderBy: { createdAt: 'desc' },
-            select: { createdAt: true },
+            orderBy: ORDEN_DE_LLEGADA_DESC,
+            select: { createdAt: true, receivedAt: true, content: true, templateName: true },
         }).catch(() => null),
     ]);
     if (!ultimoHumano) return { duenio: 'nadie', motivo, ...vacio };
@@ -150,10 +155,10 @@ async function duenioDelChat(prisma, chat) {
     // Los MÁS NUEVOS primero: si hubiera más de ENTRANTES_A_REVISAR, lo que
     // importa es lo último que escribió el cliente.
     const entrantes = await prisma.whatsAppMessage.findMany({
-        where: { chatId: chat.id, direction: 'INBOUND', createdAt: { gt: new Date(corte.createdAt) } },
-        orderBy: { createdAt: 'desc' },
+        where: { chatId: chat.id, direction: 'INBOUND', ...llegoDespuesDe(recibido(corte)) },
+        orderBy: ORDEN_DE_LLEGADA_DESC,
         take: ENTRANTES_A_REVISAR,
-        select: { createdAt: true, type: true, content: true },
+        select: { createdAt: true, receivedAt: true, type: true, content: true },
     }).catch(() => []);
 
     return { duenio: 'humano', motivo, ...analizarEspera({ ultimoSaliente: corte, ultimoHumano, entrantes }) };

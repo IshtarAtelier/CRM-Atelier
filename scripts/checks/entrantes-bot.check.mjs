@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
-const { clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno, CLASE } = require('../../wa-service/shared/clasificar-entrante.js');
+const { clasificarEntrante, contextoDeEntrante, quedaAlgoSinContestar, HORAS_DE_CHARLA_VIGENTE, disparaTurno, entranteDeFila, filaDisparaTurno, CLASE } = require('../../wa-service/shared/clasificar-entrante.js');
 const { decidirVuelta, duenioDelChat, VENTANA_PARA_QUE_CONTESTE_EL_EQUIPO_MIN, HORAS_PARA_VOLVER_FUERA_DE_HORARIO, ANTIGUEDAD_MAXIMA_PARA_VOLVER_H } = require('../../wa-service/shared/duenio-del-chat.js');
 const { isBusinessHours } = require('../../wa-service/shared/business-hours.js');
 
@@ -159,7 +159,7 @@ console.log('\nAntigüedad desde el MÁS NUEVO, ventana desde el primero vigente
 }
 
 console.log('\n"Llegó algo nuevo durante el turno": solo lo que dispara turno, y siempre queda uno programado');
-check('el control filtra con filaDisparaTurno (un 👍 no tira la respuesta)', /queDisparan = nuevos\.filter\(f => filaDisparaTurno\(f\)\)/.test(bc) && !/whatsAppMessage\.count\(\{\s*where: \{ chatId: chat\.id, direction: 'INBOUND'/.test(bc));
+check('el control filtra con filaDisparaTurno (un 👍 no tira la respuesta)', /queDisparan = nuevos\.filter\(f => filaDisparaTurno\(f, contextoDeEntrante\(/.test(bc) && !/whatsAppMessage\.count\(\{\s*where: \{ chatId: chat\.id, direction: 'INBOUND'/.test(bc));
 check('si descarta, garantiza un turno programado', /queDisparan\.length > 0\) \{[\s\S]{0,400}programarTurno\(chat,/.test(bc));
 
 console.log('\nduenioDelChat: lo que espera, desde la base');
@@ -183,6 +183,245 @@ console.log('\nduenioDelChat: lo que espera, desde la base');
         d2.duenio === 'humano' && d2.esperandoDesde && d2.esperandoDesde.getTime() === t('2026-10-14T11:00').getTime() && d2.esperando.content.includes('cuánto'));
     const d3 = await duenioDelChat(prismaFalso, { id: 'c1', botEnabled: false, botOffReason: MOTIVO_APAGADO.APAGADO_MANUAL, chatLabels: ['[SISTEMA - BOT APAGADO]'] });
     check('apagado desde el panel (con la etiqueta vieja) → sin dueño humano', d3.duenio === 'nadie');
+}
+
+console.log('\nSaludos, "?" y charla vieja (auditoría del 15/10/2026)');
+{
+    const hace = (h) => new Date(Date.now() - h * 3600 * 1000);
+    const vivo = contextoDeEntrante({ nuestroAnterior: { content: 'Perfecto.', createdAt: hace(1) } });
+    const viejo = contextoDeEntrante({ nuestroAnterior: { content: 'Perfecto.', createdAt: hace(HORAS_DE_CHARLA_VIGENTE + 1) } });
+    const primero = contextoDeEntrante({ nuestroAnterior: null });
+    check('"Buenas tardes" solo → consulta (abre la charla), aun con charla viva', txt('Buenas tardes', vivo) === CLASE.CONSULTA);
+    check('"Buen día" como PRIMER mensaje → consulta', txt('Buen día', primero) === CLASE.CONSULTA);
+    check('"Gracias, buenas tardes" → cierre (el saludo va con gracias)', txt('Gracias, buenas tardes', vivo) === CLASE.REACCION);
+    check('"Chau, buenas noches" → cierre (va con despedida)', txt('Chau, buenas noches', vivo) === CLASE.REACCION);
+    check('"?" y "???" → consulta (piden respuesta, no son emojis)', txt('?', vivo) === CLASE.CONSULTA && txt('???', vivo) === CLASE.CONSULTA);
+    check('"gracias" sin nada nuestro antes → consulta (no hay qué cerrar)', txt('gracias', primero) === CLASE.CONSULTA);
+    check(`"gracias" con lo último nuestro de hace más de ${HORAS_DE_CHARLA_VIGENTE} h → consulta`, txt('gracias', viejo) === CLASE.CONSULTA);
+    check('"gracias" con charla viva → sigue siendo cierre', txt('gracias', vivo) === CLASE.REACCION);
+    check('"👍" sin charla viva → consulta; reacción/sticker siguen sin turno',
+        txt('👍', viejo) === CLASE.CONSULTA && clasificarEntrante({ type: 'reaction', reaction: { emoji: '👍' } }, primero) === CLASE.REACCION && clasificarEntrante({ type: 'sticker' }, primero) === CLASE.REACCION);
+    check('el contestador del cliente sigue siendo contestador aunque no haya charla', txt('Hola! Estoy fuera trabajando. Regreso mañana', primero) === CLASE.AUTO_DEL_CLIENTE);
+    check('después de una PLANTILLA (sin "?" en el texto) un "👍" es la respuesta',
+        txt('👍', contextoDeEntrante({ nuestroAnterior: { content: 'Hola! Tenemos novedades', templateName: 'novedades', createdAt: hace(1) } })) === CLASE.CONSULTA);
+    // Botón de plantilla: el webhook lo ve como 'button', la base como TEXT con
+    // el título. Misma función, mismos insumos → misma clase.
+    const ctxBoton = contextoDeEntrante({ nuestroAnterior: { content: '¿Seguís interesada?', templateName: 'seguimiento', createdAt: hace(2) } });
+    for (const titulo of ['Gracias', 'Sí, me interesa', 'No por ahora', 'Ok']) {
+        const webhook = clasificarEntrante({ type: 'button', text: titulo }, ctxBoton);
+        const fila = filaDisparaTurno({ type: 'TEXT', content: titulo }, ctxBoton) ? CLASE.CONSULTA : CLASE.REACCION;
+        check(`botón "${titulo}": webhook (${webhook}) = fila (${fila})`, webhook === fila);
+    }
+}
+
+console.log('\nSin contestar se mide por LLEGADA, no por el reloj del teléfono');
+{
+    const t = (hora) => new Date(`2026-10-14T${hora}${hora.length === 5 ? ':00' : ''}.000-03:00`);
+    // Caso real: "Dale, espero tu recetita" 11:00:30; la foto, sacada 11:00:10
+    // en el teléfono, llegó al servidor 11:00:50.
+    const filas = [
+        { direction: 'OUTBOUND', type: 'TEXT', content: 'Dale, espero tu recetita', createdAt: t('11:00:30'), receivedAt: t('11:00:30') },
+        { direction: 'INBOUND', type: 'IMAGE', content: '[Mensaje IMAGE]', createdAt: t('11:00:10'), receivedAt: t('11:00:50') },
+        { direction: 'INBOUND', type: 'TEXT', content: 'te paso la receta', createdAt: t('10:59'), receivedAt: t('10:59') },
+    ];
+    check('la foto que llegó DESPUÉS de nuestra burbuja (aunque el teléfono la fechó antes) queda sin contestar', quedaAlgoSinContestar(filas));
+    check('…y el orden del arreglo no importa', quedaAlgoSinContestar([...filas].reverse()));
+    const contestada = filas.map(f => (f.type === 'IMAGE' ? { ...f, receivedAt: t('11:00:20') } : f));
+    check('si la foto llegó ANTES de nuestra burbuja, está contestada', !quedaAlgoSinContestar(contestada));
+    const viejas = filas.map(f => ({ ...f, receivedAt: null }));
+    check('filas viejas sin receivedAt: se usa createdAt (como antes)', !quedaAlgoSinContestar(viejas));
+    check('bot-cloud usa el quedaAlgoSinContestar compartido y ordena por llegada',
+        !/function quedaAlgoSinContestar/.test(bc) && /orderBy: ORDEN_DE_LLEGADA_DESC,\s*take: HISTORY_SIZE/.test(bc));
+}
+
+console.log('\nCasos reales de 30 días (prod, 15/10/2026): texto corto + contexto, sin datos personales');
+{
+    // [texto, contexto, C=consulta / R=no dispara, veces en 30 días]
+    // vivo = lo último nuestro hace 1 h; vivo-pregunta = terminó en "?" o fue
+    // plantilla; viejo = más de 12 h; sin-previo = nunca le escribimos.
+    const FIXTURES = [
+    ["Gracias","vivo","R",52],
+    ["Gracias!","vivo","R",16],
+    ["Muchas gracias","vivo","R",16],
+    ["Dale gracias","vivo","R",12],
+    ["Gracias","vivo-pregunta","R",11],
+    ["Ok gracias","vivo","R",9],
+    ["Muchas gracias!","vivo","R",9],
+    [".","vivo","R",7],
+    ["Hola buen dia","viejo","C",7],
+    ["👍","vivo","R",6],
+    ["Hola buenas tardes","vivo","C",6],
+    ["Hola buenas tardes","viejo","C",6],
+    ["?","vivo","C",5],
+    ["Buen dia","viejo","C",4],
+    ["Buen día","vivo-pregunta","C",4],
+    ["Buen dia","vivo","C",4],
+    ["Hola buenos días","vivo-pregunta","C",4],
+    ["Graciasss","vivo","R",4],
+    [".","vivo-pregunta","C",3],
+    ["Hola buenas tardes","vivo-pregunta","C",3],
+    ["gracias","vivo","R",3],
+    ["Bueno muchas gracias","vivo","R",3],
+    ["Hola buenas tardes","sin-previo","C",3],
+    ["Buenas","viejo","C",3],
+    ["Hola buenos días","vivo","C",3],
+    ["Buen día","vivo","C",3],
+    ["Muchas gracias!!","vivo","R",3],
+    ["Gracias!!","vivo","R",3],
+    ["Buenos días","vivo","C",3],
+    ["Hola buen dia","vivo-pregunta","C",3],
+    ["Muchas gracias","vivo-pregunta","R",3],
+    ["gracias!","vivo","R",3],
+    ["Hola buen día!","viejo","C",2],
+    ["Graciass","vivo","R",2],
+    ["👍👍","vivo","R",2],
+    ["👍🏼👍🏼","vivo","R",2],
+    ["Buenos dias","vivo","C",2],
+    ["gracias!!!","vivo","R",2],
+    ["Buenas tardes","sin-previo","C",2],
+    ["Muchas gracias!","vivo-pregunta","R",2],
+    ["Hola buen día","viejo","C",2],
+    ["Hola buen día","vivo","C",2],
+    ["Hola buenos días","viejo","C",2],
+    ["Gracias","viejo","C",2],
+    ["???","vivo","C",2],
+    ["Hola buenos dias","viejo","C",2],
+    ["Ok gracias","vivo-pregunta","R",2],
+    ["👍","vivo-pregunta","C",2],
+    ["Buen día","viejo","C",2],
+    ["🥰","vivo","R",2],
+    ["?","viejo","C",2],
+    ["😉👋","vivo","R",2],
+    ["Mil gracias","vivo-pregunta","R",2],
+    ["Hola buenas","vivo","C",2],
+    ["muchas gracias!","vivo","R",2],
+    ["Bueno gracias","vivo","R",2],
+    ["Dale muchas gracias","vivo","R",2],
+    ["muchas gracias","vivo","R",2],
+    ["😂","vivo","R",1],
+    ["Gracias!!!","vivo","R",1],
+    ["👌","vivo","R",1],
+    ["Buen dia","sin-previo","C",1],
+    ["🙄","viejo","C",1],
+    ["😊👍","vivo","R",1],
+    ["Buenas!","vivo-pregunta","C",1],
+    ["🙋‍♂️","vivo","R",1],
+    ["🤣","vivo","R",1],
+    ["🔍🕵️‍♀️","vivo","R",1],
+    ["Mil gracias !!","vivo","R",1],
+    ["👍🏻🤩🙋🏻‍♀️","vivo-pregunta","C",1],
+    ["🙋🏻‍♀️","vivo","R",1],
+    ["Buen Día !!!","vivo","C",1],
+    ["Buenos días!","viejo","C",1],
+    ["buenas","vivo-pregunta","C",1],
+    ["Ok muchas gracias.","vivo-pregunta","R",1],
+    ["👍🏻👍🏻","vivo","R",1],
+    ["Hola buenos días!","viejo","C",1],
+    ["Buenos días","viejo","C",1],
+    ["dale gracias","vivo","R",1],
+    ["muchas gracias!!","vivo","R",1],
+    ["Hola buenas tardes.","vivo","C",1],
+    ["👍👍👍","vivo","R",1],
+    ["👋🏼🥰","vivo","R",1],
+    ["🤗🤗","vivo","R",1],
+    [".","sin-previo","C",1],
+    ["🤍🤍🤍","vivo","R",1],
+    ["❤","sin-previo","C",1],
+    ["Buenos dias !","vivo-pregunta","C",1],
+    ["🙂","vivo","R",1],
+    ["Buenas tardes","vivo","C",1],
+    ["Gracias!","vivo-pregunta","R",1],
+    ["Graciass","vivo-pregunta","R",1],
+    ["Buen día.","sin-previo","C",1],
+    ["Bueno gracias...","vivo","R",1],
+    ["Bueno gracias","vivo-pregunta","R",1],
+    ["?","vivo-pregunta","C",1],
+    ["Buenos dias","sin-previo","C",1],
+    ["muchas gracias","vivo-pregunta","R",1],
+    ["hola, buenos días","vivo-pregunta","C",1],
+    ["Graciassss","vivo","R",1],
+    ["Buenas tardes!","sin-previo","C",1],
+    ["buenas tardes","vivo","C",1],
+    ["🙏","vivo","R",1],
+    ["Muchas gracias!!!","vivo","R",1],
+    ["Hola buen día","vivo-pregunta","C",1],
+    ["Hola, buenas tardes","sin-previo","C",1],
+    ["Hola buenas!!","vivo","C",1],
+    ["👌😉","vivo","R",1],
+    ["?????","vivo","C",1],
+    ["🙌🙌🙏","vivo","R",1],
+    ["👍","viejo","C",1],
+    ["🥹","vivo-pregunta","C",1],
+    ["Muchas gracias","viejo","C",1],
+    ["Buenas tardes","viejo","C",1],
+    ["Gracias","sin-previo","C",1],
+    ["Hola buen día","sin-previo","C",1],
+    ["🙋‍♀️🙋‍♀️","vivo-pregunta","C",1],
+    ["🙋‍♀️","vivo","R",1],
+    ["Buen día!","vivo-pregunta","C",1],
+    ["✌️✌️✌️","vivo","R",1],
+    ["🙌🏽","vivo","R",1],
+    ["hola buen día!","viejo","C",1],
+    ["Hola buen día .","sin-previo","C",1],
+    ["Gracias..","vivo","R",1],
+    ["Listo muchas graciass!","vivo","R",1],
+    ["👋👋","vivo","R",1],
+    ["🥰🙂","vivo","R",1],
+    ["😉👍👍","vivo","R",1],
+    ["buenas!","vivo","C",1],
+    ["Buenas tardes.","vivo","C",1],
+    ["Buenas tardes!!","viejo","C",1],
+    ["Gracias !!","vivo","R",1],
+    ["hola buen día","viejo","C",1],
+    ["Buen día!!","vivo","C",1],
+    ["❤️","vivo","R",1],
+    ["⭐️ ⭐️ ⭐️ ⭐️⭐️","vivo","R",1],
+    ["🙏🏻","vivo","R",1],
+    ["??","vivo","C",1],
+    ["🙌😉👋👋","vivo","R",1],
+    ["hola buenas tardes,","sin-previo","C",1],
+    ["Buen Día !!!","vivo-pregunta","C",1],
+    ["Bueno muchas gracias","vivo-pregunta","R",1],
+    ["😁👍","vivo","R",1],
+    ["🙌","vivo","R",1],
+    ["Buen dia","vivo-pregunta","C",1],
+    ["Hola buenas","vivo-pregunta","C",1],
+    ["Hola buenas!","vivo-pregunta","C",1],
+    ["Hola buenos dias","vivo-pregunta","C",1],
+    ["Dale gracias","vivo-pregunta","R",1],
+    ["Hola buenas noches","vivo-pregunta","C",1],
+    ["Buenos día","vivo","C",1],
+    ["Buen dia!","vivo","C",1],
+    ["Hola, buen día!!","vivo-pregunta","C",1],
+    ["Hola buenos dias","vivo","C",1],
+    ["....","viejo","C",1],
+    ["Dale muchas gracias!","vivo","R",1],
+    ["muchas gracias!!!","viejo","C",1],
+    ["💪🏻","vivo","R",1],
+    ["Hola! Buen día","sin-previo","C",1],
+    ["Gracias!","sin-previo","C",1],
+    ["Hola buenas","viejo","C",1],
+    ["buenas tardes","sin-previo","C",1],
+    ["dale muchas gracias","vivo","R",1],
+    ["😁","vivo","R",1],
+    ["☝🏼☝🏼☝🏼","vivo","R",1],
+    ["Hola buen dia","vivo","C",1],
+    ["Buenas","vivo-pregunta","C",1],
+    ["?","sin-previo","C",1],
+    ];
+    const hace = (h) => new Date(Date.now() - h * 3600 * 1000);
+    const CTX = {
+        'sin-previo': null,
+        viejo: { content: 'Perfecto.', createdAt: hace(20) },
+        vivo: { content: 'Perfecto.', createdAt: hace(1) },
+        'vivo-pregunta': { content: '¿Te mando fotos?', createdAt: hace(1) },
+    };
+    let malos = 0;
+    for (const [texto, ctx, esperado, n] of FIXTURES) {
+        const c = filaDisparaTurno({ type: 'TEXT', content: texto }, contextoDeEntrante({ nuestroAnterior: CTX[ctx] })) ? 'C' : 'R';
+        if (c !== esperado) { malos++; mal(`"${texto}" (${ctx}, ${n} vez/veces) → esperaba ${esperado}, dio ${c}`); }
+    }
+    check(`${FIXTURES.length} casos reales distintos (${FIXTURES.reduce((s, x) => s + x[3], 0)} mensajes) clasificados como se decidió`, malos === 0);
 }
 
 console.log('');
