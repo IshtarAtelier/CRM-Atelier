@@ -20,12 +20,14 @@ import { PricingService } from "@/services/PricingService";
 import { formatearPrecio, precioConSigno } from "@/lib/format-precio";
 import { anteojoCompletoDesde } from "@/lib/anteojo-completo";
 import { useOpcionesCristal } from "@/hooks/useOpcionesCristal";
-import { leerPromoCuotas, textoCuotas12 } from "@/lib/promo-cuotas";
+import { leerPromoCuotas, textoCuotas12, LINEA_CUOTAS } from "@/lib/promo-cuotas";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { precioConOferta } from "@/lib/precio-oferta";
+import { promoVisible } from "@/lib/promo-visible";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades, claveMarca, claveModelo } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
 import ProductReviews from "@/components/Storefront/ProductReviews";
+import { GaleriaZoom } from "./GaleriaZoom";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
 // abre el modal, y el diagrama vive dentro de un acordeón colapsado. Sacarlos del
@@ -71,6 +73,9 @@ export function ProductClient({
   footer?: React.ReactNode;
 }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // Fase 1.7 (15/10/2026): tap sobre la foto abre el lightbox con zoom
+  // (GaleriaZoom.tsx). Antes tap y doble tap no hacían nada.
+  const [zoomAbierto, setZoomAbierto] = useState(false);
   const [showConfigurator, setShowConfigurator] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
 
@@ -279,8 +284,7 @@ export function ProductClient({
 
   // Precio de oferta ("precio tachado"). La regla vive en src/lib/precio-oferta.ts:
   // la misma que usan la grilla de la tienda, el JSON-LD y el cotizador.
-  const { final: effectivePrice, enOferta: hasSale, descuentoPct: pctOff } =
-    precioConOferta(product as any);
+  const { final: effectivePrice, enOferta: hasSale } = precioConOferta(product as any);
 
   // La ficha abre ARRIBA, siempre. Ishtar (3/10/2026): entrando desde la
   // grilla ya scrolleada, en el celular la ficha aparecía por el final. Next
@@ -326,6 +330,47 @@ export function ProductClient({
   const descriptionLead = descriptionText.slice(0, leadEnd).trim();
   const descriptionRest = descriptionText.slice(leadEnd).trim();
 
+  // El ÚNICO camino por el que la ficha agrega el armazón solo (sin cristales)
+  // al carrito: lo usan "Comprar ahora" y, desde el 15/10/2026, también el
+  // botón de la barra pegada de sol y clip-on. Hasta entonces ese botón hacía
+  // `scrollIntoView` hasta "Comprar ahora" en vez de agregar: era el único
+  // botón visible en la primera pantalla de esas fichas y, para quien lo
+  // tocaba, "no pasaba nada" (en 30 días, 0 agregados al carrito desde ahí;
+  // auditoría de fichas del 15/10). Ahora las dos puertas hacen lo mismo:
+  // agregan y abren el carrito.
+  const agregarArmazonAlCarrito = () => {
+    // price SIEMPRE guarda el precio minorista: el mayorista se resuelve en
+    // vivo por sesión (getItemUnitPrice) para que un carrito persistido nunca
+    // muestre tarifa mayorista a un minorista (ni viceversa) tras login/logout.
+    // El AddToCart lo dispara `addItem` en el store (useCart.ts): es el único
+    // punto por el que pasan TODOS los caminos al carrito. Acá había una
+    // segunda llamada que hacía que cada agregado desde la ficha contara dos
+    // veces en Meta y GA4, con eventId distinto, así que la deduplicación del
+    // CAPI tampoco los unía.
+    addItem({
+      productId: product.id,
+      brand: product.brand,
+      model: product.model,
+      price: effectivePrice,
+      wholesaleBasePrice: productWholesalePrice,
+      image: images[0] || "/images/placeholder.svg",
+      lensColor: null,
+      lensConfig: {
+        lensType: "NONE",
+        treatment: null,
+        color: null,
+        prescriptionFile: null
+      },
+      quantity: 1,
+      stock: typeof product.stock === 'number' ? product.stock : undefined
+    });
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsOpen(true);
+      setTimeout(() => setIsAdded(false), 2000);
+    }, 500);
+  };
+
   return (
     <div className="min-h-screen bg-white text-black selection:bg-black selection:text-white font-sans">
       <StorefrontNavbar theme="light" />
@@ -335,7 +380,7 @@ export function ProductClient({
       <main>
       <div className="flex flex-col lg:flex-row min-h-screen pt-16 lg:pt-0">
         
-        <div className="w-full lg:w-[60%] bg-white relative flex items-center justify-center p-0 lg:p-12 min-h-[50vh] lg:h-screen lg:max-h-[56rem] lg:sticky lg:top-0 border-r border-[#e5e5e5] overflow-hidden group">
+        <div className="w-full lg:w-[60%] bg-white relative flex items-center justify-center p-0 lg:p-12 min-h-0 lg:min-h-[50vh] lg:h-screen lg:max-h-[56rem] lg:sticky lg:top-0 border-r border-[#e5e5e5] overflow-hidden group">
           
           {/* Marca de agua decorativa (3% de opacidad). El modelo iba como <h2>:
               al estar antes del <h1> real, era el PRIMER encabezado del documento
@@ -369,17 +414,32 @@ export function ProductClient({
             initial={false}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full lg:w-[85%] aspect-square lg:max-h-full relative bg-[#fdfdfd] border border-[#f0f0f0] shadow-sm flex items-center justify-center"
+            /* 4:3 en celular y cuadrado en escritorio (Fase 1.2, 15/10/2026): con el
+               recuadro cuadrado la foto sola ocupaba 390 px y el precio y el
+               botón quedaban a 800-1.280 px, dos pantallas abajo. Las fotos van
+               en `contain`, así que entran enteras igual. */
+            className="w-full lg:w-[85%] aspect-[4/3] lg:aspect-square lg:max-h-full relative bg-[#fdfdfd] border border-[#f0f0f0] shadow-sm flex items-center justify-center"
           >
-            <AnimatePresence mode="wait">
+            {/* Fase 1.7: `mode="sync"` en vez de `"wait"`. Con "wait" la foto
+                saliente se desvanecía ENTERA (0,4 s) antes de que la entrante
+                empezara a cargar y a aparecer: ~1 s de recuadro en blanco en
+                cada cambio. Las dos fotos están en absolute inset-0, así que
+                en "sync" se cruzan una sobre otra sin hueco. Además, las fotos
+                vecinas se precargan abajo. */}
+            <AnimatePresence mode="sync">
               {images.length > 0 ? (
                 <motion.div
                   key={activeImageIndex}
                   initial={activeImageIndex === 0 ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className={`absolute inset-0 z-10 isolate group-hover:scale-[1.3] group-hover:cursor-zoom-in transition-transform duration-700 ease-out origin-center ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
+                  transition={{ duration: 0.3 }}
+                  onClick={() => setZoomAbierto(true)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Ampliar foto"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setZoomAbierto(true); } }}
+                  className={`absolute inset-0 z-10 isolate group-hover:scale-[1.3] group-hover:cursor-zoom-in cursor-zoom-in transition-transform duration-700 ease-out origin-center ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
                 >
                   {/* `sizes` en 45vw y no 51vw: medido en producción, el
                       recuadro de la galería mide 652px en una pantalla de 1440
@@ -400,7 +460,7 @@ export function ProductClient({
                     // Deneb C2). Con `contain` entra la foto entera y lo que
                     // sobra queda del color del recuadro.
                     style={{ objectFit: "contain", transform: "translateZ(0)" }}
-                    className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-8 lg:p-12")) : ""}
+                    className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-4 lg:p-12")) : ""}
                   />
                 </motion.div>
               ) : (
@@ -409,7 +469,27 @@ export function ProductClient({
                 </div>
               )}
             </AnimatePresence>
-            
+
+            {/* Precarga de la foto siguiente y la anterior, con el MISMO
+                `sizes` que la grande para que el navegador pida el mismo
+                archivo optimizado y lo tenga en caché cuando se cambie. Fuera
+                de pantalla y sin interacción: no se ve ni se toca. */}
+            {images.length > 1 && [activeImageIndex + 1, activeImageIndex - 1]
+              .map((i) => (i + images.length) % images.length)
+              .filter((i, pos, arr) => i !== activeImageIndex && arr.indexOf(i) === pos)
+              .map((i) => (
+                <div key={`precarga-${i}`} aria-hidden="true" className="absolute inset-0 opacity-0 pointer-events-none -z-10">
+                  <Image
+                    unoptimized={String(images[i]).startsWith('data:')}
+                    src={images[i]}
+                    alt=""
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 45vw"
+                    style={{ objectFit: "contain" }}
+                  />
+                </div>
+              ))}
+
             {activeImageIndex > 0 && (
               <div className="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md text-white text-[10px] font-mono tracking-widest uppercase px-3 py-1.5 rounded-full flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -417,18 +497,22 @@ export function ProductClient({
               </div>
             )}
 
-            {hasSale && (
-              <div className="absolute top-6 left-6 z-20 bg-red-600 text-white text-[11px] font-black tracking-widest uppercase px-3 py-1.5 rounded-full shadow-lg">
-                -{pctOff}% OFF
-              </div>
-            )}
+            {/* Sin chip "-9% OFF" sobre la foto: la rebaja se dice UNA vez, al
+                lado del precio (src/lib/promo-visible.ts). */}
           </motion.div>
         </div>
 
         <div className="w-full lg:w-[40%] bg-[#fafafa] flex flex-col relative z-10">
-          <div className="p-8 lg:p-14 border-b border-[#e5e5e5] bg-white">
+          {/* ── Fase 1.2 (plan tienda, 15/10/2026): la primera pantalla en celular
+              vende. El panel es una columna con `order-*` SOLO en celular:
+              nombre → precio → botón primero; migas, colores, SKU, prueba
+              social, specs y medios de pago recién después. En escritorio
+              (`lg:order-none`) se mantiene el orden de siempre. Medido antes
+              del cambio: el precio quedaba a 800 px y el botón a 1.080-1.275 px
+              (dos pantallas de scroll) y el 97 % se iba sin tocar nada. */}
+          <div className="p-5 lg:p-14 border-b border-[#e5e5e5] bg-white flex flex-col">
             {/* Breadcrumb visible (el JSON-LD BreadcrumbList ya existía; esto orienta al cliente) */}
-            <nav aria-label="Ruta de navegación" className="mb-4 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">
+            <nav aria-label="Ruta de navegación" className="order-4 lg:order-none mt-4 lg:mt-0 mb-4 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">
               <Link href="/" className="hover:text-black transition-colors">Inicio</Link>
               <span aria-hidden="true">›</span>
               {(() => {
@@ -454,17 +538,22 @@ export function ProductClient({
               };
               const tipo = tipoMap[product.category];
               return tipo ? (
-                <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#8a6d3b] mb-1.5">
+                <p className="order-1 lg:order-none text-[11px] font-black uppercase tracking-[0.25em] text-[#8a6d3b] mb-1.5">
                   {tipo}
                 </p>
               ) : null;
             })()}
-            <h1 className="text-4xl lg:text-5xl font-serif tracking-tight mb-2 uppercase">
+            <h1 className="order-1 lg:order-none text-3xl lg:text-5xl font-serif tracking-tight mb-1 lg:mb-2 uppercase">
               {product.model}
             </h1>
-            <p className="text-[11px] text-[#666] font-bold uppercase tracking-[0.2em] mb-4">
+            <p className="order-1 lg:order-none text-[11px] text-[#666] font-bold uppercase tracking-[0.2em] mb-3 lg:mb-4">
               por {product.brand}
             </p>
+
+            {/* Todo lo que describe pero no decide (titanio, colores, SKU,
+                prueba social, specs) va DESPUÉS del botón en celular. En
+                escritorio `lg:contents` lo deja donde siempre estuvo. */}
+            <div className="order-4 lg:order-none lg:contents">
 
             {/* Prominent Titanium highlight */}
             {product.material === "Titanio" && (
@@ -627,9 +716,10 @@ export function ProductClient({
               </div>
             )}
 
-            
+            </div>
+
             {isWholesale ? (
-              <div className="mb-6 flex flex-col gap-1">
+              <div className="order-2 lg:order-none mb-6 flex flex-col gap-1">
                 {/* Sin wholesalePrice cargado (> 0) el backend cobra retail:
                     no etiquetar el precio de lista como "Mayorista". */}
                 {productWholesalePrice > 0 ? (
@@ -670,61 +760,56 @@ export function ProductClient({
                     Hasta el 10/10, con oferta la ficha mostraba en grande el de
                     TARJETA ($145.000) mientras la grilla decía $123.250 por el
                     mismo anteojo: quien entraba desde la grilla veía que el
-                    precio "subía". Con oferta se tacha el de lista con el mismo
-                    % (comparable) y va el cartel del %, en rojo. */}
+                    precio "subía".
+                    Desde el 15/10 (Fase 1.3) se muestran DOS números y UNA
+                    promo: el de transferencia grande, "o $X con tarjeta"
+                    chico, y al lado del grande o el sello de la rebaja o el
+                    "15% OFF por transferencia" —nunca los dos, y sin tachado
+                    (la regla vive en src/lib/promo-visible.ts). El precio con
+                    tarjeta queda a la vista porque es el que declara el
+                    JSON-LD y el feed de Merchant: Google desaprueba el
+                    producto si el precio informado no aparece en la página. */}
                 {(() => {
                   const v = PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount });
+                  const promo = promoVisible(v, cashDiscount);
                   return (
-                    <div className="mb-6">
-                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <span className={`text-3xl font-black tracking-tight ${hasSale ? 'text-red-600' : 'text-black'}`}>
+                    <div className="order-2 lg:order-none mb-4 lg:mb-6">
+                      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                        <span className="text-4xl lg:text-3xl font-black tracking-tight text-black">
                           ${formatearPrecio(v.transferencia)}
                         </span>
-                        <span className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                          {cashDiscount}% OFF por transferencia
-                        </span>
-                        {hasSale && v.transferenciaSinOferta !== null ? (
-                          <>
-                            <span className="text-sm font-medium text-stone-400 line-through">
-                              ${formatearPrecio(v.transferenciaSinOferta)}
-                            </span>
-                            <span className="text-xs font-black uppercase text-white bg-red-600 px-2 py-1 rounded">
-                              {pctOff}% OFF
-                            </span>
-                            {/* El precio de oferta con tarjeta, a la vista: es el
-                                que declara el JSON-LD y el feed de Merchant, y
-                                Google desaprueba el producto si el precio que le
-                                informamos no aparece en la página. Además, quien
-                                paga con tarjeta lo ve antes del checkout. */}
-                            <span className="basis-full text-sm font-medium text-stone-600">
-                              o ${formatearPrecio(v.precio)} con tarjeta
-                            </span>
-                          </>
-                        ) : (
-                          // Sin oferta, el precio con tarjeta SIN tachar: es el
-                          // de lista, el que declaran el JSON-LD y el feed de
-                          // Merchant. Tachado se leía como "precio anterior"
-                          // (no lo es: es el que paga quien usa tarjeta). El
-                          // descuento ya lo dice "15% OFF por transferencia".
-                          <span className="basis-full text-sm font-medium text-stone-600">
-                            o ${formatearPrecio(v.precio)} con tarjeta
+                        {promo.sello && (
+                          <span className="text-[11px] font-black uppercase text-white bg-red-600 px-2 py-0.5 rounded">
+                            {promo.sello}
                           </span>
                         )}
+                        <span className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                          {promo.etiquetaTransferencia}
+                        </span>
                       </div>
+                      <p className="mt-1 text-sm font-medium text-stone-600">
+                        o ${formatearPrecio(v.precio)} con tarjeta
+                      </p>
+                      {/* UNA línea de cuotas, la fórmula de marketing de
+                          CLAUDE.md (31/8/2026, noche): sin el % y sin
+                          "Mercado Pago". Las filas con importe siguen en
+                          PaymentOptions, más abajo. */}
+                      <p className="mt-1.5 text-xs font-medium text-stone-600">{LINEA_CUOTAS}</p>
                     </div>
                   );
                 })()}
 
-                <PaymentOptions
-                  variant="inline"
-                  price={effectivePrice}
-                  cashDiscount={cashDiscount}
-                  installmentsText={installmentsText}
-                  // El de transferencia ya es el número grande de arriba, con
-                  // oferta o sin ella: la fila de pagos no lo repite.
-                  hideTransferRow
-                />
-
+                <div className="order-5 lg:order-none lg:contents">
+                  <PaymentOptions
+                    variant="inline"
+                    price={effectivePrice}
+                    cashDiscount={cashDiscount}
+                    installmentsText={installmentsText}
+                    // El de transferencia ya es el número grande de arriba, con
+                    // oferta o sin ella: la fila de pagos no lo repite.
+                    hideTransferRow
+                  />
+                
                 {/* Agotado no: el botón de cristales está apagado y el texto
                     invitaba a "elegir otros en el paso siguiente". */}
                 {desde && !(product.stock !== undefined && product.stock <= 0) && (
@@ -740,10 +825,11 @@ export function ProductClient({
                     </p>
                   </div>
                 )}
+                </div>
               </>
             )}
 
-            <div ref={ctaPrincipalRef} className="flex flex-col gap-3 mb-6 mt-4">
+            <div ref={ctaPrincipalRef} className="order-3 lg:order-none flex flex-col gap-3 mb-6 mt-0 lg:mt-4">
               {/* En Receta hay dos caminos y los dos son CTA plenos: configurar
                   cristales (negro) o llevarse el armazón solo (verde). Antes el
                   segundo era un botón chico de contorno que decía "Comprar solo
@@ -760,40 +846,7 @@ export function ProductClient({
               )}
               <button
                 disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
-                onClick={() => {
-                  // price SIEMPRE guarda el precio minorista: el mayorista se
-                  // resuelve en vivo por sesión (getItemUnitPrice) para que un
-                  // carrito persistido nunca muestre tarifa mayorista a un
-                  // minorista (ni viceversa) tras login/logout.
-                  // El AddToCart lo dispara `addItem` en el store (useCart.ts):
-                  // es el único punto por el que pasan TODOS los caminos al
-                  // carrito. Acá había una segunda llamada que hacía que cada
-                  // agregado desde la ficha contara dos veces en Meta y GA4,
-                  // con eventId distinto, así que la deduplicación del CAPI
-                  // tampoco los unía.
-                  addItem({
-                    productId: product.id,
-                    brand: product.brand,
-                    model: product.model,
-                    price: effectivePrice,
-                    wholesaleBasePrice: productWholesalePrice,
-                    image: images[0] || "/images/placeholder.svg",
-                    lensColor: null,
-                    lensConfig: {
-                      lensType: "NONE",
-                      treatment: null,
-                      color: null,
-                      prescriptionFile: null
-                    },
-                    quantity: 1,
-                    stock: typeof product.stock === 'number' ? product.stock : undefined
-                  });
-                  setIsAdded(true);
-                  setTimeout(() => {
-                    setIsOpen(true);
-                    setTimeout(() => setIsAdded(false), 2000);
-                  }, 500);
-                }}
+                onClick={agregarArmazonAlCarrito}
                 className={
                   // Verde -700, no -600: con texto blanco el -600 da ~3,3:1 y el
                   // piso del proyecto es 4,5:1 (ver globals.css y la regla de
@@ -823,6 +876,7 @@ export function ProductClient({
             {/* Franja de confianza en el punto de decisión: nota y cantidad de
                 reseñas REALES de Google + la garantía canónica. El botón de
                 garantía abre el acordeón con la letra chica, acá mismo. */}
+            <div className="order-6 lg:order-none lg:contents">
             <TrustStrip
               conGarantia={conGarantiaAdaptacion}
               onGarantiaClick={() => {
@@ -1031,6 +1085,7 @@ export function ProductClient({
                 </AnimatePresence>
               </div>
             </div>
+            </div>
           </div>
 
           <div className="p-8 lg:p-14 lg:pt-8 flex-1 flex flex-col gap-3">
@@ -1150,10 +1205,12 @@ export function ProductClient({
                       return (
                         <>
                           <span className="font-bold text-stone-900">${formatearPrecio(v.transferencia)}</span>
-                          {v.transferenciaSinOferta !== null && (
-                            <span className="ml-1 text-[10px] text-stone-400 line-through">${formatearPrecio(v.transferenciaSinOferta)}</span>
+                          {/* Una sola promo por tarjeta (promo-visible.ts): el
+                              sello de la rebaja si la hay, si no el 15 %. */}
+                          {promoVisible(v, cashDiscount).sello && (
+                            <span className="ml-1 text-[10px] font-black uppercase text-white bg-red-600 px-1.5 py-0.5 rounded">{promoVisible(v, cashDiscount).sello}</span>
                           )}
-                          <span className="text-[10px] text-emerald-700 font-bold"> {cashDiscount}% OFF transf.</span>
+                          <span className="text-[10px] text-emerald-700 font-bold"> {promoVisible(v, cashDiscount).etiquetaTransferenciaCorta}</span>
                           <span className="block text-[10px] text-stone-500">{textoCuotas12(v.cuota12)}</span>
                           <span className="block text-[10px] text-stone-500">{v.cuotas} cuotas sin interés de ${formatearPrecio(v.valorCuota)}</span>
                         </>
@@ -1186,13 +1243,45 @@ export function ProductClient({
           De paso resuelve dos cosas más que marcó la auditoría: el precio queda
           siempre a la vista (A-01) y el botón de WhatsApp flotante ya no es el
           único elemento fijo compitiendo por el pulgar (A-11). */}
-      {!isWholesale && (
-        <div
-          className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-stone-200 px-4 py-3 flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ${
-            ctaFueraDeVista ? 'translate-y-0' : 'translate-y-full'
-          }`}
-          aria-hidden={!ctaFueraDeVista}
-        >
+      {!isWholesale && (() => {
+        const agotado = product.stock !== undefined && product.stock <= 0;
+        const vBarra = PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount });
+        const claseBarra = `lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-stone-200 px-4 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ${
+          ctaFueraDeVista ? 'translate-y-0' : 'translate-y-full'
+        }`;
+        if (product.category === "Receta") {
+          // Fase 1.4 (15/10/2026): en receta la barra lleva las DOS salidas,
+          // visibles en todo el scroll. Hasta hoy solo mostraba "Elegir
+          // cristales" y "Comprar solo el armazón" quedaba a 1.186 px: quien
+          // ya tiene cristales o quiere solo el armazón no tenía puerta a mano.
+          return (
+            <div className={claseBarra} aria-hidden={!ctaFueraDeVista}>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500 truncate mb-1.5">
+                {product.model} · ${formatearPrecio(vBarra.transferencia)} por transferencia
+              </p>
+              <div className="flex gap-2">
+                <button
+                  disabled={agotado || isAdded}
+                  onClick={agregarArmazonAlCarrito}
+                  className={`flex-1 min-h-11 px-3 text-[11px] font-black uppercase tracking-wide rounded-full border-2 transition-colors disabled:opacity-50 ${isAdded ? 'bg-green-800 border-green-800 text-white' : 'bg-white border-stone-900 text-stone-900 hover:bg-stone-100'}`}
+                >
+                  {/* El mismo número que la línea de arriba y que el precio
+                      grande de la ficha: el de transferencia. */}
+                  {agotado ? "Agotado" : isAdded ? "Agregado ✓" : `Solo armazón $${formatearPrecio(vBarra.transferencia)}`}
+                </button>
+                <button
+                  disabled={agotado}
+                  onClick={() => setShowConfigurator(true)}
+                  className="flex-1 min-h-11 px-3 bg-black text-white text-[11px] font-black uppercase tracking-wide rounded-full hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:bg-stone-400"
+                >
+                  {agotado ? "Agotado" : "Elegir mis cristales"}
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return (
+        <div className={`${claseBarra} flex items-center gap-3`} aria-hidden={!ctaFueraDeVista}>
           {images[0] && (
             <div className="relative w-12 h-12 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-stone-100">
               <Image
@@ -1212,27 +1301,32 @@ export function ProductClient({
                 el más caro. Los mismos números que el precio grande de la ficha
                 (PricingService.vidrieraDeProducto). */}
             <p className="text-[13px] font-black text-stone-900">
-              ${formatearPrecio(PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount }).transferencia)}
+              ${formatearPrecio(vBarra.transferencia)}
               <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">por transferencia</span>
             </p>
             <p className="text-[10px] font-medium text-stone-500">${formatearPrecio(effectivePrice)} con tarjeta</p>
           </div>
           <button
-            disabled={product.stock !== undefined && product.stock <= 0}
-            onClick={() => {
-              if (product.category === "Receta") {
-                setShowConfigurator(true);
-              } else {
-                ctaPrincipalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-            }}
+            disabled={agotado || isAdded}
+            // Agrega de verdad, igual que "Comprar ahora" (ver
+            // agregarArmazonAlCarrito): antes solo scrolleaba hasta ese botón
+            // y en 30 días no produjo un solo agregado al carrito.
+            onClick={agregarArmazonAlCarrito}
             className="flex-shrink-0 min-h-11 px-5 bg-black text-white text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:bg-stone-400"
           >
-            {(product.stock !== undefined && product.stock <= 0)
-              ? "Agotado"
-              : product.category === "Receta" ? "Elegir cristales" : "Comprar"}
+            {agotado ? "Agotado" : (isAdded ? "Agregado ✓" : "Comprar")}
           </button>
         </div>
+        );
+      })()}
+
+      {zoomAbierto && images.length > 0 && (
+        <GaleriaZoom
+          imagenes={images}
+          alts={images.map((_: string, i: number) => altFor(i))}
+          indiceInicial={activeImageIndex}
+          onCerrar={() => setZoomAbierto(false)}
+        />
       )}
 
       {/* Modal Configurador de Cristales para la vista de producto.

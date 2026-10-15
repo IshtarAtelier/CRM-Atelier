@@ -149,3 +149,83 @@ export function coincideBusquedaTienda(p: ProductoBuscable, consulta?: string | 
     // se tipea— se llenaba de resultados que nadie pidió.
     return palabras.every(palabra => apareceEn(palabra.length < 3 ? nombre : todo, palabra));
 }
+
+/**
+ * Marcas que la gente busca y la tienda NO trabaja (Fase 1.8, 15/10/2026).
+ * El 56 % de 311 búsquedas de un mes terminaban en cero, y muchas eran esto:
+ * "ray ban", "vulk", "oakley". Un 0 se lee "está roto" o "no tienen nada";
+ * decir "no trabajamos esa marca, mirá estos" convierte el callejón en una
+ * puerta. Se comparan ya normalizadas (sin tildes, guiones ni mayúsculas) y
+ * por palabra entera, así "ray ban", "rayban" y "Ray-Ban" caen en la misma.
+ * Agregar una marca es sumar una línea acá; el nombre es como se le dice al
+ * cliente.
+ */
+const MARCAS_QUE_NO_TRABAJAMOS: ReadonlyArray<[nombre: string, formas: RegExp]> = [
+    ['Ray-Ban', /\bray ?bans?\b/],
+    ['Vulk', /\bvulk\b/],
+    ['Oakley', /\boakley\b/],
+    ['Carrera', /\bcarrera\b/],
+    ['Prada', /\bprada\b/],
+    ['Gucci', /\bgucci\b/],
+    ['Versace', /\bversace\b/],
+    ['Dior', /\bdior\b/],
+    ['Armani', /\b(emporio )?armani\b/],
+    ['Tommy Hilfiger', /\btommy( hilfiger)?\b/],
+    ['Infinit', /\binfinit\b/],
+    ['Rusty', /\brusty\b/],
+    ['Vogue', /\bvogue\b/],
+    ['Police', /\bpolice\b/],
+    ['Lacoste', /\blacoste\b/],
+    ['Nike', /\bnike\b/],
+    ['Adidas', /\badidas\b/],
+    ['Puma', /\bpuma\b/],
+    ['Dolce & Gabbana', /\bdolce( (y|and|&) gabbana)?\b|\bd ?& ?g\b/],
+    ['Fendi', /\bfendi\b/],
+    ['Chanel', /\bchanel\b/],
+    ['Hugo Boss', /\b(hugo )?boss\b/],
+    ['Guess', /\bguess\b/],
+    ['Michael Kors', /\bmichael kors\b|\bkors\b/],
+    ['Oxydo', /\boxydo\b/],
+    ['Union Pacific', /\bunion pacific\b/],
+    ['Prüne', /\bprune\b/],
+    ['Kosiuko', /\bkosiuko\b/],
+    ['47 Street', /\b47 street\b/],
+    ['Sarkany', /\bsarkany\b/],
+    ['Swarovski', /\bswarovski\b/],
+    ['Converse', /\bconverse\b/],
+    ['Montblanc', /\bmont ?blanc\b/],
+    ['Persol', /\bpersol\b/],
+    ['Oliver Peoples', /\boliver peoples\b/],
+    ['Tom Ford', /\btom ford\b/],
+    ['Burberry', /\bburberry\b/],
+    ['Calvin Klein', /\bcalvin klein\b|\bck\b/],
+    ['Levi\'s', /\blevis\b/],
+    ['Reef', /\breef\b/],
+    ['Quiksilver', /\bquiksilver\b/],
+    ['Speedo', /\bspeedo\b/],
+];
+
+/** La marca ajena que nombra la consulta ("ray ban" → "Ray-Ban"), o null. */
+export function marcaNoTrabajada(consulta?: string | null): string | null {
+    const q = textoBuscable(consulta);
+    if (!q) return null;
+    for (const [nombre, formas] of MARCAS_QUE_NO_TRABAJAMOS) {
+        if (formas.test(q)) return nombre;
+    }
+    return null;
+}
+
+/** Lo que se le dice en vez de un cero. El mismo texto en /tienda y en la lupa. */
+export function mensajeMarcaNoTrabajada(marca: string): string {
+    return `No trabajamos ${marca}. Estos son los modelos más elegidos de nuestra colección:`;
+}
+
+/**
+ * Qué mostrar cuando la búsqueda no encuentra nada: los primeros del catálogo
+ * tal como viene de /api/store/products, que ya está ordenado por destacados
+ * (isFeatured, los que Ishtar eligió para el home) y después lo más nuevo.
+ * No hace falta otra consulta: es la lista que la lupa ya tiene en memoria.
+ */
+export function sugerenciasSinResultado<T extends { stock?: number | null }>(productos: T[], cantidad = 6): T[] {
+    return productos.filter(p => p.stock == null || p.stock > 0).slice(0, cantidad);
+}
