@@ -18,6 +18,7 @@ import { webPaymentGatewayLabel } from '@/lib/checkout/payment-gateway';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
+import VitolenCarga from '@/components/orders/VitolenCarga';
 import ComprobanteLab from '@/components/orders/ComprobanteLab';
 import { itemsDeTenido, colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
 import { estadoConfirmacionCliente } from '@/lib/confirmacion-cliente';
@@ -1573,6 +1574,14 @@ export default function VentasPage() {
                                             </div>
                                         );
                                     })()}
+
+                                {/* Carga del pedido en el portal de Vitolen: solo Ishtar y Milena
+                                    (la API responde 403 al resto y el bloque no se dibuja). */}
+                                {orderLabs.some(l => /vitolen/i.test(l)) && (
+                                    <div className="mt-4">
+                                        <VitolenCarga orderId={order.id} onChanged={fetchOrders} />
+                                    </div>
+                                )}
 
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
