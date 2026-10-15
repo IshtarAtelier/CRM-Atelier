@@ -13,6 +13,7 @@ import { formatearPrecio } from '@/lib/format-precio';
 import { TONOS_TENIDO } from '@/lib/constants/tenido';
 import { calcularConfiguracion } from '@/lib/cristales-web/calculo';
 import { TIPOS_DE_VISION, pasoVisible } from '@/lib/cristales-web/tipos-de-vision';
+import { detalleTecnico, paraQuien, tituloComercial } from '@/lib/cristales-web/presentacion';
 import {
   claveDeCristal,
   describirConfiguracion,
@@ -376,7 +377,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                       {avisoPrecios}
                       {cargandoPrecios}
                       {tenidos.map(o => (
-                        <OptionCard key={o.clave} selected={tintStyle === o.codigo} onClick={() => { setTintStyle(o.codigo as EstiloTenidoWeb); setStep(3); }} title={o.etiqueta} desc={o.descripcion} badge={o.badge} price={precioOpcion(o)} />
+                        <OptionCard key={o.clave} selected={tintStyle === o.codigo} onClick={() => { setTintStyle(o.codigo as EstiloTenidoWeb); setStep(3); }} title={tituloComercial(o.etiqueta)} desc={paraQuien(o) ?? o.descripcion} detalle={detalleTecnico(o)} badge={o.badge} price={precioOpcion(o)} />
                       ))}
                     </div>
                   </>
@@ -481,7 +482,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             {step >= 2 && lensType && lensType !== "NONE" && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-8 overflow-hidden">
                 {step > 2 ? (
-                  <CompletedStep num="02" subtitle="Tratamiento" title={lensConfig.etiqueta || ""} onClick={() => setStep(2)} />
+                  <CompletedStep num="02" subtitle="Cristal" title={tituloComercial(lensConfig.etiqueta || "")} onClick={() => setStep(2)} />
                 ) : (
                   <>
                     <div className="mb-6 mt-4 scroll-mt-6" data-paso-abierto="">
@@ -496,10 +497,10 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                           key={o.clave}
                           selected={treatment === o.codigo}
                           onClick={() => { setTreatment(o.codigo); setStep(4); }}
-                          title={o.etiqueta}
+                          title={tituloComercial(o.etiqueta)}
                           badge={o.badge}
-                          features={o.destacados.length > 0 ? o.destacados : undefined}
-                          desc={o.descripcion}
+                          desc={paraQuien(o)}
+                          detalle={detalleTecnico(o)}
                           price={precioOpcion(o)}
                         />
                       ))}
@@ -647,10 +648,18 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
               </div>
             )}
             
-            <div className="border-t border-[#e8e2db] pt-3 mt-1 flex justify-between font-bold text-stone-900 text-sm">
-              <span>Total Estimado:</span>
-              <span className="font-mono">${formatearPrecio(total)}</span>
+            {/* 15/10/26: UN solo total, el de transferencia, igual que la barra.
+                Antes acá decía "Total estimado $179.480" (lista) y la barra
+                "$152.558" (transferencia): dos números distintos para lo mismo. */}
+            <div className="flex justify-between text-[#8a6d3b]">
+              <span>Descuento por transferencia ({descuentoTransferenciaPct}%):</span>
+              <span className="font-mono font-bold">−${formatearPrecio(total * discountRate)}</span>
             </div>
+            <div className="border-t border-[#e8e2db] pt-3 mt-1 flex justify-between font-bold text-stone-900 text-sm">
+              <span>Total por transferencia:</span>
+              <span className="font-mono">${formatearPrecio(total * (1 - discountRate))}</span>
+            </div>
+            <p className="text-[11px] text-stone-500 text-right">o ${formatearPrecio(total)} con tarjeta</p>
           </div>
         </div>
 
@@ -691,14 +700,9 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                 cobra en el local (el de Mercado Pago por Rapipago no lo lleva). */}
             por transferencia · {descuentoTransferenciaPct}% OFF
           </p>
-          <div className="flex flex-col items-center gap-0.5 sm:gap-1 mt-2 sm:mt-3.5 text-center">
-            <p className="hidden sm:block text-[11px] font-bold text-stone-700">
-              💳 ${formatearPrecio(total)} con tarjeta
-            </p>
-            <p className="text-[11px] font-bold text-stone-700">
-              {promo.texto} de <span className="underline">${formatearPrecio(total / installmentsCount)}</span>
-            </p>
-          </div>
+          <p className="mt-1.5 sm:mt-3 text-[11px] text-stone-700 text-center">
+            o <span className="font-bold">${formatearPrecio(total)}</span> con tarjeta · {promo.texto} de <span className="font-bold">${formatearPrecio(total / installmentsCount)}</span>
+          </p>
           {/* 28/9/26: el botón va DENTRO del bloque anclado. En celular quedaba
               abajo del desglose y había que scrollear para encontrarlo: de 11
               personas que llegaron al paso de la receta en 30 días, terminó 1. */}
@@ -778,7 +782,7 @@ function SkeletonCard() {
 }
 
 /** `compacta`: card baja (paso 1 en celular), para que las cuatro entren sin scroll. */
-function OptionCard({ selected, onClick, title, desc, price, badge, features, compacta }: any) {
+function OptionCard({ selected, onClick, title, desc, price, badge, features, detalle, compacta }: any) {
   return (
     <motion.div 
       whileTap={{ scale: 0.98 }}
@@ -812,8 +816,21 @@ function OptionCard({ selected, onClick, title, desc, price, badge, features, co
           </p>
         )}
       </div>
+      {/* 15/10/26: la jerga ("Antirreflex Premium", "Policarbonato", índices)
+          ya no es lo primero que se lee: va en un plegable. El clic en el
+          plegable no elige la card. */}
+      {detalle && detalle.length > 0 && (
+        <details className="mt-3 text-[11px]" onClick={(e) => e.stopPropagation()}>
+          <summary className={`cursor-pointer list-none underline underline-offset-4 decoration-dotted font-bold ${selected ? 'text-white/80' : 'text-stone-500'}`}>¿Qué es esto?</summary>
+          <ul className={`mt-2 space-y-1 ${selected ? 'text-white/90' : 'text-stone-600'}`}>
+            {detalle.map((d: string, i: number) => (
+              <li key={i} className="flex gap-1.5"><span className="shrink-0">·</span><span>{d}</span></li>
+            ))}
+          </ul>
+        </details>
+      )}
       {price && (
-        <p className={`text-[12px] font-bold tracking-widest mt-6 ${selected ? 'text-white' : 'text-black'}`}>
+        <p className={`text-[12px] font-bold tracking-widest mt-4 ${selected ? 'text-white' : 'text-black'}`}>
           {price}
         </p>
       )}
