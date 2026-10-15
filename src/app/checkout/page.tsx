@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { CheckoutClient } from './CheckoutClient';
-import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
+import { CheckoutFooter } from '@/components/checkout/CheckoutFooter';
 import { prisma } from '@/lib/db';
 import { defaultWebSettings } from '@/lib/web-settings';
 import { isMercadoPagoEnabled } from '@/services/mercadopago.service';
@@ -58,7 +58,8 @@ export default async function CheckoutPage() {
       mercadoPagoEnabled={mercadoPagoEnabled}
       paywayEnabled={paywayEnabled}
       initialSettings={initialSettings}
-      footer={<StorefrontFooter />}
+      // Pie compacto: el de la tienda medía 1.202 px debajo del botón de pagar (15/10/2026).
+      footer={<CheckoutFooter />}
     />
   );
 }

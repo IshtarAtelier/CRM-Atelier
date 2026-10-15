@@ -1072,10 +1072,12 @@ export function CheckoutClient({
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
       <StorefrontNavbar theme="light" />
       
-      <main className="max-w-[1200px] mx-auto px-5 pt-32 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-start">
+      {/* En celular, menos aire arriba y entre bloques: cada 100 px cuentan en
+          una página que medía 4.343 px (15/10/2026). En escritorio no cambia. */}
+      <main className="max-w-[1200px] mx-auto px-5 pt-24 lg:pt-32 pb-12 lg:pb-24 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-start">
         
         {/* IZQUIERDA: Formulario de Checkout */}
-        <div className="lg:col-span-7 flex flex-col gap-10">
+        <div className="lg:col-span-7 flex flex-col gap-7 lg:gap-10">
           <div>
             <h1 className="text-3xl md:text-4xl font-serif text-stone-950 mb-2">
               Finalizá tu compra
