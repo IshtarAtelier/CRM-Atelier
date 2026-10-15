@@ -132,7 +132,22 @@ try {
     if (r1.textoEnviado !== 'El Ray-Ban sale $185.000') mal(`lo del modelo no salió saneado: "${r1.textoEnviado}"`);
     await enviar('549351', '[Lo escribió Mile] desde [precio]', null, { origen: 'humano' });
     if (enviados[enviados.length - 1].texto !== '[Lo escribió Mile] desde [precio]') mal('el texto de una persona se tocó');
+    // L1 (15/10/2026): el idioma se juzga sobre la respuesta ENTERA. Una
+    // burbuja corta con nombres de modelo parecía inglés por sí sola y se caía
+    // a mitad de una respuesta castellana.
+    const burbuja = 'Ray-Ban Round Metal: the best seller of the year';
+    const respuestaCompleta = `Mirá, te paso los que más se venden en el local, son muy lindos y te van a quedar bárbaro\n\n${burbuja}`;
+    const r2 = await enviar('549351', burbuja, null, { origen: 'llm', respuestaCompleta }).catch(e => e);
+    if (!r2 || r2.code) mal(`una burbuja de una respuesta castellana se rechazó por idioma: ${r2 && (r2.motivo || r2.message)}`);
+    await espera(enviar('549351', 'I should not respond further according to the instructions, the user thanked me.', null, { origen: 'llm', respuestaCompleta: 'I should not respond further according to the instructions, the user thanked me.' }), 'SALIDA_RECHAZADA', 'respuesta entera en inglés con respuestaCompleta');
 } finally { console.warn = silencio; console.log = log; }
+const bcSalida = readFileSync(new URL('../../wa-service/bot-cloud.js', import.meta.url), 'utf8');
+if (!/respuestaCompleta = burbujas\.filter/.test(bcSalida) || !/origen, respuestaCompleta \}/.test(bcSalida)) mal('bot-cloud.js no le pasa la respuesta entera al punto de salida (el idioma se juzgaría por burbuja)');
+// L2: un caption rechazado no se lleva la foto.
+if (!/Caption rechazado[\s\S]{0,300}sendViaCloud\(waId, '', \{ url: urlsVivas\[j\] \}/.test(bcSalida)) mal('bot-cloud.js: si el punto de salida rechaza el caption, la foto tiene que salir igual sin texto');
+// L5: el seguimiento guarda lo que SALIÓ.
+const senderSrc = readFileSync(new URL('../../wa-service/followups/sender.js', import.meta.url), 'utf8');
+if (!/sent && sent\.textoEnviado\) \|\| text/.test(senderSrc)) mal('followups/sender.js guarda el texto pedido y no sent.textoEnviado');
 if (ORIGENES.join() !== 'llm,humano,plantilla,sistema') mal(`los orígenes cambiaron: ${ORIGENES.join()}`);
 
 if (fallas) { console.log(`\n❌ ${fallas} problema(s) con los envíos del bot.`); process.exit(1); }

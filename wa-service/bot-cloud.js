@@ -963,6 +963,9 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             botReplyingTo.add(waId);
 
             const { burbujas } = respuesta;
+            // Para el chequeo de idioma del punto de salida: la respuesta
+            // entera del modelo, no cada burbuja suelta (15/10/2026).
+            const respuestaCompleta = burbujas.filter(b => b.origen === 'llm').map(b => b.texto || '').join('\n\n');
             for (let i = 0; i < burbujas.length; i++) {
                 const { texto: bloque, imagenes: urls, origen } = burbujas[i];
 
@@ -989,24 +992,38 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                             const caption = j === 0 ? bloque : '';
                             let enviado = null;
                             let salioConFoto = true;
+                            let captionEnviado = caption;
                             try {
-                                enviado = await sendViaCloud(waId, caption, { url: urlsVivas[j] }, { chat: freshChat, origen });
+                                enviado = await sendViaCloud(waId, caption, { url: urlsVivas[j] }, { chat: freshChat, origen, respuestaCompleta });
                             } catch (e) {
-                                if (e.code === 'SALIDA_RECHAZADA') throw e;
-                                // Una foto caída no puede voltear el turno: se manda el texto solo.
-                                console.error(`  ⚠️ [BotCloud] Falló la imagen ${urlsVivas[j].substring(0, 80)}: ${e.message}`);
-                                salioConFoto = false;
-                                if (caption) enviado = await sendViaCloud(waId, caption, null, { chat: freshChat, origen }).catch(() => null);
+                                if (e.code === 'SALIDA_RECHAZADA') {
+                                    // El texto no pasó, pero la foto no tiene la
+                                    // culpa (15/10/2026): antes se iba la burbuja
+                                    // entera, fotos incluidas. Sale sin caption.
+                                    console.warn(`  🛑 [BotCloud] Caption rechazado (${e.motivo || e.message}): la foto sale sin texto.`);
+                                    captionEnviado = '';
+                                    try {
+                                        enviado = await sendViaCloud(waId, '', { url: urlsVivas[j] }, { chat: freshChat, origen });
+                                    } catch (e2) {
+                                        console.error(`  ⚠️ [BotCloud] Falló la imagen ${urlsVivas[j].substring(0, 80)}: ${e2.message}`);
+                                        continue;
+                                    }
+                                } else {
+                                    // Una foto caída no puede voltear el turno: se manda el texto solo.
+                                    console.error(`  ⚠️ [BotCloud] Falló la imagen ${urlsVivas[j].substring(0, 80)}: ${e.message}`);
+                                    salioConFoto = false;
+                                    if (caption) enviado = await sendViaCloud(waId, caption, null, { chat: freshChat, origen, respuestaCompleta }).catch(() => null);
+                                }
                             }
                             // El tipo sale del envío REAL, no de la intención: cuando la
                             // foto falla y sale el texto solo, acá se anotaba igual
                             // 'IMAGE' y el buzón mostraba "Imagen de WhatsApp" en un
                             // mensaje que nunca llevó foto.
-                            const contenido = (enviado && enviado.textoEnviado) || caption || '[Media]';
+                            const contenido = (enviado && enviado.textoEnviado) || captionEnviado || '[Media]';
                             await guardarSaliente(chat.id, waId, enviado, contenido, salioConFoto ? 'IMAGE' : 'TEXT', salioConFoto ? urlsVivas[j] : null);
                         }
                     } else {
-                        const enviado = await sendViaCloud(waId, bloque, null, { chat: freshChat, origen });
+                        const enviado = await sendViaCloud(waId, bloque, null, { chat: freshChat, origen, respuestaCompleta });
                         await guardarSaliente(chat.id, waId, enviado, (enviado && enviado.textoEnviado) || bloque, 'TEXT');
                     }
                 } catch (e) {

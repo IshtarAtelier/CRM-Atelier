@@ -49,10 +49,11 @@ function errorConCodigo(mensaje, code, extra = {}) {
  * resultado, y el transporte la vuelve a pasar igual (es idempotente).
  *
  * @param {string} texto
+ * @param {{ textoParaIdioma?: string }} [opciones]  la respuesta entera cuando `texto` es una burbuja
  * @returns {{ ok: boolean, texto: string, motivo?: string, guardrail?: object, quitado: string[] }}
  */
-function revisarSalidaLLM(texto) {
-    const r = sanearBloques(texto);
+function revisarSalidaLLM(texto, { textoParaIdioma } = {}) {
+    const r = sanearBloques(texto, { textoParaIdioma });
     if (r.rechazo) return { ok: false, texto: '', motivo: r.rechazo.motivo, quitado: r.quitado };
     const limpio = r.bloques.join('\n\n');
     if (!limpio.trim()) return { ok: false, texto: '', motivo: 'vacío tras el saneado', quitado: r.quitado };
@@ -87,7 +88,9 @@ function conPuntoDeSalida(enviarCrudo, { transporte } = {}) {
         let texto = content;
         let quitado = [];
         if (origen === 'llm' && texto !== undefined && texto !== null && String(texto).trim()) {
-            const r = revisarSalidaLLM(String(texto));
+            // `respuestaCompleta`: el idioma se juzga sobre todo el turno, no
+            // sobre esta burbuja suelta (ver limpiar-salida-bot.js).
+            const r = revisarSalidaLLM(String(texto), { textoParaIdioma: opts.respuestaCompleta });
             if (!r.ok) {
                 console.warn(`  🛑 [Salida] ${nombre}: texto del modelo RECHAZADO para ${String(waId).slice(0, 15)} (${r.motivo}): "${String(texto).slice(0, 80)}"`);
                 throw errorConCodigo(`Salida del modelo rechazada: ${r.motivo}`, 'SALIDA_RECHAZADA', { motivo: r.motivo, guardrail: r.guardrail || null });

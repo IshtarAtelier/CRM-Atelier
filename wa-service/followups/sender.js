@@ -219,7 +219,9 @@ async function sendFollowUp({ waId, text: textoCrudo, chatId, label, clientName,
                 direction: 'OUTBOUND',
                 type: media ? 'IMAGE' : 'TEXT',
                 mediaUrl: media ? media.url : null,
-                content: TEST_MODE ? `[TEST] ${text}` : text,
+                // Lo que SALIÓ (saneado por el punto de salida), no lo que se
+                // pidió mandar (15/10/2026): el buzón mostraba el texto crudo.
+                content: TEST_MODE ? `[TEST] ${(sent && sent.textoEnviado) || text}` : ((sent && sent.textoEnviado) || text),
                 waMessageId: msgSerializedId,
                 senderName: 'Bot',
                 status: 'SENT',

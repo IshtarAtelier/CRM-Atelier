@@ -205,6 +205,7 @@ function aBloques(entrada) {
  * Sanea la salida del modelo.
  *
  * @param {string|string[]} entrada  texto crudo, o los `mensajes` de `responder_al_cliente`
+ * @param {{ textoParaIdioma?: string }} [opciones]  la respuesta entera, si `entrada` es una sola burbuja
  * @returns {{
  *   bloques: string[],               // una entrada por burbuja, ya limpias
  *   quitado: string[],               // qué se sacó (para el log)
@@ -213,7 +214,7 @@ function aBloques(entrada) {
  *   promete: boolean,                // promete volver a escribir
  * }}
  */
-function sanearBloques(entrada) {
+function sanearBloques(entrada, { textoParaIdioma } = {}) {
     const quitado = [];
     const sinRechazo = (bloques, extra = {}) => ({ bloques, quitado, rechazo: null, derivo: false, promete: false, ...extra });
 
@@ -226,7 +227,12 @@ function sanearBloques(entrada) {
     if (ANOTACION_CERRADA.test(todo) || ANOTACION_ABIERTA.test(todo)) {
         return { bloques: [], quitado: ['anotación del historial'], rechazo: { tipo: 'anotacion', motivo: 'copió una anotación del historial' }, derivo: false, promete: false };
     }
-    const idioma = detectarIdioma(todo);
+    // El idioma se juzga sobre la respuesta ENTERA (15/10/2026): el punto de
+    // salida vuelve a sanear cada burbuja suelta, y una burbuja corta ("Ray-Ban
+    // Clubmaster, Round Metal") podía parecer inglés por sí sola y caerse a
+    // mitad de una respuesta castellana. Quien sanea una burbuja pasa el texto
+    // completo en `textoParaIdioma`.
+    const idioma = detectarIdioma(textoParaIdioma && String(textoParaIdioma).trim() ? String(textoParaIdioma) : todo);
     if (idioma.idioma !== 'es') {
         return { bloques: [], quitado: [`respuesta en ${idioma.idioma}`], rechazo: { tipo: 'idioma', motivo: `no está en castellano (${idioma.idioma}: en=${idioma.en} es=${idioma.es} pt=${idioma.pt})` }, derivo: false, promete: false };
     }
