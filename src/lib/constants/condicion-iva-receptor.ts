@@ -5,17 +5,17 @@
  * Factura C (somos monotributo: solo emitimos C).
  */
 export const CONDICIONES_IVA_RECEPTOR = [
-    { id: 5, label: 'Consumidor Final' },
-    { id: 6, label: 'Responsable Monotributo' },
-    { id: 1, label: 'IVA Responsable Inscripto' },
-    { id: 4, label: 'IVA Sujeto Exento' },
-    { id: 13, label: 'Monotributista Social' },
-    { id: 16, label: 'Monotributo Trabajador Independiente Promovido' },
-    { id: 7, label: 'Sujeto No Categorizado' },
-    { id: 15, label: 'IVA No Alcanzado' },
-    { id: 10, label: 'IVA Liberado – Ley N° 19.640' },
-    { id: 9, label: 'Cliente del Exterior' },
-    { id: 8, label: 'Proveedor del Exterior' },
+    { id: 6, label: 'Monotributista', comun: true },
+    { id: 1, label: 'Responsable Inscripto', comun: true },
+    { id: 4, label: 'Exento', comun: true },
+    { id: 5, label: 'Consumidor Final', comun: true },
+    { id: 13, label: 'Monotributista Social', comun: false },
+    { id: 16, label: 'Monotributo Trabajador Independiente Promovido', comun: false },
+    { id: 7, label: 'Sujeto No Categorizado', comun: false },
+    { id: 15, label: 'IVA No Alcanzado', comun: false },
+    { id: 10, label: 'IVA Liberado – Ley N° 19.640', comun: false },
+    { id: 9, label: 'Cliente del Exterior', comun: false },
+    { id: 8, label: 'Proveedor del Exterior', comun: false },
 ] as const;
 
 export const CONDICION_IVA_CONSUMIDOR_FINAL = 5;
