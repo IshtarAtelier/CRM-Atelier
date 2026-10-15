@@ -115,9 +115,18 @@ export function sqlSesionesRobot(): Prisma.Sql {
 }
 
 /**
+ * Órdenes que contienen el producto de prueba. El evento `purchase` lo graba el
+ * checkout con `orderId` y sin `productId` (la compra de $1 del 15/10/2026
+ * entró así), por eso el producto se busca en los renglones de la orden.
+ */
+export function sqlOrdenesDePrueba(): Prisma.Sql {
+  return Prisma.sql`SELECT DISTINCT "orderId" FROM "OrderItem" WHERE "productId" = ${PRODUCTO_PRUEBA_ID}`;
+}
+
+/**
  * Fragmento SQL para pegar con `AND` en cualquier consulta sobre
  * "AnalyticsEvent" (columnas sin alias). Deja afuera el robot, el producto de
- * prueba y las ventanas de pruebas internas.
+ * prueba (por ficha, por path y por orden) y las ventanas de pruebas internas.
  */
 export function sqlSinRuido(): Prisma.Sql {
   const ventanas = VENTANAS_PRUEBA_INTERNA.map(
@@ -127,28 +136,40 @@ export function sqlSinRuido(): Prisma.Sql {
     "sessionId" NOT IN (${sqlSesionesRobot()})
     AND "productId" IS DISTINCT FROM ${PRODUCTO_PRUEBA_ID}
     AND (path IS NULL OR path NOT LIKE ${'%' + SLUG_PRODUCTO_PRUEBA + '%'})
+    AND ("orderId" IS NULL OR "orderId" NOT IN (${sqlOrdenesDePrueba()}))
     AND ${Prisma.join(ventanas, ' AND ')}
   )`;
 }
 
 type ClienteMinimo = { $queryRaw: (q: Prisma.Sql) => Promise<unknown> };
 
-/** Ids de sesión del robot, para los `where` de Prisma (groupBy, findMany…). */
-export async function sesionesRobot(prisma: ClienteMinimo): Promise<string[]> {
-  const filas = (await prisma.$queryRaw(sqlSesionesRobot())) as Array<{ sessionId: string }>;
-  return filas.map((f) => f.sessionId);
+export interface IdsDeRuido {
+  /** Sesiones de analítica del robot de Merchant. */
+  sesiones: string[];
+  /** Órdenes con el producto de prueba. */
+  ordenes: string[];
+}
+
+/** Lo que solo se sabe mirando la base, para los `where` de Prisma (groupBy, findMany…). */
+export async function idsDeRuido(prisma: ClienteMinimo): Promise<IdsDeRuido> {
+  const [sesiones, ordenes] = await Promise.all([
+    prisma.$queryRaw(sqlSesionesRobot()) as Promise<Array<{ sessionId: string }>>,
+    prisma.$queryRaw(sqlOrdenesDePrueba()) as Promise<Array<{ orderId: string }>>,
+  ]);
+  return { sesiones: sesiones.map((f) => f.sessionId), ordenes: ordenes.map((f) => f.orderId) };
 }
 
 /**
  * `where` de Prisma equivalente a `sqlSinRuido()`. Se combina con el del lector:
- *   where: { createdAt: rango, ...whereSinRuido(await sesionesRobot(prisma)) }
+ *   where: { createdAt: rango, ...whereSinRuido(await idsDeRuido(prisma)) }
  */
-export function whereSinRuido(sesionesDelRobot: string[]): Prisma.AnalyticsEventWhereInput {
+export function whereSinRuido(ids: IdsDeRuido): Prisma.AnalyticsEventWhereInput {
   return {
-    sessionId: { notIn: sesionesDelRobot },
+    sessionId: { notIn: ids.sesiones },
     NOT: [
       { productId: PRODUCTO_PRUEBA_ID },
       { path: { contains: SLUG_PRODUCTO_PRUEBA } },
+      { orderId: { in: ids.ordenes } },
       ...VENTANAS_PRUEBA_INTERNA.map((v) => ({ createdAt: { gte: v.desde, lte: v.hasta } })),
     ],
   };

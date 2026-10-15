@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sesionesRobot, whereSinRuido } from '@/lib/analitica/ruido';
+import { idsDeRuido, whereSinRuido } from '@/lib/analitica/ruido';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { ADS_REPORT_EMAILS } from '@/lib/constants';
@@ -53,7 +53,7 @@ interface CrmCampaignSales {
 async function crmSalesByCampaign(from: Date, to: Date): Promise<Map<string, CrmCampaignSales>> {
   // Sin la compra del producto de prueba ni el robot (src/lib/analitica/ruido.ts).
   const purchases = await prisma.analyticsEvent.findMany({
-    where: { type: 'purchase', createdAt: { gte: from, lt: to }, ...whereSinRuido(await sesionesRobot(prisma)) },
+    where: { type: 'purchase', createdAt: { gte: from, lt: to }, ...whereSinRuido(await idsDeRuido(prisma)) },
     select: { utmCampaign: true, sessionId: true, value: true },
   });
 

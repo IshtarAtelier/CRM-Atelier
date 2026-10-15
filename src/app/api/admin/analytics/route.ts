@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SIN_ROBOTS } from '@/lib/checkout/robots';
-import { sesionesRobot, sqlSinRuido, whereSinRuido } from '@/lib/analitica/ruido';
+import { idsDeRuido, sqlSinRuido, whereSinRuido } from '@/lib/analitica/ruido';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getActorValidated } from '@/lib/session-revalidation';
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     // Sin ruido (src/lib/analitica/ruido.ts): ni el robot de Google Merchant,
     // ni las pruebas internas del 25/9, ni el producto de prueba. Misma regla
     // en Prisma (`limpio`) y en SQL crudo (`sinRuido`).
-    const limpio = whereSinRuido(await sesionesRobot(prisma));
+    const limpio = whereSinRuido(await idsDeRuido(prisma));
     const sinRuido = sqlSinRuido();
 
     // Conteos por tipo de evento

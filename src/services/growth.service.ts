@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { sesionesRobot, whereSinRuido } from '@/lib/analitica/ruido';
+import { idsDeRuido, whereSinRuido } from '@/lib/analitica/ruido';
 import { prisma } from '@/lib/db';
 import { AdsService } from '@/services/ads.service';
 
@@ -77,7 +77,7 @@ export class GrowthService {
     const desde7d = new Date(Date.now() - 7 * 24 * 3600 * 1000);
     // Sin el robot de Merchant ni el producto de prueba (src/lib/analitica/ruido.ts):
     // la salud se mide con clientes, no con el verificador de Google.
-    const limpio = whereSinRuido(await sesionesRobot(prisma));
+    const limpio = whereSinRuido(await idsDeRuido(prisma));
 
     const [ultimo, porTipo, consentRaw] = await Promise.all([
       prisma.analyticsEvent.findFirst({ where: limpio, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
