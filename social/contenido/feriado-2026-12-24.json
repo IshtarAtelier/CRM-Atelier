@@ -1,0 +1,17 @@
+{
+  "id": "feriado-2026-12-24",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "fuente": "business-info",
+  "caption": "El jueves 24/12 abrimos de 9 a 18. José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "El jueves 24/12 *cerramos a las 18*",
+      "body": "Nochebuena\nDe 9 a 18 hs\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba"
+    }
+  ]
+}

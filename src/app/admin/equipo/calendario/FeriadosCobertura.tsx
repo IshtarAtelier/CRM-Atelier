@@ -8,14 +8,18 @@
  * No vino, o Sin cargar. Solo un ADMIN edita; el resto la ve. Debajo de cada
  * feriado se listan los pedidos del equipo para ese día (novedades de
  * /api/equipo/novedades) y un botón para anotar uno nuevo.
+ *
+ * Los NO LABORABLES (puentes) se trabajan con normalidad y van siempre con
+ * todo el equipo (Ishtar, 10/10/2026): no se programan, no piden carga y no
+ * suman horas a favor — son un día común.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Flag, Loader2, Check, Minus, Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { NOVEDAD_INFO, ESTADO_INFO, TIPO_QUE_DESCUENTA_FERIADO, TIPO_QUE_SUMA_HORAS, horasDeRango } from '@/lib/constants/novedades-equipo';
 import { rangoNovedad, type Novedad, type Yo } from './CalendarioClient';
 import { formatDate } from '@/lib/format-date';
-import { DESDE_COBERTURA_FERIADOS, type Feriado } from '@/lib/constants/feriados-argentina';
+import { DESDE_COBERTURA_FERIADOS, TIPOS_DIA_NORMAL, HORARIO_FERIADO, textoApertura, type Feriado } from '@/lib/constants/feriados-argentina';
 
 interface Persona { id: string; name: string }
 interface Cobertura {
@@ -38,6 +42,7 @@ const ETIQUETA_TIPO = {
     FERIADO:            { texto: 'Feriado',               clase: 'border-sky-400 text-sky-800 dark:text-sky-200' },
     NO_LABORABLE:       { texto: 'No laborable',          clase: 'border-violet-400 text-violet-800 dark:text-violet-200' },
     EMPLEADOS_COMERCIO: { texto: 'Empleados de comercio', clase: 'border-orange-400 text-orange-800 dark:text-orange-200' },
+    HORARIO_ESPECIAL:   { texto: 'Horario especial',      clase: 'border-stone-400 text-stone-700 dark:text-stone-200' },
 } as const;
 const fmtHoras = (n: number) => `${n.toLocaleString('es-AR', { maximumFractionDigits: 1 })} h`;
 
@@ -78,7 +83,9 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
         return m;
     }, [coberturas]);
 
+    // Los no laborables se trabajan normal: no entran en la cobertura ni en el saldo.
     const pasados = feriados.filter(f => f.fecha <= hoyK);
+    const pasadosQueSeCubren = pasados.filter(f => !TIPOS_DIA_NORMAL.includes(f.tipo ?? 'FERIADO'));
     const proximos = feriados.filter(f => f.fecha > hoyK);
     /** Las novedades (pedidos, francos, etc.) que tocan un día dado. */
     const novedadesDe = (k: string) => novedades.filter(n => claveDia.format(new Date(n.startsAt)) <= k && claveDia.format(new Date(n.endsAt)) >= k);
@@ -105,7 +112,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
      */
     const totales = useMemo(() => equipo.map(p => {
         let cubiertos = 0, noVino = 0, hs = 0, sinHoras = 0, hsCompensadas = 0, hsExtra = 0;
-        for (const f of pasados) {
+        for (const f of pasadosQueSeCubren) {
             const c = porClave.get(`${f.fecha}|${p.id}`);
             if (!c) continue;
             if (c.worked) {
@@ -121,47 +128,29 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
             if (n.type === TIPO_QUE_DESCUENTA_FERIADO && n.status === 'APROBADO') hsCompensadas += horasDeRango(n.horario) ?? 0;
         }
         return { ...p, cubiertos, noVino, hs, sinHoras, hsCompensadas, hsExtra, saldo: Math.round((hs + hsExtra - hsCompensadas) * 10) / 10 };
-    }), [equipo, pasados, porClave, novedades, hoyK]);
+    }), [equipo, pasadosQueSeCubren, porClave, novedades, hoyK]);
 
     const Tabla = ({ lista, futuro }: { lista: Feriado[]; futuro: boolean }) => (
-        <div className="divide-y divide-stone-100 dark:divide-stone-800">
-            {lista.map(f => {
-                const sinCargar = !futuro && equipo.some(p => !porClave.has(`${f.fecha}|${p.id}`));
-                return (
-                    <div key={f.fecha} className="p-3 sm:p-4">
-                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
-                            <span className="font-mono text-sm text-stone-500">{formatDate(f.fecha + 'T12:00:00-03:00')}</span>
-                            <span className="capitalize text-sm text-stone-600 dark:text-stone-300">{diaSemana(f.fecha)}</span>
-                            <span className="font-black flex items-center gap-1.5"><Flag className="w-4 h-4 text-primary" aria-hidden />{f.nombre}</span>
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].clase}`}>
-                                {ETIQUETA_TIPO[f.tipo ?? 'FERIADO'].texto}
-                            </span>
-                            {sinCargar && <span className="text-xs text-amber-700 dark:text-amber-300 font-bold">Sin cargar quién cubrió</span>}
-                            {futuro && equipo.every(p => !porClave.has(`${f.fecha}|${p.id}`)) && <span className="text-xs text-stone-500">Sin programar</span>}
-                        </div>
-                        <table className="w-full text-sm">
-                            <thead className="sr-only"><tr><th>Persona</th><th>Cubrió o no le tocó</th><th>Desde</th><th>Hasta</th><th>Total</th><th>Notas</th></tr></thead>
-                            <tbody>
-                                {equipo.map(p => (
-                                    <FilaPersona key={p.id} persona={p} fecha={f.fecha} c={porClave.get(`${f.fecha}|${p.id}`)} esAdmin={esAdmin} futuro={futuro} onGuardar={guardar} onLimpiar={limpiar} />
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            {novedadesDe(f.fecha).map(n => (
-                                <button key={n.id} onClick={() => onVerNovedad(n)}
-                                    className={`text-xs px-2 py-1 rounded-lg border ${NOVEDAD_INFO[n.type].clase} ${n.status === 'RECHAZADO' ? 'line-through opacity-60' : ''} ${n.status === 'PENDIENTE' ? 'border-dashed' : ''}`}
-                                    title={`${rangoNovedad(n)} · ${ESTADO_INFO[n.status].etiqueta}`}>
-                                    <strong>{n.user.name.split(' ')[0]}</strong> pidió: {NOVEDAD_INFO[n.type].etiqueta.toLowerCase()}{n.notes ? ` — ${n.notes}` : ''}{n.status === 'PENDIENTE' ? ' (pendiente de OK)' : ''}
-                                </button>
-                            ))}
-                            <button onClick={() => onAnotar(f.fecha, 'PEDIDO_ESPECIAL')} className="text-xs font-bold px-2 py-1 rounded-lg border border-dashed border-stone-400 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 inline-flex items-center gap-1">
-                                <Plus className="w-3 h-3" /> Alguien pidió algo para este día
-                            </button>
-                        </div>
-                    </div>
-                );
-            })}
+        <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+                <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-stone-500 border-b border-stone-200 dark:border-stone-700">
+                        <th className="py-2 pl-3 sm:pl-4 pr-2 font-bold">Fecha</th>
+                        <th className="py-2 px-2 font-bold">Feriado</th>
+                        <th className="py-2 px-2 font-bold">{futuro ? 'Cubre' : 'Cubrió'}</th>
+                        <th className="py-2 px-2 font-bold">Horario</th>
+                        <th className="py-2 px-2 font-bold">Notas y pedidos</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+                    {lista.map(f => (
+                        <FilaFeriado key={f.fecha} f={f} futuro={futuro} equipo={equipo} esAdmin={esAdmin}
+                            coberturas={equipo.map(p => porClave.get(`${f.fecha}|${p.id}`))}
+                            novedades={novedadesDe(f.fecha)} onGuardar={guardar} onLimpiar={limpiar}
+                            onAnotar={() => onAnotar(f.fecha, 'PEDIDO_ESPECIAL')} onVerNovedad={onVerNovedad} />
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 
@@ -170,22 +159,30 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
             <div className="p-3 sm:p-4 border-b border-stone-200 dark:border-stone-700 flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h2 className="text-lg font-black">Feriados: quién cubrió</h2>
-                    <p className="text-xs text-stone-500">Desde el {formatDate(DESDE_COBERTURA_FERIADOS + 'T12:00:00-03:00')} (cuando empezó Milena). {esAdmin ? 'Tocá Cubrió en quien trabajó y cargá el horario; el guion es para quien no le tocó.' : 'La carga un administrador.'}</p>
+                    <p className="text-xs text-stone-500">Desde el {formatDate(DESDE_COBERTURA_FERIADOS + 'T12:00:00-03:00')} (cuando empezó Milena). {esAdmin ? 'Elegí quién cubrió y cargá el horario. Los no laborables se trabajan normal y no suman horas.' : 'La carga un administrador.'}</p>
                 </div>
                 {cargando && <Loader2 className="w-4 h-4 animate-spin text-stone-400" />}
             </div>
             {error && <p className="p-4 text-red-700 dark:text-red-300 font-bold">No se pudo cargar: {error}</p>}
 
             {!cargando && totales.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 sm:p-4 border-b border-stone-100 dark:border-stone-800 text-xs">
+                <div className="grid gap-3 sm:grid-cols-2 p-3 sm:p-4 border-b border-stone-100 dark:border-stone-800">
                     {totales.filter(t => esAdmin || t.id === yo.id).map(t => (
-                        <span key={t.id} className="px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 leading-tight">
-                            <strong>{t.name.split(' ')[0]}</strong>: cubrió {t.cubiertos} feriado{t.cubiertos === 1 ? '' : 's'} ({fmtHoras(t.hs)}) · extras {fmtHoras(t.hsExtra)} · no le tocó {t.noVino} · se tomó {fmtHoras(t.hsCompensadas)}
-                            <span className={`block font-black ${t.saldo > 0 ? 'text-amber-700 dark:text-amber-300' : t.saldo < 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
-                                {t.saldo > 0 ? `Se le deben ${fmtHoras(t.saldo)}` : t.saldo < 0 ? `Se tomó ${fmtHoras(-t.saldo)} de más` : 'Al día'}
-                            </span>
-                            {t.sinHoras > 0 && <span className="block text-amber-700 dark:text-amber-300">{t.sinHoras} feriado{t.sinHoras === 1 ? '' : 's'} cubierto{t.sinHoras === 1 ? '' : 's'} sin horario: no suma</span>}
-                        </span>
+                        <div key={t.id} className="rounded-xl border border-stone-200 dark:border-stone-700 p-3">
+                            <div className="flex items-baseline justify-between gap-2">
+                                <strong className="text-base">{t.name.split(' ')[0]}</strong>
+                                <span className={`text-sm font-black ${t.saldo > 0 ? 'text-amber-700 dark:text-amber-300' : t.saldo < 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                                    {t.saldo > 0 ? `Se le deben ${fmtHoras(t.saldo)}` : t.saldo < 0 ? `Se tomó ${fmtHoras(-t.saldo)} de más` : 'Al día'}
+                                </span>
+                            </div>
+                            <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-xs text-stone-600 dark:text-stone-300">
+                                <dt>Feriados cubiertos ({t.cubiertos})</dt><dd className="tabular-nums text-right">+ {fmtHoras(t.hs)}</dd>
+                                <dt>Horas extra</dt><dd className="tabular-nums text-right">+ {fmtHoras(t.hsExtra)}</dd>
+                                <dt>Francos que se tomó</dt><dd className="tabular-nums text-right">− {fmtHoras(t.hsCompensadas)}</dd>
+                                <dt className="text-stone-500">Feriados que no le tocaron</dt><dd className="tabular-nums text-right text-stone-500">{t.noVino}</dd>
+                            </dl>
+                            {t.sinHoras > 0 && <p className="mt-1 text-xs font-bold text-amber-700 dark:text-amber-300">{t.sinHoras} feriado{t.sinHoras === 1 ? '' : 's'} cubierto{t.sinHoras === 1 ? '' : 's'} sin horario: no suma</p>}
+                        </div>
                     ))}
                 </div>
             )}
@@ -195,7 +192,7 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
 
             <div className="p-3 sm:p-4 border-t-4 border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950/40">
                 <h3 className="font-black">Próximos feriados: programar quién cubre</h3>
-                <p className="text-xs text-stone-500">Los próximos {MESES_ADELANTE} meses. {esAdmin ? 'Marcá quién cubre y en qué horario; el guion es para quien no le toca.' : 'Si necesitás algo para uno de estos días, pedilo con el botón de ese feriado.'}</p>
+                <p className="text-xs text-stone-500">Los próximos {MESES_ADELANTE} meses. {esAdmin ? 'Elegí quién cubre y en qué horario. Los no laborables se trabajan normal y no se programan.' : 'Si necesitás algo para uno de estos días, pedilo con el + de ese feriado.'}</p>
             </div>
             {!cargando && proximos.length === 0 && <p className="p-6 text-center text-sm text-stone-500">No hay feriados en los próximos {MESES_ADELANTE} meses.</p>}
             <Tabla lista={proximos} futuro />
@@ -204,52 +201,102 @@ export default function FeriadosCobertura({ yo, version, onAnotar, onVerNovedad 
     );
 }
 
-function FilaPersona({ persona, fecha, c, esAdmin, futuro, onGuardar, onLimpiar }: {
-    persona: Persona; fecha: string; c: Cobertura | undefined; esAdmin: boolean; futuro: boolean;
-    onGuardar: (b: Record<string, unknown>) => Promise<void>; onLimpiar: (fecha: string, userId: string) => Promise<void>;
+/**
+ * Un renglón por feriado. Quién cubre se elige en UN selector (una persona,
+ * "Ambos" o nadie cargado) y el horario es uno solo para quien cubre; por
+ * debajo se sigue guardando una cobertura por persona (Ishtar, 10/10/2026:
+ * "que se pueda seleccionar el nombre de uno y listo").
+ */
+function FilaFeriado({ f, futuro, equipo, esAdmin, coberturas, novedades, onGuardar, onLimpiar, onAnotar, onVerNovedad }: {
+    f: Feriado; futuro: boolean; equipo: Persona[]; esAdmin: boolean; coberturas: (Cobertura | undefined)[];
+    novedades: Novedad[]; onGuardar: (b: Record<string, unknown>) => Promise<void>; onLimpiar: (fecha: string, userId: string) => Promise<void>;
+    onAnotar: () => void; onVerNovedad: (n: Novedad) => void;
 }) {
-    const [desde, setDesde] = useState(c?.startTime ?? '');
-    const [hasta, setHasta] = useState(c?.endTime ?? '');
-    const [notas, setNotas] = useState(c?.notes ?? '');
-    useEffect(() => { setDesde(c?.startTime ?? ''); setHasta(c?.endTime ?? ''); setNotas(c?.notes ?? ''); }, [c]);
-    const total = horas(c?.startTime ?? null, c?.endTime ?? null);
-    const sucio = c?.worked && (desde !== (c.startTime ?? '') || hasta !== (c.endTime ?? '') || notas !== (c.notes ?? ''));
-    // El que no trabaja el feriado se marca con un guion, no con "no vino":
-    // no es una falta, simplemente no le tocó (Ishtar, 8/10/2026).
-    const txtSi = futuro ? 'Cubre' : 'Cubrió';
-    const estado = c === undefined ? (futuro ? 'sin programar' : 'sin cargar') : c.worked ? txtSi.toLowerCase() : '— —';
-    const input = 'rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm w-[5.5rem]';
+    const normal = TIPOS_DIA_NORMAL.includes(f.tipo ?? 'FERIADO');
+    const cubren = equipo.filter((_, i) => coberturas[i]?.worked);
+    const cargado = coberturas.some(Boolean);
+    const valor = !cargado ? '' : cubren.length === equipo.length ? 'AMBOS' : cubren.length === 0 ? 'NADIE' : cubren[0].id;
+    const ref = coberturas.find(c => c?.worked);
+    const [desde, setDesde] = useState(ref?.startTime ?? '');
+    const [hasta, setHasta] = useState(ref?.endTime ?? '');
+    const [notas, setNotas] = useState(ref?.notes ?? coberturas.find(Boolean)?.notes ?? '');
+    // Se resetea solo cuando cambia lo guardado (el array se arma nuevo en cada render).
+    const guardado = JSON.stringify([ref?.startTime ?? '', ref?.endTime ?? '', ref?.notes ?? coberturas.find(Boolean)?.notes ?? '']);
+    useEffect(() => {
+        const [d, h, n] = JSON.parse(guardado) as string[];
+        setDesde(d); setHasta(h); setNotas(n);
+    }, [guardado]);
+    const total = horas(ref?.startTime ?? null, ref?.endTime ?? null);
+    const sucio = !!ref && (desde !== (ref.startTime ?? '') || hasta !== (ref.endTime ?? '') || notas !== (ref.notes ?? ''));
+
+    /** Guarda la elección para todo el equipo: quien cubre con el horario, el resto "no le toca". */
+    // Sin horario cargado, el de feriado: 9 a 17 (Ishtar, 10/10/2026).
+    const aplicar = async (v: string, d = desde || HORARIO_FERIADO.abre, h = hasta || HORARIO_FERIADO.cierra, n = notas) => {
+        if (v === '') { for (const p of equipo) await onLimpiar(f.fecha, p.id); return; }
+        for (const p of equipo) {
+            const trabaja = v === 'AMBOS' || v === p.id;
+            await onGuardar(trabaja
+                ? { fecha: f.fecha, userId: p.id, worked: true, startTime: d || null, endTime: h || null, notes: n || null }
+                : { fecha: f.fecha, userId: p.id, worked: false, notes: null });
+        }
+    };
+
+    const [, mm, dd] = f.fecha.split('-');
+    const nombres = (ps: Persona[]) => ps.map(p => p.name.split(' ')[0]).join(' y ');
+    const textoQuien = valor === '' ? (futuro ? 'Sin programar' : 'Sin cargar') : valor === 'NADIE' ? 'Nadie' : valor === 'AMBOS' ? 'Ambos' : nombres(cubren);
+    const pendiente = !normal && valor === '';
+    const input = 'rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm w-[5rem]';
 
     return (
-        <tr className="align-middle">
-            <td className="py-1 pr-2 font-bold whitespace-nowrap">{persona.name.split(' ')[0]}</td>
-            <td className="py-1 pr-2">
-                {esAdmin ? (
-                    <span className="inline-flex rounded-lg border border-stone-300 dark:border-stone-600 overflow-hidden text-xs font-bold">
-                        <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: true, startTime: desde || null, endTime: hasta || null, notes: notas || null })}
-                            className={`px-2 py-1 inline-flex items-center gap-1 ${c?.worked ? 'bg-emerald-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c?.worked}><Check className="w-3 h-3" />{txtSi}</button>
-                        <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: false, notes: notas || null })}
-                            className={`px-2 py-1 inline-flex items-center gap-1 border-l border-stone-300 dark:border-stone-600 ${c && !c.worked ? 'bg-stone-600 text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-pressed={!!c && !c.worked} aria-label="No le tocó" title="No le tocó (no trabaja este feriado)"><span aria-hidden>— —</span></button>
-                        <button onClick={() => onLimpiar(fecha, persona.id)} title="Volver a sin cargar"
-                            className={`px-2 py-1 border-l border-stone-300 dark:border-stone-600 ${c === undefined ? 'bg-stone-200 dark:bg-stone-700' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`} aria-label="Sin cargar"><Minus className="w-3 h-3" /></button>
-                    </span>
-                ) : (
-                    <span className={`text-xs font-bold ${c?.worked ? 'text-emerald-700 dark:text-emerald-300' : c ? 'text-stone-500' : 'text-stone-400'}`} aria-label={c && !c.worked ? 'No le tocó' : undefined}>{estado}</span>
-                )}
+        <tr className={`align-middle ${normal ? 'bg-stone-50 dark:bg-stone-950/40' : ''}`}>
+            <td className="py-2 pl-3 sm:pl-4 pr-2 whitespace-nowrap">
+                <span className="font-black tabular-nums">{dd}/{mm}</span>{' '}
+                <span className="text-xs text-stone-500 capitalize">{diaSemana(f.fecha).slice(0, 3)}</span>
             </td>
-            {c?.worked ? (<>
-                <td className="py-1 pr-2">{esAdmin ? <input type="time" value={desde} onChange={e => setDesde(e.target.value)} className={input} aria-label="Desde" /> : (c.startTime ?? '—')}</td>
-                <td className="py-1 pr-2">{esAdmin ? <input type="time" value={hasta} onChange={e => setHasta(e.target.value)} className={input} aria-label="Hasta" /> : (c.endTime ?? '—')}</td>
-                <td className="py-1 pr-2 tabular-nums whitespace-nowrap">{total !== null ? fmtHoras(total) : '—'}</td>
-                <td className="py-1 w-full">
-                    <div className="flex items-center gap-1">
-                        {esAdmin ? <input value={notas} onChange={e => setNotas(e.target.value)} placeholder="notas" maxLength={200} className="rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm w-full min-w-[6rem]" aria-label="Notas" /> : <span className="text-xs text-stone-500">{c.notes}</span>}
-                        {sucio && <button onClick={() => onGuardar({ fecha, userId: persona.id, worked: true, startTime: desde || null, endTime: hasta || null, notes: notas || null })} className="text-xs font-bold px-2 py-1 rounded-md bg-primary text-white whitespace-nowrap">Guardar</button>}
-                    </div>
-                </td>
-            </>) : (
-                <td colSpan={4} className="py-1 text-xs text-stone-500">{c?.notes ?? ''}</td>
-            )}
+            <td className="py-2 px-2">
+                <span className="font-bold">{f.nombre}</span>
+                {f.tipo && f.tipo !== 'FERIADO' && <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${ETIQUETA_TIPO[f.tipo].clase}`}>{ETIQUETA_TIPO[f.tipo].texto}</span>}
+                {f.apertura && <span className="block text-xs text-stone-500">{textoApertura(f.apertura)}</span>}
+            </td>
+            <td className="py-2 px-2 whitespace-nowrap">
+                {normal ? <span className="text-stone-600 dark:text-stone-300">Ambos <span className="text-xs text-stone-500">(día normal)</span></span>
+                : esAdmin ? (
+                    <select value={valor} onChange={e => aplicar(e.target.value)} aria-label={`Quién cubre ${f.nombre}`}
+                        className={`rounded-md border px-1.5 py-1 text-sm font-bold bg-transparent ${pendiente ? (futuro ? 'border-stone-300 text-stone-500 dark:border-stone-600' : 'border-amber-400 text-amber-800 dark:text-amber-300') : 'border-stone-300 dark:border-stone-600'}`}>
+                        <option value="">{futuro ? 'Sin programar' : 'Sin cargar'}</option>
+                        {equipo.map(p => <option key={p.id} value={p.id}>{p.name.split(' ')[0]}</option>)}
+                        {equipo.length > 1 && <option value="AMBOS">Ambos</option>}
+                        <option value="NADIE">Nadie (cerrado)</option>
+                    </select>
+                ) : <span className={`font-bold ${pendiente && !futuro ? 'text-amber-700 dark:text-amber-300' : ''}`}>{textoQuien}</span>}
+            </td>
+            <td className="py-2 px-2 whitespace-nowrap">
+                {normal ? <span className="text-xs text-stone-500">{f.tipo === 'HORARIO_ESPECIAL' ? 'especial' : 'el de siempre'} · no suma</span>
+                : ref ? (
+                    <span className="inline-flex items-center gap-1.5">
+                        {esAdmin ? <input type="time" value={desde} onChange={e => setDesde(e.target.value)} className={input} aria-label="Desde" /> : (ref.startTime ?? '—')}
+                        <span className="text-stone-400">a</span>
+                        {esAdmin ? <input type="time" value={hasta} onChange={e => setHasta(e.target.value)} className={input} aria-label="Hasta" /> : (ref.endTime ?? '—')}
+                        <span className="tabular-nums font-bold ml-1">{total !== null ? fmtHoras(total) : <span className="text-amber-700 dark:text-amber-300 text-xs">sin horario</span>}</span>
+                    </span>
+                ) : <span className="text-stone-400">—</span>}
+            </td>
+            <td className="py-2 px-2 pr-3 sm:pr-4">
+                <div className="flex flex-wrap items-center gap-1">
+                    {!normal && esAdmin && ref && <input value={notas} onChange={e => setNotas(e.target.value)} placeholder="notas" maxLength={200} className="w-24 flex-1 rounded-md border border-stone-300 dark:border-stone-600 bg-transparent px-1.5 py-0.5 text-sm" aria-label="Notas" />}
+                    {!esAdmin && ref?.notes && <span className="text-xs text-stone-500">{ref.notes}</span>}
+                    {sucio && <button onClick={() => aplicar(valor)} className="text-xs font-bold px-2 py-1 rounded-md bg-primary text-white">Guardar</button>}
+                    {novedades.map(n => (
+                        <button key={n.id} onClick={() => onVerNovedad(n)}
+                            className={`text-xs px-1.5 py-0.5 rounded-md border ${NOVEDAD_INFO[n.type].clase} ${n.status === 'RECHAZADO' ? 'line-through opacity-60' : ''} ${n.status === 'PENDIENTE' ? 'border-dashed' : ''}`}
+                            title={`${rangoNovedad(n)} · ${ESTADO_INFO[n.status].etiqueta}${n.notes ? ` — ${n.notes}` : ''}`}>
+                            <strong>{n.user.name.split(' ')[0]}</strong>: {NOVEDAD_INFO[n.type].etiqueta.toLowerCase()}{n.status === 'PENDIENTE' ? ' (pend.)' : ''}
+                        </button>
+                    ))}
+                    <button onClick={onAnotar} title="Alguien pidió algo para este día" aria-label="Alguien pidió algo para este día"
+                        className="p-1 rounded-md border border-dashed border-stone-300 text-stone-500 hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800"><Plus className="w-3 h-3" /></button>
+                </div>
+            </td>
         </tr>
     );
 }

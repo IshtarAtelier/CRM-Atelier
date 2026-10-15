@@ -1,0 +1,17 @@
+{
+  "id": "feriado-2026-12-25",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "fuente": "business-info",
+  "caption": "El viernes 25/12 el local está cerrado. El sábado abrimos como siempre.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "El viernes 25/12 *cerramos*",
+      "body": "Feriado de Navidad\nEl sábado abrimos como siempre\n\nTe esperamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba"
+    }
+  ]
+}
