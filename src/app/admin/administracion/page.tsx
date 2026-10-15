@@ -72,6 +72,7 @@ const ALL_METHODS: Record<string, { label: string; icon: any; color: string; lig
     'NARANJA_Z_YANI': { label: 'Naranja Z Yani', icon: CreditCard, color: 'bg-orange-400', lightBg: 'bg-orange-50 dark:bg-orange-950', textColor: 'text-orange-400' },
     'TRANSFERENCIA_ISHTAR': { label: 'Transf. Ishtar', icon: ArrowRightLeft, color: 'bg-violet-500', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-500' },
     'TRANSFERENCIA_LUCIA': { label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'bg-violet-400', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-400' },
+    'TRANSFERENCIA_ESSILOR': { label: 'Transf. Essilor', icon: ArrowRightLeft, color: 'bg-violet-300', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-400' },
     'EFECTIVO': { label: 'Efectivo', icon: Banknote, color: 'bg-emerald-500', lightBg: 'bg-emerald-50 dark:bg-emerald-950', textColor: 'text-emerald-500' },
     'MERCADO_PAGO_3_ISH': { label: 'MP 3 Ish', icon: CreditCard, color: 'bg-sky-500', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-500' },
     'MERCADO_PAGO_6_ISH': { label: 'MP 6 Ish', icon: CreditCard, color: 'bg-sky-500', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-500' },
@@ -112,7 +113,7 @@ const FILTER_GROUPS = [
         lightBg: 'bg-violet-50 dark:bg-violet-950',
         textColor: 'text-violet-500',
         borderColor: 'border-violet-200 dark:border-violet-800',
-        methods: ['TRANSFERENCIA_ISHTAR', 'TRANSFERENCIA_LUCIA'],
+        methods: ['TRANSFERENCIA_ISHTAR', 'TRANSFERENCIA_LUCIA', 'TRANSFERENCIA_ESSILOR'],
     },
     {
         id: 'EFECTIVO',
