@@ -1342,14 +1342,10 @@ export default function VentasPage() {
                                         );
                                     })()}
 
-                                {/* Carga del pedido en el portal del laboratorio (Grupo Óptico y Vitolen,
-                                    un solo componente): solo Ishtar y Milena — la API responde 403 al
-                                    resto y el bloque no se dibuja. */}
-                                {orderLabs.some(l => /grupo[\s_-]?[oó]ptico/i.test(l)) && (
-                                    <div className="mt-4">
-                                        <CargaLaboratorio lab="GRUPO_OPTICO" orderId={order.id} onChanged={fetchOrders} />
-                                    </div>
-                                )}
+                                {/* Carga del pedido en el portal de Vitolen (un solo componente para
+                                    todos los labs): solo Ishtar y Milena — la API responde 403 al resto y
+                                    el bloque no se dibuja. Grupo Óptico va en el panel de la venta
+                                    (OrderDetailPanel): acá dibujaría un bloque por cada venta del listado. */}
                                 {orderLabs.some(l => /vitolen/i.test(l)) && (
                                     <div className="mt-4">
                                         <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={fetchOrders} />
