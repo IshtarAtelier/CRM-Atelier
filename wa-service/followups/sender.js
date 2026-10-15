@@ -3,6 +3,7 @@
  * Soporta modo test (redirige al admin) y modo producción.
  */
 
+const { CHAT_BASE, SOLO_ID } = require('../shared/columnas-chat');
 const { prisma } = require('../db');
 const outbox = require('./outbox');
 const { evaluarElegibilidad } = require('./politica');
@@ -29,7 +30,7 @@ const {
  * @returns {Promise<{ canSend: boolean, reason?: string, chat?: Object }>}
  */
 async function preSendValidation(chatId, waId) {
-    const freshChat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+    const freshChat = await prisma.whatsAppChat.findUnique({ where: { id: chatId }, select: CHAT_BASE });
 
     if (!freshChat) {
         return { canSend: false, reason: `Chat ${chatId} ya no existe` };
@@ -229,7 +230,7 @@ async function sendFollowUp({ waId, text: textoCrudo, chatId, label, clientName,
         });
 
         // 7. Actualizar labels y timestamps del chat
-        const currentChat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+        const currentChat = await prisma.whatsAppChat.findUnique({ where: { id: chatId }, select: CHAT_BASE });
         let updatedLabels = [...(currentChat?.chatLabels || [])];
         if (!updatedLabels.includes(label)) {
             updatedLabels.push(label);
@@ -241,7 +242,7 @@ async function sendFollowUp({ waId, text: textoCrudo, chatId, label, clientName,
                 chatLabels: updatedLabels,
                 lastMessageAt: new Date(),
                 lastFollowUpAt: new Date(),
-            },
+            }, select: SOLO_ID
         });
 
         // 8. Notificar al frontend

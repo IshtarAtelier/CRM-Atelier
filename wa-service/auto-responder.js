@@ -38,6 +38,7 @@
  * pruebas puede correrla entera con mocks, sin base ni red.
  */
 
+const { SOLO_ID } = require('./shared/columnas-chat');
 const { isBusinessHours: isBusinessHoursReal } = require('./shared/business-hours');
 const { whereSalienteHumano, SENDER_NAME_AUTORESPONDEDOR } = require('./shared/remitentes');
 const { clasificarEntrante, disparaTurno } = require('./shared/clasificar-entrante');
@@ -243,7 +244,7 @@ function createAutoResponder(deps = {}) {
                         status: 'SENT',
                     },
                 });
-                await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { lastMessageAt: ahora } }).catch(() => {});
+                await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { lastMessageAt: ahora }, select: SOLO_ID }).catch(() => {});
             } catch (e) {
                 // El mensaje YA salió: que no se vea en el buzón es feo, pero no
                 // se reintenta nada (sería un segundo mensaje al cliente).

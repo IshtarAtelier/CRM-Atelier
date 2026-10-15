@@ -1,3 +1,4 @@
+const { SOLO_ID } = require('./columnas-chat');
 /**
  * A qué número se le manda un mensaje de este chat.
  *
@@ -31,7 +32,7 @@ function destinoDelChat(chat) {
 async function migrarChatLid(prisma, chat) {
     if (!chat || !String(chat.waId || '').includes('@lid') || !esE164(chat.realPhone)) return false;
     try {
-        await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { waId: chat.realPhone } });
+        await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { waId: chat.realPhone }, select: SOLO_ID });
         console.log(`  ♻️ [Destino] Chat ${chat.waId} migrado a ${chat.realPhone}`);
         return true;
     } catch (e) {

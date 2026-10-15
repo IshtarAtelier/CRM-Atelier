@@ -1,3 +1,4 @@
+const { SOLO_ID } = require('./columnas-chat');
 /**
  * Cuando un seguimiento AUTOMÁTICO no llega, el sistema se hace a un lado.
  *
@@ -67,7 +68,7 @@ async function deshacerSeguimientoFallido(prisma, row, { deCuenta = false, defin
             chatLabels: etiquetas,
             lastFollowUpAt: null,
             ...(pausadoHasta ? { followUpPausedUntil: pausadoHasta } : {}),
-        },
+        }, select: SOLO_ID
     });
     return { etiqueta, pausadoHasta, definitivo };
 }

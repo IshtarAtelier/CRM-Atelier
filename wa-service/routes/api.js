@@ -8,6 +8,7 @@
  * with the parent module's mutable state.
  */
 
+const { CHAT_BASE, SOLO_ID } = require('../shared/columnas-chat');
 const { destinoDelChat, migrarChatLid } = require('../shared/destino-del-chat');
 const express = require('express');
 const path = require('path');
@@ -133,7 +134,7 @@ function createApiRouter(deps) {
 
         const lidChats = await prisma.whatsAppChat.findMany({
             where: { waId: { contains: '@lid' }, realPhone: null },
-            include: { client: true }
+            select: { ...CHAT_BASE, client: true }
         });
 
         const results = [];
@@ -177,7 +178,7 @@ function createApiRouter(deps) {
             }
 
             if (resolved) {
-                await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { realPhone: resolved } });
+                await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { realPhone: resolved }, select: SOLO_ID });
             }
 
             results.push({
@@ -197,7 +198,7 @@ function createApiRouter(deps) {
             where: { chatId: req.params.id },
             orderBy: { createdAt: 'asc' },
         });
-        await prisma.whatsAppChat.update({ where: { id: req.params.id }, data: { unreadCount: 0 } });
+        await prisma.whatsAppChat.update({ where: { id: req.params.id }, data: { unreadCount: 0 }, select: SOLO_ID });
         res.json(messages);
     });
 
@@ -214,7 +215,7 @@ function createApiRouter(deps) {
                 // Sync SIN_SEGUIMIENTO with CRM client tags and pending tasks
                 if (Array.isArray(chatLabels) && chatLabels.includes('SIN_SEGUIMIENTO')) {
                     try {
-                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id } });
+                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id }, select: CHAT_BASE });
                         if (chatObj && chatObj.clientId) {
                             const tag = await prisma.tag.upsert({
                                 where: { name: 'Sin Seguimiento' },
@@ -253,7 +254,7 @@ function createApiRouter(deps) {
                 } else if (Array.isArray(chatLabels) && !chatLabels.includes('SIN_SEGUIMIENTO')) {
                     // Reactivated: disconnect "Sin Seguimiento" and "no interesado" tags from the client
                     try {
-                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id } });
+                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id }, select: CHAT_BASE });
                         if (chatObj && chatObj.clientId) {
                             const tagsToDisconnect = await prisma.tag.findMany({
                                 where: {
@@ -280,7 +281,7 @@ function createApiRouter(deps) {
             if (clientId !== undefined) data.clientId = clientId;
             if (chatSummary !== undefined) data.chatSummary = chatSummary;
             
-            let chat = await prisma.whatsAppChat.findUnique({ where: { id } });
+            let chat = await prisma.whatsAppChat.findUnique({ where: { id }, select: CHAT_BASE });
             if (!chat) return res.status(404).json({ error: 'Chat no encontrado' });
 
             if (archived === false && chat.archived === true) {
@@ -298,7 +299,7 @@ function createApiRouter(deps) {
                     currentLabels.push('[SISTEMA - BOT APAGADO]');
                 }
                 data.chatLabels = currentLabels;
-                chat = await prisma.whatsAppChat.update({ where: { id }, data });
+                chat = await prisma.whatsAppChat.update({ where: { id }, data, select: CHAT_BASE });
             } else {
                 if (botEnabled === true) {
                     // Prender limpia el motivo (shared/motivo-apagado.js).
@@ -310,7 +311,7 @@ function createApiRouter(deps) {
                 } else if (botEnabled !== undefined) {
                     data.botEnabled = botEnabled;
                 }
-                chat = await prisma.whatsAppChat.update({ where: { id }, data });
+                chat = await prisma.whatsAppChat.update({ where: { id }, data, select: CHAT_BASE });
             }
             res.json(chat);
         } catch (e) {
@@ -365,7 +366,7 @@ function createApiRouter(deps) {
             const esWaIdLegacy = chatId.includes('@c.us') || chatId.includes('@lid');
             const esTelefono = /^\+?\d{10,15}$/.test(chatId);
             if (!esWaIdLegacy && !esTelefono) {
-                const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+                const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId }, select: CHAT_BASE });
                 if (!chat) return res.status(404).json({ error: 'Chat not found' });
                 // Un chat @lid (WhatsApp Web) se manda a su número real (shared/destino-del-chat.js).
                 waId = destinoDelChat(chat) || chat.waId;
@@ -383,7 +384,7 @@ function createApiRouter(deps) {
                             { realPhone: cleanPhone }
                         ]
                     },
-                    orderBy: { lastMessageAt: 'desc' }
+                    orderBy: { lastMessageAt: 'desc' }, select: CHAT_BASE
                 });
                 if (chat) {
                     dbChatId = chat.id;
@@ -406,7 +407,7 @@ function createApiRouter(deps) {
                     waId = cleanPhone;
                     if (template) {
                         const nuevo = await prisma.whatsAppChat.create({
-                            data: { waId: cleanPhone, realPhone: cleanPhone, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() }
+                            data: { waId: cleanPhone, realPhone: cleanPhone, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() }, select: CHAT_BASE
                         });
                         dbChatId = nuevo.id;
                     }
@@ -501,7 +502,7 @@ function createApiRouter(deps) {
                         const nuevo = await prisma.whatsAppChat.upsert({
                             where: { waId: soloDigitos },
                             update: {},
-                            create: { waId: soloDigitos, realPhone: soloDigitos, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() },
+                            create: { waId: soloDigitos, realPhone: soloDigitos, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() }, select: CHAT_BASE
                         });
                         dbChatId = nuevo.id;
                     } catch (e) {
@@ -543,7 +544,7 @@ function createApiRouter(deps) {
                             templateName: template ? template.name : null,
                         }
                     });
-                    await prisma.whatsAppChat.update({ where: { id: dbChatId }, data: { lastMessageAt: new Date() } }).catch(() => {});
+                    await prisma.whatsAppChat.update({ where: { id: dbChatId }, data: { lastMessageAt: new Date() }, select: SOLO_ID }).catch(() => {});
                     guardado = true;
                 } catch (e) {
                     console.error('Error guardando el saliente del CRM:', e.message);
@@ -699,7 +700,7 @@ function createApiRouter(deps) {
             } else {
                 const chatCheck = await prisma.whatsAppChat.findUnique({ 
                     where: { id },
-                    include: { client: { include: { tags: true } } }
+                    select: { ...CHAT_BASE, client: { include: { tags: true } } }
                 });
                 const hasCancelBot = chatCheck.client?.tags?.some(t => t.name.toLowerCase() === 'cancelar bot');
                 if (hasCancelBot) {

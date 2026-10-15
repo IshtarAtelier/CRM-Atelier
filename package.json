@@ -96,7 +96,8 @@
     "check:vuelta-bot": "node scripts/checks/vuelta-bot.check.mjs",
     "check:nombres-bot": "node --experimental-strip-types scripts/checks/nombres-bot.check.mjs",
     "check:remitentes": "node --experimental-strip-types scripts/checks/remitentes-paridad.check.mjs",
-    "check:catalogo-bot": "node --experimental-strip-types scripts/checks/catalogo-bot.check.mjs"
+    "check:catalogo-bot": "node --experimental-strip-types scripts/checks/catalogo-bot.check.mjs",
+    "check:rollout-wa": "node scripts/checks/rollout-wa-service.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

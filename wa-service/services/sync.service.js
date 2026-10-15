@@ -2,6 +2,7 @@
  * Sync Services
  */
 
+const { CHAT_BASE, SOLO_ID } = require('../shared/columnas-chat');
 const { getFileExtension } = require('../utils');
 const { serializedId, resolveWaMessageId } = require('../shared/message-id');
 
@@ -158,7 +159,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
             }
 
             try {
-                let dbChat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+                let dbChat = await prisma.whatsAppChat.findUnique({ where: { waId }, select: CHAT_BASE });
                 if (!dbChat) {
                     let shouldEnableBot = true;
                     try {
@@ -198,7 +199,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                                 lastMessageAt: new Date(),
                                 unreadCount: chatObj.unreadCount > 0 ? chatObj.unreadCount : 0,
                                 clientId: linkedClientId
-                            }
+                            }, select: CHAT_BASE
                         });
                     } catch (createErr) {
                         if (createErr.code === 'P2002') {
@@ -207,7 +208,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                             if (realPhone) p2002Data.realPhone = realPhone;
                             dbChat = await prisma.whatsAppChat.update({
                                 where: { waId },
-                                data: p2002Data
+                                data: p2002Data, select: CHAT_BASE
                             });
                         } else throw createErr;
                     }
@@ -220,7 +221,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                     if (Object.keys(updateData).length > 0) {
                         dbChat = await prisma.whatsAppChat.update({
                             where: { id: dbChat.id },
-                            data: updateData
+                            data: updateData, select: CHAT_BASE
                         });
                     }
                 }
@@ -286,7 +287,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                 if (lastMsg) {
                     await prisma.whatsAppChat.update({
                         where: { id: dbChat.id },
-                        data: { lastMessageAt: lastMsg.createdAt }
+                        data: { lastMessageAt: lastMsg.createdAt }, select: SOLO_ID
                     });
                 }
 

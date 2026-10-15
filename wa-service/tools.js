@@ -1,3 +1,4 @@
+const { CHAT_BASE, SOLO_ID } = require('./shared/columnas-chat');
 const axios = require('axios');
 const { MOTIVO_APAGADO, actualizarChat, datosDeApagado, datosDePrendido } = require('./shared/motivo-apagado');
 const { contenidoATexto } = require('./shared/ai-content');
@@ -264,7 +265,7 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
         if (chatId) {
             await prisma.whatsAppChat.update({
                 where: { id: chatId },
-                data: { clientId: newContact.id }
+                data: { clientId: newContact.id }, select: SOLO_ID
             });
         } else if (cleanPhone && cleanPhone.length > 5) {
             await prisma.whatsAppChat.updateMany({
@@ -685,7 +686,7 @@ async function resolverChatDestino(chatId) {
     const esTelefono = /^\+?\d{10,15}$/.test(chatId);
 
     if (!esWaIdLegacy && !esTelefono) {
-        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId }, select: CHAT_BASE });
         return chat ? { waId: chat.waId, dbChatId: chat.id } : null;
     }
 
@@ -699,7 +700,7 @@ async function resolverChatDestino(chatId) {
                 { realPhone: cleanPhone },
             ],
         },
-        orderBy: { lastMessageAt: 'desc' },
+        orderBy: { lastMessageAt: 'desc' }, select: CHAT_BASE
     });
     if (chat) return { waId: chat.waId, dbChatId: chat.id };
 
@@ -948,7 +949,7 @@ async function cancelBot({ clientId, waId }) {
     try {
         // If no waId provided, try to find it from clientId
         if (!waId && clientId && clientId !== 'none') {
-            const chatFromClient = await prisma.whatsAppChat.findFirst({ where: { clientId } });
+            const chatFromClient = await prisma.whatsAppChat.findFirst({ where: { clientId }, select: CHAT_BASE });
             if (chatFromClient) waId = chatFromClient.waId;
         }
 
@@ -1066,13 +1067,13 @@ async function addTagToClient({ clientId, tagName }) {
 
         // 1.5. Visual Automation (Push to WhatsAppChat chatLabels)
         try {
-            const chatsToLabel = await prisma.whatsAppChat.findMany({ where: { clientId: clientId } });
+            const chatsToLabel = await prisma.whatsAppChat.findMany({ where: { clientId: clientId }, select: CHAT_BASE });
             for (const c of chatsToLabel) {
                 const labels = new Set(c.chatLabels || []);
                 labels.add(tag.name);
                 await prisma.whatsAppChat.update({
                     where: { id: c.id },
-                    data: { chatLabels: Array.from(labels) }
+                    data: { chatLabels: Array.from(labels) }, select: SOLO_ID
                 });
                 
                 if (global.io) {
@@ -1239,7 +1240,7 @@ async function generateAndSaveHandoffSummary(chatId) {
     try {
         const chat = await prisma.whatsAppChat.findUnique({
             where: { id: chatId },
-            include: { client: true }
+            select: { ...CHAT_BASE, client: true }
         });
         if (!chat || !chat.clientId) {
             console.log(`  [Summary Skip] Chat no encontrado o no tiene clientId vinculado: ${chatId}`);
@@ -1314,7 +1315,7 @@ async function updateChatSummary({ chatId, summaryText }) {
     try {
         await prisma.whatsAppChat.update({
             where: { id: chatId },
-            data: { chatSummary: summaryText }
+            data: { chatSummary: summaryText }, select: SOLO_ID
         });
         
         // Notificar al front-end para que actualice la UI

@@ -29,6 +29,7 @@
  *     webhook: el turno corre desprendido y todo error termina en un log.
  */
 
+const { CHAT_BASE } = require('./shared/columnas-chat');
 const { HumanMessage, AIMessage } = require('@langchain/core/messages');
 const { graph, esFallaTransitoriaDeHerramienta } = require('./graph');
 const { BotService } = require('./services/bot.service');
@@ -672,7 +673,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         try {
             const freshChat = await prisma.whatsAppChat.findUnique({
                 where: { id: chat.id },
-                include: { client: { include: { tags: true, prescriptions: { orderBy: { date: 'desc' }, take: 3 }, interactions: { orderBy: { createdAt: 'desc' }, take: 5 } } } },
+                select: { ...CHAT_BASE, client: { include: { tags: true, prescriptions: { orderBy: { date: 'desc' }, take: 3 }, interactions: { orderBy: { createdAt: 'desc' }, take: 5 } } } },
             });
             if (!freshChat || !freshChat.botEnabled) {
                 console.log(`  🚫 [BotCloud] Turno cancelado para ${profileName || waId}: el bot está apagado en ese chat.`);

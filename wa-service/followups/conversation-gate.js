@@ -23,6 +23,7 @@
  * JSON validada. Cualquier error, timeout o JSON inválido degrada a SKIP.
  */
 
+const { SOLO_ID } = require('../shared/columnas-chat');
 const { prisma } = require('../db');
 const { contenidoATexto } = require('../shared/ai-content');
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
@@ -215,7 +216,7 @@ async function applyCancelVerdict({ chat, clientId, clientName, verdict }) {
         if (!labels.includes('SIN_SEGUIMIENTO')) labels.push('SIN_SEGUIMIENTO');
         await prisma.whatsAppChat.update({
             where: { id: chat.id },
-            data: { chatLabels: labels },
+            data: { chatLabels: labels }, select: SOLO_ID
         });
 
         if (clientId) {

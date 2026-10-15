@@ -1,3 +1,4 @@
+const { CHAT_BASE, SOLO_ID } = require('./shared/columnas-chat');
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { contenidoATexto } = require('./shared/ai-content');
 const { HumanMessage } = require("@langchain/core/messages");
@@ -107,7 +108,7 @@ async function processPassiveExtraction(chatId, waId, profileName) {
 
         const chatInfo = await prisma.whatsAppChat.findUnique({
             where: { id: chatId },
-            include: { client: { include: { tags: true } } }
+            select: { ...CHAT_BASE, client: { include: { tags: true } } }
         });
 
         if (!chatInfo) return; 
@@ -413,7 +414,7 @@ Respond ONLY with the raw JSON. No markdown.
                     data: {
                         chatLabels: updatedLabels,
                         followUpPausedUntil: resumeDate
-                    }
+                    }, select: SOLO_ID
                 }).catch(() => {});
 
                 // 5. Tarea de seguimiento para el VENDEDOR: una viva por cliente.
@@ -472,14 +473,14 @@ Respond ONLY with the raw JSON. No markdown.
                 console.log(`  📝 [Ficha Inteligente] Creando resumen inicial del chat.`);
                 await prisma.whatsAppChat.update({
                     where: { id: chatId },
-                    data: { chatSummary: parsed.summary }
+                    data: { chatSummary: parsed.summary }, select: SOLO_ID
                 }).catch(e => console.error("Error update chatSummary pasivo:", e.message));
             } else if (parsed.summary.length > existingSummary.length * 1.5) {
                 // El nuevo resumen es significativamente más completo → reemplazar
                 console.log(`  📝 [Ficha Inteligente] Actualizando resumen del chat (más completo que el anterior).`);
                 await prisma.whatsAppChat.update({
                     where: { id: chatId },
-                    data: { chatSummary: parsed.summary }
+                    data: { chatSummary: parsed.summary }, select: SOLO_ID
                 }).catch(e => console.error("Error update chatSummary pasivo:", e.message));
             } else {
                 // Ya existe un resumen (probablemente del agente, más rico) → NO sobreescribir

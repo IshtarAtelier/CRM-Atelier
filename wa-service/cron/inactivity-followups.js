@@ -6,6 +6,7 @@
  * DEDUP: Usa lastFollowUpAt en la DB para no enviar más de 1 follow-up cada 24hs.
  * EXCLUSIÓN MUTUA: Respeta etiquetas de sales-followups.
  */
+const { CHAT_BASE, SOLO_ID } = require('../shared/columnas-chat');
 const { prisma } = require('../db');
 const { evaluarElegibilidad } = require('../followups/politica');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
@@ -90,7 +91,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                 { followUpPausedUntil: { lte: now } },
             ],
         },
-        include: {
+        select: { ...CHAT_BASE,
             messages: {
                 orderBy: { createdAt: 'desc' },
                 take: 1
@@ -183,7 +184,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                             : 2 * 3600 * 1000;
                         await prisma.whatsAppChat.update({
                             where: { id: chat.id },
-                            data: { followUpPausedUntil: new Date(now.getTime() + pauseMs) }
+                            data: { followUpPausedUntil: new Date(now.getTime() + pauseMs) }, select: SOLO_ID
                         }).catch(() => {});
                         console.log(`  ${gate.decision === 'POSTPONE' ? '⏸️' : '⏭️'} [Gate] Inactividad de ${chat.profileName || chat.waId} pausada ${(pauseMs / 3600000).toFixed(0)}hs: ${gate.reason}`);
                         continue;
@@ -237,7 +238,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                     // un recordatorio — mejor eso que un duplicado.
                     await prisma.whatsAppChat.update({
                         where: { id: chat.id },
-                        data: { lastFollowUpAt: new Date() }
+                        data: { lastFollowUpAt: new Date() }, select: SOLO_ID
                     });
                     sentThisCycle++;
 
@@ -252,7 +253,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         // 2 segundos, y en el medio el cliente pudo escribir o
                         // pedir que no lo contacten.
                         preflight: async () => {
-                            const fresh = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
+                            const fresh = await prisma.whatsAppChat.findUnique({ where: { id: chat.id }, select: CHAT_BASE });
                             if (!fresh) return { ok: false, reason: 'el chat ya no existe' };
 
                             // Acá `botEnabled` SÍ corresponde, al revés que en los
@@ -307,7 +308,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         data: { 
                             lastMessageAt: new Date(),
                             lastFollowUpAt: new Date()
-                        }
+                        }, select: SOLO_ID
                     });
                     
                     broadcastChatUpdate(chat.id);
