@@ -39,6 +39,13 @@ export interface TemplateDef {
     footer?: string;
     /** Botones (URL fija o de respuesta rápida). */
     buttons?: ({ type: 'URL'; text: string; url: string } | { type: 'QUICK_REPLY'; text: string })[];
+    /**
+     * BORRADOR: el texto todavía no lo aprobó Ishtar, así que NO se crea en
+     * Meta (crear-plantillas.mjs lo saltea) y ningún envío automático lo
+     * manda: el código mira el espejo `WhatsAppTemplate` y sin fila APPROVED
+     * no sale nada. Sacar esta marca = pedirle la aprobación a Meta.
+     */
+    borrador?: true;
 }
 
 export const TEMPLATE_LANGUAGE = 'es_AR';
@@ -646,6 +653,33 @@ export const WHATSAPP_TEMPLATES = {
             { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
             { type: 'QUICK_REPLY', text: 'No quiero más mensajes' },
         ],
+    },
+
+    // ── Recupero de carrito por WhatsApp a las 24 h ──────────────────────────
+    // PENDIENTE: aprobación de ISHTAR (texto) y de META (plantilla). Plan de la
+    // tienda del 15/10/2026, 3.4: a las 24 h de abandonar el carrito con el
+    // WhatsApp cargado, si ningún humano le escribió, sale esta plantilla con
+    // el carrito. `borrador: true` la deja fuera de crear-plantillas.mjs y el
+    // envío (src/lib/checkout/recupero-whatsapp.ts) exige APPROVED en el
+    // espejo local: hasta entonces solo se cuenta como "pendiente de plantilla".
+    // UTILITY y no MARKETING: es un recordatorio de una compra que la persona
+    // empezó (Meta lo acepta como utility cuando nombra el carrito concreto).
+    recupero_carrito_web: {
+        name: 'recupero_carrito_web',
+        inventario: 'Plan tienda 15/10/2026 · 3.4 (recupero de carrito a las 24 h)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! Soy de Atelier Óptica. Te quedó en el carrito de la tienda: {{3}}. Si querés lo terminamos juntos por acá, y si tenés alguna duda sobre el modelo o los cristales, contame. Envío gratis a todo el país, o lo retirás en el local.',
+        params: [
+            { label: 'nombre', example: 'Julio' },
+            { label: 'saludo según la hora', example: 'buen día' },
+            { label: 'qué quedó en el carrito', example: 'Victoria C7 ($145.000)' },
+        ],
+        buttons: [
+            { type: 'URL', text: 'Ver mi carrito', url: 'https://atelieroptica.com.ar/checkout' },
+            { type: 'QUICK_REPLY', text: 'Tengo una duda' },
+            { type: 'QUICK_REPLY', text: 'Ya no me interesa' },
+        ],
+        borrador: true,
     },
 } as const satisfies Record<string, TemplateDef>;
 

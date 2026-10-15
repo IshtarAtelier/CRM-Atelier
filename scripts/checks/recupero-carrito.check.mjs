@@ -78,6 +78,33 @@ esperar('sesión inexistente: nada', (await carritoRecuperable(ID, db(null))).le
     esperar('el PUT público solo acepta los estados que se mandan de verdad', /ESTADOS_QUE_LLEGAN_DE_AFUERA/.test(put));
 }
 
+// Recupero por WhatsApp a las 24 h (plan 15/10/2026, 3.4): la plantilla es un
+// BORRADOR hasta que la aprueben Ishtar y Meta, y el código tiene que negarse
+// a mandarla mientras tanto.
+{
+    const { readFileSync } = await import('node:fs');
+    const { WHATSAPP_TEMPLATES } = await import('../../src/lib/whatsapp/templates.ts');
+    const { PLANTILLAS_AUTOMATICAS } = await import('../../src/lib/constants/seguimientos.ts');
+    const rw = await import('../../src/lib/checkout/recupero-whatsapp.ts');
+    const def = WHATSAPP_TEMPLATES[rw.PLANTILLA_RECUPERO_CARRITO];
+    esperar('la plantilla de recupero existe en el catálogo y está marcada BORRADOR (pendiente de Ishtar y Meta)', def && def.borrador === true);
+    esperar('el texto PENDIENTE de aprobación es el del catálogo (una sola redacción)', rw.TEXTO_PLANTILLA_RECUPERO_CARRITO === def?.body);
+    esperar('no dice "sin interés" ni promete cuotas (eso lo decide la tienda, no un mensaje)', !/sin inter[eé]s|cuotas/i.test(def?.body || ''));
+    esperar('nombra el envío gratis y el retiro en el local, como el carrito', /env[ií]o gratis/i.test(def?.body || '') && /local/i.test(def?.body || ''));
+    esperar('NO está en PLANTILLAS_AUTOMATICAS del motor (el recupero tiene su propio candado de aprobación)', !PLANTILLAS_AUTOMATICAS.includes(rw.PLANTILLA_RECUPERO_CARRITO));
+    esperar('sin fila APPROVED en el espejo de Meta, no está aprobada', (await rw.plantillaRecuperoAprobada({ whatsAppTemplate: { findFirst: async () => null } })) === false);
+    esperar('con fila PENDING tampoco', (await rw.plantillaRecuperoAprobada({ whatsAppTemplate: { findFirst: async () => ({ status: 'PENDING' }) } })) === false);
+    esperar('con fila APPROVED sí', (await rw.plantillaRecuperoAprobada({ whatsAppTemplate: { findFirst: async () => ({ status: 'APPROVED' }) } })) === true);
+    esperar('describe el carrito con el total en argentino', rw.describirCarritoParaWhatsApp([{ brand: 'Atelier', model: 'Victoria C7' }, { model: 'Zeus' }], 290000) === 'Victoria C7 y 1 más ($290.000)' || rw.describirCarritoParaWhatsApp([{ brand: 'Atelier', model: 'Victoria C7' }, { model: 'Zeus' }], 290000) === 'Atelier Victoria C7 y 1 más ($290.000)', rw.describirCarritoParaWhatsApp([{ brand: 'Atelier', model: 'Victoria C7' }, { model: 'Zeus' }], 290000));
+    const modulo = readFileSync(new URL('../../src/lib/checkout/recupero-whatsapp.ts', import.meta.url), 'utf8');
+    esperar('el envío exige la plantilla aprobada antes de mandar', modulo.indexOf('plantillaRecuperoAprobada()') < modulo.indexOf('sendWhatsApp({'));
+    esperar('respeta SIN_ROBOTS y el cupo compartido de la línea (SeguimientoEnvio)', modulo.includes('...SIN_ROBOTS') && modulo.includes('reclamarEnvio(') && modulo.includes("resultado: 'ENVIADO'"));
+    esperar('no interrumpe a quien ya le escribió una persona', modulo.includes('REMITENTES_AUTOMATICOS') && modulo.includes('yaLoAtiendeUnHumano++'));
+    esperar('el cron de carritos lo llama', readFileSync(new URL('../../src/app/api/cron/abandoned-carts/route.ts', import.meta.url), 'utf8').includes('recuperarCarritosPorWhatsApp()'));
+    const crear = readFileSync(new URL('../../scripts/maintenance/whatsapp-api-oficial/crear-plantillas.mjs', import.meta.url), 'utf8');
+    esperar('crear-plantillas.mjs saltea los borradores (no se pide a Meta sin el OK de Ishtar)', crear.includes('!d.borrador'));
+}
+
 const fallas = casos.filter((c) => !c.ok);
 for (const c of casos) console.log(`${c.ok ? '✅' : '❌'} ${c.nombre}${c.ok || !c.detalle ? '' : `\n     ${c.detalle}`}`);
 console.log(`\n${casos.length - fallas.length}/${casos.length} casos OK`);
