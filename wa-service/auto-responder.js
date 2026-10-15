@@ -124,7 +124,7 @@ function buildAutoReplyText() {
 
 /** ¿El entrante es una consulta de verdad, o ruido que no hay que contestar? */
 // La definición es la de shared/clasificar-entrante.js, la misma del bot:
-// una reacción, un "gracias" de cierre, nuestra bienvenida automática o el
+// una reacción, un "gracias" de cierre, un eco nuestro (fromMe) o el
 // contestador del negocio del cliente no reciben el aviso de fuera de horario.
 // (Un medio sin texto sí: una foto de la receta es una consulta.)
 function esConsultaDeCliente(m) {

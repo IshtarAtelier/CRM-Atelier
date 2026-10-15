@@ -7,8 +7,9 @@
  *   'consulta'         — lo escribió una persona y merece respuesta.
  *   'reaccion'         — una reacción, un sticker, un "gracias" de cierre o
  *                        solo emojis: se guarda, no dispara turno.
- *   'auto_nuestro'     — una respuesta automática NUESTRA (bienvenida /
- *                        ausencia de WhatsApp Business) que volvió como entrante.
+ *   'auto_nuestro'     — un mensaje NUESTRO que volvió por el camino de los
+ *                        entrantes (eco con `fromMe`). Se decide por el
+ *                        METADATO del mensaje, nunca por el texto (ver abajo).
  *   'auto_del_cliente' — la respuesta automática del NEGOCIO del cliente
  *                        ("Hola! Estoy fuera trabajando. Regreso mañana").
  *
@@ -21,16 +22,26 @@
  *
  * Criterio para 'auto_del_cliente': SEÑALES FUERTES, nunca una sola frase
  * suelta. "mañana regreso por el local" es una consulta; "Estoy fuera
- * trabajando. Regreso mañana" es un contestador. Se exigen dos señales (o una
- * declaración explícita de "mensaje automático"), y cualquier pregunta o
- * mención de lo que vendemos lo devuelve a 'consulta': ante la duda, se
- * contesta — callar a un cliente real es el error caro.
+ * trabajando. Regreso mañana" es un contestador. Primero las guardas que lo
+ * devuelven a 'consulta' (habla de lo nuestro, dice que quiere algo o que va a
+ * pasar), después: o el mensaje DECLARA ser automático, o junta dos señales
+ * (ausencia, regreso, promesa de responder, horario, bienvenida). Ante la
+ * duda, se contesta — callar a un cliente real es el error caro.
+ *
+ * Auditoría del 15/10/2026, dos clientes reales que se callaban:
+ *   - "Gracias por tu mensaje! quería saber cuánto salen" salía 'auto_nuestro'
+ *     porque el texto se parecía a NUESTRA bienvenida de Meta. Pero un
+ *     ENTRANTE nunca es nuestro: nuestros automáticos son salientes. Ahora
+ *     'auto_nuestro' sale solo del metadato (`fromMe`), jamás del texto.
+ *   - "Estoy de viaje, regreso el lunes y paso a buscarlos" juntaba dos
+ *     señales ("estoy de viaje", "regreso el lunes") y salía contestador. Lo
+ *     que lo delata como persona es lo que VA A HACER ("paso a buscarlos"):
+ *     ahora esa guarda corre antes de contar señales (`HABLA_UNA_PERSONA`).
  *
  * Puro: sin base ni red. Lo fija `npm run check:entrantes`.
  */
 
 const { TIPOS_CON_CONSULTA } = require('./tipos-entrantes');
-const { isMetaAutoReplyText } = require('./meta-auto-patterns');
 
 const CLASE = Object.freeze({
     CONSULTA: 'consulta',
@@ -56,26 +67,37 @@ const DECLARA_AUTOMATICO = [
     /\bauto[- ]?reply\b/,
 ];
 
-/** Señales de contestador (castellano y portugués). Hacen falta dos. */
-const SENALES_DE_CONTESTADOR = [
-    // ausencia
+/** Señales de AUSENCIA o de REGRESO (castellano y portugués). */
+const SENALES_DE_AUSENCIA = [
     /\b(estoy|estamos|me encuentro|nos encontramos) (fuera|afuera|ausente|de vacaciones|de viaje)\b/,
     /\b(estou|estamos) (fora|ausente|de ferias|viajando)\b/,
+    /\b(regreso|vuelvo|retorno|estare de vuelta) (manana|el lunes|el martes|el miercoles|el jueves|el viernes|el sabado|el domingo|en breve|pronto|a la brevedad|el dia)\b/,
+    /\b(retornarei|retornaremos|volto|voltarei) (amanha|em breve|logo|na segunda|assim que)/,
+];
+
+/** Señales de COMERCIO: promete responder, informa su horario o da la bienvenida. */
+const SENALES_DE_COMERCIO = [
     /\ben este momento no (puedo|podemos) (atender|responder|contestar)/,
     /\bno momento nao (posso|podemos) (atender|responder)/,
     /\b(fuera|fora) (del|de|do) horario (de atencion|comercial|de trabajo|laboral)\b/,
     /\b(nuestro|nosso) horario (de atencion|de atendimento) es\b/,
-    // promesa de volver / responder
-    /\b(regreso|vuelvo|retorno|estare de vuelta) (manana|el lunes|el martes|el miercoles|el jueves|el viernes|el sabado|el domingo|en breve|pronto|a la brevedad|el dia)\b/,
-    /\b(retornarei|retornaremos|volto|voltarei) (amanha|em breve|logo|na segunda|assim que)/,
     /\bte (respondere|responderemos|contestare|contestaremos|escribire|escribiremos) (a la brevedad|lo antes posible|cuanto antes|en breve|apenas pueda|apenas podamos|pronto|manana)/,
     /\b(responderei|responderemos) (assim que possivel|em breve|o mais breve)/,
-    // bienvenida de comercio
     /\bgracias por (comunicarte|contactarte|contactarnos|escribirnos|tu mensaje|su mensaje|elegirnos)\b/,
     /\bobrigad[oa] (por (entrar em contato|sua mensagem|seu contato|nos contatar))\b/,
     /\b(bienvenid[oa]s? a|bem[- ]vind[oa]s? a)\b/,
     /\ben (que|como) (te |le )?(podemos|puedo) ayudar(te|le)?\b/,
     /\bcomo (podemos|posso) (te )?ajudar\b/,
+];
+
+/**
+ * Una persona diciendo lo que quiere o lo que va a hacer: "quería saber",
+ * "paso a buscarlos", "necesito". Un contestador no habla así.
+ */
+const HABLA_UNA_PERSONA = [
+    /\b(quiero|queria|quisiera|necesito|necesitaria|consulto|consultaba|preguntaba|queria saber)\b/,
+    /\b(paso|pasare|voy a pasar|pasamos|paso a buscar|los busco|las busco|lo busco|la busco)\b/,
+    /\b(buscar|retirar)(los|las|lo|la)?\b/,
 ];
 
 /**
@@ -89,9 +111,11 @@ const HABLA_DE_LO_NUESTRO = [
 function esContestadorDelCliente(texto) {
     const t = normalizar(texto);
     if (!t) return false;
+    // Guardas primero: ante la duda, consulta.
     if (HABLA_DE_LO_NUESTRO.some(r => r.test(t))) return false;
+    if (HABLA_UNA_PERSONA.some(r => r.test(t))) return false;
     if (DECLARA_AUTOMATICO.some(r => r.test(t))) return true;
-    const senales = SENALES_DE_CONTESTADOR.filter(r => r.test(t)).length;
+    const senales = SENALES_DE_COMERCIO.filter(r => r.test(t)).length + SENALES_DE_AUSENCIA.filter(r => r.test(t)).length;
     // Una pregunta suele ser de una persona ("estoy fuera, regreso mañana,
     // ¿puedo pasar el lunes?"); pero las bienvenidas de comercio también
     // preguntan ("¿en qué podemos ayudarte?"). Con pregunta se exige una
@@ -130,6 +154,10 @@ function esCierreConGracias(texto) {
  */
 function clasificarEntrante(msg, contexto = {}) {
     if (!msg) return CLASE.REACCION;
+    // Lo NUESTRO se reconoce por el metadato, no por el texto (15/10/2026): un
+    // cliente que escribe "Gracias por tu mensaje! quería saber cuánto salen"
+    // se parece a nuestra bienvenida y quedaba callado.
+    if (msg.fromMe === true) return CLASE.AUTO_NUESTRO;
     if (msg.reaction) return CLASE.REACCION;
     // Sin `type` se asume texto: los transportes viejos no lo mandaban, y
     // callar por una duda de forma es peor que contestar de más.
@@ -142,15 +170,37 @@ function clasificarEntrante(msg, contexto = {}) {
     if (/^\[reacci[oó]n\]/i.test(texto.trim())) return CLASE.REACCION;
     if (!texto.trim()) return CLASE.REACCION;
 
-    // Primero el contestador del cliente: los patrones de nuestra bienvenida
-    // ("gracias por escribir…") también aparecen en los de otros comercios.
-    // Para el turno da igual (ninguno dispara), pero el log dice la verdad.
     if (esContestadorDelCliente(texto)) return CLASE.AUTO_DEL_CLIENTE;
-    if (isMetaAutoReplyText(texto)) return CLASE.AUTO_NUESTRO;
 
     if (soloEmojis(texto)) return contexto.ultimoNuestroPregunta ? CLASE.CONSULTA : CLASE.REACCION;
     if (esCierreConGracias(texto)) return CLASE.REACCION;
     return CLASE.CONSULTA;
+}
+
+/**
+ * Una fila de `WhatsAppMessage` (INBOUND) en la forma que espera
+ * `clasificarEntrante`. La usan los caminos que deciden desde la BASE y no
+ * desde el webhook (el control "llegó algo nuevo durante el turno" y el
+ * barrido de la vuelta del bot, 15/10/2026): tienen que contar lo mismo que
+ * cuenta el webhook, o una reacción les vale como consulta.
+ * `transport/inbound.js` guarda el sticker como IMAGE "[Sticker]", lo no
+ * soportado como TEXT "[Mensaje no soportado]" y la reacción como TEXT
+ * "[Reacción] 👍".
+ *
+ * @param {{ type?: string, content?: string }} fila
+ */
+function entranteDeFila(fila) {
+    const contenido = String((fila && fila.content) || '');
+    let tipo = String((fila && fila.type) || 'TEXT').toLowerCase();
+    if (/^\[sticker\]/i.test(contenido.trim())) return { type: 'sticker', text: contenido };
+    if (/^\[mensaje no soportado\]/i.test(contenido.trim())) return { type: 'unsupported', text: contenido };
+    if (!TIPOS_CON_CONSULTA.has(tipo)) tipo = 'text';
+    return { type: tipo, text: contenido };
+}
+
+/** ¿Esta fila entrante dispara un turno? (atajo de las dos de arriba) */
+function filaDisparaTurno(fila, contexto) {
+    return disparaTurno(clasificarEntrante(entranteDeFila(fila), contexto));
 }
 
 /** `true` si el entrante tiene que disparar un turno del bot. */
@@ -158,4 +208,4 @@ function disparaTurno(clase) {
     return clase === CLASE.CONSULTA;
 }
 
-module.exports = { CLASE, clasificarEntrante, disparaTurno, esContestadorDelCliente, esCierreConGracias };
+module.exports = { CLASE, clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno, esContestadorDelCliente, esCierreConGracias };

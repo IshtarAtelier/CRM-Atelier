@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
-const { clasificarEntrante, disparaTurno, CLASE } = require('../../wa-service/shared/clasificar-entrante.js');
+const { clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno, CLASE } = require('../../wa-service/shared/clasificar-entrante.js');
 const { decidirVuelta, VENTANA_PARA_QUE_CONTESTE_EL_EQUIPO_MIN, HORAS_PARA_VOLVER_FUERA_DE_HORARIO } = require('../../wa-service/shared/duenio-del-chat.js');
 const { isBusinessHours } = require('../../wa-service/shared/business-hours.js');
 
@@ -43,13 +43,26 @@ const CASOS = [
     ['dale', CLASE.CONSULTA, '"dale" solo puede ser un sí'],
     ['hola', CLASE.CONSULTA, 'un saludo es una consulta'],
     ['[Reacción] 👍', CLASE.REACCION, 'reacción guardada como texto'],
-    ['¡Hola! ¿Cómo podemos ayudarte?', CLASE.AUTO_NUESTRO, 'nuestra bienvenida automática de Meta'],
+    // Un ENTRANTE nunca es nuestro (15/10/2026): aunque el texto se parezca a
+    // nuestra bienvenida, lo escribió el cliente (o su comercio).
+    ['¡Hola! ¿Cómo podemos ayudarte?', CLASE.CONSULTA, 'parece nuestra bienvenida, pero es entrante: ante la duda, consulta'],
+    ['Gracias por tu mensaje! quería saber cuánto salen', CLASE.CONSULTA, 'cliente real que se callaba como "auto_nuestro" (15/10/2026)'],
+    ['Estoy de viaje, regreso el lunes y paso a buscarlos', CLASE.CONSULTA, 'cliente real que se callaba como contestador (15/10/2026)'],
+    ['Estoy fuera de la ciudad, vuelvo el lunes, quería consultar algo', CLASE.CONSULTA, 'ausencia + regreso + "quería": una persona'],
+    ['Gracias por comunicarte con Ferretería Sur. Te responderemos a la brevedad', CLASE.AUTO_DEL_CLIENTE, 'bienvenida de otro comercio con promesa de respuesta'],
 ];
 for (const [t, esperado, porque] of CASOS) {
     const c = txt(t);
     check(`"${t}" → ${esperado} (${porque})${c !== esperado ? ` — dio ${c}` : ''}`, c === esperado);
 }
 check('"👍" después de una pregunta nuestra ("¿te mando fotos?") ES una respuesta', txt('👍', { ultimoNuestroPregunta: true }) === CLASE.CONSULTA);
+check('"auto_nuestro" sale del METADATO (fromMe), no del texto', clasificarEntrante({ type: 'text', text: 'hola', fromMe: true }) === CLASE.AUTO_NUESTRO);
+check('fila: una reacción guardada no dispara turno', !filaDisparaTurno({ type: 'TEXT', content: '[Reacción] 👍' }));
+check('fila: un sticker guardado como IMAGE no dispara turno', !filaDisparaTurno({ type: 'IMAGE', content: '[Sticker]' }) && entranteDeFila({ type: 'IMAGE', content: '[Sticker]' }).type === 'sticker');
+check('fila: lo no soportado no dispara turno', !filaDisparaTurno({ type: 'TEXT', content: '[Mensaje no soportado]' }));
+check('fila: un "gracias" de cierre no dispara turno', !filaDisparaTurno({ type: 'TEXT', content: 'Muchas gracias!' }));
+check('fila: una foto sí', filaDisparaTurno({ type: 'IMAGE', content: '[Mensaje IMAGE]' }));
+check('fila: una pregunta sí', filaDisparaTurno({ type: 'TEXT', content: 'cuánto sale?' }));
 check('una foto es consulta aunque no traiga texto', clasificarEntrante({ type: 'image' }) === CLASE.CONSULTA);
 check('un audio es consulta', clasificarEntrante({ type: 'audio' }) === CLASE.CONSULTA);
 check('un sticker no lo es', clasificarEntrante({ type: 'sticker' }) === CLASE.REACCION);
