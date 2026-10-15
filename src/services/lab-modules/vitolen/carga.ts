@@ -112,6 +112,21 @@ export interface VentaParaCarga {
     }[];
 }
 
+/**
+ * Tipo de armazón: texto → radio del portal (valor, etiqueta). La venta casi
+ * nunca lo trae (`labFrameType` vacío en las 152 ventas enviadas entre
+ * agosto y octubre de 2026), así que lo elige quien prepara, como la forma.
+ */
+export const TIPO_ARMAZON_PORTAL: [RegExp, string, string][] = [
+    [/met[aá]l/i, '1', 'Metálico'],
+    [/zilo|acetato|pl[aá]stic|inyectad|tr-?90|ultem/i, '2', 'Zilo'],
+    [/ranur|nylon|semi/i, '3', 'Ranurado'],
+    [/perfor|al aire|rimless|tres piezas|3 piezas/i, '4', 'Perforado'],
+];
+export const TIPOS_ARMAZON = TIPO_ARMAZON_PORTAL.map(([, , etiqueta]) => etiqueta);
+export const tipoArmazonDelPortal = (texto: string | null | undefined) =>
+    TIPO_ARMAZON_PORTAL.find(([re]) => re.test(texto || '')) ?? null;
+
 /** Valores del portal cuando la venta no dice otra cosa (los del video). */
 export const VERTICE_POR_DEFECTO = 14;
 export const PANTOSCOPICO_POR_DEFECTO = 6;
@@ -147,22 +162,45 @@ export function codigoDeCristal(cristal: CristalVitolen, variante: string | null
 }
 
 /**
+ * Los cristales de Vitolen de la venta, agrupados por par (1, 2…). Qué par es
+ * cada uno lo dice el armazón asignado (`framePosition`). Si NINGUNO lo tiene,
+ * los pares se arman en el orden del carrito: el 2º OD y el 2º OI son del par
+ * 2 — el mismo criterio que la promo del 2º par (promo-segundo-par-hoya.ts).
+ * Así venía la primera venta real (Moroncini, 15/10/2026): dos armazones y
+ * cuatro cristales sin asignar. Si alguno tiene posición, un ítem sin ella es
+ * del par 1: no puede "prestarse" al par 2. Puro.
+ */
+export function cristalesPorPar(venta: Pick<VentaParaCarga, 'items'>): Map<number, VentaParaCarga['items']> {
+    const deVitolen = venta.items.filter(i =>
+        /cristal/i.test(i.productCategorySnapshot || '') && /vitolen/i.test(i.laboratorySnapshot || ''));
+    const sinAsignar = deVitolen.every(i => i.framePosition == null);
+    const vistos: Record<string, number> = {};
+    const pares = new Map<number, VentaParaCarga['items']>();
+    for (const i of deVitolen) {
+        let par = i.framePosition ?? 1;
+        if (sinAsignar) {
+            const ojo = (i.eye || '').toUpperCase() || 'AMBOS';
+            par = vistos[ojo] = (vistos[ojo] ?? 0) + 1;
+        }
+        pares.set(par, [...(pares.get(par) ?? []), i]);
+    }
+    return pares;
+}
+
+/**
  * Arma el payload del portal. `pair` es el armazón/par de la venta (1 o 2, como
  * `framePosition`); `variante` es la elegida por el vendedor cuando el diseño
  * la exige; `pedidoOrigen` es el nº del primer par para la promo del 2º.
  */
 export function armarFormulario(
     venta: VentaParaCarga,
-    opts: { pair?: number; variante?: string | null; pedidoOrigen?: string | null; forma?: string | null; ejeDiagonal?: number | null } = {},
+    opts: { pair?: number; variante?: string | null; pedidoOrigen?: string | null; forma?: string | null; ejeDiagonal?: number | null; tipoArmazon?: string | null } = {},
 ): ResultadoArmado {
     const faltantes: string[] = [];
     const avisos: string[] = [];
     const pair = opts.pair ?? 1;
 
-    // Un ítem sin posición de armazón es del par 1: no puede "prestarse" al par 2.
-    const cristales = venta.items.filter(i =>
-        /cristal/i.test(i.productCategorySnapshot || '') && /vitolen/i.test(i.laboratorySnapshot || '')
-        && (i.framePosition ?? 1) === pair);
+    const cristales = cristalesPorPar(venta).get(pair) ?? [];
     if (cristales.length === 0) {
         return { ok: false, payload: null, faltantes: [`la venta no tiene cristales de Vitolen para el par ${pair}`], avisos };
     }
@@ -221,6 +259,10 @@ export function armarFormulario(
     const ejeDiagonal = num(opts.ejeDiagonal);
     if (ejeDiagonal === null || ejeDiagonal < 0 || ejeDiagonal > 180) faltantes.push('eje de la diagonal mayor del armazón (0 a 180): se carga al preparar');
 
+    // Lo elegido al preparar manda; si no, lo que diga la venta.
+    const tipoArmazon = tipoArmazonDelPortal(opts.tipoArmazon) ?? tipoArmazonDelPortal(venta.labFrameType);
+    if (!tipoArmazon) faltantes.push('tipo de armazón (Metálico / Zilo / Ranurado / Perforado): se elige al preparar');
+
     const caracteristicas = [venta.userFrameBrand, venta.userFrameModel, frame?.details || venta.labFrameDetails].filter(Boolean).join(' ').trim();
 
     const payload: PayloadVitolen = {
@@ -238,7 +280,7 @@ export function armarFormulario(
         anguloPantoscopico: PANTOSCOPICO_POR_DEFECTO,
         armazon: {
             forma, largo, alto, diagonalMayor: diagonal, ejeDiagonal, puente,
-            tipo: venta.labFrameType || null,
+            tipo: tipoArmazon?.[2] ?? null,
             caracteristicas,
             funcionalidad: 'Aro Convencional',
         },

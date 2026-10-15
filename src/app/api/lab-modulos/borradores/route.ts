@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 import { Borradores } from '@/services/lab-modules/carga/borrador';
-import { armarFormulario, leerVentaParaCarga } from '@/services/lab-modules/vitolen/carga';
+import { armarFormulario, cristalesPorPar, leerVentaParaCarga, TIPOS_ARMAZON } from '@/services/lab-modules/vitolen/carga';
 import { cristalVitolenPorNombre } from '@/services/lab-modules/vitolen/catalogo';
 import { llenarBorradorEnPortal } from '@/services/lab-modules/vitolen/borrador-portal';
 import { puedeCargarEnLaboratorio } from '@/lib/lab-carga-acceso';
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
  *
  *  GET  /api/lab-modulos/borradores?orderId=…  → borradores de la venta + lo que
  *       el portal muestra de ella (espejo) + qué necesita cada par para armarse.
- *  POST /api/lab-modulos/borradores { orderId, pair, variante?, forma?, ejeDiagonal?, pedidoOrigen? }
+ *  POST /api/lab-modulos/borradores { orderId, pair, variante?, forma?, ejeDiagonal?, tipoArmazon?, pedidoOrigen? }
  *       → arma el pedido desde la venta; si falta un dato, lo dice y no crea nada;
  *       si está completo, crea el borrador PREPARADO. El robot lo llena en el
  *       portal y lo deja EN_REVISION; una persona lo aprueba (PATCH en [id]).
@@ -42,22 +42,21 @@ export async function GET(request: Request) {
 
     // Qué pares de Vitolen tiene la venta y qué le falta a cada uno para armarse
     // (sin forma ni variante elegidas todavía: eso lo decide quien prepara).
-    const pares = [...new Set(venta.items
-        .filter(i => /vitolen/i.test(i.laboratorySnapshot || '') && /cristal/i.test(i.productCategorySnapshot || ''))
-        .map(i => i.framePosition ?? 1))].sort();
+    const porPar = cristalesPorPar(venta);
+    const pares = [...porPar.keys()].sort();
     const analisis = pares.map(pair => {
-        const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0 });
-        const cristal = cristalVitolenPorNombre(venta.items.find(i => (i.framePosition ?? 1) === pair && /vitolen/i.test(i.laboratorySnapshot || ''))?.productNameSnapshot);
+        const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0, tipoArmazon: TIPOS_ARMAZON[0] });
+        const cristal = cristalVitolenPorNombre(porPar.get(pair)?.[0]?.productNameSnapshot);
         return {
             pair,
             diseno: cristal?.diseno ?? null,
             variantes: cristal?.variantes ?? [],
-            faltantes: r.faltantes.filter(f => !/variante|forma del armazón/.test(f)),
+            faltantes: r.faltantes.filter(f => !/variante|forma del armazón|tipo de armazón/.test(f)),
             avisos: r.avisos,
         };
     });
 
-    return NextResponse.json({ borradores, espejo, pares: analisis, formas: FORMAS_PORTAL });
+    return NextResponse.json({ borradores, espejo, pares: analisis, formas: FORMAS_PORTAL, tiposArmazon: TIPOS_ARMAZON });
 }
 
 export async function POST(request: Request) {
@@ -73,6 +72,8 @@ export async function POST(request: Request) {
         if (!Number.isInteger(pair) || pair < 1 || pair > 2) return NextResponse.json({ error: 'El par tiene que ser 1 o 2.' }, { status: 400 });
         const forma = body.forma ? String(body.forma) : null;
         if (forma && !FORMAS_PORTAL.includes(forma)) return NextResponse.json({ error: 'La forma tiene que ser Forma 1 a Forma 12.' }, { status: 400 });
+        const tipoArmazon = body.tipoArmazon ? String(body.tipoArmazon) : null;
+        if (tipoArmazon && !TIPOS_ARMAZON.includes(tipoArmazon)) return NextResponse.json({ error: `El tipo de armazón tiene que ser ${TIPOS_ARMAZON.join(', ')}.` }, { status: 400 });
 
         const venta = await leerVentaParaCarga(orderId);
         if (!venta) return NextResponse.json({ error: 'Venta no encontrada.' }, { status: 404 });
@@ -81,8 +82,7 @@ export async function POST(request: Request) {
         if (venta.labStatus !== 'SENT') {
             return NextResponse.json({ error: `La venta tiene que estar enviada a fábrica antes de cargarla en el portal (hoy está ${venta.labStatus || 'sin enviar'}).` }, { status: 409 });
         }
-        const paresDeLaVenta = new Set(venta.items.filter(i => /vitolen/i.test(i.laboratorySnapshot || '') && /cristal/i.test(i.productCategorySnapshot || '')).map(i => i.framePosition ?? 1));
-        if (!paresDeLaVenta.has(pair)) return NextResponse.json({ error: `La venta no tiene cristales de Vitolen para el par ${pair}.` }, { status: 400 });
+        if (!cristalesPorPar(venta).has(pair)) return NextResponse.json({ error: `La venta no tiene cristales de Vitolen para el par ${pair}.` }, { status: 400 });
 
         const ejeDiagonal = body.ejeDiagonal === undefined || body.ejeDiagonal === null || body.ejeDiagonal === '' ? null : Number(body.ejeDiagonal);
         if (ejeDiagonal !== null && !(Number.isFinite(ejeDiagonal) && ejeDiagonal >= 0 && ejeDiagonal <= 180)) {
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
             pedidoOrigen = enEspejo?.portalNumber ?? parseLabNumbers(enVenta?.labOrderNumber).map(n => `${n}L`)[0] ?? null;
         }
         const r = armarFormulario(venta, {
-            pair, forma, ejeDiagonal,
+            pair, forma, ejeDiagonal, tipoArmazon,
             variante: body.variante ? String(body.variante) : null,
             pedidoOrigen,
         });

@@ -225,6 +225,10 @@ ok('cada cristal del catálogo se encuentra por su nombre exacto, sin importar l
     assert.equal(cristalVitolenPorNombre('hoya array 2 - 1.50 clear blue filter')?.codigos[0], '10050');
     assert.equal(cristalVitolenPorNombre('HOYA LIFESTYLE 4 - 1.50 CLEAR')?.variantes.length, 3);
     assert.equal(cristalVitolenPorNombre('nada'), null);
+    // La venta guarda el nombre SIN la marca (productNameSnapshot = modelo): el
+    // 15/10/2026 la primera venta real (Moroncini) no se podía preparar por esto.
+    assert.equal(cristalVitolenPorNombre('Array 2 - 1.60 Blue Filter UV-420')?.nombre, 'HOYA ARRAY 2 - 1.60 BLUE FILTER UV-420');
+    assert.equal(cristalVitolenPorNombre('Mi Primer Hoya Array 2 - 1.50 Clear Blue Filter')?.linea, 'mph-array-2');
 });
 ok('el tipo de receta sale del tipo del cristal', () => {
     assert.equal(tipoRecetaDe('Cristal Multifocal'), 'Progresivo');
@@ -397,6 +401,31 @@ ok('el segundo par lleva el pedido origen del primero', () => {
     assert.equal(r.ok, true);
     assert.equal(r.payload.pedidoOrigen, '5001234');
     assert.equal(r.payload.armazon.largo, 50);
+});
+ok('dos pares SIN armazón asignado se arman en el orden del carrito (como la promo del 2º par)', () => {
+    // Así llegó la primera venta real (Moroncini, 15/10/2026): dos armazones y
+    // cuatro cristales con framePosition vacío, nombre sin la marca.
+    const v = ventaBase();
+    const cristal = (eye, s) => ({ ...v.items[0], eye, productNameSnapshot: 'Array 2 - 1.60 Clear', sphereVal: s, framePosition: null });
+    v.items = [cristal('OD', 1), cristal('OI', 2), cristal('OD', 3), cristal('OI', 4)];
+    v.frames = [
+        { position: 1, shape: null, a: '56', b: '39', dbl: '17', edc: '58', details: 'Harper', heightOD: 25, heightOI: 25 },
+        { position: 2, shape: null, a: '58', b: '40', dbl: '18', edc: '61', details: 'Aviador', heightOD: 26, heightOI: 26 },
+    ];
+    const p1 = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
+    const p2 = armarFormulario(v, { pair: 2, forma: 'Forma 1', ejeDiagonal: 0, pedidoOrigen: '1L' });
+    assert.equal(p1.ok, true, p1.faltantes.join(' · '));
+    assert.equal(p2.ok, true, p2.faltantes.join(' · '));
+    assert.deepEqual([p1.payload.od.esferico, p1.payload.oi.esferico, p1.payload.armazon.largo], [1, 2, 56]);
+    assert.deepEqual([p2.payload.od.esferico, p2.payload.oi.esferico, p2.payload.armazon.largo], [3, 4, 58]);
+});
+ok('el tipo de armazón se elige al preparar; sin él (la venta casi nunca lo trae) no se arma', () => {
+    const v = ventaBase();
+    v.labFrameType = null;
+    assert.ok(armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 }).faltantes.some(f => /tipo de armazón/.test(f)));
+    const r = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0, tipoArmazon: 'Ranurado' });
+    assert.equal(r.ok, true);
+    assert.equal(r.payload.armazon.tipo, 'Ranurado');
 });
 
 console.log('\n— Vitolen: el 2º par al 20 % y el cruce lo reconoce —');
