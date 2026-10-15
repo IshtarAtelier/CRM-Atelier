@@ -7,13 +7,14 @@
  * `tomadasAntes`: días ya gozados por período, con el período identificado por
  * su fecha de inicio (el aniversario del ingreso).
  */
-export interface IngresoEquipo { ingreso: string; tomadasAntes?: Record<string, number> }
+/** `cumple`: MM-DD (Ishtar, 15/10/2026). Se muestra todos los años en el calendario del equipo. */
+export interface IngresoEquipo { ingreso: string; cumple?: string; tomadasAntes?: Record<string, number> }
 
 export const INGRESOS_EQUIPO: Record<string, IngresoEquipo> = {
     // Matías Turchi. Se tomó los 14 días del primer año antes del sistema.
-    cmmukkygj003vgc7t33nkx0vi: { ingreso: '2024-11-26', tomadasAntes: { '2024-11-26': 14 } },
+    cmmukkygj003vgc7t33nkx0vi: { ingreso: '2024-11-26', cumple: '02-11', tomadasAntes: { '2024-11-26': 14 } },
     // Milena Magallanes.
-    cmr2nb9f30002yethwy8sjeo3: { ingreso: '2026-08-01' },
+    cmr2nb9f30002yethwy8sjeo3: { ingreso: '2026-08-01', cumple: '02-23' },
 };
 
 /** Días de vacaciones por año de antigüedad (Ishtar, 15/10/2026). */
