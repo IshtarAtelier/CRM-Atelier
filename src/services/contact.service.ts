@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { productoMiradoDe } from '@/services/producto-mirado.service';
 import { formatearPrecio } from '@/lib/format-precio';
 import { SOLO_DEL_VENDEDOR, SOLO_DEL_EMBUDO, TIPO_EMBUDO } from '@/lib/tareas/origen';
 import { CashService } from './cash.service';
@@ -1236,6 +1237,15 @@ export const ContactService = {
     },
 
     async getById(id: string) {
+        const ficha = await this.fichaCompleta(id);
+        if (!ficha) return null;
+        // Qué producto de la tienda miraba (plan 15/10/2026, 3.7): se lee de
+        // su chat, no se guarda. Nunca rompe la ficha.
+        const productoWeb = await productoMiradoDe(id).catch(() => null);
+        return { ...ficha, productoWeb };
+    },
+
+    async fichaCompleta(id: string) {
         return await prisma.client.findUnique({
             where: { id },
             include: {
