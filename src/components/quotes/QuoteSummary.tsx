@@ -6,7 +6,7 @@ import {
     CheckCircle2, X, Clock, Glasses, 
     Banknote, ArrowRightLeft, CreditCard,
     Lock, Unlock, ChevronRight, ChevronUp, Pencil,
-    History, Trash2, Eye, AlertCircle, Factory, Loader2,
+    History, Trash2, Eye, AlertCircle, Factory,
     FileText, ExternalLink, Link2, Check, Send
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -30,6 +30,7 @@ import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
 import CalculadorPagos from '@/components/pagos/CalculadorPagos';
 import InvoiceModal from '@/components/billing/InvoiceModal';
+import SolicitarFacturaModal from '@/components/billing/SolicitarFacturaModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 
 interface QuoteSummaryProps {
@@ -110,7 +111,7 @@ export default function QuoteSummary({
     // Facturación desde la ficha del cliente. Mismas reglas que /admin/ventas:
     // ADMIN emite (abre el modal de ARCA), el vendedor solo puede SOLICITARLA.
     const [invoiceOrder, setInvoiceOrder] = React.useState<any>(null);
-    const [isRequestingInvoice, setIsRequestingInvoice] = React.useState(false);
+    const [solicitandoFactura, setSolicitandoFactura] = React.useState(false);
 
     const isOptovision = order.items?.some((it: any) => {
         const labName = (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase();
@@ -385,36 +386,7 @@ export default function QuoteSummary({
         }
 
         // Vendedor: NO emite — le pide la factura al administrador.
-        const amountStr = prompt(
-            `Monto a facturar para ${contact.name}:\n(Pago total registrado hasta hoy: $${maxInvoiceable.toLocaleString('es-AR')})`,
-            String(pendingToInvoice || maxInvoiceable)
-        );
-        if (!amountStr) return;
-
-        const amount = parseFloat(amountStr.replace(/\./g, '').replace(',', '.'));
-        if (isNaN(amount)) return alert('Monto inválido');
-        if (amount > maxInvoiceable) {
-            return alert(`Error: No podés facturar más de lo que el cliente pagó ($${maxInvoiceable.toLocaleString('es-AR')}).`);
-        }
-
-        setIsRequestingInvoice(true);
-        try {
-            const res = await fetch('/api/notifications', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'INVOICE_REQUEST',
-                    message: `Solicitar factura de $${amount.toLocaleString('es-AR')} (Pago total del cliente: $${maxInvoiceable.toLocaleString('es-AR')}) para venta #${order.id.slice(-4).toUpperCase()} (${contact.name})`,
-                    orderId: order.id,
-                }),
-            });
-            const data = await res.json();
-            alert(res.ok ? '✅ Solicitud de factura enviada al administrador.' : (data.error || 'Error al enviar la solicitud.'));
-        } catch {
-            alert('Error de conexión al solicitar factura.');
-        } finally {
-            setIsRequestingInvoice(false);
-        }
+        setSolicitandoFactura(true);
     };
 
     const openInvoicePDF = async (invoiceId: string) => {
@@ -1284,7 +1256,6 @@ export default function QuoteSummary({
                                 {pendingToInvoice > 0 && (
                                     <button
                                         onClick={handleInvoiceRequest}
-                                        disabled={isRequestingInvoice}
                                         title={isAdmin ? 'Emitir Factura C' : 'Solicitar Factura al administrador'}
                                         className={`flex-1 min-w-[180px] py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
                                             isAdmin
@@ -1292,9 +1263,7 @@ export default function QuoteSummary({
                                                 : 'bg-amber-50 dark:bg-amber-950/30 text-amber-500 hover:bg-amber-100'
                                         }`}
                                     >
-                                        {isRequestingInvoice
-                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            : <FileText className="w-3.5 h-3.5" />}
+                                        <FileText className="w-3.5 h-3.5" />
                                         {isAdmin ? 'Facturar' : 'Solicitar Factura'}
                                         <span className="opacity-60">· ${Math.round(pendingToInvoice).toLocaleString('es-AR')}</span>
                                     </button>
@@ -1360,6 +1329,16 @@ export default function QuoteSummary({
             </main>
 
             {/* Emisión en ARCA — solo ADMIN llega acá (handleInvoiceRequest lo filtra). */}
+            {solicitandoFactura && (
+                <SolicitarFacturaModal
+                    orderId={order.id}
+                    clienteNombre={contact.name}
+                    clienteDni={contact.dni}
+                    cobrado={financials.paidReal}
+                    montoSugerido={pendingToInvoice || financials.paidReal}
+                    onClose={() => setSolicitandoFactura(false)}
+                />
+            )}
             {invoiceOrder && (
                 <InvoiceModal
                     order={invoiceOrder}

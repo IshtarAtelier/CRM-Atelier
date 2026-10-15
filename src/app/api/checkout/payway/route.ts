@@ -1263,16 +1263,7 @@ export async function POST(req: Request) {
         }
       });
 
-      // 3. Create the notification request
-      await tx.notification.create({
-        data: {
-          type: "INVOICE_REQUEST",
-          message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${finalItemsTotal.toLocaleString('es-AR')}`,
-          orderId: order.id,
-          requestedBy: "Sistema (Payway)",
-          status: "PENDING"
-        }
-      });
+      // (Sin solicitud de factura automática desde el 15/10/2026: la pide el vendedor.)
 
       // 4. Notificación en el sistema: nueva venta web con pago acreditado, a confirmar
       await tx.notification.create({

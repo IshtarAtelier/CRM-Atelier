@@ -166,7 +166,9 @@ export default function BillingPage() {
             const order = orders.find(o => o.id === n.orderId);
             const amountMatch = n.message.match(/\$([0-9.,]+)/);
             let requestedAmount = order?.total || 0;
-            if (amountMatch) {
+            if (typeof n.requestedAmount === 'number') {
+                requestedAmount = n.requestedAmount;
+            } else if (amountMatch) {
                 const amtStr = amountMatch[1].replace(/\./g, '').replace(',', '.');
                 requestedAmount = parseFloat(amtStr);
             }
@@ -185,6 +187,31 @@ export default function BillingPage() {
             return n.order.client.name.toLowerCase().includes(search) || 
                    n.order.id.toLowerCase().includes(search);
         });
+
+    // El link del WhatsApp (?solicitud=<id>) abre directo la factura armada,
+    // con el monto y la observación que dejó el vendedor.
+    const solicitudParam = searchParams?.get('solicitud');
+    const [solicitudAbierta, setSolicitudAbierta] = useState(false);
+    useEffect(() => {
+        if (!solicitudParam || solicitudAbierta || loading) return;
+        const n = notifications.find(x => x.id === solicitudParam);
+        if (!n) return;
+        setSolicitudAbierta(true);
+        if (n.status !== 'PENDING') {
+            alert('Esta solicitud de factura ya fue resuelta.');
+            return;
+        }
+        (async () => {
+            let order: any = orders.find(o => o.id === n.orderId);
+            if (!order && n.orderId) {
+                const r = await fetch(`/api/orders/${n.orderId}`);
+                if (r.ok) order = await r.json();
+            }
+            if (!order) return alert('No se encontró la venta de esta solicitud.');
+            const detectedAccount = n.message.includes('[YANI]') ? 'YANI' : n.message.includes('[ISH]') ? 'ISH' : (detectBillingAccount(order.payments) || 'ISH');
+            setSelectedOrder({ ...order, customAmount: n.requestedAmount ?? order.total, notificationId: n.id, detectedAccount, observations: n.observations } as any);
+        })();
+    }, [solicitudParam, solicitudAbierta, loading, notifications, orders]);
 
     const completedInvoices = orders.filter(order => {
         const hasInvoice = order.invoices?.some(inv => inv.status === 'COMPLETED');
@@ -357,7 +384,7 @@ export default function BillingPage() {
                                 )}
 
                                 <button 
-                                    onClick={() => setSelectedOrder({ ...req.order, customAmount: req.requestedAmount, notificationId: req.id, detectedAccount: req.detectedAccount } as any)}
+                                    onClick={() => setSelectedOrder({ ...req.order, customAmount: req.requestedAmount, notificationId: req.id, detectedAccount: req.detectedAccount, observations: req.observations } as any)}
                                     className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest italic flex items-center gap-2 hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg shadow-stone-200 dark:shadow-none"
                                 >
                                     FACTURAR <ArrowRight size={14} />
@@ -499,6 +526,7 @@ export default function BillingPage() {
                     order={selectedOrder as any}
                     initialAccount={(selectedOrder as any).detectedAccount || 'ISH'}
                     initialAmount={(selectedOrder as any).customAmount}
+                    initialObservations={(selectedOrder as any).observations}
                     onClose={() => setSelectedOrder(null)}
                     onSuccess={async () => {
                         if ((selectedOrder as any).notificationId) {

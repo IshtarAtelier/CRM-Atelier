@@ -30,6 +30,8 @@ interface InvoiceModalProps {
     };
     initialAccount?: 'ISH' | 'YANI' | 'LUCIA';
     initialAmount?: number; // Target amount to invoice
+    /** Observación que dejó el vendedor al solicitar la factura. */
+    initialObservations?: string | null;
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -86,7 +88,7 @@ const prorrateItems = (list: InvoiceItem[], target: number): InvoiceItem[] => {
     return scaled;
 };
 
-export default function InvoiceModal({ order, initialAccount, initialAmount, onClose, onSuccess }: InvoiceModalProps) {
+export default function InvoiceModal({ order, initialAccount, initialAmount, initialObservations, onClose, onSuccess }: InvoiceModalProps) {
     const [docTipo, setDocTipo] = useState(order.client.dni ? 96 : 99);
     const [docNro, setDocNro] = useState(order.client.dni || '');
     const [condicionIva, setCondicionIva] = useState<number | ''>('');
@@ -111,7 +113,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     const [targetAmount, setTargetAmount] = useState(initialAmount || paidReal || order.total);
     const [items, setItems] = useState<InvoiceItem[]>([]);
     const [issueDate, setIssueDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    const [observations, setObservations] = useState('');
+    const [observations, setObservations] = useState(initialObservations || '');
 
     useEffect(() => {
         // Initialize items from order — prices must include the order's markup
