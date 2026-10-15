@@ -3,7 +3,7 @@ import { productoMiradoDe } from '@/services/producto-mirado.service';
 import { formatearPrecio } from '@/lib/format-precio';
 import { SOLO_DEL_VENDEDOR, SOLO_DEL_EMBUDO, TIPO_EMBUDO } from '@/lib/tareas/origen';
 import { CashService } from './cash.service';
-import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE, CRM_ORIGIN } from '@/lib/constants';
+import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE, CRM_ORIGIN, SYSTEM_MAILBOX_EMAIL } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
@@ -2285,7 +2285,7 @@ export const ContactService = {
                     msgText += `Ficha del cliente: ${clientLink}`;
 
                     await sendEmail({
-                        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                        to: SYSTEM_MAILBOX_EMAIL,
                         subject: esEfectivo
                             ? `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')} — ${result.clientName}`
                             : `💵 Nuevo pago (${tipoPago}): $${amount.toLocaleString('es-AR')} — ${result.clientName}`,
