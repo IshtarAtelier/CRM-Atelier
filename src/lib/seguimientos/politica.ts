@@ -46,6 +46,32 @@ export interface EstadoDelChat {
      * de seleccionar; acá solo se veta este tick con el motivo a la vista.
      */
     respuesta?: Clasificacion | null;
+    /** Cuándo le LLEGÓ el presupuesto (BUDGET_SENT); null si no hay. */
+    presupuestoEnviadoAt?: Date | null;
+    /** Último SALIENTE escrito por una PERSONA del equipo (ni bot, ni sistema, ni motor). */
+    ultimoHumanoAt?: Date | null;
+}
+
+/**
+ * El cliente contestó DESPUÉS de recibir el presupuesto y ninguna persona del
+ * equipo le escribió desde entonces (plan 15/10/2026, 3.5). En 4 chats del mes
+ * el motor cerró con "seguinos en Instagram" sobre una respuesta que nadie
+ * había leído: la charla la tiene que retomar un humano, no cerrarla un robot.
+ */
+export function esperaRespuestaHumana(chat: Pick<EstadoDelChat, 'lastInboundAt' | 'presupuestoEnviadoAt' | 'ultimoHumanoAt'> | null | undefined): boolean {
+    if (!chat?.presupuestoEnviadoAt || !chat.lastInboundAt) return false;
+    if (chat.lastInboundAt.getTime() <= chat.presupuestoEnviadoAt.getTime()) return false;
+    return !chat.ultimoHumanoAt || chat.ultimoHumanoAt.getTime() < chat.lastInboundAt.getTime();
+}
+
+/** Plantillas que dan la charla por terminada: no salen mientras un humano deba retomarla. */
+export const PLANTILLAS_QUE_CIERRAN: readonly string[] = ['ultimo_seguimiento', 'retomar_con_cupon'];
+
+/** Motivo por el que el motor NO puede cerrar (ni mandar el cierre) a este chat, o null. */
+export function vetoDeCierre(chat: EstadoDelChat | null | undefined): string | null {
+    return esperaRespuestaHumana(chat)
+        ? 'respondió después del presupuesto y ningún humano retomó: no se cierra con "seguinos en Instagram", lo retoma una persona (tarea de hoy)'
+        : null;
 }
 
 /** Etiquetas de ficha que apagan el seguimiento automático de esa persona. */
@@ -144,6 +170,12 @@ export const COMPUERTAS: Compuerta[] = [
     (_c, chat) => (chat!.respuesta === 'cierre' ? 'el cliente dijo que no: se cierra como perdido'
         : chat!.respuesta === 'posponer' ? 'el cliente pidió más adelante: se pausa'
             : null),
+
+    // Hay un presupuesto y el cliente contestó sin que ninguna persona lo
+    // retomara: las plantillas que cierran ("seguinos en Instagram", el último
+    // intento) no salen. La cadencia normal sí sigue — a esa persona le hace
+    // falta un vendedor, no un robot que dé la charla por perdida.
+    (c, chat) => (PLANTILLAS_QUE_CIERRAN.includes(c.plantilla!) ? vetoDeCierre(chat) : null),
 ];
 
 /** El primer veto que aplica, o null si el sistema puede mandarlo solo. */

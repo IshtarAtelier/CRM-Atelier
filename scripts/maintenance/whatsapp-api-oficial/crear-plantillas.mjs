@@ -117,7 +117,11 @@ async function main() {
     const existentes = await graph(`${WABA}/message_templates?fields=name,language,status&limit=200`);
     const ya = new Map((existentes.data || []).map(t => [`${t.name}|${t.language}`, t.status]));
 
-    const pendientes = Object.values(CATALOGO).filter(d => (!solo || d.name === solo) && !ya.has(`${d.name}|${LANG}`));
+    // Los borradores (TemplateDef.borrador) no se mandan a aprobar: todavía
+    // no los aprobó Ishtar. Se nombran para que no parezca que faltan.
+    const borradores = Object.values(CATALOGO).filter(d => d.borrador);
+    borradores.forEach(d => console.log(`~  ${d.name}: BORRADOR, pendiente de aprobación de Ishtar — no se crea`));
+    const pendientes = Object.values(CATALOGO).filter(d => !d.borrador && (!solo || d.name === solo) && !ya.has(`${d.name}|${LANG}`));
     const listas = Object.values(CATALOGO).filter(d => ya.has(`${d.name}|${LANG}`));
     listas.forEach(d => console.log(`=  ${d.name}: ya existe (${ya.get(`${d.name}|${LANG}`)})`));
     if (!pendientes.length) { console.log('\nNo falta ninguna.'); return; }

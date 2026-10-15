@@ -1,5 +1,5 @@
 import React from 'react';
-import { Megaphone, Share2, AlertCircle } from 'lucide-react';
+import { Megaphone, Share2, AlertCircle, Glasses } from 'lucide-react';
 import { getContactOrigin, TONO_ANUNCIO } from '@/lib/contact-origin';
 
 /**
@@ -14,6 +14,19 @@ import { getContactOrigin, TONO_ANUNCIO } from '@/lib/contact-origin';
 interface ConOrigen {
     contactSource?: string | null;
     adTag?: string | null;
+    /** Qué producto de la tienda miraba cuando escribió (lo calcula el service al leer la ficha). */
+    productoWeb?: { nombre: string; slug?: string } | null;
+}
+
+/** Chip "miraba Victoria C7": el dato que decide de qué hablarle. */
+function MirabaChip({ producto }: { producto: { nombre: string; slug?: string } }) {
+    return (
+        <span className={`${CHIP_BASE} bg-violet-50 text-violet-800 border-violet-200 dark:bg-violet-900/20 dark:text-violet-200 dark:border-violet-800/40`} title={`En la tienda miraba: ${producto.nombre}`}>
+            <Glasses className="w-3 h-3 shrink-0" />
+            <span className="normal-case tracking-normal">miraba</span>
+            <span className="max-w-[10rem] truncate normal-case tracking-normal">{producto.nombre}</span>
+        </span>
+    );
 }
 
 const CHIP_BASE =
@@ -92,6 +105,7 @@ export function OrigenBanner({ contact, onEdit }: { contact: ConOrigen; onEdit: 
                 <>
                     {origen.tieneCanal && <CanalChip contact={contact} />}
                     {origen.anuncio && <AnuncioChip anuncio={origen.anuncio} conLeyenda />}
+                    {contact.productoWeb && <MirabaChip producto={contact.productoWeb} />}
                     {!origen.tieneCanal && (
                         <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200">
                             ¿Dónde nos conocieron? Falta el canal: sin él la venta no cuenta en el reporte

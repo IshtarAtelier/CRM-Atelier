@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { runRecoveryTouch, RECOVERY_STAGE, type RecoveryTouch } from '@/lib/checkout/recovery';
 import { ensureClientForAbandonedCart } from '@/services/cart-recovery.service';
+import { recuperarCarritosPorWhatsApp } from '@/lib/checkout/recupero-whatsapp';
 
 /**
  * Recuperación de carritos abandonados (tienda), multi-toque.
@@ -164,6 +165,17 @@ export async function GET(request: Request) {
       console.error('[Cron Abandoned Cart] No se pudo avisar al equipo:', err.message);
     }
 
+    // Recupero por WhatsApp a las 24 h (plan 15/10/2026, 3.4): solo si ningún
+    // humano le escribió, solo con la plantilla APROBADA, dentro del cupo
+    // diario de la línea. Nunca rompe el cron.
+    let whatsapp: Awaited<ReturnType<typeof recuperarCarritosPorWhatsApp>> | { error: string } = { error: 'no corrió' };
+    try {
+      whatsapp = await recuperarCarritosPorWhatsApp();
+    } catch (err: any) {
+      console.error('[Cron Abandoned Cart] Falló el recupero por WhatsApp:', err.message);
+      whatsapp = { error: String(err.message) };
+    }
+
     const processed = tempranos.length + tardios.length;
     console.log(
       `[Cron Abandoned Cart] ${stats.early} recordatorios (1h), ${stats.late} emails (24h), ` +
@@ -180,6 +192,7 @@ export async function GET(request: Request) {
       sent: stats.early + stats.late,
       ...stats,
       avisados,
+      whatsapp,
     });
   } catch (error: any) {
     console.error('[Cron Abandoned Cart] Error:', error);

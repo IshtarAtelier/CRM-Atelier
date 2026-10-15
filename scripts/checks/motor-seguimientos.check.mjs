@@ -15,7 +15,7 @@
 //            scripts/checks/motor-seguimientos.check.mjs
 // ────────────────────────────────────────────────────────────────────────────
 
-import { evaluar } from '../../src/lib/seguimientos/politica.ts';
+import { evaluar, esperaRespuestaHumana, vetoDeCierre } from '../../src/lib/seguimientos/politica.ts';
 import { seleccionar } from '../../src/lib/seguimientos/seleccion.ts';
 
 let ok = 0;
@@ -65,6 +65,28 @@ veta('11/9 · apagado desde el chat (SIN_SEGUIMIENTO)', cand(), chat({ chatLabel
 veta('11/9 · apagado desde la ficha (etiqueta "Sin Seguimiento")', cand(), chat({ tagNames: ['Sin Seguimiento'] }), 'apagado desde la ficha');
 veta('11/9 · "no interesado" en la ficha', cand(), chat({ tagNames: ['No interesado'] }), 'apagado desde la ficha');
 check('otras etiquetas no lo apagan', evaluar(cand(), chat({ chatLabels: ['SEGUIMIENTO_DIA_1'], tagNames: ['Frío'] }), ctx) === null);
+
+console.log('\n15/10 · Respondió después del presupuesto y nadie lo retomó: lo retoma una persona, el motor no cierra');
+{
+    // Presupuesto hace 10 días, el cliente contestó hace 60 h, ningún humano después.
+    const sinHumano = chat({ lastFollowUpAt: hace(100), lastInboundAt: hace(60), respuesta: 'seguir', presupuestoEnviadoAt: hace(240), ultimoHumanoAt: hace(200) });
+    check('esperaRespuestaHumana: sí', esperaRespuestaHumana(sinHumano));
+    veta('"seguinos en Instagram" (ultimo_seguimiento) NO sale', cand({ plantilla: 'ultimo_seguimiento' }), sinHumano, 'ningún humano retomó');
+    veta('el último intento (retomar_con_cupon) tampoco', cand({ plantilla: 'retomar_con_cupon' }), sinHumano, 'ningún humano retomó');
+    check('el cierre como perdido queda vetado con el mismo motivo', (vetoDeCierre(sinHumano) || '').includes('lo retoma una persona'));
+    check('la cadencia normal (¿viste el presupuesto?) SÍ sigue: a esa persona le hace falta un vendedor, no un cierre', evaluar(cand({ plantilla: 'seguimiento_presupuesto' }), sinHumano, ctx) === null, evaluar(cand({ plantilla: 'seguimiento_presupuesto' }), sinHumano, ctx));
+    // Un vendedor le escribió DESPUÉS de la respuesta: ya lo retomaron.
+    const retomado = chat({ lastFollowUpAt: hace(100), lastInboundAt: hace(60), presupuestoEnviadoAt: hace(240), ultimoHumanoAt: hace(55) });
+    check('con un humano después de la respuesta, no espera a nadie', !esperaRespuestaHumana(retomado));
+    check('…y el cierre vuelve a estar permitido', vetoDeCierre(retomado) === null);
+    // La respuesta fue ANTES del presupuesto: no cuenta (contestó a otra cosa).
+    check('una respuesta anterior al presupuesto no frena', !esperaRespuestaHumana(chat({ lastInboundAt: hace(300), presupuestoEnviadoAt: hace(240) })));
+    check('sin presupuesto no aplica (el camino sin presupuesto tiene sus propias reglas)', !esperaRespuestaHumana(chat({ lastInboundAt: hace(60) })));
+    check('respondió y nadie retomó: el cron abre tarea para HOY y avisa (respuesta-humana.ts)', (await import('node:fs')).readFileSync(new URL('../../src/app/api/cron/seguimientos/route.ts', import.meta.url), 'utf8').includes('asegurarRetomeHumano({'));
+    const rh = await import('../../src/lib/seguimientos/respuesta-humana.ts');
+    const fin = rh.finDelDiaArt(new Date('2026-10-15T18:30:00-03:00').getTime());
+    check('la tarea vence HOY a las 23:59 hora Córdoba', fin.toISOString() === '2026-10-16T02:59:59.999Z', fin.toISOString());
+}
 
 console.log('\nSi Meta rechaza un seguimiento automático, el sistema se aparta');
 {

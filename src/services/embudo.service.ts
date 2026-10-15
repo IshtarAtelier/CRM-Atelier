@@ -208,6 +208,7 @@ export const EmbudoService = {
                     addition: latestRx.addition || latestRx.additionOD || latestRx.additionOI || null,
                 } : null,
                 latestQuote: latestQuote ? { id: latestQuote.id, total: latestQuote.total, createdAt: latestQuote.createdAt.toISOString() } : null,
+                presupuestoEnviadoAt: quoteCreatedAt ? quoteCreatedAt.toISOString() : null,
                 waChatId: chat?.id || null,
                 contactado,
                 proximaAccion: accion,

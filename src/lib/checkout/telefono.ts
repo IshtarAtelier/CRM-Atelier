@@ -19,6 +19,9 @@ const MAX_DIGITOS = 15;
 export const MENSAJE_TELEFONO_INVALIDO =
   'Ingresá tu WhatsApp con código de área, por ejemplo 351 123-4567.';
 
+/** Lo que ve la persona cuando el número ya sirve (validación en vivo del checkout). */
+export const MENSAJE_TELEFONO_OK = 'Listo: te escribimos a este WhatsApp si hace falta.';
+
 /** "+54 9 (351) 123-4567" → "5493511234567". */
 export function telefonoADigitos(telefono: string | null | undefined): string {
   return (telefono || '').replace(/\D/g, '');
