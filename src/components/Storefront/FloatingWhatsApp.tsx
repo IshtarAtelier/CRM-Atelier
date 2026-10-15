@@ -67,6 +67,10 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   // es parte del link, tocar ese lado del campo abría WhatsApp y la sacaba del
   // checkout. Ahí queda solo el botón verde.
   const enCheckout = pathname?.startsWith("/checkout") ?? false;
+  // En la ficha tampoco va la pastilla (15/10/2026): con el precio y los dos
+  // botones en la primera pantalla del celular, "Presupuesto" quedaba ENCIMA de
+  // "Comprar solo el armazón". El círculo verde queda; la etiqueta no.
+  const enFicha = pathname?.startsWith("/producto/") ?? false;
 
   useEffect(() => {
     try {
@@ -212,7 +216,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         {/* Con el panel de filtros de /tienda abierto se esconde: tapaba el
             botón "Ver N modelos" (auditoría 25/9). Además se pliega al bajar
             (29/9). El botón verde queda siempre. */}
-        {!panelFiltrosAbierto && !enCheckout && (
+        {!panelFiltrosAbierto && !enCheckout && !enFicha && (
           <span className={`sm:hidden rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-stone-800 shadow-lg border border-stone-100 transition-opacity duration-300 ${etiquetaVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
             Presupuesto
           </span>

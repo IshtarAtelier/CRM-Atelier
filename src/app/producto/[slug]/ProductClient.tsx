@@ -868,7 +868,10 @@ export function ProductClient({
                   : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal")
                     ? "Agotado"
                     : (product.category === "Receta" && !isWholesale
-                      ? `Comprar solo el armazón — $${formatearPrecio(effectivePrice)}`
+                      // El mismo número que el precio grande y que la barra fija
+                      // de abajo: el de transferencia (15/10/2026; antes decía
+                      // el de tarjeta y parecían dos precios distintos).
+                      ? `Comprar solo el armazón — $${formatearPrecio(PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount }).transferencia)}`
                       : "Comprar Ahora >"))}
               </button>
             </div>
