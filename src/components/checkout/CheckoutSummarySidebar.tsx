@@ -157,7 +157,11 @@ export function CheckoutSummarySidebar({ items, totales, webSettings, isWholesal
   const vidriera = PricingService.preciosVidriera(totales.subtotalConCupon, descuentoTransferenciaPct);
 
   return (
-    <div className="lg:col-span-5 bg-[#fafafa] p-8 lg:p-10 border border-stone-200 rounded-2xl sticky top-32">
+    // `hidden lg:block`: en celular el resumen es `CheckoutResumenCelular`
+    // (arriba del formulario). Esta columna se renderizaba IGUAL debajo del
+    // botón de pagar y la página medía 4.343 px, con 2.100 px de resumen
+    // repetido después del botón (auditoría 15/10/2026).
+    <div className="hidden lg:block lg:col-span-5 bg-[#fafafa] p-8 lg:p-10 border border-stone-200 rounded-2xl sticky top-32">
       <h2 className="text-[11px] font-black uppercase tracking-widest border-b border-stone-200 pb-4 mb-6">Resumen de Compra</h2>
 
       {!isWholesale && (

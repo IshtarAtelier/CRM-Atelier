@@ -112,6 +112,14 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   if (pathname?.startsWith("/admin") || pathname?.startsWith("/login")) {
     return null;
   }
+  // En /checkout no va (plan 15/10/2026, 3.2): el botón verde de 56 px pisaba
+  // el borde derecho de Nombre/Apellido en el celular y con el teclado abierto
+  // quedaba pegado al campo activo; 1 de las 7 personas reales del mes terminó
+  // en whatsapp_click en vez de en el formulario. Quien ya está pagando tiene
+  // el WhatsApp del local en el pie de página; acá el chat le gana al tipeo.
+  if (enCheckout) {
+    return null;
+  }
 
   // El texto es lo único que le dice al bot y al CRM que el chat vino de la
   // web: se arma en un solo lugar y `check:origen` prueba cada variante.
