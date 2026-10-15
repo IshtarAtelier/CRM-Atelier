@@ -89,6 +89,7 @@ jobs:
           npm run check:oferta
           npm run check:pdf-respaldo
           npm run check:navegadores
+          npm run check:anteojo-completo
           npm run check:cristales
           npm run check:comprobantes
           npm run check:adtag

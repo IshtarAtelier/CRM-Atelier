@@ -79,6 +79,7 @@
     "check:oferta": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/precio-oferta.check.mjs",
     "check:navegadores": "node scripts/checks/compatibilidad-navegadores.check.mjs",
     "check:pdf-respaldo": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/pdf-respaldo.check.mjs",
+    "check:anteojo-completo": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/anteojo-completo.check.mjs",
     "check:cristales": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cristales-web.check.mjs",
     "check:fichas-incompletas": "node scripts/checks/fichas-incompletas.mjs",
     "check:cristales-vinculos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cristales-web-vinculos.mjs",
