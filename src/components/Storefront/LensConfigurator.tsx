@@ -12,6 +12,7 @@ import { leerPromoCuotas } from '@/lib/promo-cuotas';
 import { formatearPrecio } from '@/lib/format-precio';
 import { TONOS_TENIDO } from '@/lib/constants/tenido';
 import { calcularConfiguracion } from '@/lib/cristales-web/calculo';
+import { TIPOS_DE_VISION, pasoVisible } from '@/lib/cristales-web/tipos-de-vision';
 import {
   claveDeCristal,
   describirConfiguracion,
@@ -281,7 +282,10 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
     .join(" ");
 
   const precioOpcion = (o: OpcionCristalWeb | undefined) => (o?.precio != null ? `+$${formatearPrecio(o.precio)}` : undefined);
-  const tituloTipo = (t: LensType) => (t === "NONE" ? "Sin Aumento" : t === "MONOFOCAL" ? "Monofocal" : t === "BIFOCAL" ? "Bifocal" : t === "MULTIFOCAL" ? "Multifocal" : "");
+  // En el flujo de sol "NONE" es "teñido sin aumento", no "solo armazón".
+  const tituloTipo = (t: LensType) => (t === "NONE" && flowType === "SUN" ? "Sin aumento" : t ? TIPOS_DE_VISION[t].titulo : "");
+  // Contador real: pasos que la persona ve, no el estado interno (que salta de 2 a 4).
+  const paso = pasoVisible({ step, flujo: flowType, lensType });
 
   const avisoPrecios = estadoPrecios === "error" ? (
     <div role="alert" className="col-span-full border border-amber-300 bg-amber-50 text-amber-900 rounded-[1rem] p-5 text-[12px] leading-relaxed">
@@ -344,17 +348,16 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
       )}
 
       {/* A-06 (auditoría 2/9/26): no había ningún indicador de en qué paso
-          estaba la persona ni cuántos faltaban. En un modal que en celular no
-          entra entero, eso es quedarse sin saber si falta un toque o diez.
-          El paso 4 es el último (receta / cierre), por eso el total es 4. */}
+          estaba la persona ni cuántos faltaban. 15/10/26: el contador pasa a
+          contar pasos REALES (pasoVisible): decía "2 de 4" y saltaba a "4 de 4". */}
       <div className="mb-6 flex items-center gap-3">
         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 whitespace-nowrap">
-          Paso {Math.min(step, 4)} de 4
+          Paso {paso.actual} de {paso.total}
         </span>
         <div className="flex-1 h-1 bg-stone-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-stone-900 rounded-full transition-[width] duration-500"
-            style={{ width: `${(Math.min(step, 4) / 4) * 100}%` }}
+            style={{ width: `${(paso.actual / paso.total) * 100}%` }}
           />
         </div>
       </div>
@@ -478,21 +481,21 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
               <>
                 <div className="mb-6">
                   <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">01 / Tipo de Visión</p>
-                  <p className="text-sm font-serif italic text-black">Definí cómo vas a usar tus anteojos en el día a día.</p>
+                  <p className="text-sm font-serif italic text-black">¿Para qué los vas a usar? Si no sabés, elegí Monofocal: es el más común.</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                   {ofrecer(monofocales) && (
-                    <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }} title="Monofocal" desc="Diseñado para ver a una sola distancia (Lejos o Cerca)." />
+                    <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }} title={TIPOS_DE_VISION.MONOFOCAL.titulo} desc={TIPOS_DE_VISION.MONOFOCAL.paraQuien} />
                   )}
                   {ofrecer(multifocales) && (
-                    <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }} title="Multifocal" desc="Para ver a todas las distancias sin cambiar de anteojos." />
+                    <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }} title={TIPOS_DE_VISION.MULTIFOCAL.titulo} desc={TIPOS_DE_VISION.MULTIFOCAL.paraQuien} />
                   )}
                   {ofrecer(bifocales) && (
                     // El bifocal tiene una sola opción: queda elegida al tocar el tipo.
-                    <OptionCard selected={lensType === "BIFOCAL"} onClick={() => { setLensType("BIFOCAL"); setTreatment(bifocales[0]?.codigo ?? null); setStep(2); }} title="Bifocal" desc="Visión dividida para lejos y cerca de forma tradicional." />
+                    <OptionCard selected={lensType === "BIFOCAL"} onClick={() => { setLensType("BIFOCAL"); setTreatment(bifocales[0]?.codigo ?? null); setStep(2); }} title={TIPOS_DE_VISION.BIFOCAL.titulo} desc={TIPOS_DE_VISION.BIFOCAL.paraQuien} />
                   )}
                   {!cartItemId && (
-                    <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setTintStyle(null); setStep(4); }} title="Solo Armazón" desc="Llevar el armazón sin cristales con aumento." />
+                    <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setTintStyle(null); setStep(4); }} title={TIPOS_DE_VISION.NONE.titulo} desc={TIPOS_DE_VISION.NONE.paraQuien} />
                   )}
                 </div>
               </>
