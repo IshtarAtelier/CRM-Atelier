@@ -193,7 +193,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 // El pedido origen también se revalida con el de HOY (nunca un anulado ni un reproceso), como en GO.
                 const rolesHoy = rolesDeLaPromoHoya(venta.items as any);
                 const origenHoy = payload.rolPromo === 'SEGUNDO_PAR' && rolesHoy ? await pedidoOrigenDeVitolen(b.orderId, rolesHoy.conCargo) : null;
-                const hoy = armarFormulario(venta, { pair: b.pair, forma: payload.armazon?.forma ?? null, ejeDiagonal: payload.armazon?.ejeDiagonal ?? null, variante: payload.variante ?? null, rolPromo: payload.rolPromo, pedidoOrigen: origenHoy });
+                const hoy = armarFormulario(venta, { pair: b.pair, forma: payload.armazon?.forma ?? null, ejeDiagonal: payload.armazon?.ejeDiagonal ?? null, tipoArmazon: payload.armazon?.tipo ?? null, variante: payload.variante ?? null, rolPromo: payload.rolPromo, pedidoOrigen: origenHoy });
                 const cambios = diferenciasDePayloadVitolen(payload as PayloadVitolen, hoy.payload);
                 if (!hoy.ok || cambios.length) throw new VentaCambiadaError(`La venta cambió después de preparar (${cambios.join(', ') || hoy.faltantes.join(', ')}): rechazá el borrador y volvé a prepararlo. No se confirmó nada.`);
             }

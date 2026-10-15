@@ -93,6 +93,11 @@ pantalla real del laboratorio, aprobar.
 - **"Quedó un pedido sin confirmar en el portal"** (amarillo): el robot lo
   creó pero algo se cortó. Botón **"Cancelar en el portal"** y volvé a
   preparar. Hasta cancelarlo no se puede preparar otro para esa venta.
+- **Al preparar se eligen la forma, el tipo de armazón (Metálico / Zilo /
+  Ranurado / Perforado) y el eje de la diagonal**: la venta casi nunca los
+  trae. Con dos pares y los cristales sin armazón asignado, los pares se arman
+  en el orden del carrito (el 2º OD y el 2º OI son del par 2), igual que la
+  promo del 2º par.
 - **Aprobado pero "no se pudo confirmar"**: botón **"Reintentar la
   carga"**. Nunca se crea un pedido duplicado: si Vitolen ya lo tomó,
   el robot lee el nº y listo. Si el portal sigue caído o te arrepentiste,

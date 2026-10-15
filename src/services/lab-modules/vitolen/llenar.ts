@@ -1,5 +1,5 @@
 import type { Page } from 'playwright';
-import { esSegundoParDePromo, type GraduacionOjo, type PayloadVitolen } from './carga';
+import { esSegundoParDePromo, tipoArmazonDelPortal, type GraduacionOjo, type PayloadVitolen } from './carga';
 import { BASE_VITOLEN } from './pedidos';
 import { NOMBRE_VITOLEN } from './portal';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, resumenComparable } from './resumen';
@@ -31,13 +31,6 @@ export interface ResultadoLlenado {
 
 const TIPO_RECETA: Record<PayloadVitolen['ojos'], string> = { AMBOS: '1', OD: '2', OI: '3' };
 const CLASE: Record<PayloadVitolen['tipoReceta'], string> = { Monofocal: '1', Bifocal: '2', Ocupacional: '4', Progresivo: '3' };
-/** Tipo de armazón de la venta → radio del portal (valor, etiqueta). */
-const TIPO_ARMAZON: [RegExp, string, string][] = [
-    [/met[aá]l/i, '1', 'Metálico'],
-    [/zilo|acetato|pl[aá]stic|inyectad|tr-?90|ultem/i, '2', 'Zilo'],
-    [/ranur|nylon|semi/i, '3', 'Ranurado'],
-    [/perfor|al aire|rimless|tres piezas|3 piezas/i, '4', 'Perforado'],
-];
 const ESPERA_PASO_MS = 20_000;
 
 const grad = (n: number | null): string => n === null ? '' : `${n > 0 ? '+' : ''}${n.toFixed(2)}`;
@@ -208,7 +201,7 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][diagonal_mayor]', 'Diagonal mayor (ED)', medida(payload.armazon.diagonalMayor));
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][eje]', 'Eje de la diagonal', entero(payload.armazon.ejeDiagonal));
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][puente]', 'Puente (DBL)', medida(payload.armazon.puente));
-    const tipo = TIPO_ARMAZON.find(([re]) => re.test(payload.armazon.tipo || ''));
+    const tipo = tipoArmazonDelPortal(payload.armazon.tipo);
     if (tipo) await marcarRadio(page, pasos, 'pedido[armazones_attributes][0][tipo_armazon_id]', tipo[1], 'Tipo de armazón', tipo[2]);
     else pendientes.push(`tipo de armazón: la venta dice "${payload.armazon.tipo || 'nada'}" y el portal pide Metálico / Zilo / Ranurado / Perforado`);
     await marcarRadio(page, pasos, 'pedido[armazones_attributes][0][funcionalidad_id]', '1', 'Funcionalidad', 'Aro Convencional');

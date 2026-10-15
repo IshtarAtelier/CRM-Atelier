@@ -1,6 +1,6 @@
 import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
-import { armarFormulario, esSegundoParDePromo, leerVentaParaCarga } from './carga';
+import { armarFormulario, cristalesPorPar, esSegundoParDePromo, leerVentaParaCarga, TIPOS_ARMAZON } from './carga';
 import { cristalVitolenPorNombre } from '../../../lib/laboratorios/vitolen-catalogo';
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, releerBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
@@ -9,7 +9,7 @@ import { pedidoOrigenDeVitolen } from './origen';
 import { avisoDeRoles, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
 import { rolDeLaPromo, rolesDeLaPromoHoya } from '../../../lib/laboratorios/vitolen-promo';
 import { precioConSigno } from '../../../lib/format-precio';
-import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-frames';
+import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { esCristalDeLab } from '../../../lib/laboratorios/identidad';
 
 /**
@@ -38,7 +38,9 @@ export const CARGA_VITOLEN: CargaAsistida = {
         // Qué pares de Vitolen tiene la venta y qué le falta a cada uno para armarse
         // (sin forma ni variante elegidas todavía: eso lo decide quien prepara).
         // Los pares con cristales de Vitolen, agrupados como el resto del CRM; la carga asistida va hasta 2.
-        const pares = [...cristalesPorArmazon(venta as any).entries()].filter(([p, items]) => p <= 2 && (items as any[]).some(esCristalVitolen)).map(([p]) => p).sort((a, b) => a - b);
+        // Los pares los arma `cristalesPorPar` (por armazón asignado, o en el orden del carrito); la carga asistida va hasta 2.
+        const porPar = cristalesPorPar(venta);
+        const pares = [...porPar.keys()].filter(p => p <= 2).sort((a, b) => a - b);
         // ¿Algún par ya tiene pedido (robot, seguimiento o nº tipeado)? La ficha
         // no ofrece preparar y deshabilita "Aprobar" (misma regla que Grupo Óptico).
         const yaCargados = new Map<number, string | null>();
@@ -49,18 +51,20 @@ export const CARGA_VITOLEN: CargaAsistida = {
         const avisoRoles = roles ? avisoDeRoles(roles, precioConSigno) : null;
         return {
             pares: pares.map(pair => {
-                const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0, rolPromo: rolDe(roles, pair) });
-                const cristal = cristalVitolenPorNombre(((cristalesPorArmazon(venta as any).get(pair) || []) as any[]).find(esCristalVitolen)?.productNameSnapshot);
+                const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0, tipoArmazon: TIPOS_ARMAZON[0], rolPromo: rolDe(roles, pair) });
+                const cristal = cristalVitolenPorNombre(porPar.get(pair)?.[0]?.productNameSnapshot);
                 const variantes = cristal?.variantes ?? [];
                 const campos: CampoDePreparacion[] = [
                     ...(variantes.length > 1 ? [{ clave: 'variante', etiqueta: 'Variante', tipo: 'select' as const, opciones: variantes.map(v => ({ value: v, label: v })), obligatorio: true }] : []),
                     { clave: 'forma', etiqueta: 'Forma del armazón (portal)', tipo: 'select', opciones: FORMAS_PORTAL_VITOLEN.map(f => ({ value: f, label: f })), obligatorio: true },
+                    // La venta casi nunca trae el tipo (vacío en las 152 ventas de 60 días): lo elige quien prepara.
+                    { clave: 'tipoArmazon', etiqueta: 'Tipo de armazón', tipo: 'select', opciones: TIPOS_ARMAZON.map(t => ({ value: t, label: t })), obligatorio: true },
                     { clave: 'ejeDiagonal', etiqueta: 'Eje de la diagonal (0‑180)', tipo: 'numero', obligatorio: true, min: 0, max: 180, ayuda: 'Ángulo de la diagonal mayor del aro, como lo pide el portal (botón "¿Cómo tomar las medidas?")' },
                 ];
                 return {
                     pair,
                     titulo: cristal?.diseno ?? null,
-                    faltantes: r.faltantes.filter(f => !/variante|forma del armazón|eje de la diagonal/.test(f)),
+                    faltantes: r.faltantes.filter(f => !/variante|forma del armazón|eje de la diagonal|tipo de armazón/.test(f)),
                     avisos: avisoRoles ? [...r.avisos, avisoRoles] : r.avisos,
                     campos,
                     yaCargado: yaCargados.get(pair) ?? null,
@@ -81,7 +85,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
                 { titulo: 'Diseño', valor: `${p.tipoReceta ?? ''} · ${p.diseno ?? ''}${p.variante ? ` ${p.variante}` : ''}` },
                 { titulo: 'OD', valor: ojo(p.od) },
                 { titulo: 'OI', valor: ojo(p.oi) },
-                { titulo: 'Armazón', valor: `${p.armazon?.forma ?? ''} · A ${p.armazon?.largo ?? '—'} B ${p.armazon?.alto ?? '—'} DBL ${p.armazon?.puente ?? '—'} ED ${p.armazon?.diagonalMayor ?? '—'} eje ${p.armazon?.ejeDiagonal ?? '—'}° · ${p.armazon?.caracteristicas ?? ''}` },
+                { titulo: 'Armazón', valor: `${p.armazon?.forma ?? ''} · ${p.armazon?.tipo || 'sin tipo'} · A ${p.armazon?.largo ?? '—'} B ${p.armazon?.alto ?? '—'} DBL ${p.armazon?.puente ?? '—'} ED ${p.armazon?.diagonalMayor ?? '—'} eje ${p.armazon?.ejeDiagonal ?? '—'}° · ${p.armazon?.caracteristicas ?? ''}` },
                 { titulo: 'Trabajos', valor: `${p.tratamientos?.antirreflejo ? 'AR' : 'sin AR'} · ${p.montajes?.calibrado ? 'calibrado' : 'sin calibrar'}${p.pedidoOrigen ? ` · 2º par de ${p.pedidoOrigen}` : ''}` },
             ],
             avisos: Array.isArray(r.pendientes) ? r.pendientes : [],
@@ -102,6 +106,8 @@ export const CARGA_VITOLEN: CargaAsistida = {
     async preparar(orderId, pair, body, actor) {
         const forma = body.forma ? String(body.forma) : null;
         if (forma && !FORMAS_PORTAL_VITOLEN.includes(forma)) return { ok: false, status: 400, error: 'La forma tiene que ser Forma 1 a Forma 12.' };
+        const tipoArmazon = body.tipoArmazon ? String(body.tipoArmazon) : null;
+        if (tipoArmazon && !TIPOS_ARMAZON.includes(tipoArmazon)) return { ok: false, status: 400, error: `El tipo de armazón tiene que ser ${TIPOS_ARMAZON.join(', ')}.` };
         const venta = await leerVentaParaCarga(orderId);
         if (!venta) return { ok: false, status: 404, error: 'Venta no encontrada.' };
         // Al laboratorio va solo una venta ENVIADA a fábrica: así queda quién la
@@ -111,7 +117,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
         if (venta.labStatus !== 'SENT' && venta.labStatus !== 'IN_PROGRESS') {
             return { ok: false, status: 409, error: `La venta tiene que estar enviada a fábrica antes de cargarla en el portal (hoy está ${venta.labStatus || 'sin enviar'}).` };
         }
-        const paresDeLaVenta = new Set([...cristalesPorArmazon(venta as any).entries()].filter(([, items]) => (items as any[]).some(esCristalVitolen)).map(([p]) => p));
+        const paresDeLaVenta = new Set(cristalesPorPar(venta).keys());
         if (!paresDeLaVenta.has(pair)) return { ok: false, status: 400, error: `La venta no tiene cristales de Vitolen para el par ${pair}.` };
         const existente = await pedidoExistenteDelPar(orderId, pair, Math.max(cantidadDeArmazones(venta as any), paresDeLaVenta.size));
         if (existente) return { ok: false, status: 409, error: mensajeExistente(existente, pair) };
@@ -127,7 +133,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
         const rolPromo = rolDe(roles, pair);
         // El pedido origen lo deduce el CRM con la regla común (nunca un anulado ni un reproceso): no se acepta del navegador.
         const pedidoOrigen = rolPromo === 'SEGUNDO_PAR' ? await pedidoOrigenDeVitolen(orderId, roles!.conCargo) : null;
-        const r = armarFormulario(venta, { pair, forma, ejeDiagonal, variante: body.variante ? String(body.variante) : null, pedidoOrigen, rolPromo });
+        const r = armarFormulario(venta, { pair, forma, ejeDiagonal, tipoArmazon, variante: body.variante ? String(body.variante) : null, pedidoOrigen, rolPromo });
         if (!r.ok) return { ok: false, status: 422, error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos };
 
         const preparado = await Borradores.preparar({ lab: LAB_VITOLEN, orderId, pair, payload: r.payload, actor });

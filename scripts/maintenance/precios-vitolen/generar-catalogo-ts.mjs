@@ -88,10 +88,18 @@ export const LISTA_VITOLEN = ${JSON.stringify(lista.lista)};
 
 export const CATALOGO_VITOLEN: CristalVitolen[] = ${JSON.stringify(catalogo, null, 4)};
 
+/**
+ * La venta guarda el nombre del cristal SIN la marca ("Array 2 - 1.60 Blue
+ * Filter UV-420": productNameSnapshot sale del modelo), y el catálogo lo tiene
+ * con ella ("HOYA ARRAY 2 - …"). Se comparan los dos sin la marca del frente;
+ * "MI PRIMER HOYA …" no empieza con la marca, así que no se confunde con Array 2.
+ */
+const sinMarca = (s: string) => s.trim().toUpperCase().replace(/\\s+/g, ' ').replace(/^(HOYA|PENTAX) /, '');
+
 export function cristalVitolenPorNombre(nombre: string | null | undefined): CristalVitolen | null {
-    const n = String(nombre || '').trim().toUpperCase();
+    const n = sinMarca(String(nombre || ''));
     if (!n) return null;
-    return CATALOGO_VITOLEN.find(c => c.nombre.toUpperCase() === n) ?? null;
+    return CATALOGO_VITOLEN.find(c => sinMarca(c.nombre) === n) ?? null;
 }
 `;
     writeFileSync(DESTINO, cuerpo);
