@@ -88,10 +88,37 @@ function crearCandadoDeTurno({ prisma, instancia, duracionMs = DURACION_MS, relo
         }
     }
 
+    /**
+     * Estira el lease mientras el turno sigue hablando (15/10/2026): se llama
+     * antes de CADA burbuja. Un turno con lectura de receta + varias burbujas
+     * con pausas podía pasar los DURACION_MS y otra instancia arrancaba el suyo
+     * en el medio.
+     *
+     * @returns {Promise<boolean>} false SOLO si el candado ya es de otro (se
+     *   venció y lo tomó otra instancia): el turno tiene que cortarse. Ante un
+     *   error de la base se sigue (true): los controles de antes de cada
+     *   burbuja también leen la base.
+     */
+    async function renovar(chatId) {
+        if (!enMemoria.has(chatId)) return false;
+        if (!columnasDisponibles()) return true;
+        try {
+            const r = await prisma.whatsAppChat.updateMany({
+                where: { id: chatId, botTurnoPor: yo },
+                data: { botTurnoHasta: new Date(reloj().getTime() + duracionMs) },
+            });
+            return Boolean(r && r.count === 1);
+        } catch (e) {
+            if (esColumnaAusente(e)) { aMemoria(e); return true; }
+            consola.error('  ⚠️ [Candado] No se pudo renovar el candado (sigue el turno):', e && e.message);
+            return true;
+        }
+    }
+
     /** ¿Lo tiene ESTE proceso? (para no pisar un turno propio desde el barrido) */
     function tengo(chatId) { return enMemoria.has(chatId); }
 
-    return { tomar, soltar, tengo, instancia: yo };
+    return { tomar, soltar, renovar, tengo, instancia: yo };
 }
 
 module.exports = { crearCandadoDeTurno, DURACION_MS };

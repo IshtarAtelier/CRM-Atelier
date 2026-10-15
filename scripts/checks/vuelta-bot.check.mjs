@@ -245,6 +245,20 @@ console.log('\nCandado del turno en la base: nunca dos turnos a la vez');
     check('un candado de un proceso muerto vence solo (el chat no queda trabado)', await A2.tomar('c1'));
     await A2.soltar('c1');
     check('soltar libera las columnas', base.chats[0].botTurnoHasta === null && base.chats[0].botTurnoPor === null);
+
+    // Renovar antes de cada burbuja (15/10/2026): un turno largo no deja que
+    // el lease venza y otra instancia arranque en el medio.
+    ahora = art('12:00');
+    check('renovar algo que no tomé → false', !(await A2.renovar('c1')));
+    await A2.tomar('c1');
+    const seg = (s) => new Date(art('12:00').getTime() + s * 1000);
+    ahora = seg(50);
+    check('renovar estira el lease', (await A2.renovar('c1')) && new Date(base.chats[0].botTurnoHasta).getTime() === seg(110).getTime());
+    ahora = seg(90);
+    const C = crearCandadoDeTurno({ prisma: base.prisma, instancia: 'C', reloj: () => ahora, duracionMs: 60000, consola: silencio });
+    check('…y con el lease renovado, otra instancia NO lo toma (sin renovar, a las 12:01:30 ya estaba vencido)', !(await C.tomar('c1')));
+    ahora = art('12:05');
+    check('si venció y lo tomó otra instancia, renovar → false (el turno se corta)', (await C.tomar('c1')) && !(await A2.renovar('c1')));
 }
 {
     motivo._reiniciarEstadoColumnas();
@@ -260,6 +274,16 @@ console.log('\nCandado del turno en la base: nunca dos turnos a la vez');
     const base = { whatsAppChat: { async updateMany() { throw new Error('connection refused'); } } };
     const A = crearCandadoDeTurno({ prisma: base, instancia: 'A', consola: silencio });
     check('si la base no responde, NO corre el turno (mejor uno menos que dos)', !(await A.tomar('c1')));
+}
+{
+    const { readFileSync } = await import('node:fs');
+    const bc = readFileSync(new URL('../../wa-service/bot-cloud.js', import.meta.url), 'utf8');
+    check('los reintentos sin candado tienen tope y avisan UNA vez al canal de fallos (avisarAdmins)',
+        /n > MAX_REINTENTOS_SIN_CANDADO/.test(bc) && /avisadosSinCandado\.has\(chat\.id\)[\s\S]{0,200}avisarAdmins\(/.test(bc));
+    const iHumano = bc.indexOf('if (await humanoSeAdelanto()) {');
+    const iRenovar = bc.indexOf('candado.renovar(chat.id)');
+    const iEnvio = bc.indexOf('transport.sendMessage', iHumano);
+    check('el lease se renueva antes de CADA burbuja (dentro del bucle, antes de enviar)', iHumano > -1 && iRenovar > iHumano && (iEnvio === -1 || iRenovar < iEnvio));
 }
 
 console.log('\nCableado (lo único que se mira en el código)');

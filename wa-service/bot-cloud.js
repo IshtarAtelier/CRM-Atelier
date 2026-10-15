@@ -40,7 +40,8 @@ const { leerSalidaDelGrafo, armarRespuesta, crearTurno } = require('./shared/res
 const { escalarAHumano } = require('./shared/escalar');
 const { clasificarEntrante, contextoDeEntrante, quedaAlgoSinContestar, disparaTurno, entranteDeFila, filaDisparaTurno } = require('./shared/clasificar-entrante');
 const { crearVueltaDelBot } = require('./shared/vuelta-del-bot');
-const { crearCandadoDeTurno } = require('./shared/candado-de-turno');
+const { crearCandadoDeTurno, DURACION_MS: DURACION_CANDADO_MS } = require('./shared/candado-de-turno');
+const { avisarAdmins } = require('./shared/avisar-admins');
 const { MOTIVO_APAGADO } = require('./shared/motivo-apagado');
 const { isBusinessHours } = require('./shared/business-hours');
 const { entroPorAnuncio, faseDeLaCharla, historiaNuestra, restriccionDeFase } = require('./shared/fase-de-la-charla');
@@ -417,6 +418,18 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
     const candado = crearCandadoDeTurno({ prisma });
     // Cuánto se reintenta cuando el turno anterior todavía corre.
     const REINTENTO_CON_TURNO_EN_CURSO_MS = 3000;
+    /**
+     * Tope de reintentos sin poder tomar el candado (15/10/2026). Antes se
+     * reintentaba cada 3 s para siempre: con la base caída, o un lease que no
+     * se suelta, el chat quedaba en un bucle mudo y nadie se enteraba. El
+     * tope cubre de sobra un turno ajeno entero (el lease dura
+     * candado DURACION_MS = 3 min): pasado eso, algo está roto. Se avisa UNA
+     * vez por chat al canal de fallos y se deja de reintentar; el próximo
+     * entrante del cliente vuelve a intentar.
+     */
+    const MAX_REINTENTOS_SIN_CANDADO = Math.ceil((DURACION_CANDADO_MS + 60 * 1000) / REINTENTO_CON_TURNO_EN_CURSO_MS);
+    const reintentosSinCandado = new Map();
+    const avisadosSinCandado = new Set();
 
     /** Junta las burbujas seguidas del cliente en un solo turno. */
     function programarTurno(chat, msg, esperaMs = DEBOUNCE_MS) {
@@ -430,10 +443,27 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 // Lo corre otro (este proceso u otra instancia). Se reintenta:
                 // cuando ese termine, este turno arranca, ve que no queda nada
                 // sin contestar y no hace nada (control al inicio del turno).
-                console.log(`  🔒 [BotCloud] ${profileName} ya tiene un turno corriendo: se reprograma.`);
+                const n = (reintentosSinCandado.get(chat.id) || 0) + 1;
+                reintentosSinCandado.set(chat.id, n);
+                if (n > MAX_REINTENTOS_SIN_CANDADO) {
+                    reintentosSinCandado.delete(chat.id);
+                    console.error(`  🛑 [BotCloud] ${profileName}: ${n - 1} reintentos sin poder tomar el candado del turno. Se deja de reintentar.`);
+                    if (!avisadosSinCandado.has(chat.id)) {
+                        avisadosSinCandado.add(chat.id);
+                        avisarAdmins({
+                            asunto: '🔒 Bot: un chat quedó sin respuesta (candado del turno trabado)',
+                            cuerpo: `El bot no pudo tomar el turno de ${profileName} (${waId}) durante más de ${Math.round(MAX_REINTENTOS_SIN_CANDADO * REINTENTO_CON_TURNO_EN_CURSO_MS / 60000)} min y dejó de intentar. Puede ser la base caída o un candado que no se suelta. Mirá el chat y contestale a mano; el próximo mensaje del cliente lo vuelve a intentar.`,
+                            dedupePrefijo: `candado-turno-${chat.id}`,
+                        }).catch(() => {});
+                    }
+                    return;
+                }
+                console.log(`  🔒 [BotCloud] ${profileName} ya tiene un turno corriendo: se reprograma (${n}/${MAX_REINTENTOS_SIN_CANDADO}).`);
                 if (!debounceTimers.has(chat.id)) programarTurno(chat, msg, REINTENTO_CON_TURNO_EN_CURSO_MS);
                 return;
             }
+            reintentosSinCandado.delete(chat.id);
+            avisadosSinCandado.delete(chat.id);
             processBotTurn(chat, waId, profileName, realPhone)
                 .catch(e => console.error('  ❌ [BotCloud] Error async en processBotTurn:', e.message))
                 .finally(() => candado.soltar(chat.id));
@@ -981,6 +1011,14 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 // turno deja al cliente con media respuesta, y eso es mejor que
                 // dos voces hablándole encima.
                 if (await humanoSeAdelanto()) {
+                    botReplyingTo.delete(waId);
+                    return;
+                }
+                // El lease se estira antes de cada burbuja (15/10/2026). Si ya
+                // es de otro (se venció y otra instancia arrancó su turno), se
+                // corta: dos voces hablándole encima es peor que media respuesta.
+                if (!(await candado.renovar(chat.id))) {
+                    console.warn(`  🔒 [BotCloud] ${profileName}: el candado del turno ya es de otra instancia; se corta este turno.`);
                     botReplyingTo.delete(waId);
                     return;
                 }
