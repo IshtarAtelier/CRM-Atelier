@@ -94,7 +94,7 @@ const idx = leer('../../wa-service/index.js');
 const auto = leer('../../wa-service/auto-responder.js');
 check('bot-cloud.js decide con clasificarEntrante/disparaTurno', bc.includes('clasificarEntrante(msg') && bc.includes('disparaTurno(clase)') && !bc.includes('esConsulta('));
 check('index.js (legacy) decide con clasificarEntrante/disparaTurno', idx.includes('clasificarEntrante(') && idx.includes('disparaTurno(claseDelEntrante)'));
-check('auto-responder.js decide con clasificarEntrante/disparaTurno', auto.includes('disparaTurno(clasificarEntrante(m))'));
+check('auto-responder.js decide con clasificarEntrante/disparaTurno y el contexto del chat', auto.includes('disparaTurno(clasificarEntrante(m, contexto))') && auto.includes('contextoDeEntrante({') && auto.includes('esConsultaDeCliente(m, await contextoDelChat('));
 
 console.log('\nDueño del chat: cuándo vuelve el bot');
 // 2026-10-14 es miércoles. Hora de Córdoba (UTC−3).

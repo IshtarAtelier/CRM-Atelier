@@ -46,4 +46,20 @@ const CHAT_BASE = Object.freeze({
 /** Para escrituras cuyo resultado no se usa: que no devuelvan la fila entera. */
 const SOLO_ID = Object.freeze({ id: true });
 
-module.exports = { CHAT_BASE, SOLO_ID };
+/**
+ * Columnas SIN las que el wa-service no puede guardar ni leer entrantes
+ * (15/10/2026). Si `migrate deploy` falla al arrancar, shared/migrar-al-arrancar.js
+ * consulta information_schema por ESTA lista: si están todas, arranca igual
+ * (lo nuevo y tolerante —`botOffReason`/`botOffAt` del motivo, el lease
+ * `botTurnoHasta`/`botTurnoPor`— degrada solo); si falta alguna, no arranca.
+ * - WhatsAppChat: todo CHAT_BASE (lo pide cada lectura de chat).
+ * - WhatsAppMessage.receivedAt: lo usan el orden de llegada y el dueño del
+ *   chat en `orderBy`/`where`, sin camino tolerante.
+ * Una columna nueva que se lea sin helper tolerante TIENE que sumarse acá.
+ */
+const COLUMNAS_REQUERIDAS = Object.freeze({
+    WhatsAppChat: Object.freeze(Object.keys(CHAT_BASE)),
+    WhatsAppMessage: Object.freeze(['id', 'chatId', 'createdAt', 'receivedAt']),
+});
+
+module.exports = { CHAT_BASE, SOLO_ID, COLUMNAS_REQUERIDAS };

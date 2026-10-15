@@ -41,7 +41,8 @@
 const { SOLO_ID } = require('./shared/columnas-chat');
 const { isBusinessHours: isBusinessHoursReal } = require('./shared/business-hours');
 const { whereSalienteHumano, SENDER_NAME_AUTORESPONDEDOR } = require('./shared/remitentes');
-const { clasificarEntrante, disparaTurno } = require('./shared/clasificar-entrante');
+const { clasificarEntrante, contextoDeEntrante, disparaTurno } = require('./shared/clasificar-entrante');
+const { ORDEN_DE_LLEGADA_DESC } = require('./shared/orden-de-llegada');
 const { resolveWaMessageId } = require('./shared/message-id');
 const {
     ADDRESS,
@@ -128,8 +129,20 @@ function buildAutoReplyText() {
 // una reacción, un "gracias" de cierre, un eco nuestro (fromMe) o el
 // contestador del negocio del cliente no reciben el aviso de fuera de horario.
 // (Un medio sin texto sí: una foto de la receta es una consulta.)
-function esConsultaDeCliente(m) {
-    return disparaTurno(clasificarEntrante(m));
+// Con el MISMO contexto que el bot (contextoDeEntrante: nuestro último
+// saliente): sin él, un "gracias" o un "sí" a una pregunta nuestra se
+// clasificaba distinto acá que en bot-cloud.js.
+function esConsultaDeCliente(m, contexto = {}) {
+    return disparaTurno(clasificarEntrante(m, contexto));
+}
+
+async function contextoDelChat(prisma, chatId) {
+    const nuestroAnterior = await prisma.whatsAppMessage.findFirst({
+        where: { chatId, direction: 'OUTBOUND' },
+        orderBy: ORDEN_DE_LLEGADA_DESC,
+        select: { content: true, templateName: true, createdAt: true, receivedAt: true },
+    }).catch(() => null);
+    return contextoDeEntrante({ entrante: null, nuestroAnterior });
 }
 
 /**
@@ -200,7 +213,7 @@ function createAutoResponder(deps = {}) {
         if (!chat || !chat.id) return { responder: false, motivo: 'sin chat' };
         if (!(await leerBandera(prisma, log))) return { responder: false, motivo: 'bandera apagada o ilegible' };
         if (isBusinessHours(ahora)) return { responder: false, motivo: 'el local está abierto' };
-        if (!esConsultaDeCliente(m)) return { responder: false, motivo: 'no es una consulta (ruido o automático de Meta)' };
+        if (!esConsultaDeCliente(m, await contextoDelChat(prisma, chat.id))) return { responder: false, motivo: 'no es una consulta (ruido o automático de Meta)' };
         if (await yaAvisado(prisma, chat.id, ahora)) return { responder: false, motivo: 'ya avisado en este período cerrado' };
         return { responder: true, motivo: 'fuera de horario, primer aviso' };
     }

@@ -17,8 +17,13 @@ import { avisarAdmins } from '@/lib/avisos/aviso-al-equipo';
 function esElBot(request: Request): boolean {
     const dada = request.headers.get('x-api-key') || '';
     const valida = process.env.BOT_API_KEY || '';
-    if (!dada || !valida || dada.length !== valida.length) return false;
-    return timingSafeEqual(Buffer.from(dada), Buffer.from(valida));
+    if (!dada || !valida) return false;
+    // Longitud en BYTES: con caracteres multibyte dos strings del mismo largo
+    // dan Buffers distintos y timingSafeEqual lanza (→ 500 en vez de 403).
+    const a = Buffer.from(dada);
+    const b = Buffer.from(valida);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
 }
 
 export async function POST(request: Request) {

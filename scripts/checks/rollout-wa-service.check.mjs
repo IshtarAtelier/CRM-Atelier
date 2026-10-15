@@ -170,10 +170,14 @@ const { migrarAlArrancar } = require('../../wa-service/shared/migrar-al-arrancar
 const mudo = { log() {}, warn() {}, error() {} };
 const capa1 = async () => {
     const correrQue = (resultados) => { let n = 0; const f = () => resultados[Math.min(n++, resultados.length - 1)]; f.veces = () => n; return f; };
-    const base = { env: { DATABASE_URL: 'postgres://x' }, schema: '/app/prisma/schema.prisma', esperas: [0, 0, 0], esperar: async () => {}, consola: mudo };
+    const base = { env: { DATABASE_URL: 'postgres://x' }, schema: '/app/prisma/schema.prisma', esperas: [0, 0, 0], esperar: async () => {}, consola: mudo,
+        verificar: async () => ({ ok: false, faltan: ['WhatsAppMessage.receivedAt'] }), avisar: async () => true };
     const casos = [
         ['migra bien → arranca', { correr: correrQue([{ ok: true }]) }, true, 1],
         ['falla dos veces (lock de otra instancia) y después anda → arranca', { correr: correrQue([{ ok: false, error: 'lock' }, { ok: false, error: 'lock' }, { ok: true }]) }, true, 3],
+        ['falla siempre + columnas presentes → arranca (con aviso)', { correr: correrQue([{ ok: false, error: 'pooler sin advisory lock' }]), verificar: async () => ({ ok: true, faltan: [] }) }, true, 4],
+        ['falla siempre + faltan columnas → NO arranca', { correr: correrQue([{ ok: false, error: 'x' }]), verificar: async () => ({ ok: false, faltan: ['WhatsAppChat.lastInboundAt'] }) }, false, 4],
+        ['falla siempre + no se pudo verificar → NO arranca', { correr: correrQue([{ ok: false, error: 'x' }]), verificar: async () => ({ ok: false, faltan: [], error: 'conexión' }) }, false, 4],
         ['falla siempre → NO arranca (Meta reintenta; arrancar perdería entrantes)', { correr: correrQue([{ ok: false, error: 'x' }]) }, false, 4],
         ['falla siempre con WA_ARRANCAR_SIN_MIGRAR=1 → arranca igual', { correr: correrQue([{ ok: false, error: 'x' }]), env: { DATABASE_URL: 'x', WA_ARRANCAR_SIN_MIGRAR: '1' } }, true, 4],
         ['WA_SALTEAR_MIGRACION=1 → no migra', { correr: correrQue([{ ok: false }]), env: { DATABASE_URL: 'x', WA_SALTEAR_MIGRACION: '1' } }, true, 0],
@@ -185,6 +189,16 @@ const capa1 = async () => {
         if (r.arrancar !== arrancar || v !== veces) { errores++; console.log(`  ❌ ${nombre} (arrancar=${r.arrancar}, intentos=${v})`); }
         else console.log(`  ✅ ${nombre}`);
     }
+    // Peor caso antes de decidir: holgado dentro del healthcheck de Railway (300 s).
+    const { ESPERAS_ENTRE_INTENTOS_MS: E, TOPE_POR_INTENTO_MS: T } = require('../../wa-service/shared/migrar-al-arrancar.js');
+    const peor = (E.length + 1) * T + E.reduce((a, b) => a + b, 0);
+    if (!T || peor > 200000) { errores++; console.log(`  ❌ peor caso de migración ${Math.round(peor / 1000)} s: no entra holgado en el healthcheck de 300 s`); }
+    else console.log(`  ✅ peor caso de migración ${Math.round(peor / 1000)} s (healthcheck 300 s)`);
+    // La lista de columnas requeridas cubre CHAT_BASE y receivedAt.
+    const { CHAT_BASE, COLUMNAS_REQUERIDAS: REQ } = require('../../wa-service/shared/columnas-chat.js');
+    const faltaReq = Object.keys(CHAT_BASE).filter(c => !REQ.WhatsAppChat.includes(c));
+    if (faltaReq.length || !REQ.WhatsAppMessage.includes('receivedAt')) { errores++; console.log('  ❌ COLUMNAS_REQUERIDAS no cubre CHAT_BASE + WhatsAppMessage.receivedAt'); }
+    else console.log('  ✅ COLUMNAS_REQUERIDAS cubre CHAT_BASE y WhatsAppMessage.receivedAt');
     // start.js tiene que esperar la migración ANTES de cargar el transporte.
     const start = fs.readFileSync(path.join(WA, 'start.js'), 'utf8').replace(/^\s*(\/\/|\*).*$/gm, '');
     const iMig = start.indexOf('migrarAlArrancar(');

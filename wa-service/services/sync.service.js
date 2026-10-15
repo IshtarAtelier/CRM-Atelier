@@ -267,7 +267,11 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                                 content: msg.body || ((msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) ? '[Media/Documento]' : ''),
                                 waMessageId: syncWaMessageId,
                                 senderName: senderNameValue,
-                                createdAt: new Date(msg.timestamp * 1000)
+                                createdAt: new Date(msg.timestamp * 1000),
+                                // Histórico: su "llegada" es la del teléfono, no
+                                // la de la sincronización (si no, default now()
+                                // lo pone como el más nuevo del chat).
+                                receivedAt: new Date(msg.timestamp * 1000)
                             }
                         });
                     }
