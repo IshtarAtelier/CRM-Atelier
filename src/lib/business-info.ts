@@ -136,6 +136,24 @@ export const BUSINESS_INFO = {
    * frase quedó mal y ya se corrigió en el sitio; no repetirla en piezas nuevas.
    */
   multifocalChangePolicy: "un solo cambio de cristal incluido (garantía de adaptación)",
+  /**
+   * DATOS FISCALES que una tienda online tiene que mostrar (auditoría del
+   * 25/9/2026: no figuraban en ninguna página).
+   *
+   * TODO(Ishtar): completar con los datos REALES de quien factura la tienda.
+   * No se inventan ni se deducen: en el sistema hay más de un CUIT (Ishtar y
+   * Yani) y no hay forma de saber desde el código cuál es el de la tienda.
+   * Mientras estén en null, el pie NO muestra la línea, en vez de mostrar un
+   * dato falso o un "pendiente" a la vista de los clientes.
+   *
+   * - `razonSocial`: como figura en ARCA (monotributo: nombre y apellido del titular).
+   * - `cuit`: con guiones, "20-12345678-9".
+   * - `dataFiscalUrl`: el link del QR "Data Fiscal" que da ARCA al completar el
+   *   formulario 960/D (se muestra como link "Data Fiscal").
+   */
+  razonSocial: null as string | null,
+  cuit: null as string | null,
+  dataFiscalUrl: null as string | null,
 } as const;
 
 /** Texto de promociones listo para inyectar en prompts. */

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { WholesaleFooter } from "./WholesaleFooter";
+import { LegalesDelPie } from "./LegalesDelPie";
 
 // isWholesale lo resuelve quien renderiza el footer (la page /tienda lo detecta
 // server-side por la cookie de sesión). Se pasa como prop en vez de leer
@@ -108,7 +109,7 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
               <span className="w-1 h-1 rounded-full bg-stone-300"></span>
               <span className="text-[11px] text-stone-300 font-medium">Envíos asegurados a todo el país</span>
             </div>
-            <p className="text-[11px] text-stone-300">Comprobante AFIP Data Fiscal</p>
+            <LegalesDelPie />
           </div>
         </div>
 

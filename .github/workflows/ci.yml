@@ -102,6 +102,7 @@ jobs:
           npm run check:facetas
           npm run check:busqueda-tienda
           npm run check:ficha
+          npm run check:arrepentimiento
           npm run check:par-bonificado
           npm run check:recupero-carrito
           npm run check:go-lineas
