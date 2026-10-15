@@ -1,5 +1,5 @@
 import { prisma } from '../../../lib/db';
-import { cantidadDeArmazones, framesDeLaOrden } from '../../../lib/order-frames';
+import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../../../lib/order-frames';
 import { codigoCortoDeVenta, esCristalDeLab } from '../../../lib/laboratorios/identidad';
 import { cristalVitolenPorNombre, type CristalVitolen } from '../../../lib/laboratorios/vitolen-catalogo';
 import { disenoDelPortal, materialDelPortal } from './materiales';
@@ -174,25 +174,20 @@ export function esSegundoParDePromo(payload: Partial<Pick<PayloadVitolen, 'par' 
 
 /**
  * Los cristales de Vitolen de la venta, agrupados por par (1, 2…). Qué par es
- * cada uno lo dice el armazón asignado (`framePosition`). Si NINGUNO lo tiene,
- * los pares se arman en el orden del carrito: el 2º OD y el 2º OI son del par
- * 2 — el mismo criterio que la promo del 2º par (promo-segundo-par-hoya.ts).
- * Así venía la primera venta real (Moroncini, 15/10/2026): dos armazones y
- * cuatro cristales sin asignar. Si alguno tiene posición, un ítem sin ella es
- * del par 1: no puede "prestarse" al par 2. Puro.
+ * cada uno lo dice el armazón asignado (`framePosition`) y, sin asignar, el
+ * orden del carrito (el 2º OD y el 2º OI son del par 2; en una venta mixta
+ * caen en el armazón que el otro lab no ocupa). Así venía la primera venta
+ * real (Moroncini, 15/10/2026): dos armazones y cuatro cristales sin asignar.
+ * La regla vive en `cristalesPorArmazon` (lib/order-frames), la misma que la
+ * promo del 2º par y el cruce: acá solo se filtra lo de Vitolen. Puro.
  */
 export function cristalesPorPar(venta: Pick<VentaParaCarga, 'items'>): Map<number, VentaParaCarga['items']> {
-    const deVitolen = venta.items.filter(i => esCristalDeLab(i, 'VITOLEN'));
-    const sinAsignar = deVitolen.every(i => i.framePosition == null);
-    const vistos: Record<string, number> = {};
+    // UN solo repartidor para toda la venta (lib/order-frames): el mismo que usan
+    // la promo del 2º par, Grupo Óptico y el cruce. Acá solo se filtra lo de Vitolen.
     const pares = new Map<number, VentaParaCarga['items']>();
-    for (const i of deVitolen) {
-        let par = i.framePosition ?? 1;
-        if (sinAsignar) {
-            const ojo = (i.eye || '').toUpperCase() || 'AMBOS';
-            par = vistos[ojo] = (vistos[ojo] ?? 0) + 1;
-        }
-        pares.set(par, [...(pares.get(par) ?? []), i]);
+    for (const [par, items] of cristalesPorArmazon(venta as any)) {
+        const deVitolen = (items as VentaParaCarga['items']).filter(i => esCristalDeLab(i, 'VITOLEN'));
+        if (deVitolen.length) pares.set(par, deVitolen);
     }
     return pares;
 }

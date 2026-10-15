@@ -49,6 +49,11 @@ export const CARGA_VITOLEN: CargaAsistida = {
         for (const p of pares) { const e = await pedidoExistenteDelPar(orderId, p, totalPares); yaCargados.set(p, e ? mensajeExistente(e, p) : null); }
         const roles = rolesDeLaPromo(venta);
         const avisoRoles = roles ? avisoDeRoles(roles, precioConSigno) : null;
+        // El 2º par de la promo lleva el nº del 1º como "pedido origen": hasta que
+        // el 1º esté cargado, el 2º espera (como el par sin cargo del 2x1 en GO).
+        // Antes se dejaba preparar sin origen y al confirmar el re-armado lo
+        // acusaba como "la venta cambió" (auditoría 5, M2).
+        const origenDelSegundo = roles ? await pedidoOrigenDeVitolen(orderId, roles.conCargo) : null;
         return {
             pares: pares.map(pair => {
                 const r = armarFormulario(venta, { pair, forma: 'Forma 1', ejeDiagonal: 0, tipoArmazon: TIPOS_ARMAZON[0], rolPromo: rolDe(roles, pair) });
@@ -56,7 +61,9 @@ export const CARGA_VITOLEN: CargaAsistida = {
                 const variantes = cristal?.variantes ?? [];
                 const campos: CampoDePreparacion[] = [
                     ...(variantes.length > 1 ? [{ clave: 'variante', etiqueta: 'Variante', tipo: 'select' as const, opciones: variantes.map(v => ({ value: v, label: v })), obligatorio: true }] : []),
-                    { clave: 'forma', etiqueta: 'Forma del armazón (portal)', tipo: 'select', opciones: FORMAS_PORTAL_VITOLEN.map(f => ({ value: f, label: f })), obligatorio: true },
+                    // Con el dibujo de cada tarjeta del portal (public/laboratorios/vitolen/formas, capturadas el
+                    // 15/10/2026): "Forma 1…12" a secas no dice nada (Ishtar).
+                    { clave: 'forma', etiqueta: 'Forma del armazón (portal)', tipo: 'select', opciones: FORMAS_PORTAL_VITOLEN.map((f, i) => ({ value: f, label: f, imagen: `/laboratorios/vitolen/formas/forma-${i + 1}.png` })), obligatorio: true },
                     // La venta casi nunca trae el tipo (vacío en las 152 ventas de 60 días): lo elige quien prepara.
                     { clave: 'tipoArmazon', etiqueta: 'Tipo de armazón', tipo: 'select', opciones: TIPOS_ARMAZON.map(t => ({ value: t, label: t })), obligatorio: true },
                     { clave: 'ejeDiagonal', etiqueta: 'Eje de la diagonal (0‑180)', tipo: 'numero', obligatorio: true, min: 0, max: 180, ayuda: 'Ángulo de la diagonal mayor del aro, como lo pide el portal (botón "¿Cómo tomar las medidas?")' },
@@ -68,6 +75,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
                     avisos: avisoRoles ? [...r.avisos, avisoRoles] : r.avisos,
                     campos,
                     yaCargado: yaCargados.get(pair) ?? null,
+                    espera: rolDe(roles, pair) === 'SEGUNDO_PAR' && !origenDelSegundo ? `Es el 2º par de la promo: se prepara cuando el 1er par (par ${roles!.conCargo}) esté cargado, porque lleva su nº como "pedido origen" (sin él Vitolen factura el par entero).` : null,
                     rol: rolDe(roles, pair) === 'SEGUNDO_PAR' ? { tipo: 'SIN_CARGO' as const, etiqueta: '2º par · promo' } : rolDe(roles, pair) === 'PRIMER_PAR' ? { tipo: 'CON_CARGO' as const, etiqueta: '1er par · promo' } : null,
                 };
             }),
@@ -133,6 +141,9 @@ export const CARGA_VITOLEN: CargaAsistida = {
         const rolPromo = rolDe(roles, pair);
         // El pedido origen lo deduce el CRM con la regla común (nunca un anulado ni un reproceso): no se acepta del navegador.
         const pedidoOrigen = rolPromo === 'SEGUNDO_PAR' ? await pedidoOrigenDeVitolen(orderId, roles!.conCargo) : null;
+        if (rolPromo === 'SEGUNDO_PAR' && !pedidoOrigen) {
+            return { ok: false, status: 409, error: `Es el 2º par de la promo: primero cargá el 1er par (par ${roles!.conCargo}); su nº va como "pedido origen" y sin él Vitolen factura el par entero.` };
+        }
         const r = armarFormulario(venta, { pair, forma, ejeDiagonal, tipoArmazon, variante: body.variante ? String(body.variante) : null, pedidoOrigen, rolPromo });
         if (!r.ok) return { ok: false, status: 422, error: 'Faltan datos para armar el pedido.', faltantes: r.faltantes, avisos: r.avisos };
 

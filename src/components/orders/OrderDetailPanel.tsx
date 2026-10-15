@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { labDeItem } from '@/lib/laboratorios/identidad';
+import { esCristalDeLab, labDeItem } from '@/lib/laboratorios/identidad';
 import { CRIZALES, ventaExigeCrizal } from '@/lib/constants/crizal';
 import {
     FlaskConical,
@@ -144,14 +144,12 @@ export function OrderDetailPanel({
         if (pair === 1) setRx1(full); else setRx2(full);
     };
 
-    const isOptovision = order.items?.some((it: any) => {
-        const labName = (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase();
-        return labName.includes('OPTOVISION');
-    }) || false;
-    const isVitolen = order.items?.some((it: any) => labDeItem(it) === 'VITOLEN') || false;
-    // Grupo Óptico: carga asistida en SmartLab (src/services/lab-modules/grupo-optico).
-    const isGrupoOptico = order.items?.some((it: any) =>
-        labDeItem(it) === 'GRUPO_OPTICO' && /cristal/i.test(it.productCategorySnapshot || it.product?.category || '')) || false;
+    // Qué laboratorios lleva la venta: la identidad única (lib/laboratorios/identidad).
+    const isOptovision = order.items?.some((it: any) => labDeItem(it) === 'OPTOVISION') || false;
+    const isVitolen = order.items?.some((it: any) => esCristalDeLab(it, 'VITOLEN')) || false;
+    // Grupo Óptico: carga asistida en SmartLab (src/services/lab-modules/grupo-optico). Un
+    // cristal sin laboratorio cargado (ventas viejas) se asume de GO, como hace la carga.
+    const isGrupoOptico = order.items?.some((it: any) => esCristalDeLab(it, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' })) || false;
 
     const [fullImageOpen, setFullImageOpen] = useState(false);
     // Los campos del caso los maneja PostSaleServiceForm; acá solo se sigue la

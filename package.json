@@ -69,6 +69,7 @@
     "check:promo": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1.check.mjs",
     "check:vitolen-llegada": "node scripts/checks/vitolen-tiempo-de-llegada.mjs",
     "check:promo-hoya": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-segundo-par-hoya.check.mjs",
+    "check:go-equivalencias": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/grupo-optico-equivalencias.mjs",
     "check:promo2x1web": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1-armazones.check.mjs",
     "check:colores": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-normalizado.check.mjs",
     "check:facetas": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/facetas.check.mjs",

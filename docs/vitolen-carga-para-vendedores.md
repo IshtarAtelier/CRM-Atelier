@@ -56,7 +56,7 @@ Es **la misma forma de trabajar que con Grupo Óptico**: preparar, mirar la
 pantalla real del laboratorio, aprobar.
    - Si es un detalle chico, el link "abrilo en el portal" lleva al borrador:
      se corrige con **Modificar** en Vitolen y después se aprueba acá.
-5. **Segundo par de la promo Hoya**: el bloque te lo marca en amarillo. Antes
+6. **Segundo par de la promo Hoya**: el bloque te lo marca en amarillo. Antes
    de aprobar, abrí el borrador en el portal con "Modificar" y asociá el
    **pedido origen** (el nº del primer par) con la promoción HOYALUX. El
    robot todavía no lo hace solo.

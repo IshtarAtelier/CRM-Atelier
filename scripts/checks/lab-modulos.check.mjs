@@ -26,7 +26,8 @@ import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
-import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo, diferenciasDePayloadVitolen } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo, diferenciasDePayloadVitolen, cristalesPorPar, tipoArmazonDelPortal, TIPOS_ARMAZON } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { cristalesPorArmazon } from '../../src/lib/order-frames.ts';
 import { rolesDeLaPromoHoya, rolDeLaPromo } from '../../src/lib/laboratorios/vitolen-promo.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/lib/laboratorios/vitolen-catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/lib/laboratorios/vitolen-promo.ts';
@@ -451,6 +452,43 @@ ok('dos pares SIN armazón asignado se arman en el orden del carrito (como la pr
     assert.equal(p2.ok, true, p2.faltantes.join(' · '));
     assert.deepEqual([p1.payload.od.esferico, p1.payload.oi.esferico, p1.payload.armazon.largo], [1, 2, 56]);
     assert.deepEqual([p2.payload.od.esferico, p2.payload.oi.esferico, p2.payload.armazon.largo], [3, 4, 58]);
+});
+ok('qué par es cada cristal lo decide UN solo repartidor: la promo del 2º par, la carga de Vitolen y el cruce coinciden en todas las permutaciones', () => {
+    const LS = 'HOYA LIFESTYLE 4 - 1.50 CLEAR', TACT = 'HOYA TACT BKS - 1.50 CLEAR BLUE FILTER';
+    const c = (fp, eye, nombre, price) => ({ eye, framePosition: fp, price, quantity: 1, productNameSnapshot: nombre, laboratorySnapshot: 'VITOLEN', productCategorySnapshot: 'Cristal', product: { name: nombre, category: 'Cristal' } });
+    const rolDe = (roles, pair) => (!roles ? null : pair === roles.conCargo ? 'PRIMER_PAR' : pair === roles.sinCargo ? 'SEGUNDO_PAR' : null);
+    // el barato PRIMERO en el carrito, sin armazón asignado: el caro (LS4, par 2 por orden) es el 1º de la promo
+    const barataPrimero = [c(null, 'OD', TACT, 80000), c(null, 'OI', TACT, 80000), c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000)];
+    const roles = rolesDeLaPromoHoya(barataPrimero);
+    assert.deepEqual([roles.conCargo, roles.sinCargo, roles.porValor], [2, 1, true]);
+    const porPar = cristalesPorPar({ items: barataPrimero });
+    assert.equal(porPar.get(1)[0].productNameSnapshot, TACT); assert.equal(porPar.get(2)[0].productNameSnapshot, LS);
+    assert.deepEqual([rolDe(roles, 1), rolDe(roles, 2)], ['SEGUNDO_PAR', 'PRIMER_PAR']);
+    // carrito OD, OD, OI, OI sin asignar: el 2º OD y el 2º OI son del par 2 (antes tres cristales caían en el par 2)
+    const intercalado = [c(null, 'OD', TACT, 80000), c(null, 'OD', LS, 100000), c(null, 'OI', TACT, 80000), c(null, 'OI', LS, 100000)];
+    const pp = cristalesPorArmazon({ items: intercalado });
+    assert.deepEqual(pp.get(1).map(i => i.eye + ' ' + i.productNameSnapshot), ['OD ' + TACT, 'OI ' + TACT]);
+    assert.deepEqual(pp.get(2).map(i => i.eye + ' ' + i.productNameSnapshot), ['OD ' + LS, 'OI ' + LS]);
+    assert.equal(rolesDeLaPromoHoya(intercalado).conCargo, 2);
+    // venta mixta: Grupo Óptico asignado al armazón 1, Vitolen sin asignar → Vitolen cae en el armazón 2 (el libre)
+    const go = (eye) => ({ eye, framePosition: 1, price: 50000, quantity: 1, productNameSnapshot: 'Multifocal Smart FREE · Orgánico Blanco 1.49', laboratorySnapshot: 'GRUPO OPTICO', productCategorySnapshot: 'Cristal', product: { name: 'Multifocal Smart FREE · Orgánico Blanco 1.49', category: 'Cristal' } });
+    const mixta = cristalesPorPar({ items: [go('OD'), go('OI'), c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000)] });
+    assert.deepEqual([...mixta.keys()], [2]);
+    // asignación PARCIAL: el caro asignado al armazón 1, el barato sin asignar → el barato cae en el armazón libre (2), no se pega al 1
+    const parcial = cristalesPorPar({ items: [c(null, 'OD', TACT, 80000), c(null, 'OI', TACT, 80000), c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000)] });
+    assert.deepEqual([parcial.get(1)[0].productNameSnapshot, parcial.get(2)[0].productNameSnapshot], [LS, TACT]);
+    assert.deepEqual([rolesDeLaPromoHoya([c(null, 'OD', TACT, 80000), c(null, 'OI', TACT, 80000), c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000)]).conCargo], [1]);
+    // con armazón asignado manda el armazón, no el orden ni el valor
+    const asignado = rolesDeLaPromoHoya([c(2, 'OD', TACT, 80000), c(2, 'OI', TACT, 80000), c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000)]);
+    assert.deepEqual([asignado.conCargo, asignado.sinCargo], [1, 2]);
+    // mismo valor sin asignar: queda el orden del carrito (par 1 con cargo)
+    const iguales = rolesDeLaPromoHoya([c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000), c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000)]);
+    assert.deepEqual([iguales.conCargo, iguales.sinCargo, iguales.porValor], [1, 2, false]);
+});
+ok('el tipo de armazón elegido al preparar sobrevive al re-armado del confirm (round-trip etiqueta → portal → etiqueta)', () => {
+    for (const t of TIPOS_ARMAZON) assert.equal(tipoArmazonDelPortal(t)?.[2], t);
+    assert.equal(tipoArmazonDelPortal('acetato')?.[2], 'Zilo');
+    assert.equal(tipoArmazonDelPortal(null), null);
 });
 ok('el tipo de armazón se elige al preparar; sin él (la venta casi nunca lo trae) no se arma', () => {
     const v = ventaBase();

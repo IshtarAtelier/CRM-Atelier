@@ -124,7 +124,7 @@ export async function llenarBorradorEnPortal(borradorId: string) {
         }
         throw err;
     }
-    });
+    }, { enEstado: ['PREPARADO'] });
 }
 
 /** El borrador del CRM dejó de estar PREPARADO antes de "Crear" (lo anularon): no se crea nada. */
@@ -257,7 +257,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
             .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador:', e));
         throw err;
     }
-    }, { heredar: opts.robot ?? null });
+    }, { heredar: opts.robot ?? null, enEstado: ['APROBADO'] });
 }
 
 /**
@@ -301,7 +301,7 @@ export async function cancelarEnPortal(borradorId: string, actor?: Actor): Promi
         await Borradores.anotarFalla(b.id, `${base}\nNO se pudo cancelar el borrador ${rastro.portalDraftId} en el portal (${motivo}): cancelarlo a mano en ${rastro.url}`.trim(), { robot }).catch(() => null);
         return { cancelado: false, motivo };
     }
-    });
+    }, { enEstado: ['RECHAZADO', 'ERROR'] });
 }
 
 /**
@@ -330,5 +330,5 @@ export async function releerBorradorEnPortal(borradorId: string, actor: Actor) {
         screenshotUrl,
         resumenPortal: { ...rastro, texto: r.texto.slice(0, 4000), textoComparable: resumenComparable(r.texto), url: r.url, releidoEl: new Date().toISOString() },
     });
-    });
+    }, { enEstado: ['EN_REVISION'] });
 }

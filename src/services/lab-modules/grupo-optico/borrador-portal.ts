@@ -10,14 +10,14 @@ import { payloadCreateUpdate, planDeCarga, type OpcionesCarga, type PlanDeCarga,
 import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, PedidoRechazadoError, pruebaDeQueNoSeCreo, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
 import { leerVentaParaCargaGO } from './venta';
 import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
-import { pedidoExistenteDelPar } from './existentes';
+import { esNumeroSmartLab, pedidoExistenteDelPar } from './existentes';
+import { numerosDeLaVenta, numerosDeOtrosPares as numerosAjenosAlPar } from '../carga/numeros';
 import { numeroDelParConCargo } from './origen';
 import { decidirConAprobado } from './decision';
 import { codigoCortoDeVenta } from '../../../lib/laboratorios/identidad';
 import { registrarExtraNoCobrado } from '../carga/extras-no-cobrados';
 import { rolesDel2x1 } from './carga';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
-import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import type { EstadoEnPortal } from '../contrato';
 
 /**
@@ -171,7 +171,7 @@ export async function prepararEnPortal(borradorId: string) {
         await Borradores.error(b.id, ROBOT_ACTOR_GRUPO_OPTICO, motivo).catch(e => console.error('[lab-modulos] no se pudo marcar el error del borrador GO:', e));
         throw err;
     }
-    });
+    }, { enEstado: ['PREPARADO'] });
 }
 
 async function guardarCaptura(borradorId: string, sufijo: string, png: Buffer): Promise<string> {
@@ -197,23 +197,9 @@ class YaCargadoError extends Error {
     constructor() { super('ya cargado'); this.name = 'YaCargadoError'; }
 }
 
-/** Los nº de pedido que ya son de OTRO par de esta venta (para no adoptarlos como de este). */
+/** Los nº de pedido que ya son de OTRO par de esta venta (para no adoptarlos como de este): el lector único de números. */
 async function numerosDeOtrosPares(orderId: string, pair: number): Promise<Set<string>> {
-    const otros = await prisma.labOrderDraft.findMany({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair: { not: pair } }, select: { portalNumber: true, resumenPortal: true } });
-    const set = new Set<string>();
-    for (const o of otros) {
-        if (o.portalNumber) set.add(o.portalNumber);
-        const n = (o.resumenPortal as RastroGO | null)?.numeroCreado;
-        if (n) set.add(n);
-    }
-    const espejo = await prisma.labPortalOrder.findMany({ where: { orderId, lab: LAB_GRUPO_OPTICO, pair: { not: pair, gt: 0 } }, select: { portalNumber: true } });
-    for (const e of espejo) set.add(e.portalNumber);
-    // Un reproceso (post-venta) cargado a mano con el código de la venta no es
-    // el pedido de este par: si se adoptara, el borrador quedaría CARGADO con
-    // el nº de un reproceso y la venta sin su pedido (auditoría 4, M5).
-    const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { postSaleCases: { where: { newOrderNumber: { not: null } }, select: { newOrderNumber: true } } } });
-    for (const c of venta?.postSaleCases || []) for (const n of parseLabNumbers(c.newOrderNumber)) set.add(n);
-    return set;
+    return numerosAjenosAlPar(await numerosDeLaVenta(LAB_GRUPO_OPTICO, orderId, { esNumeroDelLab: esNumeroSmartLab }), pair);
 }
 
 /**
@@ -427,5 +413,5 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
             .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador GO:', e));
         throw err;
     }
-    }, { heredar: opts.robot ?? null });
+    }, { heredar: opts.robot ?? null, enEstado: ['APROBADO'] });
 }

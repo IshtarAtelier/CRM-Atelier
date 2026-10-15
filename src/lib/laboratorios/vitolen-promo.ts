@@ -1,6 +1,7 @@
 import { cristalVitolenPorNombre } from './vitolen-catalogo';
 import { descuentoSegundoParHoya, type LineaDeCarrito } from '../promo-segundo-par-hoya';
 import type { RolesDePares } from './roles-2x1';
+import { cristalesPorArmazon } from '../order-frames';
 
 /**
  * EL SEGUNDO PAR DE VITOLEN NO ES GRATIS: se factura al 20 % del precio de
@@ -56,10 +57,20 @@ export function segundoParCobradoDeMas(facturado: number, esperado: number, tole
 export function rolesDeLaPromoHoya(items: LineaDeCarrito[]): RolesDePares | null {
     const d = descuentoSegundoParHoya(items);
     if (!d.primerPar || !d.segundoPar) return null;
-    // Sin armazón asignado en uno de los dos (ventas viejas), se resuelve contra el otro.
-    const conCargo = d.primerPar.framePosition ?? (d.segundoPar.framePosition === 1 ? 2 : 1);
-    const sinCargo = d.segundoPar.framePosition ?? (conCargo === 1 ? 2 : 1);
-    if (conCargo === sinCargo) return null;
+    // Qué PAR (armazón 1 o 2) es cada uno lo dice el único repartidor de la
+    // venta (`cristalesPorArmazon`): por armazón asignado o, sin asignar, por el
+    // orden del carrito. Antes, sin armazón, el 1º de la promo era "el par 1" a
+    // ciegas: con el cristal barato primero en el carrito, el caro quedaba como
+    // 2º par, Vitolen lo facturaba entero y el cruce reclamaba en falso
+    // (auditoría 5, 15/10/2026).
+    const porPar = cristalesPorArmazon({ items } as any);
+    const parDe = (p: { indices: number[] }): number | null => {
+        for (const [pair, its] of porPar) if (p.indices.some(i => (its as unknown[]).includes(items[i]))) return pair;
+        return null;
+    };
+    const conCargo = parDe(d.primerPar);
+    const sinCargo = parDe(d.segundoPar);
+    if (!conCargo || !sinCargo || conCargo === sinCargo) return null;
     return {
         conCargo, sinCargo,
         porValor: d.primerPar.precio !== d.segundoPar.precio,

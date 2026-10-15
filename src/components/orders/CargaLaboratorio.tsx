@@ -20,7 +20,7 @@ import { formatDate } from '@/lib/format-date';
  * aprueba a ciegas.
  */
 
-interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
+interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
 interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null }
@@ -44,9 +44,9 @@ const VIVOS = ['PREPARADO', 'EN_REVISION', 'APROBADO'];
 const esImagen = (url: string | null | undefined) => { if (!url) return false; try { return !/\.pdf(\?|$|%)/i.test(decodeURIComponent(url)); } catch { return false; } };
 
 /** Colores por laboratorio (clases completas: Tailwind no arma nombres dinámicos). */
-const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde: string; anillo: string }> = {
-    VITOLEN: { caja: 'from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-100 dark:border-red-900/40', titulo: 'text-red-600', boton: 'bg-red-600', borde: 'border-red-100 dark:border-red-900/30', anillo: 'hover:ring-red-400' },
-    GRUPO_OPTICO: { caja: 'from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-indigo-100 dark:border-indigo-900/50', titulo: 'text-indigo-600 dark:text-indigo-400', boton: 'bg-indigo-600', borde: 'border-indigo-100 dark:border-indigo-900/40', anillo: 'hover:ring-indigo-400' },
+const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde: string; anillo: string; seleccion: string }> = {
+    VITOLEN: { caja: 'from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-100 dark:border-red-900/40', titulo: 'text-red-600', boton: 'bg-red-600', borde: 'border-red-100 dark:border-red-900/30', anillo: 'hover:ring-red-400', seleccion: 'border-red-600 ring-red-300' },
+    GRUPO_OPTICO: { caja: 'from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-indigo-100 dark:border-indigo-900/50', titulo: 'text-indigo-600 dark:text-indigo-400', boton: 'bg-indigo-600', borde: 'border-indigo-100 dark:border-indigo-900/40', anillo: 'hover:ring-indigo-400', seleccion: 'border-indigo-600 ring-indigo-300' },
 };
 
 export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: string; orderId: string; onChanged?: () => void }) {
@@ -280,7 +280,21 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                         )
                                     ) : (
                                         <label key={c.clave} className="text-[10px] text-stone-500" title={c.ayuda}>{c.etiqueta}
-                                            {c.tipo === 'select' ? (
+                                            {c.tipo === 'select' && c.opciones?.some(o => o.imagen) ? (
+                                                /* Opciones con dibujo (las formas del portal): se elige viendo la forma. */
+                                                <div role="radiogroup" aria-label={c.etiqueta} className="mt-0.5 flex flex-wrap gap-1.5">
+                                                    {(c.opciones || []).map(o => {
+                                                        const elegida = valorDe(par.pair, c) === o.value;
+                                                        return (
+                                                            <button key={o.value} type="button" role="radio" aria-checked={elegida} title={o.label}
+                                                                onClick={() => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: o.value }))}
+                                                                className={`flex flex-col items-center gap-0.5 rounded-lg border-2 bg-white px-1.5 py-1 ${elegida ? `ring-2 ${tema.seleccion}` : 'border-stone-200 hover:border-stone-400'}`}>
+                                                                {o.imagen ? <img src={o.imagen} alt={o.label} className="w-20 h-auto" /> : <span className="text-[10px]">{o.label}</span>}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : c.tipo === 'select' ? (
                                                 <select value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={input}>
                                                     {!c.porDefecto && <option value="">{c.obligatorio ? 'Elegir…' : '—'}</option>}
                                                     {(c.opciones || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

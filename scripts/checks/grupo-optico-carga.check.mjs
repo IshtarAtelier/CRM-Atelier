@@ -20,10 +20,12 @@ import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo
 import { labDeItem, esDeLab, esCristal, esCristalDePar, labKeyDe, labDeNumero, esNumeroDeLab, codigoCortoDeVenta, esCodigoCorto, soloDigitos as soloDigitosId } from '../../src/lib/laboratorios/identidad.ts';
 import { isCrystal, isTeñidoAddon } from '../../src/lib/promo-utils.ts';
 import { decidirConAprobado } from '../../src/services/lab-modules/grupo-optico/decision.ts';
+import { paletaDeGrupoOptico } from '../../src/lib/constants/paletas-color.ts';
 import { textoDeExtraNoCobrado, lineaDeFicha } from '../../src/services/lab-modules/carga/extras-no-cobrados.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales, pruebaDeQueNoSeCreo, PedidoRechazadoError, PortalRespondioError } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
+import { numerosDeOtrosPares } from '../../src/services/lab-modules/carga/numeros.ts';
 import { pedidoComoLoGuardaElPortal, diferenciasDeVista } from '../../src/services/lab-modules/grupo-optico/vista.ts';
 import { huellaDelPlan, cambiosEntrePayloads } from '../../src/services/lab-modules/grupo-optico/borrador-portal.ts';
 
@@ -375,6 +377,11 @@ ok('qué hace el robot con un APROBADO se decide en seco (decision.ts): lo que y
     // el nº creado manda sobre todo lo demás (ni se busca ni se invalida)
     assert.equal(decidirConAprobado({ ...base, numeroCreado: '80000001', existente: { numero: '80000009', ambiguo: false } }).accion, 'ANOTAR');
 });
+ok('los nº de OTRO par (cargados, devueltos por el portal, del espejo o de un reproceso) nunca se adoptan como de este par', () => {
+    const n = { cargadosPorPar: [{ pair: 1, numero: '80000001' }], borradoresConNumero: [{ pair: 1, numero: '80000001' }, { pair: 2, numero: '80000002' }], espejo: [{ numero: '80000003', pair: 1, anulado: true }, { numero: '80000004', pair: null, anulado: false }, { numero: '80000005', pair: 2, anulado: false }], numerosEnVenta: ['80000001'], reprocesos: ['80000009'] };
+    assert.deepEqual([...numerosDeOtrosPares(n, 2)].sort(), ['80000001', '80000003', '80000009']);
+    assert.deepEqual([...numerosDeOtrosPares(n, 1)].sort(), ['80000002', '80000005', '80000009']);
+});
 ok('solo un 4xx del portal prueba que NO se creó el pedido: un 5xx o un timeout dejan el envío incierto (nunca se reenvía a ciegas)', () => {
     assert.equal(pruebaDeQueNoSeCreo(new PedidoRechazadoError('datos inválidos')), true);
     assert.equal(pruebaDeQueNoSeCreo(new PortalRespondioError(400, 'bad request')), true);
@@ -414,6 +421,13 @@ ok('la identidad del laboratorio por su clave escrita (lab de LabCostEntry/LabOr
     const v = venta2x1(false); v.items = v.items.map(i => (i.eye ? { ...i, price: 0, productCategorySnapshot: null, product: { ...i.product, category: undefined, name: i.framePosition === 2 ? 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Premium 2x1' : i.product.name, price: i.framePosition === 2 ? 120000 : 80000 } } : i));
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [2, 1]);
     assert.equal(planDeCarga(v, 2, { tipoArmazon: 'PLASTICO' }).plan.rol2x1, 'CON_CARGO');
+});
+ok('espejado 1.49: la venta ofrece solo Azul y Plateado (lo que el portal arma), aunque la lista lo llame "Gris / Plata"', () => {
+    const p = paletaDeGrupoOptico('multifocal smart free · organico gris 3 espejado gris / plata 1.49 2x1');
+    assert.deepEqual(p.tonos.map(t => t.name), ['Azul', 'Plateado']);
+    for (const color of ['Azul', 'Plateado']) assert.ok(especificacionDe('Multifocal Smart FREE · Orgánico Gris 3 Espejado Gris / Plata 1.49 2x1', { colorItem: color }).ok, color);
+    // el foto espejado y el polarizado sí toman los colores del nombre
+    assert.deepEqual(paletaDeGrupoOptico('multifocal smart free · organico polarizado gris / brown 1.49').tonos.map(t => t.name), ['Gris', 'Sepia']);
 });
 ok('stock mineral: la etiqueta del portal no dice STOCK ("MINERAL BLANCO ESF -150+050 (3)") y aun así es el artículo de stock', () => {
     const lista = [{ value: '9001', label: 'MINERAL BLANCO ESF -150+050 (3)' }];

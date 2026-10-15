@@ -35,7 +35,8 @@ export interface CampoDePreparacion {
     tipo: 'select' | 'numero' | 'extra';
     /** Solo `extra`: lo que lee quien lo agrega antes de confirmar. */
     advertencia?: string;
-    opciones?: { value: string; label: string }[];
+    /** `imagen`: la ficha muestra la opción con su dibujo (las formas de armazón del portal de Vitolen) en vez de un desplegable. */
+    opciones?: { value: string; label: string; imagen?: string }[];
     obligatorio: boolean;
     porDefecto?: string;
     ayuda?: string;
