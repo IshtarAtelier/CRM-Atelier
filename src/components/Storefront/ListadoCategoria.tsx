@@ -195,6 +195,7 @@ export async function ListadoCategoria({
               availableBrands={Array.from(marcas).sort()}
               availableShapes={Array.from(formas).sort()}
               availableMaterials={Array.from(materiales).sort()}
+              categoria={categoria}
             />
           </Suspense>
         </aside>

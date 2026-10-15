@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GENEROS_DE_CATALOGO } from '@/lib/constants/genero-catalogo';
 import { track } from '@/lib/client-analytics';
 import { todasLasFamilias, type FamiliaColor } from '@/lib/catalog/color-normalizado';
-import { RANGOS_PRECIO_TIENDA } from '@/lib/constants/rangos-precio-tienda';
+import { rangosPrecioPara } from '@/lib/constants/rangos-precio-tienda';
 
 interface ProductFiltersProps {
   availableBrands: string[];
@@ -32,6 +32,12 @@ interface ProductFiltersProps {
    * caso no se muestra ningún número, que es mejor que mostrar uno inventado.
    */
   conteos?: { marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number>; color?: Record<string, number> } | null;
+  /**
+   * Qué categoría está mirando la persona ("Receta", "Sol", "Clip-On" o
+   * vacío para todo el catálogo): decide qué botones de precio se muestran.
+   * Ver rangosPrecioPara().
+   */
+  categoria?: string;
 }
 
 function getShapeIcon(shape: string) {
@@ -112,7 +118,9 @@ export function ProductFilters({
   availableColors = [],
   resultCount,
   conteos = null,
+  categoria,
 }: ProductFiltersProps) {
+  const rangosDePrecio = rangosPrecioPara(categoria);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -334,14 +342,14 @@ export function ProductFilters({
                   entero. Tres rangos fijos, no un slider: con 106 modelos un
                   slider pide precisión que nadie tiene ("¿mi tope son 180 o
                   190 mil?") y en celular es el control más difícil de acertar. */}
-              <div>
+              {rangosDePrecio.length > 0 && <div>
                 <h2 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                   Precio
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {/* Los rangos (y por qué comparan contra el precio por
                       transferencia) viven en src/lib/constants/rangos-precio-tienda.ts. */}
-                  {RANGOS_PRECIO_TIENDA.map(rango => {
+                  {rangosDePrecio.map(rango => {
                     const activo = currentPrecioMin === rango.min && currentPrecioMax === rango.max;
                     return (
                       <button
@@ -358,7 +366,7 @@ export function ProductFilters({
                     );
                   })}
                 </div>
-              </div>
+              </div>}
 
               {/* Sección Género */}
               <div>

@@ -848,6 +848,7 @@ export function TiendaClient({
               resultCount={totalCount}
               /* F1-02: cuántos modelos hay detrás de cada opción. */
               conteos={conteos}
+              categoria={activeCategory}
             />
           </Suspense>
         </aside>
