@@ -78,6 +78,7 @@
     "check:navegadores": "node scripts/checks/compatibilidad-navegadores.check.mjs",
     "check:pdf-respaldo": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/pdf-respaldo.check.mjs",
     "check:cristales": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cristales-web.check.mjs",
+    "check:fichas-incompletas": "node scripts/checks/fichas-incompletas.mjs",
     "check:cristales-vinculos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cristales-web-vinculos.mjs",
     "check:color-lente": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-de-lente.check.mjs",
     "check:seo-tienda": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/seo-tienda.check.mjs",
