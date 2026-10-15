@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import type { Prisma } from '@prisma/client';
-import { resolverCondicionIvaReceptor } from '@/lib/constants/condicion-iva-receptor';
+import { resolverCondicionIvaReceptor, etiquetaCondicionIva } from '@/lib/constants/condicion-iva-receptor';
 import { BillingAccount, getAfipInstance, formatAfipDate, parseAfipDate, getBillingAccountConfig } from '@/lib/afip';
 import { uploadFile, getSignedUrl } from '@/lib/storage';
 import fs from 'fs';
@@ -277,6 +277,7 @@ export const BillingService = {
                     totalAmount,
                     docType: finalDocTipo,
                     docNumber: cleanDocNro,
+                    receiverIvaCondition: condicionIvaReceptorId,
                     billingAccount: account,
                     status: 'COMPLETED',
                     observations: observations || null,
@@ -496,7 +497,7 @@ export const BillingService = {
                         receiver_address: '-',
                         receiver_document_type: invoice.docType,
                         receiver_document_number: invoice.docNumber === '0' ? 0 : Number(invoice.docNumber) || 0,
-                        receiver_iva_condition: 'Consumidor Final',
+                        receiver_iva_condition: etiquetaCondicionIva(invoice.receiverIvaCondition),
                         // Condiciones
                         sale_condition: 'Otro',
                         currency_id: 'ARS',

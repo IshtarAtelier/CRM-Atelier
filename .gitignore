@@ -121,3 +121,6 @@ scripts/maintenance/etiquetas-limpieza/respaldo-*.json
 # original y se regeneran solos en cada corrida.
 public/images/catalogo-social/*-recorte.jpg
 public/images/catalogo-social/*-puesta-*.jpg
+
+# Claves y CSR de AFIP: NUNCA en git (15/10/2026: estaba commiteado con la clave privada)
+docs/ARCHIVOS_PARA_AFIP.txt

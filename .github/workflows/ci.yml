@@ -89,6 +89,7 @@ jobs:
           npm run check:oferta
           npm run check:pdf-respaldo
           npm run check:navegadores
+          npm run check:anteojo-completo
           npm run check:cristales
           npm run check:comprobantes
           npm run check:adtag
@@ -102,6 +103,7 @@ jobs:
           npm run check:facetas
           npm run check:busqueda-tienda
           npm run check:ficha
+          npm run check:arrepentimiento
           npm run check:par-bonificado
           npm run check:recupero-carrito
           npm run check:go-lineas

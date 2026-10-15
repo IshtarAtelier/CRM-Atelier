@@ -17,6 +17,9 @@ function getAccountName(method: string): string {
     if (method === 'TRANSFERENCIA_LUCIA') {
         return 'Cuenta Lucía';
     }
+    if (method === 'TRANSFERENCIA_ESSILOR') {
+        return 'Cuenta Essilor';
+    }
     if (['EFECTIVO', 'CASH'].includes(method)) {
         return 'Efectivo / Caja';
     }

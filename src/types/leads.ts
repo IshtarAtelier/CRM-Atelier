@@ -32,6 +32,8 @@ export interface PipelineLead {
   contactSource: string | null;
   latestRx: PipelineRx | null;
   latestQuote: PipelineQuote | null;
+  /** Cuándo le LLEGÓ el presupuesto (PDF o mensaje humano posterior); null si nunca se mandó. */
+  presupuestoEnviadoAt: string | null;
   waChatId: string | null;
   /**
    * true  → la etapa vino por una etiqueta de seguimiento (mensaje enviado).

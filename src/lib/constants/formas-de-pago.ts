@@ -34,6 +34,7 @@ export const GRUPOS_FORMAS_DE_PAGO: GrupoFormasDePago[] = [
             { id: 'EFECTIVO', label: 'Efectivo', icono: 'efectivo', color: 'emerald' },
             { id: 'TRANSFERENCIA_LUCIA', label: 'Transf. Lucía', icono: 'transferencia', color: 'violet' },
             { id: 'TRANSFERENCIA_ISHTAR', label: 'Transf. Ishtar', icono: 'transferencia', color: 'pink' },
+            { id: 'TRANSFERENCIA_ESSILOR', label: 'Transf. Essilor', icono: 'transferencia', color: 'orange' },
         ],
     },
     {

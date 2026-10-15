@@ -16,6 +16,19 @@ export const webContactSchema = z.object({
 });
 export type WebContactInput = z.infer<typeof webContactSchema>;
 
+/**
+ * Botón de arrepentimiento (/arrepentimiento). Sin login: número de pedido,
+ * email y motivo opcional. `sitio` es un campo trampa oculto: una persona no
+ * lo ve ni lo completa; un robot sí.
+ */
+export const arrepentimientoSchema = z.object({
+  numeroPedido: trimmed(40).min(3, 'Ingresá el número de pedido'),
+  email: z.string().trim().email('Email inválido').max(160),
+  motivo: trimmed(1000).optional().nullable(),
+  sitio: trimmed(200).optional().nullable(),
+});
+export type ArrepentimientoInput = z.infer<typeof arrepentimientoSchema>;
+
 export const productReviewSchema = z.object({
   productId: trimmed(60).min(1, 'Producto requerido'),
   authorName: trimmed(80).min(2, 'Nombre requerido'),

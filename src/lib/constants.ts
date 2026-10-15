@@ -132,6 +132,7 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
     'TRANSFER': 0,
     'TRANSFERENCIA_ISHTAR': 0,
     'TRANSFERENCIA_LUCIA': 0,
+    'TRANSFERENCIA_ESSILOR': 0,
     'CREDIT': 0,
 };
 
@@ -187,6 +188,7 @@ export const METHOD_LABELS: Record<string, string> = {
     TRANSFER: 'Transferencia',
     TRANSFERENCIA_ISHTAR: 'Transf. Ishtar',
     TRANSFERENCIA_LUCIA: 'Transf. Lucía',
+    TRANSFERENCIA_ESSILOR: 'Transf. Essilor',
     PAY_WAY_3_ISH: 'PayWay 3c Ish',
     PAY_WAY_3_YANI: 'PayWay 3c Yani',
     PAY_WAY_6_ISH: 'PayWay 6c Ish',
