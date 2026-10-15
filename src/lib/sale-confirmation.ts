@@ -5,9 +5,15 @@
 //
 // El porqué: a partir de acá el pedido es inmutable, y un dato mal cargado se
 // paga en un par de cristales rehecho. El mensaje existe para que el error se
-// detecte AHORA, en la ventana previa a que la fábrica empiece — por eso pide
-// un OK explícito, dice el teñido incluso cuando no lleva, aclara qué es un
-// fotocromático, y le pide al cliente que corrobore el estilo del armazón.
+// detecte AHORA, antes de que Milena lo procese en el laboratorio — por eso
+// pide un OK explícito, dice el teñido incluso cuando no lleva, aclara qué es
+// un fotocromático, y le pide al cliente que corrobore el estilo del armazón.
+//
+// Desde el 8/10/2026 (Ishtar): el OK del cliente queda en la venta
+// (`Order.clientConfirmation`, lo escribe el wa-service al llegar la
+// respuesta) y Milena lo ve en Ventas antes de tocar "Procesar". Si en 24 h no
+// responde, se da por confirmado bajo su responsabilidad — el mensaje lo dice,
+// con suavidad, y el cron `confirmacion-completa` lo deja anotado.
 //
 // Módulo de COMPOSICIÓN: los datos salen de `describeLabFrameDetails()` y del
 // `prescriptionSnapshot` (las mismas fuentes que ve la venta en pantalla), y el
@@ -35,6 +41,7 @@ import { cristalesPorArmazon } from '@/lib/order-frames';
 import { isTeñidoAddon, esLineaDeTenido } from '@/lib/promo-utils';
 import { armazonesPorPar, tituloDePar, tipoDeItem, esArmazonItem } from '@/lib/armazon-por-par';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
+import { HORAS_PARA_CONFIRMACION_TACITA } from '@/lib/confirmacion-cliente';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
 /**
@@ -109,7 +116,9 @@ export interface SaleConfirmation {
  */
 export function buildSaleConfirmation(order: any, esActualizacion = false): SaleConfirmation {
     const nro = String(order.id).slice(-4).toUpperCase();
-    const nombre = (order.client?.name || '').split(' ')[0] || '';
+    // El nombre COMPLETO, no la primera palabra: muchas fichas están cargadas
+    // "Apellido Nombre" y el saludo salía "Hola Lopez!" (8/10/2026).
+    const nombre = (order.client?.name || '').trim();
     const rx = recetaDeLaVenta(order);
     const resumen = describeLabFrameDetails(order);
 
@@ -264,7 +273,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         `*Confirmación de compra — Pedido #${nro}*`,
         esActualizacion ? `⚠️ *PEDIDO ACTUALIZADO* — este repaso reemplaza al anterior.` : null,
         ``,
-        `Hola ${nombre}! Tu pedido ya salió a fabricación. Te pasamos el detalle *exacto* de cómo se va a fabricar para que lo revises.`,
+        `Hola ${nombre}! 😊 ¡Gracias por tu compra! Antes de que tu pedido pase a fabricación, te pasamos el detalle *exacto* de cómo se va a hacer, para que lo mires con calma.`,
         ``,
         `*LO QUE ENCARGASTE*`,
         ...(resumen.pairs.length > 1
@@ -299,7 +308,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
                 ? [`Queda una diferencia mínima de ${money(fin.remainingList)} que se ajusta al retirar.`]
                 : [`Saldo: totalmente abonado ✅`]),
         ``,
-        `*NECESITAMOS TU OK* 🙏`,
+        `*TU OK* 🙏`,
         `Revisá que esté todo bien: así es como se va a fabricar.`,
         ``,
         fotosArmazon.length
@@ -315,7 +324,8 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             : [`• Este pedido va *SIN teñido*. Si lo querés con color, decinos ahora.`]),
         `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos.`,
         ``,
-        `Respondenos *OK* si está todo bien, o contanos qué corregir. Es el momento: una vez fabricado no se puede cambiar.`,
+        `Si está todo bien, respondenos *OK* y lo mandamos a fabricar. Si hay algo para corregir, contanos y lo vemos juntos: es el momento, después de fabricado ya no se puede cambiar.`,
+        `Si en 24 horas no recibimos tu respuesta, lo tomamos como confirmado y el pedido sigue su camino a fabricación tal como está, bajo tu responsabilidad. ¡Gracias! 🤍`,
         tieneGarantia ? `` : null,
         // Las condiciones del cambio viajan CON el pedido a confirmar, no
         // después: es el último momento en que el cliente puede decidir sabiendo
@@ -498,8 +508,8 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
       <div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:620px;margin:0 auto;color:#111">
         <h1 style="font-size:22px;margin:0 0 6px">Confirmación de compra — Pedido #${escHtml(nro)}</h1>
         ${esActualizacion ? `<p style="margin:0 0 14px;padding:10px 14px;border-radius:10px;background:#fff4e5;color:#7a4a00;font-size:14px;font-weight:700">PEDIDO ACTUALIZADO — este repaso reemplaza al que te enviamos antes.</p>` : ''}
-        <p style="font-size:15px;line-height:1.6;color:#333;margin:0 0 4px">Hola ${escHtml(nombre)}, tu pedido ya salió a fabricación.</p>
-        <p style="font-size:15px;line-height:1.6;color:#333;margin:0">Abajo está el detalle <strong>exacto</strong> de cómo se va a fabricar. Te pedimos que lo revises con calma: es el momento para corregir cualquier cosa.</p>
+        <p style="font-size:15px;line-height:1.6;color:#333;margin:0 0 4px">Hola ${escHtml(nombre)}, ¡gracias por tu compra! 😊</p>
+        <p style="font-size:15px;line-height:1.6;color:#333;margin:0">Antes de que tu pedido pase a fabricación, abajo está el detalle <strong>exacto</strong> de cómo se va a hacer. Te pedimos que lo mires con calma: es el momento para corregir cualquier cosa.</p>
         ${botonWhatsApp('Responder por WhatsApp')}
         <p style="margin:8px 0 0;font-size:14px;font-weight:800;line-height:1.6;color:#b3261e;text-align:center">Este mail no recibe respuestas — escribinos por WhatsApp.</p>
 
@@ -594,7 +604,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             </p>`)}
 
         <div style="margin:24px 0;padding:18px;border:2px solid #d8cfc0;border-radius:12px;background:#fffdf8">
-          <p style="margin:0 0 10px;font-size:16px;font-weight:800;color:#111">Necesitamos tu OK 🙏</p>
+          <p style="margin:0 0 10px;font-size:16px;font-weight:800;color:#111">Tu OK 🙏</p>
           <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#333">Revisá que esté todo bien: <strong>así es como se va a fabricar</strong>.</p>
           <ul style="margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.8;color:#333">
             <li>${fotosArmazon.length ? 'Mirá la foto del armazón acá arriba: ¿es el que elegiste?' : '¿El armazón es el que elegiste?'}</li>
@@ -609,7 +619,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           ${botonWhatsApp('Mandanos tu OK por WhatsApp')}
           <p style="margin:12px 0 0;font-size:15px;font-weight:800;line-height:1.6;color:#b3261e;text-align:center">⚠️ NO respondas este mail: no lo vemos.<br>Escribinos SOLO por WhatsApp 👆</p>
           <p style="margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;font-size:14px;font-weight:bold;line-height:1.6;color:#b3261e;text-align:center">Si querés cambiar algo del pedido, pedilo <u>únicamente por WhatsApp</u>.<br><span style="font-weight:normal">Un cambio pedido por otra vía no queda registrado y no lo vamos a ver.</span></p>
-          <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:#666;text-align:center">Una vez fabricado ya no se puede cambiar.</p>
+          <p style="margin:12px 0 0;padding:10px 12px;border-radius:10px;background:#f4f1ea;font-size:14px;line-height:1.7;color:#333;text-align:center">Si en 24 horas no recibimos tu respuesta, lo tomamos como confirmado y el pedido sigue su camino a fabricación tal como está, bajo tu responsabilidad. Una vez fabricado ya no se puede cambiar.</p>
         </div>
 
         ${botonWhatsApp('Tengo una duda — hablar por WhatsApp')}
@@ -617,12 +627,74 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
       </div>`;
 
     return {
-        subject: `${esActualizacion ? 'Pedido actualizado' : 'Confirmá tu pedido'} #${nro} — así se va a fabricar`,
+        subject: `${esActualizacion ? 'Pedido actualizado' : 'Revisá tu pedido'} #${nro} — así se va a fabricar`,
         emailHtml,
         waText,
         prescriptionImageUrl: fotoReceta,
         fotosArmazon,
     };
+}
+
+/** ¿El espejo de Meta (`WhatsAppTemplate`, lo sincroniza whatsapp-calidad) da la plantilla por aprobada? */
+async function plantillaAprobada(nombre: string): Promise<boolean> {
+    const fila = await prisma.whatsAppTemplate.findFirst({ where: { name: nombre, language: 'es_AR' }, select: { status: true } }).catch(() => null);
+    return fila?.status === 'APPROVED';
+}
+
+/** `venta_confirmada_v2` si Meta la aprobó; si no, la v1. */
+async function plantillaCortaAprobada(): Promise<'venta_confirmada' | 'venta_confirmada_v2'> {
+    return (await plantillaAprobada('venta_confirmada_v2')) ? 'venta_confirmada_v2' : 'venta_confirmada';
+}
+
+/**
+ * Las 24 h sin respuesta: se da por confirmado, como dice el mensaje, y queda
+ * anotado en la venta y en la ficha. Corre con `confirmacion-completa` (cada
+ * 10 minutos). Solo ventas a las que la confirmación SALIÓ (nota en la ficha).
+ */
+export async function confirmacionesTacitas(now = Date.now()): Promise<number> {
+    const limite = new Date(now - HORAS_PARA_CONFIRMACION_TACITA * 3_600_000);
+    const ventas = await prisma.order.findMany({
+        where: { orderType: 'SALE', isDeleted: false, clientConfirmation: null, labSentAt: { lte: limite, gte: new Date(now - 14 * 86_400_000) } },
+        select: { id: true, clientId: true, labSentAt: true },
+    });
+    let marcadas = 0;
+    for (const v of ventas) {
+        const nro = String(v.id).slice(-4).toUpperCase();
+        const enviada = await prisma.interaction.findFirst({ where: { clientId: v.clientId, content: { startsWith: `${MARCA_NOTA} · #${nro}` } }, select: { createdAt: true } });
+        if (!enviada || enviada.createdAt.getTime() > limite.getTime()) continue;
+        await prisma.order.update({ where: { id: v.id }, data: { clientConfirmation: 'TACITA', clientConfirmedAt: new Date(now) }, select: { id: true } });
+        await prisma.interaction.create({ data: { clientId: v.clientId, type: 'NOTE', userName: 'Sistema', content: `⏱️ Pasaron ${HORAS_PARA_CONFIRMACION_TACITA} h sin respuesta a la confirmación del pedido #${nro}: se da por confirmado, bajo responsabilidad del cliente (como dice el mensaje). Puede procesarse.` } });
+        marcadas++;
+    }
+    return marcadas;
+}
+
+/**
+ * ¿Está TODO lo que el cliente necesita para confirmar? (Ishtar, 10/10/2026:
+ * "siempre nos aseguremos que esté absolutamente todo lo necesario").
+ *
+ * `criticos`: sin esto el repaso miente o no sirve, y NO se manda — queda una
+ * nota en la ficha y un aviso al equipo para que lo completen y vuelvan a
+ * confirmar. `avisos`: se manda igual, pero queda anotado qué faltó.
+ */
+export function faltantesDeConfirmacion(order: any, conf: Pick<SaleConfirmation, 'fotosArmazon'>): { criticos: string[]; avisos: string[] } {
+    const criticos: string[] = [];
+    const avisos: string[] = [];
+    const items: any[] = order.items || [];
+    const tel = String(order.client?.phone || '').replace(/\D/g, '');
+    if (tel.length < 10) criticos.push('teléfono del cliente (sin él no hay WhatsApp)');
+    if (!items.length) criticos.push('productos (la venta no tiene ítems)');
+    const esCristal = (it: any) => `${it.product?.category || it.productCategorySnapshot || ''}`.toLowerCase().includes('cristal');
+    if (items.some(esCristal)) {
+        const rx = recetaDeLaVenta(order);
+        if (!rx || !prescriptionRecapText(rx, true)) criticos.push('receta (lleva cristales y no hay receta cargada)');
+    }
+    if (!frameRecapText(order, true)) criticos.push('armazón (no se sabe cuál es ni cómo es)');
+    const fin = PricingService.calculateOrderFinancials(order);
+    if (!(fin.listPrice > 0)) criticos.push('precio (el total es cero)');
+    if (!conf.fotosArmazon.length) avisos.push('foto del armazón (el cliente no va a poder reconocerlo en una imagen)');
+    if (!String(order.client?.email || '').includes('@')) avisos.push('email del cliente (solo va por WhatsApp)');
+    return { criticos, avisos };
 }
 
 /** Todo lo que la confirmación necesita leer de la orden, en un solo lugar. */
@@ -681,6 +753,25 @@ export async function sendSaleConfirmation(
         if (yaHay && !reenviar) return { ...resultado, yaEnviada: true };
 
         const conf = buildSaleConfirmation(order, esActualizacion);
+        const nroCorto = String(order.id).slice(-4).toUpperCase();
+
+        // ¿Está todo? Si falta algo crítico, NO se manda: un repaso incompleto
+        // es peor que ninguno (el cliente confirma algo que no es su pedido).
+        const faltan = faltantesDeConfirmacion(order, conf);
+        if (faltan.criticos.length) {
+            const lista = faltan.criticos.map(f => `• ${f}`).join('\n');
+            await prisma.interaction.create({
+                data: { clientId: order.client.id, type: 'NOTE', userName: 'Sistema', content: `⛔ Confirmación de compra del pedido #${nroCorto} NO enviada: faltan datos.\n${lista}\nCompletarlos en la venta y volver a confirmar para que salga.` },
+            }).catch(() => {});
+            await avisarAlEquipo({
+                asunto: `⛔ Pedido #${nroCorto} (${order.client.name}): la confirmación no salió, faltan datos`,
+                cuerpo: `Falta:\n${lista}\n\nCompletarlo en la venta y volver a confirmar; recién ahí le llega el repaso al cliente. Ficha: /admin/contactos?id=${order.client.id}`,
+            });
+            return { ...resultado, omitida: true };
+        }
+        // La plantilla corta nueva (pide el OK y avisa las 24 h) solo cuando Meta
+        // la tenga aprobada; hasta entonces, la de siempre.
+        const plantillaCorta = await plantillaCortaAprobada();
 
         // PDF del pedido: se adjunta al mail, se manda por WhatsApp y queda
         // guardado para la ficha del cliente.
@@ -713,14 +804,20 @@ export async function sendSaleConfirmation(
         const tel = (order.client.phone || '').replace(/\D/g, '');
         if (tel.length >= 10) {
             try {
-                // Texto libre + PDF dentro de la ventana de 24 h; si está
-                // cerrada, plantilla "venta_confirmada" (A2) con el PDF de encabezado.
-                const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
+                // SIEMPRE DE LA MISMA FORMA (Ishtar, 10/10/2026): la plantilla
+                // con el PDF de encabezado, esté o no abierta la ventana de 24 h
+                // — antes, con la ventana abierta iba el repaso largo como texto y
+                // con la ventana cerrada la plantilla corta, y dos clientes del
+                // mismo día recibían cosas distintas. El repaso largo le llega
+                // cuando contesta (cron `confirmacion-completa`, cada 10 min),
+                // que es cuando lo va a leer. Sin PDF no hay plantilla: texto.
+                const nro = `#${nroCorto}`;
                 const res = await sendWhatsAppConReintento({
                     chatId: `${normalizeArgentinePhone(tel)}@c.us`,
                     message: conf.waText,
                     senderName: 'Sistema Atelier',
                     isProactive: true,
+                    forceTemplate: !!pdf,
                     media: pdf ? { base64: pdf.base64, mimetype: 'application/pdf', filename: pdf.filename } : null,
                     // Sin PDF la plantilla con documento no se puede armar: se
                     // deja sin plantilla y, si la ventana está cerrada, queda
@@ -732,7 +829,7 @@ export async function sendSaleConfirmation(
                     template: pdf ? (() => {
                         const finTpl = PricingService.calculateOrderFinancials(order);
                         const monto = finTpl.hasBalance ? finTpl.listPrice : finTpl.paidReal;
-                        return templateSpec('venta_confirmada', [order.client.name.split(' ')[0], nro,
+                        return templateSpec(plantillaCorta, [String(order.client.name || '').trim(), nro,
                             `$ ${Number(monto).toLocaleString('es-AR')}`]);
                     })() : null,
                 });
@@ -753,19 +850,29 @@ export async function sendSaleConfirmation(
                 // mirar para reconocer su armazón — el único control que puede
                 // hacer de verdad. El endpoint del bot manda un archivo por
                 // mensaje, así que van de a una.
-                // Con la API oficial las fotos sueltas solo pueden ir con la ventana
-                // abierta (una plantilla lleva un solo encabezado): si el
-                // principal salió como plantilla, las fotos ya están en el PDF.
-                if (res.ok && res.via !== 'template') {
+                // Con la ventana cerrada una foto suelta no puede ir (solo
+                // plantillas, y cada una lleva un solo encabezado): entonces va
+                // en SU plantilla, `venta_confirmada_foto`, con la foto de
+                // encabezado — cuando Meta la tenga aprobada. Hasta entonces, como
+                // antes: solo dentro del PDF.
+                const plantillaFoto = res.ok ? await plantillaAprobada('venta_confirmada_foto') : false;
+                // Mientras Meta no apruebe la plantilla de la foto: suelta, y solo
+                // si el cliente nos escribió en las últimas 24 h (si no, rebota).
+                const ventanaAbierta = !plantillaFoto && res.ok ? await prisma.whatsAppChat.findFirst({
+                    where: { client: { id: order.client.id }, lastInboundAt: { gte: new Date(Date.now() - 23 * 3_600_000) } }, select: { id: true },
+                }).then(c => !!c).catch(() => false) : false;
+                if (res.ok && (plantillaFoto || ventanaAbierta)) {
                     for (const foto of conf.fotosArmazon) {
                         const img = await bytesDeImagen(foto.valor);
                         if (!img) continue;
+                        const media = { base64: img.base64, mimetype: img.mimetype, filename: img.filename };
                         await sendWhatsApp({
                             chatId: `${normalizeArgentinePhone(tel)}@c.us`,
                             message: foto.titulo,
                             senderName: 'Sistema Atelier',
                             isProactive: true,
-                            media: { base64: img.base64, mimetype: img.mimetype, filename: img.filename },
+                            media,
+                            ...(plantillaFoto ? { forceTemplate: true, template: templateSpec('venta_confirmada_foto', [String(order.client.name || '').trim(), nro]), templateMedia: media } : {}),
                         }).catch(err => console.error('[Confirmación de compra] No se pudo enviar la foto del armazón:', err));
                     }
                 }
@@ -789,6 +896,7 @@ export async function sendSaleConfirmation(
                     : `✅ enviado al ${order.client.phone}`)
                 : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
             pdfUrl ? `PDF del pedido: ${resolveStorageUrl(pdfUrl)}` : `PDF del pedido: ❌ no se pudo generar`,
+            ...(faltan.avisos.length ? [`⚠️ Salió, pero faltó: ${faltan.avisos.join('; ')}`] : []),
         ].join('\n') + DETALLE_MARK + conf.waText;
 
         await prisma.interaction.create({

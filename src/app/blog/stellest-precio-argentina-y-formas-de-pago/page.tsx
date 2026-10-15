@@ -7,16 +7,16 @@ const nota = notaStellest('stellest-precio-argentina-y-formas-de-pago');
 
 /**
  * OJO: esta nota NO lleva un importe escrito. El precio de Stellest vive en el
- * sistema (PricingService) y se cotiza con la receta; un número tipeado acá
- * quedaría viejo en semanas y es exactamente lo que la regla R6 de redes
- * prohíbe. La nota responde la búsqueda "precio Stellest Argentina" explicando
- * de qué depende y cómo se paga, y manda a pedir el presupuesto.
+ * sistema (PricingService); un número tipeado acá quedaría viejo en semanas y
+ * es exactamente lo que la regla R6 de redes prohíbe.
+ * Stellest tiene PRECIO ÚNICO: no depende de la receta (Ishtar, 10/10/2026).
+ * Es el único cristal así; no escribir "depende de la graduación".
  */
 export const metadata: Metadata = {
   alternates: { canonical: `https://atelieroptica.com.ar/blog/${nota.slug}` },
   title: 'Precio de lentes Stellest en Argentina: qué incluye y cómo se paga',
   description:
-    'De qué depende el precio de los lentes Stellest de Essilor en Argentina, qué viene incluido, por qué se cotiza con la receta y las formas de pago en Atelier Óptica, Córdoba.',
+    'Los lentes Stellest de Essilor tienen precio único: no depende de la receta. Qué viene incluido, qué cambia el total y las formas de pago en Atelier Óptica, Córdoba.',
   keywords: [
     'precio lentes Stellest',
     'precio Stellest Argentina',
@@ -35,26 +35,27 @@ export default function Page() {
       lead={
         <>
           &quot;¿Cuánto sale Stellest?&quot; es la segunda pregunta de todos los padres, después de
-          &quot;¿qué es?&quot;. La respuesta honesta es que <strong>depende de la receta</strong> y
-          de lo que elijas alrededor del cristal. Acá te contamos de qué depende, qué viene
-          incluido y cómo lo podés pagar, para que llegues al presupuesto sabiendo qué estás mirando.
+          &quot;¿qué es?&quot;. La respuesta corta: Stellest tiene <strong>precio único</strong>, el mismo para
+          cualquier graduación de miopía y astigmatismo. <strong>No depende de la receta.</strong>{' '}
+          Lo que cambia el total es lo que elijas alrededor del cristal. Acá te contamos qué viene
+          incluido y cómo lo podés pagar.
         </>
       }
     >
       <Destacado titulo="Por qué no ponemos un número acá">
         <p className="m-0">
           Un precio publicado en una nota queda viejo en semanas, y un padre que lo lee después
-          se lleva una sorpresa en el mostrador. Preferimos cotizarlo{' '}
-          <strong>con tu receta en mano, el mismo día</strong>, por WhatsApp o en el local. Es
-          gratis y no te compromete.
+          se lleva una sorpresa en el mostrador. Como el cristal tiene precio único, te lo pasamos{' '}
+          <strong>en el momento</strong>, por WhatsApp o en el local, junto con las opciones de
+          armazón. Es gratis y no te compromete.
         </p>
       </Destacado>
 
-      <H2>De qué depende el precio de un Stellest</H2>
+      <H2>Qué cambia el total (y qué no)</H2>
       <Lista
         items={[
-          <><strong>La graduación.</strong> Stellest se fabrica a pedido para cada receta. La miopía y el astigmatismo del chico definen el cristal que Essilor fabrica.</>,
-          <><strong>El tratamiento antirreflejo.</strong> Stellest se pide con tratamiento Crizal, que protege el cristal, facilita la limpieza y reduce reflejos. El nivel de Crizal se elige con vos.</>,
+          <><strong>La graduación NO.</strong> Stellest se fabrica a pedido para cada receta, pero el precio del cristal es el mismo para cualquier miopía y astigmatismo dentro de los rangos que fabrica Essilor.</>,
+          <><strong>El antirreflejo viene incluido.</strong> Stellest se pide con tratamiento Crizal, que protege el cristal, facilita la limpieza y reduce reflejos.</>,
           <><strong>El armazón.</strong> Es la parte más variable. En control de miopía el armazón tiene que calzar bien y aguantar el uso diario de un chico, pero hay opciones para todos los presupuestos.</>,
           <><strong>Cuántos pares.</strong> Muchas familias piden un segundo par como respaldo, porque un chico que usa Stellest 12 horas por día no puede quedarse sin anteojos una semana.</>,
         ]}
@@ -94,7 +95,7 @@ export default function Page() {
         items={[
           'Sacale una foto a la receta del oftalmopediatra (que diga Stellest o control de miopía).',
           'Mandala por WhatsApp con la edad de tu hijo y si ya usa anteojos.',
-          'Te respondemos con el presupuesto del cristal y las formas de pago. El armazón lo elegimos juntos en el local.',
+          'Te respondemos con el precio del cristal (es único) y las formas de pago. El armazón lo elegimos juntos en el local.',
         ]}
       />
       <P>

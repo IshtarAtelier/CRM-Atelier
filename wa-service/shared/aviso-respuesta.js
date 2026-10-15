@@ -36,53 +36,58 @@ function textoDelAviso({ nombre, texto, tipo, plantilla, clientId }) {
 }
 
 /**
+ * Escribe en una conversación grupal del sistema (Asistente + todo el equipo),
+ * creándola la primera vez y reusándola por asunto. La comparten este aviso y
+ * el de confirmaciones de pedidos (`confirmacion-cliente.js`).
+ */
+async function escribirEnCanal(prisma, { subject, cuerpo, urgent = false }) {
+    const ia = await prisma.user.findUnique({ where: { email: IA_EMAIL }, select: { id: true, role: true } });
+    if (!ia || ia.role !== 'SISTEMA') return false; // la app todavía no creó al Asistente
+    const equipo = await prisma.user.findMany({ where: { role: { in: ROLES_EQUIPO } }, select: { id: true } });
+    if (!equipo.length) return false;
+    const ahora = new Date();
+    let canal = await prisma.internalThread.findFirst({
+        where: { kind: 'GROUP', subject, createdById: ia.id },
+        select: { id: true, participants: { select: { userId: true, leftAt: true } } },
+    });
+    if (!canal) {
+        canal = await prisma.internalThread.create({
+            data: {
+                kind: 'GROUP', subject, createdById: ia.id, lastMessageAt: ahora,
+                participants: { create: [
+                    { userId: ia.id, role: 'MEMBER', lastReadAt: ahora, createdAt: ahora },
+                    ...equipo.map(u => ({ userId: u.id, role: 'MEMBER', createdAt: ahora })),
+                ] },
+            },
+            select: { id: true, participants: { select: { userId: true, leftAt: true } } },
+        });
+    } else {
+        // Alguien nuevo en el equipo entra solo; quien salió del canal no se lo vuelve a meter.
+        const conocidos = new Set(canal.participants.map(p => p.userId));
+        const nuevos = equipo.filter(u => !conocidos.has(u.id));
+        if (nuevos.length) await prisma.internalThreadParticipant.createMany({ data: nuevos.map(u => ({ threadId: canal.id, userId: u.id, role: 'MEMBER', createdAt: ahora })) });
+    }
+    await prisma.internalMessage.create({ data: { threadId: canal.id, senderId: ia.id, body: cuerpo, urgent: !!urgent, createdAt: ahora } });
+    await prisma.internalThread.update({ where: { id: canal.id }, data: { lastMessageAt: ahora } });
+    return true;
+}
+
+/**
  * Manda el aviso al canal. Devuelve true si salió.
  * @param {{ clientId: string, chatId: string, nombre: string, texto: string, tipo: string }} r
  */
 async function avisarRespuestaAlEquipo(prisma, r) {
     try {
-        const ia = await prisma.user.findUnique({ where: { email: IA_EMAIL }, select: { id: true, role: true } });
-        if (!ia || ia.role !== 'SISTEMA') return false; // la app todavía no creó al Asistente
-        const equipo = await prisma.user.findMany({ where: { role: { in: ROLES_EQUIPO } }, select: { id: true } });
-        if (!equipo.length) return false;
-
         // ¿A qué toque respondió? El último saliente con plantilla de este chat.
         const ultimo = await prisma.whatsAppMessage.findFirst({
             where: { chatId: r.chatId, direction: 'OUTBOUND', templateName: { not: null } },
             orderBy: { createdAt: 'desc' }, select: { templateName: true },
         });
-        const cuerpo = textoDelAviso({ ...r, plantilla: ultimo?.templateName || null });
-        const ahora = new Date();
-
-        let canal = await prisma.internalThread.findFirst({
-            where: { kind: 'GROUP', subject: CANAL_RESPUESTAS, createdById: ia.id },
-            select: { id: true, participants: { select: { userId: true, leftAt: true } } },
-        });
-        if (!canal) {
-            canal = await prisma.internalThread.create({
-                data: {
-                    kind: 'GROUP', subject: CANAL_RESPUESTAS, createdById: ia.id, lastMessageAt: ahora,
-                    participants: { create: [
-                        { userId: ia.id, role: 'MEMBER', lastReadAt: ahora, createdAt: ahora },
-                        ...equipo.map(u => ({ userId: u.id, role: 'MEMBER', createdAt: ahora })),
-                    ] },
-                },
-                select: { id: true, participants: { select: { userId: true, leftAt: true } } },
-            });
-        } else {
-            // Alguien nuevo en el equipo entra solo; quien salió del canal no se lo vuelve a meter.
-            const conocidos = new Set(canal.participants.map(p => p.userId));
-            const nuevos = equipo.filter(u => !conocidos.has(u.id));
-            if (nuevos.length) await prisma.internalThreadParticipant.createMany({ data: nuevos.map(u => ({ threadId: canal.id, userId: u.id, role: 'MEMBER', createdAt: ahora })) });
-        }
-
-        await prisma.internalMessage.create({ data: { threadId: canal.id, senderId: ia.id, body: cuerpo, urgent: false, createdAt: ahora } });
-        await prisma.internalThread.update({ where: { id: canal.id }, data: { lastMessageAt: ahora } });
-        return true;
+        return await escribirEnCanal(prisma, { subject: CANAL_RESPUESTAS, cuerpo: textoDelAviso({ ...r, plantilla: ultimo?.templateName || null }) });
     } catch (e) {
         console.error('[Aviso respuesta] No se pudo avisar al equipo:', e.message);
         return false;
     }
 }
 
-module.exports = { avisarRespuestaAlEquipo, textoDelAviso, CANAL_RESPUESTAS, PLANTILLA_RETOME };
+module.exports = { avisarRespuestaAlEquipo, escribirEnCanal, textoDelAviso, CANAL_RESPUESTAS, PLANTILLA_RETOME };

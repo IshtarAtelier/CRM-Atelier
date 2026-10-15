@@ -119,7 +119,7 @@ export default function Page() {
       <P>
         Solo la receta del oftalmopediatra. Sacale una foto y mandala por WhatsApp, o vení al
         local con el chico. No hace falta turno. Si querés ir con el presupuesto en mente, leé{' '}
-        <Link href="/blog/stellest-precio-argentina-y-formas-de-pago">de qué depende el precio de un Stellest y cómo se paga</Link>.
+        <Link href="/blog/stellest-precio-argentina-y-formas-de-pago">cuánto sale un Stellest (precio único) y cómo se paga</Link>.
       </P>
     </NotaStellest>
   );

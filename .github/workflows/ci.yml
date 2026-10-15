@@ -141,6 +141,9 @@ jobs:
       - name: Embudo 100 % automático (cadencia, lectura de respuestas, cierre solo)
         run: npm run check:embudo
 
+      - name: Confirmación del cliente (OK / 24 h / observación; app y bot leen igual)
+        run: npm run check:confirmacion
+
       - name: Contrato herramientas del bot ↔ rutas del CRM
         run: npm run check:contrato-bot
 

@@ -25,6 +25,9 @@
 /** Los tres tipos que guarda `Prescription.prescriptionType`. */
 export type TipoDeReceta = 'FAR' | 'ADDITION' | 'NEAR';
 
+/** Cómo se le dice al CLIENTE: nunca el código interno ("Tipo de lente: FAR" llegó así en una confirmación, 8/10/2026). */
+export const ETIQUETA_TIPO_RECETA: Record<TipoDeReceta, string> = { FAR: 'Lejos', NEAR: 'Cerca', ADDITION: 'Con adición (multifocal / cerca y lejos)' };
+
 /** Campos de adición que puede traer una receta (general o por ojo). */
 export interface AdicionDeReceta {
     addition?: number | string | null;

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Loader2, CalendarDays, Flag } from 'lucide-react';
 import { FERIADOS_ARGENTINA, textoApertura, type Feriado } from '@/lib/constants/feriados-argentina';
 import FeriadosCobertura from './FeriadosCobertura';
+import Vacaciones from './Vacaciones';
 import { formatDate } from '@/lib/format-date';
 import {
     TIPOS_NOVEDAD, TIPOS_QUE_SE_PIDEN, TIPOS_SOLO_ADMIN, TIPOS_CON_HORAS, NOVEDAD_INFO, ESTADO_INFO,
@@ -41,6 +42,13 @@ export function rangoNovedad(n: Novedad) {
     const a = formatDate(n.startsAt), b = formatDate(n.endsAt);
     return a === b ? a : `${a} al ${b}`;
 }
+
+type Solapa = 'feriados' | 'novedades' | 'vacaciones';
+const SOLAPAS: { id: Solapa; texto: string }[] = [
+    { id: 'feriados', texto: 'Feriados' },
+    { id: 'novedades', texto: 'Pedidos y novedades' },
+    { id: 'vacaciones', texto: 'Vacaciones' },
+];
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const hoyClave = () => claveDia.format(new Date());
@@ -73,6 +81,14 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
     // Sube cada vez que algo se guarda: la tabla de feriados lo usa para recargar.
     const [version, setVersion] = useState(0);
     const [detalle, setDetalle] = useState<Novedad | null>(null);
+    // Solapas (Ishtar, 15/10/2026). La elegida se recuerda en la URL (#vacaciones)
+    // para poder mandar el link directo.
+    const [solapa, setSolapaEstado] = useState<Solapa>('feriados');
+    useEffect(() => {
+        const h = window.location.hash.slice(1);
+        if (SOLAPAS.some(s => s.id === h)) setSolapaEstado(h as Solapa);
+    }, []);
+    const setSolapa = (s: Solapa) => { setSolapaEstado(s); history.replaceState(null, '', `#${s}`); };
 
     const prefijoMes = `${anio}-${pad(mes + 1)}`;
     const ultimoDia = new Date(anio, mes + 1, 0).getDate();
@@ -177,8 +193,20 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                 </section>
             )}
 
-            <FeriadosCobertura yo={yo} version={version} onAnotar={(dia, tipo) => setFormulario({ dia, tipo })} onVerNovedad={setDetalle} />
+            <nav role="tablist" aria-label="Secciones" className="flex gap-1 border-b border-stone-200 dark:border-stone-700 overflow-x-auto">
+                {SOLAPAS.map(t => (
+                    <button key={t.id} role="tab" aria-selected={solapa === t.id} onClick={() => setSolapa(t.id)}
+                        className={`px-4 py-2 -mb-px border-b-2 text-sm font-black whitespace-nowrap ${solapa === t.id ? 'border-primary text-stone-900 dark:text-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'}`}>
+                        {t.texto}
+                    </button>
+                ))}
+            </nav>
 
+            {solapa === 'feriados' && <FeriadosCobertura yo={yo} version={version} onAnotar={(dia, tipo) => setFormulario({ dia, tipo })} onVerNovedad={setDetalle} />}
+
+            {solapa === 'vacaciones' && <Vacaciones yo={yo} version={version} onGuardado={() => { cargar(); setVersion(v => v + 1); }} onVerNovedad={setDetalle} />}
+
+            {solapa === 'novedades' && <>
             <section className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden">
                 <div className="p-3 pb-0"><h2 className="text-lg font-black">{yo.esAdmin ? 'Pedidos y novedades del mes (todo el equipo)' : 'Mis pedidos y novedades del mes'}</h2></div>
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3 border-b border-stone-200 dark:border-stone-700">
@@ -259,6 +287,8 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                     <p className="text-xs text-stone-500 mt-2">Francos y vacaciones se cuentan en días; el resto, en veces. No se cuentan los rechazados.</p>
                 </section>
             )}
+
+            </>}
 
             {formulario && (
                 <Formulario yo={yo} equipo={equipo} dia={formulario.dia} tipoInicial={formulario.tipo} onCerrar={() => setFormulario(null)} onGuardado={() => { setFormulario(null); cargar(); setVersion(v => v + 1); }} />
