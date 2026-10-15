@@ -21,7 +21,7 @@ import crypto from 'node:crypto';
 
 const CLIENT_ID = process.env.GOOGLE_YOUTUBE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_YOUTUBE_CLIENT_SECRET;
-const PORT = 8086;
+const PORT = 8097;
 const REDIRECT = `http://127.0.0.1:${PORT}/oauth`;
 // upload alcanza para subir; youtube.readonly para que el script pueda leer
 // el status real del video después de subirlo.
