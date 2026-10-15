@@ -69,6 +69,9 @@ function parseBirthDate(value: string | null | undefined): Date | null {
     return isNaN(parsed.getTime()) ? null : parsed;
 }
 
+/** Prefijo del candado por teléfono (ver ContactService.create). */
+const CANDADO_TELEFONO = 'client-phone:';
+
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
     if (!phone) return '';
     let base = phone.replace(/\D/g, '');
@@ -540,51 +543,6 @@ export const ContactService = {
             }
         }
 
-        // 2. Intelligent Phone Match
-        if (!data.forceCreate && normalizedIncomingPhone.length >= 8) {
-            // Buscamos coincidencia usando los ultimos 8 digitos del telefono ingresado
-            // (8 dígitos es suficiente para evitar colisiones con el 15 y códigos de área, y reduce falsos positivos)
-            const searchPhoneStr = normalizedIncomingPhone.slice(-8);
-            const searchParam = `%${searchPhoneStr}%`;
-
-            const rawDuplicates = await prisma.client.findMany({
-                where: {
-                    phone: {
-                        contains: searchPhoneStr
-                    }
-                },
-                select: { id: true }
-            });
-            const duplicateIds = rawDuplicates.map(d => d.id);
-
-            let phoneDuplicatesClient: any[] = [];
-            if (duplicateIds.length > 0) {
-                phoneDuplicatesClient = await prisma.client.findMany({
-                    where: { id: { in: duplicateIds } },
-                    include: {
-                        orders: {
-                            where: { orderType: 'SALE', isDeleted: false },
-                            orderBy: { createdAt: 'desc' },
-                            take: 1,
-                            select: { createdAt: true }
-                        }
-                    }
-                });
-            }
-
-            // Validar que efectivamente coinciden los telefonos para evitar falsos positivos
-            const realPhoneMatchClient = phoneDuplicatesClient.find(p => {
-                const dbPhoneNorm = (p.phone || "").replace(/\D/g, '');
-                return dbPhoneNorm.endsWith(searchPhoneStr) || normalizedIncomingPhone.endsWith(dbPhoneNorm.slice(-8));
-            });
-
-            if (realPhoneMatchClient) {
-                const lastOrder = realPhoneMatchClient.orders[0];
-                const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
-                throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: realPhoneMatchClient.id, name: realPhoneMatchClient.name, phone: realPhoneMatchClient.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: Ya existe el cliente "${realPhoneMatchClient.name}" registrado con el teléfono ${realPhoneMatchClient.phone}${lastDate}.` }));
-            }
-        }
-
         const createData: any = {
             name: data.name,
             email: data.email?.trim() === "" ? null : data.email,
@@ -614,9 +572,66 @@ export const ContactService = {
             }
         }
 
-        const createdClient = await prisma.client.create({
-            data: createData
-        });
+        // Chequeo de duplicado y alta en UNA transacción con un candado por
+        // teléfono (pg_advisory_xact_lock): el 21/9/2026 el bot creó 8 fichas
+        // "Titino" con el mismo número en el mismo segundo, porque ocho llamadas
+        // concurrentes pasaron el findMany antes de que ninguna hubiera hecho el
+        // create. Con el candado, la segunda espera a que la primera confirme y
+        // entonces SÍ ve la ficha: tira isDuplicate y el llamador la enlaza.
+        // No se usa un índice único porque un teléfono compartido es legítimo
+        // (familias: 38 números con más de una ficha en producción el 15/10/2026).
+        const createdClient = await prisma.$transaction(async (tx) => {
+            if (normalizedIncomingPhone.length >= 8) {
+                await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${CANDADO_TELEFONO + normalizedIncomingPhone.slice(-8)}))`;
+            }
+            // 2. Intelligent Phone Match
+            if (!data.forceCreate && normalizedIncomingPhone.length >= 8) {
+                // Buscamos coincidencia usando los ultimos 8 digitos del telefono ingresado
+                // (8 dígitos es suficiente para evitar colisiones con el 15 y códigos de área, y reduce falsos positivos)
+                const searchPhoneStr = normalizedIncomingPhone.slice(-8);
+                const searchParam = `%${searchPhoneStr}%`;
+
+                const rawDuplicates = await tx.client.findMany({
+                    where: {
+                        phone: {
+                            contains: searchPhoneStr
+                        }
+                    },
+                    select: { id: true }
+                });
+                const duplicateIds = rawDuplicates.map(d => d.id);
+
+                let phoneDuplicatesClient: any[] = [];
+                if (duplicateIds.length > 0) {
+                    phoneDuplicatesClient = await tx.client.findMany({
+                        where: { id: { in: duplicateIds } },
+                        include: {
+                            orders: {
+                                where: { orderType: 'SALE', isDeleted: false },
+                                orderBy: { createdAt: 'desc' },
+                                take: 1,
+                                select: { createdAt: true }
+                            }
+                        }
+                    });
+                }
+
+                // Validar que efectivamente coinciden los telefonos para evitar falsos positivos
+                const realPhoneMatchClient = phoneDuplicatesClient.find(p => {
+                    const dbPhoneNorm = (p.phone || "").replace(/\D/g, '');
+                    return dbPhoneNorm.endsWith(searchPhoneStr) || normalizedIncomingPhone.endsWith(dbPhoneNorm.slice(-8));
+                });
+
+                if (realPhoneMatchClient) {
+                    const lastOrder = realPhoneMatchClient.orders[0];
+                    const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
+                    throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: realPhoneMatchClient.id, name: realPhoneMatchClient.name, phone: realPhoneMatchClient.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: Ya existe el cliente "${realPhoneMatchClient.name}" registrado con el teléfono ${realPhoneMatchClient.phone}${lastDate}.` }));
+                }
+            }
+
+
+            return tx.client.create({ data: createData });
+        }, { timeout: 15_000 });
 
         // ── Primer registro del historial: quién creó la ficha y CÓMO ──
         // No es lo mismo que el portero la haya creado solo, a que una persona haya
