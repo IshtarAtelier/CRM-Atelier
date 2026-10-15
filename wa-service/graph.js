@@ -43,6 +43,7 @@ function fechaArgentina(valor) {
 const LIMITE_ADICION_MI_PRIMER = 1.50;
 const DEFAULT_EXECUTIVE_PROMPT = require('./prompts/executivePrompt');
 const { buildContextModules } = require('./prompts/context-modules');
+const { motivoParaDescartarPromptCustom } = require('./shared/prompt-custom');
 
 
 
@@ -533,9 +534,11 @@ function coreRules({ agentType, nombre }) {
     .replace('__REGLA_EMBUDO__', agentType === 'sales' ? REGLA_EMBUDO_VENTAS : '');
 }
 
-// Ningún prompt custom puede presentar al bot con apellido o títulos profesionales:
-// hay prompts legacy en la DB que usan "Óptico Contactólogo" / "Ejecutivo de Cuentas".
-const FORBIDDEN_IN_CUSTOM_PROMPT = [/turchi/i, /contact[oó]log/i, /ejecutiv[oa]\s+de\s+cuentas/i];
+// Ningún prompt custom puede presentar al bot con apellido o títulos
+// profesionales (hay prompts legacy con "Óptico Contactólogo" / "Ejecutivo de
+// Cuentas"). La regla vive en shared/prompt-custom.js desde el 15/10/2026: antes
+// era la PALABRA y el prompt vivo se descartaba entero, en silencio, por la
+// frase que justamente lo prohíbe ("ni un título (óptica, contactóloga…)").
 
 // ── NODOS 2 y 3: AGENTE DE VENTAS (Prospectos) y EJECUTIVO DE CUENTAS (Clientes) ──
 // Misma mecánica de invocación/reintentos; solo cambian el prompt por defecto,
@@ -550,11 +553,11 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, prompt
     const tagsModule = await getTagsModule();
 
     let basePrompt = custom;
-    if (
-      !basePrompt ||
-      basePrompt.trim().length <= 300 ||
-      FORBIDDEN_IN_CUSTOM_PROMPT.some(p => p.test(custom))
-    ) {
+    const motivoDescarte = motivoParaDescartarPromptCustom(custom);
+    if (motivoDescarte) {
+      // Que se vea: un prompt del panel que no surte efecto no puede ser mudo.
+      // Sin prompt cargado no se avisa (es el caso normal del ejecutivo).
+      if (String(custom).trim()) console.warn(`  ⚠️ [Graph] Prompt custom de ${nodeName} DESCARTADO (${motivoDescarte}): se usa el del repo.`);
       basePrompt = defaultPrompt;
     }
 

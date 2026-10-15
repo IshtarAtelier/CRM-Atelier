@@ -19,7 +19,11 @@
  * el que de verdad manda, tiene que cumplir también con lo obligatorio.
  */
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { lintPromptDelBot, describirHallazgos } from '../../src/lib/whatsapp/lint-prompt.ts';
+const require = createRequire(import.meta.url);
+// Lo que decide si graph.js usa el prompt vivo o lo descarta (15/10/2026).
+const { motivoParaDescartarPromptCustom } = require('../../wa-service/shared/prompt-custom.js');
 
 // Los comentarios `//` de los .js quedan afuera: describen casos MALOS a
 // propósito (el "Soy Matías de Atelier Óptica" que se corrigió) y no son prompt.
@@ -59,6 +63,32 @@ console.log('\nPrompt por defecto + CORE_RULES (lo obligatorio):');
     for (const linea of describirHallazgos(h)) mal(`por defecto: ${linea}`);
 }
 
+// El filtro que descarta el prompt custom (shared/prompt-custom.js). El
+// 15/10/2026 el prompt vivo se descartaba ENTERO, en silencio, por la frase
+// que prohíbe inventarse un título ("ni un título (óptica, contactóloga…)").
+console.log('\nFiltro del prompt custom (descarta autopresentaciones, no prohibiciones):');
+{
+    const relleno = 'Atendés por WhatsApp a quien escribe a la óptica. '.repeat(10);
+    const CASOS = [
+        ['Nunca te inventes un nombre propio, un apellido ni un título (óptica, contactóloga, doctora).', false, 'la prohibición del prompt vivo'],
+        ['Nunca digas que sos contactóloga.', false, 'prohibición con verbo de presentación'],
+        ['No te presentes como Matías Turchi.', false, 'prohibición con apellido'],
+        ['Soy Matías Turchi, de Atelier Óptica.', true, 'autopresentación con apellido'],
+        ['Te habla Mile, contactóloga de la óptica.', true, 'autopresentación con título'],
+        ['Saludos\n— Matías, Óptico Contactólogo\n', true, 'firma con título'],
+        ['Sos el ejecutivo de cuentas de Atelier.', true, 'rol de otro agente'],
+    ];
+    for (const [frase, descarta, porque] of CASOS) {
+        const motivo = motivoParaDescartarPromptCustom(`${relleno}\n${frase}`);
+        if (Boolean(motivo) === descarta) ok(`${descarta ? 'descarta' : 'usa'}: ${porque}`);
+        else mal(`${porque}: esperaba ${descarta ? 'descartar' : 'usar'} y ${motivo ? `descartó (${motivo})` : 'lo usó'}`);
+    }
+    if (motivoParaDescartarPromptCustom('corto')) ok('un prompt de menos de 301 caracteres se descarta');
+    else mal('un prompt corto debería descartarse');
+    if (/motivoParaDescartarPromptCustom\(custom\)/.test(graph) && /console\.warn\(`[^`]*DESCARTADO/.test(graph) && !/FORBIDDEN_IN_CUSTOM_PROMPT/.test(graph)) ok('graph.js decide con motivoParaDescartarPromptCustom y loguea cada descarte');
+    else mal('graph.js no usa motivoParaDescartarPromptCustom o no avisa cuando descarta');
+}
+
 if (process.argv.includes('--prod')) {
     console.log('\nPrompt VIVO de producción:');
     const base = process.env.WA_SERVER_URL_PROD || process.env.WA_SERVER_URL;
@@ -69,7 +99,9 @@ if (process.argv.includes('--prod')) {
             const r = await fetch(`${base}/api/agent`, { headers: { 'x-api-key': key } });
             const j = await r.json();
             const vivo = String(j.prompt || '');
-            if (vivo.trim().length <= 300) mal(`el prompt vivo tiene ${vivo.length} caracteres: el bot está usando el del repo`);
+            const descarte = motivoParaDescartarPromptCustom(vivo);
+            if (descarte) mal(`el bot DESCARTA el prompt vivo y usa el del repo: ${descarte}`);
+            else ok('el bot usa el prompt vivo (el filtro de graph.js no lo descarta)');
             const h = lintPromptDelBot(vivo);
             if (!h.length) ok(`prompt vivo (${vivo.length} caracteres) sin hallazgos`);
             for (const linea of describirHallazgos(h)) mal(`vivo: ${linea}`);
