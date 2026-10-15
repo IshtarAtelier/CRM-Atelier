@@ -6,6 +6,7 @@ import { PricingService } from '@/services/PricingService';
 import { Modal } from '@/components/ui/Modal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import { MONOTRIBUTO_UNIT_PRICE_LIMIT } from '@/lib/constants/billing';
+import { CONDICIONES_IVA_RECEPTOR } from '@/lib/constants/condicion-iva-receptor';
 
 interface InvoiceItem {
 // ... (rest of interface remains same)
@@ -88,6 +89,7 @@ const prorrateItems = (list: InvoiceItem[], target: number): InvoiceItem[] => {
 export default function InvoiceModal({ order, initialAccount, initialAmount, onClose, onSuccess }: InvoiceModalProps) {
     const [docTipo, setDocTipo] = useState(order.client.dni ? 96 : 99);
     const [docNro, setDocNro] = useState(order.client.dni || '');
+    const [condicionIva, setCondicionIva] = useState<number | ''>('');
     const [account, setAccount] = useState<'ISH' | 'YANI'>(initialAccount === 'YANI' ? 'YANI' : 'ISH');
     const [loading, setLoading] = useState(false);
     const [emittingStep, setEmittingStep] = useState<string | null>(null);
@@ -222,6 +224,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                     account: account,
                     docTipo: docTipo,
                     docNro: docTipo === 99 ? '0' : docNro.replace(/\D/g, ''),
+                    condicionIvaReceptor: docTipo === 80 && condicionIva !== '' ? condicionIva : undefined,
                     amount: totalInvoiced,
                     issueDate: issueDate,
                     items: items.map(({ description, quantity, price }) => ({ description, quantity, price })),
@@ -492,6 +495,18 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                         className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black tracking-widest focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all"
                                         placeholder="Nro de Documento..."
                                     />
+                                )}
+                                {docTipo === 80 && (
+                                    <select
+                                        value={condicionIva}
+                                        onChange={e => setCondicionIva(e.target.value === '' ? '' : Number(e.target.value))}
+                                        className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black focus:outline-none transition-all"
+                                    >
+                                        <option value="">Condición frente al IVA del receptor…</option>
+                                        {CONDICIONES_IVA_RECEPTOR.map(c => (
+                                            <option key={c.id} value={c.id}>{c.label}</option>
+                                        ))}
+                                    </select>
                                 )}
                             </div>
                         </div>
