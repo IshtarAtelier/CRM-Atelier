@@ -142,7 +142,7 @@ export async function register() {
                     // (8/9/26). Con 9,5 el fetch abortaba a mitad de una corrida
                     // que iba a terminar bien. Corre una vez por día: que tarde
                     // media hora no molesta a nadie.
-                    signal: AbortSignal.timeout(25 * 60 * 1000),
+                    signal: AbortSignal.timeout(60 * 60 * 1000),
                 });
                 if (!res.ok) {
                     const body = await res.text();
@@ -902,7 +902,7 @@ export async function register() {
                     // el turno del portal (lab-modules/portal/turno.ts, en la
                     // base, válido entre las dos instancias): un pase largo hace
                     // que el tick siguiente se saltee.
-                    signal: AbortSignal.timeout(25 * 60 * 1000),
+                    signal: AbortSignal.timeout(60 * 60 * 1000),
                 });
                 if (!res.ok) {
                     const body = await res.text();
