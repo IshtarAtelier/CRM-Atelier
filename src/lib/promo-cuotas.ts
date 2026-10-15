@@ -76,6 +76,15 @@ export function textoCuotas12(importeCuota: number): string {
 /** Las únicas cantidades de cuotas que son de verdad sin interés. */
 export const CUOTAS_SIN_INTERES: readonly number[] = [3, 6];
 
+/**
+ * La línea de cuotas de la ficha de producto, SIN importe: la fórmula de
+ * marketing de CLAUDE.md (decisión de Ishtar, 31/8/2026 noche): "3 y 6 cuotas
+ * sin interés, y hasta 12 cuotas fijas" — sin el %, sin "Mercado Pago" y sin
+ * insinuar que las 12 son sin interés. Se arma de las mismas constantes que
+ * el resto, así que si cambian las cuotas sin interés cambia sola.
+ */
+export const LINEA_CUOTAS = `${CUOTAS_SIN_INTERES.join(' y ')} cuotas sin interés · ${TEXTO_MP_CUOTAS_LARGAS.toLowerCase()}`;
+
 /** Lo que dice el cartel cuando el setting está vacío o no es confiable. */
 export const TEXTO_CUOTAS_POR_DEFECTO = '6 cuotas sin interés';
 

@@ -18,7 +18,7 @@ import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION, fichaMuestraGarantiaDeAdaptacion } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
 import { formatearPrecio } from "@/lib/format-precio";
-import { leerPromoCuotas, textoCuotas12 } from "@/lib/promo-cuotas";
+import { leerPromoCuotas, textoCuotas12, LINEA_CUOTAS } from "@/lib/promo-cuotas";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { precioConOferta } from "@/lib/precio-oferta";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades, claveMarca, claveModelo } from "@/lib/constants/social-proof";
@@ -363,7 +363,7 @@ export function ProductClient({
       <main>
       <div className="flex flex-col lg:flex-row min-h-screen pt-16 lg:pt-0">
         
-        <div className="w-full lg:w-[60%] bg-white relative flex items-center justify-center p-0 lg:p-12 min-h-[50vh] lg:h-screen lg:max-h-[56rem] lg:sticky lg:top-0 border-r border-[#e5e5e5] overflow-hidden group">
+        <div className="w-full lg:w-[60%] bg-white relative flex items-center justify-center p-0 lg:p-12 min-h-0 lg:min-h-[50vh] lg:h-screen lg:max-h-[56rem] lg:sticky lg:top-0 border-r border-[#e5e5e5] overflow-hidden group">
           
           {/* Marca de agua decorativa (3% de opacidad). El modelo iba como <h2>:
               al estar antes del <h1> real, era el PRIMER encabezado del documento
@@ -397,7 +397,11 @@ export function ProductClient({
             initial={false}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full lg:w-[85%] aspect-square lg:max-h-full relative bg-[#fdfdfd] border border-[#f0f0f0] shadow-sm flex items-center justify-center"
+            /* 4:3 en celular y cuadrado en escritorio (Fase 1.2, 15/10/2026): con el
+               recuadro cuadrado la foto sola ocupaba 390 px y el precio y el
+               botón quedaban a 800-1.280 px, dos pantallas abajo. Las fotos van
+               en `contain`, así que entran enteras igual. */
+            className="w-full lg:w-[85%] aspect-[4/3] lg:aspect-square lg:max-h-full relative bg-[#fdfdfd] border border-[#f0f0f0] shadow-sm flex items-center justify-center"
           >
             <AnimatePresence mode="wait">
               {images.length > 0 ? (
@@ -428,7 +432,7 @@ export function ProductClient({
                     // Deneb C2). Con `contain` entra la foto entera y lo que
                     // sobra queda del color del recuadro.
                     style={{ objectFit: "contain", transform: "translateZ(0)" }}
-                    className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-8 lg:p-12")) : ""}
+                    className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-4 lg:p-12")) : ""}
                   />
                 </motion.div>
               ) : (
@@ -454,9 +458,16 @@ export function ProductClient({
         </div>
 
         <div className="w-full lg:w-[40%] bg-[#fafafa] flex flex-col relative z-10">
-          <div className="p-8 lg:p-14 border-b border-[#e5e5e5] bg-white">
+          {/* ── Fase 1.2 (plan tienda, 15/10/2026): la primera pantalla en celular
+              vende. El panel es una columna con `order-*` SOLO en celular:
+              nombre → precio → botón primero; migas, colores, SKU, prueba
+              social, specs y medios de pago recién después. En escritorio
+              (`lg:order-none`) se mantiene el orden de siempre. Medido antes
+              del cambio: el precio quedaba a 800 px y el botón a 1.080-1.275 px
+              (dos pantallas de scroll) y el 97 % se iba sin tocar nada. */}
+          <div className="p-5 lg:p-14 border-b border-[#e5e5e5] bg-white flex flex-col">
             {/* Breadcrumb visible (el JSON-LD BreadcrumbList ya existía; esto orienta al cliente) */}
-            <nav aria-label="Ruta de navegación" className="mb-4 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">
+            <nav aria-label="Ruta de navegación" className="order-4 lg:order-none mt-4 lg:mt-0 mb-4 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">
               <Link href="/" className="hover:text-black transition-colors">Inicio</Link>
               <span aria-hidden="true">›</span>
               {(() => {
@@ -482,17 +493,22 @@ export function ProductClient({
               };
               const tipo = tipoMap[product.category];
               return tipo ? (
-                <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#8a6d3b] mb-1.5">
+                <p className="order-1 lg:order-none text-[11px] font-black uppercase tracking-[0.25em] text-[#8a6d3b] mb-1.5">
                   {tipo}
                 </p>
               ) : null;
             })()}
-            <h1 className="text-4xl lg:text-5xl font-serif tracking-tight mb-2 uppercase">
+            <h1 className="order-1 lg:order-none text-3xl lg:text-5xl font-serif tracking-tight mb-1 lg:mb-2 uppercase">
               {product.model}
             </h1>
-            <p className="text-[11px] text-[#666] font-bold uppercase tracking-[0.2em] mb-4">
+            <p className="order-1 lg:order-none text-[11px] text-[#666] font-bold uppercase tracking-[0.2em] mb-3 lg:mb-4">
               por {product.brand}
             </p>
+
+            {/* Todo lo que describe pero no decide (titanio, colores, SKU,
+                prueba social, specs) va DESPUÉS del botón en celular. En
+                escritorio `lg:contents` lo deja donde siempre estuvo. */}
+            <div className="order-4 lg:order-none lg:contents">
 
             {/* Prominent Titanium highlight */}
             {product.material === "Titanio" && (
@@ -655,9 +671,10 @@ export function ProductClient({
               </div>
             )}
 
-            
+            </div>
+
             {isWholesale ? (
-              <div className="mb-6 flex flex-col gap-1">
+              <div className="order-2 lg:order-none mb-6 flex flex-col gap-1">
                 {/* Sin wholesalePrice cargado (> 0) el backend cobra retail:
                     no etiquetar el precio de lista como "Mayorista". */}
                 {productWholesalePrice > 0 ? (
@@ -703,9 +720,9 @@ export function ProductClient({
                 {(() => {
                   const v = PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount });
                   return (
-                    <div className="mb-6">
+                    <div className="order-2 lg:order-none mb-4 lg:mb-6">
                       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <span className={`text-3xl font-black tracking-tight ${hasSale ? 'text-red-600' : 'text-black'}`}>
+                        <span className={`text-4xl lg:text-3xl font-black tracking-tight ${hasSale ? 'text-red-600' : 'text-black'}`}>
                           ${formatearPrecio(v.transferencia)}
                         </span>
                         <span className="text-xs font-black uppercase tracking-wide text-emerald-700">
@@ -739,23 +756,30 @@ export function ProductClient({
                           </span>
                         )}
                       </div>
+                      {/* UNA línea de cuotas, la fórmula de marketing de
+                          CLAUDE.md (31/8/2026, noche): sin el % y sin
+                          "Mercado Pago". Las filas con importe siguen en
+                          PaymentOptions, más abajo. */}
+                      <p className="mt-1.5 text-xs font-medium text-stone-600">{LINEA_CUOTAS}</p>
                     </div>
                   );
                 })()}
 
-                <PaymentOptions
-                  variant="inline"
-                  price={effectivePrice}
-                  cashDiscount={cashDiscount}
-                  installmentsText={installmentsText}
-                  // El de transferencia ya es el número grande de arriba, con
-                  // oferta o sin ella: la fila de pagos no lo repite.
-                  hideTransferRow
-                />
+                <div className="order-5 lg:order-none lg:contents">
+                  <PaymentOptions
+                    variant="inline"
+                    price={effectivePrice}
+                    cashDiscount={cashDiscount}
+                    installmentsText={installmentsText}
+                    // El de transferencia ya es el número grande de arriba, con
+                    // oferta o sin ella: la fila de pagos no lo repite.
+                    hideTransferRow
+                  />
+                </div>
               </>
             )}
 
-            <div ref={ctaPrincipalRef} className="flex flex-col gap-3 mb-6 mt-4">
+            <div ref={ctaPrincipalRef} className="order-3 lg:order-none flex flex-col gap-3 mb-6 mt-0 lg:mt-4">
               {/* En Receta hay dos caminos y los dos son CTA plenos: configurar
                   cristales (negro) o llevarse el armazón solo (verde). Antes el
                   segundo era un botón chico de contorno que decía "Comprar solo
@@ -802,6 +826,7 @@ export function ProductClient({
             {/* Franja de confianza en el punto de decisión: nota y cantidad de
                 reseñas REALES de Google + la garantía canónica. El botón de
                 garantía abre el acordeón con la letra chica, acá mismo. */}
+            <div className="order-6 lg:order-none lg:contents">
             <TrustStrip
               conGarantia={conGarantiaAdaptacion}
               onGarantiaClick={() => {
@@ -1009,6 +1034,7 @@ export function ProductClient({
                   )}
                 </AnimatePresence>
               </div>
+            </div>
             </div>
           </div>
 
