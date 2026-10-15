@@ -13,7 +13,7 @@ import { formatearPrecio } from '@/lib/format-precio';
 import { TONOS_TENIDO } from '@/lib/constants/tenido';
 import { calcularConfiguracion } from '@/lib/cristales-web/calculo';
 import { TIPOS_DE_VISION, pasoVisible } from '@/lib/cristales-web/tipos-de-vision';
-import { detalleTecnico, paraQuien, tituloComercial } from '@/lib/cristales-web/presentacion';
+import { detalleTecnico, explicacionSaltoPrecio, paraQuien, tituloComercial } from '@/lib/cristales-web/presentacion';
 import {
   claveDeCristal,
   describirConfiguracion,
@@ -501,6 +501,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                           badge={o.badge}
                           desc={paraQuien(o)}
                           detalle={detalleTecnico(o)}
+                          explicacion={explicacionSaltoPrecio(o)}
                           price={precioOpcion(o)}
                         />
                       ))}
@@ -782,7 +783,7 @@ function SkeletonCard() {
 }
 
 /** `compacta`: card baja (paso 1 en celular), para que las cuatro entren sin scroll. */
-function OptionCard({ selected, onClick, title, desc, price, badge, features, detalle, compacta }: any) {
+function OptionCard({ selected, onClick, title, desc, price, badge, features, detalle, explicacion, compacta }: any) {
   return (
     <motion.div 
       whileTap={{ scale: 0.98 }}
@@ -832,6 +833,14 @@ function OptionCard({ selected, onClick, title, desc, price, badge, features, de
       {price && (
         <p className={`text-[12px] font-bold tracking-widest mt-4 ${selected ? 'text-white' : 'text-black'}`}>
           {price}
+        </p>
+      )}
+      {/* 15/10/26: un salto de precio grande (UMBRAL_EXPLICAR_SALTO_PRECIO)
+          sin una palabra de por qué se lee como error. La línea sale del
+          producto vinculado, no de acá. */}
+      {explicacion && (
+        <p className={`text-[11px] leading-snug mt-2 ${selected ? 'text-white/80' : 'text-[#8a6d3b]'}`}>
+          {explicacion}
         </p>
       )}
     </motion.div>

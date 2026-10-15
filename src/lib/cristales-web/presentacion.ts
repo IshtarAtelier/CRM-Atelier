@@ -56,18 +56,17 @@ export function detalleTecnico(o: Pick<OpcionCristalWeb, 'clave' | 'etiqueta' | 
 
 /**
  * Cuando una opción suma más de `UMBRAL_EXPLICAR_SALTO_PRECIO`, una línea que
- * diga por qué, armada con lo que dice el producto vinculado (su nombre en el
- * sistema) y la descripción de la opción. Nada tipeado en la pantalla: si el
- * día de mañana se vincula otro producto, la explicación cambia sola.
+ * diga por qué. Sale de lo que ya dice el sistema de ESA opción: el "qué es"
+ * del área de cristales (por clave) o, si no lo tiene, la descripción cargada
+ * en /admin/web. Nada tipeado en la pantalla. No se usa el nombre del
+ * producto del CRM ("VARILUX COMFORT - ORMA + CRIZAL 2x1"): es el nombre
+ * interno de catálogo, no una explicación.
  *
  * Null si el precio no supera el umbral o no hay con qué explicarlo.
  */
-export function explicacionSaltoPrecio(o: Pick<OpcionCristalWeb, 'clave' | 'precio' | 'nombreProducto' | 'descripcion'>): string | null {
+export function explicacionSaltoPrecio(o: Pick<OpcionCristalWeb, 'clave' | 'precio' | 'descripcion'>): string | null {
     if (o.precio === null || o.precio <= UMBRAL_EXPLICAR_SALTO_PRECIO) return null;
-    const partes: string[] = [];
-    if (o.nombreProducto) partes.push(o.nombreProducto);
-    const detalle = o.descripcion?.trim() || INFORMACION_OPCIONES[o.clave]?.queEs;
-    if (detalle) partes.push(detalle.replace(/\.$/, ''));
-    if (partes.length === 0) return null;
-    return `Por qué cuesta más: ${partes.join(' — ')}.`;
+    const detalle = INFORMACION_OPCIONES[o.clave]?.queEs ?? o.descripcion?.trim();
+    if (!detalle) return null;
+    return `Por qué cuesta más: ${detalle.replace(/\.$/, '')}.`;
 }
