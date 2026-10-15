@@ -21,18 +21,18 @@ Atelier Óptica es una óptica en Cerro de las Rosas, Córdoba Capital. Somos Ce
 
 **Anteojos de receta** — Monofocales, ocupacionales y para computadora, con filtro de luz azul, antirreflejo Crizal o fotocromáticos. Más de 150 armazones para elegir. Con receta de tu oftalmólogo.
 
-**Lentes de sol con y sin graduación** — Anteojos de sol, polarizados y clip-on, también con tu graduación.
+**Lentes de sol con y sin graduación** — Anteojos de sol, polarizados, fotocromáticos y clip-on, también con tu graduación.
 
 **Ajuste y mantenimiento de anteojos** — Ajuste de armazones, cambio de plaquetas y tornillos, limpieza. Sin turno previo.
 
 **Tienda online con envío** — Todos los armazones en atelieroptica.com.ar, con cristales a elección y envío a todo el país.
 
 ## Atributos a revisar
-- Pagos: tarjeta de crédito y débito, Mercado Pago, transferencia.
+- Pagos: tarjeta de crédito y débito, Mercado Pago (confirmado 15/10), transferencia.
 - Opciones de servicio: compras en la tienda, compras online, entrega/envío.
 - Sin turno previo / se aceptan visitas sin cita.
-- Accesibilidad: verificar entrada y estacionamiento accesibles antes de marcar.
-- "Empresa dirigida por mujeres": solo si Ishtar lo confirma.
+- Accesibilidad: entrada accesible para silla de ruedas (confirmado por Ishtar 15/10).
+- "Empresa dirigida por mujeres": SÍ (confirmado por Ishtar 15/10).
 - Link de WhatsApp: https://wa.me/5493518685644 (con texto de origen "ficha de Google").
 
 ## Fotos a subir (1–2 por semana)
