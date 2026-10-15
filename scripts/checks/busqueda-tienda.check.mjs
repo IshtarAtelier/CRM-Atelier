@@ -14,7 +14,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { coincideBusquedaTienda, palabrasDeBusqueda } from '../../src/lib/catalog/busqueda-tienda.ts';
+import { coincideBusquedaTienda, palabrasDeBusqueda, marcaNoTrabajada, mensajeMarcaNoTrabajada, sugerenciasSinResultado } from '../../src/lib/catalog/busqueda-tienda.ts';
 import { precioParaRango, leerRangoPrecio, dentroDelRango, descuentoTransferenciaDe } from '../../src/lib/catalog/rango-precio.ts';
 
 const casos = [];
@@ -96,6 +96,37 @@ esperar('"gafas" no filtra; "gafas de sol" es sol', busca('gafas', recetaCarey) 
 esperar('"clip on de sol" encuentra el clip-on', busca('clip on de sol', clipOn));
 esperar('"sin aumento" no se lee como "con receta"', busca('sin aumento', solNegro));
 esperar('"con aumento" es receta', busca('con aumento', recetaCarey) && !busca('con aumento', solNegro));
+
+// ── Fase 1.8 (15/10/2026): un cero no se muestra como cero ──
+// El 56 % de 311 búsquedas de un mes terminaban sin resultado; muchas eran
+// marcas que no trabajamos. Se dice cuál y se ofrecen los más elegidos.
+for (const q of ['ray ban', 'rayban', 'Ray-Ban', 'lentes ray ban de sol', 'RAYBAN aviador']) {
+    esperar(`"${q}" nombra Ray-Ban (marca que no trabajamos)`, marcaNoTrabajada(q) === 'Ray-Ban', String(marcaNoTrabajada(q)));
+}
+esperar('"vulk" es marca que no trabajamos', marcaNoTrabajada('vulk') === 'Vulk');
+esperar('"oakley polarizados" es Oakley', marcaNoTrabajada('oakley polarizados') === 'Oakley');
+esperar('"d&g" es Dolce & Gabbana', marcaNoTrabajada('d&g') === 'Dolce & Gabbana');
+esperar('"Cápsula Escarlata" no es marca ajena', marcaNoTrabajada('Cápsula Escarlata') === null && marcaNoTrabajada('capsula') === null);
+esperar('"calipso" no es marca ajena', marcaNoTrabajada('calipso') === null);
+esperar('"carey" no cae en Carrera (palabra entera)', marcaNoTrabajada('carey') === null);
+esperar('consulta vacía no es marca ajena', marcaNoTrabajada('') === null && marcaNoTrabajada(null) === null);
+esperar('el mensaje dice qué marca y ofrece la colección',
+    /No trabajamos Ray-Ban/.test(mensajeMarcaNoTrabajada('Ray-Ban')) && /más elegidos/.test(mensajeMarcaNoTrabajada('Ray-Ban')),
+    mensajeMarcaNoTrabajada('Ray-Ban'));
+{
+    const lista = [{ id: 'a', stock: 3 }, { id: 'b', stock: 0 }, { id: 'c', stock: 5 }, { id: 'd' }, { id: 'e', stock: 1 }];
+    const sug = sugerenciasSinResultado(lista, 3).map(p => p.id);
+    esperar('las sugerencias respetan el orden del catálogo (destacados primero) y saltean agotados', JSON.stringify(sug) === JSON.stringify(['a', 'c', 'd']), JSON.stringify(sug));
+}
+// Las dos superficies muestran el aviso en vez de un cero.
+{
+    const ruta = readFileSync(new URL('../../src/app/api/store/products/route.ts', import.meta.url), 'utf8');
+    esperar('/api/store/products manda avisoBusqueda ante una marca ajena', /marcaNoTrabajada\(search\)/.test(ruta) && /avisoBusqueda: mensajeMarcaNoTrabajada/.test(ruta));
+    const tienda = readFileSync(new URL('../../src/app/tienda/TiendaClient.tsx', import.meta.url), 'utf8');
+    esperar('/tienda muestra avisoBusqueda', /data\.avisoBusqueda/.test(tienda) && /\{avisoBusqueda\}/.test(tienda));
+    const lupa = readFileSync(new URL('../../src/components/Storefront/StorefrontNavbar.tsx', import.meta.url), 'utf8');
+    esperar('la lupa ofrece sugerencias cuando no hay resultados', /sugerenciasSinResultado\(allProducts/.test(lupa) && /mensajeMarcaNoTrabajada\(marcaAjena\)/.test(lupa));
+}
 
 // ── Filtro de precio: mismo número que la tarjeta, en las cuatro páginas ──
 {

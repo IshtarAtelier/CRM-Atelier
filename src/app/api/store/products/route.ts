@@ -5,7 +5,7 @@ import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 import { canSeeWholesalePrices } from '@/lib/wholesale-access';
-import { coincideBusquedaTienda } from '@/lib/catalog/busqueda-tienda';
+import { coincideBusquedaTienda, marcaNoTrabajada, mensajeMarcaNoTrabajada } from '@/lib/catalog/busqueda-tienda';
 import { precioParaRango, leerRangoPrecio, dentroDelRango, descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
 import { getWebSettings } from '@/lib/web-settings';
 import { calcularFacetas, filtrarPorFacetas, facetaValorUnico, facetaValoresMultiples } from '@/lib/catalog/facetas';
@@ -138,7 +138,11 @@ export async function GET(request: NextRequest) {
         const coincidePrecio = (p: any) =>
             !hayRangoDePrecio || dentroDelRango(precioParaRango(p, descuentoTransferenciaPct, isWholesale), rangoDePrecio);
         // Misma búsqueda que la lupa del encabezado (src/lib/catalog/busqueda-tienda.ts).
-        const coincideBusqueda = (p: any) => coincideBusquedaTienda(p, search);
+        // Una marca que no trabajamos ("ray ban", "vulk") no filtra nada:
+        // devuelve el catálogo en su orden (destacados primero) con un aviso
+        // que la grilla muestra arriba, en vez de un cero (Fase 1.8, 15/10).
+        const marcaAjena = isWholesale ? null : marcaNoTrabajada(search);
+        const coincideBusqueda = (p: any) => marcaAjena ? true : coincideBusquedaTienda(p, search);
 
         // 1) Filtrado por Categoría (fuera del sistema de facetas: no tiene
         // conteo propio en el panel — es la pestaña de arriba, no un chip).
@@ -260,6 +264,7 @@ export async function GET(request: NextRequest) {
             totalPages,
             totalCount,
             conteos,
+            ...(marcaAjena ? { avisoBusqueda: mensajeMarcaNoTrabajada(marcaAjena) } : {}),
         });
     } catch (error) {
         console.error('Error fetching store products:', error);

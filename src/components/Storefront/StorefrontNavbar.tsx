@@ -11,7 +11,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/client-analytics";
 import { cartelQueSePuedeMostrar } from "@/lib/promo-cuotas";
-import { coincideBusquedaTienda } from "@/lib/catalog/busqueda-tienda";
+import { coincideBusquedaTienda, marcaNoTrabajada, mensajeMarcaNoTrabajada, sugerenciasSinResultado } from "@/lib/catalog/busqueda-tienda";
 import { precioConSigno } from "@/lib/format-precio";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { effectiveFramePrice } from "@/lib/checkout/checkout-pricing";
@@ -120,6 +120,17 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
     // era otro motor que distinguía tildes: "orion" daba 0 y "Orión" daba 1.
     ? allProducts.filter(p => coincideBusquedaTienda(p, searchQuery))
     : [];
+  // Fase 1.8 (15/10/2026): un cero no se muestra como cero. Si la consulta
+  // nombra una marca que no trabajamos ("ray ban", "vulk") se dice eso; si
+  // simplemente no hay nada, se dice y se ofrecen los más elegidos (los
+  // primeros del catálogo: destacados primero). El evento `search` sigue
+  // reportando `resultados: 0`, que es el dato que sirve para decidir catálogo.
+  const marcaAjena = searchQuery.trim().length >= 2 ? marcaNoTrabajada(searchQuery) : null;
+  const sinResultados = searchQuery.trim().length >= 2 && allProducts.length > 0 && (marcaAjena !== null || searchResults.length === 0);
+  const resultadosAMostrar = sinResultados ? sugerenciasSinResultado(allProducts, 6) : searchResults;
+  const avisoSinResultados = !sinResultados ? null
+    : marcaAjena ? mensajeMarcaNoTrabajada(marcaAjena)
+    : `No encontramos «${searchQuery.trim()}». Probá con el nombre del modelo (Calipso, Orión), el color o la forma. Mientras tanto, los más elegidos:`;
 
   // Términos ya reportados: el buscador filtra en memoria, así que el mismo
   // texto puede volver a "quedar quieto" con cada re-render (o si la persona
@@ -539,9 +550,14 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                     ))}
                   </div>
                 </div>
-              ) : searchResults.length > 0 ? (
+              ) : resultadosAMostrar.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-                  {searchResults.map(p => {
+                  {avisoSinResultados && (
+                    <p className="md:col-span-2 text-sm text-stone-700 dark:text-stone-300 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl px-4 py-3">
+                      {avisoSinResultados}
+                    </p>
+                  )}
+                  {resultadosAMostrar.map(p => {
                     const imgUrl = p.imagenesCatalogo?.length > 0
                       ? resolveStorageUrl(p.imagenesCatalogo[0])
                       : null;

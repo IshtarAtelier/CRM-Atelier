@@ -323,6 +323,8 @@ export function TiendaClient({
   // calcula el endpoint contra los OTROS filtros activos (ver el comentario en
   // api/store/products), así que acá solo se transportan a ProductFilters.
   const [conteos, setConteos] = useState<{ marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number>; color?: Record<string, number> } | null>(initialConteos);
+  // Aviso del buscador ("No trabajamos Ray-Ban…"): lo manda /api/store/products (Fase 1.8).
+  const [avisoBusqueda, setAvisoBusqueda] = useState<string | null>(null);
 
   const [isWholesale, setIsWholesale] = useState(false);
   const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
@@ -578,6 +580,7 @@ export function TiendaClient({
           setTotalPages(data.totalPages || 1);
           setTotalCount(data.totalCount || 0);
           setConteos(data.conteos || null);
+          setAvisoBusqueda(typeof data.avisoBusqueda === 'string' ? data.avisoBusqueda : null);
           filtrosDelUltimoFetch.current = claveDeLista;
         }
       } catch (err) {
@@ -1022,7 +1025,13 @@ export function TiendaClient({
                   </div>
                 )
               ) : (
-                displayedProducts.map((p, index) => {
+                <>
+                {avisoBusqueda && (
+                  <p className="col-span-full -mb-2 text-sm text-stone-700 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3">
+                    {avisoBusqueda}
+                  </p>
+                )}
+                {displayedProducts.map((p, index) => {
                 const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
                 const imgUrl = p.imagenesCatalogo?.length > 0
                   ? resolveStorageUrl(p.imagenesCatalogo[0])
@@ -1254,7 +1263,8 @@ export function TiendaClient({
                     </div>
                   </Link>
                 );
-              })
+              })}
+                </>
             )}
             </motion.div>
           </AnimatePresence>
