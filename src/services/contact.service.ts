@@ -2240,13 +2240,26 @@ export const ContactService = {
 
             // FIRE BACKGROUND AI VERIFICATION IF RECEIPT EXISTS
             if (receiptUrl) {
+                // Con comprobante, UN solo mail: el del auditor, que ya lleva la
+                // imagen y el veredicto, y acá se le suman los datos del pago
+                // (Ishtar, 15/10/2026). Sin comprobante sale el aviso simple de
+                // más abajo, solo a la casilla del sistema.
+                const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
                 ReceiptAgentService.analyzeReceipt(
                     result.id,
                     orderId,
                     receiptUrl,
                     amount,
                     method,
-                    actorName
+                    actorName,
+                    {
+                        tipo: result.isSena ? 'SEÑA' : 'SALDO',
+                        totalOperacion: result.totalOperacion,
+                        saldo: result.hasBalance
+                            ? `Saldo pendiente: efectivo ${fmt(result.remainingCash)} · transferencia ${fmt(result.remainingTransfer)} · tarjeta/lista ${fmt(result.remainingCard)}`
+                            : 'Pedido totalmente abonado',
+                        notas: notes?.trim() || null,
+                    }
                 ).catch(err => console.error('[ReceiptAgent Background Error]', err));
             }
 
@@ -2284,15 +2297,17 @@ export const ContactService = {
                     msgText += `${remainingText.replace(/\*/g, '')}\n`;
                     msgText += `Ficha del cliente: ${clientLink}`;
 
-                    await sendEmail({
-                        to: SYSTEM_MAILBOX_EMAIL,
-                        subject: esEfectivo
-                            ? `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')} — ${result.clientName}`
-                            : `💵 Nuevo pago (${tipoPago}): $${amount.toLocaleString('es-AR')} — ${result.clientName}`,
-                        text: msgText,
-                    }).then(r => {
-                        if (!r?.success) console.error('[Payment Notification] Email a administración no salió');
-                    }).catch(err => console.error('[Payment Notification] Error email administración:', err));
+                    if (!receiptUrl) {
+                        await sendEmail({
+                            to: SYSTEM_MAILBOX_EMAIL,
+                            subject: esEfectivo
+                                ? `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')} — ${result.clientName}`
+                                : `💵 Nuevo pago (${tipoPago}): $${amount.toLocaleString('es-AR')} — ${result.clientName}`,
+                            text: msgText,
+                        }).then(r => {
+                            if (!r?.success) console.error('[Payment Notification] Email a administración no salió');
+                        }).catch(err => console.error('[Payment Notification] Error email administración:', err));
+                    }
 
                     const today = new Date().toLocaleDateString('es-AR');
                     // Etiqueta y texto del recibo por su helper: el reenvío a mano

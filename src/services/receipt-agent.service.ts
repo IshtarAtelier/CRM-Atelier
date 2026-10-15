@@ -4,7 +4,7 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
-import { notifyReceiptUploaded, type DuplicatePaymentRef } from '@/lib/receipt-notify';
+import { notifyReceiptUploaded, type DuplicatePaymentRef, type ResumenDelPago } from '@/lib/receipt-notify';
 import { formatDate } from '@/lib/format-date';
 
 /**
@@ -209,7 +209,8 @@ export class ReceiptAgentService {
         receiptUrl: string,
         expectedAmount: number,
         method: string,
-        uploadedByName?: string | null
+        uploadedByName?: string | null,
+        pago?: ResumenDelPago | null
     ) {
         let adminEmailSent = false;
         try {
@@ -227,7 +228,8 @@ export class ReceiptAgentService {
                 amount: expectedAmount,
                 method,
                 receiptUrl,
-                uploadedByName: uploadedByName || null
+                uploadedByName: uploadedByName || null,
+                pago: pago || null
             };
 
             // 1. Convert file from storage to base64
@@ -637,6 +639,7 @@ export class ReceiptAgentService {
                          method,
                          receiptUrl,
                          uploadedByName: uploadedByName || null,
+                         pago: pago || null,
                          auditErrors: null
                      });
                  } catch (emailErr) {
