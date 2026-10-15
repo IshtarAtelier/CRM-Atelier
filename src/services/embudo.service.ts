@@ -7,6 +7,7 @@ import { TAGS_NO_CLIENTE } from '@/lib/no-cliente';
 import { tieneEtiquetaDeVisita } from '@/lib/embudo/visito-local';
 import { presupuestoFueEnviado, MARCA_PDF_ENVIADO } from '@/lib/embudo/presupuesto-enviado';
 import { tareasPorRespuestasSinAtender } from '@/lib/embudo/respuestas-a-seguimientos';
+import { TAG_PERDIDO_EMBUDO } from '@/lib/seguimientos/cierre';
 
 /**
  * EmbudoService — el tablero de leads (/admin/leads) y "lo de hoy".
@@ -29,6 +30,8 @@ import { tareasPorRespuestasSinAtender } from '@/lib/embudo/respuestas-a-seguimi
  */
 const EXCLUSION_TAGS = [
     'no interesado', 'cancelar bot', 'spam', 'no bot', 'cerrado', 'post-venta',
+    // La pone el motor al cerrar como perdido (`lib/seguimientos/cierre.ts`).
+    TAG_PERDIDO_EMBUDO.toLowerCase(),
     ...TAGS_NO_CLIENTE,
 ];
 
@@ -44,7 +47,23 @@ async function leadsCalificados() {
         where: {
             status: 'CONTACT',
             isDeleted: false,
-            orders: { none: { isDeleted: false, orderType: { in: ['SALE', 'ORDER'] } } },
+            // Quien COMPRÓ no está en el embudo, por ninguna de las señales que
+            // el sistema conoce (Ishtar, 8/10/2026: "ES MUY IMPORTANTE QUE NO SE
+            // LE ENVÍE A NADIE QUE HAYA COMPRADO, O QUE ESTÉ EN CONFIRMADOS").
+            // `Order.paid` no prueba la venta, pero acá alcanza como exclusión:
+            // ante la duda, afuera.
+            orders: {
+                none: {
+                    isDeleted: false,
+                    OR: [
+                        { orderType: { in: ['SALE', 'ORDER'] } },
+                        { status: 'CONFIRMED' },
+                        { labSentAt: { not: null } },
+                        { paid: { gt: 0 } },
+                        { payments: { some: {} } },
+                    ],
+                },
+            },
         },
         include: {
             prescriptions: { orderBy: { date: 'desc' }, take: 1 },
@@ -54,7 +73,7 @@ async function leadsCalificados() {
             // Ver el porqué del criterio en `lib/embudo/visito-local.ts`.
             tasks: { where: { type: 'TURNO' }, select: { dueDate: true } },
             // La señal BUENA: el botón "Visita" de la ficha, que el equipo ya usa.
-            interactions: { where: { type: 'STORE_VISIT' }, select: { id: true }, take: 1 },
+            interactions: { where: { type: 'STORE_VISIT' }, select: { id: true, createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
             // Siempre el chat más reciente: hay clientes con dos chats y sin
             // este orden la etiqueta se lee del equivocado.
             whatsappChats: { orderBy: { lastMessageAt: 'desc' }, take: 1 },
@@ -62,7 +81,10 @@ async function leadsCalificados() {
         orderBy: { createdAt: 'desc' },
     });
     return leads.filter(lead =>
-        !lead.tags.some(tag => EXCLUSION_TAGS.some(ex => tag.name.toLowerCase().includes(ex))),
+        !lead.tags.some(tag => EXCLUSION_TAGS.some(ex => tag.name.toLowerCase().includes(ex)))
+        // Su último presupuesto lo marcó PERDIDO una persona (botón ✓ de Cierres):
+        // ya decidió, no se lo retoma ni se lo vuelve a cerrar.
+        && lead.orders[0]?.status !== 'LOST',
     );
 }
 
@@ -125,10 +147,17 @@ export const EmbudoService = {
             const chat = lead.whatsappChats[0] ?? null;
             const chatLabels = chat?.chatLabels || [];
             const ultimoMensajeHumano = chat ? ultimoHumanoPorChat.get(chat.id) ?? null : null;
+            const visitoElLocal = lead.interactions.length > 0
+                || tieneEtiquetaDeVisita(lead.tags.map(t => t.name))
+                || lead.tasks.some(t => t.dueDate !== null && t.dueDate.getTime() < now);
+            // La visita con fecha: el botón "Visita" o el último turno cumplido.
+            const visitaAt = [lead.interactions[0]?.createdAt ?? null, ...lead.tasks.map(t => t.dueDate).filter((d): d is Date => d !== null && d.getTime() < now)]
+                .filter((d): d is Date => !!d).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
             const enviado = presupuestoFueEnviado({
                 quoteCreatedAt: latestQuote?.createdAt ?? null,
                 pdfEnviadoAt: pdfPorCliente.get(lead.id) ?? null,
                 ultimoMensajeHumano,
+                visitaAt,
             });
             const quoteCreatedAt = enviado ? latestQuote!.createdAt : null;
             const borradorSinEnviar = latestQuote && !enviado ? latestQuote.createdAt : null;
@@ -142,10 +171,6 @@ export const EmbudoService = {
                 now,
             });
 
-            const visitoElLocal = lead.interactions.length > 0
-                || tieneEtiquetaDeVisita(lead.tags.map(t => t.name))
-                || lead.tasks.some(t => t.dueDate !== null && t.dueDate.getTime() < now);
-
             const accion = proximaAccion({
                 stage,
                 escalonCubierto,
@@ -157,6 +182,8 @@ export const EmbudoService = {
                 createdAt: lead.createdAt,
                 tieneChat: !!chat,
                 chatLabels,
+                ultimoToqueAt: chat?.lastFollowUpAt ?? null,
+                ultimaActividadAt: [chat?.lastInboundAt ?? null, ultimoMensajeHumano].filter((d): d is Date => !!d).sort((a, b) => b.getTime() - a.getTime())[0] ?? null,
                 now,
             });
 
@@ -206,11 +233,9 @@ export const EmbudoService = {
 
     /**
      * Corre UNA VEZ POR DÍA (la llama /api/cron/resumen-diario-equipo, que ya
-     * tiene el guard de "una vez por día" y el horario). Hace las dos cosas
-     * que dependen del mismo tablero, para no calcularlo dos veces:
-     *   1. materializa "para hoy" como ClientTask reales — visibles en el
-     *      dashboard y en la ficha del cliente, no solo en /admin/leads;
-     *   2. arma la línea de texto para el resumen del equipo.
+     * tiene el guard de "una vez por día" y el horario). Desde el 8/10/2026 el
+     * embudo no deja tareas a nadie: acá solo se limpian las que quedaron de
+     * antes y se arma la línea informativa del resumen del equipo.
      */
     async correrDiario(now = Date.now()): Promise<{ paraHoy: Tablero['paraHoy']; sync: ResultadoSync; respuestas: number; linea: string }> {
         const { paraHoy } = await EmbudoService.tablero(now);
@@ -223,23 +248,15 @@ export const EmbudoService = {
     /** La línea de texto del resumen diario. Separada de `correrDiario` para
      * poder probarla sola, sin tocar la base. */
     armarLinea(paraHoy: Tablero['paraHoy'], sync: ResultadoSync, respuestas = 0): string {
-        const avisoRespuestas = respuestas ? `\n    💬 ${respuestas} cliente(s) respondieron a un seguimiento y quedaron sin tarea: ya la tienen (campanita).` : '';
-        if (paraHoy.length === 0) return `🎯 Embudo: nadie con seguimiento vencido. Al día.${avisoRespuestas}`;
-        const porTipo = { plantilla: 0, cotizar: 0, decidir: 0 };
+        const limpieza = sync.cerradas || respuestas ? ` (${sync.cerradas + respuestas} tarea(s) vieja(s) del embudo canceladas: el embudo ya no deja tareas a nadie)` : '';
+        if (paraHoy.length === 0) return `🎯 Embudo: nadie con seguimiento vencido. Al día.${limpieza}`;
+        const porTipo = { plantilla: 0, cerrar: 0 };
         for (const l of paraHoy) if (l.proximaAccion.tipo in porTipo) porTipo[l.proximaAccion.tipo as keyof typeof porTipo]++;
         const partes = [
-            porTipo.plantilla ? `${porTipo.plantilla} seguimiento(s) para mandar` : null,
-            porTipo.cotizar ? `${porTipo.cotizar} sin cotizar` : null,
-            porTipo.decidir ? `${porTipo.decidir} para cerrar (ganado/perdido)` : null,
+            porTipo.plantilla ? `${porTipo.plantilla} seguimiento(s) que manda el motor` : null,
+            porTipo.cerrar ? `${porTipo.cerrar} que el motor cierra como perdido(s)` : null,
         ].filter(Boolean);
         const primeros = paraHoy.slice(0, 5).map(l => `${l.name.split(' ')[0]} (${l.proximaAccion.etiqueta.replace(/^Hoy: /, '')})`).join(', ');
-        // Las tareas quedan en el dashboard de TODOS (TasksPanel) y en la
-        // ficha de cada cliente — el mail es el aviso, la tarea es donde se
-        // tacha. `actualizadas` no se muestra: para el equipo es la misma
-        // tarea de ayer, solo cambió internamente el texto del paso.
-        const tareas = sync.creadas || sync.cerradas
-            ? ` (${sync.creadas} tarea(s) nueva(s) en el dashboard${sync.cerradas ? `, ${sync.cerradas} cerrada(s) sola(s) porque ya se resolvieron` : ''})`
-            : '';
-        return `🎯 Embudo — para hoy: ${partes.join(' · ')}.${tareas}\n    ${primeros}${paraHoy.length > 5 ? ` y ${paraHoy.length - 5} más` : ''} → /admin/leads${avisoRespuestas}`;
+        return `🎯 Embudo — hoy el motor hace: ${partes.join(' · ')}.${limpieza}\n    ${primeros}${paraHoy.length > 5 ? ` y ${paraHoy.length - 5} más` : ''} → /admin/leads`;
     },
 };

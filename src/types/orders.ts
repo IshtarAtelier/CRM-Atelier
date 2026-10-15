@@ -122,6 +122,10 @@ export interface Order {
     orderType?: string;
     labStatus?: string;
     labSentAt?: string;
+    /** Qué contestó el cliente al repaso de su pedido: OK | TACITA | OBSERVACION (ver lib/confirmacion-cliente.ts). */
+    clientConfirmation?: string | null;
+    clientConfirmedAt?: string | null;
+    clientConfirmationText?: string | null;
     labNotes?: string;
     /** Observación del vendedor que sale en el PDF del cliente. */
     clientNote?: string;

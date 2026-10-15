@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { ESTADO_ROBOT, esCompradorRobot } from '@/lib/checkout/robots';
+import { emailValido } from '@/lib/checkout/email';
 
 // Formato de email razonable: evita inyectar direcciones basura/malformadas que
 // después el cron de carritos abandonados usaría para mandar emails brandeados.
-const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+// La misma regla (`emailValido`) la usa el navegador para no mandar un email a
+// medio tipear.
 
 // IP del cliente (primer segmento del XFF). Solo para rate-limit, no para auth.
 const clientIp = (req: Request) => (req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim();
@@ -25,9 +27,12 @@ export async function POST(req: Request) {
     }
 
     const data = await req.json();
-    const { email, firstName, lastName, phone, cartData } = data;
+    const { firstName, lastName, phone, cartData } = data;
+    // Sin espacios de más: un mail con un espacio al final no es inválido, es el
+    // mismo mail (los teclados de celular lo agregan al usar una sugerencia).
+    const email = typeof data.email === 'string' ? data.email.trim() : data.email;
 
-    if (email && !isValidEmail(email)) {
+    if (email && !emailValido(email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
     }
 
@@ -62,13 +67,14 @@ export async function PUT(req: Request) {
     }
 
     const data = await req.json();
-    const { sessionId, email, firstName, lastName, phone, cartData, shippingData, total, status } = data;
+    const { sessionId, firstName, lastName, phone, cartData, shippingData, total, status } = data;
+    const email = typeof data.email === 'string' ? data.email.trim() : data.email;
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
     }
 
-    if (email !== undefined && email && !isValidEmail(email)) {
+    if (email !== undefined && email && !emailValido(email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
     }
 

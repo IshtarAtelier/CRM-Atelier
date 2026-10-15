@@ -159,8 +159,18 @@ function classifyError(status, body) {
       const code = Object.entries(e.errorCode || {})
         .map(([k, v]) => `${k}=${v}`)
         .join(',');
-      const field = e.location?.fieldPathElements?.map((f) => f.fieldName).filter(Boolean).join('.');
-      return [code, e.message, field ? `(campo: ${field})` : ''].filter(Boolean).join(' ');
+      // El índice de la operación (fieldPathElements[].index) es lo que dice
+      // CUÁL de las N operaciones de un mutate falló; sin él, un POLICY_ERROR
+      // sobre "keyword.text" obliga a adivinar entre 50 keywords (15/10/2026).
+      const field = e.location?.fieldPathElements
+        ?.map((f) => (f.index !== undefined ? `${f.fieldName}[${f.index}]` : f.fieldName))
+        .filter(Boolean)
+        .join('.');
+      const pv = e.details?.policyViolationDetails;
+      const politica = pv
+        ? `(política: ${pv.externalPolicyName || '?'}${pv.key?.violatingText ? ` · texto: "${pv.key.violatingText}"` : ''}${pv.isExemptible ? ' · eximible' : ''})`
+        : '';
+      return [code, e.message, field ? `(campo: ${field})` : '', politica].filter(Boolean).join(' ');
     });
   const detail = redact(
     [body?.error?.message, ...failures].filter(Boolean).join(' | ') ||

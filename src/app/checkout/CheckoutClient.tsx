@@ -1,6 +1,7 @@
 "use client";
 
-import { useCristalesAlDia } from '@/hooks/useCristalesAlDia';
+import { refrescarCarrito, useCarritoAlDia } from '@/hooks/useCarritoAlDia';
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { tieneCristales } from '@/lib/cristales-web/claves';
 import { useCart } from "@/store/useCart";
 import { calcular2x1Armazones, armazonesDelCarrito } from "@/lib/promo-2x1-armazones";
@@ -18,6 +19,7 @@ import { CheckoutResumenCelular } from "@/components/checkout/CheckoutResumenCel
 import type { AppliedCoupon } from "@/components/checkout/CouponField";
 import { PricingService } from "@/services/PricingService";
 import { telefonoADigitos, telefonoValido } from "@/lib/checkout/telefono";
+import { emailLimpio, emailValido } from "@/lib/checkout/email";
 import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 import { getAdsMatchData, getSessionId, track } from "@/lib/client-analytics";
@@ -43,6 +45,12 @@ function clearIdempotencyKey() {
   try { localStorage.removeItem(IDEM_KEY); } catch { /* noop */ }
 }
 
+/** Campos del bloque "1. Contacto": el primero que se escribe marca checkout_contact_start. */
+const CAMPOS_DE_CONTACTO = new Set(['phone', 'email', 'firstName', 'lastName', 'dni']);
+
+/** Códigos de rechazo del checkout que significan "el carrito tenía un dato viejo". */
+const CODIGOS_DE_CARRITO_VIEJO = new Set(['PRECIO_CAMBIO', 'PRODUCTO_NO_DISPONIBLE', 'STOCK_INSUFICIENTE', 'OPCION_CRISTAL_NO_DISPONIBLE']);
+
 export function CheckoutClient({ 
   paywayConfig,
   mercadoPagoEnabled = false,
@@ -60,7 +68,7 @@ export function CheckoutClient({
 }) {
   const { items, getCartTotal, clearCart } = useCart();
   // Precio de los cristales al día con el sistema antes de pagar (ver el hook).
-  useCristalesAlDia();
+  useCarritoAlDia();
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -103,6 +111,11 @@ export function CheckoutClient({
 
   const initiatedRef = useRef(false);
   const payLockRef = useRef(false);
+  // Medición del formulario de contacto (8/10/26): en celular nadie llegaba a
+  // dejar sus datos y no se sabía si ni siquiera empezaban a escribir, o si
+  // escribían y el sistema no podía guardarlo.
+  const contactoEmpezadoRef = useRef(false);
+  const ultimoErrorDeContactoRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (mounted && items.length > 0 && !initiatedRef.current) {
@@ -158,7 +171,7 @@ export function CheckoutClient({
   });
 
   const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
-  const descuentoTransferenciaPct = webSettings?.web_promo_cash_discount || 15;
+  const descuentoTransferenciaPct = descuentoTransferenciaDe(webSettings?.web_promo_cash_discount);
 
   // Lo que la persona termina pagando, desglosado. UN solo cálculo
   // (PricingService.totalesCheckout) para el botón de pago, el resumen de
@@ -390,7 +403,34 @@ export function CheckoutClient({
     }
 
     try { track('checkout_error', { value: totalConPromo2x1, meta: { motivo: 'mercado_pago_' + estado, metodo: 'MERCADO_PAGO' } }); } catch { /* nunca frena */ }
-    toast.error("El pago no se completó. Tu carrito sigue acá: podés reintentar o elegir otro medio de pago.", { duration: 10000 });
+    const avisoNoSeCompleto = toast.error("El pago no se completó. Tu carrito sigue acá: podés reintentar o elegir otro medio de pago.", { duration: 10000 });
+    // Que el "podés reintentar" sea cierto: la reserva de este intento se
+    // resuelve ya (el servidor le pregunta a Mercado Pago). Sin esto quedaba 2
+    // horas y el reintento chocaba con su propio stock o con "ya fue procesado".
+    if (orderId) {
+      fetch('/api/checkout/mercadopago-volver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      })
+        .then(r => r.json().catch(() => ({})))
+        .then((d: { resultado?: string }) => {
+          if (d?.resultado === 'acreditada' || d?.resultado === 'a-revisar') toast.dismiss(avisoNoSeCompleto);
+          if (d?.resultado === 'acreditada') {
+            // Mercado Pago sí lo aprobó (volvió por la pantalla equivocada).
+            toast.success("¡Tu pago se acreditó! Te mandamos la confirmación por email.", { duration: 10000 });
+            setOrdenHecha({ id: orderId, total: 0 });
+            clearCart();
+            setIsSuccess(true);
+          } else if (d?.resultado === 'a-revisar') {
+            // Hay un pago aprobado: que no pague dos veces.
+            toast.info("Mercado Pago nos informó un pago aprobado. No vuelvas a pagar: lo estamos revisando y te escribimos por WhatsApp.", { duration: 15000 });
+          } else if (d?.resultado === 'liberada') {
+            refrescarCarrito();
+          }
+        })
+        .catch(() => { /* lo resuelve el chequeo periódico */ });
+    }
   }, [mounted]);
 
   // Pasos del checkout (checkout_shipping / checkout_payment): se mide cuando la
@@ -431,14 +471,19 @@ export function CheckoutClient({
         // a medio tipear ("35") no sirve para escribirle y abriría la sesión de
         // recupero con un dato basura.
         const telefonoGuardable = telefonoValido(formData.phone) ? telefonoADigitos(formData.phone) : "";
-        if (formData.email || telefonoGuardable) {
+        // Lo mismo con el email: a medio tipear el servidor lo rechaza (400) y
+        // con él se perdía el pedido entero, nombre y teléfono incluidos. Si
+        // todavía no es válido, no se manda: en el PUT un dato a medio corregir
+        // no pisa el que ya estaba guardado (vale para los dos campos).
+        const emailGuardable = emailValido(formData.email) ? emailLimpio(formData.email) : undefined;
+        if (emailGuardable || telefonoGuardable) {
           const sessionId = localStorage.getItem("atelier-checkout-session-id");
           const payload = {
             sessionId,
-            email: formData.email,
+            email: emailGuardable ?? (sessionId ? undefined : ''),
             firstName: formData.firstName,
             lastName: formData.lastName,
-            phone: telefonoGuardable,
+            phone: telefonoGuardable || (sessionId ? undefined : ''),
             cartData: items,
             shippingData: {
               address: formData.address,
@@ -457,7 +502,19 @@ export function CheckoutClient({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
-            const data = await res.json();
+            // Un 429 o un 502 del proxy no traen JSON: el estado se lee primero
+            // y el cuerpo, si no se puede leer, no se convierte en "sin conexión".
+            const data = await res.json().catch(() => ({}));
+            // Si no se pudo guardar el contacto, queda medido una vez por motivo:
+            // es la única forma de ver desde afuera un rechazo que la persona
+            // no ve (el formulario sigue igual). Un guardado bueno rearma la
+            // medición, así un segundo corte también se ve.
+            if (res.ok) {
+              ultimoErrorDeContactoRef.current = null;
+            } else if (ultimoErrorDeContactoRef.current !== res.status) {
+              ultimoErrorDeContactoRef.current = res.status;
+              try { track('checkout_contact_error', { value: totalConPromo2x1, meta: { status: res.status, motivo: String(data?.error || '').slice(0, 80) } }); } catch { /* nunca frena */ }
+            }
             if (data.sessionId && !sessionId) {
               localStorage.setItem("atelier-checkout-session-id", data.sessionId);
               // Etapa del embudo: dejó datos de contacto en el checkout (una vez).
@@ -465,6 +522,10 @@ export function CheckoutClient({
             }
           } catch (e) {
             console.error("Failed to sync checkout session", e);
+            if (ultimoErrorDeContactoRef.current !== 0) {
+              ultimoErrorDeContactoRef.current = 0;
+              try { track('checkout_contact_error', { value: totalConPromo2x1, meta: { status: 0, motivo: 'sin_conexion' } }); } catch { /* nunca frena */ }
+            }
           }
         }
       }, 2000); // 2 second debounce
@@ -475,6 +536,11 @@ export function CheckoutClient({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    if (!contactoEmpezadoRef.current && value && CAMPOS_DE_CONTACTO.has(name)) {
+      contactoEmpezadoRef.current = true;
+      try { track('checkout_contact_start', { value: totalConPromo2x1, meta: { campo: name } }); } catch { /* nunca frena */ }
+    }
     
     if (name === "zip") {
       const updatedFields: Record<string, string> = {};
@@ -507,6 +573,13 @@ export function CheckoutClient({
   // Todo error que ve el comprador queda medido (checkout_error): con esto se
   // sabe si la gente se va por la tarjeta rechazada, por la pasarela o por un
   // dato mal cargado, en vez de adivinarlo.
+  // Rechazos que se arreglan con el carrito al día (precio que cambió, armazón
+  // despublicado o agotado, opción de cristal caída): además de avisar, se
+  // pide la puesta al día, así lo que se ve al reintentar es lo que se cobra.
+  const ponerAlDiaSiHaceFalta = (data: any) => {
+    if (CODIGOS_DE_CARRITO_VIEJO.has(String(data?.code || ''))) refrescarCarrito();
+  };
+
   const avisarError = (mensaje: string, opts?: Parameters<typeof toast.error>[1]) => {
     try {
       track('checkout_error', { value: totalConPromo2x1, meta: { motivo: String(mensaje).slice(0, 160), metodo: formData.paymentMethod } });
@@ -580,6 +653,7 @@ export function CheckoutClient({
         }
 
         if (res.status !== 409) clearIdempotencyKey();
+        ponerAlDiaSiHaceFalta(data);
         avisarError(data?.error || "No pudimos abrir el pago con Mercado Pago. Probá con otro medio de pago.");
         return;
       }
@@ -639,7 +713,12 @@ export function CheckoutClient({
           // Respuesta terminal del server: rotar la key para que el próximo intento
           // sea un intento nuevo. El 409 (pedido aún procesándose) conserva la key.
           if (res.status !== 409) clearIdempotencyKey();
-          avisarError(formData.paymentMethod.includes('MAYORISTA') ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
+          // El motivo del servidor (sin stock, precio que cambió, producto que
+          // ya no se vende) es lo único que le dice a la persona qué hacer:
+          // antes se mostraba siempre "Error generando orden de transferencia".
+          const data = await res.json().catch(() => ({} as any));
+          ponerAlDiaSiHaceFalta(data);
+          avisarError(data?.error || (formData.paymentMethod.includes('MAYORISTA') ? "Error generando pedido mayorista." : "Error generando orden de transferencia."));
         }
         return;
       }
@@ -775,11 +854,12 @@ export function CheckoutClient({
               avisarError(data.error || "El pago fue rechazado por la tarjeta.");
             }
           } else {
-            const errorData = await res.json();
+            const errorData = await res.json().catch(() => ({} as any));
             // 409 = pedido aún en curso: conservar la key. Cualquier otro error
             // terminal (pago rechazado, validación) rota la key para desbloquear
             // el próximo intento.
             if (res.status !== 409) clearIdempotencyKey();
+            ponerAlDiaSiHaceFalta(errorData);
             avisarError(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
           }
         } catch (callbackError: any) {
@@ -842,7 +922,7 @@ export function CheckoutClient({
                     ${Math.round(ordenHecha.total).toLocaleString('es-AR')}
                   </p>
                   <p className="text-[11px] text-emerald-800/80 mt-1.5">
-                    Ya tiene aplicado el {webSettings?.web_promo_cash_discount || 15}% de descuento por transferencia.
+                    Ya tiene aplicado el {descuentoTransferenciaPct}% de descuento por transferencia.
                   </p>
                 </div>
               )}

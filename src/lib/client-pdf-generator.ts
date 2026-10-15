@@ -1,4 +1,5 @@
 import { formatDate } from '@/lib/format-date';
+import { cargarJsPDF } from '@/lib/cargar-jspdf';
 import { etiquetaDeTipoDeReceta, tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { PricingService } from '@/services/PricingService';
 import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
@@ -377,7 +378,7 @@ export async function generateClientPDF(client: any): Promise<{ base64: string, 
 }
 
 async function generateClientPDFWithJsPDF(client: any, filename: string): Promise<{ base64: string, filename: string }> {
-    const { default: jsPDF } = await import('jspdf');
+    const jsPDF = await cargarJsPDF();
     const autoTable = (await import('jspdf-autotable')).default;
     
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });

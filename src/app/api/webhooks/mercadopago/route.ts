@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { conMarca } from '@/lib/checkout/marcas-de-pago';
+import { formatearPrecio } from '@/lib/format-precio';
 import { prisma } from '@/lib/db';
 import {
   getMerchantOrderPayments,
@@ -8,6 +10,7 @@ import {
   type MpPayment,
 } from '@/services/mercadopago.service';
 import { failWebPayment, finalizeWebPayment } from '@/lib/checkout/finalize-web-payment';
+import { avisarCobroSinVenta } from '@/lib/checkout/aviso-cobro-sin-venta';
 
 /**
  * Webhook de Mercado Pago: el aviso de que un pago cambió de estado.
@@ -121,40 +124,23 @@ export async function POST(req: Request) {
 }
 
 /**
- * El aviso de "entró plata y el CRM no la tiene cobrada", para los DOS caminos
- * por los que eso puede pasar: un pago sin intento asociado, y un pago aprobado
- * que no se pudo acreditar. Es el mismo problema de negocio y merece el mismo
- * grito, así que el texto vive en un solo lugar y no en dos copias que
- * divergen.
- *
- * Nunca lanza: un webhook que explota porque falló el mail le devuelve un 500 a
- * Mercado Pago y dispara reintentos por un problema que no es el del pago.
+ * Procesa un pago informado por Mercado Pago (aprobado, rechazado o pendiente)
+ * contra su intento. El aviso de "entró plata y el CRM no la tiene cobrada"
+ * vive en src/lib/checkout/aviso-cobro-sin-venta.ts (lo comparte el cron).
  */
-async function avisarCobroSinVenta(pago: MpPayment, porQue: string) {
-  try {
-    const { sendEmail } = await import('@/lib/email');
-    const { ADMIN_ALERT_EMAILS } = await import('@/lib/constants');
-    const { formatearPrecio } = await import('@/lib/format-precio');
-    await sendEmail({
-      to: ADMIN_ALERT_EMAILS,
-      subject: '⚠️ URGENTE: cobro de Mercado Pago sin venta asociada',
-      html: `<p>Mercado Pago aprobó el pago <b>${pago.id}</b> por <b>$${formatearPrecio(pago.amount)}</b>, pero ${porQue}.</p>
-             <p>Pagador: ${pago.payerEmail || 'desconocido'}</p>
-             <p>Hay que buscarlo en el panel de Mercado Pago y registrar o devolver la venta a mano. <b>No reponer stock automáticamente.</b></p>`,
-    });
-  } catch (err) {
-    console.error('Error avisando cobro sin venta:', err);
-  }
-}
-
 async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId?: string }> {
   // Candado de idempotencia: si este pago ya se procesó, cortar sin volver a
   // tocar la venta. MP reintenta el mismo aviso y además lo manda por dos vías.
   const yaProcesado = await prisma.webPaymentIntent.findUnique({
     where: { paymentId: pago.id },
-    select: { id: true, orderId: true, status: true },
+    select: { id: true, orderId: true, status: true, gatewayStatus: true },
   });
-  if (yaProcesado && yaProcesado.status !== 'PENDING') {
+  // Una devolución o un contracargo llegan SOBRE un pago ya procesado: el
+  // candado los cortaba acá y el aviso de abajo no salía nunca (revisión del
+  // 10/10/2026). Pasan siempre; abajo un reclamo atómico por pago y estado
+  // hace que el mail salga una sola vez.
+  const esReclamo = pago.status === 'refunded' || pago.status === 'charged_back';
+  if (yaProcesado && yaProcesado.status !== 'PENDING' && !esReclamo) {
     console.log(`[MP WEBHOOK] Pago ${pago.id} ya procesado (${yaProcesado.status}). Se ignora.`);
     return { detalle: 'Ya procesado', orderId: yaProcesado.orderId };
   }
@@ -235,17 +221,39 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
     case 'charged_back': {
       // Una devolución o un contracargo NO se procesan solos: deshacer una
       // venta ya entregada es una decisión del negocio, no del webhook.
-      console.warn(`[MP WEBHOOK] ${pago.status} del pago ${pago.id} sobre la orden ${intent.orderId}.`);
-      await prisma.webPaymentIntent.update({
-        where: { id: intent.id },
-        data: { gatewayStatus: pago.status, lastError: `Mercado Pago informó "${pago.status}". Requiere revisión manual.` },
+      // Un aviso por PAGO y estado, reclamado de forma atómica: dos avisos
+      // del mismo reclamo que llegan juntos (IPN y webhook) no mandan dos mails,
+      // y devolver un cobro duplicado no tapa el reclamo de otro pago.
+      const marca = `[reclamo ${pago.id}:${pago.status}]`;
+      const reclamado = await prisma.webPaymentIntent.updateMany({
+        where: {
+          id: intent.id,
+          OR: [{ lastError: null }, { NOT: { lastError: { contains: marca } } }],
+        },
+        data: { gatewayStatus: pago.status, lastError: conMarca(intent.lastError, marca, `Mercado Pago informó "${pago.status}". Requiere revisión manual.`) },
       });
+      if (reclamado.count !== 1) {
+        return { detalle: `${pago.status}: ya avisado`, orderId: intent.orderId };
+      }
+      console.warn(`[MP WEBHOOK] ${pago.status} del pago ${pago.id} sobre la orden ${intent.orderId}.`);
+      // Queda también en la campana del CRM: si el mail falla, el aviso no se
+      // pierde (el reclamo ya quedó marcado y no se vuelve a mandar).
+      await prisma.notification.create({
+        data: {
+          // MP_COBRO (de admin): confirmar la venta no lo cierra.
+          type: 'MP_COBRO',
+          message: `⚠️ Mercado Pago informó "${pago.status === 'refunded' ? 'devolución' : 'contracargo'}" del pago ${pago.id} por $${formatearPrecio(pago.amount)} en la Venta Web #${intent.orderId.slice(-4).toUpperCase()}. La venta NO se modificó: revisar en Mercado Pago y decidir qué hacer.`,
+          orderId: intent.orderId,
+          requestedBy: 'Sistema (Mercado Pago)',
+          status: 'PENDING',
+        },
+      }).catch((err) => console.error('Error creando el aviso de devolución/contracargo:', err));
       const { sendEmail } = await import('@/lib/email');
       const { ADMIN_ALERT_EMAILS } = await import('@/lib/constants');
       await sendEmail({
         to: ADMIN_ALERT_EMAILS,
         subject: `⚠️ Mercado Pago informó "${pago.status}" en una venta web`,
-        html: `<p>El pago <b>${pago.id}</b> de la venta <b>${intent.orderId}</b> pasó a <b>${pago.status}</b> por $${pago.amount.toLocaleString('es-AR')}.</p>
+        html: `<p>El pago <b>${pago.id}</b> de la venta <b>${intent.orderId}</b> pasó a <b>${pago.status}</b> por $${formatearPrecio(pago.amount)}.</p>
                <p>La venta NO se modificó automáticamente. Revisar en el panel de Mercado Pago y decidir qué hacer.</p>`,
       }).catch((err) => console.error('Error avisando devolución/contracargo:', err));
       return { detalle: `${pago.status}: avisado, sin cambios automáticos`, orderId: intent.orderId };

@@ -1,0 +1,23 @@
+{
+  "id": "story-stellest-certificada",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "propuesta",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "Atelier Óptica es óptica certificada y habilitada por Essilor para trabajar lentes Stellest en Córdoba. Essilor no lo vende en cualquier óptica: sus 1.021 micro-lentes tienen que quedar centradas en la pupila del chico, y eso depende del armazón, las medidas y el montaje. Traé la receta del oftalmopediatra. José Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "stellest/stellest-3-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Somos óptica *certificada* para",
+      "dato": "Stellest",
+      "body": "*Essilor* no lo vende en cualquier óptica. En *Atelier* lo hacemos: armazón, medidas y montaje como el fabricante lo pide.",
+      "cta": "Traé la receta del oftalmopediatra. Sin turno previo."
+    }
+  ]
+}

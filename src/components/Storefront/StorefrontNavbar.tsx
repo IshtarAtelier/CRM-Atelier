@@ -10,10 +10,12 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/client-analytics";
-import { CARTEL_PROMO_POR_DEFECTO } from "@/lib/promo-cuotas";
+import { cartelQueSePuedeMostrar } from "@/lib/promo-cuotas";
 import { coincideBusquedaTienda } from "@/lib/catalog/busqueda-tienda";
-import { precioFinal } from "@/lib/precio-oferta";
 import { precioConSigno } from "@/lib/format-precio";
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
+import { effectiveFramePrice } from "@/lib/checkout/checkout-pricing";
+import { PricingService } from "@/services/PricingService";
 
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
@@ -76,6 +78,8 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
 
   // Óptica logueada (mayorista): su navegación se reduce a la tienda.
   const isOptica = currentUser?.role === 'OPTICA';
+  // El % por transferencia de /admin/web, con la regla de toda la tienda.
+  const descuentoTransferenciaPct = descuentoTransferenciaDe(webSettings?.web_promo_cash_discount);
 
   useEffect(() => {
     // Si el servidor ya pasó los settings, no hay nada que buscar (y evitamos
@@ -92,7 +96,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
 
   useEffect(() => {
     if (isSearchOpen && allProducts.length === 0) {
-      fetch('/api/store/products?limit=500')
+      // Una óptica busca en SU catálogo (el mayorista, con su precio): antes
+      // buscaba en el minorista y veía el precio al público.
+      fetch(`/api/store/products?limit=500${isOptica ? '&channel=wholesale' : ''}`)
         .then(res => res.json())
         .then(data => {
           const list = Array.isArray(data) ? data : data?.products;
@@ -102,7 +108,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
         })
         .catch(err => console.error("Error loading products for search:", err));
     }
-  }, [isSearchOpen, allProducts]);
+  }, [isSearchOpen, allProducts, isOptica]);
+
+  // Si la sesión de óptica se confirma después de abrir la búsqueda, lo que ya
+  // se trajo es el catálogo minorista: se descarta y se vuelve a pedir.
+  useEffect(() => { setAllProducts([]); }, [isOptica]);
 
   const searchResults = searchQuery.trim().length >= 2
     // La MISMA búsqueda que /tienda (src/lib/catalog/busqueda-tienda.ts). Antes
@@ -170,7 +180,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   const showAnnouncement = isWholesaleSession || (webSettings ? webSettings.web_announcement_active : true);
   const announcementText = isWholesaleSession
     ? "Canal Mayorista Ópticas • Precios Netos • Envío y Pago a Convenir"
-    : (webSettings ? webSettings.web_announcement_text : CARTEL_PROMO_POR_DEFECTO);
+    : cartelQueSePuedeMostrar(webSettings?.web_announcement_text);
   const announcementLink = isWholesaleSession ? "/tienda" : (webSettings ? webSettings.web_announcement_link : "/tienda");
 
   // A-26: los pedazos del cartel, para rotarlos de a uno en pantallas chicas.
@@ -557,9 +567,18 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                             {p.name || p.model}
                           </span>
                           <span className="text-xs text-[#8a6d3b] dark:text-[#c8a55c] font-bold mt-1">
-                            {/* El que se cobra (oferta si la hay): Rigel C3 figuraba a
-                                $215.000 de lista y se cobra $160.000. */}
-                            {precioConSigno(precioFinal(p))}
+                            {/* Al público, el MISMO número que la grilla y la
+                                ficha: el de transferencia, con la oferta
+                                resuelta (PricingService.vidrieraDeProducto).
+                                Hasta el 10/10 acá salía el de tarjeta: el mismo
+                                anteojo decía $215.000 en el buscador y $182.750
+                                en la tienda. A una óptica, su precio. */}
+                            {isOptica ? precioConSigno(effectiveFramePrice(p, true)) : (
+                              <>
+                                {precioConSigno(PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: 6 }).transferencia)}
+                                <span className="font-semibold text-emerald-700 dark:text-emerald-400"> · {descuentoTransferenciaPct}% OFF transf.</span>
+                              </>
+                            )}
                           </span>
                         </div>
                       </Link>

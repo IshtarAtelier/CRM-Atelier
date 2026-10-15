@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { WHATSAPP_PHONE } from "@/lib/constants";
+import { WHATSAPP_PHONE, WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
@@ -18,7 +18,8 @@ import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION, fichaMuestraGarantiaDeAdaptacion } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
 import { formatearPrecio } from "@/lib/format-precio";
-import { textoCuotas12 } from "@/lib/promo-cuotas";
+import { leerPromoCuotas, textoCuotas12 } from "@/lib/promo-cuotas";
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { precioConOferta } from "@/lib/precio-oferta";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades, claveMarca, claveModelo } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
@@ -239,11 +240,20 @@ export function ProductClient({
   const wholesalePriceOf = (id: string) => wholesalePrices[id] || 0;
   const productWholesalePrice = wholesalePriceOf(product.id);
 
-  const whatsappPhoneId = (settings?.web_store_whatsapp_id || WHATSAPP_PHONE).replace(/\D/g, '');
+  // Una óptica escribe al número mayorista (Cápsula Escarlata), como el botón
+  // flotante: su "Soy de la óptica…, mayorista por $neto" caía en la línea de
+  // la tienda, con el bot y los vendedores minoristas (revisión del 10/10/2026).
+  const whatsappPhoneId = (isWholesale ? WHOLESALE_WHATSAPP_PHONE : (settings?.web_store_whatsapp_id || WHATSAPP_PHONE)).replace(/\D/g, '');
   const conGarantiaAdaptacion = fichaMuestraGarantiaDeAdaptacion(product.category);
-  const cashDiscount = settings && settings.web_promo_cash_discount && !isNaN(Number(settings.web_promo_cash_discount)) ? Number(settings.web_promo_cash_discount) : 15;
-  const installmentsText = settings ? settings.web_promo_installments : "6 cuotas sin interés";
-  const installmentsCount = parseInt(installmentsText?.match(/\d+/)?.[0] || "6", 10);
+  // Las dos lecturas de /admin/web con las reglas de toda la tienda.
+  // `web_promo_installments` es texto libre y SOLO lo interpreta
+  // leerPromoCuotas (CLAUDE.md): acá se parseaba con match(/\d+/), así que
+  // escribir "12 cuotas" en /admin/web ponía "12 Cuotas" en el sello de la
+  // ficha, al lado de las sin interés.
+  const cashDiscount = descuentoTransferenciaDe(settings?.web_promo_cash_discount);
+  const promoCuotas = leerPromoCuotas(settings?.web_promo_installments);
+  const installmentsText = promoCuotas.texto;
+  const installmentsCount = promoCuotas.cantidad;
 
   const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0
     ? product.imagenesCatalogo.map((key: string) => resolveStorageUrl(key)).filter(Boolean)
@@ -256,7 +266,7 @@ export function ProductClient({
 
   // Precio de oferta ("precio tachado"). La regla vive en src/lib/precio-oferta.ts:
   // la misma que usan la grilla de la tienda, el JSON-LD y el cotizador.
-  const { lista: listPrice, final: effectivePrice, enOferta: hasSale, descuentoPct: pctOff } =
+  const { final: effectivePrice, enOferta: hasSale, descuentoPct: pctOff } =
     precioConOferta(product as any);
 
   // La ficha abre ARRIBA, siempre. Ishtar (3/10/2026): entrando desde la
@@ -627,57 +637,79 @@ export function ProductClient({
                   </>
                 ) : (
                   <div className="flex items-baseline gap-3">
+                    {/* Sin precio mayorista cargado, a la óptica se le cobra el
+                        de la tienda CON su oferta (effectiveFramePrice): era
+                        lo que no se veía, mostraba el de lista. */}
                     <span className="text-3xl font-black text-stone-900">
-                      ${(product.price || 0).toLocaleString("es-AR")}
+                      ${formatearPrecio(effectivePrice)}
                     </span>
                     <span className="text-xs font-medium uppercase text-stone-400">
-                      P. Lista
+                      {hasSale ? 'Precio de oferta' : 'P. Lista'}
                     </span>
                   </div>
                 )}
               </div>
             ) : (
               <>
-                <div className="mb-6">
-                  {hasSale ? (
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <span className="text-3xl font-black tracking-tight text-red-600">
-                        ${effectivePrice.toLocaleString("es-AR")}
-                      </span>
-                      <span className="text-lg font-medium text-stone-400 line-through">
-                        ${listPrice.toLocaleString("es-AR")}
-                      </span>
-                      <span className="text-xs font-black uppercase text-white bg-red-600 px-2 py-1 rounded">
-                        {pctOff}% OFF
-                      </span>
+                {/* El precio protagonista es el de TRANSFERENCIA (pedido de
+                    Ishtar, 31/8), con oferta o sin ella: los mismos números
+                    que la tarjeta de la grilla (PricingService.vidrieraDeProducto).
+                    Hasta el 10/10, con oferta la ficha mostraba en grande el de
+                    TARJETA ($145.000) mientras la grilla decía $123.250 por el
+                    mismo anteojo: quien entraba desde la grilla veía que el
+                    precio "subía". Con oferta se tacha el de lista con el mismo
+                    % (comparable) y va el cartel del %, en rojo. */}
+                {(() => {
+                  const v = PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount });
+                  return (
+                    <div className="mb-6">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span className={`text-3xl font-black tracking-tight ${hasSale ? 'text-red-600' : 'text-black'}`}>
+                          ${formatearPrecio(v.transferencia)}
+                        </span>
+                        <span className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                          {cashDiscount}% OFF por transferencia
+                        </span>
+                        {hasSale && v.transferenciaSinOferta !== null ? (
+                          <>
+                            <span className="text-sm font-medium text-stone-400 line-through">
+                              ${formatearPrecio(v.transferenciaSinOferta)}
+                            </span>
+                            <span className="text-xs font-black uppercase text-white bg-red-600 px-2 py-1 rounded">
+                              {pctOff}% OFF
+                            </span>
+                            {/* El precio de oferta con tarjeta, a la vista: es el
+                                que declara el JSON-LD y el feed de Merchant, y
+                                Google desaprueba el producto si el precio que le
+                                informamos no aparece en la página. Además, quien
+                                paga con tarjeta lo ve antes del checkout. */}
+                            <span className="basis-full text-sm font-medium text-stone-600">
+                              o ${formatearPrecio(v.precio)} con tarjeta
+                            </span>
+                          </>
+                        ) : (
+                          // Sin oferta, el precio con tarjeta SIN tachar: es el
+                          // de lista, el que declaran el JSON-LD y el feed de
+                          // Merchant. Tachado se leía como "precio anterior"
+                          // (no lo es: es el que paga quien usa tarjeta). El
+                          // descuento ya lo dice "15% OFF por transferencia".
+                          <span className="basis-full text-sm font-medium text-stone-600">
+                            o ${formatearPrecio(v.precio)} con tarjeta
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    /* El precio protagonista es el de TRANSFERENCIA (pedido de
-                       Ishtar, 31/8): es el que más conviene a las dos partes y
-                       el que decide la compra. El de lista queda al lado, más
-                       chico, como referencia — así el descuento se ve, y la
-                       fila de transferencia del recuadro de pagos se oculta
-                       para no decir lo mismo dos veces. */
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <span className="text-3xl font-black tracking-tight text-black">
-                        ${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")}
-                      </span>
-                      <span className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                        {cashDiscount}% OFF por transferencia
-                      </span>
-                      <span className="text-sm font-medium text-stone-500 line-through">
-                        ${effectivePrice.toLocaleString("es-AR")}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 <PaymentOptions
                   variant="inline"
                   price={effectivePrice}
                   cashDiscount={cashDiscount}
                   installmentsText={installmentsText}
-                  hideTransferRow={!hasSale}
+                  // El de transferencia ya es el número grande de arriba, con
+                  // oferta o sin ella: la fila de pagos no lo repite.
+                  hideTransferRow
                 />
               </>
             )}
@@ -1035,8 +1067,13 @@ export function ProductClient({
               <a 
                 href={buildWhatsAppUrl(
                   isWholesale
-                    ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(productWholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
-                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")} por transferencia, 6 cuotas sin interés de $${Math.round(effectivePrice / 6).toLocaleString("es-AR")} o ${textoCuotas12(PricingService.cuotasMpLargas(effectivePrice).installment12)}. ¿Me pasarían los datos de pago?`,
+                    ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${formatearPrecio(productWholesalePrice || product.price || 0)}.`
+                    : (() => {
+                        // Los mismos números que la tarjeta (vidrieraDeProducto):
+                        // el mensaje decía "6 cuotas" fijas y calculaba el % a mano.
+                        const v = PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount });
+                        return `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${formatearPrecio(v.transferencia)} por transferencia, ${v.cuotas} cuotas sin interés de $${formatearPrecio(v.valorCuota)} o ${textoCuotas12(v.cuota12)}. ¿Me pasarían los datos de pago?`;
+                      })(),
                   { pageUrl: currentPageUrl(`/producto/${product.slug}`), phone: whatsappPhoneId }
                 )}
                 target="_blank"
@@ -1074,20 +1111,22 @@ export function ProductClient({
                   <h3 className="text-xs font-bold text-stone-900 truncate uppercase mt-0.5">{p.model}</h3>
                   <p className="text-xs text-stone-600 font-medium mt-1">
                     {(() => {
-                      const pSale = precioConOferta(p).enOferta;
-                      if (isWholesale) return <>${(wholesalePriceOf(p.id) || p.price || 0).toLocaleString("es-AR")} <span className="text-[10px] font-black text-blue-600">(Mayorista)</span></>;
-                      if (pSale) return <><span className="text-red-600 font-bold">${p.salePrice.toLocaleString("es-AR")}</span> <span className="text-[10px] text-stone-400 line-through">${(p.price || 0).toLocaleString("es-AR")}</span></>;
-                      /* Mismo criterio que toda la vidriera (Ishtar, 31/8): el
-                         precio que se muestra es el de TRANSFERENCIA, con la
-                         cuota de 12 como segunda línea — "cuotas fijas", sin
-                         el % (la redacción vive en promo-cuotas.ts). */
-                      const vPrecios = PricingService.preciosVidriera(p.price || 0, cashDiscount);
+                      if (isWholesale) return <>${formatearPrecio(wholesalePriceOf(p.id) || p.price || 0)} <span className="text-[10px] font-black text-blue-600">(Mayorista)</span></>;
+                      /* Mismo criterio que toda la vidriera (Ishtar, 31/8) y los
+                         mismos números (PricingService.vidrieraDeProducto): el
+                         GRANDE es el de transferencia, con la oferta resuelta y
+                         el de lista tachado solo si hay rebaja. Hasta el 10/10
+                         un relacionado en oferta mostraba el de TARJETA en rojo. */
+                      const v = PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount });
                       return (
                         <>
-                          <span className="font-bold text-stone-900">${vPrecios.contado.toLocaleString("es-AR")}</span>
+                          <span className="font-bold text-stone-900">${formatearPrecio(v.transferencia)}</span>
+                          {v.transferenciaSinOferta !== null && (
+                            <span className="ml-1 text-[10px] text-stone-400 line-through">${formatearPrecio(v.transferenciaSinOferta)}</span>
+                          )}
                           <span className="text-[10px] text-emerald-700 font-bold"> {cashDiscount}% OFF transf.</span>
-                          <span className="block text-[10px] text-stone-500">{textoCuotas12(vPrecios.cuota12)}</span>
-                          <span className="block text-[10px] text-stone-500">6 cuotas sin interés de ${vPrecios.cuota6.toLocaleString("es-AR")}</span>
+                          <span className="block text-[10px] text-stone-500">{textoCuotas12(v.cuota12)}</span>
+                          <span className="block text-[10px] text-stone-500">{v.cuotas} cuotas sin interés de ${formatearPrecio(v.valorCuota)}</span>
                         </>
                       );
                     })()}
@@ -1141,9 +1180,10 @@ export function ProductClient({
             <p className="text-[11px] font-bold uppercase tracking-wide text-stone-900 truncate">{product.model}</p>
             {/* 29/9/26: el grande es el de transferencia, como en la ficha (arriba).
                 Con el de lista acá, el primer número que se veía en celular era
-                el más caro. Mismo cálculo que el precio grande de la ficha. */}
+                el más caro. Los mismos números que el precio grande de la ficha
+                (PricingService.vidrieraDeProducto). */}
             <p className="text-[13px] font-black text-stone-900">
-              ${formatearPrecio(Math.round(effectivePrice * (1 - cashDiscount / 100)))}
+              ${formatearPrecio(PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount }).transferencia)}
               <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">por transferencia</span>
             </p>
             <p className="text-[10px] font-medium text-stone-500">${formatearPrecio(effectivePrice)} con tarjeta</p>

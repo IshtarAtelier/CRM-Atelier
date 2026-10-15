@@ -1,4 +1,5 @@
 import { formatDate } from '@/lib/format-date';
+import { cargarJsPDF } from '@/lib/cargar-jspdf';
 export interface InvoiceData {
     invoice: any;
     issuer: {
@@ -12,7 +13,7 @@ export interface InvoiceData {
 }
 
 export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolean = false): Promise<{ base64: string, fileName: string } | void> {
-    const { jsPDF } = await import('jspdf');
+    const jsPDF = await cargarJsPDF();
     const autoTable = (await import('jspdf-autotable')).default;
     const QRCode = (await import('qrcode')).default;
 

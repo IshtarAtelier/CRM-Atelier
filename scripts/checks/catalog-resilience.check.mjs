@@ -12,7 +12,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createResilientSource, defaultIsEmpty } from '../../src/lib/catalog/resilience.ts';
-import { CATALOG_SOURCE_KEYS } from '../../src/lib/catalog/queries.ts';
+import { galeriaAlSincronizar } from '../../src/lib/catalog/galeria-web.ts';
+import { CATALOG_SOURCE_KEYS, RECETA_BASE_WHERE, SOL_BASE_WHERE, FICHA_EN_TIENDA, FICHA_PUBLICADA, sePuedeVenderEnLaWeb, slugDeFichaPublicada } from '../../src/lib/catalog/queries.ts';
 import { formatProducts as formatProductsRaw, countProducts, hasProducts } from '../../src/lib/home-fallback.ts';
 import { resolveStorageUrl } from '../../src/lib/utils/storage.ts';
 
@@ -169,5 +170,96 @@ check('precio en 6 cuotas formateado', fmt[0].price.startsWith('6 cuotas de $'))
 check('tope de 12 items', formatProducts(Array.from({ length: 30 }, (_, i) => row(`M${i}`))).length === 12);
 check('el snapshot del home formatea productos', formatProducts(home.destacados).length > 0);
 check('countProducts/hasProducts coherentes con el snapshot', hasProducts(home) && countProducts(home) > 0);
+
+console.log('\n— Vidrieras de armazones: página y respaldo con el mismo filtro (10/10/2026) —\n');
+// El respaldo de /receta traía un cristal Xperio de $913.780 sin stock que la
+// página en vivo excluía: las dos usaban filtros distintos.
+for (const [nombre, where] of [['receta', RECETA_BASE_WHERE], ['sol', SOL_BASE_WHERE]]) {
+  check(`${nombre}: el WHERE base excluye cristales y lo que no tiene stock`,
+    where.product?.category?.not === 'Cristal' && where.product?.stock?.gt === 0);
+}
+for (const [archivo, constante] of [['src/app/receta/page.tsx', 'RECETA_BASE_WHERE'], ['src/app/lentes-de-sol/page.tsx', 'SOL_BASE_WHERE']]) {
+  const fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8');
+  check(`${archivo} usa ${constante} (no una copia propia del filtro)`, new RegExp(`whereClause = ${constante}`).test(fuente));
+}
+
+console.log('\n— Una sola regla de qué se ve en la tienda (10/10/2026) —\n');
+check('FICHA_EN_TIENDA: activa, publicada, con stock y nunca un cristal',
+  FICHA_EN_TIENDA.isActive === true && FICHA_EN_TIENDA.product.publishToWeb === true
+  && FICHA_EN_TIENDA.product.stock?.gt === 0 && FICHA_EN_TIENDA.product.category?.not === 'Cristal');
+check('FICHA_PUBLICADA (abrir por dirección): activa, publicada y nunca un cristal',
+  FICHA_PUBLICADA.isActive === true && FICHA_PUBLICADA.product.publishToWeb === true
+  && FICHA_PUBLICADA.product.category?.not === 'Cristal');
+// Todo lo público que lee fichas: ninguno escribe su propio `isActive: true`.
+// Eran ~20 copias a mano y habían divergido (la ficha abría cualquier producto
+// del CRM por su id; el home no excluía cristales en Sol/Receta).
+const PUBLICOS = [
+  'src/lib/catalog/queries.ts',
+  'src/app/producto/[slug]/page.tsx',
+  'src/app/sitemap.ts',
+  'src/app/receta/page.tsx',
+  'src/app/lentes-de-sol/page.tsx',
+  'src/components/Storefront/ListadoCategoria.tsx',
+  'src/app/api/catalog/route.ts',
+  'src/app/api/health/route.ts',
+];
+for (const archivo of PUBLICOS) {
+  let fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8');
+  // En queries.ts la regla se DEFINE: se mira solo lo que viene después.
+  if (archivo.endsWith('queries.ts')) fuente = fuente.slice(fuente.indexOf('export const SOL_BASE_WHERE'));
+  const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  check(`${archivo}: sin un \`isActive: true\` propio (usa FICHA_EN_TIENDA / FICHA_PUBLICADA)`, !/isActive:\s*true/.test(sinComentarios));
+  // Y usa la regla: sin esto, un \`where: {}\` (que lista TODO) también pasaba.
+  if (!archivo.endsWith('queries.ts')) {
+    // Sin las líneas de import: el import solo no cuenta como usarla.
+    const cuerpo = sinComentarios.replace(/^\s*import[\s\S]*?;\s*$/gm, '');
+    check(`${archivo}: usa la regla común`, /\b(FICHA_EN_TIENDA|FICHA_PUBLICADA|FICHA_MAYORISTA|RECETA_BASE_WHERE|SOL_BASE_WHERE|PRODUCTO_EN_TIENDA)\b/.test(cuerpo));
+  }
+}
+// El catálogo mayorista, el checkout y los links del bot: la misma regla.
+for (const [archivo, patron, que] of [
+  ['src/app/api/store/products/route.ts', /where:\s*FICHA_MAYORISTA/, 'el catálogo mayorista lista FICHA_MAYORISTA'],
+  ['src/app/api/checkout/payway/route.ts', /sePuedeVenderEnLaWeb\(dbProduct\)/, 'el checkout solo vende lo publicado (sePuedeVenderEnLaWeb)'],
+  ['src/services/armazones-al-dia.service.ts', /sePuedeVenderEnLaWeb\(p\)/, 'el carrito se pone al día con la misma regla'],
+  ['src/app/api/bot/pricing/route.ts', /slugDeFichaPublicada\(p\)/, 'el bot solo linkea fichas que se pueden abrir'],
+]) {
+  const fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  check(`${que} (${archivo})`, patron.test(fuente));
+}
+{
+  const venta = (o) => sePuedeVenderEnLaWeb({ publishToWeb: true, category: 'Armazón de Receta', webProducts: [{ isActive: true }], ...o });
+  check('sePuedeVenderEnLaWeb: publicado con ficha activa → sí', venta({}) === true);
+  check('sePuedeVenderEnLaWeb: ficha oculta en /admin/web → no', venta({ webProducts: [{ isActive: false }] }) === false);
+  check('sePuedeVenderEnLaWeb: sin ficha → no', venta({ webProducts: [] }) === false);
+  check('sePuedeVenderEnLaWeb: despublicado → no', venta({ publishToWeb: false }) === false);
+  check('sePuedeVenderEnLaWeb: cristal → no', venta({ category: 'Cristal' }) === false);
+  check('slugDeFichaPublicada: solo la ficha activa', slugDeFichaPublicada({ publishToWeb: true, category: 'Lentes de Sol', webProducts: [{ slug: 'vieja', isActive: false }, { slug: 'vigente', isActive: true }] }) === 'vigente'
+    && slugDeFichaPublicada({ publishToWeb: false, category: 'Lentes de Sol', webProducts: [{ slug: 'x', isActive: true }] }) === null);
+}
+const ficha = readFileSync(new URL('../../src/app/producto/[slug]/page.tsx', import.meta.url), 'utf8');
+check('la ficha no abre un Product suelto por id (cristales, internos, desmarcados)', !/prisma\.product\.find(Unique|First)\(/.test(ficha));
+check('la ficha busca con FICHA_PUBLICADA', /\.\.\.FICHA_PUBLICADA,\s*\n\s*OR:/.test(ficha));
+
+console.log('\n— La galería curada de la ficha no se pisa al editar el producto (15/10/2026) —\n');
+{
+  const P = ['/a.webp', '/a-2.webp'];
+  const curada = { images: ['/a.webp', '/a-look-1.webp', '/a-look-2.webp', '/a-2.webp'], imageAlts: ['frente', 'puesto', 'puesto 2', 'atrás'] };
+  const r1 = galeriaAlSincronizar(curada, P);
+  check('galería con fotos propias (las de la modelo): se respeta entera y en su orden', JSON.stringify(r1.images) === JSON.stringify(curada.images));
+  check('…y cada texto alternativo sigue a su foto', JSON.stringify(r1.imageAlts) === JSON.stringify(curada.imageAlts));
+  const r2 = galeriaAlSincronizar(curada, [...P, '/a-3.webp']);
+  check('una foto nueva del producto se agrega al final de la galería curada', r2.images.at(-1) === '/a-3.webp' && r2.images.length === 5 && r2.imageAlts.at(-1) === '');
+  const r3 = galeriaAlSincronizar({ images: ['/a-2.webp', '/a.webp'], imageAlts: ['atrás', 'frente'] }, P);
+  check('galería reordenada en /admin/web (mismas fotos, otro orden): se respeta', JSON.stringify(r3.images) === JSON.stringify(['/a-2.webp', '/a.webp']));
+  const r4 = galeriaAlSincronizar({ images: [...P], imageAlts: ['frente', 'atrás'] }, ['/a.webp', '/a-2.webp', '/a-3.webp']);
+  check('galería que es copia del producto: se actualiza con las fotos del producto, alts alineados', JSON.stringify(r4.images) === JSON.stringify(['/a.webp', '/a-2.webp', '/a-3.webp']) && JSON.stringify(r4.imageAlts) === JSON.stringify(['frente', 'atrás', '']));
+  const r5 = galeriaAlSincronizar({ images: [], imageAlts: [] }, P);
+  check('galería vacía: toma las fotos del producto', JSON.stringify(r5.images) === JSON.stringify(P) && r5.imageUrl === '/a.webp');
+  for (const archivo of ['src/services/product.service.ts', 'src/services/kazwini-sync.service.ts']) {
+    const fuente = readFileSync(new URL(`../../${archivo}`, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    const update = fuente.slice(fuente.indexOf('if (existing)'), fuente.indexOf('} else {', fuente.indexOf('if (existing)')));
+    check(`${archivo}: al actualizar la ficha usa galeriaAlSincronizar (no pisa images a mano)`, /galeriaAlSincronizar\(existing, images\)/.test(update) && !/images:\s*images/.test(update));
+  }
+}
 
 console.log(`\n✅ ${passed} checks OK — el storefront no puede quedar sin productos\n`);

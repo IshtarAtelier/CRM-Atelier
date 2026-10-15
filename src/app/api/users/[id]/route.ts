@@ -16,7 +16,7 @@ export async function PATCH(
 
         const { id } = await params;
         const body = await request.json();
-        const { name, role, password, notificationEmail, cashManager, whatsappPhone } = body;
+        const { name, role, password, notificationEmail, cashManager, whatsappPhone, plantaLocal } = body;
 
         const isAdmin = roleHeader === 'ADMIN';
         const isSelf = !!requesterId && requesterId === id;
@@ -60,6 +60,10 @@ export async function PATCH(
             if (wantsCashManager !== undefined) {
                 data.cashManager = wantsCashManager;
             }
+            // Planta del local: solo ADMIN. Decide quién figura en feriados y calendario.
+            if (plantaLocal !== undefined) {
+                data.plantaLocal = !!plantaLocal;
+            }
         }
         // Casilla de avisos: la puede cambiar el ADMIN o el propio usuario.
         // String vacío la borra (vuelve a usarse la casilla compartida del local).
@@ -100,6 +104,7 @@ export async function PATCH(
                 cashManager: true,
                 notificationEmail: true,
                 whatsappPhone: true,
+                plantaLocal: true,
                 createdAt: true,
             },
         });

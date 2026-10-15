@@ -752,6 +752,56 @@ export class InternalMessagingService {
         });
     }
 
+    /** Asunto fijo del canal donde el sistema deja sus fallos y chequeos. Es la llave para reusarlo. */
+    static readonly CANAL_FALLOS = '🔧 Fallos y salud del sistema';
+
+    /**
+     * Escribe en el CANAL DEL SISTEMA: UNA conversación grupal, siempre la
+     * misma, con la IA y todos los ADMIN. Pedido de Ishtar (8/10/2026): "que
+     * sea una conversación específica de eso, entonces pueda entrar y ver eso
+     * específicamente" — distinta del hilo del Asistente, donde ya va el
+     * resumen diario. Se reusa por asunto + creador; si aparece un admin nuevo,
+     * se lo suma. Mismo dedup de 20 h por prefijo que `mensajeDeIA`.
+     */
+    static async mensajeEnCanalDelSistema(params: { cuerpo: string; urgent?: boolean; dedupePrefijo?: string }) {
+        const ia = await this.usuarioIA();
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+        if (!admins.length) return null;
+
+        const canal = await prisma.internalThread.findFirst({
+            where: { kind: 'GROUP', subject: this.CANAL_FALLOS, createdById: ia.id },
+            select: { id: true, participants: { where: { leftAt: null }, select: { userId: true } } },
+        });
+
+        if (canal && params.dedupePrefijo) {
+            const yaFue = await prisma.internalMessage.findFirst({
+                where: { threadId: canal.id, senderId: ia.id, body: { startsWith: params.dedupePrefijo }, createdAt: { gte: new Date(Date.now() - 20 * 60 * 60 * 1000) } },
+                select: { id: true },
+            });
+            if (yaFue) return null;
+        }
+
+        if (!canal) {
+            const r = await this.crearConversacion({
+                creadorId: ia.id, paraIds: admins.map(a => a.id), kind: 'GROUP',
+                subject: this.CANAL_FALLOS, primerMensaje: params.cuerpo, urgent: params.urgent,
+            });
+            return { threadId: r.id, nuevo: true };
+        }
+
+        // Un admin nuevo entra solo al canal (y uno que salió no se lo vuelve a meter: `leftAt` lo dice).
+        const dentro = new Set(canal.participants.map(p => p.userId));
+        const faltan = admins.filter(a => !dentro.has(a.id));
+        if (faltan.length) {
+            const salidos = await prisma.internalThreadParticipant.findMany({ where: { threadId: canal.id, userId: { in: faltan.map(f => f.id) } }, select: { userId: true } });
+            const nunca = faltan.filter(f => !salidos.some(x => x.userId === f.id));
+            if (nunca.length) await prisma.internalThreadParticipant.createMany({ data: nunca.map(f => ({ threadId: canal!.id, userId: f.id, role: 'MEMBER' })) });
+        }
+
+        await this.responder({ threadId: canal.id, senderId: ia.id, body: params.cuerpo, urgent: params.urgent });
+        return { threadId: canal.id, nuevo: false };
+    }
+
     // ── RESUMEN DIARIO ──────────────────────────────────────────────────────
 
     /**

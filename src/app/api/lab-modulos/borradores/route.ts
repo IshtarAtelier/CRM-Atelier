@@ -4,6 +4,7 @@ import { accionesDe, Borradores } from '@/services/lab-modules/carga/borrador';
 import { httpDeError } from '@/services/lab-modules/carga/errores';
 import { pedidosEnEspejo } from '@/services/lab-modules/espejo';
 import { cargaDe } from '@/services/lab-modules/carga/registro';
+import { puedeCargarEnLaboratorio } from '@/lib/lab-carga-acceso';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,10 @@ export const dynamic = 'force-dynamic';
  * Sin `lab` vale Vitolen: es lo que manda la ficha desde el 1/10/2026.
  */
 export async function GET(request: Request) {
+    // La carga en el portal es de Ishtar y Milena (lib/lab-carga-acceso): al resto, 403 y el bloque no se dibuja.
+    if (!(await puedeCargarEnLaboratorio(getActor(request)))) {
+        return NextResponse.json({ error: 'La carga en el portal es de Ishtar y Milena.', sinAcceso: true }, { status: 403 });
+    }
     const params = new URL(request.url).searchParams;
     const orderId = params.get('orderId') || '';
     if (!orderId) return NextResponse.json({ error: 'Falta orderId.' }, { status: 400 });
@@ -53,6 +58,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const actor = getActor(request);
+        if (!(await puedeCargarEnLaboratorio(actor))) {
+            return NextResponse.json({ error: 'La carga en el portal es de Ishtar y Milena.', sinAcceso: true }, { status: 403 });
+        }
         const body = await request.json().catch(() => ({}));
         const orderId = String(body.orderId || '');
         const pair = body.pair === undefined ? 1 : Number(body.pair);

@@ -265,7 +265,7 @@ export function esIdDeSesionValido(id: string | null | undefined): id is string 
  *   con el que cobra el checkout): si subió desde que se armó el carrito, un
  *   precio viejo haría rebotar el pago con "Discrepancia de precio", un error
  *   que el cliente no puede resolver. Los cristales se ponen al día solos en el
- *   carrito (`useCristalesAlDia`).
+ *   carrito (`useCarritoAlDia`).
  * - Un producto que ya no existe se saca.
  * - No devuelve email, nombre, teléfono ni dirección: el link viaja por mail y
  *   se puede reenviar.

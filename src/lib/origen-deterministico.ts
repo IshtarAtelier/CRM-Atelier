@@ -39,7 +39,11 @@ export interface OrigenDetectado {
 // los botones de la ficha ("Tengo dudas sobre el modelo…", "Quiero comprar el
 // anteojo…", "consultar las medidas…") no traían ninguna frase de la lista y
 // esos chats no se reconocían como venidos de la tienda.
-const FRASES_DEL_SITIO = /nueva web de atelier|recorriendo la tienda online|entr[eé] a la web de atelier|vi sus anteojos en la web|estoy en la web de atelier|armando mis lentes en la web|atelieroptica\.com\.ar\/(producto|arma-tus-lentes|tienda)/i;
+// OJO: wa-service/tools.js tiene una COPIA literal (el bot vive en otro
+// proyecto y no importa de acá). `check:origen` falla si difieren. Y antes de
+// sumar una frase, mejor redactar el mensaje nuevo con una que ya esté: una
+// frase nueva obliga a deployar también el bot.
+export const FRASES_DEL_SITIO = /nueva web de atelier|recorriendo la tienda online|entr[eé] a la web de atelier|vi sus anteojos en la web|estoy en la web de atelier|armando mis lentes en la web|atelieroptica\.com\.ar\/(producto|arma-tus-lentes|tienda)/i;
 const FRASES_ANUNCIO_GOOGLE = /vi su anuncio en google|los vi en google ads|los vi en un anuncio de google|encontr[eé] este producto en google|share\.google/i;
 const FRASE_META_SITIO = /los vi en meta\b|los vi en un anuncio de (instagram|facebook)/i;
 

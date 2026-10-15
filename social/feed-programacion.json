@@ -56,6 +56,15 @@
     "Sept/oct repiten piezas de agosto con 6+ semanas de distancia: en redes eso",
     "no es repetir, es que lo vea la gente que no lo vio.",
     "",
+    "MÁS STELLEST (10/10/26, Ishtar: \"que la persona ponga Stellest y le",
+    "aparezcamos sí o sí\"): entran stellest-optica-certificada el 10/10 (en",
+    "lugar de la 3ª repetición de sol-seleccion, que ya salió 15/8 y 22/8… y",
+    "vuelve 8/12) y stellest-de-la-receta-al-anteojo el 20/10 (en lugar de la",
+    "3ª de polarizados-manejo, que ya salió dos veces en septiembre). Octubre",
+    "queda con CUATRO carruseles de Stellest: 10, 20, 24 y 31. Ninguno repite",
+    "pieza; las cuatro son piezas distintas. Las notas del blog que acompañan",
+    "viven en src/lib/constants/stellest-notas.ts.",
+    "",
     "STELLEST ENTRA EN OCTUBRE (28/8/26). El calendario estaba lleno hasta el",
     "31/10 y las piezas del lanzamiento habrían esperado a noviembre. Para",
     "adelantarlas se cambiaron las DOS únicas CUARTAS repeticiones del año:",
@@ -262,7 +271,7 @@
     },
     {
       "fecha": "2026-10-10",
-      "pieza": "sol-seleccion"
+      "pieza": "stellest-optica-certificada"
     },
     {
       "fecha": "2026-10-11",
@@ -294,7 +303,7 @@
     },
     {
       "fecha": "2026-10-20",
-      "pieza": "polarizados-manejo"
+      "pieza": "stellest-de-la-receta-al-anteojo"
     },
     {
       "fecha": "2026-10-21",

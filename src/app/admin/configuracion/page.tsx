@@ -24,6 +24,7 @@ interface User {
     email: string;
     role: string;
     cashManager?: boolean;
+    plantaLocal?: boolean;
     notificationEmail?: string | null;
     whatsappPhone?: string | null;
     createdAt: string;
@@ -143,6 +144,7 @@ export default function ConfiguracionPage() {
     const [editName, setEditName] = useState('');
     const [editRole, setEditRole] = useState('');
     const [editCashManager, setEditCashManager] = useState(false);
+    const [editPlantaLocal, setEditPlantaLocal] = useState(false);
     const [editNotificationEmail, setEditNotificationEmail] = useState('');
     const [editWhatsappPhone, setEditWhatsappPhone] = useState('');
 
@@ -466,6 +468,7 @@ export default function ConfiguracionPage() {
         setEditName(user.name);
         setEditRole(user.role);
         setEditCashManager(!!user.cashManager);
+        setEditPlantaLocal(!!user.plantaLocal);
         setEditNotificationEmail(user.notificationEmail || '');
         setEditWhatsappPhone(user.whatsappPhone || '');
     };
@@ -475,7 +478,7 @@ export default function ConfiguracionPage() {
             const res = await fetch(`/api/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: editName, role: editRole, cashManager: editCashManager, notificationEmail: editNotificationEmail, whatsappPhone: editWhatsappPhone }),
+                body: JSON.stringify({ name: editName, role: editRole, cashManager: editCashManager, plantaLocal: editPlantaLocal, notificationEmail: editNotificationEmail, whatsappPhone: editWhatsappPhone }),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Usuario actualizado' });
@@ -832,6 +835,17 @@ export default function ConfiguracionPage() {
                                                             💰 Encargado de caja (ve el saldo total de la caja en efectivo)
                                                         </span>
                                                     </label>
+                                                    <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={editPlantaLocal}
+                                                            onChange={e => setEditPlantaLocal(e.target.checked)}
+                                                            className="w-4 h-4 accent-sky-500"
+                                                        />
+                                                        <span className="text-xs font-bold text-stone-500 dark:text-stone-400">
+                                                            🏬 Planta del local (figura en feriados y calendario del equipo)
+                                                        </span>
+                                                    </label>
                                                 </div>
                                             ) : (
                                                 <>
@@ -848,6 +862,11 @@ export default function ConfiguracionPage() {
                                                         {user.cashManager && (
                                                             <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
                                                                 💰 Caja
+                                                            </span>
+                                                        )}
+                                                        {user.plantaLocal && (
+                                                            <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
+                                                                🏬 Planta
                                                             </span>
                                                         )}
                                                     </div>

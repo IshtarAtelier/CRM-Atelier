@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import type { Prisma } from '@prisma/client';
+import { resolverCondicionIvaReceptor } from '@/lib/constants/condicion-iva-receptor';
 import { BillingAccount, getAfipInstance, formatAfipDate, parseAfipDate, getBillingAccountConfig } from '@/lib/afip';
 import { uploadFile, getSignedUrl } from '@/lib/storage';
 import fs from 'fs';
@@ -50,6 +51,7 @@ export interface CreateInvoiceParams {
     account: BillingAccount;
     docTipo?: number;     // 80=CUIT, 96=DNI, 99=Sin identificar (default)
     docNro?: string;      // Número de documento del receptor
+    condicionIvaReceptor?: number; // RG 5616 — obligatoria con CUIT; sin CUIT es Consumidor Final
     puntoDeVenta?: number; // Punto de venta (default: config de la cuenta)
     amount?: number;       // Nuevo: monto exacto enviado desde el frontend
     items?: CreateInvoiceItem[]; // Nuevo: ítems ya validados (ej: divididos por el tope de 500k)
@@ -65,7 +67,7 @@ export const BillingService = {
      * Emite una Factura C electrónica para una orden de tipo SALE.
      */
     async createInvoice(params: CreateInvoiceParams) {
-        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items, issueDate, observations, actorId, actorName } = params;
+        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', condicionIvaReceptor, puntoDeVenta, amount, items, issueDate, observations, actorId, actorName } = params;
  
         // 1. Validar orden
         const order = await prisma.order.findUnique({
@@ -93,6 +95,7 @@ export const BillingService = {
                 finalDocTipo = 96;
             }
         }
+        const condicionIvaReceptorId = resolverCondicionIvaReceptor(finalDocTipo, condicionIvaReceptor);
 
         // 1.5 Validar doble facturación
         const totalInvoiced = order.invoices
@@ -180,6 +183,7 @@ export const BillingService = {
             'DocTipo': finalDocTipo,
             'DocNro': finalDocTipo === 99 ? 0 : parseInt(cleanDocNro || '0'),
             'CbteFch': cbteFch,
+            'CondicionIVAReceptorId': condicionIvaReceptorId,
             'ImpTotal': totalAmount,
             'ImpTotConc': 0,
             'ImpNeto': totalAmount,

@@ -83,8 +83,13 @@ const DESTINOS: Array<[RegExp, string]> = [
   // Producto puntual (antes que "precio", o "ray-ban-meta-precio-argentina"
   // terminaba en la guía de multifocales)
   [/ray-ban|wayfarer|smart-glasses|camara/, '/tienda'],
+  // Stellest tiene su propio grupo de notas (stellest-notas.ts); la madre es
+  // la que responde "qué es" y enlaza a las demás.
+  [/diferencia-entre-stellest/, '/blog/stellest-vs-lentes-comunes'],
+  [/precio-lentes-stellest/, '/blog/stellest-precio-argentina-y-formas-de-pago'],
+  [/stellest/, '/blog/stellest'],
   // Control de miopía infantil — hay nota propia y es el tema de la campaña
-  [/stellest|myopilux|miopia|ninos/, '/blog/control-miopia-infantil-lentes'],
+  [/myopilux|miopia|ninos/, '/blog/control-miopia-infantil-lentes'],
   // Filtro azul / pantallas
   [/blue-block|filtro-azul|computadora|(^|-)azul(-|$)/, '/cristales-opticos/blue-uv'],
   // Multifocales y precios

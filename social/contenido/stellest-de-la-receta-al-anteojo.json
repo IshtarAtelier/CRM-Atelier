@@ -1,0 +1,55 @@
+{
+  "id": "stellest-de-la-receta-al-anteojo",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "Un Stellest no se saca de un cajón: se fabrica para la receta de tu hijo y se monta a su medida. Así es el recorrido en Atelier, paso por paso.\n\n1. Traés la receta del oftalmopediatra (por WhatsApp o en el local) y te cotizamos el cristal en el momento.\n2. Elegimos el armazón con el chico: tiene que quedarse en su lugar doce horas por día.\n3. Medimos con el armazón ya puesto y ajustado. Es la medida que decide dónde quedan las micro-lentes.\n4. Pedimos el cristal a Essilor, que lo fabrica a pedido. Tarda alrededor de 25 días hábiles.\n5. Al llegar, lo controlamos antes de montarlo.\n6. Montamos, ajustamos en su cara y les explicamos cómo usarlo y cuidarlo.\n7. Cada vez que vuelvan del control, reajustamos sin cargo.\n\nAtelier Óptica es óptica certificada por Essilor para Stellest en Córdoba. Según el ensayo clínico de 2 años de Essilor, Stellest ralentiza la progresión de la miopía un 67% de media. Es control de la progresión, no una cura.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "Cómo hacemos un *Stellest* en Atelier",
+      "subtitle": "De la receta al anteojo, paso por paso. Con los tiempos reales."
+    },
+    {
+      "type": "list",
+      "title": "Primero, en el local",
+      "items": [
+        "Traés la receta del oftalmopediatra y te cotizamos el cristal en el momento",
+        "Elegimos el armazón con el chico: tiene que quedarse en su lugar doce horas por día",
+        "Medimos con el armazón ya puesto y ajustado a su cara"
+      ]
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Después, *Essilor* fabrica el cristal a pedido",
+      "dato": "25",
+      "body": "días hábiles, aproximadamente. Las 1.021 micro-lentes se posicionan para las medidas de tu hijo. Por eso tarda más que un monofocal común.",
+      "cta": "Si tenés una fecha límite, avisanos al pedirlo."
+    },
+    {
+      "type": "list",
+      "title": "Cuando llega",
+      "items": [
+        "Controlamos el cristal antes de montarlo: graduación y centrado",
+        "Montamos y ajustamos el anteojo en su cara",
+        "Les explicamos cómo usarlo, cómo cuidarlo y cuándo volver"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/local-varilux.jpg",
+      "title": "Somos óptica *certificada* para *Stellest*",
+      "body": "Traé la receta y empezamos. Después de cada control, reajuste sin cargo.\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo, o por WhatsApp."
+    }
+  ]
+}

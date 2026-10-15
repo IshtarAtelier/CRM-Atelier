@@ -3,50 +3,23 @@ import { TIPO_EMBUDO } from '@/lib/tareas/origen';
 import type { PipelineLead, PipelineStageKey } from '@/types/leads';
 
 /**
- * Materializa "lo de hoy" del embudo como `ClientTask` reales — las mismas
- * que ya se muestran en el dashboard (`TasksPanel`) y en la ficha del cliente
- * (`TaskManager`). Sin esto, "para hoy" solo vivía en /admin/leads y en el
- * mail consolidado a los ADMIN una vez por día: un vendedor que no abre esas
- * dos pantallas no tenía dónde enterarse.
+ * El embudo YA NO CREA TAREAS para personas (decisión de Ishtar, 8/10/2026:
+ * "en embudo no debe haber nada para humano"). Hasta ese día este módulo
+ * materializaba "lo de hoy" como `ClientTask` tipo EMBUDO para el dock del
+ * vendedor; en producción había 250 pendientes y las 250 vencidas —111 de
+ * "Definir: ganado o perdido" que nadie podía cerrar y 137 de plantillas que
+ * el motor vetó—, y los vendedores habían cerrado 11 en todo septiembre. Lo
+ * que el motor no puede mandar hoy lo reintenta mañana, lo cierra solo o lo
+ * apagó alguien a propósito; ninguna de las tres cosas es una tarea.
  *
- * `type: 'EMBUDO'` desde el 10/9/2026, no `'TASK'`. Nacieron como `'TASK'`
- * para que se vieran en la campanita, y ahí estaba el problema: el vendedor
- * abría Tareas y encontraba lo que el sistema calculó mezclado con lo que él
- * mismo había programado. Ahora tienen ícono propio en el dock
- * (`GlobalEmbudoTasks`) y la campanita no las ve. La separación completa vive
- * en `src/lib/tareas/origen.ts`.
- *
- * Corre UNA VEZ POR DÍA desde `/api/cron/resumen-diario-equipo` (mismo
- * guard/horario que ya tenía). No corre en cada `GET /api/leads/pipeline`:
- * esa ruta la poll-ea el navegador cada pocos segundos y escribir en la base
- * en cada lectura crearía duplicados por carrera y ensuciaría `updatedAt`.
- *
- * Dedup: una tarea VIVA por cliente, identificada por `createdBy`. Si el
- * paso de hoy cambió (ayer tocaba "seguimiento del presupuesto", hoy "invitar
- * al local"), se ACTUALIZA la misma fila en vez de sumar una nueva — mismo
- * patrón que ya usa el extractor pasivo para "[Extracción Inteligente]"
- * (antes de esa regla, una clienta llegó a juntar 88 tareas apiladas).
- * Si el cliente ya no tiene nada vencido hoy (mandaron el seguimiento,
- * cotizaron, se cerró la venta, se lo descartó), la tarea de ayer se cancela.
+ * Queda la limpieza: cada corrida diaria cancela lo que haya quedado vivo con
+ * este firmante (las 250 de la primera corrida, y cualquier residuo), y
+ * `cerrarTareaDelEmbudo` sigue existiendo para que el envío a mano desde el
+ * buzón no deje colgada una tarea vieja.
  */
 const CREADO_POR = 'Sistema (Embudo)';
 
 type LeadDeHoy = PipelineLead & { stage: PipelineStageKey };
-
-function descripcion(lead: LeadDeHoy): string {
-    const nombre = lead.name.trim().split(/\s+/)[0] || lead.name;
-    const a = lead.proximaAccion;
-    switch (a.tipo) {
-        case 'plantilla':
-            return `Mandarle a ${nombre} por WhatsApp: "${a.etiqueta.replace(/^Hoy: /, '')}"`;
-        case 'cotizar':
-            return `${nombre} sigue sin presupuesto — cotizar o pedirle la receta`;
-        case 'decidir':
-            return `Definir a ${nombre}: ganado o perdido (ver ficha)`;
-        default:
-            return `Revisar a ${nombre} en el embudo`;
-    }
-}
 
 export interface ResultadoSync {
     creadas: number;
@@ -54,16 +27,7 @@ export interface ResultadoSync {
     cerradas: number;
 }
 
-/**
- * Cierra, si existe, la tarea del embudo de un cliente puntual. La usa
- * `registrar-seguimiento.ts` para cerrar el loop EN EL MOMENTO (no esperar a
- * la sincronización de mañana) cuando alguien manda el seguimiento a mano.
- *
- * `completadaPor` es quien mandó el mensaje, no el sistema: mismo criterio
- * que el resto de la trazabilidad (`actividadDe` cuenta "tareas cerradas"
- * por `completedBy`) — si Ana mandó el WhatsApp, la tarea la cerró Ana, y
- * eso tiene que sumar en SU resumen diario, no perderse en "Sistema".
- */
+/** Cierra, si existe, la tarea del embudo de un cliente puntual (residuos de antes del 8/10/2026). */
 export async function cerrarTareaDelEmbudo(clientId: string, completadaPor: string = CREADO_POR): Promise<void> {
     await prisma.clientTask.updateMany({
         where: { clientId, type: TIPO_EMBUDO, status: 'PENDING', createdBy: CREADO_POR },
@@ -71,50 +35,11 @@ export async function cerrarTareaDelEmbudo(clientId: string, completadaPor: stri
     });
 }
 
-export async function sincronizarTareasDelDia(paraHoy: LeadDeHoy[]): Promise<ResultadoSync> {
-    // Migración sola, sin script a mano: las tareas del embudo de antes del
-    // 10/9/2026 nacieron `type: 'TASK'` y quedaban en la campanita del
-    // vendedor. Se pasan a EMBUDO en el lugar (mismo id, misma fecha) y el
-    // dedup de abajo las toma como vivas en vez de duplicarlas. Después del
-    // primer día es un no-op.
-    await prisma.clientTask.updateMany({
-        where: { type: 'TASK', status: 'PENDING', createdBy: CREADO_POR },
-        data: { type: TIPO_EMBUDO },
+/** Solo limpia: cancela toda tarea del embudo que siga pendiente. No crea ninguna. */
+export async function sincronizarTareasDelDia(_paraHoy: LeadDeHoy[]): Promise<ResultadoSync> {
+    const r = await prisma.clientTask.updateMany({
+        where: { type: { in: [TIPO_EMBUDO, 'TASK'] }, status: 'PENDING', createdBy: CREADO_POR },
+        data: { status: 'CANCELLED', completedBy: CREADO_POR, completedAt: new Date() },
     });
-
-    const vivas = await prisma.clientTask.findMany({
-        where: { type: TIPO_EMBUDO, status: 'PENDING', createdBy: CREADO_POR },
-        select: { id: true, clientId: true, description: true },
-    });
-    const vivaPorCliente = new Map(vivas.map(t => [t.clientId, t]));
-    const idsDeHoy = new Set(paraHoy.map(l => l.id));
-
-    let creadas = 0, actualizadas = 0;
-    for (const lead of paraHoy) {
-        const texto = descripcion(lead);
-        // Todo item de "para hoy" viene con `vencida: true`, y esa rama del
-        // playbook siempre setea `venceEn` — pero si algún día cambia esa
-        // garantía, mejor una tarea con vencimiento de hoy que una sin fecha.
-        const dueDate = lead.proximaAccion.venceEn ? new Date(lead.proximaAccion.venceEn) : new Date();
-        const viva = vivaPorCliente.get(lead.id);
-        if (!viva) {
-            await prisma.clientTask.create({
-                data: { clientId: lead.id, description: texto, type: TIPO_EMBUDO, status: 'PENDING', dueDate, createdBy: CREADO_POR },
-            });
-            creadas++;
-        } else if (viva.description !== texto) {
-            await prisma.clientTask.update({ where: { id: viva.id }, data: { description: texto, dueDate } });
-            actualizadas++;
-        }
-    }
-
-    const aCerrar = vivas.filter(t => !idsDeHoy.has(t.clientId));
-    if (aCerrar.length) {
-        await prisma.clientTask.updateMany({
-            where: { id: { in: aCerrar.map(t => t.id) } },
-            data: { status: 'CANCELLED', completedBy: CREADO_POR, completedAt: new Date() },
-        });
-    }
-
-    return { creadas, actualizadas, cerradas: aCerrar.length };
+    return { creadas: 0, actualizadas: 0, cerradas: r.count };
 }

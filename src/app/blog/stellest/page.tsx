@@ -1,10 +1,12 @@
 import { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 import { YouTubeEmbed } from '@/components/blog/YouTubeEmbed';
 import { VIDEOS_POR_SLUG } from '@/lib/constants/videos-blog';
+import { MasSobreStellest } from '@/components/blog/NotaStellest';
 
 /**
  * LA NOTA DEDICADA A STELLEST.
@@ -68,7 +70,8 @@ export default function StellestPage() {
               Essilor no vende Stellest en cualquier óptica: hay que estar{' '}
               <strong>certificado</strong> para trabajarlo. <strong>Atelier Óptica lo está</strong>.
               Si te lo recetaron, no es un cristal que consigas en cualquier lado — y esa es
-              justamente la razón por la que conviene preguntarnos antes de encargarlo.
+              justamente la razón por la que conviene preguntarnos antes de encargarlo.{' '}
+              <Link href="/blog/optica-certificada-stellest-cordoba">Qué significa ser óptica certificada Stellest</Link>.
             </p>
           </div>
 
@@ -187,6 +190,8 @@ export default function StellestPage() {
               Consultar por WhatsApp
             </a>
           </div>
+
+          <MasSobreStellest actual="stellest" />
 
           <p className="text-xs text-stone-500 leading-relaxed mt-12 pt-6 border-t border-stone-200">
             En Atelier Óptica somos ópticos especialistas, no médicos: asesoramos sobre cristales y

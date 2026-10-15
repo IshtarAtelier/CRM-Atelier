@@ -1,0 +1,17 @@
+{
+  "id": "feriado-2026-10-12",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "fuente": "business-info",
+  "caption": "El lunes 12/10, feriado, abrimos de 9 a 17. José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "El lunes 12/10 *abrimos*",
+      "body": "Feriado de la Diversidad Cultural\nDe 9 a 17 hs\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba"
+    }
+  ]
+}

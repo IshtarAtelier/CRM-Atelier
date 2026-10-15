@@ -24,7 +24,9 @@ const { prefillAdTag, fallbackAdTag } = require('../shared/ad-tag');
 const { uploadMediaToCrm } = require('../shared/media');
 const { asegurarFichaDeLead } = require('./alta-de-ficha');
 const { deshacerSeguimientoFallido, PAUSA_DIAS } = require('../shared/seguimiento-fallido');
-const { crearTareaPorRespuesta } = require('../shared/respuesta-a-seguimiento');
+const { esPrimeraRespuestaAlSeguimiento } = require('../shared/respuesta-a-seguimiento');
+const { avisarRespuestaAlEquipo } = require('../shared/aviso-respuesta');
+const { registrarRespuestaAConfirmacion } = require('../shared/confirmacion-cliente');
 const cloud = require('./cloud-api');
 
 const TYPE_MAP = {
@@ -243,12 +245,24 @@ async function persistInboundUnlocked(m, { io } = {}) {
     // chat, y corriendo antes no tendría nada que leer.
     chat = await asegurarFichaDeLead(chat, waId, m.profileName);
 
-    // Respondió a un seguimiento → tarea del vendedor (pedido de Ishtar, 12/9/2026).
-    try {
-        const tarea = await crearTareaPorRespuesta(prisma, chatAntes && { ...chatAntes, clientId: chatAntes.clientId || chat.clientId }, { texto: content, tipo: messageType });
-        if (tarea) console.log(`  📌 [Inbound] ${waId} respondió a un seguimiento: tarea creada para el vendedor.`);
-    } catch (e) {
-        console.error('[Inbound] No se pudo crear la tarea por respuesta al seguimiento:', e.message);
+    // Respondió a un seguimiento: aviso al equipo en la mensajería interna
+    // ("Fulano respondió: «…»", canal "💬 Respuestas a seguimientos"). Hasta el
+    // 8/10/2026 creaba una TAREA del vendedor; desde entonces el embudo no deja
+    // nada para tachar (Ishtar): qué quiso decir lo lee el motor de la app
+    // (`src/lib/embudo/respuesta.ts`), la charla la contesta el bot, y el
+    // equipo se entera acá para entrar al chat si quiere.
+    // ¿Tenía un pedido esperando su OK? Lo que escribió es la respuesta al
+    // repaso de compra: queda en la venta y Milena lo ve antes de procesar.
+    if (chat.clientId) {
+        const nombreC = (await prisma.client.findUnique({ where: { id: chat.clientId }, select: { name: true } }).catch(() => null))?.name || m.profileName || 'Un cliente';
+        const lectura = await registrarRespuestaAConfirmacion(prisma, { clientId: chat.clientId, nombre: nombreC, texto: content, tipo: messageType });
+        if (lectura) console.log(`  📦 [Inbound] ${waId} respondió a la confirmación de su pedido: ${lectura}.`);
+    }
+
+    if (esPrimeraRespuestaAlSeguimiento(chatAntes) && chat.clientId) {
+        const nombre = (await prisma.client.findUnique({ where: { id: chat.clientId }, select: { name: true } }).catch(() => null))?.name || m.profileName || 'Un cliente';
+        const avisado = await avisarRespuestaAlEquipo(prisma, { clientId: chat.clientId, chatId: chat.id, nombre, texto: content, tipo: messageType });
+        console.log(`  💬 [Inbound] ${waId} respondió a un seguimiento${avisado ? ': avisado al equipo' : ''}.`);
     }
 
     // ── Eventos para el buzón (mismos nombres que hoy) ──────────────────────
@@ -402,7 +416,7 @@ const META_ERRORES = {
     132000: { texto: 'las variables de la plantilla no coinciden con lo aprobado en Meta.', cuenta: true },
     132001: { texto: 'la plantilla no existe o no está aprobada en Meta.', cuenta: true },
     132015: { texto: 'la plantilla está pausada en Meta por baja calidad.', cuenta: true },
-    130472: { texto: 'el cliente pidió no recibir mensajes de marketing por WhatsApp.', cuenta: false, avisar: false },
+    130472: { texto: 'el cliente pidió no recibir mensajes de marketing por WhatsApp.', cuenta: false, avisar: false, definitivo: true },
 };
 
 /**
@@ -445,10 +459,12 @@ async function persistStatus(s, { io } = {}) {
         const quien = row.senderName ? ` (lo mandó ${row.senderName})` : '';
         // Si lo mandó el motor solo, se deshace el escalón y el motor se aparta
         // de esta charla: sigue una persona (ver shared/seguimiento-fallido.js).
-        const deshecho = await deshacerSeguimientoFallido(prisma, { ...row, chatId: row.chatId }, { deCuenta: !!conocido?.cuenta })
+        const deshecho = await deshacerSeguimientoFallido(prisma, { ...row, chatId: row.chatId }, { deCuenta: !!conocido?.cuenta, definitivo: !!conocido?.definitivo })
             .catch(e => { console.error('[Status] No se pudo deshacer el seguimiento automático:', e.message); return null; });
         const sigueUnaPersona = deshecho
-            ? (deshecho.pausadoHasta
+            ? (deshecho.definitivo
+                ? ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}) y el motor NO le escribe más: pidió no recibir mensajes (Sin seguimiento).`
+                : deshecho.pausadoHasta
                 ? ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}) y el motor no le va a escribir por ${PAUSA_DIAS} días: le toca a una persona.`
                 : ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}); como el problema es de la cuenta, el motor lo reintenta solo cuando esté arreglada.`)
             : '';

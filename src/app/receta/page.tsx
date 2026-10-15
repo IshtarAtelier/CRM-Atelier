@@ -7,7 +7,7 @@ import { getWebSettings } from '@/lib/web-settings';
 import { descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { prisma } from '@/lib/db';
-import { LISTADO_SELECT } from '@/lib/catalog/queries';
+import { LISTADO_SELECT, RECETA_BASE_WHERE } from '@/lib/catalog/queries';
 import { getRecetaListado } from '@/lib/catalog/sources';
 
 // ISR de verdad: la página se prerenderiza y se regenera cada 5 minutos.
@@ -57,13 +57,8 @@ export default async function RecetaPage() {
   // cachea. Los cristales no son armazones: si a uno le queda la categoría web
   // de receta, aparece en la grilla mezclado entre los marcos. Pasó con un
   // Essilor Orma de $280.000 listado en /receta.
-  const whereClause = {
-    category: { contains: "Receta", mode: "insensitive" as const },
-    isActive: true,
-    // Sin stock no se muestra (regla 19/8): el stock es compartido con el CRM
-    // y un modelo agotado seguía en vitrina hasta despublicarlo a mano.
-    product: { category: { not: 'Cristal' }, stock: { gt: 0 } },
-  };
+  // Mismo filtro que su respaldo (src/lib/catalog/queries.ts): solo armazones con stock.
+  const whereClause = RECETA_BASE_WHERE;
 
   // Execute Queries in parallel
   let dbProducts: any[] = [];

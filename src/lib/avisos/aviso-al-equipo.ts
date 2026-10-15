@@ -87,3 +87,31 @@ export async function avisarAlEquipo(aviso: AvisoAlEquipo): Promise<number> {
         return 0;
     }
 }
+
+/**
+ * Los FALLOS y chequeos del sistema (salud del embudo, calidad del número de
+ * WhatsApp, motor frenado) van a UNA conversación propia de la mensajería
+ * interna, "🔧 Fallos y salud del sistema", con la IA y todos los ADMIN.
+ *
+ * Hasta el 8/10/2026 eso salía por MAIL a `ADMIN_EMAIL` (Ishtar: "retirá el
+ * email que me mandás todo el tiempo de los fallidos; centralizalo en un
+ * canal dentro de la mensajería de sistema", y después: "que sea una
+ * conversación específica de eso, entonces pueda entrar y ver eso
+ * específicamente"). No va al hilo del Asistente —ahí vive el resumen
+ * diario— y no le llega a ningún vendedor.
+ *
+ * Mismo dedup de 20 h: los crons disparan dos veces a propósito.
+ */
+export async function avisarAdmins(aviso: AvisoAlEquipo): Promise<number> {
+    try {
+        const r = await InternalMessagingService.mensajeEnCanalDelSistema({
+            cuerpo: `${aviso.asunto}\n\n${aviso.cuerpo}`,
+            urgent: aviso.urgente,
+            dedupePrefijo: aviso.dedupePrefijo || aviso.asunto,
+        });
+        return r ? 1 : 0;
+    } catch (err) {
+        console.error('[Canal del sistema] Falló el aviso:', aviso.asunto, err);
+        return 0;
+    }
+}

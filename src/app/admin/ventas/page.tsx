@@ -11,14 +11,17 @@ import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/billing/InvoiceModal';
+import SolicitarFacturaModal from '@/components/billing/SolicitarFacturaModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import type { Order } from '@/types/orders';
 import { webPaymentGatewayLabel } from '@/lib/checkout/payment-gateway';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
+import CargaLaboratorio from '@/components/orders/CargaLaboratorio';
 import ComprobanteLab from '@/components/orders/ComprobanteLab';
-import { colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
+import { itemsDeTenido, colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
+import { estadoConfirmacionCliente } from '@/lib/confirmacion-cliente';
 import { armarPedidoSmartLab, urlSmartLabConPedido, textoPasosSmartLab, textoFaltantesSmartLab } from '@/lib/grupo-optico/armar-pedido';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
@@ -58,6 +61,7 @@ export default function VentasPage() {
     const [filterSeller, setFilterSeller] = useState<string>('__LOADING__');
     const [loading, setLoading] = useState(true);
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+    const [solicitudFactura, setSolicitudFactura] = useState<{ order: Order; cobrado: number; sugerido: number } | null>(null);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
     const [caseTypeFilter, setCaseTypeFilter] = useState<string>('');
     const [viewMode, setViewMode] = useState<'VENTAS' | 'POST_VENTA'>(searchParams.get('mode') === 'POST_VENTA' ? 'POST_VENTA' : 'VENTAS');
@@ -609,50 +613,31 @@ export default function VentasPage() {
         if (isAdmin) {
             setInvoiceOrder({ ...order, customAmount: maxInvoiceable } as any);
         } else {
-            const amountStr = prompt(
-                `Monto a facturar para ${order.client.name}:\n(Pago total registrado hasta hoy: $${maxInvoiceable.toLocaleString('es-AR')})`, 
-                maxInvoiceable.toString()
-            );
-            
-            if (!amountStr) return;
-            
-            const amount = parseFloat(amountStr.replace(/\./g, '').replace(',', '.'));
-            
-            if (isNaN(amount)) return alert('Monto inválido');
-            if (amount > maxInvoiceable) {
-                return alert(`Error: No podés facturar más de lo que el cliente pagó ($${maxInvoiceable.toLocaleString('es-AR')}).`);
-            }
-
-            setRequestingInvoiceId(order.id);
-            try {
-                const res = await fetch('/api/notifications', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: 'INVOICE_REQUEST',
-                        message: `Solicitar factura de $${amount.toLocaleString('es-AR')} (Pago total del cliente: $${maxInvoiceable.toLocaleString('es-AR')}) para venta #${order.id.slice(-4).toUpperCase()} (${order.client.name})`,
-                        orderId: order.id,
-                    }),
-                });
-                
-                const data = await res.json();
-                
-                if (res.ok) {
-                    alert('✅ Solicitud de factura enviada al administrador.');
-                } else {
-                    alert(data.error || 'Error al enviar la solicitud.');
-                }
-            } catch {
-                alert('Error de conexión al solicitar factura.');
-            } finally {
-                setRequestingInvoiceId(null);
-            }
+            // El vendedor confirma datos y observación en el modal; nada de prompt.
+            const yaFacturado = (order.invoices || [])
+                .filter((i: any) => i.status === 'COMPLETED')
+                .reduce((acc: number, i: any) => acc + (i.totalAmount || 0), 0);
+            setSolicitudFactura({ order, cobrado: maxInvoiceable, sugerido: Math.max(0, maxInvoiceable - yaFacturado) || maxInvoiceable });
         }
     };
 
     const advanceStatus = async (orderId: string, currentStatus: string) => {
         const next = getNextStatus(currentStatus || 'NONE');
         if (!next) return;
+        // Antes de PROCESAR, lo que contestó el cliente al repaso de su pedido
+        // (Ishtar, 8/10/2026: "que cuando Milena toque procesar revise esa
+        // información y diga si respondió con el OK").
+        if (next === 'IN_PROGRESS') {
+            const o = orders.find(x => x.id === orderId);
+            const c = estadoConfirmacionCliente(o || {});
+            const icono = c.tono === 'verde' ? '✅' : c.tono === 'rojo' ? '✋' : c.tono === 'ambar' ? '⏳' : '⏱️';
+            const pregunta = c.estado === 'OBSERVACION'
+                ? `${icono} ${c.texto}\n\nEl cliente pidió revisar algo. ¿Ya lo resolvieron y querés procesarlo igual?`
+                : c.estado === 'ESPERANDO'
+                    ? `${icono} ${c.texto}\n\nTodavía no dijo OK ni pasaron las 24 h. ¿Procesar igual?`
+                    : `${icono} ${c.texto}\n\n¿Procesar el pedido?`;
+            if (!window.confirm(pregunta)) return;
+        }
         setUpdatingId(orderId);
         try {
             const res = await fetch(`/api/orders/${orderId}`, {
@@ -1161,6 +1146,20 @@ export default function VentasPage() {
                                                 <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}
                                                 </span>
+                                                {/* Qué contestó el cliente al repaso de su pedido: lo que Milena mira antes de procesar. */}
+                                                {order.labSentAt && !['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && (() => {
+                                                    const c = estadoConfirmacionCliente(order);
+                                                    const tono = c.tono === 'verde' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50'
+                                                        : c.tono === 'rojo' ? 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50 animate-pulse'
+                                                            : c.tono === 'ambar' ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50'
+                                                                : 'bg-stone-100 text-stone-700 border-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700';
+                                                    const icono = c.tono === 'verde' ? '✅' : c.tono === 'rojo' ? '✋' : c.tono === 'ambar' ? '⏳' : '⏱️';
+                                                    return (
+                                                        <span title={c.texto} className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 max-w-[320px] truncate ${tono}`}>
+                                                            {icono} {c.estado === 'OK' ? 'Cliente: OK' : c.estado === 'TACITA' ? 'Cliente: 24 h sin respuesta · confirmado' : c.estado === 'OBSERVACION' ? `Cliente: observación — ${(order.clientConfirmationText || '').slice(0, 40)}` : c.estado === 'ESPERANDO' ? 'Cliente: esperando su OK' : 'Sin confirmación enviada'}
+                                                        </span>
+                                                    );
+                                                })()}
                                                 {order.status === 'WEB_PENDING' && (
                                                     <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-sky-100 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 flex items-center gap-1 animate-pulse">
                                                         🌐 Venta Web · A Confirmar
@@ -1342,6 +1341,20 @@ export default function VentasPage() {
                                             </div>
                                         );
                                     })()}
+
+                                {/* Carga del pedido en el portal del laboratorio (Grupo Óptico y Vitolen,
+                                    un solo componente): solo Ishtar y Milena — la API responde 403 al
+                                    resto y el bloque no se dibuja. */}
+                                {orderLabs.some(l => /grupo[\s_-]?[oó]ptico/i.test(l)) && (
+                                    <div className="mt-4">
+                                        <CargaLaboratorio lab="GRUPO_OPTICO" orderId={order.id} onChanged={fetchOrders} />
+                                    </div>
+                                )}
+                                {orderLabs.some(l => /vitolen/i.test(l)) && (
+                                    <div className="mt-4">
+                                        <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={fetchOrders} />
+                                    </div>
+                                )}
 
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
@@ -1836,6 +1849,16 @@ export default function VentasPage() {
             )}
 
             {/* Invoice Modal */}
+            {solicitudFactura && (
+                <SolicitarFacturaModal
+                    orderId={solicitudFactura.order.id}
+                    clienteNombre={solicitudFactura.order.client.name}
+                    clienteDni={(solicitudFactura.order.client as any).dni}
+                    cobrado={solicitudFactura.cobrado}
+                    montoSugerido={solicitudFactura.sugerido}
+                    onClose={() => setSolicitudFactura(null)}
+                />
+            )}
             {invoiceOrder && (
                 <InvoiceModal
                     order={invoiceOrder}

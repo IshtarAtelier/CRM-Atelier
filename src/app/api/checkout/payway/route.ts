@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
@@ -11,9 +12,11 @@ import { precioPorOjo, type ResultadoCalculo } from '@/lib/cristales-web/calculo
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
 import { calcularItemDeCarrito, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
+import { TEXTO_ESPERANDO_PAGO_MP } from '@/lib/checkout/finalize-web-payment';
 import { calcular2x1Armazones } from '@/lib/promo-2x1-armazones';
 import { isFrame } from '@/lib/promo-utils';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
+import { sePuedeVenderEnLaWeb } from '@/lib/catalog/queries';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { notifyPaymentFailed } from '@/lib/payment-failed-alert';
 import { enforceRateLimit } from '@/lib/api-guard';
@@ -263,7 +266,11 @@ export async function POST(req: Request) {
 
     // Fetch web settings for dynamic discount rate
     const webSettings = await getWebSettings();
-    const cashDiscountRate = (webSettings.web_promo_cash_discount ?? 15) / 100;
+    // La MISMA lectura del % que la tienda y el checkout del navegador
+    // (descuentoTransferenciaDe: un vacío o 0 cae al 15). Con `?? 15` un 0
+    // cargado en /admin/web cobraba sin descuento mientras la pantalla mostraba
+    // 15 %, y la guarda de precios rechazaba la compra.
+    const cashDiscountRate = descuentoTransferenciaDe(webSettings.web_promo_cash_discount) / 100;
     const transferMultiplier = 1 - cashDiscountRate;
 
     // Opciones de cristal de la tienda, con el producto del sistema vinculado a
@@ -321,12 +328,22 @@ export async function POST(req: Request) {
       let dbProduct = null;
       if (safeProductId) {
         dbProduct = await prisma.product.findUnique({
-          where: { id: safeProductId }
+          where: { id: safeProductId },
+          // La ficha: si está oculta en /admin/web, no se vende (sePuedeVenderEnLaWeb).
+          include: { webProducts: { select: { isActive: true } } },
         });
       }
 
-      if (!dbProduct) {
-        throw new Error(`Producto no encontrado en la base de datos: ${item.model}`);
+      // Solo se vende lo que la tienda publica (la regla de los listados, en
+      // src/lib/catalog/queries.ts): un carrito guardado puede traer un
+      // armazón que se despublicó o se borró después, y un id armado a mano,
+      // un cristal. Antes el inexistente salía como error 500 sin motivo.
+      if (!dbProduct || !sePuedeVenderEnLaWeb(dbProduct)) {
+        console.warn(`[PAYWAY CHECKOUT] Producto fuera de la tienda en el carrito: ${safeProductId} (${item.model})`);
+        return NextResponse.json({
+          error: `${item.model || 'Un producto del carrito'} ya no está a la venta en la web. Sacalo del carrito para seguir.`,
+          code: 'PRODUCTO_NO_DISPONIBLE',
+        }, { status: 400 });
       }
 
       // Armazón (con oferta o mayorista) + cristal + teñido, con el MISMO
@@ -395,7 +412,14 @@ export async function POST(req: Request) {
     // sale siempre de recalculatedItemsTotal (el precio más bajo y correcto, de la DB).
     if (recalculatedItemsTotal - total > 5) {
       console.error("[PAYWAY CHECKOUT] DISCREPANCIA DETECTADA (pago de menos) - Backend:", recalculatedItemsTotal, "Frontend:", total);
-      return NextResponse.json({ error: "Discrepancia de precio detectada. Por favor, reintente." }, { status: 400 });
+      // Casi siempre es un carrito guardado con un precio viejo (el carrito se
+      // pone al día solo, pero puede haber cambiado en el medio). Reintentar
+      // igual no lo arreglaba: el navegador, con el código, actualiza el
+      // carrito y la persona ve el precio nuevo antes de confirmar.
+      return NextResponse.json({
+        error: "Un precio de tu carrito cambió mientras comprabas. Revisá el total y confirmá de nuevo.",
+        code: 'PRECIO_CAMBIO',
+      }, { status: 400 });
     }
     if (total - recalculatedItemsTotal > 5) {
       console.warn("[PAYWAY CHECKOUT] Total del cliente mayor al backend (se cobra el backend):", recalculatedItemsTotal, "vs", total);
@@ -567,7 +591,7 @@ export async function POST(req: Request) {
           where: { id: item.productId }
         });
         if (dbProduct && dbProduct.category !== "Cristal" && dbProduct.category !== "Tratamiento" && dbProduct.stock < item.quantity) {
-          return NextResponse.json({ error: `Stock insuficiente para ${item.model}. Disponible: ${dbProduct.stock}` }, { status: 400 });
+          return NextResponse.json({ error: `Stock insuficiente para ${item.model}. Disponible: ${dbProduct.stock}`, code: 'STOCK_INSUFICIENTE' }, { status: 400 });
         }
       }
     }
@@ -609,7 +633,7 @@ export async function POST(req: Request) {
               // Restaurar lo ya decrementado de items anteriores del carrito y abortar sin cobrar.
               if (globalRestoreStock) await globalRestoreStock();
               return NextResponse.json(
-                { error: `Stock insuficiente para ${item.model}. Otro cliente acaba de reservar la última unidad. No te cobramos.` },
+                { error: `Stock insuficiente para ${item.model}. Otro cliente acaba de reservar la última unidad. No te cobramos.`, code: 'STOCK_INSUFICIENTE' },
                 { status: 409 }
               );
             }
@@ -873,7 +897,7 @@ export async function POST(req: Request) {
         await prisma.notification.create({
           data: {
             type: 'WEB_SALE',
-            message: `Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${mpTotal.toLocaleString('es-AR')} esperando pago en Mercado Pago.`,
+            message: `Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${mpTotal.toLocaleString('es-AR')} ${TEXTO_ESPERANDO_PAGO_MP}.`,
             orderId: order.id,
             requestedBy: 'Sistema (Mercado Pago)',
             status: 'PENDING',
@@ -1239,16 +1263,7 @@ export async function POST(req: Request) {
         }
       });
 
-      // 3. Create the notification request
-      await tx.notification.create({
-        data: {
-          type: "INVOICE_REQUEST",
-          message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${finalItemsTotal.toLocaleString('es-AR')}`,
-          orderId: order.id,
-          requestedBy: "Sistema (Payway)",
-          status: "PENDING"
-        }
-      });
+      // (Sin solicitud de factura automática desde el 15/10/2026: la pide el vendedor.)
 
       // 4. Notificación en el sistema: nueva venta web con pago acreditado, a confirmar
       await tx.notification.create({

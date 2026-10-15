@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getWebSettings } from '@/lib/web-settings';
 import { prisma } from '@/lib/db';
+import { descuentoTransferenciaDe } from '@/lib/catalog/rango-precio';
+import { leerPromoCuotas } from '@/lib/promo-cuotas';
 
 /**
  * Qué promos de la tienda están prendidas, para las pantallas del NAVEGADOR.
@@ -52,11 +54,15 @@ export async function GET() {
         return NextResponse.json({
             dosPorUnoArmazones: activa && marcados.length > 0,
             armazones2x1: marcados,
-            descuentoTransferencia: s.web_promo_cash_discount ?? 15,
+            // Las condiciones de pago que muestra el carrito, con las mismas
+            // lecturas que las páginas de servidor (descuentoTransferenciaDe y
+            // leerPromoCuotas): antes el carrito tenía el 15 y el 6 a mano.
+            descuentoTransferencia: descuentoTransferenciaDe(s.web_promo_cash_discount),
+            cuotasSinInteres: leerPromoCuotas(s.web_promo_installments).cantidad,
         });
     } catch {
         // Si la base no responde, la promo se apaga. Prometer un 2x1 que el
         // checkout no va a poder aplicar es peor que no mostrarlo.
-        return NextResponse.json({ dosPorUnoArmazones: false, armazones2x1: [], descuentoTransferencia: 15 });
+        return NextResponse.json({ dosPorUnoArmazones: false, armazones2x1: [], descuentoTransferencia: descuentoTransferenciaDe(null), cuotasSinInteres: leerPromoCuotas(null).cantidad });
     }
 }

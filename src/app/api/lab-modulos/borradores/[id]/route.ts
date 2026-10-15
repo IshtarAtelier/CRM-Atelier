@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getActor } from '@/lib/actor';
+import { puedeCargarEnLaboratorio } from '@/lib/lab-carga-acceso';
 import { Borradores } from '@/services/lab-modules/carga/borrador';
 import { httpDeError } from '@/services/lab-modules/carga/errores';
 import { cargaDe } from '@/services/lab-modules/carga/registro';
@@ -29,6 +30,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     try {
         const { id } = await params;
         const actor = getActor(request);
+        if (!(await puedeCargarEnLaboratorio(actor))) {
+            return NextResponse.json({ error: 'La carga en el portal es de Ishtar y Milena.', sinAcceso: true }, { status: 403 });
+        }
         const body = await request.json().catch(() => ({}));
         const accion = String(body.accion || '');
         const labDelBorrador = await Borradores.labDe(id);
