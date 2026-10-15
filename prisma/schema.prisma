@@ -847,6 +847,9 @@ model Notification {
   orderId     String?
   requestedBy String
   resolvedBy  String?
+  /// Solicitud de factura: monto pedido por el vendedor y observación para la factura.
+  requestedAmount Float?
+  observations    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   order       Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)

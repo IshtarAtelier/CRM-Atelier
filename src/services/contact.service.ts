@@ -2108,57 +2108,8 @@ export const ContactService = {
                 }
             });
 
-            // AUTOMATED BILLING REQUEST for Pay Way and Mercado Pago (cuenta Ishtar)
-            const isEligibleForAutoBilling = method.toUpperCase().includes('PAY_WAY')
-                || method.toUpperCase().includes('MERCADO_PAGO');
-            
-            if (isEligibleForAutoBilling) {
-                // DUPLICATE PROTECTION: Check if this exact payment already has a request
-                const amountStr = `$${amount.toLocaleString('es-AR')}`;
-                const existingRequest = await tx.notification.findFirst({
-                    where: {
-                        type: 'INVOICE_REQUEST',
-                        orderId: orderId,
-                        message: { contains: amountStr },
-                        status: 'PENDING'
-                    }
-                });
-
-                // Also check if order already has a completed invoice for this amount
-                const existingInvoice = await tx.invoice.findFirst({
-                    where: { orderId: orderId, status: 'COMPLETED' }
-                });
-
-                if (!existingRequest && !existingInvoice) {
-                    const isIsh = method.toUpperCase().endsWith('_ISH');
-                    const isYani = method.toUpperCase().endsWith('_YANI');
-                    const accountLabel = isIsh ? '[ISH]' : isYani ? '[YANI]' : '';
-
-                    const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
-                    const msg = `${accountLabel} Facturar pago de ${amountStr} (${method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`;
-                    await tx.notification.create({
-                        data: {
-                            type: 'INVOICE_REQUEST',
-                            message: msg,
-                            orderId: orderId,
-                            requestedBy: `Sistema (pago cargado por ${actorName})`,
-                            status: 'PENDING'
-                        }
-                    });
-
-                    // Notificar al administrador por email (fire-and-forget para no bloquear tx)
-                    const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
-                    const toEmail = !adminEmail || adminEmail.toLowerCase() === 'pisano.ishtar@gmail.com'
-                        ? 'pisano.ishtar@gmail.com'
-                        : `pisano.ishtar@gmail.com, ${adminEmail}`;
-
-                    sendEmail({
-                        to: toEmail,
-                        subject: '🧾 Solicitud de Factura (Automática)',
-                        text: `El sistema ha generado una nueva solicitud de factura:\n\n${msg}\n\n🧑 Pago cargado por: ${actorName}`
-                    }).catch(console.error);
-                }
-            }
+            // Sin solicitud de factura automática (Ishtar, 15/10/2026): la pide
+            // el vendedor a mano, con observación (invoice-request.service.ts).
 
             // ISH POSNET THRESHOLD MONITORING
             let thresholdReached = false;
@@ -2692,7 +2643,7 @@ export const ContactService = {
      * Zonas impactadas:
      * 1. Payment record (campos directos)
      * 2. Order.paid (recalculado con SUM atómico)
-     * 3. INVOICE_REQUEST notifications (si el método cambia)
+     * 3. (Ya no toca solicitudes de factura: las pide el vendedor, 15/10/2026)
      * 4. Invoice warnings (si ya existe factura emitida con cuenta distinta)
      * 5. Client Timeline (registro de auditoría)
      * 
@@ -2714,7 +2665,6 @@ export const ContactService = {
         couponNumber?: string | null;
         authNumber?: string | null;
     }, actor?: Actor) {
-        const isAutoBillingMethod = (m: string) => m.toUpperCase().includes('PAY_WAY') || m.toUpperCase().includes('MERCADO_PAGO');
         const actorName = actor?.name || 'Administrador';
 
         return await prisma.$transaction(async (tx) => {
@@ -2937,73 +2887,10 @@ export const ContactService = {
                 });
             }
 
-            // 5. Gestionar INVOICE_REQUEST si el método cambió
+            // 5. Si el método cambió
             if (updateData.method !== undefined) {
-                const oldIsAutoBilling = isAutoBillingMethod(oldPayment.method);
-                const newIsAutoBilling = isAutoBillingMethod(updateData.method);
-                const amount = updateData.amount ?? oldPayment.amount;
-                const amountStr = `$${amount.toLocaleString('es-AR')}`;
-
-                // Si el viejo método requería factura → eliminar su INVOICE_REQUEST pendiente
-                if (oldIsAutoBilling) {
-                    const oldAmountStr = `$${oldPayment.amount.toLocaleString('es-AR')}`;
-                    await tx.notification.deleteMany({
-                        where: {
-                            type: 'INVOICE_REQUEST',
-                            orderId,
-                            message: { contains: oldAmountStr },
-                            status: 'PENDING'
-                        }
-                    });
-                }
-
-                // Si el nuevo método requiere factura → crear nueva INVOICE_REQUEST
-                if (newIsAutoBilling) {
-                    const isIsh = updateData.method.toUpperCase().endsWith('_ISH');
-                    const isYani = updateData.method.toUpperCase().endsWith('_YANI');
-                    const accountLabel = isIsh ? '[ISH]' : isYani ? '[YANI]' : '';
-
-                    const clientName = (await tx.client.findUnique({ where: { id: clientId }, select: { name: true } }))?.name || 'Cliente';
-
-                    // Verificar que no exista ya una request idéntica
-                    const existingRequest = await tx.notification.findFirst({
-                        where: {
-                            type: 'INVOICE_REQUEST',
-                            orderId,
-                            message: { contains: amountStr },
-                            status: 'PENDING'
-                        }
-                    });
-
-                    // Verificar que no haya factura ya emitida para esta orden
-                    const existingInvoice = await tx.invoice.findFirst({
-                        where: { orderId, status: 'COMPLETED' }
-                    });
-
-                    if (!existingRequest && !existingInvoice) {
-                        const msg = `${accountLabel} Facturar pago editado de ${amountStr} (${updateData.method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`;
-                        await tx.notification.create({
-                            data: {
-                                type: 'INVOICE_REQUEST',
-                                message: msg,
-                                orderId,
-                                requestedBy: `Sistema (edición de ${actorName})`,
-                                status: 'PENDING'
-                            }
-                        });
-
-                        const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
-                        const toEmail = !adminEmail || adminEmail.toLowerCase() === 'pisano.ishtar@gmail.com'
-                            ? 'pisano.ishtar@gmail.com'
-                            : `pisano.ishtar@gmail.com, ${adminEmail}`;
-
-                        sendEmail({
-                            to: toEmail,
-                            subject: '🧾 Solicitud de Factura (Edición de Pago)',
-                            text: `El sistema ha generado una nueva solicitud de factura por modificación de pago:\n\n${msg}\n\n🧑 Editado por: ${actorName}`
-                        }).catch(console.error);
-                    }
-                }
+                // Sin solicitudes de factura automáticas (15/10/2026): cambiar el
+                // medio de pago no crea ni borra solicitudes; las pide el vendedor.
 
                 // 6. Warning si hay factura emitida y la cuenta cambió
                 const existingInvoices = oldPayment.order.invoices || [];

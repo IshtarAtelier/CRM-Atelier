@@ -341,15 +341,7 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
       },
     });
 
-    await tx.notification.create({
-      data: {
-        type: 'INVOICE_REQUEST',
-        message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${cobradoEsperado.toLocaleString('es-AR')}${esMp12 ? ' (12 cuotas MP, incluye 10% de costo financiero)' : ''}`,
-        orderId: order.id,
-        requestedBy: actorName,
-        status: 'PENDING',
-      },
-    });
+    // Sin solicitud de factura automática (15/10/2026): la pide el vendedor.
 
     const mensajePagada = `Nueva Venta Web #${numero} de ${client?.name || 'Cliente'} por $${cobradoEsperado.toLocaleString('es-AR')} (PAGADA vía Mercado Pago). Revisar y confirmar en Ventas.` +
       (cancelada ? ` ⚠️ El pago llegó después de que la venta se cancelara: se reactivó${sinStock.length ? ' pero NO alcanzó el stock, revisarlo' : ''}.` : '');

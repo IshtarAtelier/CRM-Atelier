@@ -48,12 +48,15 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
     const [motivo, setMotivo] = useState<Record<string, string>>({});
     /** La captura del portal abierta a pantalla completa (null = cerrada). */
     const [ampliada, setAmpliada] = useState<string | null>(null);
+    /** La carga es solo de Ishtar y Milena: para el resto el bloque no existe. */
+    const [sinAcceso, setSinAcceso] = useState(false);
 
     const cargar = useCallback(async () => {
         setCargando(true); setError('');
         try {
             const res = await fetch(`/api/lab-modulos/borradores?orderId=${encodeURIComponent(orderId)}`);
             const json = await res.json().catch(() => ({}));
+            if (res.status === 403 && json.sinAcceso) { setSinAcceso(true); return; }
             if (!res.ok) { setError(json.error || 'No se pudo leer el estado en Vitolen.'); return; }
             setDatos(json);
         } catch {
@@ -96,6 +99,7 @@ export default function VitolenCarga({ orderId, onChanged }: { orderId: string; 
         } finally { setOcupado(null); }
     };
 
+    if (sinAcceso) return null;
     if (cargando && !datos) {
         return <div className="text-[11px] text-stone-400 flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> Leyendo Vitolen…</div>;
     }

@@ -11,12 +11,14 @@ import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/billing/InvoiceModal';
+import SolicitarFacturaModal from '@/components/billing/SolicitarFacturaModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import type { Order } from '@/types/orders';
 import { webPaymentGatewayLabel } from '@/lib/checkout/payment-gateway';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
+import VitolenCarga from '@/components/orders/VitolenCarga';
 import ComprobanteLab from '@/components/orders/ComprobanteLab';
 import { itemsDeTenido, colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
 import { estadoConfirmacionCliente } from '@/lib/confirmacion-cliente';
@@ -58,6 +60,7 @@ export default function VentasPage() {
     const [filterSeller, setFilterSeller] = useState<string>('__LOADING__');
     const [loading, setLoading] = useState(true);
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+    const [solicitudFactura, setSolicitudFactura] = useState<{ order: Order; cobrado: number; sugerido: number } | null>(null);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
     const [caseTypeFilter, setCaseTypeFilter] = useState<string>('');
     const [viewMode, setViewMode] = useState<'VENTAS' | 'POST_VENTA'>(searchParams.get('mode') === 'POST_VENTA' ? 'POST_VENTA' : 'VENTAS');
@@ -843,44 +846,11 @@ export default function VentasPage() {
         if (isAdmin) {
             setInvoiceOrder({ ...order, customAmount: maxInvoiceable } as any);
         } else {
-            const amountStr = prompt(
-                `Monto a facturar para ${order.client.name}:\n(Pago total registrado hasta hoy: $${maxInvoiceable.toLocaleString('es-AR')})`, 
-                maxInvoiceable.toString()
-            );
-            
-            if (!amountStr) return;
-            
-            const amount = parseFloat(amountStr.replace(/\./g, '').replace(',', '.'));
-            
-            if (isNaN(amount)) return alert('Monto inválido');
-            if (amount > maxInvoiceable) {
-                return alert(`Error: No podés facturar más de lo que el cliente pagó ($${maxInvoiceable.toLocaleString('es-AR')}).`);
-            }
-
-            setRequestingInvoiceId(order.id);
-            try {
-                const res = await fetch('/api/notifications', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: 'INVOICE_REQUEST',
-                        message: `Solicitar factura de $${amount.toLocaleString('es-AR')} (Pago total del cliente: $${maxInvoiceable.toLocaleString('es-AR')}) para venta #${order.id.slice(-4).toUpperCase()} (${order.client.name})`,
-                        orderId: order.id,
-                    }),
-                });
-                
-                const data = await res.json();
-                
-                if (res.ok) {
-                    alert('✅ Solicitud de factura enviada al administrador.');
-                } else {
-                    alert(data.error || 'Error al enviar la solicitud.');
-                }
-            } catch {
-                alert('Error de conexión al solicitar factura.');
-            } finally {
-                setRequestingInvoiceId(null);
-            }
+            // El vendedor confirma datos y observación en el modal; nada de prompt.
+            const yaFacturado = (order.invoices || [])
+                .filter((i: any) => i.status === 'COMPLETED')
+                .reduce((acc: number, i: any) => acc + (i.totalAmount || 0), 0);
+            setSolicitudFactura({ order, cobrado: maxInvoiceable, sugerido: Math.max(0, maxInvoiceable - yaFacturado) || maxInvoiceable });
         }
     };
 
@@ -1605,6 +1575,14 @@ export default function VentasPage() {
                                         );
                                     })()}
 
+                                {/* Carga del pedido en el portal de Vitolen: solo Ishtar y Milena
+                                    (la API responde 403 al resto y el bloque no se dibuja). */}
+                                {orderLabs.some(l => /vitolen/i.test(l)) && (
+                                    <div className="mt-4">
+                                        <VitolenCarga orderId={order.id} onChanged={fetchOrders} />
+                                    </div>
+                                )}
+
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
                                     <div className="w-full lg:w-72">
@@ -2097,6 +2075,16 @@ export default function VentasPage() {
             )}
 
             {/* Invoice Modal */}
+            {solicitudFactura && (
+                <SolicitarFacturaModal
+                    orderId={solicitudFactura.order.id}
+                    clienteNombre={solicitudFactura.order.client.name}
+                    clienteDni={(solicitudFactura.order.client as any).dni}
+                    cobrado={solicitudFactura.cobrado}
+                    montoSugerido={solicitudFactura.sugerido}
+                    onClose={() => setSolicitudFactura(null)}
+                />
+            )}
             {invoiceOrder && (
                 <InvoiceModal
                     order={invoiceOrder}
