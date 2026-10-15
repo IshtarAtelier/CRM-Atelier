@@ -6,7 +6,8 @@ import { EmbudoService } from '@/services/embudo.service';
 import { seleccionar } from '@/lib/seguimientos/seleccion';
 import { ejecutar, FALLAS_SEGUIDAS_PARA_FRENAR } from '@/lib/seguimientos/ejecutor';
 import { agruparVetos, diaArt, horaArt, registrarCorrida } from '@/lib/seguimientos/registro';
-import type { Candidato, EstadoDelChat } from '@/lib/seguimientos/politica';
+import { vetoDeCierre, type Candidato, type EstadoDelChat } from '@/lib/seguimientos/politica';
+import { asegurarRetomeHumano } from '@/lib/seguimientos/respuesta-humana';
 import { clasificarRespuesta, respuestasAlToque, type Clasificacion } from '@/lib/embudo/respuesta';
 import { cerrarComoPerdido, posponerSeguimiento, reservarDescuentoRetome, PLANTILLA_RETOME } from '@/lib/seguimientos/cierre';
 import {
@@ -14,6 +15,7 @@ import {
     SETTING_CALIDAD_NUMERO, FACTOR_CUPO_EN_AMARILLO,
 } from '@/lib/constants/seguimientos';
 import { fetchWa } from '@/lib/wa-config';
+import { REMITENTES_AUTOMATICOS } from '@/lib/constants/cierres';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,21 +133,16 @@ export async function GET(request: Request) {
         // justo el que contestó al último toque o al retome del 10 %.
         const todosLosLeads = Object.values(columns).flatMap(c => c.leads);
         const nombrePorChat = new Map(todosLosLeads.filter(l => l.waChatId).map(l => [l.waChatId!, l.name]));
+        // Cuándo le llegó el presupuesto a cada chat: lo mira la compuerta que
+        // no deja cerrar sobre una respuesta sin leer (politica.ts, 15/10/2026).
+        const presupuestoPorChat = new Map(todosLosLeads.filter(l => l.waChatId && l.presupuestoEnviadoAt).map(l => [l.waChatId!, new Date(l.presupuestoEnviadoAt!)]));
 
         // ── Cierres del playbook: recorrido completo sin venta, o ventana vencida ──
+        // Se EJECUTAN más abajo, cuando ya se sabe el estado de cada chat: un
+        // cliente que respondió después del presupuesto y al que nadie retomó
+        // no se cierra (vetoDeCierre).
         const aCerrar = paraHoy.filter(l => l.proximaAccion.tipo === 'cerrar').slice(0, CIERRES_POR_TICK);
         const cierres: { nombre: string; motivo: string }[] = [];
-        if (modo === 'real') {
-            for (const l of aCerrar) {
-                try {
-                    await cerrarComoPerdido({ clientId: l.id, motivo: l.proximaAccion.etiqueta });
-                    cierres.push({ nombre: l.name, motivo: `cerrado como perdido: ${l.proximaAccion.etiqueta}` });
-                } catch (e: any) {
-                    console.error(`[Motor seguimientos] No se pudo cerrar a ${l.name}:`, e?.message);
-                    cierres.push({ nombre: l.name, motivo: `NO se pudo cerrar: ${e?.message}` });
-                }
-            }
-        }
 
         const candidatos: Candidato[] = paraHoy
             .filter(l => l.proximaAccion.tipo === 'plantilla')
@@ -167,6 +164,15 @@ export async function GET(request: Request) {
                 chatLabels: true, client: { select: { tags: { select: { name: true } } } },
             },
         }) : [];
+
+        // Último saliente de una PERSONA (ni bot, ni sistema, ni motor): decide si
+        // una respuesta del cliente ya la retomó alguien (politica.ts).
+        const humanos = chatIds.length ? await prisma.whatsAppMessage.groupBy({
+            by: ['chatId'],
+            where: { chatId: { in: chatIds }, direction: 'OUTBOUND', senderName: { notIn: [...REMITENTES_AUTOMATICOS] } },
+            _max: { createdAt: true },
+        }) : [];
+        const ultimoHumano = new Map(humanos.map(s => [s.chatId, s._max.createdAt]));
 
         // ── Qué dijo el que contestó al último toque ────────────────────────
         // Se leen los entrantes posteriores al último seguimiento y se clasifican.
@@ -204,6 +210,20 @@ export async function GET(request: Request) {
                                 lecturas.push({ nombre, motivo: `respondió al retome: 10% reservado en la ficha («${(palabras || '').slice(0, 80)}»)` });
                             }
                         } catch (e: any) { lecturas.push({ nombre, motivo: `NO se pudo reservar el 10%: ${e?.message}` }); }
+                    }
+                    // Un humano lo ve HOY (plan 15/10/2026, 3.5): tarea con vencimiento
+                    // hoy + aviso al equipo, una vez por persona y por día. Solo si
+                    // nadie del equipo le escribió después de su respuesta.
+                    const humanoDespues = ultimoHumano.get(f.id);
+                    if (f.clientId && suyos.length && (!humanoDespues || humanoDespues < f.lastInboundAt!)) {
+                        if (modo === 'real') {
+                            try {
+                                const r = await asegurarRetomeHumano({ clientId: f.clientId, nombre, palabras, plantilla: ultimaPlantilla.get(f.id), now });
+                                if (r.tareaCreada) lecturas.push({ nombre, motivo: `respondió y nadie retomó: tarea para hoy + aviso al equipo («${(palabras || '').slice(0, 80)}»)` });
+                            } catch (e: any) { lecturas.push({ nombre, motivo: `NO se pudo abrir la tarea de retome: ${e?.message}` }); }
+                        } else {
+                            lecturas.push({ nombre, motivo: `(seco) respondió y nadie retomó: abriría tarea para hoy («${(palabras || '').slice(0, 80)}»)` });
+                        }
                     }
                     continue;
                 }
@@ -247,8 +267,24 @@ export async function GET(request: Request) {
                 lastOutboundAt: ultimoSaliente.get(f.id) ?? null,
                 chatLabels: f.chatLabels, tagNames: (f.client?.tags || []).map(t => t.name),
                 respuesta: respuestas.get(f.id) ?? null,
+                presupuestoEnviadoAt: presupuestoPorChat.get(f.id) ?? null,
+                ultimoHumanoAt: ultimoHumano.get(f.id) ?? null,
             }]),
         );
+
+        // ── Ahora sí, los cierres: con el estado del chat a la vista ────────
+        for (const l of aCerrar) {
+            const veto = vetoDeCierre(l.waChatId ? chats.get(l.waChatId) : null);
+            if (veto) { cierres.push({ nombre: l.name, motivo: `NO se cierra: ${veto}` }); continue; }
+            if (modo !== 'real') continue;
+            try {
+                await cerrarComoPerdido({ clientId: l.id, motivo: l.proximaAccion.etiqueta });
+                cierres.push({ nombre: l.name, motivo: `cerrado como perdido: ${l.proximaAccion.etiqueta}` });
+            } catch (e: any) {
+                console.error(`[Motor seguimientos] No se pudo cerrar a ${l.name}:`, e?.message);
+                cierres.push({ nombre: l.name, motivo: `NO se pudo cerrar: ${e?.message}` });
+            }
+        }
 
         const seleccion = seleccionar({ candidatos, chats, ctx: { now, plantillasNoAprobadas }, cupo });
         base.elegidos = seleccion.elegidos.length;
@@ -282,7 +318,7 @@ export async function GET(request: Request) {
                 calidad,
                 cupo: { diario: cupoDiarioEfectivo, usadoHoy, esteTick: cupo },
                 candidatos: candidatos.length,
-                cerrados: modo === 'real' ? cierres : aCerrar.map(l => ({ nombre: l.name, motivo: l.proximaAccion.etiqueta })),
+                cerrados: modo === 'real' ? cierres : aCerrar.map(l => ({ nombre: l.name, motivo: cierres.find(c => c.nombre === l.name)?.motivo ?? l.proximaAccion.etiqueta })),
                 respuestasLeidas: lecturas,
                 habrianSalido: modo === 'seco' ? seleccion.elegidos.map(c => ({ nombre: c.nombre, plantilla: c.plantilla })) : undefined,
                 enviados,
