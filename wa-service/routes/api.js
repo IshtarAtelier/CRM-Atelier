@@ -599,7 +599,10 @@ function createApiRouter(deps) {
     router.get('/agent', (req, res) => {
         const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
         const displayPrompt = (!agentState.agentPrompt || agentState.agentPrompt.trim().length <= 300) ? DEFAULT_SALES_PROMPT : agentState.agentPrompt;
-        res.json({ enabled: agentState.agentEnabled, prompt: displayPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
+        // promptFuente (15/10/2026): con qué prompt contesta de verdad el bot
+        // de ventas ('repo' salvo bot_prompt_activo='true'). `prompt` es lo
+        // que se edita en el panel, no necesariamente lo que se usa.
+        res.json({ enabled: agentState.agentEnabled, prompt: displayPrompt, promptFuente: agentState.promptFuente || null, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
     });
 
     // ── POST /agent ────────────────────────────────

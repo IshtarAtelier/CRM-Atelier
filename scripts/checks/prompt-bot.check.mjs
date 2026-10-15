@@ -20,10 +20,10 @@
  */
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { lintPromptDelBot, describirHallazgos } from '../../src/lib/whatsapp/lint-prompt.ts';
+import { lintPromptDelBot, describirHallazgos, contradiccionesConCoreRules, herramientasParaRecetaIlegible } from '../../src/lib/whatsapp/lint-prompt.ts';
 const require = createRequire(import.meta.url);
 // Lo que decide si graph.js usa el prompt vivo o lo descarta (15/10/2026).
-const { motivoParaDescartarPromptCustom } = require('../../wa-service/shared/prompt-custom.js');
+const { motivoParaDescartarPromptCustom, promptDeVentas, promptVivoActivo } = require('../../wa-service/shared/prompt-custom.js');
 
 // Los comentarios `//` de los .js quedan afuera: describen casos MALOS a
 // propósito (el "Soy Matías de Atelier Óptica" que se corrigió) y no son prompt.
@@ -89,6 +89,36 @@ console.log('\nFiltro del prompt custom (descarta autopresentaciones, no prohibi
     else mal('graph.js no usa motivoParaDescartarPromptCustom o no avisa cuando descarta');
 }
 
+// Qué prompt usa el bot de ventas: el del repo, salvo bot_prompt_activo='true'
+// (15/10/2026). Se prueba la función que usa bot-cloud.js, no el código.
+console.log('\nPrompt de ventas: el del repo salvo bot_prompt_activo=true');
+{
+    const vivo = 'Atendés por WhatsApp a quien escribe a la óptica. '.repeat(10);
+    const sinFila = promptDeVentas({ activo: promptVivoActivo(null), vivo });
+    if (sinFila.fuente === 'repo' && sinFila.custom === '') ok('sin la fila bot_prompt_activo → prompt del REPO (lo que hace hoy producción)');
+    else mal('sin bot_prompt_activo el bot debería usar el prompt del repo');
+    if (promptDeVentas({ activo: promptVivoActivo({ value: 'false' }), vivo }).fuente === 'repo' && promptDeVentas({ activo: promptVivoActivo({ value: 'si' }), vivo }).fuente === 'repo') ok("cualquier valor que no sea 'true' → repo");
+    else mal("solo 'true' activa el prompt vivo");
+    const on = promptDeVentas({ activo: promptVivoActivo({ value: 'true' }), vivo });
+    if (on.fuente === 'vivo' && on.custom === vivo) ok("bot_prompt_activo='true' → prompt VIVO");
+    else mal("con bot_prompt_activo='true' debería usarse el vivo");
+    if (promptDeVentas({ activo: true, vivo: 'corto' }).fuente === 'repo') ok('activo pero descartado por el filtro → repo');
+    else mal('un vivo descartable no puede usarse aunque esté activo');
+}
+
+// La contradicción receta ilegible: pedir_ayuda (vivo) vs create_task (CORE_RULES #7).
+console.log('\nContradicción receta ilegible (pedir_ayuda vs create_task):');
+{
+    const t = herramientasParaRecetaIlegible(core || '');
+    if (t.has('create_task')) ok("CORE_RULES #7: receta ilegible → 'create_task'");
+    else mal("no se encontró en CORE_RULES qué hacer con una receta ilegible (¿cambió #7?)");
+    const vivoMalo = "El tipo de lente lo dice la RECETA. Si no pudiste leerla, no finjas que sí ni le pases la decisión: llamá a 'pedir_ayuda' y no des precios de cristales.";
+    if (contradiccionesConCoreRules(vivoMalo, core || '').length === 1) ok('detecta el vivo que manda pedir_ayuda contra CORE_RULES');
+    else mal('no detecta la contradicción pedir_ayuda vs create_task');
+    if (contradiccionesConCoreRules("Si no podés leerla, usá 'create_task' y seguí.", core || '').length === 0) ok('un vivo alineado con CORE_RULES no da contradicción');
+    else mal('falso positivo en un vivo alineado');
+}
+
 if (process.argv.includes('--prod')) {
     console.log('\nPrompt VIVO de producción:');
     const base = process.env.WA_SERVER_URL_PROD || process.env.WA_SERVER_URL;
@@ -100,8 +130,12 @@ if (process.argv.includes('--prod')) {
             const j = await r.json();
             const vivo = String(j.prompt || '');
             const descarte = motivoParaDescartarPromptCustom(vivo);
-            if (descarte) mal(`el bot DESCARTA el prompt vivo y usa el del repo: ${descarte}`);
-            else ok('el bot usa el prompt vivo (el filtro de graph.js no lo descarta)');
+            if (descarte) mal(`el filtro DESCARTARÍA el prompt vivo: ${descarte}`);
+            else ok('el filtro de graph.js no descarta el prompt vivo');
+            // promptFuente lo devuelve el wa-service desde el 15/10/2026; uno
+            // viejo no lo manda (y usa el del repo por el filtro viejo).
+            console.log(`  ℹ️  el bot de ventas contesta con el prompt ${j.promptFuente === 'vivo' ? 'VIVO' : j.promptFuente === 'repo' ? 'del REPO (bot_prompt_activo no está en true)' : 'del REPO (wa-service anterior al 15/10/2026: no informa promptFuente)'}`);
+            for (const c of contradiccionesConCoreRules(vivo, core || '')) mal(`vivo vs CORE_RULES: ${c}`);
             const h = lintPromptDelBot(vivo);
             if (!h.length) ok(`prompt vivo (${vivo.length} caracteres) sin hallazgos`);
             for (const linea of describirHallazgos(h)) mal(`vivo: ${linea}`);

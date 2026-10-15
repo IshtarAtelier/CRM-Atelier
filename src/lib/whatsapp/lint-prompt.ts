@@ -108,3 +108,46 @@ export function lintPromptDelBot(texto: string, opciones: { soloProhibido?: bool
 export function describirHallazgos(h: HallazgoDePrompt[]): string[] {
     return h.map(x => x.tipo === 'prohibido' ? `El prompt ${x.regla} → «…${x.donde}…»` : `Al prompt le ${x.regla}`);
 }
+
+/**
+ * Qué herramienta manda usar un prompt cuando la RECETA NO SE PUEDE LEER.
+ *
+ * Por qué (15/10/2026): el prompt vivo dice «Si no pudiste leerla … llamá a
+ * 'pedir_ayuda'» (el bot se aparta y queda en silencio) y CORE_RULES #7, que
+ * va pegado al final de TODO prompt, dice «usá 'create_task' … y seguí la
+ * charla». Con el vivo activo el modelo recibe las dos órdenes a la vez. Se
+ * mira la oración que habla de no poder leer la receta y qué herramienta nombra.
+ */
+export function herramientasParaRecetaIlegible(texto: string): Set<'pedir_ayuda' | 'create_task'> {
+    const t = texto.replace(/\r\n/g, '\n');
+    const out = new Set<'pedir_ayuda' | 'create_task'>();
+    const re = /(no (?:pudiste|pod[eé]s|puedas|logr[aá]s|se puede) leer(?:la|lo)?|ilegible|no se (?:lee|entiende) (?:la receta|bien))/gi;
+    for (const m of t.matchAll(re)) {
+        const i = m.index ?? 0;
+        // La oración entera (corta en punto+espacio o salto de línea) y un poco
+        // más: la herramienta suele venir después de los dos puntos.
+        const desde = Math.max(t.lastIndexOf('\n', i), t.lastIndexOf('. ', i));
+        const zona = t.slice(desde + 1, i + 260);
+        const fin = zona.search(/\.\s|\n/);
+        const oracion = fin === -1 ? zona : zona.slice(0, Math.max(fin, i - desde + m[0].length));
+        if (/pedir_ayuda/.test(oracion)) out.add('pedir_ayuda');
+        if (/create_task/.test(oracion)) out.add('create_task');
+    }
+    return out;
+}
+
+/**
+ * Contradicciones entre el prompt vivo y CORE_RULES (que se le pega al final).
+ * Hoy, una: receta ilegible → 'pedir_ayuda' vs 'create_task'.
+ */
+export function contradiccionesConCoreRules(vivo: string, core: string): string[] {
+    const v = herramientasParaRecetaIlegible(vivo);
+    const c = herramientasParaRecetaIlegible(core);
+    const out: string[] = [];
+    if (v.has('pedir_ayuda') && c.has('create_task') && !v.has('create_task')) {
+        out.push("receta ilegible: el prompt vivo manda 'pedir_ayuda' (apartarse y callar) y CORE_RULES #7 manda 'create_task' y seguir la charla");
+    } else if (v.has('create_task') && c.has('pedir_ayuda') && !v.has('pedir_ayuda')) {
+        out.push("receta ilegible: el prompt vivo manda 'create_task' y CORE_RULES manda 'pedir_ayuda'");
+    }
+    return out;
+}

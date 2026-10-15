@@ -50,6 +50,7 @@ const { resolveWaMessageId } = require('./shared/message-id');
 const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
 const { leerReceta, MAX_FOTOS_POR_LECTURA } = require('./shared/leer-receta');
 const { urlDelMedio } = require('./shared/url-del-medio');
+const { CLAVE_PROMPT_ACTIVO, promptVivoActivo, promptDeVentas } = require('./shared/prompt-custom');
 
 // Cuánto se espera antes de contestar, para juntar las burbujas que el cliente
 // manda seguidas (mismo criterio que el transporte legacy). Configurable por
@@ -115,6 +116,11 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         agentEnabled: false,
         followupsEnabled: false,
         agentPrompt: '',
+        // ¿El bot de ventas usa el prompt vivo? Solo con
+        // SystemSetting.bot_prompt_activo='true' (ver shared/prompt-custom.js).
+        // `agentPrompt` se sigue mostrando en el panel igual.
+        agentPromptActivo: false,
+        promptFuente: 'repo',
         // Prompt PROPIO del agente de clientes existentes (SystemSetting
         // `bot_prompt_executive`). Si no existe, el ejecutivo usa su prompt por
         // defecto del repo, nunca el de ventas (ver graph.js).
@@ -177,12 +183,14 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
     /** Prompt y contexto del día. Si falla, quedan los valores en memoria. */
     async function loadConfig() {
         try {
-            const [enabled, prompt, contexto, seguimientos, promptEjecutivo] = await Promise.all([
+            const [enabled, prompt, contexto, seguimientos, promptEjecutivo, promptActivo] = await Promise.all([
                 prisma.systemSetting.findUnique({ where: { key: 'bot_enabled' } }),
                 prisma.systemSetting.findUnique({ where: { key: 'bot_prompt' } }),
                 prisma.systemSetting.findUnique({ where: { key: 'bot_daily_context' } }),
                 prisma.systemSetting.findUnique({ where: { key: 'followups_enabled' } }),
                 prisma.systemSetting.findUnique({ where: { key: 'bot_prompt_executive' } }),
+                // Tolerante a la ausencia: sin fila → false → prompt del repo.
+                prisma.systemSetting.findUnique({ where: { key: CLAVE_PROMPT_ACTIVO } }).catch(() => null),
             ]);
             agentState.agentEnabled = enabled ? enabled.value === 'true' : false;
             agentState.followupsEnabled = seguimientos ? seguimientos.value === 'true' : false;
@@ -191,6 +199,14 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // para que borrar la clave desde la base surta efecto sin reiniciar.
             agentState.agentPromptExecutive = promptEjecutivo ? (promptEjecutivo.value || '') : '';
             if (contexto) agentState.dailyContext = contexto.value || '';
+            agentState.agentPromptActivo = promptVivoActivo(promptActivo);
+            const elegido = promptDeVentas({ activo: agentState.agentPromptActivo, vivo: agentState.agentPrompt });
+            // Se loguea al arrancar y cada vez que cambia: que nadie tenga que
+            // adivinar con qué prompt contesta el bot.
+            if (elegido.fuente !== agentState.promptFuente || !configTimer) {
+                console.log(`🧾 [BotCloud] Prompt de ventas: ${elegido.fuente === 'vivo' ? 'el VIVO (SystemSetting.bot_prompt)' : 'el del REPO (prompts/salesPrompt.js)'} — ${elegido.motivo}.`);
+            }
+            agentState.promptFuente = elegido.fuente;
         } catch (e) {
             agentState.agentEnabled = false; // fail-safe, igual que isEnabled()
             console.error('[BotCloud] No se pudo cargar la config del bot:', e.message);
@@ -716,7 +732,8 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 entroPorAnuncio: porAnuncio,
                 historiaNuestra: historia,
                 fase: faseDeLaCharla(messages, { entroPorAnuncio: porAnuncio, yaHablamos: historia.yaHablamos }),
-                customPrompt: agentState.agentPrompt,
+                // '' = el del repo. Lo decide promptDeVentas (bot_prompt_activo).
+                customPrompt: promptDeVentas({ activo: agentState.agentPromptActivo, vivo: agentState.agentPrompt }).custom,
                 customPromptExecutive: agentState.agentPromptExecutive,
                 dailyContext: agentState.dailyContext,
                 clientData: freshChat.client || null,

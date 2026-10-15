@@ -68,4 +68,37 @@ function motivoParaDescartarPromptCustom(custom) {
     return null;
 }
 
-module.exports = { LARGO_MINIMO_PROMPT_CUSTOM, AUTOPRESENTACIONES_PROHIBIDAS, motivoParaDescartarPromptCustom };
+/**
+ * ¿El bot de VENTAS usa el prompt vivo (`SystemSetting.bot_prompt`) o el del
+ * repo? Decisión EXPLÍCITA desde el 15/10/2026.
+ *
+ * Hasta hoy, en producción, el prompt vivo se descartaba siempre por el
+ * filtro viejo (ver arriba) y el bot respondía con el del repo. Arreglar el
+ * filtro lo habría puesto en uso de golpe, y el vivo no dice lo mismo: receta
+ * ilegible → 'pedir_ayuda' y silencio (el repo, CORE_RULES #7: 'create_task' y
+ * seguir la charla), cotizar siempre en PDF con create_quote + send_quote_pdf,
+ * etc. Hasta que Ishtar decida cuál es la fuente de verdad, se PRESERVA lo que
+ * hace producción: el prompt del repo. El vivo solo se usa si
+ * `SystemSetting.bot_prompt_activo` = 'true'. Sin la fila, o con cualquier
+ * otro valor → el del repo.
+ */
+const CLAVE_PROMPT_ACTIVO = 'bot_prompt_activo';
+
+/** @param {{ value?: string }|null|undefined} fila  la de SystemSetting (o nada) */
+function promptVivoActivo(fila) {
+    return Boolean(fila && String(fila.value || '').trim().toLowerCase() === 'true');
+}
+
+/**
+ * @param {{ activo: boolean, vivo: string }} p
+ * @returns {{ custom: string, fuente: 'vivo'|'repo', motivo: string }}
+ *   `custom` es lo que se le pasa al grafo como prompt custom ('' = el del repo).
+ */
+function promptDeVentas({ activo, vivo }) {
+    if (!activo) return { custom: '', fuente: 'repo', motivo: `${CLAVE_PROMPT_ACTIVO} no está en 'true' (se preserva el comportamiento de producción)` };
+    const descarte = motivoParaDescartarPromptCustom(vivo);
+    if (descarte) return { custom: '', fuente: 'repo', motivo: `${CLAVE_PROMPT_ACTIVO}=true pero el prompt vivo se descarta: ${descarte}` };
+    return { custom: String(vivo), fuente: 'vivo', motivo: `${CLAVE_PROMPT_ACTIVO}=true` };
+}
+
+module.exports = { LARGO_MINIMO_PROMPT_CUSTOM, AUTOPRESENTACIONES_PROHIBIDAS, motivoParaDescartarPromptCustom, CLAVE_PROMPT_ACTIVO, promptVivoActivo, promptDeVentas };
