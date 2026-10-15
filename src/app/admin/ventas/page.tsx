@@ -20,7 +20,7 @@ import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
 import CargaLaboratorio from '@/components/orders/CargaLaboratorio';
 import ComprobanteLab from '@/components/orders/ComprobanteLab';
-import { itemsDeTenido, colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
+import { colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
 import { estadoConfirmacionCliente } from '@/lib/confirmacion-cliente';
 import { armarPedidoSmartLab, urlSmartLabConPedido, textoPasosSmartLab, textoFaltantesSmartLab } from '@/lib/grupo-optico/armar-pedido';
 
