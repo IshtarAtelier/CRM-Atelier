@@ -17,7 +17,9 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION, fichaMuestraGarantiaDeAdaptacion } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
-import { formatearPrecio } from "@/lib/format-precio";
+import { formatearPrecio, precioConSigno } from "@/lib/format-precio";
+import { anteojoCompletoDesde } from "@/lib/anteojo-completo";
+import { useOpcionesCristal } from "@/hooks/useOpcionesCristal";
 import { leerPromoCuotas, textoCuotas12 } from "@/lib/promo-cuotas";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { precioConOferta } from "@/lib/precio-oferta";
@@ -254,6 +256,17 @@ export function ProductClient({
   const promoCuotas = leerPromoCuotas(settings?.web_promo_installments);
   const installmentsText = promoCuotas.texto;
   const installmentsCount = promoCuotas.cantidad;
+  // "Anteojo completo desde $X" (auditoría 25/9): solo en Receta y fuera del
+  // canal mayorista, con el mismo cálculo que el configurador. Null mientras
+  // cargan los precios de cristal o si no cargan: entonces no se muestra.
+  const opcionesCristal = useOpcionesCristal();
+  const desde = anteojoCompletoDesde({
+    producto: product,
+    categoriaWeb: product.category,
+    esMayorista: isWholesale,
+    opciones: opcionesCristal,
+    descuentoTransferenciaPct: cashDiscount,
+  });
 
   const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0
     ? product.imagenesCatalogo.map((key: string) => resolveStorageUrl(key)).filter(Boolean)
@@ -711,6 +724,22 @@ export function ProductClient({
                   // oferta o sin ella: la fila de pagos no lo repite.
                   hideTransferRow
                 />
+
+                {/* Agotado no: el botón de cristales está apagado y el texto
+                    invitaba a "elegir otros en el paso siguiente". */}
+                {desde && !(product.stock !== undefined && product.stock <= 0) && (
+                  <div className="mt-4 border border-stone-200 bg-stone-50 px-4 py-3">
+                    <p className="text-base font-bold text-stone-900">
+                      Anteojo completo desde {precioConSigno(desde.lista)}
+                    </p>
+                    <p className="text-sm text-stone-700">
+                      {precioConSigno(desde.transferencia)} por transferencia
+                    </p>
+                    <p className="mt-1 text-xs text-stone-600">
+                      Incluye cristales: {desde.cristal}. Podés elegir otros en el paso siguiente.
+                    </p>
+                  </div>
+                )}
               </>
             )}
 

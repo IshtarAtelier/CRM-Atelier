@@ -22,6 +22,9 @@ import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { etiquetaRangoPrecio } from "@/lib/constants/rangos-precio-tienda";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades } from "@/lib/constants/social-proof";
 import { track } from "@/lib/client-analytics";
+import { anteojoCompletoDesde } from "@/lib/anteojo-completo";
+import { precioConSigno } from "@/lib/format-precio";
+import { useOpcionesCristal } from "@/hooks/useOpcionesCristal";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
 // devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
@@ -325,6 +328,7 @@ export function TiendaClient({
 
   const [isWholesale, setIsWholesale] = useState(false);
   const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
+  const opcionesCristal = useOpcionesCristal();
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
@@ -1213,6 +1217,14 @@ export function TiendaClient({
                         // que es; el cartel llamativo es exclusivo de la rebaja
                         // real y vive arriba, sobre la foto (7/9).
                         const v = PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: installmentsCount });
+                        const desde = anteojoCompletoDesde({
+                          producto: p,
+                          categoriaWeb: p.category,
+                          esMayorista: isWholesale,
+                          opciones: opcionesCristal,
+                          descuentoTransferenciaPct,
+                        });
+
                         return (
                           <div className="pt-1 flex items-center justify-between gap-2">
                             {/* El valor GRANDE es el de transferencia (pedido
@@ -1247,6 +1259,18 @@ export function TiendaClient({
                               <span className="block text-xs text-stone-500">
                                 {v.cuotas} cuotas sin interés de ${formatearPrecio(v.valorCuota)}
                               </span>
+                              {/* El precio de arriba es el armazón solo. El de
+                                  receta casi siempre se lleva con cristales
+                                  (95,5% de la plata, auditoría 25/9): acá ve
+                                  cuánto le sale el anteojo que de verdad compra.
+                                  Mismo cálculo que el configurador; si los
+                                  precios de cristal no cargan, no se muestra. */}
+                              {desde && (
+                                <span className="mt-2 block border-t border-stone-200 pt-2 text-xs text-stone-700">
+                                  <span className="block font-bold">Anteojo completo desde {precioConSigno(desde.lista)}</span>
+                                  <span className="block text-stone-500">{precioConSigno(desde.transferencia)} transf.</span>
+                                </span>
+                              )}
                             </p>
                           </div>
                         );
