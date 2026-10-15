@@ -98,6 +98,9 @@ export function colorDelItem(texto: string | null | undefined): number | null {
     return null;
 }
 
+/** El color del portal que nombra la ETIQUETA de un artículo ("… FOTO ESPEJADO BLUE"); null si no nombra ninguno. Puro. */
+export const colorDeLaEtiqueta = (label: string): number | null => colorDelItem(label);
+
 export interface MaterialLab {
     crm: RegExp;
     materialId: number;
@@ -262,7 +265,10 @@ export function elegirArticulo(lista: ArticuloPortal[], esp: Especificacion): { 
     const norm = (s: string) => s.toUpperCase().replace(/\s+/g, ' ').trim();
     let candidatos: ArticuloPortal[];
     if (esp.clase === 'STOCK') {
-        candidatos = lista.filter(a => esp.material.debe.test(norm(a.label)) && (esp.rangoExtendido ? /R\. ?EXT/.test(norm(a.label)) : /\bSTOCK\b/.test(norm(a.label))));
+        // Stock = lo que NO es rango extendido: la etiqueta del mineral no dice
+        // "STOCK" ("MINERAL BLANCO ESF -150+050 (3)", visto el 15/10/2026).
+        const ext = (l: string) => /R\. ?EXT/.test(l);
+        candidatos = lista.filter(a => esp.material.debe.test(norm(a.label)) && (esp.rangoExtendido ? ext(norm(a.label)) : !ext(norm(a.label))));
         if (candidatos.length === 0 && !esp.rangoExtendido) {
             // Fuera del rango de stock: el portal lo ofrece como rango extendido.
             const ext = lista.filter(a => esp.material.debe.test(norm(a.label)) && /R\. ?EXT/.test(norm(a.label)));
@@ -277,6 +283,13 @@ export function elegirArticulo(lista: ArticuloPortal[], esp: Especificacion): { 
             if (esp.material.articuloNo?.test(l)) return false;
             return esp.material.arIncluido || /ESSENTIAL/.test(l) === esp.essential;
         });
+    }
+    // Un material de varios colores cuya lista trae un artículo por color
+    // ("… FOTO ESPEJADO BLUE" y "… GREEN" en la misma lista, 15/10/2026): se
+    // queda el del color elegido; sin color en la etiqueta no se adivina.
+    if (candidatos.length > 1 && esp.clase === 'LAB' && esp.material.colorId === null) {
+        const delColor = candidatos.filter(a => colorDeLaEtiqueta(norm(a.label)) === esp.colorId);
+        if (delColor.length === 1) return { ok: true, articulo: delColor[0] };
     }
     if (candidatos.length === 1) return { ok: true, articulo: candidatos[0] };
     const vistos = lista.map(a => a.label).join(' · ') || 'ninguno';
