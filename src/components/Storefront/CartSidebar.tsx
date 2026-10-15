@@ -17,6 +17,7 @@ import { recetaPendiente } from '@/lib/checkout/receta';
 import { PricingService } from "@/services/PricingService";
 import { ETIQUETA_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
 import { formatearPrecio } from "@/lib/format-precio";
+import { LEYENDA_ENVIO_Y_RETIRO } from "@/lib/constants/envio";
 
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
@@ -211,6 +212,16 @@ export function CartSidebar() {
                     paga de verdad. Con el bruto, el cliente vería una cuota más
                     alta que la que le van a cobrar. Primero el 2x1, después el
                     15% — al revés el descuento daría negativo. */}
+                {/* Envío y retiro ANTES del botón (plan 15/10/2026, 3.3): las
+                    personas que llegaron al checkout se frenaron justo en envío
+                    y pago, porque hasta acá nadie les había dicho que era gratis. */}
+                {!isWholesale && (
+                  <p className="mb-3 flex items-center justify-center gap-2 text-[11px] font-semibold text-stone-700">
+                    <Truck className="w-4 h-4 text-stone-500 shrink-0" />
+                    {LEYENDA_ENVIO_Y_RETIRO}
+                  </p>
+                )}
+
                 {!isWholesale && totalConPromo > 0 && (() => {
                   const v = PricingService.preciosVidriera(totalConPromo, descuentoTransferenciaPct, cuotasSinInteres);
                   return (
@@ -249,10 +260,12 @@ export function CartSidebar() {
                       >
                         {isWholesale ? "Finalizar Pedido Mayorista" : "Finalizar mi compra"} <ChevronRight className="w-4 h-4" />
                       </Link>
-                      {/* Las tres dudas que frenan el clic, respondidas justo debajo del botón. */}
+                      {/* Las tres dudas que frenan el clic, respondidas justo debajo del botón.
+                          La cuota sale de leerPromoCuotas() (vía usePromo2x1), nunca
+                          de un "6" tipeado: si el setting dice 3, acá dice 3. */}
                       {!isWholesale && (
                         <p className="mt-2 text-center text-[10px] font-medium uppercase tracking-wider text-stone-500">
-                          6 cuotas sin interés · Envío gratis · Pago seguro
+                          {cuotasSinInteres} cuotas sin interés · Envío gratis · Pago seguro
                         </p>
                       )}
                     </>
