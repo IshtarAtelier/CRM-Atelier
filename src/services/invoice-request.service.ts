@@ -15,7 +15,8 @@
 import { prisma } from '@/lib/db';
 import { Actor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
-import { CRM_ORIGIN } from '@/lib/constants';
+import { CRM_ORIGIN, METHOD_LABELS } from '@/lib/constants';
+import { formatDate } from '@/lib/format-date';
 import { precioConSigno } from '@/lib/format-precio';
 import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
 import { PricingService } from '@/services/PricingService';
@@ -117,10 +118,17 @@ export const InvoiceRequestService = {
         });
         const link = linkSolicitudFactura(notification.id);
         const doc = order.client?.dni ? `DNI ${order.client.dni}` : 'sin documento';
+        // Los pagos de la venta, para verificar desde el celular antes de facturar.
+        const pagos = [...order.payments]
+            .sort((a, b) => a.date.getTime() - b.date.getTime())
+            .map(p => `${formatDate(p.date)} ${METHOD_LABELS[p.method] || p.method} ${precioConSigno(p.amount)}`)
+            .join('; ');
         const texto =
+            // El link va antes que los pagos: la plantilla corta a 700 caracteres.
             `Factura de ${precioConSigno(monto)} para ${clienteNombre} (${doc}), venta #${numero}.` +
+            ` Facturar: ${link} .` +
             (observaciones ? ` Observación: ${observaciones}.` : ' Sin observación.') +
-            ` Facturar: ${link}`;
+            ` Pagos (${precioConSigno(cobrado)} cobrado): ${pagos || 'ninguno'}.`;
         avisarEquipoPorWhatsApp({
             destinatarios: admins,
             remitente: { id: actor.id, name: actor.name },
