@@ -16,6 +16,7 @@ import { precioConSigno } from "@/lib/format-precio";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { effectiveFramePrice } from "@/lib/checkout/checkout-pricing";
 import { PricingService } from "@/services/PricingService";
+import { promoVisible } from "@/lib/promo-visible";
 
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
@@ -576,7 +577,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                             {isOptica ? precioConSigno(effectiveFramePrice(p, true)) : (
                               <>
                                 {precioConSigno(PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: 6 }).transferencia)}
-                                <span className="font-semibold text-emerald-700 dark:text-emerald-400"> · {descuentoTransferenciaPct}% OFF transf.</span>
+                                {/* Una sola promo (promo-visible.ts): con rebaja, el sello; si no, el 15 %. */}
+                                {(() => {
+                                  const promo = promoVisible(PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: 6 }), descuentoTransferenciaPct);
+                                  return <span className="font-semibold text-emerald-700 dark:text-emerald-400"> · {promo.sello ? `${promo.sello} · ` : ''}{promo.etiquetaTransferenciaCorta}</span>;
+                                })()}
                               </>
                             )}
                           </span>

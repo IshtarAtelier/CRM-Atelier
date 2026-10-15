@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PricingService } from "@/services/PricingService";
+import { promoVisible } from "@/lib/promo-visible";
 import { precioConOferta } from "@/lib/precio-oferta";
 import { formatearPrecio } from "@/lib/format-precio";
 import { textoCuotas12 } from "@/lib/promo-cuotas";
@@ -276,19 +277,14 @@ export function HomeProductCarousel({ collections, totalCount, conteos, descuent
                         );
                         return (
                           <p className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-medium text-emerald-700 whitespace-nowrap">Transferencia {descuentoTransferenciaPct}% OFF</span>
+                            {/* Una sola promo por tarjeta (Fase 1.3, 15/10): con
+                                rebaja manda el sello "26% OFF 🔥" de arriba y acá
+                                no va ni el tachado ni el 15 % (promo-visible.ts). */}
+                            <span className="text-[10px] font-medium text-emerald-700 whitespace-nowrap">{promoVisible(v, descuentoTransferenciaPct).etiquetaTransferencia}</span>
                             <span className="whitespace-nowrap">
                               <span className="text-[15px] font-black text-stone-900 tracking-tight">
                                 ${formatearPrecio(v.transferencia)}
                               </span>
-                              {/* El de lista tachado, solo con rebaja real
-                                  (pedido de Ishtar, 8/9: "que la oferta se
-                                  vea"), con el mismo % aplicado. */}
-                              {v.transferenciaSinOferta !== null ? (
-                                <span className="ml-1.5 text-[11px] font-medium text-stone-400 line-through decoration-1">
-                                  ${formatearPrecio(v.transferenciaSinOferta)}
-                                </span>
-                              ) : null}
                             </span>
                             {/* Las cuotas van SIEMPRE, también en celular (pedido
                                 de Ishtar, 5/9). */}

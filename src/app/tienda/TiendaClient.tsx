@@ -15,6 +15,7 @@ import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
+import { promoVisible } from "@/lib/promo-visible";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
 import { formatearPrecio } from "@/lib/format-precio";
@@ -1224,18 +1225,13 @@ export function TiendaClient({
                               <span className="font-black text-base text-stone-900">
                                 ${formatearPrecio(v.transferencia)}
                               </span>
-                              {/* El de lista TACHADO, solo con rebaja real
-                                  (pedido de Ishtar, 8/9: "que la oferta se vea"),
-                                  con el mismo % aplicado para que los dos
-                                  números se puedan comparar. */}
-                              {v.transferenciaSinOferta !== null && (
-                                <span className="ml-1.5 text-xs font-medium text-stone-400 line-through decoration-1">
-                                  ${formatearPrecio(v.transferenciaSinOferta)}
-                                </span>
-                              )}
-                              {/* El % va en el MISMO renglón que el precio
-                                  (pedido de Ishtar, 5/9). */}
-                              <span className="text-emerald-700 text-xs font-bold"> {descuentoTransferenciaPct}% OFF transf.</span>
+                              {/* Una sola promo por tarjeta (Fase 1.3, 15/10): con
+                                  rebaja, el sello "26% OFF 🔥" sobre la foto es
+                                  la promo y acá no va ni el tachado ni el 15 %;
+                                  sin rebaja, el 15 % explica el número. La regla
+                                  vive en src/lib/promo-visible.ts. El % va en el
+                                  MISMO renglón que el precio (Ishtar, 5/9). */}
+                              <span className="text-emerald-700 text-xs font-bold"> {promoVisible(v, descuentoTransferenciaPct).etiquetaTransferenciaCorta}</span>
                               {/* Las cuotas van SIEMPRE —también en celular— y
                                   una debajo de la otra (pedido de Ishtar, 5/9).
                                   "fijas" distingue las 12 (llevan el costo

@@ -21,6 +21,7 @@ import { formatearPrecio } from "@/lib/format-precio";
 import { leerPromoCuotas, textoCuotas12, LINEA_CUOTAS } from "@/lib/promo-cuotas";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { precioConOferta } from "@/lib/precio-oferta";
+import { promoVisible } from "@/lib/promo-visible";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades, claveMarca, claveModelo } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
 import ProductReviews from "@/components/Storefront/ProductReviews";
@@ -266,8 +267,7 @@ export function ProductClient({
 
   // Precio de oferta ("precio tachado"). La regla vive en src/lib/precio-oferta.ts:
   // la misma que usan la grilla de la tienda, el JSON-LD y el cotizador.
-  const { final: effectivePrice, enOferta: hasSale, descuentoPct: pctOff } =
-    precioConOferta(product as any);
+  const { final: effectivePrice, enOferta: hasSale } = precioConOferta(product as any);
 
   // La ficha abre ARRIBA, siempre. Ishtar (3/10/2026): entrando desde la
   // grilla ya scrolleada, en el celular la ficha aparecía por el final. Next
@@ -449,11 +449,8 @@ export function ProductClient({
               </div>
             )}
 
-            {hasSale && (
-              <div className="absolute top-6 left-6 z-20 bg-red-600 text-white text-[11px] font-black tracking-widest uppercase px-3 py-1.5 rounded-full shadow-lg">
-                -{pctOff}% OFF
-              </div>
-            )}
+            {/* Sin chip "-9% OFF" sobre la foto: la rebaja se dice UNA vez, al
+                lado del precio (src/lib/promo-visible.ts). */}
           </motion.div>
         </div>
 
@@ -715,47 +712,36 @@ export function ProductClient({
                     Hasta el 10/10, con oferta la ficha mostraba en grande el de
                     TARJETA ($145.000) mientras la grilla decía $123.250 por el
                     mismo anteojo: quien entraba desde la grilla veía que el
-                    precio "subía". Con oferta se tacha el de lista con el mismo
-                    % (comparable) y va el cartel del %, en rojo. */}
+                    precio "subía".
+                    Desde el 15/10 (Fase 1.3) se muestran DOS números y UNA
+                    promo: el de transferencia grande, "o $X con tarjeta"
+                    chico, y al lado del grande o el sello de la rebaja o el
+                    "15% OFF por transferencia" —nunca los dos, y sin tachado
+                    (la regla vive en src/lib/promo-visible.ts). El precio con
+                    tarjeta queda a la vista porque es el que declara el
+                    JSON-LD y el feed de Merchant: Google desaprueba el
+                    producto si el precio informado no aparece en la página. */}
                 {(() => {
                   const v = PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount });
+                  const promo = promoVisible(v, cashDiscount);
                   return (
                     <div className="order-2 lg:order-none mb-4 lg:mb-6">
-                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <span className={`text-4xl lg:text-3xl font-black tracking-tight ${hasSale ? 'text-red-600' : 'text-black'}`}>
+                      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                        <span className="text-4xl lg:text-3xl font-black tracking-tight text-black">
                           ${formatearPrecio(v.transferencia)}
                         </span>
-                        <span className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                          {cashDiscount}% OFF por transferencia
-                        </span>
-                        {hasSale && v.transferenciaSinOferta !== null ? (
-                          <>
-                            <span className="text-sm font-medium text-stone-400 line-through">
-                              ${formatearPrecio(v.transferenciaSinOferta)}
-                            </span>
-                            <span className="text-xs font-black uppercase text-white bg-red-600 px-2 py-1 rounded">
-                              {pctOff}% OFF
-                            </span>
-                            {/* El precio de oferta con tarjeta, a la vista: es el
-                                que declara el JSON-LD y el feed de Merchant, y
-                                Google desaprueba el producto si el precio que le
-                                informamos no aparece en la página. Además, quien
-                                paga con tarjeta lo ve antes del checkout. */}
-                            <span className="basis-full text-sm font-medium text-stone-600">
-                              o ${formatearPrecio(v.precio)} con tarjeta
-                            </span>
-                          </>
-                        ) : (
-                          // Sin oferta, el precio con tarjeta SIN tachar: es el
-                          // de lista, el que declaran el JSON-LD y el feed de
-                          // Merchant. Tachado se leía como "precio anterior"
-                          // (no lo es: es el que paga quien usa tarjeta). El
-                          // descuento ya lo dice "15% OFF por transferencia".
-                          <span className="basis-full text-sm font-medium text-stone-600">
-                            o ${formatearPrecio(v.precio)} con tarjeta
+                        {promo.sello && (
+                          <span className="text-[11px] font-black uppercase text-white bg-red-600 px-2 py-0.5 rounded">
+                            {promo.sello}
                           </span>
                         )}
+                        <span className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                          {promo.etiquetaTransferencia}
+                        </span>
                       </div>
+                      <p className="mt-1 text-sm font-medium text-stone-600">
+                        o ${formatearPrecio(v.precio)} con tarjeta
+                      </p>
                       {/* UNA línea de cuotas, la fórmula de marketing de
                           CLAUDE.md (31/8/2026, noche): sin el % y sin
                           "Mercado Pago". Las filas con importe siguen en
@@ -1155,10 +1141,12 @@ export function ProductClient({
                       return (
                         <>
                           <span className="font-bold text-stone-900">${formatearPrecio(v.transferencia)}</span>
-                          {v.transferenciaSinOferta !== null && (
-                            <span className="ml-1 text-[10px] text-stone-400 line-through">${formatearPrecio(v.transferenciaSinOferta)}</span>
+                          {/* Una sola promo por tarjeta (promo-visible.ts): el
+                              sello de la rebaja si la hay, si no el 15 %. */}
+                          {promoVisible(v, cashDiscount).sello && (
+                            <span className="ml-1 text-[10px] font-black uppercase text-white bg-red-600 px-1.5 py-0.5 rounded">{promoVisible(v, cashDiscount).sello}</span>
                           )}
-                          <span className="text-[10px] text-emerald-700 font-bold"> {cashDiscount}% OFF transf.</span>
+                          <span className="text-[10px] text-emerald-700 font-bold"> {promoVisible(v, cashDiscount).etiquetaTransferenciaCorta}</span>
                           <span className="block text-[10px] text-stone-500">{textoCuotas12(v.cuota12)}</span>
                           <span className="block text-[10px] text-stone-500">{v.cuotas} cuotas sin interés de ${formatearPrecio(v.valorCuota)}</span>
                         </>

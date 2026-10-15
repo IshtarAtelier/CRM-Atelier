@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { PricingService } from "@/services/PricingService";
+import { promoVisible } from "@/lib/promo-visible";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { precioConOferta } from "@/lib/precio-oferta";
@@ -195,15 +196,11 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                           <span className="font-black text-base text-stone-900 dark:text-white">
                             ${formatearPrecio(v.transferencia)}
                           </span>
-                          {/* El precio de lista TACHADO, solo cuando hay rebaja
-                              de verdad (pedido de Ishtar, 8/9: "la idea es que
-                              la oferta se vea"). */}
-                          {v.transferenciaSinOferta !== null && (
-                            <span className="ml-1.5 text-xs font-medium text-stone-400 line-through decoration-1">
-                              ${formatearPrecio(v.transferenciaSinOferta)}
-                            </span>
-                          )}
-                          <span className="text-emerald-700 dark:text-emerald-400 text-xs font-bold"> {descuentoTransferenciaPct}% OFF transf.</span>
+                          {/* Una sola promo por tarjeta (Fase 1.3, 15/10): con
+                              rebaja, el sello "26% OFF 🔥" de arriba es la promo
+                              y acá no va ni el tachado ni el 15 %; sin rebaja,
+                              el 15 % explica el número (src/lib/promo-visible.ts). */}
+                          <span className="text-emerald-700 dark:text-emerald-400 text-xs font-bold"> {promoVisible(v, descuentoTransferenciaPct).etiquetaTransferenciaCorta}</span>
                           <span className="block text-xs text-stone-500 dark:text-stone-400">
                             12 cuotas fijas de ${formatearPrecio(v.cuota12)}
                           </span>
