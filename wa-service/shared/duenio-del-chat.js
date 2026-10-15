@@ -18,10 +18,19 @@
  *     `clasificar-entrante.js`: acá solo llegan consultas.
  *
  * La regla ahora:
- *   - DUEÑO = humano si el chat tiene la etiqueta de traspaso
- *     (`ETIQUETA_BOT_APAGADO`) y el bot apagado. Un chat apagado por otra cosa
- *     (post-venta, reclamo, etiqueta sin bot) no tiene dueño humano en este
- *     sentido y el bot NO vuelve: ahí el silencio es la intención.
+ *   - DUEÑO = humano si el bot está apagado con motivo TOMADO_POR_PERSONA
+ *     (`botOffReason`, shared/motivo-apagado.js). Hasta el 15/10/2026 se
+ *     decidía por la etiqueta `[SISTEMA - BOT APAGADO]`, que también ponían el
+ *     panel, la derivación, los errores y el guardrail, y nunca se limpiaba:
+ *     el bot volvía a chats silenciados a propósito. Cualquier otro motivo, o
+ *     ninguno, NO vuelve: ahí el silencio es la intención (o no la sabemos).
+ *   - Solo cuentan los entrantes POSTERIORES a nuestro último saliente de
+ *     cualquier tipo (persona, bot, plantilla): lo anterior ya se contestó.
+ *   - La antigüedad máxima se mide desde el entrante MÁS NUEVO sin respuesta
+ *     (15/10/2026: se medía desde el primero, y un cliente que escribió ayer y
+ *     vuelve a escribir hoy quedaba en 'no' para siempre — ~195 chats en
+ *     prod). La ventana del equipo, desde el PRIMERO de los que siguen
+ *     vigentes (menos de 24 h).
  *   - EN HORARIO del local: un entrante NO reactiva al bot de inmediato. Se
  *     espera `VENTANA_PARA_QUE_CONTESTE_EL_EQUIPO_MIN` desde el primer
  *     entrante sin respuesta; si en ese lapso una persona contestó, el chat
@@ -50,9 +59,9 @@
  * Lo fija `npm run check:entrantes` (la decisión es pura, sin base ni red).
  */
 
-const { ETIQUETA_BOT_APAGADO } = require('./traspaso-humano');
 const { whereSalienteHumano } = require('./remitentes');
 const { filaDisparaTurno } = require('./clasificar-entrante');
+const { MOTIVO_APAGADO, puedeVolverSolo, motivoValido, leerMotivo } = require('./motivo-apagado');
 
 /**
  * Cuánto se espera, con el local ABIERTO, a que alguien del equipo conteste
@@ -74,56 +83,80 @@ const HORAS_PARA_VOLVER_FUERA_DE_HORARIO = 3;
  */
 const ANTIGUEDAD_MAXIMA_PARA_VOLVER_H = 24;
 
-/** Cuántos entrantes posteriores a la persona se miran para hallar el que espera. */
+/** Cuántos entrantes posteriores a nuestro último saliente se miran. */
 const ENTRANTES_A_REVISAR = 50;
 
 const MIN = 60 * 1000;
 const HORA = 60 * MIN;
 
 /**
+ * Pura: de las filas crudas, qué espera respuesta.
+ *
+ * @param {object} p
+ * @param {{createdAt: Date|string}|null} p.ultimoSaliente  nuestro último OUTBOUND de cualquier tipo
+ * @param {{createdAt: Date|string, senderName?: string}|null} p.ultimoHumano
+ * @param {Array<{createdAt, type, content}>} p.entrantes  INBOUND (cualquier orden)
+ */
+function analizarEspera({ ultimoSaliente, ultimoHumano, entrantes }) {
+    const corte = ultimoSaliente ? new Date(ultimoSaliente.createdAt).getTime() : -Infinity;
+    const disparan = (entrantes || [])
+        .filter(f => new Date(f.createdAt).getTime() > corte)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        // Una reacción o un "gracias" no arrancan el reloj ni hacen volver al
+        // bot a contestarle un 👍 (15/10/2026).
+        .filter(f => filaDisparaTurno(f));
+    const esperando = disparan.length ? disparan[disparan.length - 1] : null;
+    return {
+        desde: ultimoHumano ? new Date(ultimoHumano.createdAt) : null,
+        quien: (ultimoHumano && ultimoHumano.senderName) || null,
+        esperandoFechas: disparan.map(f => new Date(f.createdAt)),
+        esperandoDesde: disparan.length ? new Date(disparan[0].createdAt) : null,
+        esperando,
+    };
+}
+
+/**
  * Lee de la base quién es el dueño del chat.
  *
  * @param {object} prisma
- * @param {{ id: string, botEnabled: boolean, chatLabels?: string[] }} chat
- * @returns {Promise<{
- *   duenio: 'bot'|'humano'|'nadie',
- *   desde: Date|null,           // último mensaje de una persona del equipo
- *   quien: string|null,         // su firma
- *   esperandoDesde: Date|null,  // primer entrante que dispara turno sin respuesta humana
- *   esperando?: object|null,    // esa fila (type, content, createdAt)
- * }>}
+ * @param {{ id: string, botEnabled: boolean, botOffReason?: string|null }} chat
+ *   Si `botOffReason` no viene en el objeto se lee de la base (tolerante a
+ *   la columna ausente: sin columna → motivo desconocido → 'nadie').
  */
 async function duenioDelChat(prisma, chat) {
-    const vacio = { desde: null, quien: null, esperandoDesde: null };
-    if (!chat) return { duenio: 'nadie', ...vacio };
-    if (chat.botEnabled) return { duenio: 'bot', ...vacio };
-    if (!(chat.chatLabels || []).includes(ETIQUETA_BOT_APAGADO)) return { duenio: 'nadie', ...vacio };
+    const vacio = { desde: null, quien: null, esperandoDesde: null, esperandoFechas: [], esperando: null };
+    if (!chat) return { duenio: 'nadie', motivo: null, ...vacio };
+    if (chat.botEnabled) return { duenio: 'bot', motivo: null, ...vacio };
+    const motivo = Object.prototype.hasOwnProperty.call(chat, 'botOffReason')
+        ? motivoValido(chat.botOffReason)
+        : await leerMotivo(prisma, chat.id).catch(() => undefined);
+    if (!puedeVolverSolo(motivo)) return { duenio: 'nadie', motivo: motivo || null, ...vacio };
 
-    const ultimoHumano = await prisma.whatsAppMessage.findFirst({
-        where: { chatId: chat.id, direction: 'OUTBOUND', ...whereSalienteHumano() },
+    const [ultimoHumano, ultimoSaliente] = await Promise.all([
+        prisma.whatsAppMessage.findFirst({
+            where: { chatId: chat.id, direction: 'OUTBOUND', ...whereSalienteHumano() },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true, senderName: true },
+        }).catch(() => null),
+        prisma.whatsAppMessage.findFirst({
+            where: { chatId: chat.id, direction: 'OUTBOUND' },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true },
+        }).catch(() => null),
+    ]);
+    if (!ultimoHumano) return { duenio: 'nadie', motivo, ...vacio };
+
+    const corte = ultimoSaliente || ultimoHumano;
+    // Los MÁS NUEVOS primero: si hubiera más de ENTRANTES_A_REVISAR, lo que
+    // importa es lo último que escribió el cliente.
+    const entrantes = await prisma.whatsAppMessage.findMany({
+        where: { chatId: chat.id, direction: 'INBOUND', createdAt: { gt: new Date(corte.createdAt) } },
         orderBy: { createdAt: 'desc' },
-        select: { createdAt: true, senderName: true },
-    }).catch(() => null);
-    if (!ultimoHumano) return { duenio: 'nadie', ...vacio };
-
-    // El que espera es el primer entrante que DISPARA TURNO (15/10/2026): una
-    // reacción o un "gracias" viejos no pueden arrancar el reloj, ni hacer
-    // volver al bot a contestarle un 👍.
-    const posteriores = await prisma.whatsAppMessage.findMany({
-        where: { chatId: chat.id, direction: 'INBOUND', createdAt: { gt: ultimoHumano.createdAt } },
-        orderBy: { createdAt: 'asc' },
         take: ENTRANTES_A_REVISAR,
         select: { createdAt: true, type: true, content: true },
     }).catch(() => []);
-    const esperando = posteriores.find(f => filaDisparaTurno(f)) || null;
 
-    return {
-        duenio: 'humano',
-        desde: new Date(ultimoHumano.createdAt),
-        quien: ultimoHumano.senderName || null,
-        esperandoDesde: esperando ? new Date(esperando.createdAt) : null,
-        esperando,
-    };
+    return { duenio: 'humano', motivo, ...analizarEspera({ ultimoSaliente: corte, ultimoHumano, entrantes }) };
 }
 
 /**
@@ -131,21 +164,32 @@ async function duenioDelChat(prisma, chat) {
  *
  * @param {object} p
  * @param {'bot'|'humano'|'nadie'} p.duenio
- * @param {Date|null} p.desde           último mensaje humano
- * @param {Date|null} p.esperandoDesde  primer entrante sin respuesta humana
+ * @param {Date|null} p.desde             último mensaje humano
+ * @param {Date[]} [p.esperandoFechas]    entrantes que disparan turno sin respuesta (asc)
+ * @param {Date|null} [p.esperandoDesde]  compat: un solo entrante esperando
+ * @param {boolean} [p.excluido]          etiqueta de exclusión (Ya es cliente, Cancelar Bot…)
  * @param {Date} p.ahora
  * @param {(d: Date) => boolean} p.enHorario
  * @returns {{ accion: 'volver'|'esperar'|'no', esperarMs?: number, motivo: string }}
  */
-function decidirVuelta({ duenio, desde, esperandoDesde, ahora, enHorario }) {
+function decidirVuelta({ duenio, desde, esperandoFechas, esperandoDesde, excluido, ahora, enHorario }) {
     if (duenio === 'bot') return { accion: 'no', motivo: 'el bot ya atiende este chat' };
-    if (duenio !== 'humano' || !desde) return { accion: 'no', motivo: 'el bot se apagó por otra cosa que un traspaso' };
-    if (!esperandoDesde) return { accion: 'no', motivo: 'no hay un mensaje del cliente esperando' };
+    if (duenio !== 'humano' || !desde) return { accion: 'no', motivo: 'el bot no se apagó porque lo tomó una persona (o no se sabe por qué)' };
+    if (excluido) return { accion: 'no', motivo: 'el chat tiene una etiqueta que excluye al bot' };
+    const fechas = (esperandoFechas && esperandoFechas.length ? esperandoFechas : (esperandoDesde ? [esperandoDesde] : []))
+        .map(f => new Date(f)).sort((a, b) => a - b);
+    if (!fechas.length) return { accion: 'no', motivo: 'no hay un mensaje del cliente esperando' };
     const t = ahora.getTime();
-    const espera = t - esperandoDesde.getTime();
-    if (espera >= ANTIGUEDAD_MAXIMA_PARA_VOLVER_H * HORA) {
-        return { accion: 'no', motivo: `el mensaje del cliente tiene más de ${ANTIGUEDAD_MAXIMA_PARA_VOLVER_H} h: no se contesta algo viejo` };
+    const tope = ANTIGUEDAD_MAXIMA_PARA_VOLVER_H * HORA;
+
+    // La antigüedad, desde el MÁS NUEVO (15/10/2026).
+    const masNuevo = fechas[fechas.length - 1];
+    if (t - masNuevo.getTime() >= tope) {
+        return { accion: 'no', motivo: `el último mensaje del cliente tiene más de ${ANTIGUEDAD_MAXIMA_PARA_VOLVER_H} h: no se contesta algo viejo` };
     }
+    // La ventana del equipo, desde el primero que sigue vigente.
+    const primero = fechas.find(f => t - f.getTime() < tope);
+    const espera = t - primero.getTime();
 
     if (enHorario(ahora)) {
         const ventana = VENTANA_PARA_QUE_CONTESTE_EL_EQUIPO_MIN * MIN;
@@ -159,7 +203,7 @@ function decidirVuelta({ duenio, desde, esperandoDesde, ahora, enHorario }) {
     // local abierto y ya no va a contestar. La regla de 3 h es para quien
     // escribe CON el local cerrado; aplicársela a este lo dejaba sin
     // respuesta hasta el día siguiente.
-    if (enHorario(esperandoDesde)) {
+    if (enHorario(primero)) {
         return { accion: 'volver', motivo: `el local cerró con el cliente esperando desde hace ${Math.round(espera / MIN)} min` };
     }
 
@@ -181,5 +225,7 @@ module.exports = {
     HORAS_PARA_VOLVER_FUERA_DE_HORARIO,
     ANTIGUEDAD_MAXIMA_PARA_VOLVER_H,
     duenioDelChat,
+    analizarEspera,
+    MOTIVO_APAGADO,
     decidirVuelta,
 };

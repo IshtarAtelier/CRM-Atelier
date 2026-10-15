@@ -50,12 +50,30 @@ const CASOS = [
     ['Estoy de viaje, regreso el lunes y paso a buscarlos', CLASE.CONSULTA, 'cliente real que se callaba como contestador (15/10/2026)'],
     ['Estoy fuera de la ciudad, vuelvo el lunes, quería consultar algo', CLASE.CONSULTA, 'ausencia + regreso + "quería": una persona'],
     ['Gracias por comunicarte con Ferretería Sur. Te responderemos a la brevedad', CLASE.AUTO_DEL_CLIENTE, 'bienvenida de otro comercio con promesa de respuesta'],
+    // Cierres reales que hacían volver al bot a chats de una persona
+    // (simulación contra prod del 15/10/2026).
+    ['gracias chicos!', CLASE.REACCION, 'vocativo al final'],
+    ['gracias genia', CLASE.REACCION, 'vocativo al final'],
+    ['listo che gracias', CLASE.REACCION, '"che"'],
+    ['Okis muchas gracias', CLASE.REACCION, '"okis"'],
+    ['Graciasss', CLASE.REACCION, 'letras estiradas'],
+    ['Bueno,  espero tu aviso.  Saludos.', CLASE.REACCION, '"espero tu aviso"'],
+    ['Vuelvo a analizar y te aviso', CLASE.REACCION, '"te aviso"'],
+    ['Cualquier cosa me comunico. Muchas gracias', CLASE.REACCION, '"cualquier cosa me comunico"'],
+    ['Veo', CLASE.REACCION, 'acuse suelto, sin pregunta nuestra'],
+    ['Excelente', CLASE.REACCION, 'acuse suelto, sin pregunta nuestra'],
+    ['Bueno', CLASE.REACCION, 'acuse suelto, sin pregunta nuestra'],
+    ['te aviso si quiero el turno?', CLASE.CONSULTA, 'con pregunta no es un cierre'],
+    ['bueno y el precio?', CLASE.CONSULTA, 'acuse + pregunta'],
+    ['Si esta semana se me hace imposible', CLASE.CONSULTA, 'sigue la charla'],
+    ['Primera vez', CLASE.CONSULTA, 'contesta algo'],
 ];
 for (const [t, esperado, porque] of CASOS) {
     const c = txt(t);
     check(`"${t}" → ${esperado} (${porque})${c !== esperado ? ` — dio ${c}` : ''}`, c === esperado);
 }
 check('"👍" después de una pregunta nuestra ("¿te mando fotos?") ES una respuesta', txt('👍', { ultimoNuestroPregunta: true }) === CLASE.CONSULTA);
+check('"Bueno" / "Excelente" después de una pregunta nuestra ("¿te reservo el martes?") SON el sí', txt('Bueno', { ultimoNuestroPregunta: true }) === CLASE.CONSULTA && txt('Excelente', { ultimoNuestroPregunta: true }) === CLASE.CONSULTA);
 check('"auto_nuestro" sale del METADATO (fromMe), no del texto', clasificarEntrante({ type: 'text', text: 'hola', fromMe: true }) === CLASE.AUTO_NUESTRO);
 check('fila: una reacción guardada no dispara turno', !filaDisparaTurno({ type: 'TEXT', content: '[Reacción] 👍' }));
 check('fila: un sticker guardado como IMAGE no dispara turno', !filaDisparaTurno({ type: 'IMAGE', content: '[Sticker]' }) && entranteDeFila({ type: 'IMAGE', content: '[Sticker]' }).type === 'sticker');
@@ -121,42 +139,51 @@ const humano = (desde, esperandoDesde) => ({ duenio: 'humano', desde: art(desde)
 }
 check('chat apagado por otra cosa (sin etiqueta de traspaso) → nunca vuelve solo',
     decidirVuelta({ duenio: 'nadie', desde: null, esperandoDesde: null, ahora: art('2026-10-14T22:30'), enHorario: isBusinessHours }).accion === 'no');
-check('bot-cloud.js usa duenioDelChat + decidirVuelta (no una regla propia por reloj)',
-    bc.includes('duenioDelChat(prisma, chat)') && bc.includes('decidirVuelta(') && !bc.includes('puedeVolverSolo'));
-check('la espera NO vive en memoria (un redeploy la borraba): no hay setTimeout de vuelta', !bc.includes('esperasDeVuelta') && !bc.includes('revisarVuelta'));
-check('un barrido periódico retoma los chats desde la base', bc.includes('async function barrerVueltas(') && /setInterval\(\(\) => barrerVueltas\(\)/.test(bc) && /lastInboundAt: \{ gte: desde \}/.test(bc));
-check('la reactivación es condicionada (dos instancias no programan dos turnos)', /updateMany\(\{\s*where: \{ id: chat\.id, botEnabled: false \}/.test(bc) && /r\.count !== 1/.test(bc));
-check('el barrido no pisa un turno ya programado o corriendo', /debounceTimers\.has\(chat\.id\) \|\| turnosEnCurso\.has\(chat\.id\)/.test(bc));
+// El barrido, la exclusión, el motivo y el candado se prueban CORRIENDO el
+// código en check:vuelta-bot (antes eran regex sobre bot-cloud.js).
+
+console.log('\nAntigüedad desde el MÁS NUEVO, ventana desde el primero vigente (15/10/2026)');
+{
+    // Escribió ayer 10:00 sin respuesta y vuelve a escribir hoy 11:00: antes
+    // 'no' para siempre (se medía desde el de ayer). ~195 chats en prod.
+    const d = decidirVuelta({ duenio: 'humano', desde: art('2026-10-13T09:00'), esperandoFechas: [art('2026-10-13T10:00'), art('2026-10-14T11:00')], ahora: art('2026-10-14T11:25'), enHorario: isBusinessHours });
+    check('cliente que escribió ayer y vuelve a escribir hoy → VUELVE (la ventana corre desde el de hoy)', d.accion === 'volver');
+    const e = decidirVuelta({ duenio: 'humano', desde: art('2026-10-13T09:00'), esperandoFechas: [art('2026-10-13T10:00'), art('2026-10-14T11:00')], ahora: art('2026-10-14T11:10'), enHorario: isBusinessHours });
+    check('…y a los 10 min del de hoy todavía espera al equipo (no cuenta desde ayer)', e.accion === 'esperar' && e.esperarMs === 10 * 60000);
+    const f = decidirVuelta({ duenio: 'humano', desde: art('2026-10-14T08:00'), esperandoFechas: [art('2026-10-14T11:00'), art('2026-10-14T11:15')], ahora: art('2026-10-14T11:20'), enHorario: isBusinessHours });
+    check('dos mensajes hoy (11:00 y 11:15): la ventana de 20 min corre desde el PRIMERO → VUELVE a las 11:20', f.accion === 'volver');
+    const g = decidirVuelta({ duenio: 'humano', desde: art('2026-10-12T09:00'), esperandoFechas: [art('2026-10-12T10:00'), art('2026-10-13T10:00')], ahora: art('2026-10-14T11:00'), enHorario: isBusinessHours });
+    check(`si hasta el más nuevo tiene más de ${ANTIGUEDAD_MAXIMA_PARA_VOLVER_H} h → NO`, g.accion === 'no');
+    const h = decidirVuelta({ duenio: 'humano', desde: art('2026-10-14T08:00'), esperandoFechas: [art('2026-10-14T11:00')], excluido: true, ahora: art('2026-10-14T12:00'), enHorario: isBusinessHours });
+    check('con exclusión → NO', h.accion === 'no');
+}
 
 console.log('\n"Llegó algo nuevo durante el turno": solo lo que dispara turno, y siempre queda uno programado');
 check('el control filtra con filaDisparaTurno (un 👍 no tira la respuesta)', /queDisparan = nuevos\.filter\(f => filaDisparaTurno\(f\)\)/.test(bc) && !/whatsAppMessage\.count\(\{\s*where: \{ chatId: chat\.id, direction: 'INBOUND'/.test(bc));
 check('si descarta, garantiza un turno programado', /queDisparan\.length > 0\) \{[\s\S]{0,400}programarTurno\(chat,/.test(bc));
 
-console.log('\nduenioDelChat: el que espera es el primer entrante que dispara turno');
+console.log('\nduenioDelChat: lo que espera, desde la base');
 {
     const t = (iso) => art(iso);
     const filas = {
         humano: { createdAt: t('2026-10-14T10:00'), senderName: 'Mile' },
         entrantes: [
-            { createdAt: t('2026-10-14T10:05'), type: 'TEXT', content: '[Reacción] 👍' },
-            { createdAt: t('2026-10-14T10:06'), type: 'TEXT', content: 'gracias!' },
             { createdAt: t('2026-10-14T11:00'), type: 'TEXT', content: 'y cuánto sale el clip?' },
+            { createdAt: t('2026-10-14T10:06'), type: 'TEXT', content: 'gracias!' },
+            { createdAt: t('2026-10-14T10:05'), type: 'TEXT', content: '[Reacción] 👍' },
         ],
     };
     const prismaFalso = { whatsAppMessage: {
         findFirst: async () => filas.humano,
         findMany: async () => filas.entrantes,
     } };
-    const { ETIQUETA_BOT_APAGADO } = require('../../wa-service/shared/traspaso-humano.js');
-    const d2 = await duenioDelChat(prismaFalso, { id: 'c1', botEnabled: false, chatLabels: [ETIQUETA_BOT_APAGADO] });
-    check('una reacción y un "gracias" viejos no arrancan el reloj: espera desde la pregunta de las 11:00',
+    const { MOTIVO_APAGADO } = require('../../wa-service/shared/motivo-apagado.js');
+    const d2 = await duenioDelChat(prismaFalso, { id: 'c1', botEnabled: false, botOffReason: MOTIVO_APAGADO.TOMADO_POR_PERSONA });
+    check('una reacción y un "gracias" no arrancan el reloj: espera desde la pregunta de las 11:00',
         d2.duenio === 'humano' && d2.esperandoDesde && d2.esperandoDesde.getTime() === t('2026-10-14T11:00').getTime() && d2.esperando.content.includes('cuánto'));
+    const d3 = await duenioDelChat(prismaFalso, { id: 'c1', botEnabled: false, botOffReason: MOTIVO_APAGADO.APAGADO_MANUAL, chatLabels: ['[SISTEMA - BOT APAGADO]'] });
+    check('apagado desde el panel (con la etiqueta vieja) → sin dueño humano', d3.duenio === 'nadie');
 }
-
-console.log('\nCandado por chat: nunca dos turnos a la vez');
-check('hay un Set de turnos en curso', bc.includes('const turnosEnCurso = new Set()'));
-check('un entrante con turno corriendo se reprograma', /if \(turnosEnCurso\.has\(chat\.id\)\) \{[\s\S]{0,200}programarTurno\(chat, msg, REINTENTO_CON_TURNO_EN_CURSO_MS\)/.test(bc));
-check('el candado se suelta siempre (finally)', /\.finally\(\(\) => turnosEnCurso\.delete\(chat\.id\)\)/.test(bc));
 
 console.log('');
 if (fallas) { console.log(`❌ ${fallas} falla(s).`); process.exit(1); }

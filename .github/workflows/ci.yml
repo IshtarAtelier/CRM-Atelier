@@ -162,6 +162,9 @@ jobs:
       - name: Solo las consultas disparan turno; el bot respeta al dueño del chat
         run: npm run check:entrantes
 
+      - name: El bot solo vuelve a chats que tomó una persona; un turno por chat entre instancias
+        run: npm run check:vuelta-bot
+
       - name: El bot saluda con un nombre de verdad (o sin nombre)
         run: npm run check:nombres-bot
 

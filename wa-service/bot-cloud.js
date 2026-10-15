@@ -38,12 +38,14 @@ const { TAGS_SIN_BOT } = require('./utils');
 const { leerSalidaDelGrafo, armarRespuesta, crearTurno } = require('./shared/respuesta-del-turno');
 const { escalarAHumano } = require('./shared/escalar');
 const { clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno } = require('./shared/clasificar-entrante');
-const { duenioDelChat, decidirVuelta, ANTIGUEDAD_MAXIMA_PARA_VOLVER_H } = require('./shared/duenio-del-chat');
+const { crearVueltaDelBot } = require('./shared/vuelta-del-bot');
+const { crearCandadoDeTurno } = require('./shared/candado-de-turno');
+const { MOTIVO_APAGADO } = require('./shared/motivo-apagado');
 const { isBusinessHours } = require('./shared/business-hours');
 const { entroPorAnuncio, faseDeLaCharla, historiaNuestra, restriccionDeFase } = require('./shared/fase-de-la-charla');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano, whereSalienteHumano } = require('./shared/remitentes');
-const { marcarTraspasoHumano, ETIQUETA_BOT_APAGADO } = require('./shared/traspaso-humano');
+const { marcarTraspasoHumano } = require('./shared/traspaso-humano');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
 const { leerReceta, MAX_FOTOS_POR_LECTURA } = require('./shared/leer-receta');
@@ -149,7 +151,9 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
     botService.botDebounceTimers = debounceTimers;
     botService.chatErrorCounts = chatErrorCounts;
 
-    const disableBotForChatById = (chatId, reason) => botService.disableBotForChatById(chatId, reason);
+    // `motivo` (MOTIVO_APAGADO) es lo que decide si el bot puede volver solo
+    // (15/10/2026). Todo apagado de este archivo lo pasa.
+    const disableBotForChatById = (chatId, reason, motivo) => botService.disableBotForChatById(chatId, reason, motivo);
 
     // ── Config ──────────────────────────────────────────────────────────────
 
@@ -268,12 +272,10 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         // El bot SABE la hora: el prompt recibe [HORA_ACTUAL] y el horario del
         // local, así que dice que está cerrado sin que haya que callarlo.
 
-        const fresh = await prisma.whatsAppChat.findUnique({
-            where: { id: chat.id },
-            select: { id: true, waId: true, realPhone: true, profileName: true, botEnabled: true, chatLabels: true, clientId: true },
-        });
+        const fresh = await vuelta.leerChat({ id: chat.id });
         if (!fresh) return false;
-        if (!fresh.botEnabled && !(await evaluarVuelta(fresh)).vuelve) return false;
+        // La exclusión ya se mira ADENTRO de evaluarVuelta, antes de prender.
+        if (!fresh.botEnabled && !(await vuelta.evaluarVuelta(fresh, msg)).vuelve) return false;
 
         if (await tieneExclusion(fresh, msg)) return false;
 
@@ -314,65 +316,23 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
     const describirLectura = (r) => `${r.esReceta ? (r.legible ? `receta ${r.tipo}` : 'receta NO legible') : 'no es receta'} · ${r.modelo || r.error || '—'}`;
 
     /**
-     * ¿Vuelve el bot a un chat que tomó una persona? Lo decide
-     * shared/duenio-del-chat.js (regla única, ver ahí el porqué):
-     *   - local ABIERTO: un entrante NO lo reactiva de inmediato; el equipo
-     *     tiene VENTANA_PARA_QUE_CONTESTE_EL_EQUIPO_MIN para contestar. Si
-     *     nadie contestó, vuelve el bot y responde.
-     *   - el local CERRÓ con el cliente esperando: vuelve.
-     *   - local CERRADO desde antes: la regla del 17/9/2026, 3 h sin que
-     *     escriba una persona.
-     *
-     * SOLO reactiva lo que apagó un traspaso humano (la etiqueta). Un chat
-     * apagado por post-venta, reclamo o un tag sin bot sigue mudo.
-     *
-     * 'esperar' ya no arma un setTimeout (15/10/2026): se perdía en cada
-     * redeploy y nadie volvía a mirar el chat. Lo retoma `barrerVueltas`, que
-     * recalcula todo desde la base cada minuto.
-     *
-     * Dos instancias del wa-service pueden barrer a la vez (ya pasó con los
-     * crons): la reactivación es un `updateMany` CONDICIONADO a
-     * `botEnabled: false`, así que solo una gana el chat y programa el turno.
-     *
-     * @returns {Promise<{ vuelve: boolean, esperando: object|null }>}
+     * ¿Vuelve el bot a un chat que tomó una persona? Leer, decidir y
+     * reactivar viven en shared/vuelta-del-bot.js (regla en
+     * shared/duenio-del-chat.js): SOLO chats apagados con motivo
+     * TOMADO_POR_PERSONA, exclusiones antes de escribir nada, y la
+     * reactivación condicionada (una sola instancia la gana).
      */
-    async function evaluarVuelta(chat) {
-        const duenio = await duenioDelChat(prisma, chat);
-        const d = decidirVuelta({ ...duenio, ahora: new Date(), enHorario: isBusinessHours });
-        const quien = chat.profileName || chat.waId;
-        const esperando = duenio.esperando || null;
-
-        if (d.accion === 'volver') {
-            // Se va también la etiqueta: si quedara, el auto-resume de 24 h de la
-            // otra vía seguiría viendo un chat "tomado por un humano" que ya no lo
-            // está, y el buzón mostraría BOT APAGADO con el bot encendido.
-            const sinEtiqueta = (chat.chatLabels || []).filter(l => l !== ETIQUETA_BOT_APAGADO);
-            const r = await prisma.whatsAppChat.updateMany({
-                where: { id: chat.id, botEnabled: false },
-                data: { botEnabled: true, chatLabels: sinEtiqueta },
-            }).catch(e => { console.error('  ⚠️ [BotCloud] No se pudo reactivar el bot:', e && e.message); return { count: 0 }; });
-            if (!r || r.count !== 1) return { vuelve: false, esperando }; // lo ganó otro camino u otra instancia
-            chat.botEnabled = true;
-            chat.chatLabels = sinEtiqueta;
-            console.log(`  🔄 [BotCloud] El bot vuelve en ${quien}: ${d.motivo} (último del equipo: ${duenio.quien || '—'}).`);
-            broadcastChatUpdate(chat.id);
-            return { vuelve: true, esperando };
-        }
-
-        if (d.accion === 'esperar') {
-            console.log(`  ⏳ [BotCloud] ${quien} lo atiende ${duenio.quien || 'una persona'}: ${d.motivo}. Lo retoma el barrido en ~${Math.ceil(d.esperarMs / 60000)} min.`);
-            return { vuelve: false, esperando };
-        }
-
-        console.log(`  🙋 [BotCloud] ${quien}: el bot no vuelve (${d.motivo}).`);
-        return { vuelve: false, esperando };
-    }
+    const vuelta = crearVueltaDelBot({
+        prisma,
+        tieneExclusion: (c, m) => tieneExclusion(c, m),
+        enHorario: isBusinessHours,
+        broadcastChatUpdate,
+    });
 
     /**
      * Cada BARRIDO_DE_VUELTAS_MS: los chats tomados por una persona con un
      * entrante reciente se vuelven a decidir con la base fresca. Es lo que
      * hace cumplir la ventana del equipo aunque el proceso se haya reiniciado.
-     * Solo mira chats con entrantes de las últimas ANTIGUEDAD_MAXIMA_PARA_VOLVER_H.
      */
     let barriendo = false;
     async function barrerVueltas() {
@@ -380,19 +340,12 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         barriendo = true;
         try {
             if (!(await isEnabled())) return;
-            const desde = new Date(Date.now() - ANTIGUEDAD_MAXIMA_PARA_VOLVER_H * 60 * 60 * 1000);
-            const chats = await prisma.whatsAppChat.findMany({
-                where: { botEnabled: false, chatLabels: { has: ETIQUETA_BOT_APAGADO }, lastInboundAt: { gte: desde } },
-                select: { id: true, waId: true, realPhone: true, profileName: true, botEnabled: true, chatLabels: true, clientId: true },
-                orderBy: { lastInboundAt: 'asc' },
-                take: MAX_CHATS_POR_BARRIDO,
-            });
+            const chats = await vuelta.chatsParaBarrer(MAX_CHATS_POR_BARRIDO);
             for (const chat of chats) {
-                if (debounceTimers.has(chat.id) || turnosEnCurso.has(chat.id)) continue;
-                const { vuelve, esperando } = await evaluarVuelta(chat);
+                if (debounceTimers.has(chat.id) || candado.tengo(chat.id)) continue;
+                const { vuelve, esperando } = await vuelta.evaluarVuelta(chat);
                 if (!vuelve || !esperando) continue;
                 const msg = { ...entranteDeFila(esperando), profileName: chat.profileName, from: chat.realPhone };
-                if (await tieneExclusion(chat, msg)) continue;
                 programarTurno(chat, msg, REINTENTO_CON_TURNO_EN_CURSO_MS);
             }
         } finally {
@@ -432,8 +385,12 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
      * para después. El turno en curso, al terminar, ve que llegó algo nuevo y
      * descarta su respuesta (control "¿Escribió de nuevo mientras pensábamos?");
      * el reprogramado contesta todo junto.
+     *
+     * Desde el 15/10/2026 es un lease en la BASE (shared/candado-de-turno.js):
+     * con dos instancias, el barrido en A y el webhook en B corrían dos turnos.
+     * Sin las columnas cae a memoria, como antes.
      */
-    const turnosEnCurso = new Set();
+    const candado = crearCandadoDeTurno({ prisma });
     // Cuánto se reintenta cuando el turno anterior todavía corre.
     const REINTENTO_CON_TURNO_EN_CURSO_MS = 3000;
 
@@ -443,17 +400,19 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         const waId = chat.waId;
         const profileName = msg.profileName || chat.profileName || 'Cliente';
         const realPhone = chat.realPhone || msg.from || null;
-        const t = setTimeout(() => {
+        const t = setTimeout(async () => {
             debounceTimers.delete(chat.id);
-            if (turnosEnCurso.has(chat.id)) {
+            if (!(await candado.tomar(chat.id))) {
+                // Lo corre otro (este proceso u otra instancia). Se reintenta:
+                // cuando ese termine, este turno arranca, ve que no queda nada
+                // sin contestar y no hace nada (control al inicio del turno).
                 console.log(`  🔒 [BotCloud] ${profileName} ya tiene un turno corriendo: se reprograma.`);
-                programarTurno(chat, msg, REINTENTO_CON_TURNO_EN_CURSO_MS);
+                if (!debounceTimers.has(chat.id)) programarTurno(chat, msg, REINTENTO_CON_TURNO_EN_CURSO_MS);
                 return;
             }
-            turnosEnCurso.add(chat.id);
             processBotTurn(chat, waId, profileName, realPhone)
                 .catch(e => console.error('  ❌ [BotCloud] Error async en processBotTurn:', e.message))
-                .finally(() => turnosEnCurso.delete(chat.id));
+                .finally(() => candado.soltar(chat.id));
         }, esperaMs);
         t.unref?.();
         debounceTimers.set(chat.id, t);
@@ -603,7 +562,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         }
         chatErrorCounts.delete(chat.id);
         console.error(`  🛑 [BotCloud] ${MAX_CONSECUTIVE_FAILED_TURNS} turnos fallidos seguidos para ${profileName || waId}. Se apaga el bot en ese chat.`);
-        await disableBotForChatById(chat.id, `Errores técnicos persistentes (${String(motivo).substring(0, 50)})`);
+        await disableBotForChatById(chat.id, `Errores técnicos persistentes (${String(motivo).substring(0, 50)})`, MOTIVO_APAGADO.ERRORES);
         if (io) io.emit('bot_error', { chatId: chat.id, name: profileName || 'Cliente', phone: waId, error: `Desactivado por errores persistentes: ${String(motivo).substring(0, 80)}` });
         return true;
     }
@@ -677,6 +636,18 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         return { guardada: true };
     }
 
+    /**
+     * `recientes` viene del más nuevo al más viejo. Mismo criterio que el
+     * webhook: un 👍 cuenta si nuestro último mensaje era una pregunta.
+     */
+    function quedaAlgoSinContestar(recientes) {
+        const i = recientes.findIndex(m => m.direction === 'OUTBOUND');
+        const nuestro = i === -1 ? null : recientes[i];
+        const ultimoNuestroPregunta = /\?\s*\W*$/.test(String((nuestro && nuestro.content) || '').trim());
+        return (i === -1 ? recientes : recientes.slice(0, i))
+            .some(m => m.direction === 'INBOUND' && filaDisparaTurno(m, { ultimoNuestroPregunta }));
+    }
+
     async function processBotTurn(chat, waId, profileName, realPhone) {
         // Momento en que arranca el turno: todo saliente humano posterior a
         // esto es una intervención que tiene que callar al bot (ver el control
@@ -703,6 +674,15 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 take: HISTORY_SIZE,
             });
             const masNuevoProcesado = recientes[0] || null;
+
+            // ¿Queda algo sin contestar? (15/10/2026) Con el candado en la base,
+            // un turno reprogramado puede arrancar DESPUÉS de que otra instancia
+            // ya contestó: si no hay una consulta posterior a nuestro último
+            // saliente, no hay nada que decir.
+            if (!quedaAlgoSinContestar(recientes)) {
+                console.log(`  💤 [BotCloud] ${profileName || waId}: no hay consulta sin contestar después de nuestro último mensaje. No se corre el turno.`);
+                return;
+            }
             const messages = await armarHistorial(recientes, chat.id);
 
             // Si llegó una foto de receta, el sistema la lee y la guarda ANTES de
@@ -776,10 +756,14 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             const salida = Array.isArray(result && result.messages) ? result.messages : [];
 
             // ── Apagado silencioso pedido por el propio agente ───────────────
-            const pidioApagado = salida.some(m => Array.isArray(m.tool_calls) && m.tool_calls.some(c => c.name === 'disable_bot_for_personal_chat' || c.name === 'cancel_bot'));
+            const llamadas = salida.flatMap(m => (Array.isArray(m.tool_calls) ? m.tool_calls : []));
+            const pidioApagado = llamadas.some(c => c.name === 'disable_bot_for_personal_chat' || c.name === 'cancel_bot');
             if (pidioApagado) {
                 console.log(`  ⏹️ [BotCloud] Apagado silencioso (${chat.id}): no se responde nada.`);
-                await disableBotForChatById(chat.id, 'Detección de chat personal/cancelación silenciosa');
+                // La herramienta ya lo apagó con su motivo; esto es la red si
+                // no llegó a correr. Personal si fue esa, derivado si cancel_bot.
+                const motivoApagado = llamadas.some(c => c.name === 'disable_bot_for_personal_chat') ? MOTIVO_APAGADO.PERSONAL : MOTIVO_APAGADO.DERIVADO;
+                await disableBotForChatById(chat.id, 'Detección de chat personal/cancelación silenciosa', motivoApagado);
                 broadcastChatUpdate(chat.id);
                 return;
             }
@@ -860,7 +844,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                     return;
                 }
                 const esSospechaDeBot = guardrail.reason.includes('Revelación de Identidad');
-                await disableBotForChatById(chat.id, `Brecha de seguridad (Guardrail: ${guardrail.reason})`);
+                await disableBotForChatById(chat.id, `Brecha de seguridad (Guardrail: ${guardrail.reason})`, MOTIVO_APAGADO.GUARDRAIL);
                 if (freshChat.clientId) {
                     // En la ficha va lo SANEADO: la nota la leen las vendedoras
                     // y el texto crudo puede traer justo lo que se bloqueó
@@ -1054,7 +1038,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             }
             if (/429|RESOURCE_EXHAUSTED/.test(err.message || '')) {
                 chatErrorCounts.delete(chat.id);
-                await disableBotForChatById(chat.id, 'Cuota agotada de API (Error 429)');
+                await disableBotForChatById(chat.id, 'Cuota agotada de API (Error 429)', MOTIVO_APAGADO.CREDITO);
                 if (io) io.emit('bot_error', { chatId: chat.id, name: profileName || 'Cliente', phone: waId, error: 'Crédito Agotado (Error 429)' });
                 return;
             }

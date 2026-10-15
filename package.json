@@ -93,6 +93,7 @@
     "check:envios-bot": "node scripts/checks/envios-bot-con-origen.check.mjs",
     "check:primer-contacto": "node scripts/checks/primer-contacto-bot.check.mjs",
     "check:entrantes": "node scripts/checks/entrantes-bot.check.mjs",
+    "check:vuelta-bot": "node scripts/checks/vuelta-bot.check.mjs",
     "check:nombres-bot": "node --experimental-strip-types scripts/checks/nombres-bot.check.mjs",
     "check:remitentes": "node --experimental-strip-types scripts/checks/remitentes-paridad.check.mjs",
     "check:catalogo-bot": "node --experimental-strip-types scripts/checks/catalogo-bot.check.mjs"

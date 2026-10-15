@@ -134,15 +134,60 @@ function soloEmojis(texto) {
 
 /**
  * Un cierre de charla: "gracias", "bueno gracias", "muchas gracias!!", "ok
- * gracias 😊". Tiene que estar el agradecimiento: "ok" o "dale" solos pueden
- * ser el SÍ a una pregunta nuestra ("¿te mando fotos?" → "dale"), y eso es
- * una consulta.
+ * gracias 😊". Tiene que estar el agradecimiento, la despedida o el "te
+ * aviso": "ok" o "dale" solos pueden ser el SÍ a una pregunta nuestra ("¿te
+ * mando fotos?" → "dale"), y eso es una consulta.
+ *
+ * Reforzado el 15/10/2026 con los cierres reales que hacían volver al bot en
+ * chats que atendía una persona (simulado contra prod: "gracias chicos!",
+ * "Okis muchas gracias", "Graciasss", "Bueno, espero tu aviso. Saludos.",
+ * "Vuelvo a analizar y te aviso", "Cualquier cosa me comunico. Muchas
+ * gracias"): vocativos al final ("chicos", "che", "genia"), "okis", letras
+ * estiradas, y el "te aviso" del que se va a pensarlo. El mensaje entero
+ * tiene que estar hecho de estas piezas: "gracias, y cuánto sale?" sigue
+ * siendo consulta.
  */
-const CIERRE_CON_GRACIAS = /^(?:(?:bueno|buenisimo|genial|perfecto|ok|okey|oka|dale|listo|joya|barbaro|excelente|ah|aa+h?|si|bien)[\s,.!]*)*(?:muchas |mil |muchisimas )?gracias(?: a vos| a ustedes| igual| por todo| por la info(?:rmacion)?| por responder)?(?:[\s,.!]*(?:saludos|besos|abrazo|que tengas buen dia|buen dia|buenas tardes|buenas noches))?[\s,.!]*$/;
+const PIEZAS_DE_CIERRE = [
+    // muletillas de asentimiento
+    /(?:bueno|buenisimo|genial|perfecto|ok|okey|oka|okis|okas|dale|listo|joya|barbaro|excelente|ah|aa+h?|si|bien|super|re|y)/.source,
+    // el agradecimiento
+    /(?:muchas |mil |muchisimas |muy )?gracias+(?: a vos| a ustedes| a todos| igual| por todo| por la info(?:rmacion)?| por responder| por (?:tu|su) (?:tiempo|ayuda|atencion|respuesta))?/.source,
+    // vocativos
+    /(?:chicos|chicas|chiques|che|genia|genio|genias|genios|capo|capa|crack|amigo|amiga|linda|lindo|querida|querido|bella)/.source,
+    // despedidas
+    /(?:saludos|saludo|besos|beso|abrazo|abrazos|que tengas (?:un )?buen dia|que tengas buena tarde|buen dia|buenas tardes|buenas noches|nos vemos|hasta luego|chau|slds)/.source,
+    // "lo pienso y te aviso"
+    /(?:quedo a la espera|espero (?:tu|su) (?:aviso|respuesta)|(?:te|les|le) aviso|(?:te|les|le) confirmo|cualquier cosa (?:te|les|le) (?:aviso|escribo|consulto)|cualquier cosa me comunico|vuelvo a analizar|lo (?:veo|pienso|analizo|charlo)|lo voy a pensar|voy a pensarlo|lo vemos)/.source,
+];
+const CIERRE_CON_GRACIAS = new RegExp(`^(?:(?:${PIEZAS_DE_CIERRE.join('|')})(?:[\\s,.!]+|$))+$`);
+/** Lo que hace que sea un cierre y no un "sí": agradecer, despedirse o "te aviso". */
+const NUCLEO_DE_CIERRE = new RegExp(`\\b(?:${PIEZAS_DE_CIERRE.slice(1, 2).concat(PIEZAS_DE_CIERRE.slice(3)).join('|')})\\b`);
+
+/**
+ * Una palabra sola que, sin pregunta nuestra pendiente, es un acuse y no una
+ * consulta ("Veo", "Bueno", "Excelente"). Con una pregunta nuestra pendiente
+ * puede ser el SÍ ("¿te reservo el martes?" → "bueno"): ahí es consulta,
+ * igual que un emoji solo.
+ */
+const ACUSE_SUELTO = /^(?:bueno|veo|lo veo|ya veo|excelente|genial|perfecto|buenisimo|joya|barbaro|ah bueno|ok bueno|okis|oki)[\s,.!]*$/;
+
+/** Junta las letras estiradas: "Graciasss" → "gracias", "buenooo" → "bueno". */
+function sinLetrasEstiradas(t) {
+    return t.replace(/([a-z])\1{2,}/g, '$1');
+}
+
+function textoDeCierre(texto) {
+    return sinLetrasEstiradas(normalizar(String(texto || '').replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}‍️]/gu, ' ')));
+}
 
 function esCierreConGracias(texto) {
-    const t = normalizar(String(texto || '').replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}‍️]/gu, ' '));
-    return Boolean(t) && CIERRE_CON_GRACIAS.test(t);
+    const t = textoDeCierre(texto);
+    if (!t || /\?/.test(String(texto || ''))) return false;
+    return CIERRE_CON_GRACIAS.test(t) && NUCLEO_DE_CIERRE.test(t);
+}
+
+function esAcuseSuelto(texto) {
+    return ACUSE_SUELTO.test(textoDeCierre(texto));
 }
 
 /**
@@ -174,6 +219,7 @@ function clasificarEntrante(msg, contexto = {}) {
 
     if (soloEmojis(texto)) return contexto.ultimoNuestroPregunta ? CLASE.CONSULTA : CLASE.REACCION;
     if (esCierreConGracias(texto)) return CLASE.REACCION;
+    if (esAcuseSuelto(texto)) return contexto.ultimoNuestroPregunta ? CLASE.CONSULTA : CLASE.REACCION;
     return CLASE.CONSULTA;
 }
 
@@ -208,4 +254,4 @@ function disparaTurno(clase) {
     return clase === CLASE.CONSULTA;
 }
 
-module.exports = { CLASE, clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno, esContestadorDelCliente, esCierreConGracias };
+module.exports = { CLASE, clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno, esContestadorDelCliente, esCierreConGracias, esAcuseSuelto };
