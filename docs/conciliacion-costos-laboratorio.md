@@ -103,7 +103,8 @@ caja). Nada se avisa si está resuelto a mano, y nada de más de 30 días.
    medias eso le dio a Rius Belen (80544194) $162.872 cuando sus líneas suman
    $18.988. Lo fija `npm run check:go-lineas`.
    - **Una sola pasada a la vez contra el portal** (turno en
-     `SystemSetting lab-provider:GRUPO_OPTICO:turno`, 20 min): la diaria de las
+     `SystemSetting lab-modulo:GRUPO_OPTICO:turno`, el del marco de módulos,
+     compartido con el seguimiento desde el 3/10/2026): la diaria de las
      8:30 y la "recuperación" del pase de 10 min chocaban todas las mañanas y el
      portal devolvía PDFs a medias (374 comprobantes en vez de ~640).
    - **PDF incompleto = no se tocan importes**: si una pasada completa lee menos
@@ -167,7 +168,7 @@ viernes, para siempre.
 |---|---|
 | `CRON_SECRET` | Auth del cron |
 | `IMAP_USER` / `IMAP_PASSWORD` | Casilla que recibe las facturas de Optovision (app password de Gmail) |
-| `SMARTLAB_USER` / `SMARTLAB_PASSWORD` / `SMARTLAB_CLIENT_ID` | Login del portal Grupo Óptico (fallback a los valores actuales) |
+| `SMARTLAB_USER` / `SMARTLAB_PASSWORD` / `SMARTLAB_CLIENT_ID` | Login del portal Grupo Óptico. Sin las dos primeras no se abre el navegador (no hay clave de respaldo en el código desde el 3/10/2026) |
 | `LAB_AUDIT_START_ISO` (constants.ts) | Inicio de la auditoría (primera venta del CRM: 2026-04-08) |
 
 ## Puesta en marcha / pendientes

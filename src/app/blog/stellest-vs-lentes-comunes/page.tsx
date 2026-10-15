@@ -30,7 +30,7 @@ const FILAS: { que: string; comun: string; stellest: string }[] = [
   { que: 'Quién lo indica', comun: 'Cualquier receta de miopía', stellest: 'El oftalmopediatra, cuando la miopía está en progresión' },
   { que: 'Dónde se consigue', comun: 'En cualquier óptica', stellest: 'Solo en ópticas certificadas por Essilor' },
   { que: 'Tiempo de fabricación', comun: 'Días', stellest: 'Alrededor de 25 días hábiles (fabricado a pedido)' },
-  { que: 'Precio', comun: 'Menor', stellest: 'Mayor: se cotiza con la receta' },
+  { que: 'Precio', comun: 'Menor', stellest: 'Mayor, pero único: no depende de la receta' },
 ];
 
 export default function Page() {

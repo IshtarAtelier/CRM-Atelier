@@ -1,5 +1,5 @@
 import type { Page } from 'playwright';
-import type { GraduacionOjo, PayloadVitolen } from './carga';
+import { esSegundoParDePromo, tipoArmazonDelPortal, type GraduacionOjo, type PayloadVitolen } from './carga';
 import { BASE_VITOLEN } from './pedidos';
 import { NOMBRE_VITOLEN } from './portal';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, resumenComparable } from './resumen';
@@ -31,13 +31,6 @@ export interface ResultadoLlenado {
 
 const TIPO_RECETA: Record<PayloadVitolen['ojos'], string> = { AMBOS: '1', OD: '2', OI: '3' };
 const CLASE: Record<PayloadVitolen['tipoReceta'], string> = { Monofocal: '1', Bifocal: '2', Ocupacional: '4', Progresivo: '3' };
-/** Tipo de armazón de la venta → radio del portal (valor, etiqueta). */
-const TIPO_ARMAZON: [RegExp, string, string][] = [
-    [/met[aá]l/i, '1', 'Metálico'],
-    [/zilo|acetato|pl[aá]stic|inyectad|tr-?90|ultem/i, '2', 'Zilo'],
-    [/ranur|nylon|semi/i, '3', 'Ranurado'],
-    [/perfor|al aire|rimless|tres piezas|3 piezas/i, '4', 'Perforado'],
-];
 const ESPERA_PASO_MS = 20_000;
 
 const grad = (n: number | null): string => n === null ? '' : `${n > 0 ? '+' : ''}${n.toFixed(2)}`;
@@ -188,8 +181,8 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     if (payload.od) await llenarOjo(page, pasos, 0, payload.od, payload);
     if (payload.oi) await llenarOjo(page, pasos, 1, payload.oi, payload);
 
-    if (payload.par === 2 || payload.pedidoOrigen) {
-        pendientes.push(`promo del 2º par: antes de aprobar, abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen ?? '(el nº del 1er par: la venta no lo tiene todavía)'} con la promoción HOYALUX (el robot todavía no lo hace)`);
+    if (esSegundoParDePromo(payload)) {
+        pendientes.push(`promo del 2º par: abrir "Modificar" en el portal y asociar el pedido origen ${payload.pedidoOrigen ?? '(el nº del 1er par: la venta no lo tiene todavía)'} con la promoción HOYALUX (el robot todavía no lo hace); después tocá "Releer el portal" en la ficha y recién ahí aprobá`);
     }
 
     // Armazón
@@ -208,7 +201,7 @@ export async function llenarFormulario(page: Page, payload: PayloadVitolen): Pro
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][diagonal_mayor]', 'Diagonal mayor (ED)', medida(payload.armazon.diagonalMayor));
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][eje]', 'Eje de la diagonal', entero(payload.armazon.ejeDiagonal));
     await llenarCampo(page, pasos, 'pedido[armazones_attributes][0][puente]', 'Puente (DBL)', medida(payload.armazon.puente));
-    const tipo = TIPO_ARMAZON.find(([re]) => re.test(payload.armazon.tipo || ''));
+    const tipo = tipoArmazonDelPortal(payload.armazon.tipo);
     if (tipo) await marcarRadio(page, pasos, 'pedido[armazones_attributes][0][tipo_armazon_id]', tipo[1], 'Tipo de armazón', tipo[2]);
     else pendientes.push(`tipo de armazón: la venta dice "${payload.armazon.tipo || 'nada'}" y el portal pide Metálico / Zilo / Ranurado / Perforado`);
     await marcarRadio(page, pasos, 'pedido[armazones_attributes][0][funcionalidad_id]', '1', 'Funcionalidad', 'Aro Convencional');
@@ -261,9 +254,11 @@ export interface ResumenDelPortal {
  * rechaza (un campo vacío), vuelve al formulario con los errores y no crea
  * nada. NO confirma. Devuelve siempre la captura: un rechazo también se mira.
  */
-export async function crearYLeerResumen(page: Page): Promise<ResumenDelPortal> {
+export async function crearYLeerResumen(page: Page, opts: { antesDeCrear?: () => Promise<void> } = {}): Promise<ResumenDelPortal> {
     const boton = page.locator('input[type=submit][value="Crear"], button:has-text("Crear")').first();
     if (await boton.count() === 0) throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el botón "Crear".`);
+    // El último control antes de crear en el portal (el borrador del CRM sigue PREPARADO).
+    if (opts.antesDeCrear) await opts.antesDeCrear();
     await boton.click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
@@ -277,8 +272,24 @@ export async function crearYLeerResumen(page: Page): Promise<ResumenDelPortal> {
 const urlBorrador = (portalDraftId: string) => `${BASE_VITOLEN}/ventas/pedidos_laboratorio/${portalDraftId}`;
 
 /** Abre el borrador y comprueba que siga sin confirmar ("Por Asignar"). */
+/** El borrador ya no existe en el portal (404: lo cancelaron a mano). */
+export class BorradorInexistenteError extends Error {
+    constructor(portalDraftId: string) { super(`El borrador ${portalDraftId} ya no existe en el portal de ${NOMBRE_VITOLEN} (lo cancelaron a mano).`); this.name = 'BorradorInexistenteError'; }
+}
+/** El borrador está, pero el portal no ofrece "Confirmar" (sin nº y sin botón): nada se confirmó. */
+export class ConfirmarNoDisponibleError extends Error {
+    constructor(m: string) { super(m); this.name = 'ConfirmarNoDisponibleError'; }
+}
+
 async function abrirBorrador(page: Page, portalDraftId: string): Promise<string> {
-    await page.goto(urlBorrador(portalDraftId), { waitUntil: 'domcontentloaded' });
+    const res = await page.goto(urlBorrador(portalDraftId), { waitUntil: 'domcontentloaded' });
+    if (res?.status() === 404) {
+        // Un 404 solo vale como "lo cancelaron" si la sesión sigue viva: una sesión
+        // vencida o un mantenimiento no pueden dar por desaparecido un borrador.
+        const prueba = await page.goto(`${BASE_VITOLEN}/ventas/pedidos_laboratorio/new`, { waitUntil: 'domcontentloaded' }).catch(() => null);
+        if (!prueba || prueba.status() !== 200 || /session\/new/.test(page.url())) throw new Error(`El portal de ${NOMBRE_VITOLEN} respondió 404 al borrador ${portalDraftId} pero la sesión no está viva: no se da por cancelado.`);
+        throw new BorradorInexistenteError(portalDraftId);
+    }
     await page.waitForTimeout(1500);
     const texto = (await page.innerText('body').catch(() => '')) || '';
     if (!/Pedido de Laboratorio/i.test(texto)) throw new Error(`El portal de ${NOMBRE_VITOLEN} no muestra el borrador ${portalDraftId} (${page.url()}).`);
@@ -306,7 +317,13 @@ export class ResumenCambiadoError extends Error {
  * confirmar: lo devuelve. Si `resumenAprobado` viene, se compara con lo que
  * el portal muestra HOY y, si difiere, no se confirma (ResumenCambiadoError).
  */
-export async function confirmar(page: Page, portalDraftId: string, resumenAprobado?: string | null): Promise<{ portalNumber: string; url: string; captura: Buffer; yaEstaba: boolean }> {
+/** Solo mira el borrador del portal: su texto, su captura y el nº de trabajo si ya lo confirmaron a mano. */
+export async function leerBorrador(page: Page, portalDraftId: string): Promise<{ texto: string; url: string; captura: Buffer; numeroPrevio: string | null }> {
+    const texto = await abrirBorrador(page, portalDraftId);
+    return { texto, url: page.url(), captura: await page.screenshot({ fullPage: true }), numeroPrevio: numeroDeTrabajoDe(texto) };
+}
+
+export async function confirmar(page: Page, portalDraftId: string, resumenAprobado?: string | null, opts: { antesDeConfirmar?: () => Promise<void> } = {}): Promise<{ portalNumber: string; url: string; captura: Buffer; yaEstaba: boolean }> {
     const antes = await abrirBorrador(page, portalDraftId);
     const previo = numeroDeTrabajoDe(antes);
     if (previo) return { portalNumber: previo, url: page.url(), captura: await page.screenshot({ fullPage: true }), yaEstaba: true };
@@ -315,7 +332,9 @@ export async function confirmar(page: Page, portalDraftId: string, resumenAproba
     }
 
     const boton = page.locator('form[action$="/confirmar"] input[type=submit], form[action$="/confirmar"] button').first();
-    if (await boton.count() === 0) throw new Error(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el botón "Confirmar".`);
+    if (await boton.count() === 0) throw new ConfirmarNoDisponibleError(`El borrador ${portalDraftId} de ${NOMBRE_VITOLEN} no muestra el botón "Confirmar".`);
+    // La barrera: justo antes del clic irreversible (el CRM anota "voy a mandar" o frena).
+    if (opts.antesDeConfirmar) await opts.antesDeConfirmar();
     await boton.click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2500);
@@ -332,8 +351,13 @@ export async function confirmar(page: Page, portalDraftId: string, resumenAproba
  * anula hablando con el laboratorio— y se devuelve ese nº para que el CRM lo
  * tome por resuelto.
  */
-export async function cancelarBorrador(page: Page, portalDraftId: string): Promise<{ url: string; captura: Buffer; confirmadoAMano: string | null }> {
-    const texto = await abrirBorrador(page, portalDraftId);
+export async function cancelarBorrador(page: Page, portalDraftId: string): Promise<{ url: string; captura: Buffer; confirmadoAMano: string | null; yaNoExistia?: boolean }> {
+    let texto: string;
+    try { texto = await abrirBorrador(page, portalDraftId); } catch (err) {
+        // Ya no existe: alguien lo canceló a mano en el portal. Es lo que se quería.
+        if (err instanceof BorradorInexistenteError) return { url: page.url(), captura: await page.screenshot({ fullPage: true }), confirmadoAMano: null, yaNoExistia: true };
+        throw err;
+    }
     const yaConfirmado = numeroDeTrabajoDe(texto);
     if (yaConfirmado) return { url: page.url(), captura: await page.screenshot({ fullPage: true }), confirmadoAMano: yaConfirmado };
     const link = page.locator('a[data-method="delete"]:has-text("Cancelar")').first();

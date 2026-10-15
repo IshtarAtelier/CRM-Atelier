@@ -46,6 +46,7 @@ export async function GET(request: Request) {
             ok: true, rango: subject,
             optovision: { facturasSemana: rep.perLab.OPTOVISION.facturasSemana, sobrecostos: rep.perLab.OPTOVISION.sobrecostos },
             grupoOptico: { facturasSemana: rep.perLab.GRUPO_OPTICO.facturasSemana, sobrecostos: rep.perLab.GRUPO_OPTICO.sobrecostos },
+            vitolen: { facturasSemana: rep.perLab.VITOLEN?.facturasSemana ?? 0, sobrecostos: rep.perLab.VITOLEN?.sobrecostos ?? 0 },
         });
     } catch (error: any) {
         console.error('[Cron lab-weekly-report] Error:', error);

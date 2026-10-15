@@ -6,6 +6,7 @@ import { PricingService } from '@/services/PricingService';
 import { Modal } from '@/components/ui/Modal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import { MONOTRIBUTO_UNIT_PRICE_LIMIT } from '@/lib/constants/billing';
+import { CONDICIONES_IVA_RECEPTOR } from '@/lib/constants/condicion-iva-receptor';
 
 interface InvoiceItem {
 // ... (rest of interface remains same)
@@ -29,6 +30,8 @@ interface InvoiceModalProps {
     };
     initialAccount?: 'ISH' | 'YANI' | 'LUCIA';
     initialAmount?: number; // Target amount to invoice
+    /** Observación que dejó el vendedor al solicitar la factura. */
+    initialObservations?: string | null;
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -85,9 +88,10 @@ const prorrateItems = (list: InvoiceItem[], target: number): InvoiceItem[] => {
     return scaled;
 };
 
-export default function InvoiceModal({ order, initialAccount, initialAmount, onClose, onSuccess }: InvoiceModalProps) {
+export default function InvoiceModal({ order, initialAccount, initialAmount, initialObservations, onClose, onSuccess }: InvoiceModalProps) {
     const [docTipo, setDocTipo] = useState(order.client.dni ? 96 : 99);
     const [docNro, setDocNro] = useState(order.client.dni || '');
+    const [condicionIva, setCondicionIva] = useState<number | ''>('');
     const [account, setAccount] = useState<'ISH' | 'YANI'>(initialAccount === 'YANI' ? 'YANI' : 'ISH');
     const [loading, setLoading] = useState(false);
     const [emittingStep, setEmittingStep] = useState<string | null>(null);
@@ -109,7 +113,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     const [targetAmount, setTargetAmount] = useState(initialAmount || paidReal || order.total);
     const [items, setItems] = useState<InvoiceItem[]>([]);
     const [issueDate, setIssueDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    const [observations, setObservations] = useState('');
+    const [observations, setObservations] = useState(initialObservations || '');
 
     useEffect(() => {
         // Initialize items from order — prices must include the order's markup
@@ -222,6 +226,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                     account: account,
                     docTipo: docTipo,
                     docNro: docTipo === 99 ? '0' : docNro.replace(/\D/g, ''),
+                    condicionIvaReceptor: docTipo === 80 && condicionIva !== '' ? condicionIva : undefined,
                     amount: totalInvoiced,
                     issueDate: issueDate,
                     items: items.map(({ description, quantity, price }) => ({ description, quantity, price })),
@@ -493,6 +498,27 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                         placeholder="Nro de Documento..."
                                     />
                                 )}
+                                {docTipo === 80 && (
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest">¿El cliente es…?</label>
+                                        <select
+                                            value={condicionIva}
+                                            onChange={e => setCondicionIva(e.target.value === '' ? '' : Number(e.target.value))}
+                                            className={`w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 ${condicionIva === '' ? 'border-amber-400' : 'border-transparent'} focus:border-indigo-500 rounded-2xl text-xs font-black focus:outline-none transition-all`}
+                                        >
+                                            <option value="">Elegí su condición frente al IVA…</option>
+                                            {CONDICIONES_IVA_RECEPTOR.filter(c => c.comun).map(c => (
+                                                <option key={c.id} value={c.id}>{c.label}</option>
+                                            ))}
+                                            <optgroup label="Otras">
+                                                {CONDICIONES_IVA_RECEPTOR.filter(c => !c.comun).map(c => (
+                                                    <option key={c.id} value={c.id}>{c.label}</option>
+                                                ))}
+                                            </optgroup>
+                                        </select>
+                                        <p className="text-[10px] text-stone-500 dark:text-stone-400">La factura sale C igual. Si no sabe, buscá su CUIT en la constancia de inscripción de ARCA.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -517,7 +543,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
 
                         <button
                             onClick={handleEmit}
-                            disabled={!!emittingStep || items.length === 0}
+                            disabled={!!emittingStep || items.length === 0 || (docTipo === 80 && condicionIva === '')}
                             className="w-full py-5 bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100 flex items-center justify-center gap-3"
                         >
                             {emittingStep ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}

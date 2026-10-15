@@ -3,8 +3,12 @@ import { RESOLUCIONES_CONOCIDAS } from '../lab-providers/resoluciones';
 import { isQuietLab } from './backfill';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
-import { LAB_ITEM_PATTERNS, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
-import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
+import { LABS_FACTURA_A, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
+import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado, type ReclamoMotivo } from '../../lib/lab-factura';
+import { cristalesPorArmazon } from '../../lib/order-frames';
+import { esCristal, esDeLab, labDeItem, labKeyDe } from '../../lib/laboratorios/identidad';
+import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../lib/laboratorios/vitolen-promo';
+import { rolesDeLaPromoHoya } from '../../lib/laboratorios/vitolen-promo';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de
@@ -31,16 +35,14 @@ import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, sinNotaParBonificado } 
  * — así el total de la venta es un solo par, igual que factura el lab
  * (2 líneas de 0.50 × unitario por par). Un solo ojo vendido = medio par.
  */
-export function systemCostForLab(order: any, lab: string): number {
+export function systemCostForLab(order: any, lab: string, labConfig?: { calibrado: number; iva: number } | null): number {
     const items: any[] = order.items || [];
     if (items.length === 0) return 0;
 
-    const pattern = LAB_ITEM_PATTERNS[lab];
-    const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
-    const categoryOf = (item: any) => item.productCategorySnapshot || item.product?.category || '';
+    const labKey = labKeyDe(lab);
 
-    let relevant = pattern ? items.filter(i => pattern.test(labOf(i))) : [];
-    if (relevant.length === 0) relevant = items.filter(i => /cristal/i.test(categoryOf(i)));
+    let relevant = labKey ? items.filter(i => esDeLab(i, labKey)) : [];
+    if (relevant.length === 0) relevant = items.filter(i => esCristal(i));
     if (relevant.length === 0) relevant = items;
 
     // En una venta 2x1 el par gratis (cristal con price 0) le cuesta al lab SOLO el
@@ -66,15 +68,59 @@ export function systemCostForLab(order: any, lab: string): number {
     // `costoParBonificado`: ahí importa lo que efectivamente se pagó, no lo que
     // debería haber costado.
     const is2x1 = esVenta2x1(order);
+    // VITOLEN: el 2º par de la promo no va en $0 ni entero: se espera al 20 % de
+    // lista + calibrado (vitolen/promo.ts). Regla de Ishtar del 8/10/2026: si
+    // cobran los dos pares, el segundo por más del 20 % es sobrecosto.
+    const segundo = labKeyDe(lab) === 'VITOLEN' ? segundoParDePromoVitolen(order, labConfig ?? null) : null;
+    if (segundo && segundo.esperado !== null) {
+        const delSegundo = new Set(segundo.items);
+        return relevant.filter(i => !delSegundo.has(i)).reduce((total, item) => total + costoDeItemParaCruce(item, is2x1), 0) + segundo.esperado;
+    }
     return relevant.reduce((total, item) => total + costoDeItemParaCruce(item, is2x1), 0);
+}
+
+/**
+ * VITOLEN, PROMO DEL SEGUNDO PAR: cuál es el 2º par y cuánto se espera que lo
+ * facturen. La venta tiene la promo si el CRM la aplicó (appliedPromoName:
+ * "2º par Hoya…", o un 2x1) y hay dos pares de cristales de Vitolen. El 2º par
+ * es el de MENOR valor de lista (regla de Ishtar, 8/10/2026: el caro va con
+ * cargo); con el mismo valor, el par 2. Lo esperado sale de `baseCost` (el
+ * pelado) del cristal de ese par: 20 % de lista + calibrado, con IVA, en las
+ * mismas unidades que `cost`. Sin pelado o sin promo, null (se cuenta entero,
+ * como antes). Puro: la config del lab (calibrado e IVA) se pasa explícita.
+ */
+export function segundoParDePromoVitolen(order: any, config?: { calibrado: number; iva: number } | null): { items: any[]; esperado: number | null; nombre: string; pair: number } | null {
+    // La promo del 2º par la decide LA MISMA regla con la que el CRM la cobra
+    // (promo-segundo-par-hoya.ts: líneas que la encienden, Tact solo 2º, el caro es el 1º).
+    // La promo tiene que estar en la VENTA (el nombre de la promo aplicada, o un
+    // cristal en $0): dos pares comprados aparte no son promo aunque el diseño calce.
+    const laVentaLoDice = /2[ºo°]\s*par|segundo par|2\s*x\s*1|hoya/i.test(order?.appliedPromoName || '') || esVenta2x1(order);
+    const roles = laVentaLoDice ? rolesDeLaPromoHoya((order?.items || []) as any[]) : null;
+    if (!roles) return null;
+    const esVitolen = (i: any) => labDeItem(i) === 'VITOLEN';
+    const pares = [...cristalesPorArmazon(order).entries()]
+        .map(([pair, items]) => ({ pair, items: (items as any[]).filter(esVitolen) }))
+        .filter(p => p.items.length > 0);
+    const segundo = pares.find(p => p.pair === roles.sinCargo);
+    if (!segundo) return null;
+    const cristal = segundo.items[0];
+    const nombre = cristal.productNameSnapshot || cristal.product?.name || '';
+    const cfg = config;
+    if (!cfg) {
+        // Sin la config del lab (calibrado e IVA) el esperado saldría bajo y TODA
+        // promo sería sobrecosto: mejor no valuar (se cuenta entero, como antes).
+        console.warn('[lab-recon] Vitolen sin LaboratoryConfig: el 2º par de la promo no se valúa');
+        return { items: segundo.items, esperado: null, nombre, pair: segundo.pair };
+    }
+    const esperado = importeEsperadoSegundoParDe(nombre, cristal.product?.baseCost, { calibrado: Number(cfg.calibrado) || 0, iva: Number(cfg.iva) || 0 });
+    return { items: segundo.items, esperado, nombre, pair: segundo.pair };
 }
 
 /** Una venta es 2x1 si lo dice la promo aplicada o si trae un cristal a precio 0. */
 export function esVenta2x1(order: any): boolean {
     const items: any[] = order.items || [];
-    const categoryOf = (item: any) => item.productCategorySnapshot || item.product?.category || '';
     return (order.appliedPromoName || '').toLowerCase().includes('2x1')
-        || items.some((i: any) => /cristal/i.test(categoryOf(i)) && i.price === 0);
+        || items.some((i: any) => esCristal(i) && i.price === 0);
 }
 
 /**
@@ -111,16 +157,17 @@ export function parBonificadoCobrado(importesPorPedido: number[]): { cobrado: bo
  * comentario grande de acá arriba explica el porqué. Una copia iba a divergir.
  */
 export function costoDeItemParaCruce(item: any, is2x1: boolean): number {
-    const categoria = item.productCategorySnapshot || item.product?.category || '';
-    const esCristal = /cristal/i.test(categoria);
+    const cristal = esCristal(item);
     // El par bonificado no suma nada: lo pone el laboratorio. Vitolen es la
     // excepción: su promo NO es 2x1, el 2º par se factura al 20 % de lista más
-    // calibrado (bases del 30/9/2026, lab-modules/vitolen/promo.ts), así que
-    // ponerlo en $0 acusaría sobrecosto en cada venta. Hasta valuarlo con esa
-    // regla (pendiente de Ishtar) se cuenta entero: lo facturado queda "a
-    // favor", nunca un reclamo falso.
-    const esVitolen = /vitolen/i.test(item.laboratorySnapshot || item.product?.laboratory || '');
-    if (is2x1 && esCristal && item.price === 0 && !esVitolen) return 0;
+    // calibrado (bases del 30/9/2026, lib/laboratorios/vitolen-promo.ts), así que
+    // ponerlo en $0 acusaría sobrecosto en cada venta. Acá (por ítem) se cuenta
+    // entero; la regla del 20 % la aplica `systemCostForLab` a nivel venta
+    // (`segundoParDePromoVitolen`, desde el 8/10/2026). La pantalla de Gastos
+    // (`costoPorLaboratorioDeVenta`) sigue contándolo entero: ahí importa lo que
+    // se paga de verdad, no lo que se espera.
+    const esVitolen = labDeItem(item) === 'VITOLEN';
+    if (is2x1 && cristal && item.price === 0 && !esVitolen) return 0;
     const perEyeHalf = item.eye ? 0.5 : 1;
     const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
     return cost * perEyeHalf * (item.quantity || 1);
@@ -170,7 +217,7 @@ const REWORK_MARK = '⚠️ REPROCESO DE GARANTÍA FACTURADO CON CARGO';
  * monotributo y no recupera ese IVA, así que su costo real es el TOTAL.
  * Grupo Óptico factura a consumidor final (neto = total) y no está acá.
  */
-export const LABS_FACTURA_A = new Set(['OPTOVISION', 'LA_CAMARA', 'VITOLEN']);
+export { LABS_FACTURA_A };
 
 /**
  * La config del laboratorio (calibrado e IVA) para valuar el par bonificado de
@@ -181,7 +228,7 @@ export const LABS_FACTURA_A = new Set(['OPTOVISION', 'LA_CAMARA', 'VITOLEN']);
  * Cacheado 5 minutos: se lee una vez por factura procesada y no cambia nunca.
  */
 let cacheLabs: { hasta: number; filas: any[] } | null = null;
-async function labConfigDe(lab: string) {
+export async function labConfigDe(lab: string) {
     if (!cacheLabs || cacheLabs.hasta < Date.now()) {
         const filas = await prisma.laboratoryConfig
             .findMany({ select: { name: true, calibrado: true, iva: true } })
@@ -245,7 +292,7 @@ export async function upsertEntry(input: LabCostInput) {
         },
         include: {
             client: { select: { name: true } },
-            items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
+            items: { include: { product: { select: { name: true, cost: true, baseCost: true, price: true, laboratory: true, category: true } } } },
             postSaleCases: {
                 select: {
                     id: true, newOrderNumber: true, caseType: true, coverage: true,
@@ -335,11 +382,9 @@ export async function upsertEntry(input: LabCostInput) {
     const billedComparable = comparaTotal
         ? (billedTotal ?? billedNet ?? null)
         : (billedNet ?? billedTotal ?? null);
-    // El calibrado real del lab viaja con la orden: systemCostForLab es sync y
-    // no puede ir a buscarlo, y sin esto valuaba el par bonificado con el
-    // respaldo en vez de con lo que está configurado.
-    if (order) (order as any).__labConfig = await labConfigDe(String(input.lab));
-    const systemCost = order ? systemCostForLab(order, input.lab) : null;
+    // La config del lab (calibrado e IVA) se pasa explícita: así el cruce y la pantalla valúan igual.
+    const labConfig = order ? await labConfigDe(String(input.lab)) : null;
+    const systemCost = order ? systemCostForLab(order, input.lab, labConfig) : null;
 
     // Una venta puede tener varios pedidos de lab ("580841-580844", típico en
     // 2x1: el lab cobra un par real y el otro ~$0). El costo sistema es de TODA
@@ -445,6 +490,17 @@ export async function upsertEntry(input: LabCostInput) {
         ? parBonificadoCobrado(facturadoPorPedido.map(p => p.importe))
         : { cobrado: false, masBarato: null };
     if (parBonificado.cobrado) status = 'OVERCOST';
+    // VITOLEN: con los dos pedidos facturados, el más barato tiene que venir al
+    // 20 % de lista + calibrado (5 % de tolerancia). Si no, cobraron los dos
+    // pares: SOBRECOSTO aunque la suma cierre (Ishtar, 8/10/2026).
+    // Solo si la venta entera NO vino a favor: si el lab bonificó el par caro en
+    // vez del barato, pagamos de menos y no hay nada que reclamar (auditoría 6).
+    const segundoVitolen = labKeyDe(input.lab) === 'VITOLEN' && order && !pvEntry && difference !== null && difference > -TOLERANCE && facturadoPorPedido.length >= 2
+        ? segundoParDePromoVitolen(order, labConfig) : null;
+    const segundoCobrado = segundoVitolen?.esperado != null && segundoParCobradoDeMas(Math.min(...facturadoPorPedido.map(p => p.importe)), segundoVitolen.esperado)
+        ? { masBarato: Math.min(...facturadoPorPedido.map(p => p.importe)), esperado: segundoVitolen.esperado }
+        : null;
+    if (segundoCobrado) status = 'OVERCOST';
 
     // Conservar las notas existentes (p. ej. la del portal) cuando la
     // actualización no trae nota propia, y no duplicar la de multi-pedido.
@@ -476,7 +532,9 @@ export async function upsertEntry(input: LabCostInput) {
         : null;
     const parBonificadoNote = parBonificado.cobrado
         ? `[${MARCA_PAR_BONIFICADO_COBRADO}: ninguno de los ${facturadoPorPedido.length} pedidos vino sin cargo — el más barato (${pedidoMasBarato}) costó ${fmtARS(parBonificado.masBarato)} y el par bonificado no debería pasar de ${fmtARS(TOPE_PAR_BONIFICADO_2X1)}; a reclamar ${fmtARS(parBonificado.masBarato)}]`
-        : null;
+        : segundoCobrado
+            ? `[${MARCA_SEGUNDO_PAR_PROMO_COBRADO}: el pedido más barato (${facturadoPorPedido.find(p => p.importe === segundoCobrado.masBarato)?.numero}) costó ${fmtARS(segundoCobrado.masBarato)} y el 2º par de la promo (${segundoVitolen!.nombre}) va al 20 % de lista + calibrado = ${fmtARS(segundoCobrado.esperado)}; a reclamar ${fmtARS(segundoCobrado.masBarato - segundoCobrado.esperado)}]`
+            : null;
     // Enganchó por el nº de la planilla: decirlo, porque el número que figura
     // en la venta no es el de la factura y si no parece un cruce equivocado.
     const aliasNote = aliasUsado && !baseNotes?.includes('nº de la planilla')
@@ -503,6 +561,11 @@ export async function upsertEntry(input: LabCostInput) {
     const reworkMark = existing?.notes?.includes(REWORK_MARK) && !baseNotes?.includes(REWORK_MARK)
         ? REWORK_MARK : null;
     const notes = [resolucionNote, pvNote, baseNotes, multiNote, aliasNote, reworkMark, parBonificadoNote].filter(Boolean).join(' ') || null;
+    // El mismo importe que dice la nota, como número: es lo que leen el reporte y el semanal.
+    const reclamo = parBonificado.cobrado
+        ? parBonificado.masBarato
+        : segundoCobrado ? Math.max(0, segundoCobrado.masBarato - segundoCobrado.esperado) : null;
+    const reclamoMotivo: ReclamoMotivo | null = parBonificado.cobrado ? 'PAR_BONIFICADO_2X1' : segundoCobrado ? 'SEGUNDO_PAR_PROMO' : null;
 
     // Los comprobantes del pedido (con su link): se suman a los que ya tenía.
     const invoiceRefs = juntarComprobantes(existing?.invoiceRefs, input.invoiceRefs);
@@ -516,6 +579,8 @@ export async function upsertEntry(input: LabCostInput) {
         billedNet,
         billedTotal,
         difference,
+        reclamo,
+        reclamoMotivo,
         source,
         sourceFile,
         invoiceDate,

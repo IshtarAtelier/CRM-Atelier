@@ -27,6 +27,9 @@
     }
 
     var completed = [];
+    // Lo que NO se pudo cargar: se lista en el alert final para que el
+    // vendedor lo cargue a mano. Nunca se elige "la primera opción" por defecto.
+    var pendientes = [];
 
     // Step 2: Click the lens type button (Monofocal, Multifocal, etc.)
     var lensTypeClicked = false;
@@ -52,20 +55,22 @@
         completed.push('Código interno');
       }
 
-      // 3b: Stock vs Laboratorio toggle
-      var labType = data.labType || 'STOCK';
+      // 3b: Stock vs Laboratorio toggle. Sin dato NO es "Stock": queda pendiente.
+      var labType = data.labType || '';
       if (labType === 'STOCK') {
         var stockSwitch = document.getElementById('switch-is-stock');
         if (stockSwitch && !stockSwitch.checked) {
           stockSwitch.click();
           completed.push('Lentes Stock');
         }
-      } else {
+      } else if (labType) {
         var labSwitch = document.getElementById('switch-is-laboratory');
         if (labSwitch && !labSwitch.checked) {
           labSwitch.click();
           completed.push('Lentes Laboratorio');
         }
+      } else {
+        pendientes.push('Tipo de pedido (Stock o Laboratorio): sin dato en el CRM');
       }
 
       // 3c: Build the queue of autocomplete fields to fill one by one
@@ -154,6 +159,8 @@
         setTimeout(function() {
           var listbox = document.querySelector('[role="listbox"]');
           var picked = false;
+          // true = había opciones y NINGUNA coincidió: no se elige nada.
+          var notFound = false;
 
           if (listbox) {
             var options = listbox.querySelectorAll('[role="option"]');
@@ -172,11 +179,9 @@
                     break;
                   }
                 }
-                // Fallback: pick first option
-                if (!picked && options[0]) {
-                  options[0].click();
-                  picked = true;
-                }
+                // Ninguna coincide: NO se elige la primera (cargaba un dato
+                // equivocado en silencio); queda pendiente para cargar a mano.
+                if (!picked) notFound = true;
               } else {
                 // Exact value matching
                 for (var o2 = 0; o2 < options.length; o2++) {
@@ -187,21 +192,22 @@
                     break;
                   }
                 }
-                // Fallback: pick first option
-                if (!picked && options[0]) {
-                  options[0].click();
-                  picked = true;
-                }
+                if (!picked) notFound = true;
               }
             }
           }
 
-          if (!picked) {
-            el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
+          if (notFound) {
+            pendientes.push(item.label + (item.fuzzy ? ' (' + item.fuzzy.join(' ') + ')' : ' = ' + item.val));
+            el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+          } else {
+            if (!picked) {
+              el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
+            }
+            completed.push(item.label);
           }
 
           el.blur();
-          completed.push(item.label);
           queueIdx++;
           setTimeout(processNext, 350);
         }, 500);
@@ -266,7 +272,10 @@
           }
         }
 
-        alert('✅ Campos completados (' + completed.length + '):\n' + completed.join(', ') + '\n\n⚠️ REVISÁ todo antes de Guardar.\n❌ No toques Guardar si algo está mal.');
+        var aviso = pendientes.length
+          ? '\n\n🔎 REVISÁ: no se encontró en el portal (' + pendientes.length + '):\n' + pendientes.join('\n') + '\nCargalo a mano.'
+          : '';
+        alert('✅ Campos completados (' + completed.length + '):\n' + completed.join(', ') + aviso + '\n\n⚠️ REVISÁ todo antes de Guardar.\n❌ No toques Guardar si algo está mal.');
       }
 
       function clickLabel(text, logName) {

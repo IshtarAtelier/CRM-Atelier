@@ -35,21 +35,41 @@ Hoya no entra.
    Outdoor), elegila.
 3. Apretá **"Preparar en Vitolen"**. Tarda 10‑20 segundos: el robot entra al
    portal, llena los 35 campos y crea el pedido como **borrador sin
-   confirmar**. Vuelve con la captura del resumen que muestra Vitolen.
-4. **Revisá la captura contra la venta**: cristal (el código de lista va
-   adelante, p. ej. "10070 - Array 2 1.60 Hilux MR-8 Clear"), graduación,
-   DNP, alturas, armazón, forma, calibrado, antirreflejo.
-   - Si está bien → **Aprobar**. El robot confirma en el portal, el nº de
-     trabajo queda en la venta y **al cliente le llega el aviso de "pedido
-     procesado"** (igual que cuando se carga el nº a mano).
+   confirmar**. En la ficha aparece **la pantalla real de Vitolen** con el
+   resumen del pedido.
+4. Tocá **"Ver el portal en grande y decidir"** y revisá esa pantalla contra
+   la venta: cristal (el código de lista va adelante, p. ej. "10070 - Array 2
+   1.60 Hilux MR-8 Clear"), graduación, DNP, alturas, armazón, forma,
+   calibrado, antirreflejo. Si quedó algo para hacer a mano (la promo del 2º
+   par, el eje de la diagonal mayor), la ficha lo dice en amarillo.
+5. Ahí mismo, abajo de la pantalla, decidí:
+   - Si está bien → **Aprobar y cargar**. El robot confirma en el portal, el
+     nº de trabajo queda en la venta y **al cliente le llega el aviso de
+     "pedido procesado"** (igual que cuando se carga el nº a mano).
    - Si algo está mal → **Rechazar** con el motivo. El robot cancela el
      borrador en el portal. Corregí la venta y volvé a preparar.
+   - Si hiciste un cambio a mano en el portal ("Modificar"), tocá **"releé el
+     portal"** en la ficha y recién ahí aprobá: así lo que aprobás es lo que
+     quedó.
+
+Es **la misma forma de trabajar que con Grupo Óptico**: preparar, mirar la
+pantalla real del laboratorio, aprobar.
    - Si es un detalle chico, el link "abrilo en el portal" lleva al borrador:
      se corrige con **Modificar** en Vitolen y después se aprueba acá.
 5. **Segundo par de la promo Hoya**: el bloque te lo marca en amarillo. Antes
    de aprobar, abrí el borrador en el portal con "Modificar" y asociá el
    **pedido origen** (el nº del primer par) con la promoción HOYALUX. El
    robot todavía no lo hace solo.
+   - **Cuál es el 1er par y cuál el 2º lo decide el valor** (regla de Ishtar,
+     8/10/2026): el par de cristales **más caros es el 1º** (se cobra entero)
+     y el más barato es el 2º (el de la promo). Con el mismo cristal en los
+     dos, queda par 1 → 1º y par 2 → 2º. La ficha lo muestra al lado de cada
+     par ("1er par · promo" / "2º par · promo").
+   - Al apretar **"Aprobar y cargar"** en cualquiera de los dos aparece un
+     aviso que te pide confirmar: en el 2º par, que el pedido tenga el
+     **pedido origen** con el nº del 1º y la promo asociada; en el 1º, que su
+     nº quede en la venta antes de preparar el otro. Sin ese número, Vitolen
+     factura el 2º par entero.
 
 ## Qué hace el sistema después, solo
 
@@ -73,8 +93,19 @@ Hoya no entra.
 - **"Quedó un pedido sin confirmar en el portal"** (amarillo): el robot lo
   creó pero algo se cortó. Botón **"Cancelar en el portal"** y volvé a
   preparar. Hasta cancelarlo no se puede preparar otro para esa venta.
+- **Al preparar se eligen la forma, el tipo de armazón (Metálico / Zilo /
+  Ranurado / Perforado) y el eje de la diagonal**: la venta casi nunca los
+  trae. Con dos pares y los cristales sin armazón asignado, los pares se arman
+  en el orden del carrito (el 2º OD y el 2º OI son del par 2), igual que la
+  promo del 2º par.
 - **Aprobado pero "no se pudo confirmar"**: botón **"Reintentar la
-  confirmación"**. Nunca se crea un pedido duplicado: si Vitolen ya lo tomó,
-  el robot lee el nº y listo.
+  carga"**. Nunca se crea un pedido duplicado: si Vitolen ya lo tomó,
+  el robot lee el nº y listo. Si el portal sigue caído o te arrepentiste,
+  **"Retirar la aprobación"** lo devuelve a revisión: desde ahí lo rechazás
+  (el robot cancela el borrador del portal) o lo volvés a aprobar.
+- **"Lleva demasiado sin novedades"** en un pedido que se estaba preparando:
+  el robot se cortó (p. ej. se reinició el sistema). Escribí el motivo y
+  **"Anular y preparar de nuevo"**; si había quedado un borrador en el
+  portal, la ficha te ofrece cancelarlo allá.
 - Un pedido **ya confirmado** no se cancela desde el sistema: se habla con
   Vitolen (03492‑434037).

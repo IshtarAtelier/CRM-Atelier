@@ -1,6 +1,7 @@
 import { prisma } from '../../../lib/db';
-import { framesDeLaOrden } from '../../../lib/order-frames';
-import { cristalVitolenPorNombre, type CristalVitolen } from './catalogo';
+import { cantidadDeArmazones, framesDeLaOrden } from '../../../lib/order-frames';
+import { codigoCortoDeVenta, esCristalDeLab } from '../../../lib/laboratorios/identidad';
+import { cristalVitolenPorNombre, type CristalVitolen } from '../../../lib/laboratorios/vitolen-catalogo';
 import { disenoDelPortal, materialDelPortal } from './materiales';
 
 /**
@@ -33,8 +34,10 @@ export interface GraduacionOjo {
 
 export interface PayloadVitolen {
     lista: string;
-    /** Qué par de la venta es (1 o 2): el 2º lleva la promo del segundo par. */
+    /** Qué par de la venta es (1 o 2, como `framePosition`). */
     par: number;
+    /** Rol en la promo del segundo par: el de mayor valor es el 1º; el 2º lleva "pedido origen". */
+    rolPromo: 'PRIMER_PAR' | 'SEGUNDO_PAR' | null;
     nroCasoInterno: string;    // código corto de la venta: #A1B2
     paciente: string;
     ojos: OjoPortal;
@@ -112,6 +115,21 @@ export interface VentaParaCarga {
     }[];
 }
 
+/**
+ * Tipo de armazón: texto → radio del portal (valor, etiqueta). La venta casi
+ * nunca lo trae (`labFrameType` vacío en las 152 ventas enviadas entre
+ * agosto y octubre de 2026), así que lo elige quien prepara, como la forma.
+ */
+export const TIPO_ARMAZON_PORTAL: [RegExp, string, string][] = [
+    [/met[aá]l/i, '1', 'Metálico'],
+    [/zilo|acetato|pl[aá]stic|inyectad|tr-?90|ultem/i, '2', 'Zilo'],
+    [/ranur|nylon|semi/i, '3', 'Ranurado'],
+    [/perfor|al aire|rimless|tres piezas|3 piezas/i, '4', 'Perforado'],
+];
+export const TIPOS_ARMAZON = TIPO_ARMAZON_PORTAL.map(([, , etiqueta]) => etiqueta);
+export const tipoArmazonDelPortal = (texto: string | null | undefined) =>
+    TIPO_ARMAZON_PORTAL.find(([re]) => re.test(texto || '')) ?? null;
+
 /** Valores del portal cuando la venta no dice otra cosa (los del video). */
 export const VERTICE_POR_DEFECTO = 14;
 export const PANTOSCOPICO_POR_DEFECTO = 6;
@@ -146,6 +164,39 @@ export function codigoDeCristal(cristal: CristalVitolen, variante: string | null
     return { codigo: cristal.codigos[idx] ?? cristal.codigos[0], variante: cristal.variantes[idx] };
 }
 
+/** ¿Este payload es el 2º par de la promo? Con rol explícito manda el rol; sin él (borradores viejos), el par 2. Puro. */
+export function esSegundoParDePromo(payload: Partial<Pick<PayloadVitolen, 'par' | 'rolPromo'>> & { pedidoOrigen?: string | null }): boolean {
+    // null = la regla dijo "sin promo" (dos pares comprados aparte, Nulux + Tact, un 3er par);
+    // undefined = borrador de antes del 8/10/2026, donde el par 2 era el 2º.
+    const segundo = payload.rolPromo !== undefined ? payload.rolPromo === 'SEGUNDO_PAR' : payload.par === 2;
+    return segundo || !!payload.pedidoOrigen;
+}
+
+/**
+ * Los cristales de Vitolen de la venta, agrupados por par (1, 2…). Qué par es
+ * cada uno lo dice el armazón asignado (`framePosition`). Si NINGUNO lo tiene,
+ * los pares se arman en el orden del carrito: el 2º OD y el 2º OI son del par
+ * 2 — el mismo criterio que la promo del 2º par (promo-segundo-par-hoya.ts).
+ * Así venía la primera venta real (Moroncini, 15/10/2026): dos armazones y
+ * cuatro cristales sin asignar. Si alguno tiene posición, un ítem sin ella es
+ * del par 1: no puede "prestarse" al par 2. Puro.
+ */
+export function cristalesPorPar(venta: Pick<VentaParaCarga, 'items'>): Map<number, VentaParaCarga['items']> {
+    const deVitolen = venta.items.filter(i => esCristalDeLab(i, 'VITOLEN'));
+    const sinAsignar = deVitolen.every(i => i.framePosition == null);
+    const vistos: Record<string, number> = {};
+    const pares = new Map<number, VentaParaCarga['items']>();
+    for (const i of deVitolen) {
+        let par = i.framePosition ?? 1;
+        if (sinAsignar) {
+            const ojo = (i.eye || '').toUpperCase() || 'AMBOS';
+            par = vistos[ojo] = (vistos[ojo] ?? 0) + 1;
+        }
+        pares.set(par, [...(pares.get(par) ?? []), i]);
+    }
+    return pares;
+}
+
 /**
  * Arma el payload del portal. `pair` es el armazón/par de la venta (1 o 2, como
  * `framePosition`); `variante` es la elegida por el vendedor cuando el diseño
@@ -153,18 +204,23 @@ export function codigoDeCristal(cristal: CristalVitolen, variante: string | null
  */
 export function armarFormulario(
     venta: VentaParaCarga,
-    opts: { pair?: number; variante?: string | null; pedidoOrigen?: string | null; forma?: string | null; ejeDiagonal?: number | null } = {},
+    opts: { pair?: number; variante?: string | null; pedidoOrigen?: string | null; forma?: string | null; ejeDiagonal?: number | null; tipoArmazon?: string | null; rolPromo?: 'PRIMER_PAR' | 'SEGUNDO_PAR' | null } = {},
 ): ResultadoArmado {
     const faltantes: string[] = [];
     const avisos: string[] = [];
     const pair = opts.pair ?? 1;
+    // Sin rol explícito (borradores de antes del 8/10/2026), el par 2 es el 2º de la promo.
+    const rolPromo = opts.rolPromo === undefined ? (pair === 2 ? 'SEGUNDO_PAR' : null) : opts.rolPromo;
 
-    // Un ítem sin posición de armazón es del par 1: no puede "prestarse" al par 2.
-    const cristales = venta.items.filter(i =>
-        /cristal/i.test(i.productCategorySnapshot || '') && /vitolen/i.test(i.laboratorySnapshot || '')
-        && (i.framePosition ?? 1) === pair);
+    // Los cristales del par: por armazón asignado, o en el orden del carrito si
+    // ninguno lo tiene (decisión del 15/10/2026 con la primera venta real).
+    const totalPares = cantidadDeArmazones(venta as any);
+    const fueraDeRango = venta.items.find(i => esCristalDeLab(i, 'VITOLEN') && i.framePosition != null && (i.framePosition < 1 || i.framePosition > totalPares));
+    if (fueraDeRango) faltantes.push(`hay un cristal asignado al armazón ${fueraDeRango.framePosition}, que la venta no tiene: reasignalo`);
+    const cristales = cristalesPorPar(venta).get(pair) ?? [];
     if (cristales.length === 0) {
-        return { ok: false, payload: null, faltantes: [`la venta no tiene cristales de Vitolen para el par ${pair}`], avisos };
+        // Con lo ya detectado (un cristal asignado a un armazón que la venta no tiene).
+        return { ok: false, payload: null, faltantes: [...faltantes, `la venta no tiene cristales de Vitolen para el par ${pair}`], avisos };
     }
 
     const nombres = [...new Set(cristales.map(c => c.productNameSnapshot || ''))];
@@ -221,12 +277,17 @@ export function armarFormulario(
     const ejeDiagonal = num(opts.ejeDiagonal);
     if (ejeDiagonal === null || ejeDiagonal < 0 || ejeDiagonal > 180) faltantes.push('eje de la diagonal mayor del armazón (0 a 180): se carga al preparar');
 
+    // Lo elegido al preparar manda; si no, lo que diga la venta.
+    const tipoArmazon = tipoArmazonDelPortal(opts.tipoArmazon) ?? tipoArmazonDelPortal(venta.labFrameType);
+    if (!tipoArmazon) faltantes.push('tipo de armazón (Metálico / Zilo / Ranurado / Perforado): se elige al preparar');
+
     const caracteristicas = [venta.userFrameBrand, venta.userFrameModel, frame?.details || venta.labFrameDetails].filter(Boolean).join(' ').trim();
 
     const payload: PayloadVitolen = {
         lista: 'L96',
         par: pair,
-        nroCasoInterno: `#${venta.id.slice(-4).toUpperCase()}`,
+        // Con dos pares, el nº de caso dice cuál es ("#A1B2 2°par"): es lo que el seguimiento lee para vincularlo al armazón.
+        nroCasoInterno: totalPares > 1 ? `${codigoCortoDeVenta(venta.id)} ${pair}°par` : codigoCortoDeVenta(venta.id),
         paciente: venta.clienteNombre,
         ojos: od && oi ? 'AMBOS' : od ? 'OD' : 'OI',
         tipoReceta: tipoReceta ?? 'Monofocal',
@@ -238,14 +299,15 @@ export function armarFormulario(
         anguloPantoscopico: PANTOSCOPICO_POR_DEFECTO,
         armazon: {
             forma, largo, alto, diagonalMayor: diagonal, ejeDiagonal, puente,
-            tipo: venta.labFrameType || null,
+            tipo: tipoArmazon?.[2] ?? null,
             caracteristicas,
             funcionalidad: 'Aro Convencional',
         },
         tratamientos: { antirreflejo: !(cristalBase?.sinAntirreflejo) },
         montajes: { calibrado: true },
         observaciones: [venta.labNotes].filter(Boolean).join(' ').trim(),
-        pedidoOrigen: opts.pedidoOrigen ?? null,
+        pedidoOrigen: rolPromo === 'SEGUNDO_PAR' ? opts.pedidoOrigen ?? null : null,
+        rolPromo,
     };
 
     return { ok: faltantes.length === 0, payload: faltantes.length === 0 ? payload : payload, faltantes, avisos };
@@ -268,6 +330,7 @@ export async function leerVentaParaCarga(orderId: string): Promise<VentaParaCarg
                 },
             },
             items: {
+                orderBy: { id: 'asc' },
                 select: {
                     eye: true, productNameSnapshot: true, productTypeSnapshot: true, laboratorySnapshot: true, productCategorySnapshot: true,
                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, pdVal: true, heightVal: true,
@@ -278,4 +341,24 @@ export async function leerVentaParaCarga(orderId: string): Promise<VentaParaCarg
     });
     if (!o) return null;
     return { ...o, clienteNombre: o.client?.name || '' };
+}
+
+/**
+ * Lo que, si cambia entre preparar y aprobar, invalida la aprobación: la
+ * receta de cada ojo, el diseño y su variante, el armazón y los tratamientos.
+ * (El resumen comparable del portal cubre lo que el PORTAL muestra; esto cubre
+ * lo que la VENTA dice hoy.) Puro: check:lab-modulos.
+ */
+export function diferenciasDePayloadVitolen(aprobado: Partial<PayloadVitolen>, hoy: PayloadVitolen | null): string[] {
+    if (!hoy) return ['la venta ya no arma el pedido'];
+    const j = (v: unknown) => JSON.stringify(v ?? null);
+    const campos: [string, unknown, unknown][] = [
+        ['OD', aprobado.od, hoy.od], ['OI', aprobado.oi, hoy.oi],
+        ['diseño', aprobado.diseno, hoy.diseno], ['variante', aprobado.variante ?? null, hoy.variante ?? null],
+        ['tipo de receta', aprobado.tipoReceta, hoy.tipoReceta],
+        ['armazón', aprobado.armazon, hoy.armazon],
+        ['tratamientos', aprobado.tratamientos, hoy.tratamientos],
+        ['pedido origen', aprobado.pedidoOrigen ?? null, hoy.pedidoOrigen ?? null],
+    ];
+    return campos.filter(([, a, b]) => j(a) !== j(b)).map(([n]) => n);
 }

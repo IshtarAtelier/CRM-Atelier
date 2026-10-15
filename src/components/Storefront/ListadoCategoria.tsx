@@ -3,7 +3,7 @@ import { urlAbsoluta } from '@/lib/url-absoluta';
 import { CategoryGrid } from '@/components/Storefront/CategoryGrid';
 import { ProductFilters } from '@/components/Storefront/ProductFilters';
 import { prisma } from '@/lib/db';
-import { LISTADO_SELECT } from '@/lib/catalog/queries';
+import { FICHA_EN_TIENDA, LISTADO_SELECT, PRODUCTO_EN_TIENDA } from '@/lib/catalog/queries';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { precioConOferta } from '@/lib/precio-oferta';
@@ -56,11 +56,13 @@ export async function ListadoCategoria({
   // Los cristales no son armazones: si uno queda con la categoría web de
   // receta, aparece en la grilla mezclado entre los marcos. Ya pasó — un
   // Essilor Orma de $280.000 estaba listado en /receta.
+  // La regla es la de toda la tienda (FICHA_EN_TIENDA): antes este listado
+  // tenía la suya y no miraba ni el stock ni `publishToWeb`.
   const where: Record<string, unknown> = {
+    ...FICHA_EN_TIENDA,
     category: { contains: categoria, mode: 'insensitive' },
-    isActive: true,
     product: {
-      category: { not: 'Cristal' },
+      ...PRODUCTO_EN_TIENDA,
       ...(marca ? { brand: { equals: marca, mode: 'insensitive' } } : {}),
     },
   };
@@ -78,11 +80,7 @@ export async function ListadoCategoria({
     [filas, meta] = await Promise.all([
       prisma.webProduct.findMany({ where, select: LISTADO_SELECT, orderBy }),
       prisma.webProduct.findMany({
-        where: {
-          category: { contains: categoria, mode: 'insensitive' },
-          isActive: true,
-          product: { category: { not: 'Cristal' } },
-        },
+        where: { ...FICHA_EN_TIENDA, category: { contains: categoria, mode: 'insensitive' } },
         select: { name: true, product: { select: { brand: true, model: true, seoTags: true } } },
       }),
     ]);

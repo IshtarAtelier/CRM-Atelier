@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/db';
+import { esCodigoCorto } from '../../lib/laboratorios/identidad';
 import { parseLabNumbers } from '../../lib/lab-order-numbers';
 import type { EstadoEnPortal, PedidoEnPortal } from './contrato';
 
@@ -60,8 +61,9 @@ export function ventaDelPedido(pedido: PedidoEnPortal, ventas: VentaActiva[]): V
     const ref = String(pedido.internalRef || '').trim();
     if (!ref) return null;
 
-    const codigo = ref.replace(/^#/, '').toUpperCase();
-    if (/^[A-Z0-9]{4,8}$/.test(codigo)) {
+    // El código corto de la venta (lib/laboratorios/identidad.ts): "#" + 4 letras del id.
+    const codigo = ref.replace(/^#/, '').toUpperCase().split(/\s+/)[0];
+    if (esCodigoCorto(`#${codigo}`)) {
         const porCodigo = ventas.filter(v => v.id.toUpperCase().endsWith(codigo));
         if (porCodigo.length === 1) return porCodigo[0];
         if (porCodigo.length > 1) return null;
@@ -184,4 +186,9 @@ export function pedidosAtrasados(
             diasDeAtraso: Math.floor((ahora.getTime() - p.estimatedAt!.getTime()) / 86400000),
         }))
         .filter(p => p.diasDeAtraso >= 1 && p.diasDeAtraso <= ventanaDias);
+}
+
+/** Los pedidos de una venta en el portal de un lab, como los muestra la ficha. */
+export function pedidosEnEspejo(lab: string, orderId: string) {
+    return prisma.labPortalOrder.findMany({ where: { orderId, lab }, orderBy: { portalNumber: 'asc' } });
 }

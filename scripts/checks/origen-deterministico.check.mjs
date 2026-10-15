@@ -9,7 +9,10 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve } from 'node:path';
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const { origenDeterministico, origenDeChat } = await import(pathToFileURL(resolve(raiz, 'src/lib/origen-deterministico.ts')).href);
+import { readFileSync } from 'node:fs';
+const { origenDeterministico, origenDeChat, FRASES_DEL_SITIO } = await import(pathToFileURL(resolve(raiz, 'src/lib/origen-deterministico.ts')).href);
+const { mensajeDelBotonFlotante } = await import(pathToFileURL(resolve(raiz, 'src/lib/whatsapp-mensaje-flotante.ts')).href);
+const { conMarcaDeLaWeb, MARCA_DE_LA_WEB, hrefConOrigen } = await import(pathToFileURL(resolve(raiz, 'src/lib/whatsapp-origen-web.ts')).href);
 let fallos = 0;
 const check = (n, ok, det='') => { console.log(`  ${ok?'✓':'✖'} ${n}${ok||!det?'':' — '+det}`); if(!ok) fallos++; };
 const o = (t) => origenDeterministico(t)?.origen ?? null;
@@ -49,6 +52,80 @@ check('borró el mensajito precargado → igual es Meta', c({ adSourceId: '12025
 check('el id gana a un texto del sitio posterior', c({ adSourceId: '120249083743660023', adTag: null, mensajesEntrantes: ['Los vi en la nueva web de Atelier, quisiera que me asesoren.'] }) === 'Meta');
 check('sin id, todo sigue como antes', c({ adSourceId: null, adTag: 'clip', mensajesEntrantes: [''] }) === 'Meta');
 check('id vacío no decide nada', c({ adSourceId: '  ', adTag: null, mensajesEntrantes: ['Hola'] }) === null);
+console.log('Cada variante del botón flotante se reconoce como de la web (10/10/26)');
+// Lo que de verdad llega al chat: el texto + el link si la página lo comparte
+// (mismo armado que buildWhatsAppUrl). Checkout, configurador y blog no traían
+// ninguna frase de la lista y esos chats quedaban sin origen.
+const paginas = [
+  { nombre: 'home', pathname: '/' },
+  { nombre: 'nuestro local', pathname: '/nuestro-local' },
+  { nombre: 'tienda', pathname: '/tienda' },
+  { nombre: 'ficha de producto', pathname: '/producto/vega-c1' },
+  { nombre: 'configurador', pathname: '/arma-tus-lentes' },
+  { nombre: 'checkout', pathname: '/checkout' },
+  { nombre: 'nota del blog', pathname: '/blog/que-es-la-miopia', tituloNota: '¿Qué es la miopía?' },
+  { nombre: 'ficha con nombre del modelo', pathname: '/producto/vega-c1', productName: 'Vega C1' },
+];
+for (const p of paginas) {
+  const { texto, compartePagina } = mensajeDelBotonFlotante(p);
+  const llega = compartePagina ? `${texto}\n\nhttps://atelieroptica.com.ar${p.pathname}` : texto;
+  check(`${p.nombre} → Tienda online`, o(llega) === 'Tienda online', JSON.stringify(llega));
+}
+check('mayorista NO cuenta como tienda (es otro número y otro público)', o(mensajeDelBotonFlotante({ pathname: '/mayorista', isOptica: true }).texto) === null);
+console.log('Links a mano del sitio: la marca la pone WhatsAppAttribution al hacer clic (10/10/26)');
+// Textos reales de notas del blog, FAQ y contacto que no traían ninguna frase.
+for (const texto of [
+  'Hola Atelier! Quiero consultar por lentes de control de miopía para mi hijo.',
+  '¡Hola! Tengo una consulta sobre lentes de contacto.',
+  'Hola, quiero turno para control visual',
+]) {
+  const conMarca = conMarcaDeLaWeb(texto);
+  check(`"${texto.slice(0, 40)}…" → Tienda online con la marca`, o(conMarca) === 'Tienda online' && conMarca.startsWith(texto.trimEnd()), conMarca);
+}
+const conLink = conMarcaDeLaWeb('Hola! Leí la nota de multifocales.\n\nhttps://atelieroptica.com.ar/blog/multifocales');
+check('con link al final: la marca va antes del link (vista previa intacta)', conLink === `Hola! Leí la nota de multifocales. ${MARCA_DE_LA_WEB}\n\nhttps://atelieroptica.com.ar/blog/multifocales`, JSON.stringify(conLink));
+const yaTiene = '¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.';
+check('si ya prueba el origen, no se duplica', conMarcaDeLaWeb(yaTiene) === yaTiene);
+const deAnuncio = 'Los vi en Google Ads. Hola, precio de multifocales?';
+check('si viene de un anuncio, no se pisa el origen', conMarcaDeLaWeb(deAnuncio) === deAnuncio);
+check('texto vacío queda vacío', conMarcaDeLaWeb('') === '');
+check('sin punto final: la marca queda como otra oración', conMarcaDeLaWeb('Hola, quiero agendar un turno') === `Hola, quiero agendar un turno. ${MARCA_DE_LA_WEB}`);
+// La decisión del clic, por comportamiento (antes se buscaba texto en el
+// componente y pasaba aunque se borrara la guarda del número).
+const TIENDA = '5493518685644', MAYORISTA = '5493510000000';
+const wa = (num, texto) => `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
+const textoDe = (href) => (href ? new URL(href).searchParams.get('text') : null);
+const base = { pathname: '/blog/control-miopia', fraseAnuncio: null, telefonoTienda: TIENDA };
+check('al número de la tienda, sin origen → con la marca',
+  textoDe(hrefConOrigen({ ...base, href: wa(TIENDA, 'Hola, quiero un turno') })) === `Hola, quiero un turno. ${MARCA_DE_LA_WEB}`);
+check('al número MAYORISTA → no se toca', hrefConOrigen({ ...base, href: wa(MAYORISTA, 'Hola, quiero un turno') }) === null);
+check('desde el CRM (/admin) → no se toca, ni con anuncio',
+  hrefConOrigen({ ...base, pathname: '/admin/ventas', fraseAnuncio: 'Los vi en Meta.', href: wa(TIENDA, 'Hola Juan, tu pedido está listo') }) === null
+  && hrefConOrigen({ ...base, pathname: '/login', href: wa(TIENDA, 'Hola') }) === null);
+check('con identificador de anuncio → la frase del anuncio adelante y sin marca de la web',
+  textoDe(hrefConOrigen({ ...base, fraseAnuncio: 'Los vi en Meta.', href: wa(TIENDA, 'Hola, precio?') })) === 'Los vi en Meta. Hola, precio?');
+check('el anuncio también va al número mayorista (lo mide igual)',
+  textoDe(hrefConOrigen({ ...base, fraseAnuncio: 'Los vi en Meta.', href: wa(MAYORISTA, 'Hola') })) === 'Los vi en Meta. Hola');
+check('sin texto prellenado → no se inventa uno', hrefConOrigen({ ...base, href: `https://wa.me/${TIENDA}` }) === null);
+check('el link ya marcado no cambia (doble clic)', hrefConOrigen({ ...base, href: wa(TIENDA, `Hola. ${MARCA_DE_LA_WEB}`) }) === null);
+check('api.whatsapp.com/send?phone= también se reconoce',
+  textoDe(hrefConOrigen({ ...base, href: `https://api.whatsapp.com/send?phone=${TIENDA}&text=${encodeURIComponent('Hola')}` })) === `Hola. ${MARCA_DE_LA_WEB}`);
+check('los espacios viajan como %20, no como "+"', !String(hrefConOrigen({ ...base, href: wa(TIENDA, 'Hola che') })).includes('+'));
+const attribution = readFileSync(resolve(raiz, 'src/components/Storefront/WhatsAppAttribution.tsx'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+check('WhatsAppAttribution decide con hrefConOrigen (sin lógica propia)', /hrefConOrigen\(\{/.test(attribution) && !/conMarcaDeLaWeb|searchParams/.test(attribution));
+// Y le pasa lo que corresponde: la página real (para no marcar desde el CRM),
+// la frase del anuncio, el número de la tienda; y aplica el resultado en el clic.
+check('…con la página real, la frase del anuncio y el número de la tienda',
+  /pathname:\s*window\.location\.pathname/.test(attribution) && /fraseAnuncio:\s*adPlatformSentence\(\)/.test(attribution) && /telefonoTienda:\s*WHATSAPP_PHONE\b/.test(attribution));
+check('…y reescribe el link en la fase de captura del clic', /link\.href\s*=\s*nuevo/.test(attribution) && /addEventListener\('click',\s*onClick,\s*true\)/.test(attribution));
+{
+  const primero = hrefConOrigen({ ...base, fraseAnuncio: 'Los vi en Meta.', href: wa(TIENDA, 'Hola, precio?') });
+  check('doble clic con anuncio: la frase no se repite', primero !== null && hrefConOrigen({ ...base, fraseAnuncio: 'Los vi en Meta.', href: primero }) === null);
+}
+
+console.log('El bot decide con la MISMA lista de frases');
+const tools = readFileSync(resolve(raiz, 'wa-service/tools.js'), 'utf8');
+check('wa-service/tools.js tiene la lista idéntica a FRASES_DEL_SITIO', tools.includes(`/${FRASES_DEL_SITIO.source}/i`), 'actualizar las dos copias juntas');
 console.log('');
 if (fallos) { console.error(`${fallos} chequeo(s) fallaron`); process.exit(1); }
 console.log('Todos los chequeos pasaron');

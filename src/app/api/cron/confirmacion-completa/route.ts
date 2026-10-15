@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { enviarConfirmacionesCompletasPendientes } from '@/lib/sale-confirmation';
+import { enviarConfirmacionesCompletasPendientes, confirmacionesTacitas } from '@/lib/sale-confirmation';
 
 /**
  * Manda la confirmación de compra COMPLETA a quien recibió solo la plantilla
@@ -18,7 +18,10 @@ export async function GET(request: Request) {
     try {
         const r = await enviarConfirmacionesCompletasPendientes();
         if (r.enviadas) console.log(`[CRON confirmacion-completa] ${r.enviadas} enviada(s), ${r.pendientes} pendiente(s) de ${r.revisadas}.`);
-        return NextResponse.json({ ok: true, ...r });
+        // Las 24 h sin respuesta: se dan por confirmadas (bajo responsabilidad del cliente, como dice el mensaje).
+        const tacitas = await confirmacionesTacitas().catch(e => { console.error('[CRON confirmacion-completa] tácitas:', e?.message); return 0; });
+        if (tacitas) console.log(`[CRON confirmacion-completa] ${tacitas} confirmación(es) tácita(s) por 24 h sin respuesta.`);
+        return NextResponse.json({ ok: true, ...r, tacitas });
     } catch (err: any) {
         console.error('[CRON confirmacion-completa] Error:', err);
         return NextResponse.json({ ok: false, error: err?.message || 'Error' }, { status: 500 });

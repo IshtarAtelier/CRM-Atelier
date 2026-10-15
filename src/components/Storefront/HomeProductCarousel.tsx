@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { PricingService } from "@/services/PricingService";
 import { precioConOferta } from "@/lib/precio-oferta";
+import { formatearPrecio } from "@/lib/format-precio";
 import { textoCuotas12 } from "@/lib/promo-cuotas";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
@@ -39,6 +40,10 @@ interface Props {
    *  cuántos hay de la solapa que se está mirando. Opcional: sin el dato, la
    *  salida se comporta como siempre (todo el catálogo). */
   conteos?: { clipon: number; sol: number; receta: number };
+  /** % por transferencia de /admin/web (descuentoTransferenciaDe). */
+  descuentoTransferenciaPct: number;
+  /** Cuotas sin interés vigentes (leerPromoCuotas). */
+  cuotasSinInteres: number;
 }
 
 type TabKey = 'destacados' | 'clipon' | 'sol' | 'receta' | 'nuevos';
@@ -65,7 +70,7 @@ function salidaDeLaSolapa(
   return { href: '/tienda', numero: totalCount, etiqueta: 'modelos en total' };
 }
 
-export function HomeProductCarousel({ collections, totalCount, conteos }: Props) {
+export function HomeProductCarousel({ collections, totalCount, conteos, descuentoTransferenciaPct, cuotasSinInteres }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('destacados');
   const carouselRef = useRef<HTMLDivElement>(null);
   
@@ -259,48 +264,39 @@ export function HomeProductCarousel({ collections, totalCount, conteos }: Props)
                         dicen "fijas", sin el % (promo-cuotas.ts). */}
                     {item.rawPrice ? (
                       (() => {
-                        // El precio sale del EFECTIVO (la oferta si la hay), no del
-                        // de lista. Hasta el 8/9 esto usaba `item.rawPrice` a secas
-                        // y quedaba un arreglo a medias: el 7/9 se le puso a esta
-                        // misma tarjeta el cartel "26% OFF 🔥" —que sí mira
-                        // `salePrice`— pero el número de abajo seguía saliendo del
-                        // precio de lista. Resultado: Rigel C3, rebajado de
-                        // $215.000 a $160.000, mostraba "26% OFF" al lado de
-                        // $182.750 (215.000 − 15%), mientras /tienda mostraba
-                        // $136.000 (160.000 − 15%) por el mismo anteojo. El home es
-                        // la pantalla que más gente ve, y era la que mentía.
-                        // `precioConOferta` es la misma regla que usan la tienda,
-                        // la ficha y el cotizador.
-                        const { final } = precioConOferta({ price: item.rawPrice ?? null, salePrice: item.salePrice ?? null });
-                        const v = PricingService.preciosVidriera(final, 15);
+                        // Los números salen de PricingService.vidrieraDeProducto,
+                        // los mismos que /tienda, las categorías, la ficha y el
+                        // buscador, con la oferta ya resuelta. Hasta el 8/9 este
+                        // carrusel mostraba "26% OFF" al lado del precio de LISTA
+                        // menos 15%, y hasta el 10/10 tenía el 15% y las 6
+                        // cuotas escritos a mano: no seguía a /admin/web.
+                        const v = PricingService.vidrieraDeProducto(
+                          { price: item.rawPrice ?? null, salePrice: item.salePrice ?? null },
+                          { descuentoTransferenciaPct, cuotasSinInteres },
+                        );
                         return (
                           <p className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-medium text-emerald-700 whitespace-nowrap">Transferencia 15% OFF</span>
+                            <span className="text-[10px] font-medium text-emerald-700 whitespace-nowrap">Transferencia {descuentoTransferenciaPct}% OFF</span>
                             <span className="whitespace-nowrap">
                               <span className="text-[15px] font-black text-stone-900 tracking-tight">
-                                ${v.contado.toLocaleString("es-AR")}
+                                ${formatearPrecio(v.transferencia)}
                               </span>
                               {/* El de lista tachado, solo con rebaja real
                                   (pedido de Ishtar, 8/9: "que la oferta se
-                                  vea"). Con el mismo 15% aplicado, para que
-                                  los dos números sean comparables. */}
-                              {item.salePrice && item.rawPrice && item.salePrice < item.rawPrice ? (
+                                  vea"), con el mismo % aplicado. */}
+                              {v.transferenciaSinOferta !== null ? (
                                 <span className="ml-1.5 text-[11px] font-medium text-stone-400 line-through decoration-1">
-                                  ${PricingService.preciosVidriera(item.rawPrice, 15).contado.toLocaleString("es-AR")}
+                                  ${formatearPrecio(v.transferenciaSinOferta)}
                                 </span>
                               ) : null}
                             </span>
                             {/* Las cuotas van SIEMPRE, también en celular (pedido
-                                de Ishtar, 5/9). El 2/9 se habían ocultado en
-                                celular junto con las de /tienda; se revierte por
-                                el mismo motivo: el valor de la cuota es parte de
-                                lo que decide la compra. Los importes salen de
-                                PricingService. */}
+                                de Ishtar, 5/9). */}
                             <span className="block text-[10px] text-stone-500 font-medium">
                               {textoCuotas12(v.cuota12)}
                             </span>
                             <span className="block text-[10px] text-stone-500 font-medium">
-                              6 cuotas sin interés de ${v.cuota6.toLocaleString("es-AR")}
+                              {v.cuotas} cuotas sin interés de ${formatearPrecio(v.valorCuota)}
                             </span>
                           </p>
                         );

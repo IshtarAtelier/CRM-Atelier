@@ -1,4 +1,5 @@
 import type { InvoiceRef } from '../../lab-recon/types';
+import { formatearPrecio } from '../../../lib/format-precio';
 import { fechaArgentina } from './pedidos';
 import { importeArgentino } from './cuenta-corriente';
 
@@ -167,7 +168,7 @@ export function pdfCoincideConCuenta(facturas: FacturaVitolen[], totalesEnCuenta
     for (const f of facturas.filter(f => f.tipo === 'FA')) {
         const enCuenta = totalesEnCuenta.get(`FA ${f.numero}`);
         if (enCuenta === undefined) return { confiable: false, motivo: `FA ${f.numero} no está en la cuenta corriente` };
-        if (enCuenta !== null && f.total !== null && Math.abs(enCuenta - f.total) > 0.01) return { confiable: false, motivo: `FA ${f.numero}: el PDF dice ${f.total} y la cuenta corriente ${enCuenta}` };
+        if (enCuenta !== null && f.total !== null && Math.abs(enCuenta - f.total) > 0.01) return { confiable: false, motivo: `FA ${f.numero}: el PDF dice $ ${formatearPrecio(f.total)} y la cuenta corriente $ ${formatearPrecio(enCuenta)}` };
     }
     return { confiable: true };
 }

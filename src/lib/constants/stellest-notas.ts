@@ -48,7 +48,7 @@ export const NOTAS_STELLEST: NotaStellest[] = [
     slug: 'stellest-precio-argentina-y-formas-de-pago',
     title: 'Stellest: precio en Argentina, qué incluye y cómo se paga',
     excerpt:
-      'De qué depende el precio de un Stellest, qué viene incluido, por qué conviene pedir el presupuesto con la receta en mano y las formas de pago en Atelier.',
+      'Stellest tiene precio único: no depende de la receta. Qué viene incluido, qué cambia el total y las formas de pago en Atelier.',
     linkText: 'Precio, qué incluye y formas de pago',
     date: '2026-10-10',
     imageUrl: '/images/stellest/stellest-1.jpeg',

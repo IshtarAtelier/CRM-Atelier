@@ -203,6 +203,30 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, confirmamos tu compra {{2}} en Atelier Óptica por un total de {{3}}. Te adjuntamos el detalle. Te avisamos por acá cuando esté lista. ¡Gracias por elegirnos!',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }, { label: 'total', example: '$ 250.000' }],
     },
+    // v2 (8/10/2026, Ishtar): pide el OK y avisa las 24 h, con suavidad. La v1
+    // decía "confirmamos tu compra" y nada más; no se edita (Meta), se versiona.
+    venta_confirmada_v2: {
+        name: 'venta_confirmada_v2',
+        inventario: 'A2 (repaso del pedido: pide el OK; 24 h sin respuesta = confirmado)',
+        category: 'UTILITY',
+        header: 'DOCUMENT',
+        body: 'Hola {{1}}, ¡gracias por tu compra en Atelier Óptica! 😊 Te adjuntamos el detalle de tu pedido {{2}} ({{3}}) para que lo mires con calma antes de que pase a fabricación. Si está todo bien, respondé OK; si hay algo para corregir, contanos y lo vemos juntos. Si en 24 horas no recibimos tu respuesta, lo tomamos como confirmado y sigue su camino tal como está. ¡Gracias! 🤍',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }, { label: 'total', example: '$ 250.000' }],
+    },
+    // La FOTO del armazón cuando el principal salió como plantilla (ventana de
+    // 24 h cerrada): hasta el 10/10/2026 iba solo dentro del PDF, y de 21
+    // confirmaciones así en un mes, 10 clientes nunca la vieron como mensaje.
+    // Una plantilla lleva un solo encabezado, así que la foto va en esta otra.
+    venta_confirmada_foto: {
+        name: 'venta_confirmada_foto',
+        inventario: 'A2 (la foto del armazón del pedido, aparte del PDF)',
+        category: 'UTILITY',
+        header: 'IMAGE',
+        imagenMuestra: 'public/social/campania-cupon-soycliente/01.jpg',
+        // Meta no acepta un cuerpo que EMPIECE con una variable (400 "Invalid parameter", 15/10/2026): va con "Hola" adelante.
+        body: 'Hola {{1}}, esta es la foto del armazón de tu pedido {{2}} 👓 ¿Es el que elegiste? Si es así, respondé OK; si no, contanos y lo revisamos.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
+    },
     comprobante_pago: {
         name: 'comprobante_pago',
         inventario: 'A3',

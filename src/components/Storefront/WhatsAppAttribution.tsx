@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { adPlatformSentence } from '@/lib/client-analytics';
 import { trackWhatsAppClick } from '@/lib/tracking';
+import { WHATSAPP_PHONE } from '@/lib/constants';
+import { hrefConOrigen } from '@/lib/whatsapp-origen-web';
 
 /**
  * Agrega el origen ("Los vi en Google Ads." / "Los vi en Meta.") al mensaje de
@@ -21,6 +23,11 @@ import { trackWhatsAppClick } from '@/lib/tracking';
  * No pisa nada si el mensaje ya trae el origen (doble clic, o un link que ya lo
  * incluía), y ante cualquier error deja el link intacto: la medición no puede
  * romper una consulta de venta.
+ *
+ * 10/10/2026: también asegura la marca "Estoy en la web de Atelier." en los
+ * mensajes al número de la tienda que no traían ninguna frase conocida (ver
+ * src/lib/whatsapp-origen-web.ts). Nunca en el CRM: ahí los links son para
+ * escribirle a un cliente, y el mensaje es del vendedor.
  */
 export default function WhatsAppAttribution() {
   useEffect(() => {
@@ -36,25 +43,15 @@ export default function WhatsAppAttribution() {
         // la frase de origen.
         trackWhatsAppClick(window.location.pathname);
 
-        const frase = adPlatformSentence();
-        if (!frase) return;
-
-        const url = new URL(link.href);
-        const texto = url.searchParams.get('text');
-        // Sin texto prellenado no hay dónde poner el origen: el cliente escribe
-        // de cero y meterle una frase que no tipeó sería inventarle el mensaje.
-        if (!texto) return;
-        // Ya viene con origen (doble clic, o el link lo traía): no duplicar.
-        if (/^Los vi en (Google Ads|Meta|un anuncio de (Google|Instagram))\./i.test(texto.trim())) return;
-
-        // Se reescribe a mano en vez de usar searchParams.set: ese serializa los
-        // espacios como "+" y el resto del sitio los manda como %20. No mezclamos
-        // codificaciones en algo que el cliente va a ver escrito en su WhatsApp.
-        const nuevoTexto = encodeURIComponent(`${frase} ${texto}`);
-        const otros = [...url.searchParams.entries()]
-          .filter(([k]) => k !== 'text')
-          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
-        link.href = `${url.origin}${url.pathname}?${['text=' + nuevoTexto, ...otros].join('&')}`;
+        // Toda la decisión (CRM, número, frase del anuncio, marca de la web)
+        // vive en hrefConOrigen, que check:origen prueba con casos.
+        const nuevo = hrefConOrigen({
+          href: link.href,
+          pathname: window.location.pathname,
+          fraseAnuncio: adPlatformSentence(),
+          telefonoTienda: WHATSAPP_PHONE,
+        });
+        if (nuevo) link.href = nuevo;
       } catch {
         /* la medición nunca rompe el link */
       }

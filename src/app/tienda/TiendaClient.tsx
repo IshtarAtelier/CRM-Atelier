@@ -17,6 +17,8 @@ import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
+import { formatearPrecio } from "@/lib/format-precio";
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { etiquetaRangoPrecio } from "@/lib/constants/rangos-precio-tienda";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades } from "@/lib/constants/social-proof";
 import { track } from "@/lib/client-analytics";
@@ -381,6 +383,10 @@ export function TiendaClient({
   // "12 s/interés de $lista/12" — la frase prohibida, con el precio mal.
   const promo = leerPromoCuotas(webSettings.web_promo_installments);
   const installmentsCount = promo.cantidad;
+  // El % por transferencia de /admin/web, con la misma regla que el filtro de
+  // precio (un vacío o 0 cae al 15): el número de la tarjeta y el del filtro
+  // no pueden salir de dos lecturas distintas.
+  const descuentoTransferenciaPct = descuentoTransferenciaDe(webSettings.web_promo_cash_discount);
   // (El descuento se muestra como % en el encabezado y en cada card; acá ya no
   //  hace falta la tasa suelta desde que se fue el chip de promo — A-25.)
 
@@ -672,7 +678,7 @@ export function TiendaClient({
                 aria-live="polite"
                 className="mt-1.5 text-[11px] font-bold uppercase tracking-widest text-stone-600"
               >
-                {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · envío gratis · {webSettings.web_promo_cash_discount}% OFF transferencia
+                {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · envío gratis · {descuentoTransferenciaPct}% OFF transferencia
               </p>
             )}
           </div>
@@ -1196,80 +1202,52 @@ export function TiendaClient({
                           )}
                         </div>
                       ) : (() => {
-                        // Precio idéntico al del home: siempre sobre el precio de lista
-                        // (price), nunca salePrice, para que un mismo producto muestre el
-                        // mismo valor (cuotas + eft/transf) en la home y en la tienda.
-                        const base = (p.price || 0);
-
-                        // ¿Está REALMENTE en oferta? Es lo único que se grita.
+                        // Los números salen de PricingService.vidrieraDeProducto:
+                        // los mismos que el home, las categorías, los
+                        // relacionados de la ficha y el buscador. La oferta
+                        // (src/lib/precio-oferta.ts) ya viene resuelta.
                         //
-                        // Antes las 114 tarjetas llevaban el mismo cartel verde
-                        // "15% OFF 🔥". Ese 15% es cierto, pero es una CONDICIÓN
-                        // DE PAGO (efectivo o transferencia), no una oferta: no
-                        // depende del producto y está en todos por igual. Con el
-                        // mismo cartel en todas, el ojo lo deja de ver a la
-                        // tercera tarjeta — y, peor, quemaba el único lugar
-                        // donde una oferta de verdad podía gritarse. La tarjeta
-                        // ni siquiera miraba `salePrice`: un producto rebajado
-                        // se veía igual que uno que no.
-                        // Ahora el cartel llamativo es exclusivo de la rebaja
-                        // real, y el 15% se dice donde corresponde: al lado del
-                        // precio de contado, como la condición que es.
-                        // La regla de la oferta vive en src/lib/precio-oferta.ts:
-                        // la misma que usan la ficha, el JSON-LD y el cotizador.
-                        // `descuentoPct` ya no se lee acá: el cartel del % vive
-                        // arriba, sobre la foto. Acá solo hace falta saber SI hay
-                        // oferta, para tomar `salePrice` en vez del precio de lista.
-                        const { enOferta: oferta } = precioConOferta(p);
-
+                        // ¿Está REALMENTE en oferta? Es lo único que se grita.
+                        // El 15% es una CONDICIÓN DE PAGO (transferencia), no
+                        // una oferta: va al lado del precio, como la condición
+                        // que es; el cartel llamativo es exclusivo de la rebaja
+                        // real y vive arriba, sobre la foto (7/9).
+                        const v = PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: installmentsCount });
                         return (
                           <div className="pt-1 flex items-center justify-between gap-2">
                             {/* El valor GRANDE es el de transferencia (pedido
                                 de Ishtar, 31/8): es el precio que decide la
                                 compra. Las cuotas quedan como segunda línea —
                                 las 12 se dicen "fijas", sin el % (decisión de
-                                Ishtar, 31/8 noche). Los valores salen de
-                                PricingService, con el recargo adentro. */}
+                                Ishtar, 31/8 noche). */}
                             <p className="text-sm text-stone-600 font-medium">
                               <span className="font-black text-base text-stone-900">
-                                ${Math.round((oferta ? p.salePrice : base) * (1 - (webSettings.web_promo_cash_discount || 15) / 100)).toLocaleString("es-AR")}
+                                ${formatearPrecio(v.transferencia)}
                               </span>
-                              {/* El precio de lista TACHADO, solo con rebaja real
-                                  (pedido de Ishtar, 8/9: "que la oferta se vea").
-                                  Va con el mismo 15% aplicado que el de al lado,
-                                  para que los dos números se puedan comparar:
-                                  tachar el de lista PELADO contra un final CON
-                                  descuento infla la rebaja aparente. */}
-                              {oferta && (
+                              {/* El de lista TACHADO, solo con rebaja real
+                                  (pedido de Ishtar, 8/9: "que la oferta se vea"),
+                                  con el mismo % aplicado para que los dos
+                                  números se puedan comparar. */}
+                              {v.transferenciaSinOferta !== null && (
                                 <span className="ml-1.5 text-xs font-medium text-stone-400 line-through decoration-1">
-                                  ${Math.round((base || 0) * (1 - (webSettings.web_promo_cash_discount || 15) / 100)).toLocaleString("es-AR")}
+                                  ${formatearPrecio(v.transferenciaSinOferta)}
                                 </span>
                               )}
-                              {/* El 15% va en el MISMO renglón que el precio
+                              {/* El % va en el MISMO renglón que el precio
                                   (pedido de Ishtar, 5/9). */}
-                              <span className="text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                              <span className="text-emerald-700 text-xs font-bold"> {descuentoTransferenciaPct}% OFF transf.</span>
                               {/* Las cuotas van SIEMPRE —también en celular— y
-                                  UNA DEBAJO DE LA OTRA, no separadas por un "·"
-                                  en el mismo renglón (pedido de Ishtar, 5/9:
-                                  "primero uno después el otro"). El 2/9 se habían
-                                  ocultado en celular para que la tarjeta respirara;
-                                  se revierte: el valor de la cuota es parte de lo
-                                  que decide la compra y tiene que verse en la
-                                  grilla, no solo en la ficha.
-                                  "fijas" se mantiene: es la palabra que distingue
-                                  las 12 (que llevan el costo financiero del 10%)
-                                  de las 3 y 6, que sí son sin interés — regla de
-                                  CLAUDE.md. Los importes salen de PricingService. */}
+                                  una debajo de la otra (pedido de Ishtar, 5/9).
+                                  "fijas" distingue las 12 (llevan el costo
+                                  financiero) de las 3 y 6, que sí son sin
+                                  interés — regla de CLAUDE.md. */}
                               <span className="block text-xs text-stone-500">
-                                12 cuotas fijas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}
+                                12 cuotas fijas de ${formatearPrecio(v.cuota12)}
                               </span>
                               <span className="block text-xs text-stone-500">
-                                {installmentsCount} cuotas sin interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
+                                {v.cuotas} cuotas sin interés de ${formatearPrecio(v.valorCuota)}
                               </span>
                             </p>
-                            {/* El cartel de oferta se mudó a la esquina
-                                superior derecha de la foto (7/9). Acá abajo
-                                queda solo el precio. */}
                           </div>
                         );
                       })()}

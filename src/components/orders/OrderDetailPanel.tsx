@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { labDeItem } from '@/lib/laboratorios/identidad';
 import { CRIZALES, ventaExigeCrizal } from '@/lib/constants/crizal';
 import {
     FlaskConical,
@@ -23,7 +24,7 @@ import type { OrderFinancials } from '@/services/PricingService';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
-import VitolenCarga from '@/components/orders/VitolenCarga';
+import CargaLaboratorio from '@/components/orders/CargaLaboratorio';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 
 export const LAB_STEPS = [
@@ -147,8 +148,10 @@ export function OrderDetailPanel({
         const labName = (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase();
         return labName.includes('OPTOVISION');
     }) || false;
-    const isVitolen = order.items?.some((it: any) =>
-        (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase().includes('VITOLEN')) || false;
+    const isVitolen = order.items?.some((it: any) => labDeItem(it) === 'VITOLEN') || false;
+    // Grupo Óptico: carga asistida en SmartLab (src/services/lab-modules/grupo-optico).
+    const isGrupoOptico = order.items?.some((it: any) =>
+        labDeItem(it) === 'GRUPO_OPTICO' && /cristal/i.test(it.productCategorySnapshot || it.product?.category || '')) || false;
 
     const [fullImageOpen, setFullImageOpen] = useState(false);
     // Los campos del caso los maneja PostSaleServiceForm; acá solo se sigue la
@@ -1115,19 +1118,19 @@ export function OrderDetailPanel({
                                         onClick={() => onAutoSubmit(order, 1)}
                                         disabled={isAutoSubmitting}
                                         className="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-[9px] font-black flex items-center gap-1 transition-all shadow-md disabled:opacity-50"
-                                        title="Copiar Par 1 y abrir SmartLab"
+                                        title="Plan B: copiar el Par 1 y abrir SmartLab para cargarlo a mano con el favorito"
                                     >
                                         {isAutoSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Package className="w-3 h-3" />}
-                                        <span>Par 1</span>
+                                        <span>A mano · Par 1</span>
                                     </button>
                                     <button
                                         onClick={() => onAutoSubmit(order, 2)}
                                         disabled={isAutoSubmitting}
                                         className="px-2.5 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg text-[9px] font-black flex items-center gap-1 transition-all shadow-md disabled:opacity-50"
-                                        title="Copiar Par 2 (Bonificado) y abrir SmartLab"
+                                        title="Plan B: copiar el Par 2 (bonificado) y abrir SmartLab para cargarlo a mano con el favorito"
                                     >
                                         {isAutoSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Package className="w-3 h-3" />}
-                                        <span>Par 2</span>
+                                        <span>A mano · Par 2</span>
                                     </button>
                                 </div>
                             ) : (
@@ -1137,7 +1140,7 @@ export function OrderDetailPanel({
                                     className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-[9px] font-black flex items-center gap-2 transition-all shadow-md disabled:opacity-50"
                                 >
                                     {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Package className="w-3.5 h-3.5" />}
-                                    {isAutoSubmitting ? 'Copiando...' : 'Autocompletar Form'}
+                                    {isAutoSubmitting ? 'Copiando...' : 'A mano (favorito)'}
                                 </button>
                             );
                         })()}
@@ -1178,6 +1181,14 @@ export function OrderDetailPanel({
                             })}
                         </div>
                     </div>
+
+                    {/* Carga del pedido en el portal del laboratorio: el MISMO bloque para
+                        todos (CargaLaboratorio). El robot arma el pedido, se ve la pantalla
+                        real del portal y ahí mismo se aprueba. El favorito de SmartLab queda
+                        arriba como plan B ("a mano"). */}
+                    {isGrupoOptico && (
+                        <CargaLaboratorio lab="GRUPO_OPTICO" orderId={order.id} onChanged={() => onRefresh?.()} />
+                    )}
 
                     {/* SmartLab Live Status (Grupo Óptico). Vitolen tiene su propio bloque. */}
                     {!isOptovision && !isVitolen && (
@@ -1247,8 +1258,9 @@ export function OrderDetailPanel({
                     {/* Vitolen: espejo del portal y carga asistida con OK humano
                         (src/services/lab-modules). Solo si la venta lleva sus cristales. */}
                     {isVitolen && (
-                        <VitolenCarga orderId={order.id} onChanged={() => onRefresh?.()} />
+                        <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={() => onRefresh?.()} />
                     )}
+
 
                     {/* Post Venta — desde el tablero de post venta va arriba de todo,
                         no acá abajo: es lo único que se fue a ver. */}

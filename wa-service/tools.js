@@ -408,7 +408,10 @@ async function getPriceList({ category, search, botRecommended, genero, graduaci
         // los cristales Varilux. El `?? cash` es la red por si algún producto
         // llegara sin `priceCredit`: mejor repetir el contado que inventar.
         const creditTotal = Math.round(p.priceCredit ?? cash);
-        const cuota = Math.round(creditTotal / 6);
+        // Cuántas cuotas y de cuánto: las manda el CRM resueltas (3 o 6, según
+        // /admin/web). La división queda solo de red si faltaran.
+        const meses = Number(p.creditMonths) > 0 ? Number(p.creditMonths) : 6;
+        const cuota = Math.round(Number(p.cuota6) > 0 ? Number(p.cuota6) : creditTotal / meses);
         const cuotaFormatted = cuota.toLocaleString('es-AR');
         const creditTotalFormatted = creditTotal.toLocaleString('es-AR');
 
@@ -423,7 +426,7 @@ async function getPriceList({ category, search, botRecommended, genero, graduaci
 
         line += `*Opción ${i + 1} – ${name}*\n`;
         line += `• Precio contado: *$${cashFormatted}*\n`;
-        line += `• 6 cuotas sin interés de *$${cuotaFormatted}* (total *$${creditTotalFormatted}*)`;
+        line += `• ${meses} cuotas sin interés de *$${cuotaFormatted}* (total *$${creditTotalFormatted}*)`;
 
         if (p.is2x1) {
             line += `\n🎉 *Promo 2x1* - Incluye dos pares de cristales!`;

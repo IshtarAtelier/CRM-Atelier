@@ -824,6 +824,38 @@ export async function register() {
             }
         };
 
+        // ---- PAGOS DE MERCADO PAGO QUE NO SE CONCRETARON, cada tick (10 min) ----
+        // Al elegir Mercado Pago el pedido se crea y el stock se RESERVA. Si la
+        // persona no paga, esta ruta lo cancela a las 2 h (antes le pregunta a
+        // Mercado Pago si entró la plata), devuelve el stock y cambia el aviso
+        // a "no pagó: escribile". Existía desde agosto pero NO estaba
+        // programada en ningún lado (10/10/2026): cada abandono dejaba un
+        // armazón reservado para siempre.
+        let mpExpiradosRunning = false;
+        const maybeRunMpExpirados = async () => {
+            if (mpExpiradosRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            mpExpiradosRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/mercadopago-expirados`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(2 * 60 * 1000),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) console.error(`[CRON mercadopago-expirados] HTTP ${res.status}: ${data.error || ''}`);
+                else if (data.liberados || data.rescatados) {
+                    console.log(`[CRON mercadopago-expirados] liberados ${data.liberados} · rescatados ${data.rescatados}` +
+                        (data.sinDevolverStock ? ` · sin devolver stock (reservas viejas): ${data.sinDevolverStock.join(', ')}` : ''));
+                }
+            } catch (err) {
+                console.error('[CRON mercadopago-expirados] Error (se reintenta):', err);
+            } finally {
+                mpExpiradosRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
@@ -845,6 +877,7 @@ export async function register() {
             maybeRunCierreBot().catch(err => console.error('[Vigilante bot] maybeRunCierreBot:', err));
             maybeRunMetaConversiones().catch(err => console.error('[CRON meta-conversiones] maybeRunMetaConversiones:', err));
             maybeRunCobrosMp().catch(err => console.error('[CRON cobros-mercadopago] maybeRunCobrosMp:', err));
+            maybeRunMpExpirados().catch(err => console.error('[CRON mercadopago-expirados] maybeRunMpExpirados:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');
@@ -860,19 +893,15 @@ export async function register() {
                 const res = await fetch(`${baseUrl}/api/cron/smartlab-sync?secret=${cronSecret}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
-                    // Tope de 9,5 min: un sync colgado no debe pisarse con el
-                    // siguiente disparo del intervalo ni quedar esperando eterno.
-                    // 14 min y no 9,5: desde el 7/9/26 el login reintenta hasta 3 veces
-                    // (el portal de Grupo Óptico está lento y migrando), y en el
-                    // peor caso son 5 min solo para entrar más el scraping. Con
-                    // 9,5 el fetch abortaba a mitad de un pase que iba a terminar
-                    // bien, y el log decía "falló" sobre una corrida sana. El
-                    // solapamiento con el tick siguiente lo previene `isSyncing`.
-                    // 25 min: el login solo puede llevarse 5 (ver ESPERA_MS en
-                    // smartlab.service.ts) y después falta recorrer la lista de
-                    // pedidos, con el portal en migración. `isSyncing` impide que
-                    // dos corridas se pisen, así que un pase largo simplemente
-                    // hace que el tick siguiente se saltee.
+                    // 25 min de tope: el login solo puede llevarse 5 (ver
+                    // ESPERA_SMARTLAB_MS en lab-modules/grupo-optico/portal.ts) y
+                    // después falta leer el listado y buscar lo que no salió, con
+                    // el portal en migración. Con 9,5 el fetch abortaba a mitad de
+                    // un pase que iba a terminar bien y el log decía "falló" sobre
+                    // una corrida sana. Que dos corridas no se pisen lo garantiza
+                    // el turno del portal (lab-modules/portal/turno.ts, en la
+                    // base, válido entre las dos instancias): un pase largo hace
+                    // que el tick siguiente se saltee.
                     signal: AbortSignal.timeout(25 * 60 * 1000),
                 });
                 if (!res.ok) {
@@ -884,7 +913,7 @@ export async function register() {
                 if (data.skipped) {
                     console.log(`[CRON SmartLab] Omitido: ${data.reason}`);
                 } else {
-                    console.log(`[CRON SmartLab] Resultado: ${data.matched || 0} actualizados, ${data.newlyFinished || 0} fabricados`);
+                    console.log(`[CRON SmartLab] Resultado: ${data.seguimiento?.vistos ?? 0} pedidos vistos, ${data.seguimiento?.avanzados ?? 0} ventas avanzadas, ${data.seguimiento?.terminados ?? 0} terminadas`);
                 }
             } catch (err) {
                 console.error('[CRON SmartLab] Error de conexión:', err);

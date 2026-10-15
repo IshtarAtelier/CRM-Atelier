@@ -16,16 +16,20 @@
 import assert from 'node:assert/strict';
 import { leerTurno, turnoVigente, debeEsperar } from '../../src/services/lab-modules/portal/turno.ts';
 import { decidirAlertaDeCaida, debeAvisarRecuperacion, UMBRAL_CAIDA_MS, REPETIR_ALERTA_MS } from '../../src/services/lab-modules/portal/salud.ts';
-import { transicionDeVenta, estadoConjunto, numeroProvisorio, numerosQueFaltan } from '../../src/services/lab-modules/estados.ts';
+import { transicionDeVenta, estadoConjunto, estadoConjuntoDeVenta, paresCompletos, numeroProvisorio, numerosQueFaltan } from '../../src/services/lab-modules/estados.ts';
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
-import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados } from '../../src/services/lab-modules/carga/borrador.ts';
+import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados, SALIDAS_A_ERROR_CON_PRUEBA, Borradores } from '../../src/services/lab-modules/carga/borrador.ts';
+import { DURACION_TURNO_MIN, RENOVAR_TURNO_CADA_MS } from '../../src/services/lab-modules/portal/turno.ts';
+import { statSync } from 'node:fs';
+import { join as unirRuta } from 'node:path';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
-import { armarFormulario, codigoDeCristal, tipoRecetaDe } from '../../src/services/lab-modules/vitolen/carga.ts';
-import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/services/lab-modules/vitolen/catalogo.ts';
-import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/services/lab-modules/vitolen/promo.ts';
+import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo, diferenciasDePayloadVitolen } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { rolesDeLaPromoHoya, rolDeLaPromo } from '../../src/lib/laboratorios/vitolen-promo.ts';
+import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/lib/laboratorios/vitolen-catalogo.ts';
+import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/lib/laboratorios/vitolen-promo.ts';
 import { estadoDe } from '../../src/services/lab-modules/vitolen/estados.ts';
 import { materialDelPortal, disenoDelPortal, colorDe } from '../../src/services/lab-modules/vitolen/materiales.ts';
 import { DISENOS_PORTAL } from '../../src/services/lab-modules/vitolen/portal-materiales.ts';
@@ -37,6 +41,9 @@ import { extraerHtmlDeRespuestaJs, parsearListado, leerPaginador, fechaArgentina
 import { labKeyDeNombre } from '../../src/services/lab-recon/types.ts';
 import { armarCatalogo } from '../maintenance/precios-vitolen/generar-catalogo-ts.mjs';
 import { leerLista } from '../maintenance/precios-vitolen/subir-catalogo-vitolen.mjs';
+import { estadoDeFila, parDeFila, fechaDelPortal, fechaDelPortalEnTexto, esTrabado, normalizarPedido as normalizarPedidoGO, seguirPaginando, numerosNoEncontrados, numerosActivosDeVenta, detalleDeFila, resumenTracker, diasDesde, comprobantesDeFila, TEXTO_NO_ENCONTRADO } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
+import { MODULO_GRUPO_OPTICO } from '../../src/services/lab-modules/grupo-optico/modulo.ts';
+import { REGISTRO_MODULOS } from '../../src/services/lab-modules/registro.ts';
 
 const ahora = new Date('2026-10-01T12:00:00Z');
 const hace = (ms) => new Date(ahora.getTime() - ms);
@@ -114,6 +121,31 @@ ok('nunca baja, nunca toca READY/DELIVERED/NONE, nunca afirma sobre lo desconoci
     assert.equal(transicionDeVenta(null, 'TERMINADO'), null);
     assert.equal(transicionDeVenta('SENT', 'DESCONOCIDO'), null);
     assert.equal(transicionDeVenta('SENT', 'ANULADO'), null);
+});
+ok('un 2x1 no termina hasta que lleguen AMBOS pares (Ishtar, 3/10/2026)', () => {
+    assert.equal(paresCompletos(2, 1), false);
+    assert.equal(paresCompletos(2, 2), true);
+    assert.equal(paresCompletos(1, 1), true);
+    assert.equal(paresCompletos(0, 1), true, 'sin cristales contados, un pedido alcanza');
+    assert.equal(paresCompletos(1, 0), false);
+    // Un solo pedido TERMINADO en una venta de dos pares: EN_PROCESO, nunca FINISHED.
+    assert.equal(estadoConjuntoDeVenta(['TERMINADO'], 2), 'EN_PROCESO');
+    assert.equal(estadoConjuntoDeVenta(['DESPACHADO'], 2), 'EN_PROCESO');
+    assert.equal(transicionDeVenta('IN_PROGRESS', estadoConjuntoDeVenta(['TERMINADO'], 2)), null);
+    assert.equal(transicionDeVenta('SENT', estadoConjuntoDeVenta(['TERMINADO'], 2)), 'IN_PROGRESS');
+    // Con los dos pedidos, manda el más atrasado como siempre.
+    assert.equal(estadoConjuntoDeVenta(['TERMINADO', 'TERMINADO'], 2), 'TERMINADO');
+    assert.equal(estadoConjuntoDeVenta(['TERMINADO', 'EN_PROCESO'], 2), 'EN_PROCESO');
+    // Un anulado no cuenta como par vivo: TERMINADO + ANULADO en un 2x1 sigue faltando uno.
+    assert.equal(estadoConjuntoDeVenta(['TERMINADO', 'ANULADO'], 2), 'EN_PROCESO');
+    assert.equal(estadoConjuntoDeVenta(['TERMINADO', 'ANULADO'], 1), 'TERMINADO');
+    // Lo que no es "terminado" no se toca: ingresado, desconocido, anulado.
+    assert.equal(estadoConjuntoDeVenta(['INGRESADO'], 2), 'INGRESADO');
+    assert.equal(estadoConjuntoDeVenta(['DESCONOCIDO'], 2), 'DESCONOCIDO');
+    assert.equal(estadoConjuntoDeVenta(['ANULADO'], 2), 'ANULADO');
+    assert.equal(estadoConjuntoDeVenta([], 2), 'DESCONOCIDO');
+    // Un solo par: igual que estadoConjunto.
+    assert.equal(estadoConjuntoDeVenta(['TERMINADO'], 1), 'TERMINADO');
 });
 ok('un nº provisorio se puede reemplazar; uno real no', () => {
     assert.equal(numeroProvisorio(null), true);
@@ -225,6 +257,10 @@ ok('cada cristal del catálogo se encuentra por su nombre exacto, sin importar l
     assert.equal(cristalVitolenPorNombre('hoya array 2 - 1.50 clear blue filter')?.codigos[0], '10050');
     assert.equal(cristalVitolenPorNombre('HOYA LIFESTYLE 4 - 1.50 CLEAR')?.variantes.length, 3);
     assert.equal(cristalVitolenPorNombre('nada'), null);
+    // La venta guarda el nombre SIN la marca (productNameSnapshot = modelo): el
+    // 15/10/2026 la primera venta real (Moroncini) no se podía preparar por esto.
+    assert.equal(cristalVitolenPorNombre('Array 2 - 1.60 Blue Filter UV-420')?.nombre, 'HOYA ARRAY 2 - 1.60 BLUE FILTER UV-420');
+    assert.equal(cristalVitolenPorNombre('Mi Primer Hoya Array 2 - 1.50 Clear Blue Filter')?.linea, 'mph-array-2');
 });
 ok('el tipo de receta sale del tipo del cristal', () => {
     assert.equal(tipoRecetaDe('Cristal Multifocal'), 'Progresivo');
@@ -391,12 +427,38 @@ ok('sin cristales de Vitolen para ese par, no arma nada', () => {
 });
 ok('el segundo par lleva el pedido origen del primero', () => {
     const v = ventaBase();
-    v.items.forEach(i => { i.framePosition = 2; });
-    v.frames = [{ position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
+    // dos pares de verdad: los cristales del par 1 y una copia en el armazón 2
+    v.items.push(...v.items.filter(i => i.eye).map(i => ({ ...i, framePosition: 2 })));
+    v.frames = [v.frames[0], { position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
     const r = armarFormulario(v, { pair: 2, forma: 'Forma 3', ejeDiagonal: 20, pedidoOrigen: '5001234' });
     assert.equal(r.ok, true);
     assert.equal(r.payload.pedidoOrigen, '5001234');
     assert.equal(r.payload.armazon.largo, 50);
+});
+ok('dos pares SIN armazón asignado se arman en el orden del carrito (como la promo del 2º par)', () => {
+    // Así llegó la primera venta real (Moroncini, 15/10/2026): dos armazones y
+    // cuatro cristales con framePosition vacío, nombre sin la marca.
+    const v = ventaBase();
+    const cristal = (eye, s) => ({ ...v.items[0], eye, productNameSnapshot: 'Array 2 - 1.60 Clear', sphereVal: s, framePosition: null });
+    v.items = [cristal('OD', 1), cristal('OI', 2), cristal('OD', 3), cristal('OI', 4)];
+    v.frames = [
+        { position: 1, shape: null, a: '56', b: '39', dbl: '17', edc: '58', details: 'Harper', heightOD: 25, heightOI: 25 },
+        { position: 2, shape: null, a: '58', b: '40', dbl: '18', edc: '61', details: 'Aviador', heightOD: 26, heightOI: 26 },
+    ];
+    const p1 = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
+    const p2 = armarFormulario(v, { pair: 2, forma: 'Forma 1', ejeDiagonal: 0, pedidoOrigen: '1L' });
+    assert.equal(p1.ok, true, p1.faltantes.join(' · '));
+    assert.equal(p2.ok, true, p2.faltantes.join(' · '));
+    assert.deepEqual([p1.payload.od.esferico, p1.payload.oi.esferico, p1.payload.armazon.largo], [1, 2, 56]);
+    assert.deepEqual([p2.payload.od.esferico, p2.payload.oi.esferico, p2.payload.armazon.largo], [3, 4, 58]);
+});
+ok('el tipo de armazón se elige al preparar; sin él (la venta casi nunca lo trae) no se arma', () => {
+    const v = ventaBase();
+    v.labFrameType = null;
+    assert.ok(armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 }).faltantes.some(f => /tipo de armazón/.test(f)));
+    const r = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0, tipoArmazon: 'Ranurado' });
+    assert.equal(r.ok, true);
+    assert.equal(r.payload.armazon.tipo, 'Ranurado');
 });
 
 console.log('\n— Vitolen: el 2º par al 20 % y el cruce lo reconoce —');
@@ -421,10 +483,38 @@ ok('cobrado de más solo por encima del 5 % de tolerancia', () => {
 });
 
 console.log('\n— Carga asistida: lo que la auditoría del 3/10 pidió —');
-ok('APROBADO nunca va a ERROR (el portal puede haber confirmado); puede volver a revisión', () => {
+ok('APROBADO no va a ERROR por la tabla (el portal puede haber confirmado); puede volver a revisión', () => {
     assert.equal(transicionValida('APROBADO', 'ERROR'), false);
     assert.equal(transicionValida('APROBADO', 'EN_REVISION'), true);
     assert.equal(transicionValida('PREPARADO', 'ERROR'), true);
+});
+ok('las salidas a ERROR con prueba en el WHERE están declaradas, y son exactamente las que Borradores tiene', () => {
+    // La tabla dice que APROBADO → ERROR no existe "en general"; estas tres son
+    // las excepciones, cada una con su prueba de que no hay pedido en el portal.
+    // Si aparece una cuarta función que escriba ERROR con SQL crudo, tiene que
+    // declararse acá (auditoría de arquitectura 3).
+    assert.deepEqual(Object.keys(SALIDAS_A_ERROR_CON_PRUEBA).sort(), ['anular', 'invalidarPorBorradorDesaparecido', 'invalidarSinPedido']);
+    for (const via of Object.keys(SALIDAS_A_ERROR_CON_PRUEBA)) assert.equal(typeof Borradores[via], 'function', `Borradores.${via} no existe`);
+    for (const texto of Object.values(SALIDAS_A_ERROR_CON_PRUEBA)) assert.match(texto, /^(APROBADO|PREPARADO)/);
+    // Y nadie escribe status = 'ERROR' por fuera de salirAError: se lee el código
+    // de todos los módulos (un guardián que no puede fallar es peor que ninguno).
+    const raiz = new URL('../../src/services/lab-modules/', import.meta.url).pathname;
+    const archivos = [];
+    const recorrer = (dir) => { for (const f of readdirSync(dir)) { const p = unirRuta(dir, f); if (statSync(p).isDirectory()) recorrer(p); else if (/\.ts$/.test(f)) archivos.push(p); } };
+    recorrer(raiz);
+    const escrituras = [];
+    for (const f of archivos) {
+        const texto = readFileSync(f, 'utf8');
+        for (const m of texto.matchAll(/status\s*[:=]\s*'ERROR'/g)) escrituras.push(`${f.replace(raiz, '')}:${texto.slice(0, m.index).split('\n').length}`);
+    }
+    assert.deepEqual(escrituras, ['carga/borrador.ts:' + (readFileSync(unirRuta(raiz, 'carga/borrador.ts'), 'utf8').split('\n').findIndex(l => /SET status = 'ERROR'/.test(l)) + 1)], `escrituras de ERROR fuera de salirAError: ${escrituras.join(', ')}`);
+});
+ok('el turno guarda quién lo tiene y hasta cuándo; dura poco y se renueva seguido (si el proceso muere, el portal se libera solo)', () => {
+    const t = leerTurno('2026-10-10T12:45:00.000Z|robot');
+    assert.deepEqual(t, { vence: '2026-10-10T12:45:00.000Z', pasada: 'robot' });
+    assert.equal(leerTurno('basura'), null);
+    assert.ok(DURACION_TURNO_MIN <= 15, 'un turno sin renovar no puede bloquear el portal más de 15 min');
+    assert.ok(RENOVAR_TURNO_CADA_MS * 3 <= DURACION_TURNO_MIN * 60_000, 'la renovación tiene que entrar al menos tres veces en la duración del turno');
 });
 ok('un borrador que dejó un pedido en el portal bloquea preparar otro hasta cancelarlo o confirmarlo', () => {
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { portalDraftId: '10441994' } }), true);
@@ -433,11 +523,53 @@ ok('un borrador que dejó un pedido en el portal bloquea preparar otro hasta can
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: null }), false);
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { pasos: [] } }), false);
 });
-ok('un PREPARADO colgado 20 min va a ERROR; un APROBADO colgado se reintenta, nunca ERROR', () => {
+ok('Vitolen: los roles de la promo salen de la MISMA regla con la que el CRM la cobra (líneas que la encienden, caro = 1º)', () => {
+    const c = (fp, eye, nombre, price) => ({ eye, framePosition: fp, price, quantity: 1, productNameSnapshot: nombre, product: { name: nombre, category: 'Cristal' } });
+    const LS = 'HOYA LIFESTYLE 4 - 1.50 CLEAR', TACT = 'HOYA TACT BKS - 1.50 CLEAR BLUE FILTER';
+    const r = rolesDeLaPromoHoya([c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000), c(2, 'OD', LS, 100000), c(2, 'OI', LS, 100000)]);
+    assert.deepEqual([r.conCargo, r.sinCargo, r.porValor], [1, 2, false]);
+    // el par 2 más caro: es el 1º de la promo
+    const caro = rolesDeLaPromoHoya([c(1, 'OD', LS, 90000), c(1, 'OI', LS, 90000), c(2, 'OD', LS, 100000), c(2, 'OI', LS, 100000)]);
+    assert.deepEqual([caro.conCargo, caro.sinCargo], [2, 1]);
+    // Tact solo puede ser 2º
+    const tact = rolesDeLaPromoHoya([c(1, 'OD', TACT, 80000), c(1, 'OI', TACT, 80000), c(2, 'OD', LS, 100000), c(2, 'OI', LS, 100000)]);
+    assert.deepEqual([tact.conCargo, tact.sinCargo], [2, 1]);
+    // sin promo: un solo par, o una línea que no la enciende
+    assert.equal(rolesDeLaPromoHoya([c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000)]), null);
+    assert.equal(rolesDeLaPromoHoya([c(1, 'OD', TACT, 80000), c(1, 'OI', TACT, 80000), c(2, 'OD', TACT, 80000), c(2, 'OI', TACT, 80000)]), null);
+    // un 3er par no tiene rol
+    assert.equal(rolDeLaPromo(r, 3), null); assert.equal(rolDeLaPromo(r, 2), 'SEGUNDO_PAR'); assert.equal(rolDeLaPromo(null, 2), null);
+});
+ok('Vitolen: al confirmar, la venta de HOY tiene que armar lo aprobado (receta, diseño, armazón)', () => {
+    const r = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0 });
+    assert.deepEqual(diferenciasDePayloadVitolen(r.payload, r.payload), []);
+    const v = ventaBase(); v.items[0].sphereVal = 1.5;
+    const hoy = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
+    assert.deepEqual(diferenciasDePayloadVitolen(r.payload, hoy.payload), ['OD']);
+    assert.deepEqual(diferenciasDePayloadVitolen(r.payload, null), ['la venta ya no arma el pedido']);
+});
+ok('Vitolen: qué payload es el 2º par de la promo (con rol manda el rol; sin rol, el par 2; o si lleva pedido origen)', () => {
+    assert.equal(esSegundoParDePromo({ par: 2, rolPromo: null }), false); // null = la regla dijo "sin promo"
+    assert.equal(esSegundoParDePromo({ par: 2 }), true); // sin el campo = borrador viejo: el par 2 era el 2º
+    assert.equal(esSegundoParDePromo({ par: 2, rolPromo: 'PRIMER_PAR' }), false);
+    assert.equal(esSegundoParDePromo({ par: 1, rolPromo: 'SEGUNDO_PAR' }), true);
+    assert.equal(esSegundoParDePromo({ par: 1, rolPromo: null }), false);
+    assert.equal(esSegundoParDePromo({ par: 1, rolPromo: null, pedidoOrigen: '6981382L' }), true);
+});
+ok('Vitolen: el rol en la promo del 2º par lo decide quien prepara (el de mayor valor es el 1º); sin rol, el par 2 es el 2º', () => {
+    const base = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0 });
+    assert.equal(base.payload.rolPromo, null); assert.equal(base.payload.pedidoOrigen, null);
+    const segundo = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0, rolPromo: 'SEGUNDO_PAR', pedidoOrigen: '6981382L' });
+    assert.equal(segundo.payload.rolPromo, 'SEGUNDO_PAR'); assert.equal(segundo.payload.pedidoOrigen, '6981382L');
+    // el 1º de la promo no lleva pedido origen aunque se lo pasen
+    const primero = armarFormulario(ventaBase(), { forma: 'Forma 1', ejeDiagonal: 0, rolPromo: 'PRIMER_PAR', pedidoOrigen: '6981382L' });
+    assert.equal(primero.payload.pedidoOrigen, null);
+});
+ok('un PREPARADO colgado 30 min va a ERROR (más que el peor caso del robot, ~22 min); un APROBADO colgado se reintenta, nunca ERROR', () => {
     const r = colgados([
-        { id: 'p-viejo', status: 'PREPARADO', updatedAt: hace(25 * 60000) },
-        { id: 'p-nuevo', status: 'PREPARADO', updatedAt: hace(5 * 60000) },
-        { id: 'a-viejo', status: 'APROBADO', updatedAt: hace(25 * 60000) },
+        { id: 'p-viejo', status: 'PREPARADO', updatedAt: hace(35 * 60000) },
+        { id: 'p-nuevo', status: 'PREPARADO', updatedAt: hace(22 * 60000) },
+        { id: 'a-viejo', status: 'APROBADO', updatedAt: hace(35 * 60000) },
         { id: 'r', status: 'EN_REVISION', updatedAt: hace(500 * 60000) },
     ], ahora);
     assert.deepEqual(r, { aError: ['p-viejo'], aReintentar: ['a-viejo'] });
@@ -745,15 +877,188 @@ ok('una factura anulada queda en los comprobantes sin importe (la pantalla la mu
 ok('el payload sabe qué par es; el 2º par sin pedido origen igual queda pendiente a mano', () => {
     const v = ventaBase();
     assert.equal(armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 }).payload.par, 1);
-    v.items.forEach(i => { i.framePosition = 2; });
-    v.frames = [{ position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
+    v.items.push(...v.items.filter(i => i.eye).map(i => ({ ...i, framePosition: 2 })));
+    v.frames = [v.frames[0], { position: 2, shape: null, a: '50', b: '38', dbl: '17', edc: '54', details: null, heightOD: 22, heightOI: 22 }];
     assert.equal(armarFormulario(v, { pair: 2, forma: 'Forma 1', ejeDiagonal: 0 }).payload.par, 2);
+    // un cristal asignado a un armazón que la venta no tiene: frena (no se ofrece como otro par)
+    const w = ventaBase(); w.items.forEach(i => { i.framePosition = 2; });
+    assert.ok(armarFormulario(w, { pair: 1, forma: 'Forma 1', ejeDiagonal: 0 }).faltantes.some(f => /asignado al armazón 2/.test(f)));
 });
 ok('ninguna migración borra el índice único parcial de los borradores', () => {
     const dir = new URL('../../prisma/migrations/', import.meta.url).pathname;
     const sqls = readdirSync(dir).filter(d => existsSync(`${dir}${d}/migration.sql`)).map(d => readFileSync(`${dir}${d}/migration.sql`, 'utf8'));
     assert.ok(sqls.some(s => /CREATE UNIQUE INDEX IF NOT EXISTS "LabOrderDraft_vivo_key"/.test(s)), 'la migración que lo crea existe');
     assert.ok(!sqls.some(s => /DROP INDEX[^;]*LabOrderDraft_vivo_key/i.test(s)), 'un prisma migrate dev propuso borrarlo: no aceptar');
+});
+
+console.log('\n— Grupo Óptico (SmartLab): lo puro del módulo —');
+// Una fila como la devuelve la API del portal (relevada el 3/10/2026).
+const filaGO = (extra = {}) => ({
+    IdPedido: '80554323', FechaRegistro: '2026-10-02 18:02:01.000', FechaFin: null, FechaFinEstimada: '2026-10-02 18:02:01.000',
+    Anulado: '0', CodigoOptica: 'Laura Santucho 1°par', Observacion: '', sector: 'Calibrado Automático', sector_id: '5',
+    progress: 40, is_rework: false, validated: '1', invoices: [], material: 'CR', tipoLente: 'Monofocal', ...extra,
+});
+const hoyGO = new Date('2026-10-03T12:00:00-03:00');
+ok('el estado sale de anulado, sector, progreso y fecha de fin, en ese orden', () => {
+    assert.equal(estadoDeFila(filaGO({ progress: 0 })), 'INGRESADO');
+    assert.equal(estadoDeFila(filaGO({ progress: '0' })), 'INGRESADO');
+    assert.equal(estadoDeFila(filaGO({ progress: 1 })), 'EN_PROCESO');
+    assert.equal(estadoDeFila(filaGO({ progress: 99 })), 'EN_PROCESO');
+    assert.equal(estadoDeFila(filaGO({ progress: 100 })), 'TERMINADO');
+    assert.equal(estadoDeFila(filaGO({ progress: 80, FechaFin: '2026-10-03 10:00:00.000' })), 'TERMINADO', 'con fecha de fin está terminado aunque la barra no llegue');
+    assert.equal(estadoDeFila(filaGO({ progress: 100, sector_id: '20', sector: 'Entregado' })), 'DESPACHADO');
+    assert.equal(estadoDeFila(filaGO({ progress: 100, sector_id: 20 })), 'DESPACHADO', 'sector_id numérico también');
+    assert.equal(estadoDeFila(filaGO({ progress: 100, sector_id: '20', Anulado: '1' })), 'ANULADO', 'anulado manda');
+});
+ok('la fecha de la API ("2026-10-02 18:02:01.000") es hora argentina, no la del servidor', () => {
+    assert.equal(fechaDelPortal('2026-10-02 18:02:01.000').toISOString(), '2026-10-02T21:02:01.000Z');
+    assert.equal(fechaDelPortal('2026-10-02').toISOString(), '2026-10-02T03:00:00.000Z');
+    assert.equal(fechaDelPortal(null), null);
+    assert.equal(fechaDelPortal(''), null);
+    assert.equal(fechaDelPortal('02-10-26 18:02'), null, 'el formato de la tabla vieja ya no se lee');
+    assert.equal(fechaDelPortal('2026-99-99 00:00:00.000'), null);
+    assert.equal(fechaDelPortalEnTexto('2026-10-02 18:02:01.000'), '02/10/2026 18:02');
+    assert.equal(fechaDelPortalEnTexto('2026-10-02'), '02/10/2026');
+    assert.equal(fechaDelPortalEnTexto(null), '');
+    assert.equal(diasDesde(fechaDelPortal('2026-10-01 12:00:00.000'), hoyGO), 2);
+    assert.equal(diasDesde(null, hoyGO), 0);
+});
+ok('qué par es, si el vendedor lo escribió (1°par, 2° par, 1º par, primer par)', () => {
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho 1°par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho 2° par' }), 2);
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho', Observacion: '2° par SIN CARGO' }), null); // la observación no decide el armazón
+    assert.equal(parDeFila({ CodigoOptica: 'Laura Santucho', Observacion: '1º par' }), null);
+    // "2do par" / "1er par" son como lo escribe el equipo en el portal (auditoría del 3/10/2026).
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez 2do par' }), 2);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez 1er par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez', Observacion: 'urgente' }), null, 'lo que no dice par no se adivina');
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez segundo par' }), 2);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez 1 par' }), 1);
+    assert.equal(parDeFila({ CodigoOptica: 'Pérez' }), null);
+    assert.equal(parDeFila({ CodigoOptica: '21 pares' }), null, 'un 21 no es el par 1');
+});
+ok('trabado = en validación (sector 2) o < 15 % de avance, SOLO con 2+ días y sin estar anulado ni terminado', () => {
+    assert.equal(esTrabado(filaGO({ sector_id: '2', sector: 'Pedido en proceso de validación', progress: 0, FechaRegistro: '2026-10-01 10:00:00.000' }), hoyGO), true);
+    assert.equal(esTrabado(filaGO({ sector_id: '2', progress: 50, FechaRegistro: '2026-10-01 10:00:00.000' }), hoyGO), true, 'validación con avance también');
+    assert.equal(esTrabado(filaGO({ sector_id: '5', progress: 10, FechaRegistro: '2026-10-01 10:00:00.000' }), hoyGO), true, 'casi sin avance');
+    assert.equal(esTrabado(filaGO({ sector_id: '5', progress: 15, FechaRegistro: '2026-09-20 10:00:00.000' }), hoyGO), false, '15 % ya es avance');
+    assert.equal(esTrabado(filaGO({ sector_id: '2', progress: 0, FechaRegistro: '2026-10-02 18:02:01.000' }), hoyGO), false, 'un día todavía no es trabado');
+    assert.equal(esTrabado(filaGO({ sector_id: '2', progress: 0, FechaRegistro: '2026-10-01 10:00:00.000', Anulado: '1' }), hoyGO), false, 'anulado no');
+    assert.equal(esTrabado(filaGO({ sector_id: '17', progress: 10, FechaRegistro: '2026-09-01 10:00:00.000', FechaFin: '2026-09-10 10:00:00.000' }), hoyGO), false, 'terminado no');
+});
+ok('el pedido del marco: el nombre del código interno como cliente (no vincula), par, fechas en -03:00, comprobantes con link', () => {
+    const p = normalizarPedidoGO(filaGO({ invoices: [{ salesId: '123', letter: 'X', number: '00004-00023793', type: 'r' }, { salesId: null, letter: 'B', number: '00004-00353854', type: 'f' }, { number: '' }] }));
+    assert.equal(p.portalNumber, '80554323');
+    assert.equal(p.internalRef, null);
+    assert.equal(p.cliente, 'Laura Santucho 1°par');
+    assert.equal(p.pair, 1);
+    assert.equal(p.status, 'EN_PROCESO');
+    assert.equal(p.statusRaw, 'Calibrado Automático');
+    assert.equal(p.enteredAt.toISOString(), '2026-10-02T21:02:01.000Z');
+    assert.equal(p.finishedAt, null);
+    assert.equal(p.estimatedAt, null, 'FechaFinEstimada no sirve: es la de registro');
+    assert.equal(p.dispatchedAt, null);
+    assert.deepEqual(p.raw, { progress: 40, sector_id: 5, is_rework: false });
+    assert.deepEqual(p.invoices, [
+        { comprobante: 'X-00004-00023793', importe: null, url: 'https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php/laboratory/order/invoice?id=123&pedido=80554323&t=2&c=1', tipo: 'remito' },
+        { comprobante: 'B-00004-00353854', importe: null, url: null, tipo: 'factura' },
+    ]);
+    assert.equal(normalizarPedidoGO(filaGO({ invoices: [] })).invoices, undefined, 'sin comprobantes no se escribe la columna');
+    assert.equal(normalizarPedidoGO(filaGO({ IdPedido: '' })), null, 'sin nº no es un pedido');
+    assert.equal(normalizarPedidoGO(filaGO({ CodigoOptica: '  ' })).internalRef, null);
+    // Vincular por nombre escribiría el nº en la venta equivocada (dos ventas de
+    // la misma persona, un reproceso): en Grupo Óptico solo vale el código #XXXX.
+    assert.equal(normalizarPedidoGO(filaGO({ CodigoOptica: 'Laura Santucho 1°par' })).internalRef, null, 'el nombre del cliente no vincula');
+    assert.equal(normalizarPedidoGO(filaGO({ CodigoOptica: '#s3ep Laura Santucho' })).internalRef, '#S3EP', 'el código corto sí');
+    assert.equal(normalizarPedidoGO(filaGO({ CodigoOptica: 'Laura Santucho 1°par' })).cliente, 'Laura Santucho 1°par', 'el nombre queda como cliente, para leerlo');
+    const fin = normalizarPedidoGO(filaGO({ progress: 100, FechaFin: '2026-10-03 09:30:00.000', is_rework: '1' }));
+    assert.equal(fin.status, 'TERMINADO');
+    assert.equal(fin.finishedAt.toISOString(), '2026-10-03T12:30:00.000Z');
+    assert.equal(fin.raw.is_rework, true);
+    assert.deepEqual(comprobantesDeFila(filaGO(), '80554323'), []);
+});
+ok('se pide la página siguiente mientras venga llena y su pedido más viejo siga en la ventana', () => {
+    const desde = new Date('2026-09-01T00:00:00-03:00');
+    const llena = (ultimaFecha) => Array.from({ length: 100 }, (_, i) => ({ FechaRegistro: i === 99 ? ultimaFecha : '2026-10-01 10:00:00.000' }));
+    assert.equal(seguirPaginando(llena('2026-09-15 10:00:00.000'), desde), true);
+    assert.equal(seguirPaginando(llena('2026-08-31 10:00:00.000'), desde), false, 'la última ya es anterior a la ventana');
+    assert.equal(seguirPaginando(llena(null), desde), true, 'sin fecha legible no se corta: mejor una página de más');
+    assert.equal(seguirPaginando(llena('2026-09-15 10:00:00.000').slice(0, 99), desde), false, 'una página corta es la última');
+    assert.equal(seguirPaginando([], desde), false);
+});
+ok('"no encontrado" = número activo del CRM que no está ni en la lectura ni en el espejo', () => {
+    assert.deepEqual(numerosNoEncontrados(['80544194', '80544195', '80544196', '80544194'], ['80544195'], ['80544196']), ['80544194']);
+    assert.deepEqual(numerosNoEncontrados([], ['1'], []), []);
+    assert.deepEqual(numerosNoEncontrados(['80544194'], new Set(['80544194']), new Set()), []);
+});
+ok('los números activos de una venta: parseLabNumbers, sin provisorios, con los reprocesos', () => {
+    assert.deepEqual(numerosActivosDeVenta({ labOrderNumber: '80544194 - 80544195', postSaleNumbers: ['80544300'] }), ['80544194', '80544195', '80544300']);
+    assert.deepEqual(numerosActivosDeVenta({ labOrderNumber: 'SML-1234', postSaleNumbers: [] }), [], 'un borrador no se busca');
+    assert.deepEqual(numerosActivosDeVenta({ labOrderNumber: 'sin numero', postSaleNumbers: ['80544300'] }), ['80544300']);
+    assert.deepEqual(numerosActivosDeVenta({ labOrderNumber: null, postSaleNumbers: [] }), []);
+});
+ok('el tracker de la ficha: progreso MÍNIMO, días del más viejo, un sector por pedido, misma forma de siempre', () => {
+    const a = detalleDeFila(filaGO({ IdPedido: '80544194', sector: 'Tallado', progress: 100, FechaRegistro: '2026-10-01 09:30:00.000' }), hoyGO);
+    const b = detalleDeFila(filaGO({ IdPedido: '80544195', sector: 'Montaje', progress: 40, FechaRegistro: '2026-09-28 09:30:00.000' }), hoyGO);
+    assert.deepEqual(a, { num: '80544194', sector: 'Tallado', progress: 100, entryDate: '01/10/2026 09:30', days: 2, anulado: false });
+    const t = resumenTracker([a, b], [], hoyGO);
+    assert.equal(t.smartLabProgress, 40);
+    assert.equal(t.smartLabDays, 5);
+    assert.equal(t.smartLabSector, '4194: Tallado | 4195: Montaje');
+    assert.equal(t.smartLabEntryDate, '01/10/2026 09:30');
+    assert.equal(t.smartLabLastSync, hoyGO);
+    assert.deepEqual(JSON.parse(t.smartLabDetails), [
+        { num: '80544194', sector: 'Tallado', progress: 100, entryDate: '01/10/2026 09:30', days: 2 },
+        { num: '80544195', sector: 'Montaje', progress: 40, entryDate: '28/09/2026 09:30', days: 5 },
+    ]);
+    assert.equal(resumenTracker([a], [], hoyGO).smartLabSector, 'Tallado', 'un solo pedido: el sector a secas');
+    assert.equal(detalleDeFila(filaGO({ IdPedido: null }), hoyGO), null);
+});
+ok('un pedido anulado no frena el progreso de los demás, y se ve como anulado', () => {
+    const vivo = detalleDeFila(filaGO({ IdPedido: '80544194', sector: 'Montaje', progress: 100 }), hoyGO);
+    const anulado = detalleDeFila(filaGO({ IdPedido: '80544195', sector: 'Pendiente', progress: 0, Anulado: '1' }), hoyGO);
+    const t = resumenTracker([vivo, anulado], [], hoyGO);
+    assert.equal(t.smartLabProgress, 100);
+    assert.equal(t.smartLabSector, '4194: Montaje | 4195: ANULADO (Pendiente)');
+});
+ok('un nº que el portal no tiene queda a la vista en la ficha (antes la venta quedaba muda)', () => {
+    const solo = resumenTracker([], ['80549999'], hoyGO);
+    assert.equal(solo.smartLabSector, TEXTO_NO_ENCONTRADO);
+    assert.equal(solo.smartLabProgress, 0);
+    assert.equal(JSON.parse(solo.smartLabDetails).length, 0);
+    const vivo = detalleDeFila(filaGO({ IdPedido: '80544194', sector: 'Montaje', progress: 70 }), hoyGO);
+    assert.equal(resumenTracker([vivo], ['80549999'], hoyGO).smartLabSector, `4194: Montaje | 9999: ${TEXTO_NO_ENCONTRADO}`);
+});
+ok('el módulo está registrado, hace seguimiento y deja los costos al provider', () => {
+    assert.equal(MODULO_GRUPO_OPTICO.clave, 'GRUPO_OPTICO');
+    assert.equal(MODULO_GRUPO_OPTICO.nombre, 'Grupo Óptico');
+    assert.deepEqual(MODULO_GRUPO_OPTICO.capacidades, { seguimiento: true, costos: false, carga: true });
+    assert.equal(MODULO_GRUPO_OPTICO.carga?.lab, 'GRUPO_OPTICO', 'la carga asistida se declara en el módulo');
+    assert.equal(MODULO_GRUPO_OPTICO.cadenciaRapidaMin, undefined, 'cada tick de 10 min, como siempre');
+    assert.notEqual(MODULO_GRUPO_OPTICO.avisoDeRetiroAutomatico, false, 'el retiro automático a las 24 h es el circuito de Grupo Óptico');
+    assert.ok(MODULO_GRUPO_OPTICO.patronProducto.test('Grupo Óptico') && MODULO_GRUPO_OPTICO.patronProducto.test('grupo optico') && !MODULO_GRUPO_OPTICO.patronProducto.test('Vitolen'));
+    assert.ok(REGISTRO_MODULOS.some(m => m.clave === 'GRUPO_OPTICO'));
+    assert.ok(REGISTRO_MODULOS.every(m => m && m.clave), 'ningún módulo quedó sin inicializar por un import circular');
+});
+ok('sin clave de respaldo en el código: sin variables, el login se corta antes de abrir el navegador', () => {
+    const src = readFileSync(new URL('../../src/services/lab-modules/grupo-optico/portal.ts', import.meta.url), 'utf8');
+    assert.ok(!/SMARTLAB_(USER|PASSWORD)\s*\|\|\s*['"][^'"]+['"]/.test(src), 'un `|| "…"` con algo adentro al lado de la variable es una clave en el código');
+    const provider = readFileSync(new URL('../../src/services/lab-providers/grupo-optico.provider.ts', import.meta.url), 'utf8');
+    assert.ok(!/process\.env\.SMARTLAB_(USER|PASSWORD)/.test(provider), 'el provider no lee la credencial: usa el login del módulo');
+    const diag = readFileSync(new URL('./smartlab-diagnostico.check.mjs', import.meta.url), 'utf8');
+    assert.ok(!/fill\(['"]/.test(diag), 'el diagnóstico tampoco tiene la clave escrita');
+    assert.ok(!existsSync(new URL('../../src/services/smartlab.service.ts', import.meta.url)), 'smartlab.service.ts se borró: el seguimiento es el módulo');
+});
+ok('el tick de /api/cron/lab-modulos saltea a Grupo Óptico: su tick es /api/cron/smartlab-sync', () => {
+    const ruta = readFileSync(new URL('../../src/app/api/cron/lab-modulos/route.ts', import.meta.url), 'utf8');
+    assert.ok(/LAB_GRUPO_OPTICO\)\s*continue/.test(ruta));
+    const sync = readFileSync(new URL('../../src/app/api/cron/smartlab-sync/route.ts', import.meta.url), 'utf8');
+    assert.ok(/correrSeguimiento\(MODULO_GRUPO_OPTICO/.test(sync));
+    assert.ok(!/['"]smartlab_(down_since|alerted_at)['"]|process\.env\.ADMIN_EMAIL\b|pisano\.ishtar@gmail\.com/.test(sync), 'ni claves viejas de salud ni direcciones escritas a mano');
+    for (const pagina of ['ventas', 'pedidos']) {
+        const src = readFileSync(new URL(`../../src/app/admin/${pagina}/page.tsx`, import.meta.url), 'utf8');
+        assert.ok(!/const autoSync = /.test(src), `/admin/${pagina} ya no dispara el sync al abrirse`);
+    }
 });
 
 console.log(fallas === 0 ? '\n✅ Marco de módulos de laboratorio: todo en orden.\n' : `\n❌ ${fallas} falla(s).\n`);

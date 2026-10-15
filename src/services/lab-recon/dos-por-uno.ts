@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/db';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { estaResuelta } from '../../lib/lab-factura';
+import { billedForLab } from './types';
 import { VENTANA_REPORTE_DIAS } from './types';
 
 /**
@@ -61,8 +62,7 @@ export interface DobleCobro {
     mismoImporte: boolean;
 }
 
-const importeDe = (e: { lab: string; billedNet: number | null; billedTotal: number | null }) =>
-    e.lab === 'OPTOVISION' ? (e.billedTotal ?? e.billedNet) : (e.billedNet ?? e.billedTotal);
+const importeDe = (e: { lab: string; billedNet: number | null; billedTotal: number | null }) => billedForLab(e.lab, e);
 
 type Entrada = {
     lab: string; labOrderNumber: string; billedNet: number | null; billedTotal: number | null;

@@ -22,6 +22,8 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { getGoogleReviews } from "@/lib/googleReviews";
 import { getWebSettings, defaultWebSettings } from "@/lib/web-settings";
 import { BUSINESS_INFO } from "@/lib/business-info";
+import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
+import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { buildOpticianSchema } from "@/lib/schema";
 
 export const revalidate = 300;
@@ -202,7 +204,13 @@ export default async function Home() {
       </section>
 
       {/* PRODUCT GRID — Scroll horizontal infinito en Cliente */}
-      <HomeProductCarousel collections={carouselData} totalCount={catalogCount} conteos={homeData.conteos} />
+      <HomeProductCarousel
+        collections={carouselData}
+        totalCount={catalogCount}
+        conteos={homeData.conteos}
+        descuentoTransferenciaPct={descuentoTransferenciaDe(webSettings.web_promo_cash_discount)}
+        cuotasSinInteres={leerPromoCuotas(webSettings.web_promo_installments).cantidad}
+      />
 
       {/* CARPETAS — Receta / Toda la tienda / Clip-on / Sol, con las fotos de Agostina */}
       <HomeCarpetas carpetas={carpetas} />

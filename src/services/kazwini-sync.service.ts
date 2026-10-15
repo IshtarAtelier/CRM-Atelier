@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { galeriaAlSincronizar } from '@/lib/catalog/galeria-web';
 import { autoCorrectBrand, autoCorrectIndex } from '@/utils/product-controllers';
 import path from 'path';
 
@@ -68,8 +69,8 @@ async function syncToWebProduct(p: any, tx: any) {
             where: { id: existing.id },
             data: {
                 category: category,
-                imageUrl: images[0] || null,
-                images: images,
+                // La galería curada en /admin/web no se pisa (galeria-web.ts).
+                ...galeriaAlSincronizar(existing, images),
                 isActive: isActive
             }
         });

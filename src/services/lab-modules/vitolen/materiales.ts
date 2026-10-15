@@ -1,4 +1,4 @@
-import type { CristalVitolen } from './catalogo';
+import type { CristalVitolen } from '../../../lib/laboratorios/vitolen-catalogo';
 import { DISENOS_PORTAL, type DisenoPortal, type OpcionMaterial } from './portal-materiales';
 
 /**

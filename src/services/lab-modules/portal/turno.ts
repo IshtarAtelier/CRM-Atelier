@@ -47,7 +47,15 @@ export function debeEsperar(quienLoTiene: Pasada | null, quienPide: Pasada): boo
     return quienLoTiene === 'rapida' && quienPide === 'completa';
 }
 
-export async function tomarTurno(lab: string, pasada: Pasada, duracionMin = 45): Promise<string | null> {
+/**
+ * Cuánto dura un turno sin renovar. Corto a propósito: `conTurno` lo renueva
+ * cada RENOVAR_TURNO_CADA_MS mientras la tarea vive, así que lo único que
+ * fija es cuánto queda tomado el portal si el proceso muere (redeploy, OOM):
+ * antes eran hasta 45 min de "ocupado" para todos (auditoría de robustez 4, M3).
+ */
+export const DURACION_TURNO_MIN = 15;
+
+export async function tomarTurno(lab: string, pasada: Pasada, duracionMin = DURACION_TURNO_MIN): Promise<string | null> {
     const clave = claveDeModulo(lab, 'turno');
     const ahora = new Date();
     const hasta = `${new Date(ahora.getTime() + duracionMin * 60000).toISOString()}|${pasada}`;
@@ -72,10 +80,30 @@ export async function esperarTurno(lab: string, pasada: Pasada, maxMs: number, c
     for (;;) {
         const turno = await tomarTurno(lab, pasada);
         if (turno || Date.now() + cadaMs > limite) return turno;
-        if (!debeEsperar(await quienTieneElTurno(lab), pasada)) return null;
-        await new Promise(r => setTimeout(r, cadaMs));
+        const dueno = await quienTieneElTurno(lab);
+        // Sin dueño = se soltó entre que falló tomarlo y acá: se vuelve a intentar
+        // enseguida, no es "ocupado" (auditoría 4, M6).
+        if (dueno && !debeEsperar(dueno, pasada)) return null;
+        await new Promise(r => setTimeout(r, dueno ? cadaMs : 1_000));
     }
 }
+
+/**
+ * Renueva el turno mientras la tarea sigue viva: solo si la fila todavía dice
+ * ESTE turno (si venció y otro lo tomó, no se le roba). Devuelve el turno nuevo
+ * o null. Sin esto, un robot más lento que los 45 min (login de hasta 15 min
+ * por intento en un portal pésimo) perdía el turno con el navegador abierto y
+ * otro entraba a crear al mismo tiempo (auditoría de robustez 3, A1).
+ */
+export async function renovarTurno(lab: string, hasta: string, duracionMin = DURACION_TURNO_MIN): Promise<string | null> {
+    const pasada = leerTurno(hasta)?.pasada;
+    if (!pasada) return null;
+    const nuevo = `${new Date(Date.now() + duracionMin * 60000).toISOString()}|${pasada}`;
+    const r = await prisma.systemSetting.updateMany({ where: { key: claveDeModulo(lab, 'turno'), value: hasta }, data: { value: nuevo } });
+    return r.count === 1 ? nuevo : null;
+}
+/** Cada cuánto se renueva el turno mientras la tarea corre: un tercio de lo que dura, para aguantar una renovación fallida. */
+export const RENOVAR_TURNO_CADA_MS = 5 * 60_000;
 
 export async function soltarTurno(lab: string, hasta: string): Promise<void> {
     await prisma.systemSetting.updateMany({
@@ -92,7 +120,7 @@ export async function conTurno<T>(
     lab: string,
     pasada: Pasada,
     tarea: () => Promise<T>,
-    opts: { esperar?: boolean; esperaMaxMs?: number } = {},
+    opts: { esperar?: boolean; esperaMaxMs?: number; obligatorio?: boolean } = {},
 ): Promise<T | { skipped: true; reason: string }> {
     let turno: string | null;
     try {
@@ -100,13 +128,26 @@ export async function conTurno<T>(
             ? await esperarTurno(lab, pasada, opts.esperaMaxMs ?? 8 * 60_000)
             : await tomarTurno(lab, pasada);
     } catch (err) {
+        // Lo que crea cosas en un portal (la carga de un pedido) NO corre sin
+        // turno: dos cargas a la vez son dos pedidos. Leer, sí: mejor datos que silencio.
+        if (opts.obligatorio) throw new Error(`No se pudo tomar el turno del portal de ${lab} (¿base caída?): no se carga nada sin turno. Reintentá en un rato.`);
         console.error(`[lab-modulos] No se pudo tomar el turno de ${lab} (se corre igual):`, err);
         turno = 'sin-turno';
     }
     if (!turno) return { skipped: true, reason: `otra pasada contra el portal de ${lab} está en curso` };
+    // Mientras la tarea corre, el turno se renueva solo: una tarea viva nunca lo
+    // pierde. La renovación en vuelo se espera antes de soltar: si no, se soltaba
+    // con el token viejo y el turno quedaba tomado hasta vencer.
+    let renovando: Promise<void> = Promise.resolve();
+    const renovacion = turno === 'sin-turno' ? null : setInterval(() => {
+        renovando = renovarTurno(lab, turno!).then(nuevo => { if (nuevo) turno = nuevo; })
+            .catch(err => console.error(`[lab-modulos] No se pudo renovar el turno de ${lab}:`, err));
+    }, RENOVAR_TURNO_CADA_MS);
     try {
         return await tarea();
     } finally {
+        if (renovacion) clearInterval(renovacion);
+        await renovando;
         if (turno !== 'sin-turno') await soltarTurno(lab, turno);
     }
 }

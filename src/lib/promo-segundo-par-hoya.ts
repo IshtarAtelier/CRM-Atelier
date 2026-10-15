@@ -1,4 +1,4 @@
-import { cristalVitolenPorNombre } from '@/services/lab-modules/vitolen/catalogo';
+import { cristalVitolenPorNombre } from '@/lib/laboratorios/vitolen-catalogo';
 import { DESCUENTO_SEGUNDO_PAR_HOYA } from '@/lib/constants/descuentos';
 import { isCrystal, safePrice } from '@/lib/promo-utils';
 

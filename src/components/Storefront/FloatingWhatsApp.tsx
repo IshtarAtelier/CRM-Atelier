@@ -3,6 +3,7 @@
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useState, useEffect } from "react";
 import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
+import { mensajeDelBotonFlotante } from "@/lib/whatsapp-mensaje-flotante";
 import { WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 import { BUSINESS_INFO } from "@/lib/business-info";
 import { trackPhoneClick } from "@/lib/tracking";
@@ -61,6 +62,11 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   const corridoArriba = heroTapando || pathname?.startsWith("/capsulaescarlata");
   /** Páginas con una barra de acción fija abajo: ahí sí hay con qué chocar. */
   const hayBarraFijaAbajo = pathname?.startsWith("/capsulaescarlata") || pathname?.startsWith("/producto/");
+  // En el checkout la persona ya tiene su precio: "Presupuesto" no le dice nada,
+  // y en celular la pastilla quedaba ENCIMA del campo "Apellido" (8/10/26). Como
+  // es parte del link, tocar ese lado del campo abría WhatsApp y la sacaba del
+  // checkout. Ahí queda solo el botón verde.
+  const enCheckout = pathname?.startsWith("/checkout") ?? false;
 
   useEffect(() => {
     try {
@@ -107,31 +113,15 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     return null;
   }
 
-  let defaultText = "¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.";
-
-  if (isOptica) {
-    // Óptica en la tienda mayorista: tono y marca Cápsula Escarlata.
-    defaultText = productName
-      ? `Hola! Consulta mayorista sobre el modelo ${productName} (Cápsula Escarlata).`
-      : "Hola! Consulta sobre el canal mayorista de Cápsula Escarlata.";
-  } else if (productName) {
-    defaultText = `¡Hola! Tengo dudas sobre el modelo ${productName} y me gustaría recibir asesoramiento.`;
-  } else if (message) {
-    defaultText = message;
-  } else if (tituloNota) {
-    defaultText = `¡Hola Atelier! Estaba leyendo "${tituloNota}" y me gustaría recibir asesoramiento.`;
-  } else if (pathname?.includes("/tienda") || pathname?.includes("/producto/")) {
-    defaultText = "¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento.";
-  } else if (pathname?.includes("/arma-tus-lentes")) {
-    defaultText = "¡Hola Atelier! Me gustaría recibir asesoramiento para armar mis lentes.";
-  }
-
-  // En ficha de producto, tienda y notas del blog mandamos también el link de la
-  // página: WhatsApp arma la previsualización, así el asesor ve qué está mirando
-  // y puede abrir la nota para responder sobre lo mismo que la persona leyó.
-  const sharesPageUrl = Boolean(
-    productName || pathname?.includes("/producto/") || pathname?.includes("/tienda") || tituloNota
-  );
+  // El texto es lo único que le dice al bot y al CRM que el chat vino de la
+  // web: se arma en un solo lugar y `check:origen` prueba cada variante.
+  const { texto: defaultText, compartePagina: sharesPageUrl } = mensajeDelBotonFlotante({
+    pathname,
+    productName,
+    message,
+    tituloNota,
+    isOptica,
+  });
 
   const WHATSAPP_URL = buildWhatsAppUrl(defaultText, {
     pageUrl: sharesPageUrl ? currentPageUrl(pathname || "") : undefined,
@@ -206,7 +196,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         target="_blank"
         rel="noopener noreferrer"
         className="relative group pointer-events-auto flex items-center gap-2"
-        aria-label="Presupuesto por WhatsApp"
+        aria-label={enCheckout ? "Consultar por WhatsApp" : "Presupuesto por WhatsApp"}
       >
         {/* En celular el globo de arriba está oculto (hidden sm:block), así que
             el botón era un círculo verde sin decir para qué sirve. Esta etiqueta
@@ -214,7 +204,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         {/* Con el panel de filtros de /tienda abierto se esconde: tapaba el
             botón "Ver N modelos" (auditoría 25/9). Además se pliega al bajar
             (29/9). El botón verde queda siempre. */}
-        {!panelFiltrosAbierto && (
+        {!panelFiltrosAbierto && !enCheckout && (
           <span className={`sm:hidden rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-stone-800 shadow-lg border border-stone-100 transition-opacity duration-300 ${etiquetaVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
             Presupuesto
           </span>

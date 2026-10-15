@@ -68,6 +68,16 @@ export function isMercadoPagoEnabled(): boolean {
   return process.env.MP_ENABLED === 'true' && !!process.env.MP_ACCESS_TOKEN;
 }
 
+/**
+ * Se puede PREGUNTAR a Mercado Pago (hay credencial), esté o no prendido el
+ * cobro en la tienda. El vencimiento de los pagos pendientes depende de esto y
+ * no de `isMercadoPagoEnabled`: si se apaga Mercado Pago con ventas esperando
+ * el pago, su stock reservado tiene que poder liberarse igual.
+ */
+export function puedeConsultarMercadoPago(): boolean {
+  return !!process.env.MP_ACCESS_TOKEN;
+}
+
 function accessToken(): string {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) throw new Error('MP_ACCESS_TOKEN no configurado.');
@@ -264,6 +274,22 @@ function normalizePayment(data: any): MpPayment {
 export async function getPayment(paymentId: string): Promise<MpPayment> {
   const data = await mpFetch(`/v1/payments/${encodeURIComponent(paymentId)}`);
   return normalizePayment(data);
+}
+
+/**
+ * Todos los pagos que Mercado Pago tiene para una orden nuestra
+ * (`external_reference` = id de la orden, ver createPreference).
+ *
+ * La usa el cron que vence los pagos no concretados ANTES de cancelar: el
+ * intento guardado no tiene el id del pago mientras está pendiente, así que
+ * sin esta consulta una venta cobrada cuyo aviso se perdió se cancelaba a las
+ * 2 h (revisión del 10/10/2026). Si falla, lanza: quien llama no cancela.
+ */
+export async function buscarPagosDeOrden(orderId: string): Promise<MpPayment[]> {
+  const q = new URLSearchParams({ external_reference: orderId, limit: '50' });
+  const data = await mpFetch(`/v1/payments/search?${q.toString()}`);
+  const resultados: any[] = Array.isArray(data?.results) ? data.results : [];
+  return resultados.map(normalizePayment);
 }
 
 /**

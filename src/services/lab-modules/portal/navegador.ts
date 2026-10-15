@@ -4,7 +4,7 @@ import type { Browser, Page } from 'playwright';
  * Un solo lugar para abrir Chromium contra el portal de un laboratorio.
  *
  * Hasta acá el mismo bloque estaba copiado en siete archivos, y el 24/8/2026
- * el único que no seteaba PLAYWRIGHT_BROWSERS_PATH (smartlab.service.ts) dejó
+ * el único que no seteaba PLAYWRIGHT_BROWSERS_PATH (el viejo smartlab.service.ts) dejó
  * catorce días sin sincronizar: el build instala Chromium en
  * `.playwright-browsers` y Playwright lo busca en ~/.cache, vacía en Railway.
  *
@@ -36,7 +36,9 @@ export async function conNavegador<T>(
         args: opts.sinHttp2 ? [...ARGS_BASE, '--disable-http2'] : ARGS_BASE,
     });
     try {
-        const page = await browser.newContext().then(c => c.newPage());
+        // Sin service workers: una petición que pasa por un SW no la ve `page.route`,
+        // y la carga de Grupo Óptico depende de abortar ahí toda escritura.
+        const page = await browser.newContext({ serviceWorkers: 'block' }).then(c => c.newPage());
         page.setDefaultTimeout(opts.timeoutMs ?? 120_000);
         page.setDefaultNavigationTimeout(opts.timeoutNavegacionMs ?? 60_000);
         return await tarea(page, browser);

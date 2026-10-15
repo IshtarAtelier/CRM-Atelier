@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
-import { SmartLabService } from '@/services/smartlab.service';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { sendEmail } from '@/lib/email';
+import { PRIVATE_ADMIN_EMAILS } from '@/lib/constants';
 
 import { prisma } from '@/lib/db';
 import { GrupoOpticoProvider } from '@/services/lab-providers/grupo-optico.provider';
 import { LabCostReconciliationService } from '@/services/lab-cost-reconciliation.service';
+import { correrSeguimiento, tocaPasadaCompleta, ultimaPasadaCompleta } from '@/services/lab-modules/corrida';
+import { MODULO_GRUPO_OPTICO } from '@/services/lab-modules/grupo-optico/modulo';
 
 // Ventana del pase rápido de facturación: lo recién facturado aparece cuando el
 // pedido pasa a FINALIZADO en el portal; 21 días dan margen incluso para pedidos
@@ -27,19 +29,11 @@ const FAST_OPTOVISION_EMAIL_DAYS = 3;
 // importes disparatados). Con 26 solo entra si la diaria de verdad no salió.
 const FULL_CATCHUP_HOURS = 26;
 
-// Sello de la última pasada COMPLETA exitosa de Grupo Óptico. Es la misma clave
-// que escribe runAllProviders en el cron diario (lab-providers/index.ts), así
-// que ambos caminos comparten el mismo reloj.
+// Sello de la última pasada COMPLETA exitosa de COSTOS de Grupo Óptico. Es la
+// misma clave que escribe runAllProviders en el cron diario
+// (lab-providers/index.ts), así que ambos caminos comparten el mismo reloj.
+// La salud del SEGUIMIENTO es otra: `lab-modulo:GRUPO_OPTICO:*` (portal/salud.ts).
 const GO_LAST_OK_KEY = 'lab-provider:GRUPO_OPTICO:lastOkAt';
-
-// Política de alertas: avisar recién cuando SmartLab lleva más de 12 horas
-// seguidas sin conexión, y repetir como máximo cada 12 horas si sigue caído.
-// El estado se persiste en SystemSetting para sobrevivir redeploys.
-const DOWN_ALERT_THRESHOLD_MS = 12 * 60 * 60 * 1000; // 12 horas caído antes de alertar
-const ALERT_REPEAT_MS = 12 * 60 * 60 * 1000;         // repetir alerta cada 12 horas
-
-const KEY_DOWN_SINCE = 'smartlab_down_since';   // ISO de la primera falla del corte actual
-const KEY_ALERTED_AT = 'smartlab_alerted_at';   // ISO de la última alerta enviada (vacío = sin alerta)
 
 async function getSetting(key: string): Promise<string | null> {
     const row = await prisma.systemSetting.findUnique({ where: { key } });
@@ -54,63 +48,47 @@ async function setSetting(key: string, value: string) {
     });
 }
 
-function formatDowntime(ms: number): string {
-    const hours = Math.floor(ms / 3600000);
-    const mins = Math.round((ms % 3600000) / 60000);
-    return hours > 0 ? `${hours} h ${mins} min` : `${mins} min`;
-}
-
-// Cron endpoint para sincronizar SmartLab automáticamente
-// Se llama desde un servicio externo (cron-job.org) cada 4 horas
+/**
+ * El tick de Grupo Óptico: seguimiento de pedidos y, EN EL MISMO TICK y
+ * DESPUÉS, el pase rápido de conciliación de costos. Lo dispara
+ * instrumentation.ts cada 10 minutos en horario comercial (8-20 ARG).
+ *
+ * El seguimiento es el módulo `MODULO_GRUPO_OPTICO` corrido por
+ * `correrSeguimiento` (lab-modules/corrida.ts): turno del portal, salud y los
+ * avisos de caída / credencial rechazada / restablecido a PRIVATE_ADMIN_EMAILS.
+ * Hasta el 3/10/2026 esta ruta tenía su propio régimen de alertas con
+ * `smartlab_down_since` / `smartlab_alerted_at` y una dirección escrita a mano;
+ * esas claves ya no se escriben ni se leen.
+ *
+ * Por qué Grupo Óptico no corre por /api/cron/lab-modulos como los demás
+ * módulos: la conciliación rápida de abajo tiene que ir DESPUÉS del
+ * seguimiento del mismo tick (lo recién FINALIZADO en el portal es lo que
+ * trae importes), y las dos pasadas comparten el turno del portal: acá quedan
+ * en orden y nunca a la vez.
+ */
 export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-
-    // Auth por header Bearer (preferido) o ?secret= (fallback cron-job.org), tiempo constante.
+    // Auth por header Bearer (preferido) o ?secret= (fallback), tiempo constante.
     const auth = verifyCronAuth(req);
     if (!auth.ok) {
         return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     try {
-        const result = await SmartLabService.syncOrders();
+        // Pase rápido (21 días de pedidos del portal) salvo que a Grupo Óptico
+        // le toque la pasada completa (120 días, una vez cada 20 h y la primera
+        // corrida después de un deploy): es la que pone al día el espejo con lo
+        // viejo, y sin ella un nº real pero fuera de la ventana corta saldría
+        // como "no encontrado". Misma regla que /api/cron/lab-modulos.
+        const completa = tocaPasadaCompleta(await ultimaPasadaCompleta(MODULO_GRUPO_OPTICO.clave), new Date());
+        const result = await correrSeguimiento(MODULO_GRUPO_OPTICO, completa ? { esperarTurno: true } : { sinceDays: FAST_INVOICE_WINDOW_DAYS });
 
         if (result.skipped) {
-            console.log(`[CRON SmartLab] Sync omitido: ${result.reason}`);
+            console.log(`[CRON SmartLab] Seguimiento omitido: ${result.reason}`);
+        } else if (!result.ok) {
+            console.error(`[CRON SmartLab] Seguimiento falló: ${result.error}`);
         } else {
-            console.log(`[CRON SmartLab] Sync completado: ${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados`);
-
-            try {
-                const downSince = await getSetting(KEY_DOWN_SINCE);
-                const alertedAt = await getSetting(KEY_ALERTED_AT);
-
-                // Avisar la recuperación SOLO si el corte fue lo suficientemente
-                // largo como para haber alertado (evita "Restablecido" por micro-cortes).
-                // El estado del corte se limpia ANTES de avisar: si el aviso falla
-                // (p. ej. wa-service caído), NO se repite "Restablecido" en loop
-                // cada 10 minutos — perder un aviso de recuperación es barato,
-                // spamear al administrador no.
-                if (downSince) await setSetting(KEY_DOWN_SINCE, '');
-                if (alertedAt) await setSetting(KEY_ALERTED_AT, '');
-
-                if (downSince && alertedAt) {
-                    const downtime = Date.now() - new Date(downSince).getTime();
-
-                    await sendEmail({
-                        to: 'pisano.ishtar@gmail.com',
-                        subject: '✅ SmartLab Restablecido — Grupo Óptico funcionando',
-                        text: `Atelier Óptica\n\nLa sincronización con el laboratorio (Grupo Óptico) se ha restablecido correctamente tras ${formatDowntime(downtime)} sin conexión.\n\nÚltimo Sync: exitoso (${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados)\nFecha: ${new Date().toLocaleString('es-AR')}`,
-                        html: `<h3 style="color: #2e7d32;">✅ SmartLab Restablecido</h3><p>La sincronización con el laboratorio (Grupo Óptico) se ha restablecido correctamente tras <b>${formatDowntime(downtime)}</b> sin conexión.</p><p><b>Último Sync:</b> exitoso (${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados)</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p>`
-                    });
-
-                    // (18/8/2026: la pata de WhatsApp se apagó — el email alcanza y
-                    // el número del bot deja de generar tráfico automático.)
-                    console.log('[CRON SmartLab] Alerta de restauración enviada a Ishtar por email.');
-                } else if (downSince) {
-                    console.log('[CRON SmartLab] Recuperado de un corte corto (sin alerta previa) — no se avisa.');
-                }
-            } catch (statusError) {
-                console.error('[CRON SmartLab] Error procesando estado de restauración:', statusError);
-            }
+            const s = result.seguimiento!;
+            console.log(`[CRON SmartLab] Seguimiento completado: ${s.vistos} pedidos vistos, ${s.avanzados} ventas avanzadas, ${s.terminados} terminadas`);
         }
 
         // PASE RÁPIDO de conciliación de costos (pedido del administrador: revisión
@@ -118,7 +96,11 @@ export async function GET(req: Request) {
         // corta del portal + PDF de comprobantes → completa importes de lo recién
         // FINALIZADO, re-cruza pendientes y dispara las alertas inmediatas
         // (diferencias de costo y pedidos sin venta ni postventa). Tolerante a
-        // fallas: nunca rompe el sync de estados que corre arriba.
+        // fallas: nunca rompe el seguimiento que corre arriba. Si el seguimiento
+        // se SALTEÓ (otra pasada tiene el turno del portal), el pase rápido
+        // tampoco corre: el portal está ocupado y el tick siguiente lo hace.
+        // Si el seguimiento FALLÓ (portal caído) sí corre: el escaneo de
+        // Optovision y el re-cruce no dependen del portal de Grupo Óptico.
         let fastReconciliation: Record<string, unknown> | null = null;
         if (!result.skipped) {
             try {
@@ -138,9 +120,9 @@ export async function GET(req: Request) {
                 // apenas responde —en cualquiera de los ~72 intentos del día— hay
                 // que recuperar TODO lo que se perdió, no solo la ventana corta.
                 // Si la pasada COMPLETA (la del cron diario, que es la que estampa
-                // lastOkAt) lleva más de 20 h sin salir bien, este pase hace una
-                // completa en vez de la rápida y estampa el sello. Así el sistema
-                // se pone al día solo, sin esperar al día siguiente.
+                // lastOkAt) lleva más de FULL_CATCHUP_HOURS sin salir bien, este
+                // pase hace una completa en vez de la rápida y estampa el sello.
+                // Así el sistema se pone al día solo, sin esperar al día siguiente.
                 const ultimaCompleta = await getSetting(GO_LAST_OK_KEY);
                 const horasSinCompleta = ultimaCompleta
                     ? (Date.now() - new Date(ultimaCompleta).getTime()) / 3600000
@@ -177,10 +159,11 @@ export async function GET(req: Request) {
                 fastReconciliation = { ...collect, optovision: optoScan, recheck, promoted };
 
                 // Red de seguridad: el backfill (y con él, TODO el régimen de
-                // alertas) depende de que el cron diario corra — y su alta en
-                // cron-job.org es manual. Si pasadas 24 h desde el primer pase
-                // rápido algún lab sigue sin backfill, avisar al administrador
+                // alertas) depende de que el cron diario corra. Si pasadas 24 h
+                // desde el primer pase rápido algún lab sigue sin backfill, avisar
                 // (máximo una vez por día) en vez de quedar mudos para siempre.
+                // Es operación de laboratorio: va a PRIVATE_ADMIN_EMAILS, nunca a
+                // la casilla del local ni a ADMIN_EMAIL (no existe en producción).
                 try {
                     const pendientes = [];
                     for (const lab of LabCostReconciliationService.BACKFILL_LABS) {
@@ -196,12 +179,12 @@ export async function GET(req: Request) {
                             const warned = await getSetting(WARN_KEY);
                             if (!warned || Date.now() - new Date(warned).getTime() > 24 * 3600000) {
                                 const r: any = await sendEmail({
-                                    to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                                    to: PRIVATE_ADMIN_EMAILS,
                                     subject: '⚠️ Conciliación de laboratorio: el cron diario nunca corrió',
                                     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937">
                                         <h2 style="color:#d97706">⚠️ Falta la corrida diaria de conciliación</h2>
                                         <p>Pasaron más de 24 horas y el backfill inicial de <strong>${pendientes.join(' y ')}</strong> sigue pendiente: el cron diario <code>/api/cron/lab-invoices</code> no corrió nunca. Hasta que corra, las alertas de costos de esa(s) fuente(s) están en silencio.</p>
-                                        <p>Revisar el alta del cron en cron-job.org (GET diario a <code>/api/cron/lab-invoices?secret=…</code>).</p>
+                                        <p>Revisar que la diaria de las 8:30 (instrumentation.ts) esté corriendo: <code>/api/cron/lab-invoices</code>.</p>
                                     </div>`,
                                 });
                                 if (r?.success) await setSetting(WARN_KEY, new Date().toISOString());
@@ -214,70 +197,23 @@ export async function GET(req: Request) {
                 console.log(`[CRON SmartLab] Conciliación rápida: ${collect.withCost || 0} con costo, ` +
                     `${recheck.rematched || 0} re-cruzados`);
             } catch (fastErr) {
-                console.error('[CRON SmartLab] Conciliación rápida falló (el sync de estados salió bien):', fastErr);
+                console.error('[CRON SmartLab] Conciliación rápida falló:', fastErr);
                 fastReconciliation = { error: fastErr instanceof Error ? fastErr.message : String(fastErr) };
             }
         }
 
+        // Un seguimiento caído responde 500 (como antes), con el detalle del
+        // pase de conciliación adentro: el log del tick muestra el cuerpo.
         return NextResponse.json({
-            success: true,
+            success: result.ok,
             timestamp: new Date().toISOString(),
             ...result,
             fastReconciliation,
-        });
+        }, { status: result.ok ? 200 : 500 });
     } catch (error: any) {
         console.error('[CRON SmartLab] Error:', error);
-
-        const errorMessage = error instanceof Error ? error.message : String(error);
-
-        try {
-            // Registrar el inicio del corte si es la primera falla
-            let downSince = await getSetting(KEY_DOWN_SINCE);
-            if (!downSince) {
-                downSince = new Date().toISOString();
-                await setSetting(KEY_DOWN_SINCE, downSince);
-            }
-
-            const downtimeMs = Date.now() - new Date(downSince).getTime();
-            const alertedAt = await getSetting(KEY_ALERTED_AT);
-            const sinceLastAlertMs = alertedAt ? Date.now() - new Date(alertedAt).getTime() : Infinity;
-
-            // Alertar solo si lleva más de 12 h caído, y repetir cada 12 h como máximo
-            const shouldAlert = downtimeMs >= DOWN_ALERT_THRESHOLD_MS && sinceLastAlertMs >= ALERT_REPEAT_MS;
-
-            if (shouldAlert) {
-                const subject = `⚠️ SmartLab lleva ${formatDowntime(downtimeMs)} sin conexión — Grupo Óptico`;
-
-                // Enviar alerta por Email. sendEmail no rechaza (devuelve {success:false}):
-                // hay que mirar el retorno, si no marcaríamos KEY_ALERTED_AT sin que
-                // saliera nada y la próxima alerta recién en 12 h.
-                const emailRes = await sendEmail({
-                    to: 'pisano.ishtar@gmail.com',
-                    subject,
-                    text: `Atelier Óptica\n\nLa sincronización con el laboratorio Grupo Óptico lleva ${formatDowntime(downtimeMs)} sin funcionar (desde ${new Date(downSince).toLocaleString('es-AR')}).\n\nÚltimo error: ${errorMessage}\nFecha: ${new Date().toLocaleString('es-AR')}`,
-                    html: `<h3 style="color: #d32f2f;">${subject}</h3><p>La sincronización con el laboratorio (Grupo Óptico) lleva <b>${formatDowntime(downtimeMs)}</b> sin funcionar (desde ${new Date(downSince).toLocaleString('es-AR')}).</p><p><b>Último error:</b> ${errorMessage}</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p><p style="color:#888;font-size:12px;">Si sigue caído, recibirás otra alerta en 12 horas. Al recuperarse te llega un aviso de restablecido.</p>`
-                }).catch((err: any) => { console.error('[CRON SmartLab] Error email:', err); return { success: false } as any; });
-
-                // (18/8/2026: la pata de WhatsApp se apagó — solo email.)
-                // Solo registrar el envío si salió (si no, se reintenta).
-                if (emailRes && emailRes.success) {
-                    console.log('[CRON SmartLab] Alerta enviada a Ishtar por email.');
-                    await setSetting(KEY_ALERTED_AT, new Date().toISOString());
-                } else {
-                    console.error('[CRON SmartLab] Alerta de caída NO entregada (el email falló): se reintentará.');
-                }
-            } else {
-                const reason = downtimeMs < DOWN_ALERT_THRESHOLD_MS
-                    ? `caído hace ${formatDowntime(downtimeMs)} (< 12 h, aún sin alertar)`
-                    : `alerta en cooldown (próxima en ~${Math.round((ALERT_REPEAT_MS - sinceLastAlertMs) / 60000)} min)`;
-                console.log(`[CRON SmartLab] Falla registrada — ${reason}.`);
-            }
-        } catch (alertError) {
-            console.error('[CRON SmartLab] No se pudieron enviar las alertas:', alertError);
-        }
-
         return NextResponse.json({
-            error: errorMessage,
+            error: error instanceof Error ? error.message : String(error),
             timestamp: new Date().toISOString()
         }, { status: 500 });
     }

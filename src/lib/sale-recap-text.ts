@@ -1,3 +1,4 @@
+import { ETIQUETA_TIPO_RECETA, type TipoDeReceta } from '@/lib/receta/tipo-de-lente';
 // ────────────────────────────────────────────────────────────────────────────
 // El repaso de la venta en texto plano: lo que se envió a fábrica, legible de
 // arriba a abajo.
@@ -142,7 +143,7 @@ export function prescriptionRecapText(rx: RecapPrescription | null | undefined, 
     };
 
     const lineas = [
-        rx.prescriptionType ? `Tipo de lente: ${rx.prescriptionType}` : null,
+        rx.prescriptionType ? `Tipo de receta: ${ETIQUETA_TIPO_RECETA[rx.prescriptionType as TipoDeReceta] ?? rx.prescriptionType}` : null,
         ojo('OD'),
         ojo('OI'),
         `Distancia interpupilar (DNP): ${dato(rx.pd)}`,

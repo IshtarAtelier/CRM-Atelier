@@ -115,3 +115,16 @@ export function descuentoNegativo(v: DescuentosPropuestos): string | null {
  * Decisión de Ishtar, 3/10/2026.
  */
 export const DESCUENTO_SEGUNDO_PAR_HOYA = 80;
+
+/**
+ * DESCUENTO DE CUENTA CON GRUPO ÓPTICO: 0.80 = 20 % off sobre lista, acuerdo
+ * comercial confirmado por el administrador el 22/7/2026.
+ *
+ * Lo usa la lectura de comprobantes del portal (`grupo-optico-invoices.ts`)
+ * SOLO como respaldo para los remitos X, que llegan sin el recuadro
+ * "<FA> Importe" (todavía no facturados) pero al facturarse llevan el mismo
+ * descuento. Cuando el comprobante SÍ trae su importe final manda ese: el
+ * factor se calcula del propio PDF y este valor no interviene. Si el acuerdo
+ * cambia, se cambia acá y en ningún otro lado.
+ */
+export const DESCUENTO_CUENTA_GRUPO_OPTICO = 0.80;

@@ -1,9 +1,10 @@
 import { prisma } from '../../../lib/db';
+import { CARGA_VITOLEN } from './carga-asistida';
 import { LAB_ITEM_PATTERNS } from '../../lab-recon/types';
 import type { EstadoEnPortal, LabModule, OpcionesCorrida, ResultadoSeguimiento } from '../contrato';
 import { pedidosAtrasados, reflejar, ventasActivasDelLab, ventasSinPedidoEnPortal } from '../espejo';
 import { aplicarEstadoEnVenta } from '../estados';
-import { LabCostReconciliationService } from '../../lab-cost-reconciliation.service';
+import { upsertEntry } from '../../lab-recon/cost-matching';
 import { conTurno } from '../portal/turno';
 import { BASE_VITOLEN, normalizarPedido, periodoDeListado, type FilaListado } from './pedidos';
 import { conSesionVitolen, LAB_VITOLEN, leerCuentaCorriente, leerListado, NOMBRE_VITOLEN, pedirBytesDesdeLaPagina, ROBOT_VITOLEN } from './portal';
@@ -139,16 +140,21 @@ async function recolectarCostos(opts: OpcionesCorrida = {}): Promise<Record<stri
         if (!fiable.confiable) invoiceErrors.push(`${numero}: ${fiable.motivo}`);
         const tieneImporte = costo.billedTotal !== null;
         if (tieneImporte) conFactura++; else sinFactura++;
-        const entrada = await LabCostReconciliationService.upsertEntry({
+        const entrada = await upsertEntry({
             lab: LAB_VITOLEN,
             labOrderNumber: numero,
-            billedNet: tieneImporte ? costo.billedNet : null,
-            billedTotal: tieneImporte ? costo.billedTotal : null,
+            // Importes solo con PDF de fiar; si no, nada (ni en una entrada nueva).
+            billedNet: tieneImporte && fiable.confiable ? costo.billedNet : null,
+            billedTotal: tieneImporte && fiable.confiable ? costo.billedTotal : null,
             preferExistingBilling: !fiable.confiable,
+            // Todas las facturas del pedido anuladas por nota de crédito: esta fuente
+            // dice "sin importe" y borra el que ella misma había puesto (el reclamo
+            // deja de estar vivo cuando el lab ya acreditó).
+            sinImporteDeEstaFuente: fiable.confiable && facturas.length > 0 && !tieneImporte,
             source: 'SCRAPER',
             sourceFile: p.fila.pdfFactura ? `facturacion_automatica.pdf?codigo=${p.fila.codigoFactura}` : null,
             invoiceDate: costo.invoiceDate ?? undefined,
-            invoiceRefs: tieneImporte && fiable.confiable ? costo.invoiceRefs : undefined,
+            invoiceRefs: fiable.confiable && facturas.length > 0 ? costo.invoiceRefs : undefined,
             notes: [
                 p.fila.nroCaso ? `Caso: ${p.fila.nroCaso}` : null,
                 p.fila.estado ? `Estado en el portal: ${p.fila.estado}` : null,
@@ -175,6 +181,7 @@ export const MODULO_VITOLEN: LabModule = {
     nombre: NOMBRE_VITOLEN,
     patronProducto: PATRON_VITOLEN,
     capacidades: { seguimiento: true, costos: true, carga: true },
+    carga: CARGA_VITOLEN,
     cadenciaRapidaMin: 30,
     // Todavía no se sabe cuánto tarda un pedido terminado en llegar al local:
     // el aviso de retiro al cliente lo manda el vendedor, no el cron.

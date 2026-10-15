@@ -205,18 +205,8 @@ export const UNMATCHED_GRACE_MS = 60 * 60 * 1000;
  * —armazón, accesorios— no lo factura el lab y no debe entrar en el cruce).
  * SUMAR UN LABORATORIO = agregar su patrón acá + su proveedor en lab-providers.
  */
-export const LAB_ITEM_PATTERNS: Record<string, RegExp> = {
-    OPTOVISION: /optovision/i,
-    GRUPO_OPTICO: /grupo[\s\-]?[oó]ptico/i,
-    // Fideicomiso Cámara de Ópticas de Córdoba (LabCOC): los bifocales Flat Top.
-    // Sin portal ni correo parseable: sus comprobantes se cargan a mano desde
-    // la venta (30/9/2026: tres facturas con el bifocal Blue Cut a $114.841
-    // contra $23.100 cargados en el sistema, y nadie lo veía).
-    LA_CAMARA: /c[aá]mara/i,
-    // Vitolen (Hoya + Pentax), desde el 30/9/2026: su portal lo lee el módulo
-    // de src/services/lab-modules/vitolen.
-    VITOLEN: /vitolen/i,
-};
+import { LAB_ITEM_PATTERNS } from '../../lib/laboratorios/identidad';
+export { LAB_ITEM_PATTERNS };
 
 /**
  * Clave del cruce a partir del nombre del laboratorio tal como está en el
@@ -233,6 +223,9 @@ export function labKeyDeNombre(nombre: string | null | undefined): LabName | nul
 }
 
 /** Nombre legible de cada laboratorio, para emails y pantallas. */
+/** Los laboratorios que salen en el reporte semanal (Vitolen desde el 8/10/2026). */
+export const LABS_DEL_SEMANAL = ['OPTOVISION', 'GRUPO_OPTICO', 'VITOLEN'];
+
 export const LAB_LABELS: Record<string, string> = {
     OPTOVISION: 'Optovision',
     GRUPO_OPTICO: 'Grupo Óptico',
@@ -244,11 +237,14 @@ export const LAB_LABELS: Record<string, string> = {
  *  Optovision discrimina IVA y Atelier es monotributo (no lo recupera) → el
  *  costo real es el TOTAL c/IVA. Grupo Óptico factura a consumidor final → neto
  *  y total coinciden. */
+/** Los labs que emiten Factura A (IVA discriminado): el costo real es el TOTAL. La misma lista que usa el cruce. */
+export const LABS_FACTURA_A = new Set(['OPTOVISION', 'LA_CAMARA', 'VITOLEN']);
+
 export const billedForLab = (
     lab: string,
     e: { billedNet: number | null; billedTotal: number | null },
 ): number | null =>
-    lab === 'OPTOVISION'
+    LABS_FACTURA_A.has(String(lab))
         ? (e.billedTotal ?? e.billedNet ?? null)
         : (e.billedNet ?? e.billedTotal ?? null);
 

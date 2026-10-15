@@ -65,6 +65,7 @@ jobs:
         run: |
           npm run check:gate
           npm run check:catalog
+          npm run check:mp-vencimientos
 
       # Estos doce existían desde hacía meses y NADIE los corría: estaban en
       # package.json y en ningún workflow. Cubren plata (2x1, precios de
@@ -86,6 +87,8 @@ jobs:
           npm run check:promo-hoya
           npm run check:promo2x1web
           npm run check:oferta
+          npm run check:pdf-respaldo
+          npm run check:navegadores
           npm run check:cristales
           npm run check:comprobantes
           npm run check:adtag
@@ -103,6 +106,8 @@ jobs:
           npm run check:recupero-carrito
           npm run check:go-lineas
           npm run check:lab-modulos
+          npm run check:armado-go
+          npm run check:carga-go
           npm run check:seo-tienda
 
       # Los datos que el auto-respondedor de WhatsApp le manda a un cliente
@@ -137,6 +142,9 @@ jobs:
 
       - name: Embudo 100 % automático (cadencia, lectura de respuestas, cierre solo)
         run: npm run check:embudo
+
+      - name: Confirmación del cliente (OK / 24 h / observación; app y bot leen igual)
+        run: npm run check:confirmacion
 
       - name: Contrato herramientas del bot ↔ rutas del CRM
         run: npm run check:contrato-bot

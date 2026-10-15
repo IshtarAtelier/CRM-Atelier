@@ -17,9 +17,10 @@ import { estadoDeSalud, formatearCorte, marcarAlertado, registrarExito, registra
  *  · caída del módulo: a las 12 h, repetido cada 12 h; credencial rechazada
  *    en el acto (portal/salud.ts);
  *  · restablecido: solo si el corte se había alertado.
- * Son los mismos avisos de salud que ya tiene SmartLab. Las ventas sin pedido
- * en el portal y los pedidos atrasados NO mandan mail: van al reporte semanal
- * (CLAUDE.md: de laboratorio salen dos mails y nada más).
+ * Son los avisos de salud que tenía el cron de SmartLab (hoy Grupo Óptico
+ * corre por acá). Las ventas sin pedido en el portal, los pedidos atrasados,
+ * los trabados y los números no encontrados NO mandan mail: van al reporte
+ * semanal (CLAUDE.md: de laboratorio salen dos mails y nada más).
  * Todo va a PRIVATE_ADMIN_EMAILS: es operación de laboratorio, no del local.
  */
 export interface ResultadoCorrida {
@@ -98,6 +99,8 @@ export async function correrSeguimiento(modulo: LabModule, opts: OpcionesCorrida
         en: new Date().toISOString(),
         sinPedidoEnPortal: seguimiento.sinPedidoEnPortal,
         atrasados: seguimiento.atrasados.map(p => ({ ...p, estimatedAt: p.estimatedAt.toISOString() })),
+        ...(seguimiento.trabados ? { trabados: seguimiento.trabados } : {}),
+        ...(seguimiento.noEncontrados ? { noEncontrados: seguimiento.noEncontrados } : {}),
     });
     if (pasada === 'completa') await marcarPasadaCompleta(lab);
 
@@ -108,6 +111,10 @@ export interface HallazgosDeModulo {
     en: string;
     sinPedidoEnPortal: { orderId: string; cliente: string; enviadaHace: number }[];
     atrasados: { portalNumber: string; cliente: string | null; estimatedAt: string; diasDeAtraso: number }[];
+    /** Solo los módulos que lo miden (Grupo Óptico): pedidos que llevan días sin avanzar. */
+    trabados?: { portalNumber: string; cliente: string; sector: string; progreso: number; dias: number }[];
+    /** Nº de pedido de una venta que el portal no conoce (tipeado mal). */
+    noEncontrados?: { orderId: string; cliente: string; numero: string }[];
 }
 
 async function guardarHallazgos(lab: string, h: HallazgosDeModulo) {

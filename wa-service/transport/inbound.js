@@ -27,6 +27,7 @@ const { asegurarFichaDeLead } = require('./alta-de-ficha');
 const { deshacerSeguimientoFallido, PAUSA_DIAS } = require('../shared/seguimiento-fallido');
 const { esPrimeraRespuestaAlSeguimiento } = require('../shared/respuesta-a-seguimiento');
 const { avisarRespuestaAlEquipo } = require('../shared/aviso-respuesta');
+const { registrarRespuestaAConfirmacion } = require('../shared/confirmacion-cliente');
 const cloud = require('./cloud-api');
 
 const TYPE_MAP = {
@@ -251,6 +252,14 @@ async function persistInboundUnlocked(m, { io } = {}) {
     // nada para tachar (Ishtar): qué quiso decir lo lee el motor de la app
     // (`src/lib/embudo/respuesta.ts`), la charla la contesta el bot, y el
     // equipo se entera acá para entrar al chat si quiere.
+    // ¿Tenía un pedido esperando su OK? Lo que escribió es la respuesta al
+    // repaso de compra: queda en la venta y Milena lo ve antes de procesar.
+    if (chat.clientId) {
+        const nombreC = (await prisma.client.findUnique({ where: { id: chat.clientId }, select: { name: true } }).catch(() => null))?.name || m.profileName || 'Un cliente';
+        const lectura = await registrarRespuestaAConfirmacion(prisma, { clientId: chat.clientId, nombre: nombreC, texto: content, tipo: messageType });
+        if (lectura) console.log(`  📦 [Inbound] ${waId} respondió a la confirmación de su pedido: ${lectura}.`);
+    }
+
     if (esPrimeraRespuestaAlSeguimiento(chatAntes) && chat.clientId) {
         const nombre = (await prisma.client.findUnique({ where: { id: chat.clientId }, select: { name: true } }).catch(() => null))?.name || m.profileName || 'Un cliente';
         const avisado = await avisarRespuestaAlEquipo(prisma, { clientId: chat.clientId, chatId: chat.id, nombre, texto: content, tipo: messageType });

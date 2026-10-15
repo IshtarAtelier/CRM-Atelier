@@ -68,14 +68,52 @@ export function etiquetaSinVenta(labOrderNumber: string | null | undefined): { l
  *    y la factura se volvió a leer) — si no, quedaría acusando para siempre.
  */
 export const MARCA_PAR_BONIFICADO_COBRADO = '⚠️ 2x1 CON EL PAR BONIFICADO COBRADO';
+/** Vitolen: el 2º par de la promo vino por encima del 20 % de lista + calibrado (Ishtar, 8/10/2026). */
+export const MARCA_SEGUNDO_PAR_PROMO_COBRADO = '⚠️ 2º PAR DE LA PROMO COBRADO DE MÁS';
+
+/**
+ * Por qué el cruce dejó un importe a reclamar (`LabCostEntry.reclamoMotivo`,
+ * desde el 10/10/2026): el par bonificado del 2x1 cobrado, o el 2º par de la
+ * promo de Vitolen por encima del 20 %. Las marcas en la nota (abajo) quedan
+ * para las filas anteriores y para la prosa; el reporte lee la columna primero.
+ */
+export type ReclamoMotivo = 'PAR_BONIFICADO_2X1' | 'SEGUNDO_PAR_PROMO';
+
+/** El motivo del reclamo de una entrada: la columna, y si no está (fila vieja), las marcas de la nota. Puro. */
+export function motivoDeReclamo(e: { reclamoMotivo?: string | null; notes?: string | null }): ReclamoMotivo | null {
+    if (e.reclamoMotivo === 'PAR_BONIFICADO_2X1' || e.reclamoMotivo === 'SEGUNDO_PAR_PROMO') return e.reclamoMotivo;
+    if (tieneParBonificadoCobrado(e.notes)) return 'PAR_BONIFICADO_2X1';
+    if (tieneSegundoParCobrado(e.notes)) return 'SEGUNDO_PAR_PROMO';
+    return null;
+}
 
 /** ¿El cruce dejó marcada esta entrada como 2x1 con el par bonificado cobrado? */
 export const tieneParBonificadoCobrado = (notes: string | null | undefined): boolean =>
     (notes || '').includes(MARCA_PAR_BONIFICADO_COBRADO);
 
 /** Saca la nota del par bonificado: el cruce la vuelve a escribir en cada pasada si sigue aplicando. */
+/** ¿El cruce marcó esta entrada como 2º par de la promo (Vitolen) cobrado de más? */
+export const tieneSegundoParCobrado = (notes: string | null | undefined): boolean =>
+    (notes || '').includes(MARCA_SEGUNDO_PAR_PROMO_COBRADO);
+
+/**
+ * El "a reclamar $X" que el cruce escribió en la nota del 2º par cobrado de
+ * más; null si no está. Puro. Desde el 10/10/2026 el cruce guarda el número en
+ * `LabCostEntry.reclamo`: esto queda SOLO para las filas de antes, hasta que
+ * el cruce las vuelva a pasar (el reporte lee `reclamo ?? aReclamarDeNota`).
+ */
+export function aReclamarDeNota(notes: string | null | undefined): number | null {
+    const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // "… ; a reclamar $29.500]" (fmtARS: miles con punto, sin decimales).
+    const m = (notes || '').match(new RegExp(esc(MARCA_SEGUNDO_PAR_PROMO_COBRADO) + '[^\\]]*?a reclamar \\$\\s*([\\d.]+)'));
+    if (!m) return null;
+    const n = Number(m[1].replace(/\./g, ''));
+    return Number.isFinite(n) ? n : null;
+}
+
 export function sinNotaParBonificado(notes: string | null | undefined): string | null {
-    const marca = MARCA_PAR_BONIFICADO_COBRADO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const esc = (m: string) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const marca = `(?:${esc(MARCA_PAR_BONIFICADO_COBRADO)}|${esc(MARCA_SEGUNDO_PAR_PROMO_COBRADO)})`;
     const limpio = (notes || '').replace(new RegExp(`\\s*\\[${marca}[^\\]]*\\]`, 'g'), '').trim();
     return limpio || null;
 }

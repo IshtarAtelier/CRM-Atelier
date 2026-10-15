@@ -1,4 +1,6 @@
 import PDFParser from 'pdf2json';
+// El acuerdo comercial (20 % de cuenta) vive con las demás reglas de plata, no acá.
+import { DESCUENTO_CUENTA_GRUPO_OPTICO } from '@/lib/constants/descuentos';
 
 /**
  * Descarga y parseo de las facturas de Grupo Óptico — POR LÍNEA de detalle.
@@ -43,16 +45,6 @@ export interface ParsedInvoice {
 }
 
 const API_BASE = 'https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php';
-
-/**
- * Descuento de cuenta vigente con Grupo Óptico (0.80 = 20% off), confirmado por
- * el administrador el 22/7/2026. SOLO se usa como respaldo para los remitos X,
- * que llegan sin el recuadro "<FA> Importe" (todavía no facturados) pero al
- * facturarse llevan el mismo descuento. Cuando el comprobante SÍ trae su
- * importe final, manda ese — el factor se calcula del propio PDF y este valor
- * no interviene. Si el acuerdo comercial cambia, actualizar acá.
- */
-const DESCUENTO_CUENTA_DEFAULT = 0.80;
 
 /** Normaliza "00004-00339862" → "0004-00339862" (la API usa 4 dígitos de pto. de venta). */
 export function normalizeInvoiceNumber(n: string): string {
@@ -177,7 +169,7 @@ export function parseInvoicePdf(pdfBuffer: Buffer): Promise<ParsedInvoice[]> {
                         // facturarse llevan el mismo descuento de cuenta (confirmado por
                         // el administrador el 22/7). Sin el <FA> no hay factor propio →
                         // se usa el vigente de la cuenta.
-                        f = DESCUENTO_CUENTA_DEFAULT;
+                        f = DESCUENTO_CUENTA_GRUPO_OPTICO;
                     }
                     if (f !== null) {
                         inv.descuento = Math.round(f * 10000) / 10000;
