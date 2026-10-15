@@ -15,6 +15,7 @@ const fs = require('fs');
 const { getFileExtension, clasificarFalloDeEnvio } = require('../utils');
 const { resolveWaMessageId } = require('../shared/message-id');
 const { marcarTraspasoHumano } = require('../shared/traspaso-humano');
+const { MOTIVO_APAGADO, actualizarChat, datosDePrendido } = require('../shared/motivo-apagado');
 const { esRemitenteHumano } = require('../shared/remitentes');
 const { ORIGENES } = require('../shared/punto-de-salida');
 const { olvidarInterruptor } = require('../followups/politica');
@@ -287,7 +288,10 @@ function createApiRouter(deps) {
             }
 
             if (botEnabled === false) {
-                await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
+                // APAGADO_MANUAL (15/10/2026): alguien lo silenció desde el
+                // panel. El barrido de vueltas nunca lo reactiva; antes la
+                // etiqueta de abajo lo hacía pasar por "lo tomó una persona".
+                await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)', MOTIVO_APAGADO.APAGADO_MANUAL);
                 // Agregar etiqueta para evitar auto-resume si no existe (array-safe)
                 let currentLabels = Array.isArray(data.chatLabels) ? data.chatLabels : (Array.isArray(chat.chatLabels) ? [...chat.chatLabels] : []);
                 if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
@@ -297,6 +301,8 @@ function createApiRouter(deps) {
                 chat = await prisma.whatsAppChat.update({ where: { id }, data });
             } else {
                 if (botEnabled === true) {
+                    // Prender limpia el motivo (shared/motivo-apagado.js).
+                    await actualizarChat(prisma, { id }, datosDePrendido());
                     data.botEnabled = true;
                     // Si el vendedor activa el bot manualmente, quitamos la etiqueta de apagado manual (array-safe)
                     let currentLabels = Array.isArray(data.chatLabels) ? data.chatLabels : (Array.isArray(chat.chatLabels) ? [...chat.chatLabels] : []);
@@ -684,8 +690,8 @@ function createApiRouter(deps) {
         try {
             if (!botEnabled) {
                 // Usar disableBotForChatById para consistencia (genera handoff, cancela timers)
-                await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
-                const chat = await prisma.whatsAppChat.findUnique({ where: { id } });
+                await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)', MOTIVO_APAGADO.APAGADO_MANUAL);
+                const chat = await prisma.whatsAppChat.findUnique({ where: { id }, select: { id: true, waId: true, botEnabled: true } });
                 res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
             } else {
                 const chatCheck = await prisma.whatsAppChat.findUnique({ 
@@ -697,10 +703,8 @@ function createApiRouter(deps) {
                     return res.status(403).json({ error: 'No se puede activar el bot porque el cliente tiene la etiqueta Cancelar Bot. Quítela primero para habilitarlo.' });
                 }
 
-                const chat = await prisma.whatsAppChat.update({
-                    where: { id },
-                    data: { botEnabled: true }
-                });
+                await actualizarChat(prisma, { id }, datosDePrendido());
+                const chat = await prisma.whatsAppChat.findUnique({ where: { id }, select: { id: true, waId: true, botEnabled: true } });
                 console.log(`  🤖 Bot ▶️ Activado para chat ${chat.waId}`);
                 broadcastChatUpdate(chat.id);
                 res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });

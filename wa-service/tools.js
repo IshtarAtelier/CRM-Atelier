@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { MOTIVO_APAGADO, actualizarChat, datosDeApagado, datosDePrendido } = require('./shared/motivo-apagado');
 const { contenidoATexto } = require('./shared/ai-content');
 const nodemailer = require('nodemailer');
 const path = require('path');
@@ -978,19 +979,18 @@ async function cancelBot({ clientId, waId }) {
         }
 
         if (waId) {
-            const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+            const chat = await prisma.whatsAppChat.findUnique({ where: { waId }, select: { id: true, chatLabels: true } });
             if (chat) {
                 const updatedLabels = new Set(chat.chatLabels || []);
                 updatedLabels.add('Cancelar Bot');
 
-                await prisma.whatsAppChat.update({
-                    where: { waId },
-                    data: { 
-                        botEnabled: false, 
-                        status: 'OPEN', 
-                        unreadCount: { increment: 1 },
-                        chatLabels: Array.from(updatedLabels)
-                    }
+                // Motivo explícito (15/10/2026): cancel_bot es "acá tiene que
+                // hablar un humano" → DERIVADO, que el barrido nunca reactiva.
+                await actualizarChat(prisma, { waId }, {
+                    ...datosDeApagado(MOTIVO_APAGADO.DERIVADO),
+                    status: 'OPEN',
+                    unreadCount: { increment: 1 },
+                    chatLabels: Array.from(updatedLabels),
                 });
 
                 // Generar resumen de handoff
@@ -1058,10 +1058,9 @@ async function addTagToClient({ clientId, tagName }) {
 
         // 1. Bot Action Automation
         if (tag.botAction === 'TURN_OFF' || tag.botAction === 'TURN_ON') {
-            await prisma.whatsAppChat.updateMany({
-                where: { clientId: clientId },
-                data: { botEnabled: tag.botAction === 'TURN_ON' }
-            });
+            // Prender limpia el motivo; apagar deja ETIQUETA (15/10/2026).
+            await actualizarChat(prisma, { clientId: clientId },
+                tag.botAction === 'TURN_ON' ? datosDePrendido() : datosDeApagado(MOTIVO_APAGADO.ETIQUETA));
             console.log(`[Etiqueta Automation] Bot ${tag.botAction === 'TURN_ON' ? 'activado' : 'pausado'} para cliente ${client.name}`);
         }
 
@@ -1108,7 +1107,7 @@ async function disableBotForChat({ chatId, reason }) {
     const labelName = reason || 'Cancelar Bot';
     
     try {
-        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId }, select: { id: true, clientId: true, chatLabels: true } });
         if (!chat) {
             return { success: false, message: '[INSTRUCCIÓN INTERNA] No se encontró el chat para desactivar el bot.' };
         }
@@ -1133,14 +1132,12 @@ async function disableBotForChat({ chatId, reason }) {
         const updatedLabels = new Set(chat.chatLabels || []);
         updatedLabels.add(labelName);
 
-        await prisma.whatsAppChat.update({
-            where: { id: chatId },
-            data: { 
-                botEnabled: false, 
-                status: 'OPEN',
-                unreadCount: { increment: 1 },
-                chatLabels: Array.from(updatedLabels)
-            }
+        // PERSONAL (15/10/2026): proveedor, familiar, spam. Nunca vuelve solo.
+        await actualizarChat(prisma, { id: chatId }, {
+            ...datosDeApagado(MOTIVO_APAGADO.PERSONAL),
+            status: 'OPEN',
+            unreadCount: { increment: 1 },
+            chatLabels: Array.from(updatedLabels),
         });
 
         // Generar resumen de handoff

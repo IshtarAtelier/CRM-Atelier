@@ -6,6 +6,7 @@ import { SalesAgent } from "./agents/SalesAgent";
 import { getModel } from "./model";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { BUSINESS_INFO, PROMOS_TEXT } from "@/lib/business-info";
+import { MOTIVO_APAGADO, actualizarChatsBot, datosDeApagado } from '@/lib/whatsapp/motivo-apagado-bot';
 
 export interface OrchestratorResult {
   intent: Intent;
@@ -63,10 +64,8 @@ export class AgentOrchestrator {
       const isCanceled = client?.tags.some((t: any) => t.name.toLowerCase() === 'cancelar bot');
       
       if (isProveedor || isCanceled) {
-        await prisma.whatsAppChat.updateMany({
-          where: { clientId: clientId },
-          data: { botEnabled: false }
-        });
+        // Motivo ETIQUETA (15/10/2026): el barrido de vueltas nunca lo reactiva.
+        await actualizarChatsBot(prisma, { clientId: clientId }, datosDeApagado(MOTIVO_APAGADO.ETIQUETA));
         return { intent: 'GENERAL_INQUIRY', replyText: "" };
       }
 

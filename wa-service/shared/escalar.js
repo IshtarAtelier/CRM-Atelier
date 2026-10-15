@@ -18,6 +18,7 @@
  */
 
 const { prisma } = require('../db');
+const { MOTIVO_APAGADO, actualizarChat, datosDeApagado } = require('./motivo-apagado');
 
 const CREADO_POR = 'Bot (pidió ayuda)';
 
@@ -44,10 +45,12 @@ async function escalarAHumano({ notifyAdminDown, disableBotForChatById }, { chat
     const razon = (motivo || 'el bot no supo cómo seguir').trim();
 
     // 1. Callarse en ESE chat (no apaga el bot para todos).
+    //    Motivo DERIVADO (15/10/2026): el barrido de vueltas no lo reactiva.
+    //    Antes este apagado quedaba indistinguible de "lo tomó una persona".
     if (disableBotForChatById) {
-        await disableBotForChatById(chat.id, `Pidió ayuda: ${razon}`).then(() => { resultado.apagado = true; }).catch(() => {});
+        await disableBotForChatById(chat.id, `Pidió ayuda: ${razon}`, MOTIVO_APAGADO.DERIVADO).then(() => { resultado.apagado = true; }).catch(() => {});
     } else {
-        await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { botEnabled: false } })
+        await actualizarChat(prisma, { id: chat.id }, datosDeApagado(MOTIVO_APAGADO.DERIVADO))
             .then(() => { resultado.apagado = true; }).catch(() => {});
     }
 

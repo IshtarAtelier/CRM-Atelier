@@ -757,6 +757,15 @@ model WhatsAppChat {
   // ventana de servicio de 24 h: dentro se puede escribir texto libre; fuera,
   // solo plantillas aprobadas. Lo escribe el webhook; lo lee /api/send.
   lastInboundAt       DateTime?
+  // Por qué está apagado el bot en este chat (15/10/2026). Valores en
+  // wa-service/shared/motivo-apagado.js. NULL = desconocido: el barrido de
+  // vueltas solo reactiva TOMADO_POR_PERSONA, así que NULL nunca vuelve solo.
+  botOffReason        String?
+  botOffAt            DateTime?
+  // Lease del turno del bot (15/10/2026): con dos instancias del wa-service,
+  // solo la que lo toma corre el turno. Vence solo si el proceso muere.
+  botTurnoHasta       DateTime?
+  botTurnoPor         String?
   client              Client?           @relation(fields: [clientId], references: [id])
   messages            WhatsAppMessage[]
 
