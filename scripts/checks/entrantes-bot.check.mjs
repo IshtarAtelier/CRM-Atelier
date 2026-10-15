@@ -15,7 +15,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 const { clasificarEntrante, disparaTurno, entranteDeFila, filaDisparaTurno, CLASE } = require('../../wa-service/shared/clasificar-entrante.js');
-const { decidirVuelta, VENTANA_PARA_QUE_CONTESTE_EL_EQUIPO_MIN, HORAS_PARA_VOLVER_FUERA_DE_HORARIO } = require('../../wa-service/shared/duenio-del-chat.js');
+const { decidirVuelta, duenioDelChat, VENTANA_PARA_QUE_CONTESTE_EL_EQUIPO_MIN, HORAS_PARA_VOLVER_FUERA_DE_HORARIO, ANTIGUEDAD_MAXIMA_PARA_VOLVER_H } = require('../../wa-service/shared/duenio-del-chat.js');
 const { isBusinessHours } = require('../../wa-service/shared/business-hours.js');
 
 let fallas = 0;
@@ -96,7 +96,24 @@ const humano = (desde, esperandoDesde) => ({ duenio: 'humano', desde: art(desde)
 }
 {
     const d = decidirVuelta({ ...humano('2026-10-14T19:00', '2026-10-14T21:00'), ahora: art('2026-10-14T21:00'), enHorario: isBusinessHours });
-    check('local cerrado, la persona escribió hace 2 h → NO vuelve (regla vigente)', d.accion === 'no');
+    check('local cerrado, la persona escribió hace 2 h → todavía no vuelve, pero ESPERA (antes decía "no" y nadie lo retomaba)', d.accion === 'esperar' && d.esperarMs > 0);
+}
+{
+    // El caso de la auditoría del 15/10/2026: viernes 16/10, vendedora 19:00,
+    // cliente 19:50. A las 20:10 el local está cerrado y la regla de 3 h decía
+    // 'no' — silencio hasta el lunes.
+    const d = decidirVuelta({ ...humano('2026-10-16T19:00', '2026-10-16T19:50'), ahora: art('2026-10-16T20:10'), enHorario: isBusinessHours });
+    check('el local CERRÓ con el cliente esperando (vie 19:50, vendedora 19:00, son 20:10) → VUELVE, no aplica la regla de 3 h', d.accion === 'volver');
+    const antes = decidirVuelta({ ...humano('2026-10-16T19:00', '2026-10-16T19:50'), ahora: art('2026-10-16T19:58'), enHorario: isBusinessHours });
+    check('…y a las 19:58, con el local abierto, todavía espera al equipo', antes.accion === 'esperar');
+}
+{
+    const d = decidirVuelta({ ...humano('2026-10-13T10:00', '2026-10-13T10:30'), ahora: art('2026-10-14T11:00'), enHorario: isBusinessHours });
+    check(`un mensaje de hace más de ${ANTIGUEDAD_MAXIMA_PARA_VOLVER_H} h no hace volver al bot (nada viejo se contesta)`, d.accion === 'no');
+}
+{
+    const d = decidirVuelta({ ...humano('2026-10-14T19:00', null), ahora: art('2026-10-14T23:30'), enHorario: isBusinessHours });
+    check('local cerrado, 3+ h, pero sin entrante esperando → NO vuelve (no hay nada que contestar)', d.accion === 'no');
 }
 {
     const d = decidirVuelta({ ...humano('2026-10-14T19:00', '2026-10-14T22:30'), ahora: art('2026-10-14T22:30'), enHorario: isBusinessHours });
@@ -106,8 +123,35 @@ check('chat apagado por otra cosa (sin etiqueta de traspaso) → nunca vuelve so
     decidirVuelta({ duenio: 'nadie', desde: null, esperandoDesde: null, ahora: art('2026-10-14T22:30'), enHorario: isBusinessHours }).accion === 'no');
 check('bot-cloud.js usa duenioDelChat + decidirVuelta (no una regla propia por reloj)',
     bc.includes('duenioDelChat(prisma, chat)') && bc.includes('decidirVuelta(') && !bc.includes('puedeVolverSolo'));
-check('la espera es una por chat (no se corre con cada burbuja)', bc.includes('if (!esperasDeVuelta.has(chat.id))'));
-check('al vencer la ventana se vuelve a decidir con la base fresca', bc.includes('async function revisarVuelta(') && /if \(!fresh \|\| fresh\.botEnabled\) return;/.test(bc));
+check('la espera NO vive en memoria (un redeploy la borraba): no hay setTimeout de vuelta', !bc.includes('esperasDeVuelta') && !bc.includes('revisarVuelta'));
+check('un barrido periódico retoma los chats desde la base', bc.includes('async function barrerVueltas(') && /setInterval\(\(\) => barrerVueltas\(\)/.test(bc) && /lastInboundAt: \{ gte: desde \}/.test(bc));
+check('la reactivación es condicionada (dos instancias no programan dos turnos)', /updateMany\(\{\s*where: \{ id: chat\.id, botEnabled: false \}/.test(bc) && /r\.count !== 1/.test(bc));
+check('el barrido no pisa un turno ya programado o corriendo', /debounceTimers\.has\(chat\.id\) \|\| turnosEnCurso\.has\(chat\.id\)/.test(bc));
+
+console.log('\n"Llegó algo nuevo durante el turno": solo lo que dispara turno, y siempre queda uno programado');
+check('el control filtra con filaDisparaTurno (un 👍 no tira la respuesta)', /queDisparan = nuevos\.filter\(f => filaDisparaTurno\(f\)\)/.test(bc) && !/whatsAppMessage\.count\(\{\s*where: \{ chatId: chat\.id, direction: 'INBOUND'/.test(bc));
+check('si descarta, garantiza un turno programado', /queDisparan\.length > 0\) \{[\s\S]{0,400}programarTurno\(chat,/.test(bc));
+
+console.log('\nduenioDelChat: el que espera es el primer entrante que dispara turno');
+{
+    const t = (iso) => art(iso);
+    const filas = {
+        humano: { createdAt: t('2026-10-14T10:00'), senderName: 'Mile' },
+        entrantes: [
+            { createdAt: t('2026-10-14T10:05'), type: 'TEXT', content: '[Reacción] 👍' },
+            { createdAt: t('2026-10-14T10:06'), type: 'TEXT', content: 'gracias!' },
+            { createdAt: t('2026-10-14T11:00'), type: 'TEXT', content: 'y cuánto sale el clip?' },
+        ],
+    };
+    const prismaFalso = { whatsAppMessage: {
+        findFirst: async () => filas.humano,
+        findMany: async () => filas.entrantes,
+    } };
+    const { ETIQUETA_BOT_APAGADO } = require('../../wa-service/shared/traspaso-humano.js');
+    const d2 = await duenioDelChat(prismaFalso, { id: 'c1', botEnabled: false, chatLabels: [ETIQUETA_BOT_APAGADO] });
+    check('una reacción y un "gracias" viejos no arrancan el reloj: espera desde la pregunta de las 11:00',
+        d2.duenio === 'humano' && d2.esperandoDesde && d2.esperandoDesde.getTime() === t('2026-10-14T11:00').getTime() && d2.esperando.content.includes('cuánto'));
+}
 
 console.log('\nCandado por chat: nunca dos turnos a la vez');
 check('hay un Set de turnos en curso', bc.includes('const turnosEnCurso = new Set()'));
