@@ -25,6 +25,7 @@ import { promoVisible } from "@/lib/promo-visible";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades, claveMarca, claveModelo } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
 import ProductReviews from "@/components/Storefront/ProductReviews";
+import { GaleriaZoom } from "./GaleriaZoom";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
 // abre el modal, y el diagrama vive dentro de un acordeón colapsado. Sacarlos del
@@ -70,6 +71,9 @@ export function ProductClient({
   footer?: React.ReactNode;
 }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // Fase 1.7 (15/10/2026): tap sobre la foto abre el lightbox con zoom
+  // (GaleriaZoom.tsx). Antes tap y doble tap no hacían nada.
+  const [zoomAbierto, setZoomAbierto] = useState(false);
   const [showConfigurator, setShowConfigurator] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
 
@@ -403,15 +407,26 @@ export function ProductClient({
                en `contain`, así que entran enteras igual. */
             className="w-full lg:w-[85%] aspect-[4/3] lg:aspect-square lg:max-h-full relative bg-[#fdfdfd] border border-[#f0f0f0] shadow-sm flex items-center justify-center"
           >
-            <AnimatePresence mode="wait">
+            {/* Fase 1.7: `mode="sync"` en vez de `"wait"`. Con "wait" la foto
+                saliente se desvanecía ENTERA (0,4 s) antes de que la entrante
+                empezara a cargar y a aparecer: ~1 s de recuadro en blanco en
+                cada cambio. Las dos fotos están en absolute inset-0, así que
+                en "sync" se cruzan una sobre otra sin hueco. Además, las fotos
+                vecinas se precargan abajo. */}
+            <AnimatePresence mode="sync">
               {images.length > 0 ? (
                 <motion.div
                   key={activeImageIndex}
                   initial={activeImageIndex === 0 ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className={`absolute inset-0 z-10 isolate group-hover:scale-[1.3] group-hover:cursor-zoom-in transition-transform duration-700 ease-out origin-center ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
+                  transition={{ duration: 0.3 }}
+                  onClick={() => setZoomAbierto(true)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Ampliar foto"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setZoomAbierto(true); } }}
+                  className={`absolute inset-0 z-10 isolate group-hover:scale-[1.3] group-hover:cursor-zoom-in cursor-zoom-in transition-transform duration-700 ease-out origin-center ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
                 >
                   {/* `sizes` en 45vw y no 51vw: medido en producción, el
                       recuadro de la galería mide 652px en una pantalla de 1440
@@ -441,7 +456,27 @@ export function ProductClient({
                 </div>
               )}
             </AnimatePresence>
-            
+
+            {/* Precarga de la foto siguiente y la anterior, con el MISMO
+                `sizes` que la grande para que el navegador pida el mismo
+                archivo optimizado y lo tenga en caché cuando se cambie. Fuera
+                de pantalla y sin interacción: no se ve ni se toca. */}
+            {images.length > 1 && [activeImageIndex + 1, activeImageIndex - 1]
+              .map((i) => (i + images.length) % images.length)
+              .filter((i, pos, arr) => i !== activeImageIndex && arr.indexOf(i) === pos)
+              .map((i) => (
+                <div key={`precarga-${i}`} aria-hidden="true" className="absolute inset-0 opacity-0 pointer-events-none -z-10">
+                  <Image
+                    unoptimized={String(images[i]).startsWith('data:')}
+                    src={images[i]}
+                    alt=""
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 45vw"
+                    style={{ objectFit: "contain" }}
+                  />
+                </div>
+              ))}
+
             {activeImageIndex > 0 && (
               <div className="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md text-white text-[10px] font-mono tracking-widest uppercase px-3 py-1.5 rounded-full flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -1255,6 +1290,15 @@ export function ProductClient({
         </div>
         );
       })()}
+
+      {zoomAbierto && images.length > 0 && (
+        <GaleriaZoom
+          imagenes={images}
+          alts={images.map((_: string, i: number) => altFor(i))}
+          indiceInicial={activeImageIndex}
+          onCerrar={() => setZoomAbierto(false)}
+        />
+      )}
 
       {/* Modal Configurador de Cristales para la vista de producto.
 
