@@ -122,7 +122,7 @@ export default function Vacaciones({ yo, version, onGuardado, onVerNovedad }: {
                                 <h3 className="text-lg font-black flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${color(p.id).punto}`} aria-hidden />{p.name.split(' ')[0]}</h3>
                                 {actual && <span className={`text-sm font-black ${actual.restantes > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-stone-500'}`}>{actual.restantes > 0 ? `Le quedan ${actual.restantes} días` : 'Sin días disponibles'}</span>}
                             </div>
-                            <p className="text-xs text-stone-500 mt-0.5">Ingresó el {fecha(dato.ingreso)} · {antiguedad(dato.ingreso, hoy)}</p>
+                            <p className="text-xs text-stone-500 mt-0.5">Ingresó el {fecha(dato.ingreso)} · {antiguedad(dato.ingreso, hoy)}{dato.cumple && <> · <span aria-hidden>🎂</span> cumple el {Number(dato.cumple.slice(3))}/{Number(dato.cumple.slice(0, 2))}</>}</p>
                             <table className="w-full text-xs mt-3">
                                 <thead><tr className="text-left text-stone-500 uppercase tracking-wider text-[10px]"><th className="py-1 font-bold">Período</th><th className="py-1 font-bold text-right">Tomó</th><th className="py-1 font-bold text-right">Pedidos</th><th className="py-1 font-bold text-right">Quedan</th></tr></thead>
                                 <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
@@ -189,14 +189,16 @@ export default function Vacaciones({ yo, version, onGuardado, onVerNovedad }: {
                                         const quien = porDia.get(k) ?? [];
                                         const domingo = (blanco + i) % 7 === 6;
                                         const n = quien[0];
+                                        const cumple = personas.filter(p => INGRESOS_EQUIPO[p.id]?.cumple === k.slice(5)).map(p => p.name.split(' ')[0]);
                                         const c = n ? color(n.userId) : null;
                                         return (
                                             <button key={k} onClick={() => tocar(k)}
-                                                title={quien.map(q => `${nombre(q.userId)}: vacaciones${q.status === 'PENDIENTE' ? ' (pendiente de OK)' : ''}`).join(' · ') || undefined}
+                                                title={[...cumple.map(c => `Cumpleaños de ${c}`), ...quien.map(q => `${nombre(q.userId)}: vacaciones${q.status === 'PENDIENTE' ? ' (pendiente de OK)' : ''}`)].join(' · ') || undefined}
                                                 className={`relative h-8 rounded text-xs tabular-nums
                                                     ${enSel(k) ? 'bg-amber-400 text-stone-900 font-black' : c ? (n.status === 'PENDIENTE' ? `${c.suave} border border-dashed border-current` : `${c.lleno} font-bold`) : domingo ? 'text-stone-400' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}
                                                     ${k === hoy ? 'ring-2 ring-primary' : ''}`}>
                                                 {i + 1}
+                                                {cumple.length > 0 && <span className="absolute -top-1 -left-1 text-[10px]" aria-label={`Cumpleaños de ${cumple.join(' y ')}`}>🎂</span>}
                                                 {quien.length > 1 && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-white" aria-hidden />}
                                             </button>
                                         );
@@ -209,6 +211,7 @@ export default function Vacaciones({ yo, version, onGuardado, onVerNovedad }: {
                 <div className="flex flex-wrap gap-3 px-3 pb-3 text-xs text-stone-600 dark:text-stone-300">
                     {personas.map(p => <span key={p.id} className="inline-flex items-center gap-1"><span className={`w-3 h-3 rounded ${color(p.id).punto}`} aria-hidden />{p.name.split(' ')[0]}</span>)}
                     <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded border border-dashed border-stone-500" aria-hidden />pendiente de OK</span>
+                    <span><span aria-hidden>🎂</span> cumpleaños</span>
                     <span>Se cuentan días corridos.</span>
                 </div>
             </section>

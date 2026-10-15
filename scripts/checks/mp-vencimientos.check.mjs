@@ -70,10 +70,11 @@ esperar('…cierra el intento y deja un aviso para conciliar, sin Payment, factu
   /cerrarIntentoSinAcreditar\(/.test(ramaConfirmada) && /avisarParaConciliar\(/.test(ramaConfirmada)
   && !/payment\.create|INVOICE_REQUEST|order\.update/.test(ramaConfirmada));
 // Lo que sí acredita (Payment, factura) tiene que venir DESPUÉS de las dos ramas.
-// Desde e0c08fe3 (15/10/2026) la factura ya no se solicita sola al cobrar (la pide
-// el vendedor con confirmación): el check mira solo el cobro.
-esperar('el cobro se crea solo después de descartar esos casos (la factura ya no se solicita sola)',
-  finW.lastIndexOf("tipo: 'a-conciliar'") > -1 && finW.indexOf('tx.payment.create(') > finW.lastIndexOf("tipo: 'a-conciliar'") && !finW.includes("type: 'INVOICE_REQUEST'"));
+esperar('el cobro se crea solo después de descartar esos casos',
+  finW.lastIndexOf("tipo: 'a-conciliar'") > -1 && finW.indexOf('tx.payment.create(') > finW.lastIndexOf("tipo: 'a-conciliar'"));
+// Desde el 15/10/2026 la factura la pide el vendedor: un pago web no crea una
+// solicitud de factura sola.
+esperar('el pago web no pide factura automáticamente', !finW.includes("type: 'INVOICE_REQUEST'"));
 esperar('un segundo pago sobre una venta ya pagada no se carga (aviso a conciliar)', /if \(fresca\.status === 'WEB_PAID' \|\| fresca\.status === 'PAID'\) \{[\s\S]{0,400}avisarParaConciliar\(/.test(finW));
 esperar('el intento se relee después del bloqueo (dos avisos juntos no duplican nada)', finW.indexOf('FOR UPDATE') > -1 && finW.indexOf('intentoFresco') > finW.indexOf('FOR UPDATE'));
 esperar('la cancelación no toca una venta con cobros cargados a mano', /status: 'WEB_PENDING', isDeleted: false, payments: \{ none: \{\} \}/.test(failW));

@@ -18,6 +18,7 @@ import { ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Loader2, CalendarDay
 import { FERIADOS_ARGENTINA, textoApertura, type Feriado } from '@/lib/constants/feriados-argentina';
 import FeriadosCobertura from './FeriadosCobertura';
 import Vacaciones from './Vacaciones';
+import { INGRESOS_EQUIPO } from '@/lib/constants/equipo-ingresos';
 import { formatDate } from '@/lib/format-date';
 import {
     TIPOS_NOVEDAD, TIPOS_QUE_SE_PIDEN, TIPOS_SOLO_ADMIN, TIPOS_CON_HORAS, NOVEDAD_INFO, ESTADO_INFO,
@@ -117,12 +118,17 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
      * cómoda que una grilla con 30 casilleros en blanco.
      */
     const dias = useMemo(() => {
-        const mapa = new Map<string, { feriados: Feriado[]; novedades: Novedad[] }>();
-        const fila = (k: string) => { if (!mapa.has(k)) mapa.set(k, { feriados: [], novedades: [] }); return mapa.get(k)!; };
+        const mapa = new Map<string, { feriados: Feriado[]; novedades: Novedad[]; cumples: string[] }>();
+        const fila = (k: string) => { if (!mapa.has(k)) mapa.set(k, { feriados: [], novedades: [], cumples: [] }); return mapa.get(k)!; };
+        // Cumpleaños del equipo: todos los años, en su día.
+        for (const p of equipo) {
+            const c = INGRESOS_EQUIPO[p.id]?.cumple;
+            if (c && c.startsWith(prefijoMes.slice(5)) && (!filtroPersona || filtroPersona === p.id)) fila(`${prefijoMes.slice(0, 4)}-${c}`).cumples.push(p.name.split(' ')[0]);
+        }
         for (const f of FERIADOS_ARGENTINA) if (f.fecha.startsWith(prefijoMes)) fila(f.fecha).feriados.push(f);
         for (const n of visibles) for (const k of diasDe(n)) if (k.startsWith(prefijoMes)) fila(k).novedades.push(n);
         return [...mapa.entries()].sort(([a], [b]) => a.localeCompare(b));
-    }, [visibles, prefijoMes]);
+    }, [visibles, prefijoMes, equipo, filtroPersona]);
 
     /** Resumen del mes por persona: cuántas de cada tipo (sin rechazadas). */
     const resumen = useMemo(() => {
@@ -228,7 +234,7 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                 {error && <p className="p-4 text-red-700 dark:text-red-300 font-bold">No se pudo cargar: {error}</p>}
 
                 {!cargando && dias.length === 0 && (
-                    <p className="p-6 text-center text-sm text-stone-500">Este mes no hay feriados ni novedades.</p>
+                    <p className="p-6 text-center text-sm text-stone-500">Este mes no hay feriados, cumpleaños ni novedades.</p>
                 )}
 
                 <ul className="divide-y divide-stone-100 dark:divide-stone-800">
@@ -243,6 +249,9 @@ export default function CalendarioClient({ yo }: { yo: Yo }) {
                                     <span className="block text-xl font-black leading-none">{Number(k.slice(-2))}</span>
                                 </button>
                                 <div className="flex-1 min-w-0 space-y-1">
+                                    {d.cumples.map(n => (
+                                        <p key={n} className="text-sm font-black text-stone-900 dark:text-stone-50"><span aria-hidden>🎂</span> Cumpleaños de {n}</p>
+                                    ))}
                                     {d.feriados.map(f => (
                                         <p key={f.nombre} className="text-sm font-black text-stone-900 dark:text-stone-50 flex items-center gap-2">
                                             <Flag className="w-4 h-4 text-primary" aria-hidden /> {f.tipo === 'NO_LABORABLE' ? <>No laborable: {f.nombre} <span className="font-normal text-stone-500">· se trabaja normal, todo el equipo</span></> : f.tipo === 'HORARIO_ESPECIAL' ? <>{f.nombre}</> : <>Feriado: {f.nombre}</>}{f.apertura && <span className="font-normal text-stone-500"> · {textoApertura(f.apertura)}</span>}
