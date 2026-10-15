@@ -336,7 +336,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                         </button>
                                     )}
                                     {b.acciones?.robotEnCurso && <span className="text-stone-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está trabajando con este pedido.</span>}
-                                    {b.acciones?.retirarAprobacion && !b.acciones?.anular && (
+                                    {b.acciones?.retirarAprobacion && (
                                         <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'retirar-aprobacion')} title="Vuelve a revisión sin tocar el portal: desde ahí se rechaza (y se cancela en el portal) o se vuelve a aprobar" className={`${boton} bg-stone-500`}>
                                             <X className="w-3 h-3" /> Retirar la aprobación (volver a revisar)
                                         </button>
