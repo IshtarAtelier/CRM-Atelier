@@ -223,19 +223,38 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
 
-      {/* Selected Product Header */}
-      <div className="flex flex-col items-center text-center mb-12">
-        <Interactive3DImage 
-          src={(selectedProduct.imagenesCatalogo.length > 0 ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0]) : "") || selectedProduct.mockImage || "/images/placeholder.svg"}
-          alt={selectedProduct.model || 'Anteojo'}
-          className="w-full max-w-[280px] h-40 mb-6"
-          imageClassName={((selectedProduct.model || '').toLowerCase().includes('tl3932 c3') || selectedProduct.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ((selectedProduct.model || '').toLowerCase().includes('diana') ? 'scale-110' : '')}
-        />
-        <p className="text-[10px] uppercase tracking-[0.3em] text-[#999] font-bold mb-2">{selectedProduct.brand}</p>
-        <h4 className="text-3xl font-serif uppercase tracking-tight leading-none mb-4">{selectedProduct.model}</h4>
-        <p className="text-sm font-medium text-black">${formatearPrecio(selectedProduct.price)}</p>
-      </div>
+      {/* 15/10/26 (informe configurador): la foto grande del modelo (h-40) más
+          marca, nombre y precio empujaban la primera opción del paso 1 a
+          y=842 en un iPhone. En celular el modelo es una tira chica arriba;
+          en compu va a la derecha del configurador, con la foto 3D. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-10 lg:items-start">
+        <div className="order-1 lg:order-2 lg:sticky lg:top-0 flex items-center gap-3 mb-4 pr-12 lg:pr-0 lg:flex-col lg:text-center lg:mb-0">
+          <div className="relative w-14 h-14 shrink-0 rounded-xl bg-stone-50 border border-stone-200/70 overflow-hidden lg:hidden">
+            <Image
+              unoptimized={String((selectedProduct.imagenesCatalogo.length > 0 ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0]) : "") || selectedProduct.mockImage || "/images/placeholder.svg").startsWith('data:')}
+              src={(selectedProduct.imagenesCatalogo.length > 0 ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0]) : "") || selectedProduct.mockImage || "/images/placeholder.svg"}
+              alt={selectedProduct.model || 'Anteojo'}
+              fill
+              sizes="56px"
+              style={{ objectFit: "contain" }}
+            />
+          </div>
+          <div className="hidden lg:block w-full">
+            <Interactive3DImage 
+              src={(selectedProduct.imagenesCatalogo.length > 0 ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0]) : "") || selectedProduct.mockImage || "/images/placeholder.svg"}
+              alt={selectedProduct.model || 'Anteojo'}
+              className="w-full max-w-[240px] h-36 mb-4"
+              imageClassName={((selectedProduct.model || '').toLowerCase().includes('tl3932 c3') || selectedProduct.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ((selectedProduct.model || '').toLowerCase().includes('diana') ? 'scale-110' : '')}
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[9px] uppercase tracking-[0.3em] text-[#999] font-bold lg:mb-1">{selectedProduct.brand}</p>
+            <h4 className="text-base lg:text-2xl font-serif uppercase tracking-tight leading-tight truncate lg:whitespace-normal">{selectedProduct.model}</h4>
+            <p className="text-[12px] lg:text-sm font-medium text-black">${formatearPrecio(selectedProduct.price)}</p>
+          </div>
+        </div>
 
+        <div className="order-2 lg:order-1 min-w-0">
       <LensConfigurator 
         key={selectedProduct.id}
         basePrice={selectedProduct.price}
@@ -259,6 +278,8 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           setSecondFramePending(true);
         }}
       />
+        </div>
+      </div>
     </motion.div>
   ) : (
     <div className="w-full h-full flex flex-col items-center justify-center px-6 relative">
