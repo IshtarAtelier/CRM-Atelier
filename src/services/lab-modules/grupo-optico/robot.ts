@@ -233,10 +233,25 @@ const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '[::1]', '::1', '0.0.0.
 export class PedidoRechazadoError extends Error {
     constructor(msg: string) { super(msg); this.name = 'PedidoRechazadoError'; }
 }
-/** El portal contestó con otro error (5xx, 401…): hubo respuesta, así que el envío no quedó incierto. */
+/** El portal contestó con otro error (HTTP `status`). OJO: solo un 4xx prueba que no creó nada (ver `pruebaDeQueNoSeCreo`). */
 export class PortalRespondioError extends Error {
     status: number;
     constructor(status: number, msg: string) { super(msg); this.name = 'PortalRespondioError'; this.status = status; }
+}
+
+/**
+ * ¿Este error PRUEBA que el portal NO creó el pedido? Solo un 4xx (el portal
+ * rechazó el pedido o la petición antes de tocar nada). Un 5xx (502/504 del
+ * proxy) puede llegar DESPUÉS de que PHP hizo el INSERT, y un timeout o un
+ * corte de red no dicen nada: el envío queda incierto, `envioIniciadoEl` se
+ * conserva y el reintento busca el pedido en el portal antes de crear otro.
+ * Es la barrera contra el pedido duplicado que la óptica no puede anular
+ * (auditoría 2, I2). Puro: `npm run check:carga-go`.
+ */
+export function pruebaDeQueNoSeCreo(err: unknown): boolean {
+    if (err instanceof PedidoRechazadoError) return true;
+    if (err instanceof PortalRespondioError) return err.status >= 400 && err.status < 500;
+    return false;
 }
 
 /** EL ÚNICO POST: crea el pedido. Devuelve el nº que asignó el portal. */

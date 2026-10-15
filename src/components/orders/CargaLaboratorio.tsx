@@ -22,7 +22,7 @@ import { formatDate } from '@/lib/format-date';
 
 interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
-interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
+interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
@@ -125,7 +125,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
         } finally { setOcupado(null); }
     };
 
-    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal' | 'anular' | 'releer') => {
+    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal' | 'anular' | 'retirar-aprobacion' | 'releer') => {
         setOcupado(`${accion}-${id}`); setError('');
         try {
             const res = await fetch(`/api/lab-modulos/borradores/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, motivo: motivo[id] || '' }) });
@@ -314,6 +314,11 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                         {ocupado === `reintentar-${b.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Está tardando: reintentar la carga
                                     </button>
                                 )}
+                                {b.acciones?.retirarAprobacion && (
+                                    <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'retirar-aprobacion')} title="Vuelve a revisión sin tocar el portal" className={`${boton} bg-stone-500`}>
+                                        <X className="w-3 h-3" /> Retirar la aprobación
+                                    </button>
+                                )}
                             </div>
                         )}
                         {b?.status === 'APROBADO' && b.error && (
@@ -327,6 +332,11 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                         </button>
                                     )}
                                     {b.acciones?.robotEnCurso && <span className="text-stone-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está trabajando con este pedido.</span>}
+                                    {b.acciones?.retirarAprobacion && !b.acciones?.anular && (
+                                        <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'retirar-aprobacion')} title="Vuelve a revisión sin tocar el portal: desde ahí se rechaza (y se cancela en el portal) o se vuelve a aprobar" className={`${boton} bg-stone-500`}>
+                                            <X className="w-3 h-3" /> Retirar la aprobación (volver a revisar)
+                                        </button>
+                                    )}
                                     {b.acciones?.anular && (
                                         <>
                                             <input value={motivo[b.id] || ''} onChange={e => setMotivo(m => ({ ...m, [b.id]: e.target.value }))} placeholder="Motivo para anular" className="flex-1 min-w-[10rem] text-xs rounded border border-stone-300 bg-white text-stone-900 px-2 py-2" />

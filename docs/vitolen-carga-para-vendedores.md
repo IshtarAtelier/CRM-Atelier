@@ -94,7 +94,13 @@ pantalla real del laboratorio, aprobar.
   creó pero algo se cortó. Botón **"Cancelar en el portal"** y volvé a
   preparar. Hasta cancelarlo no se puede preparar otro para esa venta.
 - **Aprobado pero "no se pudo confirmar"**: botón **"Reintentar la
-  confirmación"**. Nunca se crea un pedido duplicado: si Vitolen ya lo tomó,
-  el robot lee el nº y listo.
+  carga"**. Nunca se crea un pedido duplicado: si Vitolen ya lo tomó,
+  el robot lee el nº y listo. Si el portal sigue caído o te arrepentiste,
+  **"Retirar la aprobación"** lo devuelve a revisión: desde ahí lo rechazás
+  (el robot cancela el borrador del portal) o lo volvés a aprobar.
+- **"Lleva demasiado sin novedades"** en un pedido que se estaba preparando:
+  el robot se cortó (p. ej. se reinició el sistema). Escribí el motivo y
+  **"Anular y preparar de nuevo"**; si había quedado un borrador en el
+  portal, la ficha te ofrece cancelarlo allá.
 - Un pedido **ya confirmado** no se cancela desde el sistema: se habla con
   Vitolen (03492‑434037).

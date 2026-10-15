@@ -11,6 +11,8 @@
  * Todo lo que necesite reconocer un laboratorio por su nombre, un nº de pedido
  * por su forma o el código corto de una venta, lee de acá. Puro, sin base.
  */
+import { isTeñidoAddon } from '../promo-utils';
+
 export type LabKey = 'OPTOVISION' | 'GRUPO_OPTICO' | 'LA_CAMARA' | 'VITOLEN';
 
 /** El nombre del laboratorio tal como aparece en `laboratorySnapshot` / `Product.laboratory`. */
@@ -77,10 +79,27 @@ export function esDeLab(item: ItemConLaboratorio | null | undefined, lab: LabKey
  * categoría. Los cristales DE UN PAR (OD+OI por armazón) los reparte
  * `cristalesPorArmazon` (lib/order-frames), que además saca los teñidos.
  */
-export function esCristal(x: { productCategorySnapshot?: string | null; productTypeSnapshot?: string | null; category?: string | null; type?: string | null; product?: { category?: string | null; type?: string | null } | null } | null | undefined): boolean {
+export type ConCategoria = { productCategorySnapshot?: string | null; productTypeSnapshot?: string | null; productNameSnapshot?: string | null; name?: string | null; category?: string | null; type?: string | null; product?: { name?: string | null; category?: string | null; type?: string | null } | null } | null | undefined;
+export function esCristal(x: ConCategoria): boolean {
     const categoria = String(x?.productCategorySnapshot ?? x?.product?.category ?? x?.category ?? '');
     if (categoria) return /cristal|lens/i.test(categoria);
     return /cristal/i.test(String(x?.productTypeSnapshot ?? x?.product?.type ?? x?.type ?? ''));
+}
+
+/**
+ * ¿Es UNO DE LOS CRISTALES DE UN PAR (el OD o el OI que se fabrican)? Un
+ * cristal que no es un add-on de teñido. Es lo que cuenta los pares de una
+ * venta (`cantidadDeArmazones`, `cristalesPorArmazon` en lib/order-frames):
+ * cuántos pedidos se esperan del lab y cuándo un 2x1 terminó. Comprobado el
+ * 15/10/2026 sobre los 885 productos reales: coincide con el predicado que
+ * order-frames tenía aparte (`isCrystal && !isTeñidoAddon`), así que ahora es
+ * uno solo. `isCrystal` (promo-utils) queda para el carrito y el cotizador,
+ * donde un teñido SÍ se trata como línea de cristal.
+ */
+export function esCristalDePar(x: ConCategoria): boolean {
+    if (!esCristal(x)) return false;
+    const producto = x?.product ?? { name: x?.productNameSnapshot ?? x?.name ?? null };
+    return !isTeñidoAddon(producto);
 }
 
 /** ¿El ítem es un cristal de ESTE laboratorio? (la pregunta que la carga, el cruce y la ficha hacían cada uno a su manera). */

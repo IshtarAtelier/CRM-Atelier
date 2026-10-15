@@ -143,7 +143,7 @@ const ESPERA_TRAS_ENVIO_INCIERTO_MS = 15 * 60_000;
  * aprobado, confirma, escribe el nº en la venta (firmado por el robot y por
  * quien aprobó), CARGADO. Reintentable: desde APROBADO nunca va a ERROR.
  */
-export async function confirmarBorradorAprobado(borradorId: string) {
+export async function confirmarBorradorAprobado(borradorId: string, opts: { robot?: string | null } = {}) {
     const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, payload: true, resumenPortal: true, approvedBy: true, screenshotUrl: true } });
     if (!b) throw new Error('El borrador no existe.');
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo confirma los APROBADOS.`);
@@ -257,7 +257,7 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador:', e));
         throw err;
     }
-    });
+    }, { heredar: opts.robot ?? null });
 }
 
 /**

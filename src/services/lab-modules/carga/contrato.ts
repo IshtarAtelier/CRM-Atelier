@@ -98,7 +98,8 @@ export interface CargaAsistida {
     /** Arma el pedido desde la venta, crea el borrador y hace que el robot lo deje para revisar. */
     preparar(orderId: string, pair: number, body: Record<string, unknown>, actor: Actor): Promise<ResultadoPreparar>;
     /** Después del OK humano: el robot carga en el portal. Reintentable. */
-    confirmar(borradorId: string): Promise<unknown>;
+    /** `robot`: la identidad que `Borradores.reintentar` ya tomó para este robot (la hereda en vez de pedir el candado de nuevo). */
+    confirmar(borradorId: string, opts?: { robot?: string | null }): Promise<unknown>;
     /** Después de un rechazo: lo que haya que deshacer en el portal (Vitolen cancela su borrador; Grupo Óptico, nada). */
     despuesDeRechazar(borradorId: string, actor?: Actor): Promise<unknown>;
     /** Cancelar en el portal un borrador que quedó colgado (solo los portales que tienen borrador). */

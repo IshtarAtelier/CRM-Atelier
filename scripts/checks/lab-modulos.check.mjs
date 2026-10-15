@@ -19,6 +19,9 @@ import { decidirAlertaDeCaida, debeAvisarRecuperacion, UMBRAL_CAIDA_MS, REPETIR_
 import { transicionDeVenta, estadoConjunto, estadoConjuntoDeVenta, paresCompletos, numeroProvisorio, numerosQueFaltan } from '../../src/services/lab-modules/estados.ts';
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
 import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados, SALIDAS_A_ERROR_CON_PRUEBA, Borradores } from '../../src/services/lab-modules/carga/borrador.ts';
+import { DURACION_TURNO_MIN, RENOVAR_TURNO_CADA_MS } from '../../src/services/lab-modules/portal/turno.ts';
+import { statSync } from 'node:fs';
+import { join as unirRuta } from 'node:path';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
 import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
@@ -464,11 +467,25 @@ ok('las salidas a ERROR con prueba en el WHERE están declaradas, y son exactame
     assert.deepEqual(Object.keys(SALIDAS_A_ERROR_CON_PRUEBA).sort(), ['anular', 'invalidarPorBorradorDesaparecido', 'invalidarSinPedido']);
     for (const via of Object.keys(SALIDAS_A_ERROR_CON_PRUEBA)) assert.equal(typeof Borradores[via], 'function', `Borradores.${via} no existe`);
     for (const texto of Object.values(SALIDAS_A_ERROR_CON_PRUEBA)) assert.match(texto, /^(APROBADO|PREPARADO)/);
+    // Y nadie escribe status = 'ERROR' por fuera de salirAError: se lee el código
+    // de todos los módulos (un guardián que no puede fallar es peor que ninguno).
+    const raiz = new URL('../../src/services/lab-modules/', import.meta.url).pathname;
+    const archivos = [];
+    const recorrer = (dir) => { for (const f of readdirSync(dir)) { const p = unirRuta(dir, f); if (statSync(p).isDirectory()) recorrer(p); else if (/\.ts$/.test(f)) archivos.push(p); } };
+    recorrer(raiz);
+    const escrituras = [];
+    for (const f of archivos) {
+        const texto = readFileSync(f, 'utf8');
+        for (const m of texto.matchAll(/status\s*[:=]\s*'ERROR'/g)) escrituras.push(`${f.replace(raiz, '')}:${texto.slice(0, m.index).split('\n').length}`);
+    }
+    assert.deepEqual(escrituras, ['carga/borrador.ts:' + (readFileSync(unirRuta(raiz, 'carga/borrador.ts'), 'utf8').split('\n').findIndex(l => /SET status = 'ERROR'/.test(l)) + 1)], `escrituras de ERROR fuera de salirAError: ${escrituras.join(', ')}`);
 });
-ok('el turno guarda quién lo tiene y hasta cuándo; renovarlo conserva la pasada', () => {
+ok('el turno guarda quién lo tiene y hasta cuándo; dura poco y se renueva seguido (si el proceso muere, el portal se libera solo)', () => {
     const t = leerTurno('2026-10-10T12:45:00.000Z|robot');
     assert.deepEqual(t, { vence: '2026-10-10T12:45:00.000Z', pasada: 'robot' });
     assert.equal(leerTurno('basura'), null);
+    assert.ok(DURACION_TURNO_MIN <= 15, 'un turno sin renovar no puede bloquear el portal más de 15 min');
+    assert.ok(RENOVAR_TURNO_CADA_MS * 3 <= DURACION_TURNO_MIN * 60_000, 'la renovación tiene que entrar al menos tres veces en la duración del turno');
 });
 ok('un borrador que dejó un pedido en el portal bloquea preparar otro hasta cancelarlo o confirmarlo', () => {
     assert.equal(portalSinResolver({ status: 'ERROR', resumenPortal: { portalDraftId: '10441994' } }), true);

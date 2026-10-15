@@ -3,7 +3,7 @@ import { REPROCESO_CON_CARGO_MIN, TOLERANCE, VENTANA_REPORTE_DIAS } from './type
 import { esVenta2x1, LABS_FACTURA_A, labConfigDe, parBonificadoCobrado, systemCostForLab } from './cost-matching';
 import { LABS_DEL_SEMANAL } from './types';
 import { labDeItem } from '../../lib/laboratorios/identidad';
-import { aReclamarDeNota, tieneSegundoParCobrado } from '../../lib/lab-factura';
+import { aReclamarDeNota, motivoDeReclamo } from '../../lib/lab-factura';
 import { clasificarHuerfanos } from './alerts';
 import { detectarDobleCobro } from './dos-por-uno';
 import { esFacturaSinNumero, estaResuelta } from '../../lib/lab-factura';
@@ -266,9 +266,9 @@ export async function weeklyReport(from: Date, to: Date) {
                 pedidos: v.hermanos.map((h: any) => h.labOrderNumber),
                 parBonificadoCobrado: v.par.cobrado,
                 parMasBarato: v.par.masBarato,
-                // Vitolen: el 2º par de la promo cobrado de más (lo dice la nota del cruce).
-                segundoParCobrado: tieneSegundoParCobrado(e.notes),
-                // El número que el cruce guardó; la nota solo para filas de antes del 10/10/2026.
+                // Vitolen: el 2º par de la promo cobrado de más. El motivo y el importe
+                // son columnas del cruce; la nota solo para filas de antes del 10/10/2026.
+                segundoParCobrado: motivoDeReclamo(e) === 'SEGUNDO_PAR_PROMO',
                 aReclamar: e.reclamo ?? aReclamarDeNota(e.notes),
             };
         });

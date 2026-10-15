@@ -60,13 +60,13 @@ export function transicionValida(de: EstadoBorrador, a: EstadoBorrador): boolean
  * cuarta salida "cruda" sin declararse (auditoría de arquitectura 3).
  */
 export const SALIDAS_A_ERROR_CON_PRUEBA = {
-    invalidarSinPedido: 'APROBADO: el robot comprobó en el portal que no hay pedido creado (sin nº ni borrador en el portal)',
-    anular: 'APROBADO con error o PREPARADO colgado: una persona, y el borrador nunca mandó nada (sin envío iniciado ni nº; un PREPARADO colgado puede haber dejado un borrador en el portal, que después se cancela desde la ficha)',
+    invalidarSinPedido: 'APROBADO: el robot comprobó en el portal que no hay pedido creado (sin nº, sin borrador en el portal y sin un envío sin respuesta)',
+    anular: 'APROBADO con error o PREPARADO colgado: una persona, sin robot vivo, y el borrador nunca mandó nada (sin envío iniciado ni nº; un PREPARADO colgado puede haber dejado un borrador en el portal, que después se cancela desde la ficha)',
     invalidarPorBorradorDesaparecido: 'APROBADO (Vitolen): el borrador del portal ya no existe (404 con sesión viva), no hay nada que confirmar',
 } as const;
 export type SalidaAError = keyof typeof SALIDAS_A_ERROR_CON_PRUEBA;
 
-/** La única escritura de `status = 'ERROR'` fuera de `cambiarEstado`: atómica, con la prueba en el WHERE y el robot apagado. */
+/** La única escritura a ERROR fuera de `cambiarEstado`: atómica, con la prueba en el WHERE y el robot apagado. */
 async function salirAError(id: string, salida: { via: SalidaAError; de: EstadoBorrador; error: string; rastro?: RastroPortal; prueba?: Prisma.Sql }): Promise<boolean> {
     const rastro = JSON.stringify({ robotDesde: null, robotLatidoEl: null, etapa: null, ...(salida.rastro ?? {}) });
     const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET status = 'ERROR', error = ${salida.error},
@@ -157,7 +157,8 @@ export function colgados(
     };
 }
 
-async function cambiarEstado(id: string, a: EstadoBorrador, datos: Record<string, unknown>, actor: Actor, detalle?: Record<string, unknown>) {
+/** Cambio de estado atómico. `datos` NUNCA trae `resumenPortal`: el rastro solo se mezcla (jsonb ||), nunca se reemplaza. */
+async function cambiarEstado(id: string, a: EstadoBorrador, datos: Record<string, unknown> & { resumenPortal?: never }, actor: Actor, detalle?: Record<string, unknown>) {
     const actual = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
     if (!actual) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
     if (!transicionValida(actual.status as EstadoBorrador, a)) {
@@ -194,7 +195,7 @@ export function accionesDe(
     lab: { conBorradorEnPortal: boolean; puedeReleer: boolean },
     ahora = new Date(),
     contexto: { bloqueadoPorExistente?: boolean } = {},
-): { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean } {
+): { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean } {
     const r = (b.resumenPortal && typeof b.resumenPortal === 'object' ? b.resumenPortal : {}) as RastroPortal;
     const enRevision = b.status === 'EN_REVISION';
     const aprobado = b.status === 'APROBADO';
@@ -218,6 +219,11 @@ export function accionesDe(
         // "Crear" y el robot murió): se anula igual y la ficha ofrece cancelarlo
         // allá; si no, el par quedaba bloqueado hasta el tick de la mañana.
         anular: !robotEnCurso && ((aprobado && !!b.error && sinNadaEnElPortal) || (preparadoColgado && !r.numeroCreado && !r.envioIniciadoEl)),
+        // Un APROBADO que no pudo cargar y nunca mandó nada vuelve a revisión a
+        // pedido de una persona: desde ahí se rechaza (y Vitolen cancela su
+        // borrador). Sin esto, un APROBADO de Vitolen con el portal caído o la
+        // credencial rechazada no tenía salida humana (auditoría 4).
+        retirarAprobacion: aprobado && !robotEnCurso && !r.numeroCreado && !r.envioIniciadoEl,
         releer: enRevision && lab.puedeReleer && !!r.portalDraftId && !robotEnCurso,
         cancelarPortal: (b.status === 'RECHAZADO' || b.status === 'ERROR') && lab.conBorradorEnPortal && portalSinResolver(b) && !robotEnCurso,
         robotEnCurso: robotEnCurso || (preparado && !preparadoColgado) || (aprobado && !b.error && !demorado),
@@ -229,6 +235,28 @@ export const ROBOT_EN_CURSO_MAX_MS = 25 * 60_000;
 export const LATIDO_ROBOT_MS = 2 * 60_000;
 /** SQL: cuándo fue la última señal de vida del robot (el latido, o el arranque si todavía no latió). */
 const ULTIMA_SENAL_DEL_ROBOT = Prisma.sql`COALESCE("resumenPortal"->>'robotLatidoEl', "resumenPortal"->>'robotDesde')`;
+
+/**
+ * El candado del robot, tomado en el WHERE: solo si no hay otro robot vivo (o
+ * si la identidad ya es la nuestra: la habilitó `reintentar`). Si no lo
+ * consigue, 409 — dos clics de "releer" o "cancelar en el portal" ya no
+ * arrancan dos Chromium (auditoría 4, M1). Devuelve la identidad.
+ */
+async function robotArranca(id: string, etapa: string, heredar: string | null): Promise<string> {
+    const robotDesde = heredar ?? new Date().toISOString();
+    const limite = new Date(Date.now() - ROBOT_EN_CURSO_MAX_MS).toISOString();
+    const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde, robotLatidoEl: null, etapa })}::jsonb, "updatedAt" = NOW()
+        WHERE id = ${id} AND (${ULTIMA_SENAL_DEL_ROBOT} IS NULL OR ${ULTIMA_SENAL_DEL_ROBOT} < ${limite} OR ("resumenPortal"->>'robotDesde') = ${robotDesde})`;
+    if (n !== 1) throw new ErrorDeCarga('El robot ya está trabajando con este pedido: esperá a que termine (la ficha se actualiza sola).', 'ESTADO');
+    return robotDesde;
+}
+
+/** El robot terminó (bien o mal): ya no hay robot en curso — solo si sigue siendo ese robot (no apaga al que lo reemplazó). */
+async function robotTermino(id: string, robot: string) {
+    await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde: null, robotLatidoEl: null, etapa: null })}::jsonb, "updatedAt" = NOW()
+        WHERE id = ${id} AND ("resumenPortal"->>'robotDesde') = ${robot}`
+        .catch(err => console.error('[lab-modulos] no se pudo anotar que el robot terminó', id, err));
+}
 /** Un PREPARADO sin novedades después de esto se puede anular desde la ficha (el tick lo vence a los 30). */
 export const PREPARADO_COLGADO_MS = 10 * 60_000;
 /** Un APROBADO sin novedades después de esto ya no está "cargando": se ofrece reintentar. */
@@ -277,9 +305,50 @@ export const Borradores = {
         return mezclarRastro(id, { ...datos, creadoEnPortalEl: new Date().toISOString() });
     },
 
-    /** El robot sacó la captura del resumen del portal: queda para revisar. */
-    enRevision<T extends RastroPortal>(id: string, robot: Actor, datos: { screenshotUrl: string; resumenPortal: T }) {
-        return cambiarEstado(id, 'EN_REVISION', { screenshotUrl: datos.screenshotUrl, resumenPortal: datos.resumenPortal as any, error: null }, robot);
+    /**
+     * El robot sacó la captura del resumen del portal: queda para revisar. El
+     * rastro se MEZCLA (jsonb ||), como toda escritura a `resumenPortal`: antes
+     * se reemplazaba entero y se perdía `preparadoPorId` (quien pidió un extra
+     * no cobrado quedaba firmado con el id del aprobador; auditoría 4, A1).
+     */
+    async enRevision<T extends RastroPortal>(id: string, robot: Actor, datos: { screenshotUrl: string; resumenPortal: T }) {
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, orderId: true, lab: true, pair: true } });
+        if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
+        if (!transicionValida(b.status as EstadoBorrador, 'EN_REVISION')) throw new ErrorDeCarga(`El borrador está ${b.status}: no puede pasar a EN_REVISION.`, 'ESTADO');
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET status = 'EN_REVISION', "screenshotUrl" = ${datos.screenshotUrl}, error = NULL,
+            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ ...datos.resumenPortal, robotDesde: null, robotLatidoEl: null, etapa: null })}::jsonb, "updatedAt" = NOW()
+            WHERE id = ${id} AND status = ${b.status}`;
+        if (n !== 1) throw new ErrorDeCarga(`El borrador cambió de estado mientras tanto (ya no está ${b.status}): volvé a cargar la ficha.`, 'ESTADO');
+        await logAudit({ userId: robot.id, userName: robot.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { lab: b.lab, orderId: b.orderId, pair: b.pair, de: b.status, a: 'EN_REVISION' } });
+        return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
+    },
+
+    /**
+     * Una persona retira su aprobación: APROBADO → EN_REVISION, firmado, solo si
+     * el borrador nunca mandó nada (sin envío iniciado ni nº) y no hay robot
+     * vivo. Desde revisión se rechaza (y Vitolen cancela su borrador del
+     * portal) o se vuelve a aprobar. Es la salida humana de un APROBADO que el
+     * robot no puede confirmar (portal caído, credencial rechazada).
+     */
+    async retirarAprobacion(id: string, actor: Actor, motivo: string) {
+        if (!puedeAprobar(actor)) throw new ErrorDeCarga('Retirar la aprobación tiene que hacerlo una persona identificada.', 'PERMISO');
+        const b = await prisma.labOrderDraft.findUnique({ where: { id }, select: { status: true, resumenPortal: true, orderId: true, lab: true, pair: true, approvedBy: true } });
+        if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
+        if (b.status !== 'APROBADO') throw new ErrorDeCarga(`El borrador está ${b.status}: solo se retira la aprobación de un APROBADO.`, 'ESTADO');
+        const r = (b.resumenPortal || {}) as RastroPortal;
+        if (r.numeroCreado || r.envioIniciadoEl) throw new ErrorDeCarga('Este borrador ya mandó el pedido al portal: no se retira la aprobación, se reintenta (el robot busca el pedido antes de crear otro).', 'ESTADO');
+        const texto = motivo.trim().slice(0, 500);
+        const limite = new Date(Date.now() - ROBOT_EN_CURSO_MAX_MS).toISOString();
+        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET status = 'EN_REVISION', "approvedBy" = NULL, "approvedAt" = NULL,
+            error = ${`Aprobación retirada por ${actor.name}${texto ? `: ${texto}` : ''}.`},
+            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde: null, robotLatidoEl: null, etapa: null })}::jsonb, "updatedAt" = NOW()
+            WHERE id = ${id} AND status = 'APROBADO' AND ${SIN_ENVIO_NI_NUMERO} AND (${ULTIMA_SENAL_DEL_ROBOT} IS NULL OR ${ULTIMA_SENAL_DEL_ROBOT} < ${limite})`;
+        if (n !== 1) throw new ErrorDeCarga('El borrador cambió mientras tanto (¿el robot empezó a cargarlo?): volvé a cargar la ficha.', 'ESTADO');
+        await logAudit({
+            userId: actor.id, userName: actor.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
+            details: { lab: b.lab, orderId: b.orderId, pair: b.pair, de: 'APROBADO', a: 'EN_REVISION', motivo: texto, aprobacionRetirada: true, aprobadoPor: b.approvedBy },
+        });
+        return prisma.labOrderDraft.findUniqueOrThrow({ where: { id } });
     },
 
     /** Una persona miró la captura y aprobó. */
@@ -348,7 +417,10 @@ export const Borradores = {
         if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
         const r = (b.resumenPortal || {}) as RastroPortal;
         if (b.status !== 'APROBADO' || r.numeroCreado || r.portalDraftId) throw new ErrorDeCarga(`El borrador está ${b.status}${r.numeroCreado ? ` con el pedido ${r.numeroCreado}` : ''}: no se puede invalidar.`, 'ESTADO');
-        const salio = await salirAError(id, { via: 'invalidarSinPedido', de: 'APROBADO', error: motivo, prueba: Prisma.sql`("resumenPortal"->>'numeroCreado') IS NULL AND ("resumenPortal"->>'portalDraftId') IS NULL` });
+        // Con un envío sin respuesta no se afirma "no se creó nada": el POST pudo
+        // haber creado el pedido (auditoría de robustez 4, M2).
+        if (r.envioIniciadoEl) throw new ErrorDeCarga('Este borrador tiene un envío al portal sin respuesta: no se invalida, se reintenta cuando pase la espera.', 'ESTADO');
+        const salio = await salirAError(id, { via: 'invalidarSinPedido', de: 'APROBADO', error: motivo, prueba: Prisma.sql`("resumenPortal"->>'numeroCreado') IS NULL AND ("resumenPortal"->>'portalDraftId') IS NULL AND ("resumenPortal"->>'envioIniciadoEl') IS NULL` });
         if (!salio) throw new ErrorDeCarga('El borrador cambió mientras tanto (¿el portal devolvió un nº?): volvé a cargar la ficha.', 'ESTADO');
         await logAudit({
             userId: robot.id, userName: robot.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,
@@ -392,17 +464,6 @@ export const Borradores = {
     },
 
     /**
-     * Anota en el rastro SOLO si el borrador sigue en ese estado; devuelve si lo
-     * hizo. Es la barrera del robot: "voy a mandar el pedido" (`envioIniciadoEl`)
-     * no se anota sobre un borrador que una persona anuló mientras tanto
-     * (auditoría de robustez 2, A1).
-     */
-    async anotarRastroSi(id: string, datos: RastroPortal, soloSi: EstadoBorrador): Promise<boolean> {
-        const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify(datos)}::jsonb, "updatedAt" = NOW() WHERE id = ${id} AND status = ${soloSi}`;
-        return n === 1;
-    },
-
-    /**
      * Una persona pide reintentar la carga de un APROBADO: se limpia el error
      * viejo (si no, la ficha mostraba "no se cargó" con el robot ya en el
      * portal) y se marca `robotDesde`, que frena un segundo clic mientras el
@@ -414,11 +475,15 @@ export const Borradores = {
         if (!b) throw new ErrorDeCarga('El borrador no existe.', 'NO_EXISTE');
         if (b.status !== 'APROBADO') throw new ErrorDeCarga(`El borrador está ${b.status}: solo se reintenta un APROBADO.`, 'ESTADO');
         const limite = new Date(Date.now() - ROBOT_EN_CURSO_MAX_MS).toISOString();
+        const robotDesde = new Date().toISOString();
         const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET error = NULL,
-            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde: new Date().toISOString(), robotLatidoEl: null, etapa: `reintento pedido por ${actor.name}` })}::jsonb, "updatedAt" = NOW()
+            "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde, robotLatidoEl: null, etapa: `reintento pedido por ${actor.name}` })}::jsonb, "updatedAt" = NOW()
             WHERE id = ${id} AND status = 'APROBADO' AND (${ULTIMA_SENAL_DEL_ROBOT} IS NULL OR ${ULTIMA_SENAL_DEL_ROBOT} < ${limite})`;
         if (n !== 1) throw new ErrorDeCarga('El robot ya está cargando este pedido: esperá a que termine (la ficha se actualiza sola).', 'ESTADO');
         await logAudit({ userId: actor.id, userName: actor.name, action: 'UPDATE', entityType: 'LAB_ORDER_DRAFT', entityId: id, details: { lab: b.lab, orderId: b.orderId, pair: b.pair, reintentoDeCarga: true } });
+        // La identidad del robot que este reintento habilita: `conRobot` la hereda
+        // en vez de pedir el candado de nuevo (que ya es suyo).
+        return robotDesde;
     },
 
     /**
@@ -431,8 +496,8 @@ export const Borradores = {
      * pisa el estado del nuevo (auditoría de robustez 3, A1 y M3). La tarea
      * recibe su identidad para pasársela a `anotarFalla`.
      */
-    async conRobot<T>(id: string, etapa: string, tarea: (robot: string) => Promise<T>): Promise<T> {
-        const robot = await Borradores.robotArranca(id, etapa);
+    async conRobot<T>(id: string, etapa: string, tarea: (robot: string) => Promise<T>, opts: { heredar?: string | null } = {}): Promise<T> {
+        const robot = await robotArranca(id, etapa, opts.heredar ?? null);
         const latido = setInterval(() => {
             prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotLatidoEl: new Date().toISOString() })}::jsonb, "updatedAt" = NOW()
                 WHERE id = ${id} AND ("resumenPortal"->>'robotDesde') = ${robot}`
@@ -442,24 +507,8 @@ export const Borradores = {
             return await tarea(robot);
         } finally {
             clearInterval(latido);
-            await Borradores.robotTermino(id, robot);
+            await robotTermino(id, robot);
         }
-    },
-
-    /** El robot arranca con este borrador: desde ahora hay robot en curso. Devuelve su identidad (`robotDesde`). */
-    async robotArranca(id: string, etapa: string): Promise<string> {
-        const robotDesde = new Date().toISOString();
-        await mezclarRastro(id, { robotDesde, robotLatidoEl: null, etapa })
-            .catch(err => console.error('[lab-modulos] no se pudo anotar que el robot arrancó (sigue sin candado)', id, err));
-        return robotDesde;
-    },
-
-    /** El robot terminó (bien o mal) con este borrador: ya no hay robot en curso. Con `robot`, solo si sigue siendo ese (no apaga al que lo reemplazó). */
-    async robotTermino(id: string, robot?: string) {
-        const r = robot ?? null;
-        await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde: null, robotLatidoEl: null, etapa: null })}::jsonb, "updatedAt" = NOW()
-            WHERE id = ${id} AND (${r}::text IS NULL OR ("resumenPortal"->>'robotDesde') = ${r})`
-            .catch(err => console.error('[lab-modulos] no se pudo anotar que el robot terminó', id, err));
     },
 
     /**
@@ -484,7 +533,8 @@ export const Borradores = {
         const texto = motivo.trim().slice(0, 500);
         const enElPortal = r.portalDraftId ? ` Quedó el borrador ${r.portalDraftId} en el portal: cancelalo desde la ficha.` : '';
         // Condicionado al estado Y a que ningún robot haya marcado envío mientras tanto.
-        const salio = await salirAError(id, { via: 'anular', de: b.status, error: `Anulado por ${actor.name}: ${texto}.${enElPortal}`, prueba: SIN_ENVIO_NI_NUMERO });
+        const limite = new Date(Date.now() - ROBOT_EN_CURSO_MAX_MS).toISOString();
+        const salio = await salirAError(id, { via: 'anular', de: b.status, error: `Anulado por ${actor.name}: ${texto}.${enElPortal}`, prueba: Prisma.sql`${SIN_ENVIO_NI_NUMERO} AND (${ULTIMA_SENAL_DEL_ROBOT} IS NULL OR ${ULTIMA_SENAL_DEL_ROBOT} < ${limite})` });
         if (!salio) throw new ErrorDeCarga('El borrador cambió mientras tanto (¿el robot empezó a cargarlo?): volvé a cargar la ficha.', 'ESTADO');
         await logAudit({
             userId: actor.id, userName: actor.name, action: 'STATUS_CHANGE', entityType: 'LAB_ORDER_DRAFT', entityId: id,

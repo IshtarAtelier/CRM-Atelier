@@ -71,6 +71,22 @@ export const MARCA_PAR_BONIFICADO_COBRADO = '⚠️ 2x1 CON EL PAR BONIFICADO CO
 /** Vitolen: el 2º par de la promo vino por encima del 20 % de lista + calibrado (Ishtar, 8/10/2026). */
 export const MARCA_SEGUNDO_PAR_PROMO_COBRADO = '⚠️ 2º PAR DE LA PROMO COBRADO DE MÁS';
 
+/**
+ * Por qué el cruce dejó un importe a reclamar (`LabCostEntry.reclamoMotivo`,
+ * desde el 10/10/2026): el par bonificado del 2x1 cobrado, o el 2º par de la
+ * promo de Vitolen por encima del 20 %. Las marcas en la nota (abajo) quedan
+ * para las filas anteriores y para la prosa; el reporte lee la columna primero.
+ */
+export type ReclamoMotivo = 'PAR_BONIFICADO_2X1' | 'SEGUNDO_PAR_PROMO';
+
+/** El motivo del reclamo de una entrada: la columna, y si no está (fila vieja), las marcas de la nota. Puro. */
+export function motivoDeReclamo(e: { reclamoMotivo?: string | null; notes?: string | null }): ReclamoMotivo | null {
+    if (e.reclamoMotivo === 'PAR_BONIFICADO_2X1' || e.reclamoMotivo === 'SEGUNDO_PAR_PROMO') return e.reclamoMotivo;
+    if (tieneParBonificadoCobrado(e.notes)) return 'PAR_BONIFICADO_2X1';
+    if (tieneSegundoParCobrado(e.notes)) return 'SEGUNDO_PAR_PROMO';
+    return null;
+}
+
 /** ¿El cruce dejó marcada esta entrada como 2x1 con el par bonificado cobrado? */
 export const tieneParBonificadoCobrado = (notes: string | null | undefined): boolean =>
     (notes || '').includes(MARCA_PAR_BONIFICADO_COBRADO);

@@ -13,7 +13,7 @@
 // cliente y la validación del servidor, todos sobre el mismo criterio.
 // ────────────────────────────────────────────────────────────────────────────
 
-import { isCrystal, isTeñidoAddon } from './promo-utils';
+import { esCristalDePar } from './laboratorios/identidad';
 
 export interface FrameItemLike {
     eye?: string | null;
@@ -67,7 +67,7 @@ function contarPares(items: FrameItemLike[] | null | undefined): { pares: number
     // sistema pedía las medidas y la foto de un armazón que no existe.
     const cristales = (items || []).filter(it => {
         const prod = productoDe(it);
-        return isCrystal(prod) && !isTeñidoAddon(prod);
+        return esCristalDePar(prod);
     });
     if (cristales.length === 0) return { pares: 0, confiable: false };
 
@@ -203,7 +203,7 @@ export function cristalesPorArmazon(order: any): Map<number, any[]> {
 
     const cristales = (order?.items || []).filter((it: any) => {
         const prod = productoDe(it);
-        return isCrystal(prod) && !isTeñidoAddon(prod);
+        return esCristalDePar(prod);
     });
 
     // Los que ya saben a qué armazón van.

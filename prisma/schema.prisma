@@ -1228,6 +1228,7 @@ model LabCostEntry {
   // (el par bonificado del 2x1 cobrado; el 2º par de la promo de Vitolen por
   // encima del 20 %): un número, no la prosa de `notes` (10/10/2026).
   reclamo        Float?
+  reclamoMotivo  String? // PAR_BONIFICADO_2X1 | SEGUNDO_PAR_PROMO (lib/lab-factura.ts: ReclamoMotivo)
   source         String // IMAP_PDF | CSV | SCRAPER | MANUAL
   sourceFile     String?
   invoiceDate    DateTime?

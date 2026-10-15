@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 import { labPortalClientName } from '@/lib/lab-portal-client-name';
-import { aclaracionImporte, esFacturaSinNumero, etiquetaSinVenta, tieneParBonificadoCobrado, tieneSegundoParCobrado } from '@/lib/lab-factura';
+import { aclaracionImporte, esFacturaSinNumero, etiquetaSinVenta, motivoDeReclamo } from '@/lib/lab-factura';
 
 interface LabCostEntry {
     id: string;
@@ -1077,12 +1077,12 @@ export default function LabCostosPage() {
                                                         ? etiquetaSinVenta(entry.labOrderNumber).label
                                                         : meta.label}
                                                 </span>
-                                                {tieneParBonificadoCobrado(entry.notes) && (
+                                                {motivoDeReclamo(entry) === 'PAR_BONIFICADO_2X1' && (
                                                     <span className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 font-semibold" title={entry.notes || ''}>
                                                         ⚠️ 2x1: par bonificado cobrado
                                                     </span>
                                                 )}
-                                                {tieneSegundoParCobrado(entry.notes) && (
+                                                {motivoDeReclamo(entry) === 'SEGUNDO_PAR_PROMO' && (
                                                     <span className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 font-semibold" title={entry.notes || ''}>
                                                         ⚠️ promo: 2º par cobrado de más
                                                     </span>

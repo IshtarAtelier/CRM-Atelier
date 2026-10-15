@@ -17,10 +17,11 @@ import { accionesDe } from '../../src/services/lab-modules/carga/borrador.ts';
 import { planDeCarga, payloadCreateUpdate, observacionDelPedido, esVenta2x1DeGrupoOptico, rolesDel2x1 } from '../../src/services/lab-modules/grupo-optico/carga.ts';
 import { rolesPorValor, valorDeCristales, avisoDeRoles, rolesDeDosPares } from '../../src/lib/laboratorios/roles-2x1.ts';
 import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo-optico/origen.ts';
-import { labDeItem, esDeLab, esCristal, labKeyDe, labDeNumero, esNumeroDeLab, codigoCortoDeVenta, esCodigoCorto, soloDigitos as soloDigitosId } from '../../src/lib/laboratorios/identidad.ts';
+import { labDeItem, esDeLab, esCristal, esCristalDePar, labKeyDe, labDeNumero, esNumeroDeLab, codigoCortoDeVenta, esCodigoCorto, soloDigitos as soloDigitosId } from '../../src/lib/laboratorios/identidad.ts';
+import { isCrystal, isTeñidoAddon } from '../../src/lib/promo-utils.ts';
 import { decidirConAprobado } from '../../src/services/lab-modules/grupo-optico/decision.ts';
 import { textoDeExtraNoCobrado, lineaDeFicha } from '../../src/services/lab-modules/carga/extras-no-cobrados.ts';
-import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales } from '../../src/services/lab-modules/grupo-optico/robot.ts';
+import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales, pruebaDeQueNoSeCreo, PedidoRechazadoError, PortalRespondioError } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
 import { pedidoComoLoGuardaElPortal, diferenciasDeVista } from '../../src/services/lab-modules/grupo-optico/vista.ts';
@@ -122,9 +123,17 @@ ok('el mensaje a la dueña lleva el motivo completo y la venta entera; la ficha,
 ok('qué puede hacer una persona con un borrador lo calcula el servidor', () => {
     const lab = { conBorradorEnPortal: false, puedeReleer: false };
     const ahora = new Date('2026-10-10T12:00:00Z');
-    assert.deepEqual(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: {} }, lab, ahora), { aprobar: true, rechazar: true, reintentar: false, anular: false, releer: false, cancelarPortal: false, robotEnCurso: false });
-    // aprobado que nunca mandó nada y falló: reintentar o anular
-    assert.deepEqual(accionesDe({ status: 'APROBADO', error: 'no es producción', approvedAt: ahora, updatedAt: ahora, resumenPortal: {} }, lab, ahora), { aprobar: false, rechazar: false, reintentar: true, anular: true, releer: false, cancelarPortal: false, robotEnCurso: false });
+    assert.deepEqual(accionesDe({ status: 'EN_REVISION', error: null, approvedAt: null, resumenPortal: {} }, lab, ahora), { aprobar: true, rechazar: true, reintentar: false, anular: false, retirarAprobacion: false, releer: false, cancelarPortal: false, robotEnCurso: false });
+    // aprobado que nunca mandó nada y falló: reintentar, anular o retirar la aprobación
+    assert.deepEqual(accionesDe({ status: 'APROBADO', error: 'no es producción', approvedAt: ahora, updatedAt: ahora, resumenPortal: {} }, lab, ahora), { aprobar: false, rechazar: false, reintentar: true, anular: true, retirarAprobacion: true, releer: false, cancelarPortal: false, robotEnCurso: false });
+    // un APROBADO de Vitolen (siempre con borrador en el portal) que no pudo confirmar: no se anula, pero SÍ se retira la aprobación → revisión → rechazar → cancelar en el portal
+    const vitAprobado = accionesDe({ status: 'APROBADO', error: 'credencial rechazada', approvedAt: ahora, updatedAt: ahora, resumenPortal: { portalDraftId: '10441994' } }, { conBorradorEnPortal: true, puedeReleer: true }, ahora);
+    assert.deepEqual([vitAprobado.anular, vitAprobado.retirarAprobacion, vitAprobado.reintentar], [false, true, true]);
+    // con envío iniciado o nº creado, ni anular ni retirar: solo reintentar
+    assert.equal(accionesDe({ status: 'APROBADO', error: 'x', approvedAt: ahora, updatedAt: ahora, resumenPortal: { envioIniciadoEl: '2026-10-10T11:00:00Z' } }, lab, ahora).retirarAprobacion, false);
+    assert.equal(accionesDe({ status: 'APROBADO', error: 'x', approvedAt: ahora, updatedAt: ahora, resumenPortal: { numeroCreado: '80000001' } }, lab, ahora).retirarAprobacion, false);
+    // y con un robot vivo, tampoco
+    assert.equal(accionesDe({ status: 'APROBADO', error: null, approvedAt: ahora, updatedAt: ahora, resumenPortal: { robotDesde: ahora.toISOString() } }, lab, ahora).retirarAprobacion, false);
     // con un robot trabajando encima (reintento en curso) no se reintenta ni se anula
     const robot = accionesDe({ status: 'APROBADO', error: null, approvedAt: ahora, updatedAt: ahora, resumenPortal: { robotDesde: ahora.toISOString() } }, lab, ahora);
     assert.deepEqual([robot.reintentar, robot.anular, robot.robotEnCurso], [false, false, true]);
@@ -349,8 +358,14 @@ ok('qué hace el robot con un APROBADO se decide en seco (decision.ts): lo que y
     assert.equal(inv.accion, 'INVALIDAR'); assert.match(inv.motivo, /80000003/); assert.match(inv.motivo, /No se creó nada/);
     // 3b. …pero si ESTE borrador mandó un envío sin respuesta y el seguimiento lo vinculó al par, es el nuestro: se adopta
     assert.deepEqual(decidirConAprobado({ ...base, existente: { numero: '80000003', ambiguo: false }, envioIniciadoEl: '2026-10-10T11:00:00Z' }), { accion: 'VERIFICAR', numero: '80000003', adoptadoDe: 'venta' });
-    // 3c. ambiguo (no se sabe de qué par es) nunca se adopta, ni con envío previo
-    assert.equal(decidirConAprobado({ ...base, existente: { numero: '80000003', ambiguo: true }, envioIniciadoEl: '2026-10-10T11:00:00Z' }).accion, 'INVALIDAR');
+    // 3c. ambiguo (no se sabe de qué par es) nunca se adopta; sin envío nuestro se invalida
+    assert.equal(decidirConAprobado({ ...base, existente: { numero: '80000003', ambiguo: true } }).accion, 'INVALIDAR');
+    // 3d. ambiguo CON un envío nuestro sin respuesta: "no se creó nada" no es cierto → primero el portal, y si no está, se espera (ni se adopta ni se invalida)
+    const amb = { ...base, existente: { numero: '80000003', ambiguo: true }, envioIniciadoEl: '2026-10-10T11:00:00Z' };
+    assert.equal(decidirConAprobado(amb).accion, 'BUSCAR_EN_PORTAL');
+    assert.deepEqual(decidirConAprobado({ ...amb, numeroEnPortal: '80000004' }), { accion: 'VERIFICAR', numero: '80000004', adoptadoDe: 'portal' });
+    const esperaAmb = decidirConAprobado({ ...amb, numeroEnPortal: null });
+    assert.equal(esperaAmb.accion, 'ESPERAR'); assert.match(esperaAmb.motivo, /sin respuesta/); assert.ok(!/No se creó nada/.test(esperaAmb.motivo));
     // 4. nada en el portal pero un envío salió hace 5 min sin respuesta: se espera, no se reenvía
     const esp = decidirConAprobado({ ...base, numeroEnPortal: null, envioIniciadoEl: '2026-10-10T11:55:00Z' });
     assert.equal(esp.accion, 'ESPERAR'); assert.match(esp.motivo, /15 minutos/);
@@ -359,6 +374,15 @@ ok('qué hace el robot con un APROBADO se decide en seco (decision.ts): lo que y
     assert.deepEqual(decidirConAprobado({ ...base, numeroEnPortal: null }), { accion: 'CREAR' });
     // el nº creado manda sobre todo lo demás (ni se busca ni se invalida)
     assert.equal(decidirConAprobado({ ...base, numeroCreado: '80000001', existente: { numero: '80000009', ambiguo: false } }).accion, 'ANOTAR');
+});
+ok('solo un 4xx del portal prueba que NO se creó el pedido: un 5xx o un timeout dejan el envío incierto (nunca se reenvía a ciegas)', () => {
+    assert.equal(pruebaDeQueNoSeCreo(new PedidoRechazadoError('datos inválidos')), true);
+    assert.equal(pruebaDeQueNoSeCreo(new PortalRespondioError(400, 'bad request')), true);
+    assert.equal(pruebaDeQueNoSeCreo(new PortalRespondioError(401, 'sesión vencida')), true);
+    assert.equal(pruebaDeQueNoSeCreo(new PortalRespondioError(502, 'bad gateway')), false);
+    assert.equal(pruebaDeQueNoSeCreo(new PortalRespondioError(504, 'timeout del proxy')), false);
+    assert.equal(pruebaDeQueNoSeCreo(new Error('socket hang up')), false);
+    assert.equal(pruebaDeQueNoSeCreo(null), false);
 });
 ok('la identidad del laboratorio por su clave escrita (lab de LabCostEntry/LabOrderDraft) y "es cristal" son la fuente única', () => {
     assert.equal(labKeyDe('GRUPO_OPTICO'), 'GRUPO_OPTICO'); assert.equal(labKeyDe('vitolen'), 'VITOLEN'); assert.equal(labKeyDe('OTRO'), null); assert.equal(labKeyDe(null), null);
@@ -369,6 +393,22 @@ ok('la identidad del laboratorio por su clave escrita (lab de LabCostEntry/LabOr
     // sin categoría (ítems viejos) decide el tipo; un tratamiento con "cristal" en el tipo NO es un cristal
     assert.equal(esCristal({ product: { type: 'Cristal Multifocal' } }), true);
     assert.equal(esCristal({ productCategorySnapshot: 'Tratamiento', product: { type: 'Tratamiento Colores de Cristal' } }), false);
+    // "cristal DE UN PAR" (lo que cuenta pares y pedidos esperados) es un solo predicado: sobre las categorías
+    // y tipos reales coincide con el que order-frames tenía aparte (isCrystal && !isTeñidoAddon)
+    const reales = [
+        { name: 'Multifocal Smart FREE · Orgánico Blue Light 1.56', category: 'Cristal', type: 'Cristal Multifocal' },
+        { name: 'Teñido Compacto', category: 'Tratamiento', type: 'Tratamiento Colores de Cristal' },
+        { name: 'Teñido Degradé', category: 'Cristal', type: 'Tratamiento Colores de Cristal' },
+        { name: 'Armazón Atelier Premium', category: 'Armazón de Receta', type: 'Armazón' },
+        { name: 'Lente de sol Lucca', category: 'Lentes de Sol', type: 'Sol' },
+        { name: 'Antirreflejo Crizal', category: 'Tratamiento', type: 'Tratamiento' },
+        { name: 'Lente de contacto', category: 'Lentes de Contacto', type: 'Contacto' },
+        { name: 'Stock · Orgánico Blanco', category: null, type: 'Cristal Monofocal' },
+    ];
+    for (const p of reales) assert.equal(esCristalDePar(p), isCrystal(p) && !isTeñidoAddon(p), `difieren en ${p.name}`);
+    // y vale para un ítem de venta con snapshots (producto borrado)
+    assert.equal(esCristalDePar({ productNameSnapshot: 'Teñido Compacto', productCategorySnapshot: 'Cristal', productTypeSnapshot: 'Tratamiento Colores de Cristal', product: null }), false);
+    assert.equal(esCristalDePar({ productNameSnapshot: 'Multifocal Smart FREE', productCategorySnapshot: 'Cristal', product: null }), true);
     // los roles del 2x1 cuentan los MISMOS ítems que esVenta2x1DeGrupoOptico y el plan (cristalesPorArmazon): con dos
     // cristales distintos, el de mayor valor va con cargo también cuando el ítem viene sin categoría
     const v = venta2x1(false); v.items = v.items.map(i => (i.eye ? { ...i, price: 0, productCategorySnapshot: null, product: { ...i.product, category: undefined, name: i.framePosition === 2 ? 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Premium 2x1' : i.product.name, price: i.framePosition === 2 ? 120000 : 80000 } } : i));

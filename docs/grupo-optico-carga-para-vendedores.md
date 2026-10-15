@@ -95,6 +95,9 @@ de "Preparar" hay un link **"+ Agregar Essential (NO está en la venta)"**:
 | "No se pudo preparar: el portal no ofrece un artículo que corresponda" | Ese producto no existe así en SmartLab (o la tabla no lo tiene) | Avisá a Ishtar; mientras, se carga a mano |
 | "Ya tiene pedido en el laboratorio: nº …" | Ese par ya se cargó (por el robot o a mano) | Nada: no se carga dos veces |
 | "Aprobado · no se cargó" + **Reintentar la carga** | El portal no respondió | Reintentá: **nunca se duplica**, el robot busca el pedido antes de crearlo |
+| "Aprobado · no se cargó" + **Anular (no se mandó nada)** / **Retirar la aprobación** | El robot no pudo ni empezar (portal caído, clave rechazada) y no mandó nada | Anular (con motivo) y volver a preparar, o retirar la aprobación para revisarlo de nuevo |
+| "Está tardando: reintentar la carga" | El robot lleva más de 5 min sin novedades | Reintentá: si ya lo creó, solo termina de anotar el nº |
+| "Lleva demasiado sin novedades" (preparando) | El robot se cortó al preparar (reinicio) | Motivo + **Anular y preparar de nuevo** |
 | "Cambió el producto/la venta después de aprobar" | Se editó la venta entre preparar y aprobar | Volvé a preparar y revisá de nuevo |
 | "La cuenta está BLOQUEADA" | Saldo impago con Grupo Óptico | Hablar con administración |
 

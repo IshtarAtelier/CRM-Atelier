@@ -49,14 +49,26 @@ export interface DatosParaDecidir {
 export function decidirConAprobado(d: DatosParaDecidir): DecisionConAprobado {
     if (d.numeroCreado) return { accion: 'ANOTAR', numero: d.numeroCreado };
     const envioAnterior = !!d.envioIniciadoEl;
-    if (d.existente) {
-        // Un envío de ESTE borrador cuya respuesta se perdió, que el seguimiento
-        // vinculó al par antes del reintento: es el nuestro, se adopta (auditoría 4, M4).
-        if (!d.existente.ambiguo && envioAnterior) return { accion: 'VERIFICAR', numero: d.existente.numero, adoptadoDe: 'venta' };
+    if (d.existente && !envioAnterior) {
+        // El par recibió un pedido por otro camino y este borrador no mandó nada:
+        // la aprobación no vale, y "no se creó nada" es cierto.
         return { accion: 'INVALIDAR', motivo: `${mensajeExistente(d.existente, d.pair)} No se creó nada.` };
     }
+    if (d.existente && !d.existente.ambiguo) {
+        // Un envío de ESTE borrador cuya respuesta se perdió, que el seguimiento
+        // vinculó al par antes del reintento: es el nuestro, se adopta (auditoría 4, M4).
+        return { accion: 'VERIFICAR', numero: d.existente.numero, adoptadoDe: 'venta' };
+    }
+    // De acá en más puede haber un envío sin respuesta: nunca se afirma "no se
+    // creó nada" sin mirar el portal (auditoría de robustez 4, M2).
     if (d.numeroEnPortal === undefined) return { accion: 'BUSCAR_EN_PORTAL' };
     if (d.numeroEnPortal) return { accion: 'VERIFICAR', numero: d.numeroEnPortal, adoptadoDe: 'portal' };
+    if (d.existente) {
+        // Ambiguo (un nº de la venta que no se sabe de qué par es) y un envío
+        // nuestro sin respuesta: ni se adopta ni se invalida; el seguimiento lo
+        // resuelve por el código "#XXXX N°par" y el reintento lo encuentra.
+        return { accion: 'ESPERAR', motivo: `${mensajeExistente(d.existente, d.pair)} Además hay un envío de este borrador sin respuesta: no se crea otro. Aclará en la venta de qué par es ese nº y reintentá` };
+    }
     const ahora = d.ahora ?? Date.now();
     if (d.envioIniciadoEl && ahora - Date.parse(d.envioIniciadoEl) < d.esperaMs) {
         const hora = new Date(d.envioIniciadoEl).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });

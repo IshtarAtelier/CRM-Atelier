@@ -4,7 +4,7 @@ import { isQuietLab } from './backfill';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
 import { LABS_FACTURA_A, REPROCESO_CON_CARGO_MIN, TOLERANCE, TOPE_PAR_BONIFICADO_2X1, fmtARS, juntarComprobantes } from './types';
-import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado } from '../../lib/lab-factura';
+import { CLAVE_SIN_NUMERO, MARCA_PAR_BONIFICADO_COBRADO, MARCA_SEGUNDO_PAR_PROMO_COBRADO, sinNotaParBonificado, type ReclamoMotivo } from '../../lib/lab-factura';
 import { cristalesPorArmazon } from '../../lib/order-frames';
 import { esCristal, esDeLab, labDeItem, labKeyDe } from '../../lib/laboratorios/identidad';
 import { importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../lib/laboratorios/vitolen-promo';
@@ -71,7 +71,7 @@ export function systemCostForLab(order: any, lab: string, labConfig?: { calibrad
     // VITOLEN: el 2º par de la promo no va en $0 ni entero: se espera al 20 % de
     // lista + calibrado (vitolen/promo.ts). Regla de Ishtar del 8/10/2026: si
     // cobran los dos pares, el segundo por más del 20 % es sobrecosto.
-    const segundo = String(lab) === 'VITOLEN' ? segundoParDePromoVitolen(order, labConfig ?? null) : null;
+    const segundo = labKeyDe(lab) === 'VITOLEN' ? segundoParDePromoVitolen(order, labConfig ?? null) : null;
     if (segundo && segundo.esperado !== null) {
         const delSegundo = new Set(segundo.items);
         return relevant.filter(i => !delSegundo.has(i)).reduce((total, item) => total + costoDeItemParaCruce(item, is2x1), 0) + segundo.esperado;
@@ -495,7 +495,7 @@ export async function upsertEntry(input: LabCostInput) {
     // pares: SOBRECOSTO aunque la suma cierre (Ishtar, 8/10/2026).
     // Solo si la venta entera NO vino a favor: si el lab bonificó el par caro en
     // vez del barato, pagamos de menos y no hay nada que reclamar (auditoría 6).
-    const segundoVitolen = String(input.lab) === 'VITOLEN' && order && !pvEntry && difference !== null && difference > -TOLERANCE && facturadoPorPedido.length >= 2
+    const segundoVitolen = labKeyDe(input.lab) === 'VITOLEN' && order && !pvEntry && difference !== null && difference > -TOLERANCE && facturadoPorPedido.length >= 2
         ? segundoParDePromoVitolen(order, labConfig) : null;
     const segundoCobrado = segundoVitolen?.esperado != null && segundoParCobradoDeMas(Math.min(...facturadoPorPedido.map(p => p.importe)), segundoVitolen.esperado)
         ? { masBarato: Math.min(...facturadoPorPedido.map(p => p.importe)), esperado: segundoVitolen.esperado }
@@ -565,6 +565,7 @@ export async function upsertEntry(input: LabCostInput) {
     const reclamo = parBonificado.cobrado
         ? parBonificado.masBarato
         : segundoCobrado ? Math.max(0, segundoCobrado.masBarato - segundoCobrado.esperado) : null;
+    const reclamoMotivo: ReclamoMotivo | null = parBonificado.cobrado ? 'PAR_BONIFICADO_2X1' : segundoCobrado ? 'SEGUNDO_PAR_PROMO' : null;
 
     // Los comprobantes del pedido (con su link): se suman a los que ya tenía.
     const invoiceRefs = juntarComprobantes(existing?.invoiceRefs, input.invoiceRefs);
@@ -579,6 +580,7 @@ export async function upsertEntry(input: LabCostInput) {
         billedTotal,
         difference,
         reclamo,
+        reclamoMotivo,
         source,
         sourceFile,
         invoiceDate,

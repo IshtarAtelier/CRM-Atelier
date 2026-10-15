@@ -20,6 +20,10 @@ export const dynamic = 'force-dynamic';
  *    (Vitolen), el robot lo cancela.
  *  · cancelar-portal (RECHAZADO / ERROR con pedido en el portal): solo en los
  *    portales que tienen borrador; recién ahí se puede preparar otro.
+ *  · anular (APROBADO con falla / PREPARADO colgado que nunca mandó nada): ERROR, firmado.
+ *  · retirar-aprobacion (APROBADO que nunca mandó nada, sin robot vivo): vuelve a
+ *    EN_REVISION para rechazarlo o volver a aprobarlo — la salida humana cuando
+ *    el robot no puede confirmar (portal caído, credencial rechazada).
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -35,14 +39,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
         if (accion === 'aprobar' || accion === 'reintentar') {
             if (accion === 'aprobar') await Borradores.aprobar(id, actor);
-            // Reintentar también crea un pedido real: lo dispara una persona identificada, y queda en el AuditLog.
             // Reintentar también crea un pedido real: persona identificada, se limpia el
-            // error viejo y se frena un segundo robot mientras el primero trabaja.
-            if (accion === 'reintentar') await Borradores.reintentar(id, actor);
+            // error viejo y se toma el candado del robot (su identidad) para que un
+            // segundo clic reciba 409 mientras el primero trabaja.
+            const robot = accion === 'reintentar' ? await Borradores.reintentar(id, actor) : null;
             // El robot carga FUERA del request (turno, login, portal: minutos). La
             // ficha sondea el borrador: CARGADO, o APROBADO con el error anotado.
-            void Promise.resolve(carga.confirmar(id)).catch(err => console.error(`[lab-modulos] ${accion} ${id}:`, err?.message || err));
+            void Promise.resolve(carga.confirmar(id, { robot })).catch(err => console.error(`[lab-modulos] ${accion} ${id}:`, err?.message || err));
             return NextResponse.json({ ok: true, enCurso: true }, { status: 202 });
+        }
+        if (accion === 'retirar-aprobacion') {
+            // Vuelve a revisión sin tocar el portal: desde ahí se rechaza o se vuelve a aprobar.
+            const borrador = await Borradores.retirarAprobacion(id, actor, String(body.motivo || ''));
+            return NextResponse.json({ ok: true, borrador });
         }
         if (accion === 'rechazar') {
             const borrador = await Borradores.rechazar(id, actor, String(body.motivo || ''));
@@ -64,7 +73,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             void Promise.resolve(carga.cancelarEnPortal(id, actor)).catch(err => console.error(`[lab-modulos] cancelar en el portal ${id}:`, err?.message || err));
             return NextResponse.json({ ok: true, enCurso: true }, { status: 202 });
         }
-        return NextResponse.json({ error: 'La acción tiene que ser "aprobar", "reintentar", "rechazar", "anular", "releer" o "cancelar-portal".' }, { status: 400 });
+        return NextResponse.json({ error: 'La acción tiene que ser "aprobar", "reintentar", "rechazar", "anular", "retirar-aprobacion", "releer" o "cancelar-portal".' }, { status: 400 });
     } catch (error: any) {
         const msg = error?.message || 'No se pudo actualizar el borrador.';
         const status = httpDeError(error);

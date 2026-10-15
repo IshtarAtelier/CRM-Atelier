@@ -7,7 +7,7 @@ import { aplicarEstadoEnVenta } from '../estados';
 import { conTurno } from '../portal/turno';
 import { conSesionSmartLab, LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO, ROBOT_GRUPO_OPTICO } from './portal';
 import { payloadCreateUpdate, planDeCarga, type OpcionesCarga, type PlanDeCarga, type ResueltoEnPortal } from './carga';
-import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, PedidoRechazadoError, PortalRespondioError, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
+import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, PedidoRechazadoError, pruebaDeQueNoSeCreo, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
 import { leerVentaParaCargaGO } from './venta';
 import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, diferenciasDeVista } from './vista';
 import { pedidoExistenteDelPar } from './existentes';
@@ -229,7 +229,7 @@ async function numerosDeOtrosPares(orderId: string, pair: number): Promise<Set<s
  *     pedido); si cambió, se invalida sin mandar nada y hay que volver a preparar;
  *  4. se crea, se anota el nº en el acto, se lee de vuelta, se baja el PDF.
  */
-export async function confirmarBorradorAprobado(borradorId: string) {
+export async function confirmarBorradorAprobado(borradorId: string, opts: { robot?: string | null } = {}) {
     const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { id: true, status: true, orderId: true, pair: true, payload: true, resumenPortal: true, approvedBy: true, preparedBy: true, portalNumber: true } });
     if (!b) throw new Error('El borrador no existe.');
     if (b.status === 'CARGADO') {
@@ -324,10 +324,10 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 try {
                     creado = (await crearPedidoEnPortal(page, payloadAprobado)).numero;
                 } catch (e) {
-                    // Solo un 4xx prueba que el portal NO creó nada. Un 5xx (502/504 del
-                    // proxy) puede llegar después de que PHP ya hizo el INSERT: el envío
-                    // sigue incierto y el reintento tiene que esperar y mirar el listado.
-                    if (e instanceof PedidoRechazadoError || (e instanceof PortalRespondioError && e.status < 500)) await mezclar(b.id, { envioIniciadoEl: null }).catch(() => null);
+                    // Solo lo que PRUEBA que no se creó nada limpia el envío iniciado
+                    // (`pruebaDeQueNoSeCreo`): con un 5xx o un timeout el envío sigue
+                    // incierto y el reintento mira el listado antes de crear otro.
+                    if (pruebaDeQueNoSeCreo(e)) await mezclar(b.id, { envioIniciadoEl: null }).catch(() => null);
                     throw e;
                 }
                 numero = creado;
@@ -402,16 +402,18 @@ export async function confirmarBorradorAprobado(borradorId: string) {
                 .catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador GO rechazado (queda APROBADO):', e));
             throw err;
         }
-        if (err instanceof AprobacionInvalidaError || err instanceof PedidoAmbiguoError) {
-            // No se creó nada: la aprobación ya no vale y hay que mirar la venta de nuevo.
+        const motivo = (err?.message || String(err)).replace(/\.+$/, '');
+        const rastroAhora = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { resumenPortal: true } }).then(x => (x?.resumenPortal || {}) as RastroGO).catch(() => ({} as RastroGO));
+        if ((err instanceof AprobacionInvalidaError || err instanceof PedidoAmbiguoError) && !rastroAhora.envioIniciadoEl && !rastroAhora.numeroCreado) {
+            // No se creó nada (y ningún envío quedó sin respuesta): la aprobación ya
+            // no vale y hay que mirar la venta de nuevo. Con un envío sin respuesta
+            // no se afirma eso: queda APROBADO con el motivo y se reintenta.
             await Borradores.invalidarSinPedido(b.id, ROBOT_ACTOR_GRUPO_OPTICO, err.message)
                 .catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador GO (queda APROBADO):', e));
             throw err;
         }
-        const motivo = (err?.message || String(err)).replace(/\.+$/, '');
         // Si el pedido YA existe (falló lo de después: anotar la venta, el PDF), decirlo
         // con todas las letras: "no se pudo cargar" invitaba a cargarlo a mano = duplicado.
-        const rastroAhora = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { resumenPortal: true } }).then(x => (x?.resumenPortal || {}) as RastroGO).catch(() => ({} as RastroGO));
         const texto = err instanceof AdopcionNoVerificadaError
             ? `${motivo}.`
             : rastroAhora.numeroCreado
@@ -425,5 +427,5 @@ export async function confirmarBorradorAprobado(borradorId: string) {
             .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador GO:', e));
         throw err;
     }
-    });
+    }, { heredar: opts.robot ?? null });
 }
