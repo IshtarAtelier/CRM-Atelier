@@ -313,6 +313,47 @@ export function ProductClient({
   const descriptionLead = descriptionText.slice(0, leadEnd).trim();
   const descriptionRest = descriptionText.slice(leadEnd).trim();
 
+  // El ÚNICO camino por el que la ficha agrega el armazón solo (sin cristales)
+  // al carrito: lo usan "Comprar ahora" y, desde el 15/10/2026, también el
+  // botón de la barra pegada de sol y clip-on. Hasta entonces ese botón hacía
+  // `scrollIntoView` hasta "Comprar ahora" en vez de agregar: era el único
+  // botón visible en la primera pantalla de esas fichas y, para quien lo
+  // tocaba, "no pasaba nada" (en 30 días, 0 agregados al carrito desde ahí;
+  // auditoría de fichas del 15/10). Ahora las dos puertas hacen lo mismo:
+  // agregan y abren el carrito.
+  const agregarArmazonAlCarrito = () => {
+    // price SIEMPRE guarda el precio minorista: el mayorista se resuelve en
+    // vivo por sesión (getItemUnitPrice) para que un carrito persistido nunca
+    // muestre tarifa mayorista a un minorista (ni viceversa) tras login/logout.
+    // El AddToCart lo dispara `addItem` en el store (useCart.ts): es el único
+    // punto por el que pasan TODOS los caminos al carrito. Acá había una
+    // segunda llamada que hacía que cada agregado desde la ficha contara dos
+    // veces en Meta y GA4, con eventId distinto, así que la deduplicación del
+    // CAPI tampoco los unía.
+    addItem({
+      productId: product.id,
+      brand: product.brand,
+      model: product.model,
+      price: effectivePrice,
+      wholesaleBasePrice: productWholesalePrice,
+      image: images[0] || "/images/placeholder.svg",
+      lensColor: null,
+      lensConfig: {
+        lensType: "NONE",
+        treatment: null,
+        color: null,
+        prescriptionFile: null
+      },
+      quantity: 1,
+      stock: typeof product.stock === 'number' ? product.stock : undefined
+    });
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsOpen(true);
+      setTimeout(() => setIsAdded(false), 2000);
+    }, 500);
+  };
+
   return (
     <div className="min-h-screen bg-white text-black selection:bg-black selection:text-white font-sans">
       <StorefrontNavbar theme="light" />
@@ -731,40 +772,7 @@ export function ProductClient({
               )}
               <button
                 disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
-                onClick={() => {
-                  // price SIEMPRE guarda el precio minorista: el mayorista se
-                  // resuelve en vivo por sesión (getItemUnitPrice) para que un
-                  // carrito persistido nunca muestre tarifa mayorista a un
-                  // minorista (ni viceversa) tras login/logout.
-                  // El AddToCart lo dispara `addItem` en el store (useCart.ts):
-                  // es el único punto por el que pasan TODOS los caminos al
-                  // carrito. Acá había una segunda llamada que hacía que cada
-                  // agregado desde la ficha contara dos veces en Meta y GA4,
-                  // con eventId distinto, así que la deduplicación del CAPI
-                  // tampoco los unía.
-                  addItem({
-                    productId: product.id,
-                    brand: product.brand,
-                    model: product.model,
-                    price: effectivePrice,
-                    wholesaleBasePrice: productWholesalePrice,
-                    image: images[0] || "/images/placeholder.svg",
-                    lensColor: null,
-                    lensConfig: {
-                      lensType: "NONE",
-                      treatment: null,
-                      color: null,
-                      prescriptionFile: null
-                    },
-                    quantity: 1,
-                    stock: typeof product.stock === 'number' ? product.stock : undefined
-                  });
-                  setIsAdded(true);
-                  setTimeout(() => {
-                    setIsOpen(true);
-                    setTimeout(() => setIsAdded(false), 2000);
-                  }, 500);
-                }}
+                onClick={agregarArmazonAlCarrito}
                 className={
                   // Verde -700, no -600: con texto blanco el -600 da ~3,3:1 y el
                   // piso del proyecto es 4,5:1 (ver globals.css y la regla de
@@ -1189,19 +1197,22 @@ export function ProductClient({
             <p className="text-[10px] font-medium text-stone-500">${formatearPrecio(effectivePrice)} con tarjeta</p>
           </div>
           <button
-            disabled={product.stock !== undefined && product.stock <= 0}
+            disabled={(product.stock !== undefined && product.stock <= 0) || isAdded}
             onClick={() => {
               if (product.category === "Receta") {
                 setShowConfigurator(true);
               } else {
-                ctaPrincipalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Agrega de verdad, igual que "Comprar ahora" (ver
+                // agregarArmazonAlCarrito): antes solo scrolleaba hasta ese
+                // botón y en 30 días no produjo un solo agregado al carrito.
+                agregarArmazonAlCarrito();
               }
             }}
             className="flex-shrink-0 min-h-11 px-5 bg-black text-white text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:bg-stone-400"
           >
             {(product.stock !== undefined && product.stock <= 0)
               ? "Agotado"
-              : product.category === "Receta" ? "Elegir cristales" : "Comprar"}
+              : product.category === "Receta" ? "Elegir cristales" : (isAdded ? "Agregado ✓" : "Comprar")}
           </button>
         </div>
       )}
