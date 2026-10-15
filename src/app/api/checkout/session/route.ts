@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { ESTADO_ROBOT, esCompradorRobot } from '@/lib/checkout/robots';
 import { emailValido } from '@/lib/checkout/email';
+import { telefonoADigitos, telefonoValido } from '@/lib/checkout/telefono';
 
 // Formato de email razonable: evita inyectar direcciones basura/malformadas que
 // después el cron de carritos abandonados usaría para mandar emails brandeados.
@@ -35,6 +36,17 @@ export async function POST(req: Request) {
     if (email && !emailValido(email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
     }
+    // El WhatsApp alcanza SOLO para abrir la sesión de recupero (plan
+    // 15/10/2026, 3.1): es el primer campo del checkout y con él el equipo ya
+    // tiene a quién escribirle. Pero tiene que ser un número de verdad, y se
+    // guarda en dígitos: un "35" a medio tipear no abre nada.
+    const telefono = typeof phone === 'string' && telefonoValido(phone) ? telefonoADigitos(phone) : '';
+    if (phone && !telefono) {
+      return NextResponse.json({ error: 'Teléfono inválido' }, { status: 400 });
+    }
+    if (!telefono && !email) {
+      return NextResponse.json({ error: 'Hace falta un WhatsApp o un email' }, { status: 400 });
+    }
 
     // Create a new CheckoutSession in the database
     const session = await prisma.checkoutSession.create({
@@ -42,7 +54,7 @@ export async function POST(req: Request) {
         email: email || '',
         firstName: firstName || '',
         lastName: lastName || '',
-        phone: phone || '',
+        phone: telefono,
         cartData: cartData || {},
         total: data.total || 0,
         // El robot de Google se guarda aparte: ver src/lib/checkout/robots.ts.
@@ -77,12 +89,16 @@ export async function PUT(req: Request) {
     if (email !== undefined && email && !emailValido(email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
     }
+    // Mismo criterio que el POST: un teléfono que viene, viene válido y en dígitos.
+    if (phone !== undefined && phone && !telefonoValido(String(phone))) {
+      return NextResponse.json({ error: 'Teléfono inválido' }, { status: 400 });
+    }
 
     const updateData: any = {};
     if (email !== undefined) updateData.email = email;
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
-    if (phone !== undefined) updateData.phone = phone;
+    if (phone !== undefined) updateData.phone = phone ? telefonoADigitos(String(phone)) : phone;
     if (cartData !== undefined) updateData.cartData = cartData;
     if (shippingData !== undefined) updateData.shippingData = shippingData;
     if (total !== undefined) updateData.total = total;

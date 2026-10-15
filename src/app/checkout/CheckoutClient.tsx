@@ -47,6 +47,10 @@ function clearIdempotencyKey() {
 
 /** Campos del bloque "1. Contacto": el primero que se escribe marca checkout_contact_start. */
 const CAMPOS_DE_CONTACTO = new Set(['phone', 'email', 'firstName', 'lastName', 'dni']);
+/** Cuánto se espera para CREAR la sesión de recupero una vez que el WhatsApp es válido. */
+const ESPERA_CREAR_SESION_MS = 600;
+/** Cuánto se espera entre actualizaciones de una sesión que ya existe. */
+const ESPERA_ACTUALIZAR_SESION_MS = 2000;
 
 /** Códigos de rechazo del checkout que significan "el carrito tenía un dato viejo". */
 const CODIGOS_DE_CARRITO_VIEJO = new Set(['PRECIO_CAMBIO', 'PRODUCTO_NO_DISPONIBLE', 'STOCK_INSUFICIENTE', 'OPCION_CRISTAL_NO_DISPONIBLE']);
@@ -465,7 +469,12 @@ export function CheckoutClient({
       const { cardNumber, cardExp, cardCvc, cardName, ...safeFormData } = formData;
       localStorage.setItem("atelier-checkout-form", JSON.stringify(safeFormData));
       
-      // Debounce session tracking to avoid spamming the API
+      // Debounce session tracking to avoid spamming the API.
+      // La PRIMERA vez (todavía sin sesión de recupero) se espera menos: la
+      // sesión tiene que nacer apenas el WhatsApp es válido, porque las 7
+      // personas reales del mes se fueron del checkout antes de los 2 s
+      // (plan 15/10/2026, 3.1). Las actualizaciones siguen con 2 s.
+      const hayQueCrear = !localStorage.getItem("atelier-checkout-session-id") && telefonoValido(formData.phone);
       const timeoutId = setTimeout(async () => {
         // El teléfono se guarda en dígitos y solo si ya es un número completo:
         // a medio tipear ("35") no sirve para escribirle y abriría la sesión de
@@ -528,11 +537,43 @@ export function CheckoutClient({
             }
           }
         }
-      }, 2000); // 2 second debounce
+      }, hayQueCrear ? ESPERA_CREAR_SESION_MS : ESPERA_ACTUALIZAR_SESION_MS);
       
       return () => clearTimeout(timeoutId);
     }
   }, [formData, mounted, items]);
+
+  // Si la persona cierra la pestaña o vuelve atrás ANTES de que venza el
+  // debounce, el número válido que tipeó se perdería: con `keepalive` el
+  // navegador termina el POST aunque la página ya no exista. Solo crea (nunca
+  // actualiza) y solo con teléfono válido: es la red del recupero, no el sync.
+  const ultimoFormRef = useRef(formData);
+  ultimoFormRef.current = formData;
+  useEffect(() => {
+    if (!mounted) return;
+    const alSalir = () => {
+      try {
+        if (localStorage.getItem("atelier-checkout-session-id")) return;
+        const f = ultimoFormRef.current;
+        if (!telefonoValido(f.phone)) return;
+        fetch('/api/checkout/session', {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: telefonoADigitos(f.phone),
+            email: emailValido(f.email) ? emailLimpio(f.email) : '',
+            firstName: f.firstName,
+            lastName: f.lastName,
+            cartData: items,
+            total: totalConPromo2x1,
+          }),
+        }).catch(() => { /* la página ya se fue */ });
+      } catch { /* nunca frena la salida */ }
+    };
+    window.addEventListener('pagehide', alSalir);
+    return () => window.removeEventListener('pagehide', alSalir);
+  }, [mounted, items, totalConPromo2x1]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
