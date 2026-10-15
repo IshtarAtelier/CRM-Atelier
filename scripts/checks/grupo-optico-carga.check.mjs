@@ -415,6 +415,21 @@ ok('la identidad del laboratorio por su clave escrita (lab de LabCostEntry/LabOr
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [2, 1]);
     assert.equal(planDeCarga(v, 2, { tipoArmazon: 'PLASTICO' }).plan.rol2x1, 'CON_CARGO');
 });
+ok('stock mineral: la etiqueta del portal no dice STOCK ("MINERAL BLANCO ESF -150+050 (3)") y aun así es el artículo de stock', () => {
+    const lista = [{ value: '9001', label: 'MINERAL BLANCO ESF -150+050 (3)' }];
+    assert.equal(elegido('Stock · Mineral Blanco 1.523 · Esf -2/+2', lista), '9001');
+    // y con rango extendido en la lista, el de stock sigue siendo el que no dice R.EXT
+    const dos = [{ value: '9001', label: 'MINERAL BLANCO ESF -150+050 (3)' }, { value: '9002', label: 'MINERAL BLANCO R. EXT ESF -800+600' }];
+    assert.equal(elegido('Stock · Mineral Blanco 1.523 · Esf -4/+4', dos), '9001');
+});
+ok('foto espejado: la lista del portal trae un artículo por color (BLUE, GREEN…) y se queda el del color elegido en la venta', () => {
+    const lista = [{ value: '7001', label: 'MULTIFOCAL SMART FREE ORG FOTO ESPEJADO BLUE' }, { value: '7002', label: 'MULTIFOCAL SMART FREE ORG FOTO ESPEJADO GREEN' }];
+    assert.equal(elegido('Multifocal Smart FREE · Orgánico Fotocromático Espejado 1.56 2x1', lista, { colorItem: 'Azul' }), '7001');
+    assert.equal(elegido('Multifocal Smart FREE · Orgánico Fotocromático Espejado 1.56 2x1', lista, { colorItem: 'Verde' }), '7002');
+    // un color que la lista no trae no se adivina
+    const r = especificacionDe('Multifocal Smart FREE · Orgánico Fotocromático Espejado 1.56 2x1', { colorItem: 'Dorado' });
+    assert.equal(elegirArticulo(lista, r.especificacion).ok, false);
+});
 ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin cargo (como siempre)', () => {
     const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 80000 } : i));
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [1, 2]);

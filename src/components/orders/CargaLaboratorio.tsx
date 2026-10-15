@@ -457,11 +457,40 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         </button>
                     </div>
                     <div className="flex-1 overflow-auto px-4 pb-4" onClick={() => setAmpliada(null)}>
-                        <img src={ampliada.url} alt={`El pedido en el portal de ${nombre}, ampliado`} onClick={e => e.stopPropagation()} onError={() => marcarRota(ampliada.url)} className="mx-auto max-w-[1400px] w-full h-auto rounded-lg shadow-2xl bg-white" />
+                        {borradorAmpliado ? (
+                            /* Mitad y mitad: a la izquierda lo que dice la venta (lo que se manda), a la
+                               derecha la pantalla real del portal, para corroborar uno contra otro
+                               (Ishtar, 15/10/2026). En celular, uno debajo del otro. */
+                            <div className="mx-auto max-w-[1800px] grid grid-cols-1 lg:grid-cols-2 gap-4 items-start" onClick={e => e.stopPropagation()}>
+                                <div className="bg-white dark:bg-stone-900 rounded-lg shadow-2xl p-4 lg:sticky lg:top-0">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-2">Lo que dice la venta · par {borradorAmpliado.pair}</h4>
+                                    <dl>
+                                        {borradorAmpliado.vista.filas.map(f => (
+                                            <div key={f.titulo} className="grid grid-cols-[8rem_1fr] gap-2 py-1.5 border-b border-stone-100 dark:border-stone-800 last:border-0">
+                                                <dt className="text-xs text-stone-500">{f.titulo}</dt>
+                                                <dd className={`text-sm ${f.fuerte ? 'font-black text-stone-900 dark:text-white' : 'text-stone-800 dark:text-stone-200'}`}>{f.valor}</dd>
+                                            </div>
+                                        ))}
+                                    </dl>
+                                    {borradorAmpliado.vista.avisos.length > 0 && (
+                                        <div className="mt-3 text-xs text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
+                                            {borradorAmpliado.vista.tituloAvisos && <p className="font-bold mb-1">{borradorAmpliado.vista.tituloAvisos}</p>}
+                                            <ul className="list-disc pl-4 space-y-0.5">{borradorAmpliado.vista.avisos.map(a => <li key={a}>{a}</li>)}</ul>
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-stone-300 mb-2">Así queda en el portal de {nombre}</h4>
+                                    <img src={ampliada.url} alt={`El pedido en el portal de ${nombre}, ampliado`} onError={() => marcarRota(ampliada.url)} className="w-full h-auto rounded-lg shadow-2xl bg-white" />
+                                </div>
+                            </div>
+                        ) : (
+                            <img src={ampliada.url} alt={`El pedido en el portal de ${nombre}, ampliado`} onClick={e => e.stopPropagation()} onError={() => marcarRota(ampliada.url)} className="mx-auto max-w-[1400px] w-full h-auto rounded-lg shadow-2xl bg-white" />
+                        )}
                     </div>
                     {borradorAmpliado && (
                         <div className="bg-stone-900 border-t border-stone-700 px-4 py-3">
-                            <div className="mx-auto max-w-[1400px] space-y-2">
+                            <div className="mx-auto max-w-[1800px] space-y-2">
                                 {error && <p className="text-xs text-rose-300 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {error}</p>}
                                 {decision(borradorAmpliado, true, !!rotas[ampliada.url])}
                             </div>

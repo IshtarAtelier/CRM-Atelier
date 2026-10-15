@@ -14,7 +14,7 @@ import { logAudit } from '@/lib/audit';
 import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
-import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
+import { avisarEquipoPorWhatsApp, textoParaPlantilla } from '@/lib/whatsapp/aviso-interno';
 import { TAG_VISITA_LOCAL } from '@/lib/embudo/visito-local';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
 import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
@@ -2387,6 +2387,36 @@ export const ContactService = {
                             details: { tipo: 'aviso_pago_interno', ok: r.ok, motivo: r.ok ? null : `${r.code || r.status}: ${r.error}` },
                         });
                     })().catch(e => console.error('[Payment Notification] Aviso interno:', e.message));
+
+                    // ── Pago a Essilor (Ishtar, 15/10/2026) ─────────────────
+                    // Un pago por TRANSFERENCIA_ESSILOR entró a la cuenta de
+                    // Essilor, no a la del local: Ishtar lo quiere ver aparte
+                    // del aviso general para poder avisarle a Essilor. Va a la
+                    // dueña por la plantilla nota_interna (texto libre si la
+                    // ventana de 24 h está abierta). Fire-and-forget.
+                    if (method === 'TRANSFERENCIA_ESSILOR') {
+                        (async () => {
+                            const detalle = textoParaPlantilla(
+                                `${result.clientName} transfirió $ ${amount.toLocaleString('es-AR')} a la cuenta de Essilor ` +
+                                `(${result.isSena ? 'seña' : 'saldo'}; cargado por ${actorName || 'sin identificar'})` +
+                                ((notes && notes.trim()) ? `. Ref: ${notes.trim()}` : '') +
+                                `. Ficha: ${clientLink}`
+                            );
+                            const r = await sendWhatsAppConReintento({
+                                chatId: ADMIN_WHATSAPP_PHONE,
+                                message: `🔵 *Pago a Essilor*\n${detalle}`,
+                                senderName: 'Sistema Atelier',
+                                isProactive: true,
+                                template: templateSpec('nota_interna', ['Sistema Atelier', 'un pago a Essilor', detalle]),
+                            });
+                            if (!r.ok) console.error('[Payment Notification] Aviso de pago a Essilor no salió:', r.code, r.error);
+                            await logAudit({
+                                userId: actor?.id, userName: actor?.name,
+                                action: 'NOTIFY', entityType: 'ORDER', entityId: orderId,
+                                details: { tipo: 'aviso_pago_essilor', ok: r.ok, motivo: r.ok ? null : `${r.code || r.status}: ${r.error}` },
+                            });
+                        })().catch(e => console.error('[Payment Notification] Aviso Essilor:', e.message));
+                    }
 
                     // Canal EMAIL: si la ficha tiene mail cargado, el recibo va también
                     // por ahí, con copia (BCC) a Atelier. Es un canal ADICIONAL e
