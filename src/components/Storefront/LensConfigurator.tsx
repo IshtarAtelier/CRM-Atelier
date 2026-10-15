@@ -264,6 +264,9 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
       ? Boolean(tintColor && tintStyle && lensType)
       : lensType === "NONE" || Boolean(lensType && treatment)) && !!calculoOk;
 
+  // Todavía no tocó nada: la barra del total no tiene qué mostrar.
+  const nadaElegido = lensType === null && !tintColor;
+
   // La promo del segundo par solo existe si el Varilux vinculado es un 2x1:
   // el laboratorio bonifica ese par. Si no lo es, no se ofrece.
   const ofrece2x1 = !!opciones && variluxHabilita2x1(opciones);
@@ -304,63 +307,34 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
 
   return (
     <div ref={raizRef} className="w-full text-black">
-      <div className="flex justify-between items-end mb-12">
-        <h3 className="text-2xl font-serif uppercase tracking-tight">Armá tus lentes</h3>
-      </div>
-
-      {/* BLOQUE DE ASESORAMIENTO */}
-      <div className="mb-12 border-b border-black/10 pb-6 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c]">Asistencia Personalizada</span>
-          <a href={buildWhatsAppUrl("¡Hola! Estoy armando mis lentes en la web y necesito asesoramiento para elegir los cristales.", { phone: WHATSAPP_PHONE })} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-[0.15em] text-black hover:text-[#666] transition-colors flex items-center gap-2">
-            <div className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </div>
-            Tengo dudas
-            <svg className="w-3.5 h-3.5 fill-current text-emerald-700 ml-0.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d={WHATSAPP_ICON_PATH} />
-            </svg>
-          </a>
-        </div>
-      </div>
-
-      {flowType === "CLEAR" && category !== "Anteojos de Sol" && ofrecer(tenidos) && (
-        <div role="button" tabIndex={0} className="relative overflow-hidden mb-8 p-6 bg-stone-900 text-white rounded-[1rem] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-black transition-colors shadow-xl shadow-stone-900/10 group" onClick={() => { setFlowType("SUN"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
-          {/* Brillo móvil infinito (Shimmer) */}
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
-          
-          <div className="relative z-10 w-full flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <h4 className="text-[12px] uppercase tracking-[0.2em] font-bold mb-1 flex items-center gap-2">☀️ Hacelos de Sol</h4>
-              <p className="text-[11px] font-serif italic text-white/80">Elegí el color del cristal y encargá tus anteojos de sol con tu graduación.</p>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest bg-white text-black px-4 py-2 rounded-full whitespace-nowrap hover:scale-105 transition-transform shadow-lg shadow-white/20">Ver Colores →</span>
-          </div>
-        </div>
-      )}
-
-      {flowType === "SUN" && category !== "Anteojos de Sol" && (
-        <div role="button" tabIndex={0} className="mb-8 p-4 border border-black/10 rounded-[1rem] flex flex-col sm:flex-row items-center justify-between cursor-pointer hover:bg-black/5 transition-colors" onClick={() => { setFlowType("CLEAR"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-black flex items-center gap-3"><span className="text-xl">👓</span> Volver a cristales transparentes</p>
-          <span className="text-[10px] uppercase tracking-widest underline underline-offset-4 mt-2 sm:mt-0 font-bold">Cambiar</span>
-        </div>
-      )}
-
-      {/* A-06 (auditoría 2/9/26): no había ningún indicador de en qué paso
-          estaba la persona ni cuántos faltaban. 15/10/26: el contador pasa a
-          contar pasos REALES (pasoVisible): decía "2 de 4" y saltaba a "4 de 4". */}
-      <div className="mb-6 flex items-center gap-3">
+      {/* 15/10/26 (informe configurador, hallazgo 1): en celular el paso 1
+          abría SIN ninguna opción a la vista. Antes de las cards había título,
+          "Asistencia personalizada", el banner "Hacelos de sol" y el contador,
+          y la barra fija del total tapaba 168 px: Monofocal quedaba en y=560
+          de una pantalla de 664. 78 de 218 sesiones se iban en ese paso.
+          Cabecera comprimida: título + contador en una línea; el banner de
+          sol y "Tengo dudas" pasan DEBAJO de las opciones. */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-xl sm:text-2xl font-serif uppercase tracking-tight">Armá tus lentes</h3>
         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 whitespace-nowrap">
           Paso {paso.actual} de {paso.total}
         </span>
-        <div className="flex-1 h-1 bg-stone-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-stone-900 rounded-full transition-[width] duration-500"
-            style={{ width: `${(paso.actual / paso.total) * 100}%` }}
-          />
-        </div>
       </div>
+      {/* A-06 (auditoría 2/9/26): indicador de en qué paso está la persona.
+          15/10/26: cuenta pasos REALES (pasoVisible); decía "2 de 4" y saltaba a "4 de 4". */}
+      <div className="mb-5 h-1 bg-stone-200 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-stone-900 rounded-full transition-[width] duration-500"
+          style={{ width: `${(paso.actual / paso.total) * 100}%` }}
+        />
+      </div>
+
+      {flowType === "SUN" && category !== "Anteojos de Sol" && (
+        <button type="button" className="mb-5 w-full p-3 border border-black/10 rounded-[1rem] flex items-center justify-between cursor-pointer hover:bg-black/5 transition-colors text-left" onClick={() => { setFlowType("CLEAR"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-black flex items-center gap-3"><span className="text-xl">👓</span> Volver a cristales transparentes</span>
+          <span className="text-[10px] uppercase tracking-widest underline underline-offset-4 font-bold">Cambiar</span>
+        </button>
+      )}
 
       {flowType === "SUN" ? (
         <>
@@ -479,23 +453,23 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
               <CompletedStep num="01" subtitle="Tipo de Visión" title={tituloTipo(lensType)} onClick={() => setStep(1)} />
             ) : (
               <>
-                <div className="mb-6">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">01 / Tipo de Visión</p>
-                  <p className="text-sm font-serif italic text-black">¿Para qué los vas a usar? Si no sabés, elegí Monofocal: es el más común.</p>
+                <div className="mb-3 sm:mb-6">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-1 sm:mb-2">01 / Tipo de Visión</p>
+                  <p className="text-[13px] sm:text-sm font-serif italic text-black">¿Para qué los vas a usar? Si no sabés, elegí Monofocal: es el más común.</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
                   {ofrecer(monofocales) && (
-                    <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }} title={TIPOS_DE_VISION.MONOFOCAL.titulo} desc={TIPOS_DE_VISION.MONOFOCAL.paraQuien} />
+                    <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }} title={TIPOS_DE_VISION.MONOFOCAL.titulo} desc={TIPOS_DE_VISION.MONOFOCAL.paraQuien} compacta />
                   )}
                   {ofrecer(multifocales) && (
-                    <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }} title={TIPOS_DE_VISION.MULTIFOCAL.titulo} desc={TIPOS_DE_VISION.MULTIFOCAL.paraQuien} />
+                    <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }} title={TIPOS_DE_VISION.MULTIFOCAL.titulo} desc={TIPOS_DE_VISION.MULTIFOCAL.paraQuien} compacta />
                   )}
                   {ofrecer(bifocales) && (
                     // El bifocal tiene una sola opción: queda elegida al tocar el tipo.
-                    <OptionCard selected={lensType === "BIFOCAL"} onClick={() => { setLensType("BIFOCAL"); setTreatment(bifocales[0]?.codigo ?? null); setStep(2); }} title={TIPOS_DE_VISION.BIFOCAL.titulo} desc={TIPOS_DE_VISION.BIFOCAL.paraQuien} />
+                    <OptionCard selected={lensType === "BIFOCAL"} onClick={() => { setLensType("BIFOCAL"); setTreatment(bifocales[0]?.codigo ?? null); setStep(2); }} title={TIPOS_DE_VISION.BIFOCAL.titulo} desc={TIPOS_DE_VISION.BIFOCAL.paraQuien} compacta />
                   )}
                   {!cartItemId && (
-                    <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setTintStyle(null); setStep(4); }} title={TIPOS_DE_VISION.NONE.titulo} desc={TIPOS_DE_VISION.NONE.paraQuien} />
+                    <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setTintStyle(null); setStep(4); }} title={TIPOS_DE_VISION.NONE.titulo} desc={TIPOS_DE_VISION.NONE.paraQuien} compacta />
                   )}
                 </div>
               </>
@@ -611,6 +585,37 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
         )}
       </AnimatePresence>
 
+      {/* DEBAJO de las opciones (15/10/26): el banner de sol y la asistencia.
+          Antes iban arriba y empujaban las cards fuera de la pantalla. */}
+      {flowType === "CLEAR" && category !== "Anteojos de Sol" && ofrecer(tenidos) && (
+        <button type="button" className="relative overflow-hidden mt-2 w-full p-5 bg-stone-900 text-white rounded-[1rem] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-black transition-colors shadow-xl shadow-stone-900/10 group text-left" onClick={() => { setFlowType("SUN"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
+          {/* Brillo móvil infinito (Shimmer) */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
+          <div className="relative z-10 w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <span className="block text-[12px] uppercase tracking-[0.2em] font-bold mb-1">☀️ Hacelos de Sol</span>
+              <span className="block text-[11px] font-serif italic text-white/80">Elegí el color del cristal y encargá tus anteojos de sol con tu graduación.</span>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest bg-white text-black px-4 py-2 rounded-full whitespace-nowrap group-hover:scale-105 transition-transform shadow-lg shadow-white/20">Ver Colores →</span>
+          </div>
+        </button>
+      )}
+
+      {/* ASISTENCIA */}
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c]">¿Tenés dudas?</span>
+        <a href={buildWhatsAppUrl("¡Hola! Estoy armando mis lentes en la web y necesito asesoramiento para elegir los cristales.", { phone: WHATSAPP_PHONE })} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-[0.15em] text-black hover:text-[#666] transition-colors flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+          Te asesoramos por WhatsApp
+          <svg className="w-3.5 h-3.5 fill-current text-emerald-700 ml-0.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d={WHATSAPP_ICON_PATH} />
+          </svg>
+        </a>
+      </div>
+
       <div className="w-full h-[1px] bg-black/10 my-10" />
 
       {/* TOTAL Y ACCIÓN */}
@@ -664,6 +669,15 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             28/9/26: `fixed`, no `sticky`. Con sticky solo se anclaba cuando la
             columna del resumen entraba en pantalla, y en celular esa columna
             arranca abajo de todo: en el paso de la receta no se veía. */}
+        {/* 15/10/26: mientras no hay nada elegido la barra es UNA línea. Medía
+            168 px (25 % de un iPhone) con un "Agregar al carrito" gris y un
+            total que todavía no decía nada, y tapaba la primera opción. */}
+        {nadaElegido ? (
+          <div className="w-full fixed bottom-0 inset-x-0 z-20 bg-[#fafafa]/95 backdrop-blur border-t border-[#e8e2db] px-5 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:static sm:inset-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:px-0 sm:py-0 flex items-center justify-between gap-3 text-[11px]">
+            <span className="text-stone-600">Armazón <span className="font-bold text-black">${formatearPrecio(basePrice * (1 - discountRate))}</span> por transferencia</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#8a6d3b]">Elegí una opción ↑</span>
+          </div>
+        ) : (
         <div className="w-full flex flex-col items-center mb-2 fixed bottom-0 inset-x-0 z-20 bg-[#fafafa]/95 backdrop-blur border-t border-[#e8e2db] pt-3 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:inset-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:px-0 sm:pt-0 sm:pb-0">
           <p className="hidden sm:block text-[10px] uppercase tracking-[0.3em] font-bold text-[#78716c] mb-2">Tu anteojo completo</p>
           <motion.p
@@ -741,11 +755,12 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             <span>{cartItemId ? "Confirmar Cristales" : "Agregar al Carrito"}</span>
           </button>
         </div>
-        
+        )}
+
 
         <p className="text-xs uppercase font-bold tracking-[0.2em] text-[#78716c] text-center">Envío Asegurado sin cargo a todo el país</p>
         {/* Lugar para la barra fija de abajo en celular: sin esto tapaba lo último. */}
-        <div aria-hidden="true" className="h-56 sm:hidden" />
+        <div aria-hidden="true" className={`${nadaElegido ? "h-12" : "h-56"} sm:hidden`} />
       </motion.div>
     </div>
   );
@@ -762,12 +777,13 @@ function SkeletonCard() {
   );
 }
 
-function OptionCard({ selected, onClick, title, desc, price, badge, features }: any) {
+/** `compacta`: card baja (paso 1 en celular), para que las cuatro entren sin scroll. */
+function OptionCard({ selected, onClick, title, desc, price, badge, features, compacta }: any) {
   return (
     <motion.div 
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`cursor-pointer border p-6 flex flex-col justify-between transition-all duration-500 min-h-[160px] rounded-[1rem] relative ${
+      className={`cursor-pointer border flex flex-col justify-between transition-all duration-500 rounded-[1rem] relative ${compacta ? 'p-4 sm:p-6 sm:min-h-[160px]' : 'p-6 min-h-[160px]'} ${
         selected 
           ? 'bg-black border-black text-white shadow-2xl scale-[1.02] z-10' 
           : 'bg-white border-black/10 text-black hover:border-black/30 shadow-sm'
