@@ -169,7 +169,7 @@ const LISTA = String.raw`\d+(?:\s*(?:,|\/|-|\by\b|\bo\b)\s*\d+)*`;
  * "12 cuotas fijas sin interés", "12 cuotas de $5.000 sin interés", "12 cuotas
  * con todas las tarjetas sin interés". El grupo 2 avisa si dijo "fijas".
  */
-const DESPUES_DE_LISTA = String.raw` ?(?:(?:cuotas?|pagos?)(?: (fijas?|promocionales?))?)?(?: de \$ ?[\d.]+)?(?: con (?:todas las )?tarjetas?(?: de credito)?)? ?[,:]? ?`;
+const DESPUES_DE_LISTA = String.raw` ?(?:(?:cuotas?|pagos?)(?: (?:mensuales|bancarias))?(?: (fijas?|promocionales?))?)?(?: de \$ ?[\d.]+)?(?: (?:con (?:tu |todas las )?|en todas las )tarjetas?(?: de credito)?)? ?[,:]?(?: y)? ?`;
 const PALABRAS_SIN_SUJETO = new Set(['cuotas', 'cuota', 'sin', 'interes', 'en', 'todas', 'las', 'con', 'tarjeta', 'tarjetas', 'de', 'credito', 'y', 'hasta', 'pagos', 'pago', 'todos', 'los', 'medios', 'para', 'vos', 'tu', 'compra']);
 
 const numerosDe = (lista: string) => (lista.match(/\d+/g) || []).map(Number);
@@ -192,7 +192,7 @@ function prometeDoceSinInteres(textoNormalizado: string): boolean {
   // Espacios colapsados y largo acotado: el cartel es una línea, y así
   // ninguna expresión puede tardar (corre en la barra de cada visitante).
   const t = textoNormalizado
-    .replace(/\s+/g, ' ').slice(0, 400)
+    .replace(/[()¡!]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400)
     .replace(/\bdoce\b/g, '12').replace(/\bseis\b/g, '6').replace(/\btres\b/g, '3')
     // "12x", "x12" → "12 cuotas"
     .replace(/(\d+) ?x\b/g, '$1 cuotas').replace(/\bx ?(\d+)/g, '$1 cuotas');
@@ -207,10 +207,13 @@ function prometeDoceSinInteres(textoNormalizado: string): boolean {
       const despues = tramo.slice(pos + m[0].length);
       let duenos: number[] = [];
       const listaAntes = new RegExp(`(?:^|[^\\d$.,/])(${LISTA})${DESPUES_DE_LISTA}$`).exec(antes);
-      const listaDespues = new RegExp(`^ ?[:,]? ?(?:hasta )?(?:en )?(?:hasta )?(${LISTA})(?! ?(?:mil|%|hs?\\b|horas?|dias?|meses?|anos?))`).exec(despues);
+      // La lista de después termina en un número ENTERO (sin el lookahead, el
+      // \d+ retrocedía: en ", 15% OFF" tomaba el "1" y en "en 48 hs" el "4").
+      const listaDespues = new RegExp(`^ ?[:,]? ?(?:hasta )?(?:en )?(?:hasta )?(${LISTA})(?![\\d.,]| ?\\d)(?! ?(?:mil|%|hs?\\b|horas?|dias?|meses?|anos?))`).exec(despues);
       // "Hasta 12 cuotas fijas sin interés en 3 y 6": si antes dijo "fijas" y
-      // después viene una lista, el "sin interés" es de la que sigue.
-      if (listaAntes && !(listaAntes[2] && listaDespues)) duenos = numerosDe(listaAntes[1]);
+      // después viene una lista de 3/6, el "sin interés" es de la que sigue.
+      const despuesEsDeTresOSeis = !!listaDespues && numerosDe(listaDespues[1]).every((n) => CUOTAS_SIN_INTERES.includes(n));
+      if (listaAntes && !(listaAntes[2] && despuesEsDeTresOSeis)) duenos = numerosDe(listaAntes[1]);
       else if (listaDespues) duenos = numerosDe(listaDespues[1]);
       else if (!/\d/.test(tramo) && i > 0) {
         const otras = (antes + ' ' + despues).split(/[^a-z]+/).filter((w) => w && !PALABRAS_SIN_SUJETO.has(w));
