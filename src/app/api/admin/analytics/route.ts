@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SIN_ROBOTS } from '@/lib/checkout/robots';
+import { sesionesRobot, sqlSinRuido, whereSinRuido } from '@/lib/analitica/ruido';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getActorValidated } from '@/lib/session-revalidation';
@@ -37,25 +38,30 @@ export async function GET(request: Request) {
 
     const { from, to } = parseRange(request.url);
     const range = { gte: from, lte: to };
+    // Sin ruido (src/lib/analitica/ruido.ts): ni el robot de Google Merchant,
+    // ni las pruebas internas del 25/9, ni el producto de prueba. Misma regla
+    // en Prisma (`limpio`) y en SQL crudo (`sinRuido`).
+    const limpio = whereSinRuido(await sesionesRobot(prisma));
+    const sinRuido = sqlSinRuido();
 
     // Conteos por tipo de evento
     const byType = await prisma.analyticsEvent.groupBy({
       by: ['type'],
-      where: { createdAt: range },
+      where: { createdAt: range, ...limpio },
       _count: { _all: true },
     });
     const countOf = (t: string) => byType.find((r) => r.type === t)?._count._all ?? 0;
 
     // Visitantes únicos (sesiones distintas) y sesiones que llegaron a cada etapa
     const uniqueSessions = await prisma.analyticsEvent.findMany({
-      where: { createdAt: range },
+      where: { createdAt: range, ...limpio },
       distinct: ['sessionId'],
       select: { sessionId: true },
     });
 
     const sessionsAtStage = async (type: string) => {
       const rows = await prisma.analyticsEvent.findMany({
-        where: { createdAt: range, type },
+        where: { createdAt: range, ...limpio, type },
         distinct: ['sessionId'],
         select: { sessionId: true },
       });
@@ -81,13 +87,13 @@ export async function GET(request: Request) {
     const trabasRaw = await prisma.$queryRaw<Array<{ device: string | null; type: string; sesiones: bigint }>>(
       Prisma.sql`SELECT device, type, count(DISTINCT "sessionId") AS sesiones
                  FROM "AnalyticsEvent"
-                 WHERE "createdAt" BETWEEN ${from} AND ${to} AND type IN (${Prisma.join(PASOS_TRABA)})
+                 WHERE "createdAt" BETWEEN ${from} AND ${to} AND type IN (${Prisma.join(PASOS_TRABA)}) AND ${sinRuido}
                  GROUP BY 1, 2`
     );
     const erroresRaw = await prisma.$queryRaw<Array<{ motivo: string | null; veces: bigint; sesiones: bigint }>>(
       Prisma.sql`SELECT meta->>'motivo' AS motivo, count(*) AS veces, count(DISTINCT "sessionId") AS sesiones
                  FROM "AnalyticsEvent"
-                 WHERE "createdAt" BETWEEN ${from} AND ${to} AND type = 'checkout_error'
+                 WHERE "createdAt" BETWEEN ${from} AND ${to} AND type = 'checkout_error' AND ${sinRuido}
                  GROUP BY 1 ORDER BY 2 DESC LIMIT 8`
     );
     const trabas = {
@@ -101,7 +107,7 @@ export async function GET(request: Request) {
 
     // Ingresos de compras registradas
     const revenueAgg = await prisma.analyticsEvent.aggregate({
-      where: { createdAt: range, type: 'purchase' },
+      where: { createdAt: range, ...limpio, type: 'purchase' },
       _sum: { value: true },
       _count: { _all: true },
     });
@@ -113,7 +119,7 @@ export async function GET(request: Request) {
                count(*) AS visits,
                count(DISTINCT "sessionId") AS visitors
         FROM "AnalyticsEvent"
-        WHERE "type" = 'page_view' AND "createdAt" BETWEEN ${from} AND ${to}
+        WHERE "type" = 'page_view' AND "createdAt" BETWEEN ${from} AND ${to} AND ${sinRuido}
         GROUP BY 1 ORDER BY 1 ASC`,
     );
 
@@ -122,14 +128,14 @@ export async function GET(request: Request) {
       Prisma.sql`
         SELECT COALESCE("meta"->>'zone', 'otras') AS zone, count(*) AS views
         FROM "AnalyticsEvent"
-        WHERE "type" = 'zone_view' AND "createdAt" BETWEEN ${from} AND ${to}
+        WHERE "type" = 'zone_view' AND "createdAt" BETWEEN ${from} AND ${to} AND ${sinRuido}
         GROUP BY 1 ORDER BY views DESC LIMIT 15`,
     );
 
     // Productos más vistos
     const topProducts = await prisma.analyticsEvent.groupBy({
       by: ['productId', 'productName'],
-      where: { createdAt: range, type: 'view_content', productId: { not: null } },
+      where: { createdAt: range, ...limpio, type: 'view_content', productId: { not: null } },
       _count: { _all: true },
       orderBy: { _count: { productId: 'desc' } },
       take: 15,
@@ -141,7 +147,7 @@ export async function GET(request: Request) {
         SELECT COALESCE(NULLIF("utmSource", ''), 'directo/orgánico') AS source,
                count(DISTINCT "sessionId") AS visitors
         FROM "AnalyticsEvent"
-        WHERE "createdAt" BETWEEN ${from} AND ${to}
+        WHERE "createdAt" BETWEEN ${from} AND ${to} AND ${sinRuido}
         GROUP BY 1 ORDER BY visitors DESC LIMIT 12`,
     );
 
