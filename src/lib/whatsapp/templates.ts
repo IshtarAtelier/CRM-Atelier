@@ -223,7 +223,8 @@ export const WHATSAPP_TEMPLATES = {
         category: 'UTILITY',
         header: 'IMAGE',
         imagenMuestra: 'public/social/campania-cupon-soycliente/01.jpg',
-        body: '{{1}}, esta es la foto del armazón de tu pedido {{2}} 👓 ¿Es el que elegiste? Si es así, respondé OK; si no, contanos y lo revisamos.',
+        // Meta no acepta un cuerpo que EMPIECE con una variable (400 "Invalid parameter", 15/10/2026): va con "Hola" adelante.
+        body: 'Hola {{1}}, esta es la foto del armazón de tu pedido {{2}} 👓 ¿Es el que elegiste? Si es así, respondé OK; si no, contanos y lo revisamos.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
     },
     comprobante_pago: {
