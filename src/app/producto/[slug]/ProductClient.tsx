@@ -1179,13 +1179,45 @@ export function ProductClient({
           De paso resuelve dos cosas más que marcó la auditoría: el precio queda
           siempre a la vista (A-01) y el botón de WhatsApp flotante ya no es el
           único elemento fijo compitiendo por el pulgar (A-11). */}
-      {!isWholesale && (
-        <div
-          className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-stone-200 px-4 py-3 flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ${
-            ctaFueraDeVista ? 'translate-y-0' : 'translate-y-full'
-          }`}
-          aria-hidden={!ctaFueraDeVista}
-        >
+      {!isWholesale && (() => {
+        const agotado = product.stock !== undefined && product.stock <= 0;
+        const vBarra = PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount });
+        const claseBarra = `lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-stone-200 px-4 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ${
+          ctaFueraDeVista ? 'translate-y-0' : 'translate-y-full'
+        }`;
+        if (product.category === "Receta") {
+          // Fase 1.4 (15/10/2026): en receta la barra lleva las DOS salidas,
+          // visibles en todo el scroll. Hasta hoy solo mostraba "Elegir
+          // cristales" y "Comprar solo el armazón" quedaba a 1.186 px: quien
+          // ya tiene cristales o quiere solo el armazón no tenía puerta a mano.
+          return (
+            <div className={claseBarra} aria-hidden={!ctaFueraDeVista}>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500 truncate mb-1.5">
+                {product.model} · ${formatearPrecio(vBarra.transferencia)} por transferencia
+              </p>
+              <div className="flex gap-2">
+                <button
+                  disabled={agotado || isAdded}
+                  onClick={agregarArmazonAlCarrito}
+                  className={`flex-1 min-h-11 px-3 text-[11px] font-black uppercase tracking-wide rounded-full border-2 transition-colors disabled:opacity-50 ${isAdded ? 'bg-green-800 border-green-800 text-white' : 'bg-white border-stone-900 text-stone-900 hover:bg-stone-100'}`}
+                >
+                  {/* El mismo número que la línea de arriba y que el precio
+                      grande de la ficha: el de transferencia. */}
+                  {agotado ? "Agotado" : isAdded ? "Agregado ✓" : `Solo armazón $${formatearPrecio(vBarra.transferencia)}`}
+                </button>
+                <button
+                  disabled={agotado}
+                  onClick={() => setShowConfigurator(true)}
+                  className="flex-1 min-h-11 px-3 bg-black text-white text-[11px] font-black uppercase tracking-wide rounded-full hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:bg-stone-400"
+                >
+                  {agotado ? "Agotado" : "Elegir mis cristales"}
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return (
+        <div className={`${claseBarra} flex items-center gap-3`} aria-hidden={!ctaFueraDeVista}>
           {images[0] && (
             <div className="relative w-12 h-12 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-stone-100">
               <Image
@@ -1205,31 +1237,24 @@ export function ProductClient({
                 el más caro. Los mismos números que el precio grande de la ficha
                 (PricingService.vidrieraDeProducto). */}
             <p className="text-[13px] font-black text-stone-900">
-              ${formatearPrecio(PricingService.vidrieraDeProducto(product, { descuentoTransferenciaPct: cashDiscount, cuotasSinInteres: installmentsCount }).transferencia)}
+              ${formatearPrecio(vBarra.transferencia)}
               <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">por transferencia</span>
             </p>
             <p className="text-[10px] font-medium text-stone-500">${formatearPrecio(effectivePrice)} con tarjeta</p>
           </div>
           <button
-            disabled={(product.stock !== undefined && product.stock <= 0) || isAdded}
-            onClick={() => {
-              if (product.category === "Receta") {
-                setShowConfigurator(true);
-              } else {
-                // Agrega de verdad, igual que "Comprar ahora" (ver
-                // agregarArmazonAlCarrito): antes solo scrolleaba hasta ese
-                // botón y en 30 días no produjo un solo agregado al carrito.
-                agregarArmazonAlCarrito();
-              }
-            }}
+            disabled={agotado || isAdded}
+            // Agrega de verdad, igual que "Comprar ahora" (ver
+            // agregarArmazonAlCarrito): antes solo scrolleaba hasta ese botón
+            // y en 30 días no produjo un solo agregado al carrito.
+            onClick={agregarArmazonAlCarrito}
             className="flex-shrink-0 min-h-11 px-5 bg-black text-white text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:bg-stone-400"
           >
-            {(product.stock !== undefined && product.stock <= 0)
-              ? "Agotado"
-              : product.category === "Receta" ? "Elegir cristales" : (isAdded ? "Agregado ✓" : "Comprar")}
+            {agotado ? "Agotado" : (isAdded ? "Agregado ✓" : "Comprar")}
           </button>
         </div>
-      )}
+        );
+      })()}
 
       {/* Modal Configurador de Cristales para la vista de producto.
 
