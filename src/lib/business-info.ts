@@ -136,6 +136,26 @@ export const BUSINESS_INFO = {
    * frase quedó mal y ya se corrigió en el sitio; no repetirla en piezas nuevas.
    */
   multifocalChangePolicy: "un solo cambio de cristal incluido (garantía de adaptación)",
+  /**
+   * DATOS FISCALES que una tienda online tiene que mostrar (auditoría del
+   * 25/9/2026: no figuraban en ninguna página).
+   *
+   * Factura la cuenta ISH (Ishtar, 15/10/2026): los mismos datos que emiten
+   * las Facturas C (`src/lib/afip.ts`). Mientras `dataFiscalUrl` esté en null,
+   * el pie NO muestra ese link, en vez de un sello falso. El código del QR
+   * se obtiene con clave fiscal en ARCA → Formulario 960/NM "Data Fiscal" →
+   * "Obtener código para sitio web" (es un link http://qr.afip.gob.ar/?qr=…).
+   *
+   * - `razonSocial`: como figura en ARCA (monotributo: nombre y apellido del titular).
+   * - `cuit`: con guiones, "20-12345678-9".
+   * - `dataFiscalUrl`: el link del QR "Data Fiscal" que da ARCA al completar el
+   *   formulario 960/D (se muestra como link "Data Fiscal").
+   */
+  // Datos de la cuenta que factura la tienda (la misma de billing: lib/afip.ts,
+  // cuenta ISH, Factura C, inicio de actividades 01/01/2024). Ishtar, 15/10/2026.
+  razonSocial: 'Ishtar Pissano' as string | null,
+  cuit: '23-38615231-4' as string | null,
+  dataFiscalUrl: null as string | null,
 } as const;
 
 /** Texto de promociones listo para inyectar en prompts. */

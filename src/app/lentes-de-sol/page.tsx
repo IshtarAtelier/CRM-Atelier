@@ -215,6 +215,7 @@ export default async function LentesDeSolPage() {
                 availableBrands={availableBrands}
                 availableShapes={availableShapes}
                 availableMaterials={availableMaterials}
+                categoria="Sol"
               />
             </Suspense>
           </aside>
