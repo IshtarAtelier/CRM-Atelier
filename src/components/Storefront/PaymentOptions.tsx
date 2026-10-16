@@ -101,7 +101,6 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
       label: showCalculated
         ? `Transferencia ${discountPercent}% OFF: $${cashPriceValue.toLocaleString('es-AR')}`
         : `Transferencia ${discountPercent}% OFF`,
-      sub: "también en efectivo, en el local",
       highlight: true,
     }]),
   ];

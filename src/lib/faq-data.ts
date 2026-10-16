@@ -120,7 +120,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         // mañana): "3 y 6 cuotas sin interés, y hasta 12 cuotas fijas" — sin
         // el % y sin "con Mercado Pago". Las 12 nunca se dicen "sin interés"
         // (eso son solo 3 y 6); "fijas" las separa sin prometer de más.
-        a: "Aceptamos tarjetas de crédito y débito, efectivo y transferencia. Tenés 3 y 6 cuotas sin interés, y hasta 12 cuotas fijas. También hacemos descuento por pago en efectivo o transferencia. Las promociones vigentes —cantidad de cuotas y porcentaje de descuento— las ves siempre actualizadas en la barra superior de la web y en la tienda, porque cambian según el período.",
+        a: "Aceptamos tarjetas de crédito y débito y transferencia. Tenés 3 y 6 cuotas sin interés, y hasta 12 cuotas fijas. También hacemos descuento por pago con transferencia. Las promociones vigentes —cantidad de cuotas y porcentaje de descuento— las ves siempre actualizadas en la barra superior de la web y en la tienda, porque cambian según el período.",
       },
       {
         q: "¿Puedo cambiar o devolver un producto?",
