@@ -58,7 +58,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         q: "¿Qué tipos de cristales ofrecen?",
         a: "Trabajamos cristales monofocales y multifocales (progresivos) Varilux, con tratamientos de antirreflejo, filtro de luz azul y fotocromáticos que se oscurecen al sol. Según tu receta y tu uso diario te recomendamos la combinación de material y tratamiento que mejor se adapta.",
-        links: [{ label: "Ver cristales ópticos", href: "/cristales-opticos" }],
+        links: [{ label: "Ver cristales ópticos", href: "/cristales-opticos/varilux" }],
       },
       // Condiciones de la garantía: salen de garantia.ts para que no se
       // desincronicen con /politicas-de-cambio (esta respuesta también alimenta
