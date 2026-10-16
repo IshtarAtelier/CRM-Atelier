@@ -107,35 +107,106 @@ export async function fetchNewReviews(placeId: string, apiKey: string) {
   };
 }
 
-export async function getGoogleReviews() {
+/**
+ * Último rating/cantidad de reseñas que Google devolvió de verdad.
+ *
+ * Por qué existe (16/10/2026): las páginas públicas son ISR y la primera
+ * versión se arma en el build. Si en ese momento Google no contesta (timeout de
+ * 2,5 s, sin red, sin clave), la página quedaba cacheada con "reviewCount":0
+ * hasta la siguiente regeneración —y es la que ve el primer visitante y el
+ * crawler—. En vez de un número tipeado a mano (prohibido: envejece), se guarda
+ * el último valor REAL en memoria y en `SystemSetting`, y se usa solo cuando
+ * Google falla. Si tampoco hay valor guardado, sigue degradando a 0 (las
+ * pantallas ocultan el contador).
+ */
+const CLAVE_ULTIMO_CONOCIDO = 'google_reviews_ultimo_conocido';
+
+type Calificacion = { rating: number; userRatingCount: number };
+let ultimoEnMemoria: Calificacion | null = null;
+
+async function guardarUltimoConocido(c: Calificacion): Promise<void> {
+  if (!(c.userRatingCount > 0 && c.rating > 0)) return;
+  const cambio =
+    !ultimoEnMemoria ||
+    ultimoEnMemoria.rating !== c.rating ||
+    ultimoEnMemoria.userRatingCount !== c.userRatingCount;
+  ultimoEnMemoria = { rating: c.rating, userRatingCount: c.userRatingCount };
+  if (!cambio) return;
+  try {
+    const { prisma } = await import('@/lib/db');
+    const value = JSON.stringify({ ...ultimoEnMemoria, at: new Date().toISOString() });
+    await prisma.systemSetting.upsert({
+      where: { key: CLAVE_ULTIMO_CONOCIDO },
+      create: { key: CLAVE_ULTIMO_CONOCIDO, value },
+      update: { value },
+      select: { key: true },
+    });
+  } catch (e: any) {
+    console.warn('[reseñas] No se pudo guardar el último valor de Google:', e?.message);
+  }
+}
+
+async function leerUltimoConocido(): Promise<Calificacion> {
+  if (ultimoEnMemoria) return ultimoEnMemoria;
+  try {
+    const { prisma } = await import('@/lib/db');
+    const fila = await prisma.systemSetting.findUnique({
+      where: { key: CLAVE_ULTIMO_CONOCIDO },
+      select: { value: true },
+    });
+    if (fila?.value) {
+      const v = JSON.parse(fila.value);
+      const rating = Number(v.rating);
+      const userRatingCount = Number(v.userRatingCount);
+      if (rating > 0 && userRatingCount > 0) {
+        ultimoEnMemoria = { rating, userRatingCount };
+        return ultimoEnMemoria;
+      }
+    }
+  } catch (e: any) {
+    console.warn('[reseñas] No se pudo leer el último valor de Google:', e?.message);
+  }
+  return { rating: 0, userRatingCount: 0 };
+}
+
+type ResultadoResenas = { reviews: any[]; rating: number; userRatingCount: number };
+
+async function pedirAGoogle(): Promise<ResultadoResenas | null> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
   const placeId = process.env.GOOGLE_PLACE_ID || 'ChIJjZd3QbC6l00RxWWzy_uJz80';
 
   if (!apiKey) {
     console.warn('Falta la API Key de Google Places en el entorno. Retornando reseñas de respaldo.');
-    return { reviews: FALLBACK_REVIEWS, rating: 0, userRatingCount: 0 };
+    return null;
   }
 
   try {
-    console.log('Intentando obtener reseñas con la API de Places (New)...');
     const resData = await fetchNewReviews(placeId, apiKey);
-    if (resData && resData.reviews && resData.reviews.length > 0) {
-      return resData;
-    }
+    if (resData && resData.reviews && resData.reviews.length > 0) return resData;
   } catch (newApiError: any) {
     console.warn('Fallo la API (New):', newApiError.message);
-    
     try {
-      console.log('Intentando obtener reseñas con la API de Places Legacy...');
       const resData = await fetchLegacyReviews(placeId, apiKey);
-      if (resData && resData.reviews && resData.reviews.length > 0) {
-        return resData;
-      }
+      if (resData && resData.reviews && resData.reviews.length > 0) return resData;
     } catch (legacyError: any) {
       console.error('Fallo también la API Legacy:', legacyError.message);
     }
   }
+  return null;
+}
 
-  console.warn('No se pudieron obtener reseñas reales de Google. Retornando reseñas de respaldo.');
-  return { reviews: FALLBACK_REVIEWS, rating: 0, userRatingCount: 0 };
+/**
+ * Reseñas + rating + cantidad. Nunca lanza.
+ * `reviews` cae a FALLBACK_REVIEWS si Google no responde (o a `[]` con
+ * `sinRespaldo`), y rating/cantidad caen al último valor real conocido.
+ */
+export async function getGoogleReviews(opts: { sinRespaldo?: boolean } = {}): Promise<ResultadoResenas> {
+  const real = await pedirAGoogle();
+  if (real) {
+    await guardarUltimoConocido(real);
+    return real;
+  }
+  console.warn('No se pudieron obtener reseñas reales de Google. Usando respaldo y el último rating conocido.');
+  const ultimo = await leerUltimoConocido();
+  return { reviews: opts.sinRespaldo ? [] : FALLBACK_REVIEWS, ...ultimo };
 }
