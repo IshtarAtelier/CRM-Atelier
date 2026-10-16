@@ -69,3 +69,12 @@ Orden real: E0 (relevamiento del formulario de OVES) → E3 → E3b → E4 → E
    (La clave pegada en el chat el 15/10 queda en ese historial: conviene cambiarla.)
 3. Promos: ¿el robot puede mandar los mails a promociones@/cordoba@ o los manda una persona?
 4. Los 5 commits de `feat/grupo-optico-carga` siguen sin subir: esperan OK.
+
+## 5. Restricción de diseño: OVES es un sistema viejo y lento (Ishtar, 16/10/2026)
+
+Todo timeout del módulo es ANCHO, igual criterio que el portal de Grupo Óptico
+(una pasada lenta que termina vale más que una rápida que aborta): cada paso
+del navegador, login, búsqueda y guardado con techo de varios minutos, con
+reintentos pacientes y sin bajar los techos "para que el log quede corto".
+El candado de turno se renueva solo mientras la pasada vive. Una ventana por
+sesión: nunca dos robots a la vez.
