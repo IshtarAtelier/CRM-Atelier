@@ -28,8 +28,19 @@ export interface NotaMarcaCristal {
   date: string;
   imageUrl: string;
   imageAlt: string;
+  /**
+   * Respuesta directa de 2-3 oraciones arriba de todo: es lo que citan los
+   * buscadores con IA (Google AI Overviews, ChatGPT, Perplexity) y el snippet.
+   */
+  resumen: string;
   intro: string[];
-  secciones: { titulo: string; parrafos?: string[]; items?: { nombre: string; texto: string }[] }[];
+  secciones: {
+    titulo: string;
+    parrafos?: string[];
+    imagen?: { src: string; alt: string };
+    /** `imagen`: foto oficial del producto (1200×1200) si la tenemos. */
+    items?: { nombre: string; texto: string; imagen?: string }[];
+  }[];
   faqs: { pregunta: string; respuesta: string }[];
   /** Ficha en /cristales-opticos, si existe. */
   cristalesHref?: string;
@@ -52,6 +63,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
     date: '2026-10-16',
     imageUrl: '/images/blog/multifocal-mujer-lectura.webp',
     imageAlt: 'Mujer leyendo con anteojos multifocales',
+    resumen:
+      'Hoya es un fabricante japonés de cristales oftálmicos fundado en 1941. Su progresivo más completo es el iD LifeStyle 4; Summit, Array 2 y Argos son las opciones intermedias y de entrada, y Mi Primer Hoya está pensado para quien estrena multifocales. En Atelier Óptica (Córdoba) los hacemos con el laboratorio Vitolen, con 80% de descuento en el segundo par de progresivos seleccionados.',
     intro: [
       'Hoya nació en noviembre de 1941 en la ciudad de Hoya, Tokio, como una planta de vidrio óptico. En 1962 empezó a fabricar cristales para anteojos y en 1967 lanzó sus primeros progresivos. Hoy es una empresa global de tecnología médica que, además de cristales, hace endoscopios y lentes intraoculares.',
       'En Atelier trabajamos la línea Hoya a través del laboratorio Vitolen. Acá te contamos cada modelo que ofrecemos, en orden, y para quién lo recomendamos.',
@@ -59,6 +72,7 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
     secciones: [
       {
         titulo: 'Las tecnologías detrás de Hoya',
+        imagen: { src: '/images/equipo/paleta-cristales-entrega.jpg', alt: 'Cristales listos para entregar en Atelier Óptica' },
         items: [
           { nombre: 'Binocular Harmonization Technology (BHT)', texto: 'casi nadie tiene la misma graduación en los dos ojos. BHT calcula cada cristal según la graduación de su ojo para que los dos queden equilibrados y el cerebro no tenga que compensar.' },
           { nombre: 'Integrated Dual Surface', texto: 'reparte el diseño progresivo entre las dos caras del cristal. Es la base de la línea iD LifeStyle.' },
@@ -78,6 +92,7 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       },
       {
         titulo: 'Monofocales y ocupacionales',
+        imagen: { src: '/images/blog/medicion-pupilar-optica.webp', alt: 'Toma de medidas para un cristal personalizado' },
         items: [
           { nombre: 'Nulux iDentity V+', texto: 'el monofocal más personalizado de Hoya: free-form, bi-asférico, calculado según tu armazón y tus medidas de uso. Visión nítida también en los bordes del cristal.' },
           { nombre: 'Sync III', texto: 'monofocal para aliviar la fatiga por pantallas. Hoya lo recomienda de los 13 a los 45 años, para quien pasa dos horas o más por día frente a una pantalla.' },
@@ -121,6 +136,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
     date: '2026-10-16',
     imageUrl: '/images/blog/mujer-oficina-multifocal.webp',
     imageAlt: 'Mujer trabajando en la oficina con anteojos multifocales',
+    resumen:
+      'Pentax es una marca de cristales de Hoya Vision Care desde 2008, sin relación con las cámaras. Su línea de progresivos Allfocus tiene dos versiones: Flex, para empezar o ganar comodidad, y Pro, la de mayor gama; Pentax Office es su ocupacional para la oficina. Participa de la promo de 80% en el segundo par.',
     intro: [
       'Cuando decimos Pentax, mucha gente piensa en cámaras. Los cristales Pentax no tienen nada que ver con eso: son una marca de HOYA Vision Care desde 2008, y se fabrican con la misma ingeniería japonesa.',
       'Pentax diseña sus progresivos con un software que simula las condiciones reales de uso. En Atelier los trabajamos con el laboratorio Vitolen.',
@@ -135,6 +152,7 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       },
       {
         titulo: 'Pentax Office',
+        imagen: { src: '/images/equipo/equipo-mostrador.jpg', alt: 'Asesoramiento en el mostrador de Atelier Óptica' },
         parrafos: [
           'Un ocupacional para présbitas que pasan muchas horas en la oficina: zonas de visión intermedia y de cerca bastante más anchas que un progresivo común. Es el par para la compu y los papeles, como complemento del multifocal.',
         ],
@@ -170,6 +188,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
     date: '2026-10-16',
     imageUrl: '/images/blog/muestrario-smart-lens.webp',
     imageAlt: 'Muestrario de cristales Smart Lens en Atelier Óptica',
+    resumen:
+      'Smart Lens es una marca argentina de cristales digitales free-form que se vende solo en ópticas habilitadas. Sus multifocales van de Smart New (primer progresivo) y Smart One a Smart Free, Smart Pro (premium) y Smart Exclusive (para pantallas), y tiene ocupacional, monofocales, bifocal invisible y filtros Blue y Super Blue.',
     intro: [
       'Smart Lens es una marca argentina de cristales digitales que se vende solo en ópticas habilitadas, con certificado de autenticidad. Es la marca con la que más trabajamos en Atelier: cubre desde el primer multifocal hasta el control de miopía infantil.',
       'Acá repasamos cada línea y para quién la recomendamos. Las notas de control de miopía (MyoFix) y del monofocal para miopes (MyoLens) tienen su propio artículo.',
@@ -188,10 +208,12 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       },
       {
         titulo: 'Ocupacional: Smart Office',
+        imagen: { src: '/images/smartlens/myolens-myofix-y-myolens.webp', alt: 'Lámina oficial de la familia Smart Lens' },
         parrafos: ['Un multifocal degresivo optimizado para la distancia de cerca e intermedia: escritorio, compu y papeles. Ideal como segundo par para el trabajo, o para quien no tiene grandes problemas de lejos.'],
       },
       {
         titulo: 'Monofocales y bifocales',
+        imagen: { src: '/images/smartlens/myolens-mas-finas.webp', alt: 'Lámina Smart Lens: cristales más finos' },
         items: [
           { nombre: 'Monofocal digital personalizado', texto: 'asférico y atórico, reduce las aberraciones en todas las direcciones de mirada y afina los bordes del cristal.' },
           { nombre: 'Bifocal Digital Invisible', texto: 'para quienes ya usan bifocales y no quieren la línea marcada: la división es invisible y se fabrica en freeform.' },
@@ -236,6 +258,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
     date: '2026-10-16',
     imageUrl: '/images/blog/pareja-multifocales-exterior.webp',
     imageAlt: 'Pareja con anteojos multifocales al aire libre',
+    resumen:
+      'Los cristales Kodak los fabrica Signet Armorlite, del grupo Essilor, bajo licencia exclusiva de la marca desde 2013. Su progresivo Kodak Unique DRO está optimizado para leer en el celular, la versión HD se personaliza con las medidas del armazón y Mi Primer Kodak es la opción de entrada.',
     intro: [
       'Kodak es una marca que todos conocemos por la fotografía, pero sus cristales para anteojos los fabrica Signet Armorlite, con una licencia exclusiva y mundial de la marca firmada en 2013. Signet Armorlite es parte del grupo Essilor desde 2010: detrás de cada Kodak está la misma industria que hace Varilux.',
       'En Atelier trabajamos Kodak con el laboratorio Optovisión. Esta es la línea, explicada.',
@@ -245,9 +269,9 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
         titulo: 'Progresivos Kodak Unique',
         items: [
           { nombre: 'Kodak Unique', texto: 'progresivo pensado para que el paso entre lejos, intermedia y cerca sea suave y natural.' },
-          { nombre: 'Kodak Unique DRO', texto: 'DRO quiere decir Dynamic Reading Optimization. Está pensado para quien usa mucho el celular: mejora la zona de lectura y la distancia a la que se lee. Viene en seis largos de corredor y, según el fabricante, reduce en promedio un 54% el astigmatismo oblicuo y mejora un 17% el rendimiento de lectura frente al Unique común.' },
+          { imagen: '/images/cristales/marcas/kodak-unique-dro.jpg', nombre: 'Kodak Unique DRO', texto: 'DRO quiere decir Dynamic Reading Optimization. Está pensado para quien usa mucho el celular: mejora la zona de lectura y la distancia a la que se lee. Viene en seis largos de corredor y, según el fabricante, reduce en promedio un 54% el astigmatismo oblicuo y mejora un 17% el rendimiento de lectura frente al Unique común.' },
           { nombre: 'Kodak Unique HD', texto: 'la versión personalizada: se calcula con las medidas de cómo te calza el armazón.' },
-          { nombre: 'Mi Primer Kodak', texto: 'la versión de entrada de la línea, para quien estrena progresivos.' },
+          { imagen: '/images/cristales/marcas/mi-primer-kodak.jpg', nombre: 'Mi Primer Kodak', texto: 'la versión de entrada de la línea, para quien estrena progresivos.' },
         ],
       },
       {
@@ -281,6 +305,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
     date: '2026-10-16',
     imageUrl: '/images/blog/local-varilux.webp',
     imageAlt: 'Exhibidor Essilor y Varilux en Atelier Óptica',
+    resumen:
+      'Essilor es el fabricante francés de Varilux, Crizal, Eyezen y Stellest, presente en Argentina desde 1988. Además de Varilux tiene el progresivo Espace Plus Digital, el ocupacional Interview, monofocales Eyezen y los materiales Orma 1.5, Airwear 1.59 (policarbonato) y Stylis 1.67 (alto índice).',
     intro: [
       'Essilor es el fabricante francés detrás de Varilux, Crizal, Eyezen y Stellest, y está en Argentina desde 1988. Hoy es parte de EssilorLuxottica, el grupo que también hace Transitions y, bajo licencia, los cristales Kodak.',
       'Varilux y Stellest tienen sus propias notas en el blog. Acá repasamos el resto de la línea Essilor que trabajamos en Atelier.',
@@ -289,18 +315,18 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       {
         titulo: 'Monofocales y control de miopía',
         items: [
-          { nombre: 'Eyezen (Start, Boost y Kids)', texto: 'monofocales para la vida con pantallas. Boost suma un pequeño refuerzo de enfoque en la zona de lectura calibrado por edad.' },
+          { imagen: '/images/cristales/marcas/eyezen-boost.jpg', nombre: 'Eyezen (Start, Boost y Kids)', texto: 'monofocales para la vida con pantallas. Boost suma un pequeño refuerzo de enfoque en la zona de lectura calibrado por edad.' },
           { nombre: 'Monofocal de laboratorio Essilor', texto: 'tallado a tu receta, en Orma, Airwear o Stylis y con Crizal.' },
-          { nombre: 'Stellest', texto: 'el cristal de Essilor para frenar la miopía infantil. Somos óptica certificada Stellest.' },
-          { nombre: 'Myopilux Kids', texto: 'la línea anterior de Essilor para miopía infantil. Hoy, para control de miopía, la recomendación de la marca es Stellest.' },
+          { imagen: '/images/cristales/marcas/stellest.jpg', nombre: 'Stellest', texto: 'el cristal de Essilor para frenar la miopía infantil. Somos óptica certificada Stellest.' },
+          { imagen: '/images/cristales/marcas/myopilux.jpg', nombre: 'Myopilux Kids', texto: 'la línea anterior de Essilor para miopía infantil. Hoy, para control de miopía, la recomendación de la marca es Stellest.' },
         ],
       },
       {
         titulo: 'Progresivos y ocupacionales',
         items: [
-          { nombre: 'Espace Plus Digital', texto: 'progresivo digital de entrada para la vida diaria: manejar, compu y tareas comunes, con diseño asimétrico para menos distorsión.' },
-          { nombre: 'Interview', texto: 'ocupacional para présbitas: donde un lente de cerca da foco hasta unos 60 cm, Interview lo extiende hasta 2 metros. Ideal para escritorio y reuniones.' },
-          { nombre: 'Varilux', texto: 'la línea progresiva insignia de Essilor, con su propia nota y ficha.' },
+          { imagen: '/images/cristales/marcas/espace-plus.jpg', nombre: 'Espace Plus Digital', texto: 'progresivo digital de entrada para la vida diaria: manejar, compu y tareas comunes, con diseño asimétrico para menos distorsión.' },
+          { imagen: '/images/cristales/marcas/interview.jpg', nombre: 'Interview', texto: 'ocupacional para présbitas: donde un lente de cerca da foco hasta unos 60 cm, Interview lo extiende hasta 2 metros. Ideal para escritorio y reuniones.' },
+          { imagen: '/images/cristales/marcas/varilux-xr-design.jpg', nombre: 'Varilux', texto: 'la línea progresiva insignia de Essilor, con su propia nota y ficha.' },
         ],
       },
       {
@@ -314,10 +340,10 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       {
         titulo: 'Tratamientos',
         items: [
-          { nombre: 'Crizal', texto: 'el antirreflejo de Essilor, con su nota propia.' },
-          { nombre: 'Transitions GEN S', texto: 'el fotocromático: transparente adentro, se oscurece en segundos al salir.' },
-          { nombre: 'Xperio', texto: 'el polarizado graduado de Essilor, para sol.' },
-          { nombre: 'Blue UV Filter System', texto: 'filtro de luz azul incorporado al material.' },
+          { imagen: '/images/cristales/marcas/crizal.jpg', nombre: 'Crizal', texto: 'el antirreflejo de Essilor, con su nota propia.' },
+          { imagen: '/images/cristales/marcas/transitions-gen-s.jpg', nombre: 'Transitions GEN S', texto: 'el fotocromático: transparente adentro, se oscurece en segundos al salir.' },
+          { imagen: '/images/cristales/marcas/xperio.jpg', nombre: 'Xperio', texto: 'el polarizado graduado de Essilor, para sol.' },
+          { imagen: '/images/cristales/marcas/blue-uv.jpg', nombre: 'Blue UV Filter System', texto: 'filtro de luz azul incorporado al material.' },
         ],
       },
     ],
@@ -347,6 +373,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
     date: '2026-10-16',
     imageUrl: '/images/blog/medicion-pupilar-optica.webp',
     imageAlt: 'Medición pupilar en la óptica',
+    resumen:
+      'Sygnus es una línea de cristales de laboratorio que trabajamos con Optovisión, fabricada sobre materiales Essilor (Orma, Airwear y Stylis) y con antirreflejo NUMAX en casi todas sus versiones. Incluye Monofocal One, Sygnus Driver para manejar, Sygnus Bifocal y los progresivos Essilor New Editions.',
     intro: [
       'Sygnus es una línea de cristales que trabajamos con el laboratorio Optovisión. Su particularidad: se fabrica sobre materiales Essilor (Orma, Airwear y Stylis) y casi todas sus versiones llevan antirreflejo NUMAX incluido.',
       'Es una opción que suele quedar a mitad de camino entre los cristales de stock y las marcas premium.',
@@ -355,10 +383,10 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       {
         titulo: 'La línea Sygnus',
         items: [
-          { nombre: 'Sygnus Monofocal One', texto: 'monofocal de laboratorio tallado a tu receta. Se puede pedir con filtro Blue UV, fotosensible o Transitions GEN S.' },
-          { nombre: 'Sygnus Driver', texto: 'pensado para manejar, con versión polarizada Xperio para reducir el encandilamiento del sol.' },
-          { nombre: 'Sygnus Bifocal', texto: 'bifocal con materiales Essilor, también con Blue UV y Transitions.' },
-          { nombre: 'Essilor New Editions', texto: 'progresivos de Essilor en esta misma línea, con opciones espejadas, polarizadas y fotosensibles.' },
+          { imagen: '/images/cristales/marcas/sygnus-monofocal-one.jpg', nombre: 'Sygnus Monofocal One', texto: 'monofocal de laboratorio tallado a tu receta. Se puede pedir con filtro Blue UV, fotosensible o Transitions GEN S.' },
+          { imagen: '/images/cristales/marcas/sygnus-driver.jpg', nombre: 'Sygnus Driver', texto: 'pensado para manejar, con versión polarizada Xperio para reducir el encandilamiento del sol.' },
+          { imagen: '/images/cristales/marcas/sygnus-bifocal.jpg', nombre: 'Sygnus Bifocal', texto: 'bifocal con materiales Essilor, también con Blue UV y Transitions.' },
+          { imagen: '/images/cristales/marcas/sygnus-new-editions.jpg', nombre: 'Essilor New Editions', texto: 'progresivos de Essilor en esta misma línea, con opciones espejadas, polarizadas y fotosensibles.' },
         ],
       },
       {
@@ -386,6 +414,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
     date: '2026-10-16',
     imageUrl: '/images/blog/mostrador-marmol.webp',
     imageAlt: 'Mostrador de Atelier Óptica',
+    resumen:
+      'Optovisión es un laboratorio óptico argentino que trabaja con Essilor, Varilux, Transitions y Kodak, y que además tiene línea propia: cristales de stock, monofocales tallados a medida, bifocales Flat Top y Kriptock, y el progresivo Pro-Line Digital. Es uno de los tres laboratorios de Atelier Óptica.',
     intro: [
       'Optovisión es un laboratorio óptico argentino que trabaja con las grandes marcas: Essilor, Varilux, Transitions y Kodak, entre otras. En Atelier es uno de nuestros tres laboratorios, junto con Grupo Óptico (Smart Lens) y Vitolen (Hoya y Pentax).',
       'Además de las marcas, Optovisión tiene su línea propia, que es la que te contamos acá.',
@@ -399,6 +429,7 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       },
       {
         titulo: 'Monofocales de laboratorio',
+        imagen: { src: '/images/equipo/paleta-cristales-entrega.jpg', alt: 'Cristales tallados a medida' },
         parrafos: [
           'Cuando la graduación no se consigue en stock, el cristal se talla a medida: orgánico, alto índice, policarbonato (Policast), fotosensible, espejado o polarizado, y con filtro de luz azul.',
         ],
@@ -412,6 +443,7 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       },
       {
         titulo: 'Progresivo Pro-Line Digital',
+        imagen: { src: '/images/blog/lentes-progresivos-zonas.webp', alt: 'Zonas de visión de un cristal progresivo' },
         parrafos: [
           'El multifocal digital de Optovisión, sobre materiales Essilor (Orma, Airwear o Stylis) y con opciones de filtro Blue UV, Orma Acclimates o Transitions GEN S. Una alternativa accesible a las marcas premium.',
         ],
