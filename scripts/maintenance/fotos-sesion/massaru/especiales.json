@@ -1,0 +1,42 @@
+{
+ "_que_es": "Fotos especiales de la sesión Massaru: recorte a mano [centroX, centroY, lado] en fracción del ancho/alto/ancho del original, y granito [x, y, radio] en px de la salida 1200×1200.",
+ "cortes": {
+  "74": [
+   0.5,
+   0.55,
+   1.0
+  ],
+  "95": [
+   0.5,
+   0.5,
+   1.0
+  ],
+  "76": [
+   0.52,
+   0.53,
+   0.75
+  ],
+  "80": [
+   0.36,
+   0.5,
+   0.8
+  ],
+  "81": [
+   0.41,
+   0.5,
+   0.6666
+  ]
+ },
+ "granito": {
+  "74": [
+   888,
+   268,
+   16
+  ],
+  "95": [
+   638,
+   300,
+   9
+  ]
+ }
+}

@@ -47,6 +47,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { cargarIdentidad, RAIZ } from './identidad.mjs';
+import { renderizarPlaca } from './placa-story-modelo.mjs';
 
 const sharp = createRequire(import.meta.url)('sharp');
 
@@ -339,7 +340,6 @@ async function recortarAnteojo(file, brillo, foco = 0.55, ratio = 4 / 5) {
 }
 
 const id = await cargarIdentidad();
-const oro = id.colores.marcaClara;
 const logo = 'data:image/png;base64,' + readFileSync(id.logo).toString('base64');
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
@@ -360,21 +360,8 @@ for (const [slug, nombre, color, familia, numeros, ajustes = {}] of M) {
         const buf = tipo === 'anteojo' ? await recortarAnteojo(file, brillo, ajustes.foco, ajustes.ratio)
             : tipo === 'perfil' ? await recortarPerfil(file, brillo, ajustes.aire)
                 : await recortarFrente(file, brillo);
-        const img = buf.toString('base64');
-        await page.setContent(`<html><head><link href="${id.googleFonts}" rel="stylesheet"><style>
-body{margin:0;width:1080px;height:1920px;overflow:hidden;position:relative;background:${id.oscuro};font-family:${id.fuentes.titulo}}
-.f{position:absolute;inset:0;background:url(data:image/jpeg;base64,${img}) center/cover}
-.g{position:absolute;left:0;right:0;bottom:0;height:700px;background:linear-gradient(transparent,${id.oscuro})}
-.t{position:absolute;left:0;right:0;bottom:170px;text-align:center;color:#fff}
-.k{font-size:30px;letter-spacing:10px;color:${oro};text-transform:uppercase;margin-bottom:10px}
-.n{font-size:130px;font-weight:700;letter-spacing:4px;line-height:1}
-.c{font-size:40px;color:${oro};letter-spacing:6px;margin-top:8px}
-.l{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);height:54px;filter:brightness(0) invert(1)}
-</style></head><body><div class="f"></div><div class="g"></div>
-<div class="t"><div class="k">${LEYENDA[familia]}</div><div class="n">${nombre}</div>${color ? `<div class="c">${color}</div>` : ''}</div>
-<img class="l" src="${logo}"></body></html>`, { waitUntil: 'networkidle' });
         const destino = path.join(salida, `${String(i + 1).padStart(2, '0')}.jpg`);
-        await page.screenshot({ path: destino, type: 'jpeg', quality: 88 });
+        await renderizarPlaca(page, { id, logo, fotoJpg: buf, leyenda: LEYENDA[familia], nombre, color, destino });
     }
 
     writeFileSync(path.join(RAIZ, 'social', 'contenido', `${piezaId}.json`), JSON.stringify({

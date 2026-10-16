@@ -1,0 +1,313 @@
+{
+ "grupos": [
+  [
+   "1-2",
+   "SIN ANTEOJOS"
+  ],
+  [
+   "4-10",
+   "ZEUS C33-P01"
+  ],
+  [
+   "12-13",
+   "ZEUS C33-P86"
+  ],
+  [
+   "15-16",
+   "ZEUS C33-P18-2"
+  ],
+  [
+   "18-19",
+   "ZEUS C33-P18-1"
+  ],
+  [
+   "21-23",
+   "KALISHTA"
+  ],
+  [
+   "25-26",
+   "ODISEO"
+  ],
+  [
+   "28-29",
+   "AZUL JASPEADO - A CONFIRMAR"
+  ],
+  [
+   "31-32",
+   "EVA C3"
+  ],
+  [
+   "34-35",
+   "PLUTON C7"
+  ],
+  [
+   "37-38",
+   "VEGA C2"
+  ],
+  [
+   "40-41",
+   "EVA C2"
+  ],
+  [
+   "43-44",
+   "FENIX C2"
+  ],
+  [
+   "46-47",
+   "VEGA C1"
+  ],
+  [
+   "49-50",
+   "OLIMPO SEPIA"
+  ],
+  [
+   "52-53",
+   "OLIMPO PINK"
+  ],
+  [
+   "55-55",
+   "OLIMPO BLUE"
+  ],
+  [
+   "57-58",
+   "OLIMPO GREY"
+  ],
+  [
+   "60-61",
+   "EDIPO"
+  ],
+  [
+   "63-64",
+   "PLUTON C4"
+  ],
+  [
+   "66-67",
+   "PERSEFONE"
+  ],
+  [
+   "69-71",
+   "OLIMPO BLACK"
+  ],
+  [
+   "72-76",
+   "DEMETER"
+  ],
+  [
+   "78-81",
+   "PLUTON C4"
+  ],
+  [
+   "83-84",
+   "TRITON C3"
+  ],
+  [
+   "86-87",
+   "TRITON C5"
+  ],
+  [
+   "89-90",
+   "SOL"
+  ],
+  [
+   "92-93",
+   "CALISTO C5"
+  ],
+  [
+   "95-97",
+   "PERSEO C4"
+  ],
+  [
+   "99-100",
+   "PERSEO C5"
+  ],
+  [
+   "102-103",
+   "CALISTO C4"
+  ],
+  [
+   "105-106",
+   "SATURNO"
+  ],
+  [
+   "108-109",
+   "URANO"
+  ],
+  [
+   "111-112",
+   "METEORO C4"
+  ],
+  [
+   "114-115",
+   "METEORO C275"
+  ],
+  [
+   "117-118",
+   "METEORO C26"
+  ],
+  [
+   "120-121",
+   "METEORO C4"
+  ],
+  [
+   "123-124",
+   "ORFEO C1"
+  ],
+  [
+   "126-127",
+   "POSEIDON C6"
+  ],
+  [
+   "129-130",
+   "POSEIDON C2"
+  ],
+  [
+   "132-133",
+   "POSEIDON C3"
+  ],
+  [
+   "135-136",
+   "PEGASO C2"
+  ],
+  [
+   "138-139",
+   "CRONOS C1"
+  ],
+  [
+   "141-142",
+   "ULISES C4"
+  ],
+  [
+   "144-145",
+   "ORFEO C3"
+  ],
+  [
+   "147-148",
+   "HERMES C1"
+  ],
+  [
+   "150-151",
+   "OSIRIS C4"
+  ],
+  [
+   "153-154",
+   "TESEO C1"
+  ],
+  [
+   "156-157",
+   "AQUILES C1"
+  ],
+  [
+   "160-161",
+   "HERMES C3"
+  ],
+  [
+   "163-164",
+   "HELIOS C1"
+  ],
+  [
+   "166-167",
+   "HESTIA C1"
+  ],
+  [
+   "169-170",
+   "HESTIA C2"
+  ],
+  [
+   "172-173",
+   "AQUILES C4"
+  ],
+  [
+   "175-176",
+   "ANDROMEDA C6"
+  ],
+  [
+   "178-179",
+   "POLARIS C7"
+  ],
+  [
+   "181-182",
+   "CRONOS C3"
+  ],
+  [
+   "184-185",
+   "OLIMPIA C1"
+  ],
+  [
+   "187-188",
+   "LUMEN C1"
+  ],
+  [
+   "190-191",
+   "ISIS"
+  ],
+  [
+   "193-194",
+   "CRATOS"
+  ]
+ ],
+ "claquetas": {
+  "3": "ZEUS C33-P86",
+  "11": "ZEUS C33-P01",
+  "14": "ZEUS C33-P86",
+  "17": "ZEUS C33-P18-2",
+  "20": "ZEUS C33-P18-1",
+  "24": "KALISHTA",
+  "27": "ODISEO",
+  "33": "EVA C3",
+  "36": "PLUTON C7",
+  "39": "VEGA C2",
+  "42": "EVA C2",
+  "45": "FENIX C2",
+  "48": "VEGA C1",
+  "51": "OLIMPO SEPIA",
+  "54": "OLIMPO PINK",
+  "56": "OLIMPO BLUE",
+  "59": "OLIMPO GREY",
+  "62": "EDIPO",
+  "65": "PLUTON C4",
+  "68": "PERSEFONE",
+  "77": "DEMETER",
+  "82": "PLUTON C4",
+  "85": "TRITON C3",
+  "88": "TRITON C5",
+  "91": "SOL",
+  "94": "CALISTO C5",
+  "98": "PERSEO C4",
+  "101": "PERSEO C5",
+  "104": "CALISTO C4",
+  "107": "SATURNO",
+  "110": "URANO",
+  "113": "METEORO C4",
+  "116": "METEORO C275",
+  "119": "METEORO C26",
+  "122": "METEORO C4",
+  "125": "ORFEO C1",
+  "128": "POSEIDON C6",
+  "131": "POSEIDON C2",
+  "134": "POSEIDON C3",
+  "137": "PEGASO C2",
+  "140": "CRONOS C1",
+  "143": "ULISES C4",
+  "146": "ORFEO C3",
+  "149": "HERMES C1",
+  "152": "OSIRIS C4",
+  "155": "TESEO C1",
+  "158": "AQUILES C1",
+  "159": "HERMES C3",
+  "162": "HERMES C4",
+  "165": "HELIOS C1",
+  "168": "HESTIA C1",
+  "171": "HESTIA C2",
+  "174": "AQUILES C4",
+  "177": "ANDROMEDA C6",
+  "180": "POLARIS C7",
+  "183": "CRONOS C3",
+  "186": "OLIMPIA C1",
+  "189": "LUMEN C1",
+  "192": "ISIS",
+  "195": "CRATOS"
+ },
+ "otros": {
+  "30": "LIMPIADOR ATELIER"
+ }
+}
