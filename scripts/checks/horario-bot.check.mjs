@@ -69,11 +69,12 @@ console.log('\nEl bot se calla cuando interviene una persona');
 {
     const { createRequire } = await import('node:module');
     const require = createRequire(import.meta.url);
-    const { esRemitenteHumano, NOMBRES_NO_HUMANOS } = require('../../wa-service/shared/remitentes.js');
+    const { esRemitenteHumano, NOMBRES_NO_HUMANOS, whereSalienteHumano } = require('../../wa-service/shared/remitentes.js');
     check('"Teléfono" (escribieron desde el celular del local) ES una persona', esRemitenteHumano('Teléfono'));
     check('"Matias Turchi" es una persona', esRemitenteHumano('Matias Turchi'));
-    check('"Bot" y "Sistema" no lo son', !esRemitenteHumano('Bot') && !esRemitenteHumano('Sistema'));
-    check('la lista para consultar la base coincide con el Set', NOMBRES_NO_HUMANOS.length === 3 && NOMBRES_NO_HUMANOS.includes('Bot'));
+    check('"Bot", "Sistema", "Sistema Atelier" y las campañas no lo son', !esRemitenteHumano('Bot') && !esRemitenteHumano('Sistema') && !esRemitenteHumano('Sistema Atelier') && !esRemitenteHumano('Campaña Novedades Sep26'));
+    // La lista completa y su paridad con src/ las fija `npm run check:remitentes`.
+    check('el filtro para consultar la base usa la lista y deja afuera las campañas', whereSalienteHumano().senderName.notIn.length === NOMBRES_NO_HUMANOS.length && NOMBRES_NO_HUMANOS.includes('Bot') && whereSalienteHumano().senderName.not.startsWith === 'Campaña ');
 
     const api = readFileSync(new URL('../../wa-service/routes/api.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('escribir desde el CRM apaga el bot de ese chat', api.includes('marcarTraspasoHumano') && api.includes('esRemitenteHumano(senderName'));
@@ -87,7 +88,11 @@ console.log('\nEl bot se calla cuando interviene una persona');
     // FALSO —comparaba `indexOf(...) < indexOf(...)` y el primero valía −1,
     // que es menor que cualquier cosa—. Un check que pasa porque no encuentra
     // lo que busca es el peor de todos.
-    const preguntaPorHumano = /senderName: \{ notIn: NOMBRES_NO_HUMANOS \}/;
+    // Desde el 10/10/2026 la pregunta "¿escribió una persona?" va por el
+    // filtro único `whereSalienteHumano()` (shared/remitentes.js).
+    // Desde el 15/10/2026 compara por LLEGADA al servidor (llegoDespuesDe,
+    // shared/orden-de-llegada.js): el eco del celular trae la hora del teléfono.
+    const preguntaPorHumano = /\.\.\.whereSalienteHumano\(\),[\s\S]{0,200}?\.\.\.llegoDespuesDe\(comienzoDelTurno\)/;
     check('si una persona contesta MIENTRAS el bot piensa, la respuesta se descarta',
         preguntaPorHumano.test(bc) && bc.includes('comienzoDelTurno'));
 

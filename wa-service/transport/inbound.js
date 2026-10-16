@@ -19,6 +19,7 @@
  *   }
  */
 
+const { CHAT_BASE } = require('../shared/columnas-chat');
 const { prisma } = require('../db');
 const { prefillAdTag, fallbackAdTag } = require('../shared/ad-tag');
 const { uploadMediaToCrm } = require('../shared/media');
@@ -99,7 +100,7 @@ async function persistInboundUnlocked(m, { io } = {}) {
     // Idempotencia: si ya está, no se toca nada (ni unread, ni lastInboundAt).
     if (m.wamid) {
         const dup = await prisma.whatsAppMessage.findUnique({ where: { waMessageId: m.wamid }, select: { id: true, chatId: true } });
-        if (dup) return { chat: await prisma.whatsAppChat.findUnique({ where: { id: dup.chatId } }), created: false };
+        if (dup) return { chat: await prisma.whatsAppChat.findUnique({ where: { id: dup.chatId }, select: CHAT_BASE }), created: false };
     }
 
     const now = m.timestamp ? new Date(Number(m.timestamp) * 1000) : new Date();
@@ -110,14 +111,14 @@ async function persistInboundUnlocked(m, { io } = {}) {
     // ── Chat: crear o actualizar ────────────────────────────────────────────
     // waId = E.164. Un chat viejo del transporte anterior puede existir como
     // "<num>@c.us": se migra al vuelo para no duplicar la conversación.
-    let chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+    let chat = await prisma.whatsAppChat.findUnique({ where: { waId }, select: CHAT_BASE });
     if (!chat) {
         const legacy = await prisma.whatsAppChat.findFirst({
             where: { OR: [{ waId: `${waId}@c.us` }, { realPhone: waId }] },
-            orderBy: { lastMessageAt: 'desc' },
+            orderBy: { lastMessageAt: 'desc' }, select: CHAT_BASE
         });
         if (legacy) {
-            chat = await prisma.whatsAppChat.update({ where: { id: legacy.id }, data: { waId, realPhone: waId } });
+            chat = await prisma.whatsAppChat.update({ where: { id: legacy.id }, data: { waId, realPhone: waId }, select: CHAT_BASE });
             console.log(`  ♻️ [Inbound] Chat legacy ${legacy.waId} migrado a ${waId}`);
         }
     }
@@ -145,25 +146,25 @@ async function persistInboundUnlocked(m, { io } = {}) {
                     // campo es el "apagalo solo en este chat" del buzón.
                     status: 'OPEN',
                     lastMessageAt: now, lastInboundAt: now, unreadCount: 1,
-                },
+                }, select: CHAT_BASE
             });
             created = true;
         } catch (e) {
             if (e.code !== 'P2002') throw e; // carrera con otro webhook: ya existe
-            chat = await prisma.whatsAppChat.update({ where: { waId }, data: commonUpdate });
+            chat = await prisma.whatsAppChat.update({ where: { waId }, data: commonUpdate, select: CHAT_BASE });
         }
     } else {
         const data = { ...commonUpdate };
         if (m.profileName && !chat.clientId) data.profileName = m.profileName;
         if (!chat.realPhone) data.realPhone = waId;
-        chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data });
+        chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data, select: CHAT_BASE });
     }
 
     // ── Vincular con la ficha del CRM ───────────────────────────────────────
     if (!chat.clientId) {
         const clientId = await findClientIdByPhone(waId).catch(() => null);
         if (clientId) {
-            chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { clientId } });
+            chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { clientId }, select: CHAT_BASE });
             console.log(`  🔗 [Inbound] Chat ${waId} vinculado a la ficha ${clientId}`);
         }
     }
@@ -319,13 +320,13 @@ async function persistEchoUnlocked(e, { io } = {}) {
 
     // Mismo criterio de chat que el entrante, incluida la migración del waId
     // legacy "<num>@c.us" para no duplicar la conversación.
-    let chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+    let chat = await prisma.whatsAppChat.findUnique({ where: { waId }, select: CHAT_BASE });
     if (!chat) {
         const legacy = await prisma.whatsAppChat.findFirst({
             where: { OR: [{ waId: `${waId}@c.us` }, { realPhone: waId }] },
-            orderBy: { lastMessageAt: 'desc' },
+            orderBy: { lastMessageAt: 'desc' }, select: CHAT_BASE
         });
-        if (legacy) chat = await prisma.whatsAppChat.update({ where: { id: legacy.id }, data: { waId, realPhone: waId } });
+        if (legacy) chat = await prisma.whatsAppChat.update({ where: { id: legacy.id }, data: { waId, realPhone: waId }, select: CHAT_BASE });
     }
 
     let created = false;
@@ -335,20 +336,20 @@ async function persistEchoUnlocked(e, { io } = {}) {
                 data: {
                     waId, realPhone: waId, status: 'OPEN', botEnabled: false,
                     lastMessageAt: now, unreadCount: 0,
-                },
+                }, select: CHAT_BASE
             });
             created = true;
         } catch (err) {
             if (err.code !== 'P2002') throw err;
-            chat = await prisma.whatsAppChat.update({ where: { waId }, data: { lastMessageAt: now } });
+            chat = await prisma.whatsAppChat.update({ where: { waId }, data: { lastMessageAt: now }, select: CHAT_BASE });
         }
     } else {
-        chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { lastMessageAt: now } });
+        chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { lastMessageAt: now }, select: CHAT_BASE });
     }
 
     if (!chat.clientId) {
         const clientId = await findClientIdByPhone(waId).catch(() => null);
-        if (clientId) chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { clientId } });
+        if (clientId) chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { clientId }, select: CHAT_BASE });
     }
 
     let mediaUrl = null;

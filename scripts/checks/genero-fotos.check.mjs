@@ -93,9 +93,13 @@ console.log('\nDe dónde salen las fotos, y que no sean siempre las mismas');
     check('el que manda fotos pide el catálogo PUBLICADO', tools.includes("params.paraFotos = '1'"));
     check('para fotos, la ruta exige publicado en la tienda', ruta.includes('productWhere.publishToWeb = true'));
     check('y CON stock: no se muestra lo que no se puede vender', ruta.includes('productWhere.stock = { gt: 0 }'));
-    check('la categoría para fotos es la de la TIENDA (Receta/Sol/Clip-On), no `type`', ruta.includes('CATEGORIA_DE_TIENDA') && ruta.includes("webProducts: { some: { category: CATEGORIA_DE_TIENDA[category], isActive: true } }"));
-    check('una fila sin precio no se muestra como producto', ruta.includes('filtros.push({ price: { gt: 1 } })'));
-    check('para fotos NO se exige "recomendado" (no hay ninguno marcado)', ruta.includes("if (!paraFotos && (onlyBotRecommended || !search))"));
+    // Desde el 10/10/2026 la categoría de la tienda vive en el resolvedor
+    // único del catálogo del bot (src/lib/catalogo-del-bot.ts), el mismo para
+    // cotizar y para fotos. Su detalle lo fija `npm run check:catalogo-bot`.
+    const catalogoDelBot = readFileSync(new URL('../../src/lib/catalogo-del-bot.ts', import.meta.url), 'utf8');
+    check('la categoría para fotos es la de la TIENDA (Receta/Sol/Clip-On), no `type`', catalogoDelBot.includes('CATEGORIA_DE_TIENDA') && catalogoDelBot.includes('webProducts: { some: { category: CATEGORIA_DE_TIENDA[categoria], isActive: true } }') && ruta.includes('filtrosDeArmazonDelBot(category)'));
+    check('una fila sin precio no se muestra como producto', catalogoDelBot.includes('{ price: { gt: 1 } }'));
+    check('para fotos NO se exige "recomendado" (no hay ninguno marcado)', ruta.includes("if (!paraFotos && !esArmazon && (onlyBotRecommended || !search))"));
     check('cada cliente arranca en un punto distinto del catálogo', tools.includes('const semilla') && tools.includes('const corrimiento'));
 
     // La rotación, tal como la hace el bot: mismo cliente = mismos modelos;

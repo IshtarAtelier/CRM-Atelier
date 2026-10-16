@@ -37,6 +37,7 @@
     "check:recupero-carrito": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/recupero-carrito.check.mjs",
     "check:politica": "node scripts/checks/politica.check.mjs",
     "check:bot-errores": "node scripts/checks/bot-error-transitorio.check.mjs",
+    "check:credito-ia": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/credito-ia.check.mjs",
     "check:venta": "ATELIER_SIN_ENVIOS=1 node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-blindada.check.mjs",
     "snapshot:catalog": "node --experimental-strip-types scripts/maintenance/refresh-catalog-snapshots.mjs",
     "db:backup": "node scripts/maintenance/backup-db.js",
@@ -101,7 +102,16 @@
     "check:carga-go": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/grupo-optico-carga.check.mjs",
     "check:meta-anuncios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/meta-anuncios-identificados.mjs",
     "check:referral": "node scripts/checks/referral-anuncio.check.cjs",
-    "check:meta-compras": "node scripts/checks/compras-informadas-a-meta.mjs"
+    "check:meta-compras": "node scripts/checks/compras-informadas-a-meta.mjs",
+    "check:salida-bot": "node scripts/checks/salida-bot-sin-fugas.check.mjs",
+    "check:envios-bot": "node scripts/checks/envios-bot-con-origen.check.mjs",
+    "check:primer-contacto": "node scripts/checks/primer-contacto-bot.check.mjs",
+    "check:entrantes": "node scripts/checks/entrantes-bot.check.mjs",
+    "check:vuelta-bot": "node scripts/checks/vuelta-bot.check.mjs",
+    "check:nombres-bot": "node --experimental-strip-types scripts/checks/nombres-bot.check.mjs",
+    "check:remitentes": "node --experimental-strip-types scripts/checks/remitentes-paridad.check.mjs",
+    "check:catalogo-bot": "node --experimental-strip-types scripts/checks/catalogo-bot.check.mjs",
+    "check:rollout-wa": "node scripts/checks/rollout-wa-service.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

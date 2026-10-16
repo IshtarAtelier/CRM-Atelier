@@ -17,6 +17,7 @@
 
 const { prisma } = require('../db');
 const cloud = require('./cloud-api');
+const { conPuntoDeSalida } = require('../shared/punto-de-salida');
 
 let phoneStatus = { configured: cloud.isConfigured(), isReady: false, connectedPhone: null, lastCheck: null, error: null };
 let refreshTimer = null;
@@ -94,13 +95,17 @@ async function withRetry(fn, { attempts = 3, baseMs = 2000 } = {}) {
 /**
  * Envía un mensaje. Misma firma que whatsapp/client.js#sendMessage.
  *
+ * Esta es la versión CRUDA: lo que se exporta es `sendMessage`, que la envuelve
+ * en el punto de salida único (`shared/punto-de-salida.js`): exige
+ * `options.origen` y sanea + pasa por el guardrail todo texto del modelo.
+ *
  * @param {string} waId   E.164, "<num>@c.us" o "+54…" (se normaliza). Nunca @lid.
  * @param {string} content texto (o caption si hay media)
  * @param {{base64?:string,buffer?:Buffer,url?:string,mimetype:string,filename?:string}|null} media
  * @param {{ template?: {name, language?, bodyParams?, headerDocument?, headerImage?, buttonUrlParams?}, chat?: object, skipWindowCheck?: boolean }} options
  * @returns {Promise<{ id: {_serialized: string}, wamid: string, templateName?: string }>}
  */
-async function sendMessage(waId, content, media = null, options = {}) {
+async function enviarCrudo(waId, content, media = null, options = {}) {
     const to = cloud.toE164(waId);
     if (!to) {
         const err = new Error(`Destino inválido para la API oficial: ${waId}`);
@@ -159,6 +164,9 @@ async function sendMessage(waId, content, media = null, options = {}) {
     }
     return withRetry(() => cloud.sendText(to, String(content)));
 }
+
+/** Lo único que se exporta para enviar: con origen obligatorio y saneado del modelo adentro. */
+const sendMessage = conPuntoDeSalida(enviarCrudo, { transporte: 'cloud' });
 
 /** El buzón simula "escribiendo…" con WhatsApp Web; la Cloud API no lo tiene. No-op. */
 async function sendTypingState() { return null; }

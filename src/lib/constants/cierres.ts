@@ -47,4 +47,7 @@ export const DIAS_ESCONDIDA_TRAS_ESCRIBIRLE = 5;
  * sobre todo desde el celular (2.129 salientes "Teléfono" en 5 días contra 147
  * desde el buzón), y eso SÍ llega al sistema por la coexistencia de la API.
  */
-export const REMITENTES_AUTOMATICOS = ['Bot', 'Sistema Atelier', 'Sistema'] as const;
+// Desde el 10/10/2026 sale de la fuente única (`src/lib/whatsapp/remitentes.ts`,
+// espejo del wa-service). Para consultar la base usar `whereSalienteHumano()`,
+// que además deja afuera las campañas ("Campaña …", por prefijo).
+export { NOMBRES_NO_HUMANOS as REMITENTES_AUTOMATICOS } from '@/lib/whatsapp/remitentes';

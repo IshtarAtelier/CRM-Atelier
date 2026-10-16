@@ -20,6 +20,10 @@
  * y WA_ALLOW_LEGACY=1. Si alguien pide webjs sin la segunda, arrancamos en
  * cloud y lo gritamos en el log en vez de obedecer en silencio.
  */
+// El .env se carga ACÁ (además de en cloud.js/index.js) porque la migración
+// del arranque necesita DATABASE_URL antes de que se cargue el transporte.
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+
 const pedido = (process.env.WA_TRANSPORT || 'cloud').toLowerCase();
 const legacyPermitido = process.env.WA_ALLOW_LEGACY === '1';
 
@@ -32,10 +36,19 @@ if (pedido === 'webjs' && !legacyPermitido) {
 
 const transport = (pedido === 'webjs' && legacyPermitido) ? 'webjs' : 'cloud';
 
-if (transport === 'cloud') {
-    console.log('🌐 WA_TRANSPORT=cloud → API oficial de WhatsApp');
-    require('./cloud');
-} else {
-    console.warn('🖥️  WA_TRANSPORT=webjs (con WA_ALLOW_LEGACY=1) → WhatsApp Web (legacy, no oficial)');
-    require('./index');
-}
+// Primero la base al día (15/10/2026): el cliente Prisma de este servicio se
+// genera con el schema del repo, y si la base quedó atrás cada entrante se
+// pierde. Ver shared/migrar-al-arrancar.js (y por qué NO se arranca si falla).
+require('./shared/migrar-al-arrancar').migrarAlArrancar().then(({ arrancar }) => {
+    if (!arrancar) process.exit(1);
+    if (transport === 'cloud') {
+        console.log('🌐 WA_TRANSPORT=cloud → API oficial de WhatsApp');
+        require('./cloud');
+    } else {
+        console.warn('🖥️  WA_TRANSPORT=webjs (con WA_ALLOW_LEGACY=1) → WhatsApp Web (legacy, no oficial)');
+        require('./index');
+    }
+}).catch(e => {
+    console.error('🛑 [Arranque] Error inesperado al migrar:', e);
+    process.exit(1);
+});

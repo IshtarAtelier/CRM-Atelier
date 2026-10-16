@@ -1,5 +1,7 @@
 'use strict';
 
+const { CHAT_BASE } = require('./columnas-chat');
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Encontrar la fila de chat de un saliente cuando el waId no matchea exacto.
 //
@@ -55,7 +57,7 @@ async function findChatByWaId(prisma, waId, opts = {}) {
     const vacio = { chat: null, via: null, telefono: null, ambiguo: false };
     if (!waId) return vacio;
 
-    const exacto = await prisma.whatsAppChat.findUnique({ where: { waId } });
+    const exacto = await prisma.whatsAppChat.findUnique({ where: { waId }, select: CHAT_BASE });
     if (exacto) return { chat: exacto, via: 'waId', telefono: null, ambiguo: false };
 
     // Sin teléfono no hay con qué cruzar: mejor null que un chat adivinado.
@@ -75,7 +77,7 @@ async function findChatByWaId(prisma, waId, opts = {}) {
     // equivocado apagaría el bot y archivaría el mensaje en la ficha de otro.
     const candidatos = await prisma.whatsAppChat.findMany({
         where: { OR: [{ realPhone: telefono }, { waId: `${telefono}@c.us` }] },
-        take: 2,
+        take: 2, select: CHAT_BASE
     });
 
     if (candidatos.length === 1) return { chat: candidatos[0], via: 'telefono', telefono, ambiguo: false };

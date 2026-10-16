@@ -4,6 +4,7 @@
  * por más de 2 horas y las ejecuta enviando un mensaje automático por WhatsApp.
  */
 
+const { SOLO_ID } = require('../shared/columnas-chat');
 const { prisma } = require('../db');
 const { contenidoATexto } = require('../shared/ai-content');
 const { isBusinessHours } = require('../shared/business-hours');
@@ -272,7 +273,7 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
                 // Pausa cruzada: frena también inactividad y tiers para el chat.
                 await prisma.whatsAppChat.update({
                     where: { id: chat.id },
-                    data: { followUpPausedUntil: new Date(now.getTime() + days * 24 * 3600 * 1000) }
+                    data: { followUpPausedUntil: new Date(now.getTime() + days * 24 * 3600 * 1000) }, select: SOLO_ID
                 }).catch(() => {});
                 console.log(`  ⏸️ [Gate] Tarea de ${client.name} pospuesta ${days} días: ${gate.reason}`);
                 continue;

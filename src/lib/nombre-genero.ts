@@ -17,7 +17,7 @@
  * el error caro.
  */
 
-const VARON = new Set([
+export const VARON = new Set([
     'juan', 'jose', 'carlos', 'luis', 'jorge', 'miguel', 'roberto', 'ricardo', 'daniel', 'pedro',
     'pablo', 'diego', 'fernando', 'gustavo', 'sergio', 'javier', 'marcelo', 'alejandro', 'raul', 'hector',
     'oscar', 'ruben', 'walter', 'claudio', 'omar', 'julio', 'mario', 'angel', 'rodolfo', 'alberto',
@@ -38,7 +38,7 @@ const VARON = new Set([
     'jonatan', 'brian', 'braian', 'elian', 'yamil', 'said', 'omar', 'raul', 'ruben', 'walter',
 ]);
 
-const MUJER = new Set([
+export const MUJER = new Set([
     'maria', 'ana', 'laura', 'silvia', 'monica', 'patricia', 'sandra', 'claudia', 'gabriela', 'alejandra',
     'veronica', 'natalia', 'carolina', 'romina', 'florencia', 'agustina', 'sofia', 'valentina', 'martina', 'camila',
     'julieta', 'micaela', 'antonella', 'daniela', 'mariana', 'luciana', 'lucia', 'melina', 'marcela', 'adriana',

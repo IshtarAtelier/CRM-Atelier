@@ -23,6 +23,7 @@ import { calculateEstimatedDays } from '@/lib/business-days';
 import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
 import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
 import { etiquetasQueLeCorresponden, esEtiquetaDesconectable } from '@/lib/contact-tags';
+import { actualizarChatsBot, datosDePrendido } from '@/lib/whatsapp/motivo-apagado-bot';
 
 
 // Qué congela la receta ya NO se decide por estado de laboratorio: se decide por
@@ -851,19 +852,18 @@ export const ContactService = {
             // 2. Update linked WhatsAppChat
             try {
                 const linkedChats = await prisma.whatsAppChat.findMany({
-                    where: { clientId: id }
+                    where: { clientId: id },
+                    select: { id: true, chatLabels: true },
                 });
                 for (const chat of linkedChats) {
                     const currentLabels = chat.chatLabels || [];
                     const nextLabels = currentLabels.filter((l: string) => 
                         l !== 'SIN_SEGUIMIENTO' && l !== '[SISTEMA - BOT APAGADO]'
                     );
-                    await prisma.whatsAppChat.update({
-                        where: { id: chat.id },
-                        data: {
-                            chatLabels: nextLabels,
-                            botEnabled: true
-                        }
+                    // Prender limpia el motivo del apagado (15/10/2026).
+                    await actualizarChatsBot(prisma, { id: chat.id }, {
+                        chatLabels: nextLabels,
+                        ...datosDePrendido(),
                     });
                 }
             } catch (chatErr: any) {

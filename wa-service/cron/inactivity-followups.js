@@ -6,6 +6,7 @@
  * DEDUP: Usa lastFollowUpAt en la DB para no enviar más de 1 follow-up cada 24hs.
  * EXCLUSIÓN MUTUA: Respeta etiquetas de sales-followups.
  */
+const { CHAT_BASE, SOLO_ID } = require('../shared/columnas-chat');
 const { prisma } = require('../db');
 const { evaluarElegibilidad } = require('../followups/politica');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
@@ -13,8 +14,7 @@ const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 const { generateFollowUpMessage } = require('../followups/message-generator');
 const { evaluateConversationGate, applyCancelVerdict } = require('../followups/conversation-gate');
-const { runOutputGuardrail } = require('../services/ai.service');
-const { limpiarSalidaBot } = require('../shared/limpiar-salida-bot');
+const { revisarSalidaLLM } = require('../shared/punto-de-salida');
 const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
 
 // Pool de variantes de RESPALDO: solo se usa si la generación personalizada falla.
@@ -91,7 +91,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                 { followUpPausedUntil: { lte: now } },
             ],
         },
-        include: {
+        select: { ...CHAT_BASE,
             messages: {
                 orderBy: { createdAt: 'desc' },
                 take: 1
@@ -184,7 +184,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                             : 2 * 3600 * 1000;
                         await prisma.whatsAppChat.update({
                             where: { id: chat.id },
-                            data: { followUpPausedUntil: new Date(now.getTime() + pauseMs) }
+                            data: { followUpPausedUntil: new Date(now.getTime() + pauseMs) }, select: SOLO_ID
                         }).catch(() => {});
                         console.log(`  ${gate.decision === 'POSTPONE' ? '⏸️' : '⏭️'} [Gate] Inactividad de ${chat.profileName || chat.waId} pausada ${(pauseMs / 3600000).toFixed(0)}hs: ${gate.reason}`);
                         continue;
@@ -218,26 +218,18 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         selectedText = pool[Math.floor(Math.random() * pool.length)];
                     }
 
-                    // Saneado ANTES del guardrail (mismo orden que los bots y
-                    // que `followups/sender.js`): este camino no pasa por
-                    // `sendFollowUp`, llama a `sendMessage` directo, así que
-                    // necesita su propio saneado o el recordatorio sale con
-                    // marcadores internos — o lo descarta entero una frase que
-                    // el anti-relleno solo habría recortado.
-                    const { texto: textoSaneado, quitado } = limpiarSalidaBot(selectedText);
-                    if (quitado.length) console.log(`  🧹 [Follow-Up] Saneado de salida: ${quitado.join(' · ')}`);
-                    if (!textoSaneado.trim()) {
-                        console.warn(`  ⏹️ [Follow-Up] Vacío tras el saneado para ${chat.profileName || chat.waId}. Se saltea.`);
+                    // El recordatorio sale con origen 'llm' y el transporte lo
+                    // sanea y lo pasa por el guardrail (shared/punto-de-salida.js).
+                    // La misma revisión corre acá por adelantado para no
+                    // reclamar el cooldown con un texto que igual se rechazaría
+                    // y para guardar en el buzón lo que de verdad sale.
+                    const revision = revisarSalidaLLM(selectedText);
+                    if (revision.quitado.length) console.log(`  🧹 [Follow-Up] Saneado de salida: ${revision.quitado.join(' · ')}`);
+                    if (!revision.ok) {
+                        console.warn(`  🚫 [Follow-Up] Recordatorio rechazado (${revision.motivo}) para ${chat.profileName || chat.waId}: "${String(selectedText).substring(0, 80)}"`);
                         continue;
                     }
-                    selectedText = textoSaneado;
-
-                    // Guardrail de salida: mismo filtro final que el bot conversacional
-                    const guardrail = runOutputGuardrail(selectedText);
-                    if (!guardrail.safe) {
-                        console.warn(`  🚫 [Follow-Up] Bloqueado por guardrail (${guardrail.reason}) para ${chat.profileName || chat.waId}: "${selectedText.substring(0, 80)}"`);
-                        continue;
-                    }
+                    selectedText = revision.texto;
 
                     // Reclamo ANTES de encolar: si esta corrida se solapa con la
                     // siguiente (la cola anti-ban puede demorar más que los 15
@@ -246,7 +238,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                     // un recordatorio — mejor eso que un duplicado.
                     await prisma.whatsAppChat.update({
                         where: { id: chat.id },
-                        data: { lastFollowUpAt: new Date() }
+                        data: { lastFollowUpAt: new Date() }, select: SOLO_ID
                     });
                     sentThisCycle++;
 
@@ -254,13 +246,14 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                     await new Promise(r => setTimeout(r, 2000));
 
                     const sent = await sendMessage(chat.waId, selectedText, null, {
+                        origen: 'llm',
                         isProactive: true,
                         // Revalidación al momento del envío físico: el mensaje
                         // puede esperar en la cola anti-ban mucho más que estos
                         // 2 segundos, y en el medio el cliente pudo escribir o
                         // pedir que no lo contacten.
                         preflight: async () => {
-                            const fresh = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
+                            const fresh = await prisma.whatsAppChat.findUnique({ where: { id: chat.id }, select: CHAT_BASE });
                             if (!fresh) return { ok: false, reason: 'el chat ya no existe' };
 
                             // Acá `botEnabled` SÍ corresponde, al revés que en los
@@ -315,7 +308,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         data: { 
                             lastMessageAt: new Date(),
                             lastFollowUpAt: new Date()
-                        }
+                        }, select: SOLO_ID
                     });
                     
                     broadcastChatUpdate(chat.id);

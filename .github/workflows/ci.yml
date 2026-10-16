@@ -157,11 +157,41 @@ jobs:
       - name: Prompts del bot (nada prohibido, nada obligatorio que falte)
         run: npm run check:prompt-bot
 
+      - name: El bot no le manda al cliente inglés, notas internas ni placeholders
+        run: npm run check:salida-bot
+
+      - name: Todo envío del bot declara su origen y sale por el transporte
+        run: npm run check:envios-bot
+
       - name: Fuera de horario el bot se prende solo (y el tilde lo frena)
         run: npm run check:horario-bot
 
       - name: A un hombre no se le mandan monturas de mujer
         run: npm run check:genero-fotos
+
+      - name: El primer contacto lo decide el código (sin precios, fotos ni links)
+        run: npm run check:primer-contacto
+
+      - name: Solo las consultas disparan turno; el bot respeta al dueño del chat
+        run: npm run check:entrantes
+
+      - name: El bot solo vuelve a chats que tomó una persona; un turno por chat entre instancias
+        run: npm run check:vuelta-bot
+
+      - name: El bot saluda con un nombre de verdad (o sin nombre)
+        run: npm run check:nombres-bot
+
+      - name: Una sola definición de quién es una persona del equipo
+        run: npm run check:remitentes
+
+      - name: Un clip-on, un precio (cotizar y fotos del mismo universo)
+        run: npm run check:catalogo-bot
+
+      - name: El wa-service migra antes de arrancar y pide columnas explícitas (no pierde entrantes en el rollout)
+        run: npm run check:rollout-wa
+
+      - name: IA sin crédito avisa por WhatsApp una vez por episodio y no apaga el bot
+        run: npm run check:credito-ia
 
       - name: Build Next.js app
         run: npm run build

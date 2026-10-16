@@ -3,6 +3,7 @@ import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { templateSpec, WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
 import { saludoSegunHoraArgentina } from '@/lib/whatsapp/saludo';
 import { prisma } from '@/lib/db';
+import { whereSalienteHumano } from '@/lib/whatsapp/remitentes';
 import { registrarSeguimientoEnviado } from '@/lib/embudo/registrar-seguimiento';
 import { PAUSA_ENTRE_ENVIOS_MS } from '@/lib/constants/seguimientos';
 import { nombreDePila, type Candidato } from './politica';
@@ -92,7 +93,9 @@ async function plantillasAprobadas(nombres: string[]): Promise<Set<string>> {
 /** Nombre de pila del último del equipo (no bot, no sistema, no "Teléfono") que escribió en el chat. */
 async function ultimoVendedorDelChat(chatId: string): Promise<string | null> {
     const m = await prisma.whatsAppMessage.findFirst({
-        where: { chatId, direction: 'OUTBOUND', senderName: { notIn: ['Bot', 'Sistema', 'Teléfono', 'Asistente', 'Agente Bot', 'Atelier Bot'] }, NOT: { senderName: null } },
+        // Persona del equipo según la definición única (remitentes.ts); "Teléfono"
+        // es una persona pero sin nombre, y acá hace falta el nombre de pila.
+        where: { chatId, direction: 'OUTBOUND', AND: [whereSalienteHumano(), { senderName: { not: 'Teléfono' } }], NOT: { senderName: null } },
         orderBy: { createdAt: 'desc' },
         select: { senderName: true },
     });

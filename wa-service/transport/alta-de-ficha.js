@@ -29,6 +29,7 @@
  * y queda afuera del embudo y de los seguimientos (src/lib/no-cliente.ts).
  */
 
+const { CHAT_BASE } = require('../shared/columnas-chat');
 const { prisma } = require('../db');
 const { esNombreValido } = require('../shared/nombre-de-persona');
 const { convertIntoLead } = require('../tools');
@@ -92,7 +93,7 @@ async function etiquetar(chat, etiquetas) {
     if (!nuevas.length) return chat;
     return prisma.whatsAppChat.update({
         where: { id: chat.id },
-        data: { chatLabels: [...actuales, ...nuevas] },
+        data: { chatLabels: [...actuales, ...nuevas] }, select: CHAT_BASE
     });
 }
 
@@ -175,7 +176,7 @@ async function asegurarFichaDeLead(chat, waId, profileName) {
         // Devolver el chat recargado (ya con clientId) para que el emit del
         // buzón y lo que siga trabajen sobre el estado real. Si por lo que sea
         // no vuelve, se sigue con el que teníamos: nunca null.
-        return (await prisma.whatsAppChat.findUnique({ where: { id: chat.id } })) || chat;
+        return (await prisma.whatsAppChat.findUnique({ where: { id: chat.id }, select: CHAT_BASE })) || chat;
     } catch (e) {
         console.error('[Ficha] Error en el alta automática (el mensaje se guardó igual):', e.message);
         return chat;
