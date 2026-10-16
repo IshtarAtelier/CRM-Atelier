@@ -429,6 +429,23 @@ ok('espejado 1.49: la venta ofrece solo Azul y Plateado (lo que el portal arma),
     // el foto espejado y el polarizado sí toman los colores del nombre
     assert.deepEqual(paletaDeGrupoOptico('multifocal smart free · organico polarizado gris / brown 1.49').tonos.map(t => t.name), ['Gris', 'Sepia']);
 });
+ok('si la lista vende algo que el portal solo arma de otra forma, se toma lo del portal (Ishtar, 15/10/2026)', () => {
+    // sin Essential en la venta, pero el portal SOLO lo tiene con Essential → ese
+    const soloConAr = [{ value: '5001', label: 'MONOF MYOFIX ORG FOTO DIGITAL 1.60 C/AR ESSENTIAL' }, { value: '5002', label: 'ORG FOTO ULTRA ALTO INDICE LAB 1.60 C/ESSENTIAL' }];
+    assert.equal(elegido('Monofocal DIGITAL (free-form) · Orgánico Fotocromático Gris 1.60', soloConAr), '5002');
+    // …pero si existen las dos variantes, la venta manda (sin Essential = sin Essential)
+    const ambas = [...soloConAr, { value: '5003', label: 'ORG FOTO ULTRA ALTO INDICE LAB 1.60' }];
+    assert.equal(elegido('Monofocal DIGITAL (free-form) · Orgánico Fotocromático Gris 1.60', ambas), '5003');
+    // vendido como rango extendido, línea sin R.EXT en el portal: el artículo de stock
+    const sinExt = [{ value: '6001', label: 'ORG BLANCO 1.49 STOCK ESF+350 CIL+050' }];
+    assert.equal(elegido('Stock · Orgánico Blanco 1.49 · Rango Extendido', sinExt), '6001');
+    // y con R.EXT disponible, R.EXT
+    const conExt = [...sinExt, { value: '6002', label: 'ORG BLANCO 1.49 R. EXT ESF-750 CIL+050' }];
+    assert.equal(elegido('Stock · Orgánico Blanco 1.49 · Rango Extendido', conExt), '6002');
+    // al revés NO: un stock fuera de rango sigue frenando (el lab lo cobra como R.EXT)
+    const r = especificacionDe('Stock · Orgánico Blanco 1.49 · Esf -2/+2', {});
+    assert.equal(elegirArticulo([{ value: '6002', label: 'ORG BLANCO 1.49 R. EXT ESF-750 CIL+050' }], r.especificacion).ok, false);
+});
 ok('stock mineral: la etiqueta del portal no dice STOCK ("MINERAL BLANCO ESF -150+050 (3)") y aun así es el artículo de stock', () => {
     const lista = [{ value: '9001', label: 'MINERAL BLANCO ESF -150+050 (3)' }];
     assert.equal(elegido('Stock · Mineral Blanco 1.523 · Esf -2/+2', lista), '9001');

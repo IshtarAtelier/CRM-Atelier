@@ -269,6 +269,14 @@ export function elegirArticulo(lista: ArticuloPortal[], esp: Especificacion): { 
         // "STOCK" ("MINERAL BLANCO ESF -150+050 (3)", visto el 15/10/2026).
         const ext = (l: string) => /R\. ?EXT/.test(l);
         candidatos = lista.filter(a => esp.material.debe.test(norm(a.label)) && (esp.rangoExtendido ? ext(norm(a.label)) : !ext(norm(a.label))));
+        if (candidatos.length === 0 && esp.rangoExtendido) {
+            // Vendido como "rango extendido" pero el portal, para esa línea y esa
+            // graduación, solo tiene el artículo de STOCK (Blanco 1.49, Blanco c/AR
+            // 1.56 y Blue c/AR 1.56 no tienen línea R.EXT; 15/10/2026): se toma lo
+            // del portal (regla de Ishtar), que además cuesta menos.
+            const deStock = lista.filter(a => esp.material.debe.test(norm(a.label)) && !ext(norm(a.label)));
+            if (deStock.length === 1) return { ok: true, articulo: deStock[0] };
+        }
         if (candidatos.length === 0 && !esp.rangoExtendido) {
             // Fuera del rango de stock: el portal lo ofrece como rango extendido.
             const ext = lista.filter(a => esp.material.debe.test(norm(a.label)) && /R\. ?EXT/.test(norm(a.label)));
@@ -290,6 +298,16 @@ export function elegirArticulo(lista: ArticuloPortal[], esp: Especificacion): { 
     if (candidatos.length > 1 && esp.clase === 'LAB' && esp.material.colorId === null) {
         const delColor = candidatos.filter(a => colorDeLaEtiqueta(norm(a.label)) === esp.colorId);
         if (delColor.length === 1) return { ok: true, articulo: delColor[0] };
+    }
+    if (candidatos.length === 0 && esp.clase === 'LAB' && !esp.essential && !esp.material.arIncluido) {
+        // El portal SOLO fabrica ese cristal con Essential ("ORG FOTO ULTRA ALTO
+        // INDICE LAB 1.60 C/ESSENTIAL", 15/10/2026): se toma lo del portal (regla de
+        // Ishtar). Quien aprueba lo ve en el artículo de la pantalla.
+        const conAr = lista.filter(a => {
+            const l = norm(a.label);
+            return esp.familia.debe.test(l) && !esp.familia.noDebe?.test(l) && (!esp.material.articulo || esp.material.articulo.test(l)) && !esp.material.articuloNo?.test(l) && /ESSENTIAL/.test(l);
+        });
+        if (conAr.length === 1) return { ok: true, articulo: conAr[0] };
     }
     if (candidatos.length === 1) return { ok: true, articulo: candidatos[0] };
     const vistos = lista.map(a => a.label).join(' · ') || 'ninguno';
