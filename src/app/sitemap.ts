@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { FICHA_EN_TIENDA } from '@/lib/catalog/queries';
 import { categoriasConPosts } from '@/lib/blog-categorias';
 import { NOTAS_STELLEST } from '@/lib/constants/stellest-notas';
+import { NOTAS_MARCAS_CRISTALES } from '@/lib/constants/notas-marcas-cristales';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/cristales-opticos/tienda-online',
     '/cristales-opticos/policarbonato',
     '/cristales-opticos/kodak',
+    '/cristales-opticos/hoya',
     '/cristales-opticos/xperio',
     '/clip-on',
     '/resenas',
@@ -60,6 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const physicalBlogRoutes = [
     // Las notas de Stellest salen de su lista única (stellest-notas.ts).
     ...NOTAS_STELLEST.map((n) => `/blog/${n.slug}`),
+    ...NOTAS_MARCAS_CRISTALES.map((n) => `/blog/${n.slug}`),
     '/blog/anteojos-obras-de-arte',
     '/blog/myofix',
     '/blog/myolens',
