@@ -56,6 +56,13 @@ export interface ParParaCargar {
     espera?: string | null;
     /** Si viene, el par ya tiene pedido en el laboratorio: no se carga otro. */
     yaCargado?: string | null;
+    /**
+     * Si viene, el robot NO puede cargar este par (el portal no tiene cómo elegir
+     * el cristal) y se carga a mano: la ficha lo anuncia y no ofrece Preparar
+     * (Ishtar, 15/10/2026: "que el bot anuncie que no se puede cargar con bot,
+     * que se revise a mano y listo").
+     */
+    aMano?: string | null;
     /** Rol en una promo de dos pares: el tipo decide el color; la etiqueta, el texto ("SIN CARGO · 2x1", "2º par · promo"). */
     rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null;
 }

@@ -77,7 +77,8 @@ export interface PlanDeCarga {
     armazon: { modelo: string; tipo: TipoArmazon; aro: TipoAro; forma: number | null; a: string | null; b: string | null; ed: string | null; puente: string | null };
 }
 
-export type ResultadoPlan = { ok: true; plan: PlanDeCarga; avisos: string[] } | { ok: false; faltantes: string[]; avisos: string[] };
+/** `aMano`: el cristal no lo carga el robot (catalogo.ts: `Resolucion.aMano`); no es algo que falte en la venta. */
+export type ResultadoPlan = { ok: true; plan: PlanDeCarga; avisos: string[] } | { ok: false; faltantes: string[]; avisos: string[]; aMano?: string | null };
 
 const num = (v: unknown): number | null => {
     if (v === null || v === undefined || v === '') return null;
@@ -206,7 +207,7 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     const extrasNoCobrados: PlanDeCarga['extrasNoCobrados'] = [];
     const yaEssential = tieneEssential(producto);
     const res = especificacionDe(producto, { colorItem, conTenido: !!lineaTenido, conEssential: !!motivoEssential && !yaEssential });
-    if (!res.ok) { faltantes.push(res.motivo); return { ok: false, faltantes, avisos }; }
+    if (!res.ok) { faltantes.push(res.motivo); return { ok: false, faltantes, avisos, aMano: res.aMano ? res.motivo : null }; }
     const esp = res.especificacion;
     if (esp.clase === 'LAB' && esp.pasoATenible) {
         // El portal solo tiñe ORG BLANCO 1.49. Para el par SIN CARGO de un 2x1 es la

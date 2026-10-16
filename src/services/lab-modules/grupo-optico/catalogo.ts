@@ -174,6 +174,21 @@ export const MATERIALES_STOCK: MaterialStock[] = [
     { crm: /mineral blanco/i, materialId: 1, etiqueta: 'Mineral Blanco', codigoArticulos: 57, debe: /^MINERAL BLANCO\b/ },
 ];
 
+/**
+ * Productos bien vendidos que el portal NO deja elegir con el robot (verificado
+ * contra SmartLab el 15/10/2026 con `check:go-equivalencias -- --portal`): el
+ * material existe en la lista de stock pero el portal no ofrece ninguna marca ni
+ * artículo para nuestro cliente. Se cargan a mano, y la ficha lo dice ANTES de
+ * apretar nada (sin gastar un turno del portal). Cuando Grupo Óptico los
+ * habilite, se saca la línea y el robot los toma solo.
+ */
+export const SIN_ARTICULO_EN_PORTAL: { crm: RegExp; porQue: string }[] = [
+    { crm: /^stock\b.*fotocrom[aá]tico.*1\.56/i, porQue: 'el portal no ofrece ninguna marca para el stock fotocromático 1.56' },
+    { crm: /^stock\b.*foto espejado/i, porQue: 'el portal no ofrece ninguna marca para el stock foto espejado' },
+    { crm: /^stock\b.*super blue.*1\.74/i, porQue: 'el portal no ofrece ninguna marca para el stock Super Blue 1.74' },
+    { crm: /^sol neutro\b/i, porQue: 'el portal no tiene código de artículo de sol neutro para nuestro cliente' },
+];
+
 export interface EspecificacionLab {
     clase: 'LAB';
     familia: Familia;
@@ -192,7 +207,13 @@ export interface EspecificacionStock {
 
 export type Especificacion = EspecificacionLab | EspecificacionStock;
 
-export type Resolucion = { ok: true; especificacion: Especificacion } | { ok: false; motivo: string };
+/**
+ * `aMano`: el producto está bien vendido pero el robot no tiene cómo elegirlo en
+ * el portal (sin equivalencia declarada). No es algo para corregir en la venta:
+ * se carga a mano en SmartLab y listo (Ishtar, 15/10/2026: "que el bot anuncie
+ * que no se puede cargar con bot, que se revise a mano y listo").
+ */
+export type Resolucion = { ok: true; especificacion: Especificacion } | { ok: false; motivo: string; aMano?: boolean };
 
 // "Familia · Material [· Essential]"; unos pocos productos viejos usan " - ".
 /** Las partes del nombre de un producto del CRM: "Familia · Material [· Essential] [2x1]" (los viejos usan " - "). Puro. */
@@ -217,21 +238,24 @@ export function especificacionDe(nombreProducto: string | null | undefined, opts
     const fam = familiaDe(nombre);
     const mat = materialDe(nombre);
 
+    const sinArticulo = SIN_ARTICULO_EN_PORTAL.find(s => s.crm.test(nombre));
+    if (sinArticulo) return { ok: false, aMano: true, motivo: `el robot no puede cargar "${nombre}" en SmartLab: ${sinArticulo.porQue}` };
+
     if (/^stock\b/i.test(fam)) {
         if (opts.conTenido) return { ok: false, motivo: `"${nombre}" es de stock y el portal no tiñe cristales de stock: hay que venderlo de laboratorio en Orgánico Blanco 1.49` };
         const ms = MATERIALES_STOCK.find(m => m.crm.test(mat));
-        if (!ms) return { ok: false, motivo: `"${nombre}": no hay equivalencia de stock declarada para "${mat}" (src/services/lab-modules/grupo-optico/catalogo.ts)` };
+        if (!ms) return { ok: false, aMano: true, motivo: `el robot no sabe elegir "${nombre}" en SmartLab (el material de stock "${mat}" no tiene equivalencia en el portal)` };
         return { ok: true, especificacion: { clase: 'STOCK', material: ms, rangoExtendido: /rango extendido/i.test(nombre) } };
     }
 
     const familia = FAMILIAS.find(f => f.crm.test(fam));
-    if (!familia) return { ok: false, motivo: `"${nombre}": la familia "${fam}" no tiene equivalencia en SmartLab declarada (catalogo.ts)` };
+    if (!familia) return { ok: false, aMano: true, motivo: `el robot no sabe elegir "${nombre}" en SmartLab (la familia "${fam}" no tiene equivalencia en el portal)` };
 
     // Essential: lo dice el producto, o lo pide quien prepara como extra NO cobrado
     // (carga/extras-no-cobrados.ts: avisa, exige motivo y le llega a la dueña).
     const essential = tieneEssential(nombre) || !!opts.conEssential;
     let material = MATERIALES_LAB.find(m => m.crm.test(mat));
-    if (!material) return { ok: false, motivo: `"${nombre}": el material "${mat}" no tiene equivalencia en SmartLab declarada (catalogo.ts)` };
+    if (!material) return { ok: false, aMano: true, motivo: `el robot no sabe elegir "${nombre}" en SmartLab (el material "${mat}" no tiene equivalencia en el portal)` };
 
     let pasoATenible = false;
     if (opts.conTenido && material.materialId !== MATERIAL_TENIBLE.materialId) {

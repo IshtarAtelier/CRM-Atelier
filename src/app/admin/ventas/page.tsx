@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users, Bot } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { PostSaleCard } from '@/components/orders/PostSaleCard';
 import { caseTypeStyle, POST_SALE_PIPELINE, POST_SALE_MOVABLE_STATUSES, postSaleColumn } from '@/lib/constants/postSale';
@@ -63,6 +63,9 @@ export default function VentasPage() {
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
     const [solicitudFactura, setSolicitudFactura] = useState<{ order: Order; cobrado: number; sugerido: number } | null>(null);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
+    /** "Procesar en <lab>": abre la ficha y el robot arranca solo. `n` cambia por clic para poder repetirlo. */
+    const [cargaPedida, setCargaPedida] = useState<{ orderId: string; lab: string; n: number } | null>(null);
+    const procesarEn = (orderId: string, lab: string) => { setExpandedDetail(orderId); setCargaPedida(c => ({ orderId, lab, n: (c?.n ?? 0) + 1 })); };
     const [caseTypeFilter, setCaseTypeFilter] = useState<string>('');
     const [viewMode, setViewMode] = useState<'VENTAS' | 'POST_VENTA'>(searchParams.get('mode') === 'POST_VENTA' ? 'POST_VENTA' : 'VENTAS');
     const [isSyncing, setIsSyncing] = useState(false);
@@ -1361,23 +1364,6 @@ export default function VentasPage() {
                                         );
                                     })()}
 
-                                {/* Carga asistida (robot + OK humano): LA MISMA entrada para todo laboratorio
-                                    que la tenga (LABS_CON_CARGA_ASISTIDA, sin código por lab): un botón que
-                                    abre la ficha, donde vive el bloque completo (CargaLaboratorio, el mismo
-                                    componente para todos). Acá no se dibuja el bloque: sería uno y una
-                                    consulta por cada venta del listado (Ishtar, 15/10/2026: "misma estética
-                                    en todos los laboratorios, modular, escalable y robusto"). */}
-                                {!['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && LABS_CON_CARGA_ASISTIDA.filter(lab => ventaLlevaCristalesDe(order.items, lab)).length > 0 && (
-                                    <div className="mt-4 flex flex-wrap gap-2">
-                                        {LABS_CON_CARGA_ASISTIDA.filter(lab => ventaLlevaCristalesDe(order.items, lab)).map(lab => (
-                                            <button key={lab} type="button" onClick={() => setExpandedDetail(order.id)} title={`Abre la ficha en el bloque de ${NOMBRE_DE_LAB[lab]}: el robot arma el pedido y se aprueba viendo el portal`}
-                                                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg bg-stone-900 text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900">
-                                                🤖 Cargar en {NOMBRE_DE_LAB[lab]} con el robot
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
                                     <div className="w-full lg:w-72">
@@ -1439,6 +1425,20 @@ export default function VentasPage() {
 
                                     {/* Actions */}
                                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 lg:flex-shrink-0 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
+                                        {/* "Procesar en <lab>": LA MISMA entrada para todo laboratorio con carga
+                                            asistida (LABS_CON_CARGA_ASISTIDA, sin código por lab). Un clic abre la
+                                            ficha y el robot arma el pedido en el portal; se aprueba viendo la
+                                            pantalla real (CargaLaboratorio, el mismo bloque para todos). Acá no se
+                                            dibuja el bloque: sería una consulta por cada venta del listado
+                                            (Ishtar, 15/10/2026: "Procesar en Vitolen / Procesar en Grupo Óptico,
+                                            algo simple e intuitivo; misma estética en todos los laboratorios"). */}
+                                        {!['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && LABS_CON_CARGA_ASISTIDA.filter(lab => ventaLlevaCristalesDe(order.items, lab)).map(lab => (
+                                            <button key={lab} type="button" onClick={() => procesarEn(order.id, lab)}
+                                                title={`El robot arma el pedido en el portal de ${NOMBRE_DE_LAB[lab]} y te muestra la pantalla real para que lo apruebes`}
+                                                className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-sm bg-orange-500 text-white shadow-orange-500/20 hover:shadow-orange-500/30">
+                                                <Bot className="w-3.5 h-3.5" /> Procesar en {NOMBRE_DE_LAB[lab]}
+                                            </button>
+                                        ))}
                                         {/* Advance Status Button */}
                                         {nextStepInfo && (
                                             <button
@@ -1674,6 +1674,7 @@ export default function VentasPage() {
                                         isAutoSubmitting={isAutoSubmitting}
                                         userRole={userRole}
                                         onRefresh={() => fetchOrders(search)}
+                                        cargaPedida={cargaPedida?.orderId === order.id ? cargaPedida : null}
                                     />
                                 )}
                             </div>
@@ -1862,6 +1863,7 @@ export default function VentasPage() {
                                         isAutoSubmitting={isAutoSubmitting}
                                         userRole={userRole}
                                         onRefresh={() => fetchOrders(search)}
+                                        cargaPedida={cargaPedida?.orderId === order.id ? cargaPedida : null}
                                     />
                                 </div>
                             </div>

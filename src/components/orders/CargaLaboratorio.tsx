@@ -21,7 +21,7 @@ import { formatDate } from '@/lib/format-date';
  */
 
 interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
-interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
+interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; aMano?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
 interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null }
 interface Borrador {
@@ -49,8 +49,18 @@ const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde:
     GRUPO_OPTICO: { caja: 'from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-indigo-100 dark:border-indigo-900/50', titulo: 'text-indigo-600 dark:text-indigo-400', boton: 'bg-indigo-600', borde: 'border-indigo-100 dark:border-indigo-900/40', anillo: 'hover:ring-indigo-400', seleccion: 'border-indigo-600 ring-indigo-300' },
 };
 
-export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: string; orderId: string; onChanged?: () => void }) {
+/**
+ * `arrancar`: un número > 0 pide que, apenas se lea el laboratorio, el bloque se
+ * traiga a la vista y el robot prepare el primer par que esté listo (es lo que
+ * hace el botón "Procesar en <lab>" del listado de ventas: un clic y el robot
+ * arranca; Ishtar, 15/10/2026). Cada clic manda un número distinto; el mismo
+ * número no arranca dos veces. Si al par le falta algo para elegir (tipo de
+ * armazón, forma), se queda en el formulario para que lo elijan.
+ */
+export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0 }: { lab: string; orderId: string; onChanged?: () => void; arrancar?: number }) {
     const [datos, setDatos] = useState<Datos | null>(null);
+    const caja = useRef<HTMLDivElement>(null);
+    const arrancado = useRef(0);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState('');
     const [ocupado, setOcupado] = useState<string | null>(null);
@@ -132,6 +142,19 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
         } finally { setOcupado(null); }
     };
 
+    /** ¿Este par se puede preparar ya, sin que nadie elija nada? */
+    const parListo = (p: Par) => !p.yaCargado && !p.espera && !p.aMano && p.faltantes.length === 0
+        && !datos?.borradores.some(b => b.pair === p.pair && (VIVOS.includes(b.status) || b.status === 'CARGADO'))
+        && !p.campos.some(c => c.obligatorio && !valorDe(p.pair, c));
+    // "Procesar en <lab>" desde el listado: traer el bloque a la vista y arrancar el robot.
+    useEffect(() => {
+        if (!arrancar || arrancar === arrancado.current || !datos || ocupado) return;
+        arrancado.current = arrancar;
+        caja.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const par = datos.pares.find(parListo);
+        if (par) void preparar(par);
+    }, [arrancar, datos]);
+
     const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal' | 'anular' | 'retirar-aprobacion' | 'releer', extra?: { motivo?: string }) => {
         setOcupado(`${accion}-${id}`); setError('');
         try {
@@ -201,7 +224,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     };
 
     return (
-        <div className={`bg-gradient-to-br ${tema.caja} rounded-2xl border p-5 shadow-sm`}>
+        <div ref={caja} id={`carga-${lab}`} className={`bg-gradient-to-br ${tema.caja} rounded-2xl border p-5 shadow-sm scroll-mt-20`}>
             <div className="flex items-center justify-between mb-4">
                 <h4 className={`text-[10px] font-black ${tema.titulo} uppercase tracking-widest flex items-center gap-1.5`}>
                     <Bot className="w-3.5 h-3.5" /> {nombre} · carga del pedido
@@ -277,6 +300,14 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         {/* ── Sin borrador vivo ni cargado: preparar ── */}
                         {!b && !cargado && (
                             par.yaCargado ? <p className="text-xs text-emerald-800 dark:text-emerald-400 font-bold">{par.yaCargado}</p>
+                            /* El robot no puede con este cristal: se anuncia y se carga a mano, sin botón de Preparar. */
+                            : par.aMano ? (
+                                <div className="text-xs text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/40 rounded-lg px-3 py-2 space-y-1">
+                                    <p className="font-bold flex items-center gap-1"><Bot className="w-3.5 h-3.5" /> Este pedido va a mano: el robot no lo puede cargar.</p>
+                                    <p>{par.aMano}.</p>
+                                    <p>Cargalo a mano en el portal de {nombre} y anotá acá el nº de pedido (el seguimiento y el cruce de costos siguen igual).</p>
+                                </div>
+                            )
                             : par.espera ? <p className="text-xs text-stone-500">{par.espera}</p>
                             : par.faltantes.length > 0 ? (
                                 <div className="text-xs text-amber-800 dark:text-amber-400">

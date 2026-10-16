@@ -97,10 +97,20 @@ ok('colores de varios: el del ítem; sin color, no carga', () => {
     assert.equal(especificacionDe('Multifocal Smart FREE · Orgánico Polarizado Gris / Brown 1.49 2x1').ok, false);
     assert.equal(especificacionDe('Multifocal Smart FREE · Orgánico Polarizado Gris / Brown 1.49 2x1', { colorItem: 'Brown' }).especificacion.colorId, 3);
 });
-ok('un producto sin equivalencia declarada no se carga (y dice qué falta)', () => {
+ok('un producto sin equivalencia declarada no se carga: lo anuncia como "a mano", no como algo que falte en la venta', () => {
     const r = especificacionDe('Sol neutro · Orgánico Espejado — Red / Blue');
     assert.equal(r.ok, false);
-    assert.match(r.motivo, /catalogo\.ts/);
+    assert.equal(r.aMano, true);
+    assert.match(r.motivo, /no puede cargar .* a mano|no sabe elegir|no puede cargar/);
+});
+ok('los stock que el portal no arma para nosotros (sin marca) se declaran a mano ANTES de pedirle nada al portal', () => {
+    for (const n of ['Stock · Orgánico Fotocromático c/AR Gris 1.56', 'Stock · Orgánico Foto Espejado Neutro 1.56', 'Stock · Orgánico Super Blue Asf. c/AR 1.74 · Rango Extendido', 'Sol neutro · Orgánico Polarizado Driver']) {
+        const r = especificacionDe(n);
+        assert.equal(r.ok, false, n);
+        assert.equal(r.aMano, true, n);
+    }
+    // Los demás de stock siguen resolviendo.
+    assert.equal(especificacionDe('Stock · Orgánico Blue c/AR 1.56').ok, true);
 });
 
 console.log('\nEl pedido armado desde la venta');

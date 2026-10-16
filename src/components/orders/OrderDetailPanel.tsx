@@ -51,6 +51,8 @@ interface OrderDetailPanelProps {
     isAutoSubmitting?: boolean;
     userRole?: string;
     onRefresh?: () => void;
+    /** "Procesar en <lab>" del listado: qué laboratorio arrancar (y un nº distinto por clic). */
+    cargaPedida?: { lab: string; n: number } | null;
 }
 
 const getRxDefaults = (order: any, pair: 1 | 2 = 1) => {
@@ -78,9 +80,10 @@ const getRxDefaults = (order: any, pair: 1 | 2 = 1) => {
     };
 };
 
-export function OrderDetailPanel({ 
-    order, 
-    context = 'ventas', 
+export function OrderDetailPanel({
+    order,
+    context = 'ventas',
+    cargaPedida = null,
     financials, 
     onAutoSubmit, 
     isAutoSubmitting,
@@ -1185,7 +1188,7 @@ export function OrderDetailPanel({
                         real del portal y ahí mismo se aprueba. El favorito de SmartLab queda
                         arriba como plan B ("a mano"). */}
                     {isGrupoOptico && (
-                        <CargaLaboratorio lab="GRUPO_OPTICO" orderId={order.id} onChanged={() => onRefresh?.()} />
+                        <CargaLaboratorio lab="GRUPO_OPTICO" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'GRUPO_OPTICO' ? cargaPedida.n : 0} />
                     )}
 
                     {/* SmartLab Live Status (Grupo Óptico). Vitolen tiene su propio bloque. */}
@@ -1256,7 +1259,7 @@ export function OrderDetailPanel({
                     {/* Vitolen: espejo del portal y carga asistida con OK humano
                         (src/services/lab-modules). Solo si la venta lleva sus cristales. */}
                     {isVitolen && (
-                        <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={() => onRefresh?.()} />
+                        <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'VITOLEN' ? cargaPedida.n : 0} />
                     )}
 
 

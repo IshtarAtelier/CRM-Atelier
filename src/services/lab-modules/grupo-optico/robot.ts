@@ -79,7 +79,10 @@ export async function resolverEnPortal(page: Page, plan: PlanDeCarga): Promise<{
     const marcas = await lista(page, `/data/brand/list?${q({ current: 1, rowCount: 100000, lensTypeId, materialId, colorId, rightEyeStockArticle: stock ? 1 : 0, clientId, isAdmin: 0 })}`);
     const brandId = stock ? Number(marcas.length === 1 ? marcas[0].value : NaN) : esp.familia.brandId;
     const marca = marcas.find(b => String(b.value) === String(brandId));
-    if (!marca) throw new PortalNoCoincideError(`la marca del portal no cierra (ofrece: ${marcas.map(m => m.label).join(', ') || 'ninguna'})`);
+    if (!marca) throw new PortalNoCoincideError(marcas.length
+        ? `la marca del portal no cierra (ofrece: ${marcas.map(m => m.label).join(', ')})`
+        // Sin ninguna marca para este material no hay artículo que elegir: este cristal se carga a mano (y se declara en SIN_ARTICULO_EN_PORTAL).
+        : 'el portal no ofrece ninguna marca para este material: el robot no lo puede cargar, cargalo a mano en SmartLab');
 
     // Artículo de cada ojo, con SU graduación.
     const articulo = async (o: OjoPlan | null, lado: string): Promise<ArticuloPortal | null> => {
