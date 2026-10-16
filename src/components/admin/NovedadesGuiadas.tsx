@@ -21,6 +21,14 @@ interface Paso {
     cuerpo: React.ReactNode;
 }
 
+/** Si el guiado trae opciones, el último paso cierra con ellas en vez de "Entendido". */
+const OPCIONES: Record<string, { texto: string; principal?: boolean }[]> = {
+    'desafio-resenas-lens-cerro-2026-10': [
+        { texto: 'Me sumo al desafío', principal: true },
+        { texto: 'Dejá, me gusta el segundo puesto' },
+    ],
+};
+
 const GUIADOS: Record<string, Paso[]> = {
     'solicitar-factura-2026-10': [
         {
@@ -79,6 +87,20 @@ const GUIADOS: Record<string, Paso[]> = {
                     <p className="mt-3">Si la venta ya tiene una solicitud pendiente, el sistema te avisa: no hace falta volver a pedirla.</p>
                     <p className="mt-3 p-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
                         ¿Dudas? Escribile a Ishtar por la mensajería interna.
+                    </p>
+                </>
+            ),
+        },
+    ],
+    'desafio-resenas-lens-cerro-2026-10': [
+        {
+            titulo: 'Desafío del día: ganarle a Lens Cerro',
+            cuerpo: (
+                <>
+                    <p><strong>Lens Cerro es tu rival directo:</strong> está a 80 metros, en Tejeda 4300, y tiene casi las mismas reseñas que vos (<strong>746 contra tus 739</strong>).</p>
+                    <p className="mt-2">Ganarle en reseñas es lo que más te sube en el mapa.</p>
+                    <p className="flex items-center gap-2 mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 font-bold">
+                        <Gift className="w-4 h-4 shrink-0" /> El desafío de hoy: conseguir las reseñas que faltan para pasarlos. Son 8.
                     </p>
                 </>
             ),
@@ -220,13 +242,13 @@ export default function NovedadesGuiadas() {
     const pasos = GUIADOS[guiadoId];
     const esUltimo = paso === pasos.length - 1;
 
-    const confirmar = async () => {
+    const confirmar = async (respuesta?: string) => {
         setGuardando(true);
         try {
             const res = await fetch('/api/novedades', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: guiadoId }),
+                body: JSON.stringify({ id: guiadoId, respuesta }),
             });
             // Solo se cierra si el server lo registró: si falló, mañana no
             // tiene que "haberse visto solo".
@@ -264,10 +286,24 @@ export default function NovedadesGuiadas() {
                                 Atrás
                             </button>
                         )}
-                        {esUltimo ? (
+                        {esUltimo && OPCIONES[guiadoId] ? (
+                            OPCIONES[guiadoId].map(o => (
+                                <button
+                                    key={o.texto}
+                                    type="button"
+                                    onClick={() => confirmar(o.texto)}
+                                    disabled={guardando}
+                                    className={o.principal
+                                        ? 'inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-60'
+                                        : 'px-4 py-2.5 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 font-bold text-[11px] uppercase tracking-widest transition-colors disabled:opacity-60'}
+                                >
+                                    {o.texto}
+                                </button>
+                            ))
+                        ) : esUltimo ? (
                             <button
                                 type="button"
-                                onClick={confirmar}
+                                onClick={() => confirmar()}
                                 disabled={guardando}
                                 className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-60"
                             >
