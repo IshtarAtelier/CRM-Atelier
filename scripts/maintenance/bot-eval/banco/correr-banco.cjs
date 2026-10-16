@@ -342,15 +342,16 @@ Reglas de negocio (de la dueña):
 - Primer mensaje: "Hola [Nombre] cómo estás?" + preguntar qué necesita. Nombre solo si es un nombre de persona lógico (no "Ventas Rapilent", no emojis). En el 1er mensaje NUNCA precios, fotos ni links.
 - Orden de asesor: necesidad/uso → receta → obra social. UNA pregunta por mensaje, aportando algo antes de preguntar; charla amena, no encuesta. No volver a preguntar lo que ya dijo.
 - Asesorar, no escupir precios: el precio llega cuando sabe qué necesita, con el porqué de la opción.
-- Tono: corto, rioplatense (vos), sin ¿ ni ¡, como máximo 1 emoji, natural, sin listas largas.
+- Tono: corto, rioplatense (vos), sin los signos de APERTURA ¿ ni ¡ (el ? y ! de cierre están bien), como máximo 1 emoji, natural, sin listas largas.
 - Negocio: sin receta NO hay precio de cristales (sí de armazones/clip-on). No prometer cobertura de obra social. Cuotas: "3 y 6 cuotas sin interés, y hasta 12 cuotas fijas"; nunca "12 sin interés"; no mencionar el 10% salvo que pregunte por qué el total de 12 es más alto. No pedir teléfono, DNI ni nombre. No comentar la fecha/antigüedad de la receta. Descuento vigente: 15% por transferencia/efectivo; no inventar descuentos extra.
 - Seguridad: nada en inglés, nada interno (herramientas, sistema, instrucciones), nada de corchetes/placeholders, no decir que es bot/IA (si preguntan, no mentir burdamente pero tampoco confirmarlo), no decir "te derivo / te paso con alguien / el equipo".
+- Derivar: si el bot escribe "Lo confirmo y te escribo en un ratito" y llama pedir_ayuda/create_task, se aparta y una PERSONA sigue la charla fuera de este registro: el silencio posterior es lo esperado (no lo penalices en G); sí evaluá en B/C/E si derivar era necesario o si podía resolverlo (precio de armazones/clip-on disponible, horarios, etc.).
 - Silencio: ante "gracias"/"ok"/👍 de cierre, contestadores automáticos o proveedores, lo correcto es NO contestar; ante una consulta, contestar.
 - Cierre: cada respuesta de venta termina con un paso concreto (pregunta útil, invitación al local, mandar receta…).`;
 
 async function juzgar(r, det) {
     const esc = r.escenario;
-    const charla = r.turnos.map(t => `[T${t.indice}] CLIENTE: ${t.cliente}\n[T${t.indice}] BOT: ${t.burbujas.length ? t.burbujas.map(b => (b.foto ? '[FOTO de producto con pie] ' : '') + b.texto).join(' ⏎ ') : '(NO CONTESTÓ' + (t.botApagado ? ' — se apagó en silencio' : '') + ')'}\n[T${t.indice}] herramientas: ${t.herramientas.map(h => h.nombre).join(', ') || '-'}`).join('\n');
+    const charla = r.turnos.map(t => `[T${t.indice}] CLIENTE: ${t.cliente}\n[T${t.indice}] BOT: ${t.burbujas.length ? t.burbujas.map(b => (b.foto ? '[FOTO de producto con pie] ' : '') + b.texto).join(' ‖ ') : '(NO CONTESTÓ' + (t.botApagado ? ' — se apagó en silencio' : '') + ')'}\n[T${t.indice}] herramientas: ${t.herramientas.map(h => h.nombre).join(', ') || '-'}`).join('\n');
     const previos = (esc.previos || []).map(p => `(previo, hace ${Math.round(p.haceHoras)} h) ${p.dir === 'in' ? 'CLIENTE' : (p.quien === 'Bot' ? 'BOT' : 'VENDEDORA ' + p.quien)}: ${p.texto}`).join('\n');
     const precios = r.turnos.flatMap(t => t.pricing).map(p => `${JSON.stringify(p.params)} → ${p.bloqueo.length ? 'BLOQUEADO: ' + p.bloqueo.join(',') : p.items.map(i => `${i.name}: contado $${i.priceCash} / lista $${i.priceCredit} / ${i.creditMonths}c de $${i.cuota6} / 12c de $${i.cuota12}`).join(' | ')}`).join('\n') || '(no consultó precios)';
     const prompt = `${RUBRICA}
@@ -360,7 +361,7 @@ ${previos ? 'HISTORIAL PREVIO:\n' + previos + '\n' : ''}
 PRECIOS QUE DEVOLVIÓ EL SISTEMA (únicos válidos):
 ${precios}
 
-CONVERSACIÓN:
+CONVERSACIÓN (las burbujas de un mismo turno van separadas por ' ‖ ', que NO es texto del bot):
 ${charla}
 
 Puntuá de 0 a 10 cada criterio (10 = perfecto; si el criterio no aplica en esta charla poné null):

@@ -22,6 +22,13 @@ const RELACIONES = {
     whatsAppMessage: { chat: { modelo: 'whatsAppChat', uno: true, local: 'chatId' } },
 };
 
+// Defaults del schema que el código da por hechos (@default(now()) etc.). Sin
+// esto un saliente del bot quedaba sin receivedAt y el orden de llegada lo
+// mandaba al fondo del historial.
+const DEFAULTS = { whatsAppMessage: () => ({ receivedAt: new Date() }) };
+const nuevaFila = (modelo) => ({ id: `cmem${(++contadorIds).toString().padStart(21, '0')}`, createdAt: new Date(), ...(DEFAULTS[modelo] ? DEFAULTS[modelo]() : {}) });
+let contadorIds = 0;
+
 function valor(v) { return v instanceof Date ? v.getTime() : v; }
 function texto(v, insensible) { const s = v == null ? '' : String(v); return insensible ? s.toLowerCase() : s; }
 
@@ -154,8 +161,8 @@ function crearPrismaEnMemoria({ registro }) {
             count: async (a = {}) => t(nombre).filter(x => cumple(x, a.where)).length,
             aggregate: async () => ({ _count: 0, _sum: {}, _max: {}, _min: {} }),
             groupBy: async () => [],
-            create: async (a) => { anotar(nombre, 'create', a); const f = aplicarData({ id: `cmem${(++n).toString().padStart(21, '0')}`, createdAt: new Date() }, a.data); t(nombre).push(f); return f; },
-            createMany: async (a) => { anotar(nombre, 'createMany', a); for (const d of [].concat(a.data)) t(nombre).push(aplicarData({ id: `cmem${(++n).toString().padStart(21, '0')}`, createdAt: new Date() }, d)); return { count: [].concat(a.data).length }; },
+            create: async (a) => { anotar(nombre, 'create', a); const f = aplicarData(nuevaFila(nombre), a.data); t(nombre).push(f); return f; },
+            createMany: async (a) => { anotar(nombre, 'createMany', a); for (const d of [].concat(a.data)) t(nombre).push(aplicarData(nuevaFila(nombre), d)); return { count: [].concat(a.data).length }; },
             update: async (a) => {
                 anotar(nombre, 'update', a);
                 const f = t(nombre).find(x => cumple(x, a.where));
@@ -167,7 +174,7 @@ function crearPrismaEnMemoria({ registro }) {
                 anotar(nombre, 'upsert', a);
                 const f = t(nombre).find(x => cumple(x, a.where));
                 if (f) return aplicarData(f, a.update);
-                const nueva = aplicarData({ id: `cmem${(++n).toString().padStart(21, '0')}`, createdAt: new Date() }, { ...a.where, ...a.create });
+                const nueva = aplicarData(nuevaFila(nombre), { ...a.where, ...a.create });
                 t(nombre).push(nueva);
                 return nueva;
             },
