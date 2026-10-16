@@ -73,7 +73,7 @@ const M = [
     ['edipo', 'Edipo', '', SOL, [60, 61]],
     ['persefone', 'Perséfone', '', SOL, [66, 67]],
     ['olimpo-black', 'Olimpo', 'Black', SOL, [69, 71]],
-    ['demeter', 'Deméter', '', SOL, [72, 75]],
+    ['demeter', 'Deméter', '', SOL, [72, 73]],
     ['pluton-c4', 'Plutón', 'C4', SOL, [78, 79]],
     ['triton-c3', 'Tritón', 'C3', SOL, [83, 84]],
     ['triton-c5', 'Tritón', 'C5', SOL, [86, 87]],
