@@ -44,6 +44,7 @@ const LIMITE_ADICION_MI_PRIMER = 1.50;
 const DEFAULT_EXECUTIVE_PROMPT = require('./prompts/executivePrompt');
 const { buildContextModules } = require('./prompts/context-modules');
 const { motivoParaDescartarPromptCustom } = require('./shared/prompt-custom');
+const { clasificarErrorIA, esFallaDeSaldo, ErrorDeIA } = require('./shared/errores-ia');
 
 
 
@@ -623,6 +624,11 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, prompt
         response = await modelo.invoke(messagesWithSystem, config);
       } catch (llmError) {
         console.error(`❌ ${nodeName}: Error en invocación LLM (intento ${attempt}/${MAX_RETRIES}):`, llmError.message);
+        // Sin crédito o sin cuota (16/10/2026): reintentar no sirve y el turno
+        // tiene que saber POR QUÉ no hubo respuesta. Sale clasificado (ver
+        // shared/errores-ia.js) y bot-cloud.js no lo cuenta como falla del chat.
+        const claseIA = clasificarErrorIA(llmError);
+        if (esFallaDeSaldo(claseIA)) throw new ErrorDeIA(claseIA, llmError);
         if (attempt < MAX_RETRIES) {
           await new Promise(r => setTimeout(r, 1000));
           continue;

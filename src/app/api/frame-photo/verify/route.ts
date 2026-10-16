@@ -63,6 +63,7 @@ export async function POST(request: Request) {
     } catch (error: any) {
         // Falla abierta: se acepta y se deja rastro para poder auditarlo después.
         console.error('[Verificación de foto de armazón] No se pudo verificar, se acepta la foto:', error?.message);
+        await (await import('@/lib/ai-error-handler')).avisarSiSinCredito(error, 'Verificación de foto de armazón');
         return NextResponse.json({ ok: true, noVerificada: true });
     }
 }
