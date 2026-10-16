@@ -20,6 +20,8 @@ import { formatDate } from '@/lib/format-date';
 import { precioConSigno } from '@/lib/format-precio';
 import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
 import { PricingService } from '@/services/PricingService';
+import { getFileBuffer } from '@/lib/storage';
+import type { WhatsAppMedia } from '@/lib/whatsapp/send';
 
 export interface SolicitudFacturaInput {
     orderId: string;
@@ -161,20 +163,59 @@ export const InvoiceRequestService = {
             .sort((a, b) => a.date.getTime() - b.date.getTime())
             .map(p => `${formatDate(p.date)} ${METHOD_LABELS[p.method] || p.method} ${precioConSigno(p.amount)}`)
             .join('; ');
+        // Las imágenes de los comprobantes de cada pago, para verificar desde
+        // el celular sin abrir el CRM (Ishtar, 16/10/2026). Van después del
+        // texto, un mensaje por comprobante.
+        const adjuntos = await comprobantesDePagos(order.payments);
         const texto =
             // El link va antes que los pagos: la plantilla corta a 700 caracteres.
             `Factura de ${precioConSigno(monto)} para ${clienteNombre} (${doc}), venta #${numero}.` +
             ` Facturar: ${link} .` +
             (observaciones ? ` Observación: ${observaciones}.` : ' Sin observación.') +
-            ` Pagos (${precioConSigno(cobrado)} cobrado): ${pagos || 'ninguno'}.`;
+            ` Pagos (${precioConSigno(cobrado)} cobrado): ${pagos || 'ninguno'}.` +
+            (adjuntos.length > 0 ? ` Te mando ${adjuntos.length === 1 ? 'el comprobante' : `los ${adjuntos.length} comprobantes`} a continuación.` : ' Sin comprobantes cargados.');
         avisarEquipoPorWhatsApp({
             destinatarios: admins,
             remitente: { id: actor.id, name: actor.name },
             contexto: `una factura de ${clienteNombre}`,
             // El link ya va dentro del texto: así también llega por la plantilla.
             texto,
+            adjuntos,
         }).catch(console.error);
 
         return notification;
     },
 };
+
+const MIME_POR_EXTENSION: Record<string, string> = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', pdf: 'application/pdf',
+};
+
+/**
+ * Los comprobantes cargados en los pagos de la venta, listos para mandar por
+ * WhatsApp. Un archivo que no se puede leer se saltea (y se loguea): la
+ * solicitud sale igual, con los que haya.
+ */
+async function comprobantesDePagos(
+    payments: { date: Date; method: string; amount: number; receiptUrl: string | null }[],
+): Promise<WhatsAppMedia[]> {
+    const adjuntos: WhatsAppMedia[] = [];
+    for (const p of [...payments].sort((a, b) => a.date.getTime() - b.date.getTime())) {
+        if (!p.receiptUrl) continue;
+        const ext = (p.receiptUrl.split('?')[0].split('.').pop() || '').toLowerCase();
+        const mimetype = MIME_POR_EXTENSION[ext];
+        if (!mimetype) { console.warn('[invoice-request] Comprobante con extensión desconocida:', p.receiptUrl); continue; }
+        try {
+            const buffer = await getFileBuffer(p.receiptUrl);
+            if (!buffer) { console.warn('[invoice-request] Comprobante ilegible:', p.receiptUrl); continue; }
+            adjuntos.push({
+                base64: buffer.toString('base64'),
+                mimetype,
+                filename: `Comprobante ${formatDate(p.date)} ${METHOD_LABELS[p.method] || p.method} ${precioConSigno(p.amount)}`,
+            });
+        } catch (e: any) {
+            console.error('[invoice-request] No se pudo leer el comprobante', p.receiptUrl, e?.message);
+        }
+    }
+    return adjuntos;
+}
