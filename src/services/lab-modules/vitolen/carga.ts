@@ -344,9 +344,20 @@ export async function leerVentaParaCarga(orderId: string): Promise<VentaParaCarg
  * (El resumen comparable del portal cubre lo que el PORTAL muestra; esto cubre
  * lo que la VENTA dice hoy.) Puro: check:lab-modulos.
  */
+/** Mismo valor con las claves de cada objeto ordenadas, para comparar sin depender del orden. */
+function canonico(v: unknown): unknown {
+    if (Array.isArray(v)) return v.map(canonico);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.keys(v as object).sort().map(k => [k, canonico((v as Record<string, unknown>)[k])]));
+    return v;
+}
+
 export function diferenciasDePayloadVitolen(aprobado: Partial<PayloadVitolen>, hoy: PayloadVitolen | null): string[] {
     if (!hoy) return ['la venta ya no arma el pedido'];
-    const j = (v: unknown) => JSON.stringify(v ?? null);
+    // `aprobado` viene de la base: Postgres (jsonb) devuelve las claves en OTRO
+    // orden del que las escribió el código, así que un JSON.stringify directo
+    // acusaba OD, OI y armazón en TODOS los borradores aunque la venta no
+    // hubiera cambiado (16/10/2026: el robot devolvía a revisión en loop).
+    const j = (v: unknown) => JSON.stringify(canonico(v ?? null));
     const campos: [string, unknown, unknown][] = [
         ['OD', aprobado.od, hoy.od], ['OI', aprobado.oi, hoy.oi],
         ['diseño', aprobado.diseno, hoy.diseno], ['variante', aprobado.variante ?? null, hoy.variante ?? null],

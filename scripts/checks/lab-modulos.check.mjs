@@ -655,6 +655,14 @@ ok('Vitolen: al confirmar, la venta de HOY tiene que armar lo aprobado (receta, 
     const hoy = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
     assert.deepEqual(diferenciasDePayloadVitolen(r.payload, hoy.payload), ['OD']);
     assert.deepEqual(diferenciasDePayloadVitolen(r.payload, null), ['la venta ya no arma el pedido']);
+    // El payload guardado vuelve de Postgres (jsonb) con las claves en otro orden:
+    // eso no es un cambio de la venta (16/10/2026, el robot devolvía a revisión en loop).
+    const reordenado = (v) => Array.isArray(v) ? v.map(reordenado) : v && typeof v === 'object'
+        ? Object.fromEntries(Object.keys(v).sort((a, b) => b.localeCompare(a)).map(k => [k, reordenado(v[k])])) : v;
+    const guardado = JSON.parse(JSON.stringify(reordenado(r.payload)));
+    assert.notEqual(JSON.stringify(guardado), JSON.stringify(r.payload), 'la prueba tiene que cambiar el orden de las claves');
+    assert.deepEqual(diferenciasDePayloadVitolen(guardado, r.payload), []);
+    assert.deepEqual(diferenciasDePayloadVitolen(guardado, hoy.payload), ['OD']);
 });
 ok('Vitolen: qué payload es el 2º par de la promo (con rol manda el rol; sin rol, el par 2; o si lleva pedido origen)', () => {
     assert.equal(esSegundoParDePromo({ par: 2, rolPromo: null }), false); // null = la regla dijo "sin promo"
