@@ -19,7 +19,7 @@ export const CLASE_ERROR_IA = {
 export type ClaseErrorIA = (typeof CLASE_ERROR_IA)[keyof typeof CLASE_ERROR_IA];
 
 const PATRONES_SIN_CREDITO = [
-    /(?<![\d.,$])402(?![\d]|[.,]\d)/,
+    /(?:^|[^\d.,$])402(?![\d]|[.,]\d)/,
     /payment required/i,
     /prepayment credits? (are|is) depleted/i,
     /credits? (are|is) depleted/i,
@@ -30,7 +30,7 @@ const PATRONES_SIN_CREDITO = [
 ];
 
 const PATRONES_CUOTA = [
-    /(?<![\d.,$])429(?![\d]|[.,]\d)/,
+    /(?:^|[^\d.,$])429(?![\d]|[.,]\d)/,
     /RESOURCE_EXHAUSTED/,
     /too many requests/i,
     /exceeded your current quota/i,
@@ -39,7 +39,7 @@ const PATRONES_CUOTA = [
 ];
 
 const PATRONES_TRANSITORIO = [
-    /(?<![\d.,$])50[0234](?![\d]|[.,]\d)/,
+    /(?:^|[^\d.,$])50[0234](?![\d]|[.,]\d)/,
     /UNAVAILABLE/,
     /INTERNAL/,
     /DEADLINE_EXCEEDED/,
