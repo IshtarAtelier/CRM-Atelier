@@ -26,7 +26,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { asuntoCampaniaCupon, htmlCampaniaCupon, textoWhatsAppCampaniaCupon } from '../../src/lib/email/campania-cupon.ts';
 import { formatDate } from '../../src/lib/format-date.ts';
 import { precioConSigno } from '../../src/lib/format-precio.ts';
-import { SIN_ROBOTS } from '../../src/lib/checkout/robots.ts';
+import { listarPresupuestosTiendaAbiertos } from '../../src/lib/checkout/presupuestos-tienda-abiertos.ts';
 
 const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 const usarProd = process.argv.includes('--prod');
@@ -54,34 +54,19 @@ try {
         minimo: cupon.minOrderAmount ? precioConSigno(cupon.minOrderAmount) : '',
     };
 
-    const desde = new Date(Date.now() - dias * 86400000);
-    const clientes = await prisma.client.findMany({
-        where: { createdAt: { gte: desde }, contactSource: { in: ['Tienda online', 'Carrito Web'] } },
-        select: { id: true, name: true, phone: true, email: true, orders: { where: { isDeleted: false }, select: { id: true, total: true, labSentAt: true, createdAt: true, items: { select: { productNameSnapshot: true, productId: true } } }, orderBy: { createdAt: 'desc' } } },
-        orderBy: { createdAt: 'asc' },
-    });
-    const robots = clientes.filter((c) => /joonix|storebot/i.test(c.email || ''));
-    const abiertos = clientes.filter((c) => !robots.includes(c) && c.orders.length > 0 && !c.orders.some((o) => o.labSentAt));
-    console.log(`${clientes.length} contactos de la tienda · ${abiertos.length} con presupuesto abierto y sin compra (${robots.length} robots descartados)\n`);
+    const abiertos = await listarPresupuestosTiendaAbiertos(prisma, { dias, horasMinimas: 0 });
+    console.log(`${abiertos.length} personas con presupuesto abierto y sin compra (robots descartados)\n`);
 
     let html = '';
     let mails = 0;
-    for (const c of abiertos) {
-        const o = c.orders[0];
-        // El nombre que vio la persona en la tienda (WebProduct), no el interno
-        // del CRM ("KAZZWINI", "Monofocal TALLADO (CNC)…"). Sin ficha web, no se
-        // nombra: "tus anteojos" es mejor que un código de catálogo.
-        const ids = o.items.map((i) => i.productId).filter(Boolean);
-        const fichas = ids.length ? await prisma.webProduct.findMany({ where: { productId: { in: ids } }, select: { name: true } }) : [];
-        const producto = fichas[0]?.name || null;
-        const params = { nombre: c.name || 'Hola', cupon: cuponMail, motivo: 'presupuesto', producto, urlTienda: 'https://atelieroptica.com.ar/tienda' };
-        const tel = (c.phone || '').replace(/\D/g, '');
-        console.log(`▸ ${c.name}  ·  …${tel.slice(-4)}  ·  presupuesto ${precioConSigno(o.total)} del ${formatDate(o.createdAt)}  ·  mail: ${c.email ? 'sí' : 'no'}`);
+    for (const p of abiertos) {
+        const params = { nombre: p.nombre, cupon: cuponMail, motivo: 'presupuesto', producto: p.producto, urlTienda: 'https://atelieroptica.com.ar/tienda' };
+        console.log(`▸ ${p.nombre}  ·  …${p.telefono.slice(-4)}  ·  presupuesto ${precioConSigno(p.presupuesto)} del ${formatDate(p.fechaPresupuesto)}  ·  mail: ${p.email ? 'sí' : 'no'}`);
         console.log(textoWhatsAppCampaniaCupon(params).split('\n').map((l) => `    ${l}`).join('\n') + '\n');
         if (!html) html = htmlCampaniaCupon(params);
-        if (mandarMail && c.email) {
+        if (mandarMail && p.email) {
             const { sendClientEmail } = await import('../../src/lib/client-email.ts');
-            const ok = await sendClientEmail({ to: c.email, subject: asuntoCampaniaCupon(params), bodyHtml: htmlCampaniaCupon(params), label: `cupón ${codigo}` });
+            const ok = await sendClientEmail({ to: p.email, subject: asuntoCampaniaCupon(params), bodyHtml: htmlCampaniaCupon(params), label: `cupón ${codigo}` });
             if (ok) mails++;
         }
     }

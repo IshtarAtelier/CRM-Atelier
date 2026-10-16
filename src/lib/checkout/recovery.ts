@@ -60,7 +60,7 @@ export interface RecoverableSession {
  * código y una etiqueta legible del descuento. Es el MISMO código que valida el
  * checkout vía validateCoupon, así que lo que promete el email es canjeable.
  */
-async function getRecoveryCoupon(): Promise<{ code: string; label: string } | undefined> {
+export async function getRecoveryCoupon(): Promise<{ code: string; label: string; venceEl: string; minimo: string } | undefined> {
   const settings = await getWebSettings();
   const code = (settings.web_recovery_coupon_code || '').trim().toUpperCase();
   if (!code) return undefined;
@@ -74,7 +74,13 @@ async function getRecoveryCoupon(): Promise<{ code: string; label: string } | un
     ? `${coupon.discountValue}% OFF`
     : `$${coupon.discountValue.toLocaleString('es-AR')} OFF`;
 
-  return { code: coupon.code, label };
+  // Vencimiento y mínimo, para el aviso a Ishtar y el mail de cupón: lo que
+  // se promete tiene que ser lo que el checkout acepta.
+  const venceEl = coupon.expiresAt
+    ? coupon.expiresAt.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    : 'fin de mes';
+  const minimo = coupon.minOrderAmount ? `$${coupon.minOrderAmount.toLocaleString('es-AR')}` : '';
+  return { code: coupon.code, label, venceEl, minimo };
 }
 
 /**
