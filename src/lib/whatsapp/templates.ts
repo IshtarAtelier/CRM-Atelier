@@ -389,11 +389,11 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, seguís pensándolo? Si hay algo que te frena, decímelo y lo vemos.',
         params: [{ label: 'nombre', example: 'Julio' }],
     },
-    ultimo_seguimiento_v4: {
-        name: 'ultimo_seguimiento_v4',
+    ultimo_seguimiento_v5: {
+        name: 'ultimo_seguimiento_v5',
         inventario: 'E4 (cierre, día 15) · reemplaza ultimo_seguimiento y el retome del día 30',
         category: 'MARKETING',
-        body: 'Hola {{1}}, te dejo un {{2}} con el código {{3}} hasta el {{4}}, por si te sirve. Si ya lo resolviste, no hay drama, avisame y listo. Y si querés ver lo que va entrando, estamos en Instagram: @atelieroptica_',
+        body: 'Hola {{1}}, te dejo un {{2}} con el código {{3}} hasta el {{4}}, por si te sirve. Si ya lo resolviste, no hay drama, avisame y listo. Y si querés ver lo que va entrando, acá está nuestro Instagram: https://www.instagram.com/atelieroptica_',
         params: [
             { label: 'nombre', example: 'Julio' },
             { label: 'descuento', example: '10% OFF' },
