@@ -88,8 +88,9 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                 return {
                     pair,
                     titulo: items[0]?.product?.name ?? items[0]?.productNameSnapshot ?? null,
-                    faltantes: r.ok ? [] : r.faltantes,
+                    faltantes: r.ok || r.aMano ? [] : r.faltantes,
                     avisos: r.avisos,
+                    aMano: r.ok ? null : (r.aMano ?? null),
                     // Stock: el portal no lleva forma del armazón; no se ofrece.
                     campos: [...(esStock ? campos.filter(c => c.clave !== 'forma') : campos), ...(extraEssential ? [extraEssential] : [])],
                     espera: esSinCargo && !origen ? `Es el par SIN CARGO del 2x1: se prepara cuando el par con cargo (par ${roles!.conCargo}) esté cargado (lleva su nº de operación en la observación, para que el laboratorio no lo cobre).` : null,

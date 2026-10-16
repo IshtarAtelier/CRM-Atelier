@@ -27,13 +27,21 @@ El robot carga lo que dice la venta. Si falta algo, no prepara y dice qué.
 
 ## Paso a paso
 
-En la ficha, columna derecha, el bloque **"Grupo Óptico · carga del pedido"**.
+En **Ventas**, cada venta que lleva cristales de Grupo Óptico tiene el botón
+negro **"🤖 Hacé lo tuyo"** (al lado de "Procesado"; las de Vitolen tienen el
+mismo, y las de otros laboratorios no tienen ninguno). No dice el laboratorio:
+el sistema ya sabe a dónde entrar por los cristales de la venta. El nombre es
+en broma a propósito: el pedido lo carga el robot, vos solo lo revisás y das
+el OK.
+Un clic abre la ficha en el bloque **"Grupo Óptico · carga del pedido"** y, si
+no hace falta elegir nada, el robot arranca solo.
 
-1. Elegí **tipo de armazón** (plástico o metálico). Tipo de aro (aro entero,
-   ranurado, perforado) y forma son opcionales.
-2. Apretá **"Preparar en Grupo Óptico"**. El robot entra al portal (solo a
-   leer) y arma el pedido. Tarda unos segundos (a veces minutos, si el portal
-   está ocupado): la ficha se va actualizando sola, no hace falta recargar.
+1. Si el bloque pide algo, elegilo: **tipo de armazón** (plástico o metálico);
+   tipo de aro (aro entero, ranurado, perforado) y forma son opcionales.
+2. Apretá **"Preparar en Grupo Óptico"** (si el robot no arrancó solo). El
+   robot entra al portal (solo a leer) y arma el pedido. Tarda unos segundos
+   (a veces minutos, si el portal está ocupado): la ficha se va actualizando
+   sola, no hace falta recargar.
 3. En la ficha aparece **la pantalla de SmartLab con el pedido cargado** (todavía sin guardar). Tocá **"Ver el portal en grande y decidir"** y revisala contra la venta: artículo de cada ojo, material, graduación, DNP, altura, armazón, teñido y observación.
 4. Ahí mismo, abajo de la pantalla, decidí:
    - **Aprobar y cargar**: el robot crea el pedido, el **nº de pedido** queda
@@ -92,6 +100,7 @@ de "Preparar" hay un link **"+ Agregar Essential (NO está en la venta)"**:
 | Qué ves | Qué significa | Qué hacer |
 |---|---|---|
 | "Para prepararlo falta, en la venta: …" | Falta un dato | Completalo en la venta |
+| "Este pedido va a mano: el robot no lo puede cargar" | Ese cristal está bien vendido pero el portal no lo deja elegir con el robot (hoy: stock fotocromático 1.56, foto espejado, Super Blue 1.74 y los de sol neutro) | Cargalo a mano en SmartLab y anotá el nº de pedido en la venta; el seguimiento y los costos siguen igual |
 | "No se pudo preparar: el portal no ofrece un artículo que corresponda" | Ese producto no existe así en SmartLab (o la tabla no lo tiene) | Avisá a Ishtar; mientras, se carga a mano |
 | "Ya tiene pedido en el laboratorio: nº …" | Ese par ya se cargó (por el robot o a mano) | Nada: no se carga dos veces |
 | "Aprobado · no se cargó" + **Reintentar la carga** | El portal no respondió | Reintentá: **nunca se duplica**, el robot busca el pedido antes de crearlo |

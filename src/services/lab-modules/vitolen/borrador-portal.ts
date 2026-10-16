@@ -9,6 +9,10 @@ import { BorradorInexistenteError, cancelarBorrador, confirmar, ConfirmarNoDispo
 import { conSesionVitolen, LAB_VITOLEN, NOMBRE_VITOLEN, ROBOT_VITOLEN } from './portal';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { pedidoOrigenDeVitolen } from './origen';
+import { cambiosAMano, impactoDeCambios, lineasDeCambios, type CambioAMano } from './cambios-a-mano';
+import { leerResumen } from './resumen';
+import { labConfigDe } from '../../lab-recon/cost-matching';
+import { registrarCambioAMano } from '../carga/extras-no-cobrados';
 import { rolDeLaPromo, rolesDeLaPromoHoya } from '../../../lib/laboratorios/vitolen-promo';
 import { armarFormulario, diferenciasDePayloadVitolen, leerVentaParaCarga } from './carga';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
@@ -48,6 +52,12 @@ export interface ResumenGuardado extends RastroPortal {
     pasos: { campo: string; valor: string }[];
     pendientes: string[];
     llenadoEl: string;
+    /** El resumen comparable que dejó el ROBOT al preparar: contra esto se miden los cambios a mano. */
+    textoOriginal?: string;
+    /** Lo que cambió a mano en el portal (releer), valuado con la lista; null = nada cambió. */
+    cambiosAMano?: { cambios: CambioAMano[]; costoExtra: number; aConfirmar: boolean; calculadoEl: string } | null;
+    cambiosAManoMotivo?: string | null;
+    cambiosAManoPor?: string | null;
 }
 
 const ESPERA_TURNO_MS = 4 * 60_000;
@@ -111,6 +121,8 @@ export async function llenarBorradorEnPortal(borradorId: string) {
             texto: r.resumen.texto.slice(0, 4000),
             // Lo que se compara al confirmar: ya recortado, nunca truncado.
             textoComparable: resumenComparable(r.resumen.texto),
+            // Lo que armó el robot: contra esto se miden los cambios a mano al releer.
+            textoOriginal: resumenComparable(r.resumen.texto),
             pasos: r.llenado.pasos, pendientes: r.llenado.pendientes, llenadoEl: new Date().toISOString(),
         };
         return await Borradores.enRevision(b.id, ROBOT_ACTOR_VITOLEN, { screenshotUrl, resumenPortal });
@@ -124,7 +136,7 @@ export async function llenarBorradorEnPortal(borradorId: string) {
         }
         throw err;
     }
-    });
+    }, { enEstado: ['PREPARADO'] });
 }
 
 /** El borrador del CRM dejó de estar PREPARADO antes de "Crear" (lo anularon): no se crea nada. */
@@ -217,7 +229,19 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
             pedidos: [{ portalNumber: r.portalNumber, status: 'INGRESADO', statusRaw: 'Confirmación' }],
             aprobadoPor,
         });
-        return await Borradores.cargado(b.id, ROBOT_ACTOR_VITOLEN, { portalNumber: r.portalNumber, screenshotFinalUrl });
+        const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_VITOLEN, { portalNumber: r.portalNumber, screenshotFinalUrl });
+        // Lo que se cambió a mano en el portal, ahora que existe de verdad: ficha,
+        // AuditLog y mensaje a la dueña con la justificación y el impacto de costo.
+        const rastroFinal = (cargado.resumenPortal || {}) as unknown as ResumenGuardado;
+        if (rastroFinal.cambiosAMano?.cambios?.length) {
+            await registrarCambioAMano({
+                orderId: b.orderId, nombreLab: NOMBRE_VITOLEN, pair: b.pair, numero: r.portalNumber,
+                lineas: lineasDeCambios(rastroFinal.cambiosAMano.cambios), costoExtra: rastroFinal.cambiosAMano.costoExtra, aConfirmar: rastroFinal.cambiosAMano.aConfirmar,
+                motivo: rastroFinal.cambiosAManoMotivo || '(sin motivo)', quien: rastroFinal.cambiosAManoPor || b.approvedBy || 'Equipo',
+                actor: aprobadoPor ? { id: aprobadoPor.id, name: aprobadoPor.name, role: null } : ROBOT_ACTOR_VITOLEN,
+            }).catch(err => console.error('[lab-modulos] no se pudo registrar el cambio a mano:', err));
+        }
+        return cargado;
     } catch (err: any) {
         if (err instanceof YaNoAprobadoError) {
             // No se confirmó nada y el estado ya lo cambió otro: no se anota encima.
@@ -257,7 +281,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
             .catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador:', e));
         throw err;
     }
-    }, { heredar: opts.robot ?? null });
+    }, { heredar: opts.robot ?? null, enEstado: ['APROBADO'] });
 }
 
 /**
@@ -301,7 +325,7 @@ export async function cancelarEnPortal(borradorId: string, actor?: Actor): Promi
         await Borradores.anotarFalla(b.id, `${base}\nNO se pudo cancelar el borrador ${rastro.portalDraftId} en el portal (${motivo}): cancelarlo a mano en ${rastro.url}`.trim(), { robot }).catch(() => null);
         return { cancelado: false, motivo };
     }
-    });
+    }, { enEstado: ['RECHAZADO', 'ERROR'] });
 }
 
 /**
@@ -326,9 +350,15 @@ export async function releerBorradorEnPortal(borradorId: string, actor: Actor) {
         throw new Error(`El borrador ya está confirmado en el portal con el nº ${r.numeroPrevio}: rechazalo desde la ficha (con ese motivo) y el nº pasa a la venta; no hay nada más que aprobar acá.`);
     }
     const screenshotUrl = await guardarCaptura(b.id, 'releido', r.captura);
+    // ¿Qué cambió a mano respecto de lo que armó el robot? Se valúa con la lista
+    // (cristal por código, AR, calibrado); nunca bloquea, se avisa al cargar.
+    const original = rastro.textoOriginal ?? rastro.textoComparable ?? rastro.texto;
+    const lab = await labConfigDe('VITOLEN').catch(() => null);
+    const cambios = original ? cambiosAMano(leerResumen(original), leerResumen(r.texto), { calibrado: Number(lab?.calibrado ?? 0) }) : [];
+    const cambiosGuardados = cambios.length ? { cambios, ...impactoDeCambios(cambios), calculadoEl: new Date().toISOString() } : null;
     return Borradores.vistaReleida(b.id, actor, {
         screenshotUrl,
-        resumenPortal: { ...rastro, texto: r.texto.slice(0, 4000), textoComparable: resumenComparable(r.texto), url: r.url, releidoEl: new Date().toISOString() },
+        resumenPortal: { ...rastro, texto: r.texto.slice(0, 4000), textoComparable: resumenComparable(r.texto), url: r.url, releidoEl: new Date().toISOString(), textoOriginal: original, cambiosAMano: cambiosGuardados },
     });
-    });
+    }, { enEstado: ['EN_REVISION'] });
 }

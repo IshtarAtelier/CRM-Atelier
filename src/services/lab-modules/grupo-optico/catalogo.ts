@@ -98,6 +98,9 @@ export function colorDelItem(texto: string | null | undefined): number | null {
     return null;
 }
 
+/** El color del portal que nombra la ETIQUETA de un artículo ("… FOTO ESPEJADO BLUE"); null si no nombra ninguno. Puro. */
+export const colorDeLaEtiqueta = (label: string): number | null => colorDelItem(label);
+
 export interface MaterialLab {
     crm: RegExp;
     materialId: number;
@@ -171,6 +174,21 @@ export const MATERIALES_STOCK: MaterialStock[] = [
     { crm: /mineral blanco/i, materialId: 1, etiqueta: 'Mineral Blanco', codigoArticulos: 57, debe: /^MINERAL BLANCO\b/ },
 ];
 
+/**
+ * Productos bien vendidos que el portal NO deja elegir con el robot (verificado
+ * contra SmartLab el 15/10/2026 con `check:go-equivalencias -- --portal`): el
+ * material existe en la lista de stock pero el portal no ofrece ninguna marca ni
+ * artículo para nuestro cliente. Se cargan a mano, y la ficha lo dice ANTES de
+ * apretar nada (sin gastar un turno del portal). Cuando Grupo Óptico los
+ * habilite, se saca la línea y el robot los toma solo.
+ */
+export const SIN_ARTICULO_EN_PORTAL: { crm: RegExp; porQue: string }[] = [
+    { crm: /^stock\b.*fotocrom[aá]tico.*1\.56/i, porQue: 'el portal no ofrece ninguna marca para el stock fotocromático 1.56' },
+    { crm: /^stock\b.*foto espejado/i, porQue: 'el portal no ofrece ninguna marca para el stock foto espejado' },
+    { crm: /^stock\b.*super blue.*1\.74/i, porQue: 'el portal no ofrece ninguna marca para el stock Super Blue 1.74' },
+    { crm: /^sol neutro\b/i, porQue: 'el portal no tiene código de artículo de sol neutro para nuestro cliente' },
+];
+
 export interface EspecificacionLab {
     clase: 'LAB';
     familia: Familia;
@@ -189,7 +207,13 @@ export interface EspecificacionStock {
 
 export type Especificacion = EspecificacionLab | EspecificacionStock;
 
-export type Resolucion = { ok: true; especificacion: Especificacion } | { ok: false; motivo: string };
+/**
+ * `aMano`: el producto está bien vendido pero el robot no tiene cómo elegirlo en
+ * el portal (sin equivalencia declarada). No es algo para corregir en la venta:
+ * se carga a mano en SmartLab y listo (Ishtar, 15/10/2026: "que el bot anuncie
+ * que no se puede cargar con bot, que se revise a mano y listo").
+ */
+export type Resolucion = { ok: true; especificacion: Especificacion } | { ok: false; motivo: string; aMano?: boolean };
 
 // "Familia · Material [· Essential]"; unos pocos productos viejos usan " - ".
 /** Las partes del nombre de un producto del CRM: "Familia · Material [· Essential] [2x1]" (los viejos usan " - "). Puro. */
@@ -214,21 +238,24 @@ export function especificacionDe(nombreProducto: string | null | undefined, opts
     const fam = familiaDe(nombre);
     const mat = materialDe(nombre);
 
+    const sinArticulo = SIN_ARTICULO_EN_PORTAL.find(s => s.crm.test(nombre));
+    if (sinArticulo) return { ok: false, aMano: true, motivo: `el robot no puede cargar "${nombre}" en SmartLab: ${sinArticulo.porQue}` };
+
     if (/^stock\b/i.test(fam)) {
         if (opts.conTenido) return { ok: false, motivo: `"${nombre}" es de stock y el portal no tiñe cristales de stock: hay que venderlo de laboratorio en Orgánico Blanco 1.49` };
         const ms = MATERIALES_STOCK.find(m => m.crm.test(mat));
-        if (!ms) return { ok: false, motivo: `"${nombre}": no hay equivalencia de stock declarada para "${mat}" (src/services/lab-modules/grupo-optico/catalogo.ts)` };
+        if (!ms) return { ok: false, aMano: true, motivo: `el robot no sabe elegir "${nombre}" en SmartLab (el material de stock "${mat}" no tiene equivalencia en el portal)` };
         return { ok: true, especificacion: { clase: 'STOCK', material: ms, rangoExtendido: /rango extendido/i.test(nombre) } };
     }
 
     const familia = FAMILIAS.find(f => f.crm.test(fam));
-    if (!familia) return { ok: false, motivo: `"${nombre}": la familia "${fam}" no tiene equivalencia en SmartLab declarada (catalogo.ts)` };
+    if (!familia) return { ok: false, aMano: true, motivo: `el robot no sabe elegir "${nombre}" en SmartLab (la familia "${fam}" no tiene equivalencia en el portal)` };
 
     // Essential: lo dice el producto, o lo pide quien prepara como extra NO cobrado
     // (carga/extras-no-cobrados.ts: avisa, exige motivo y le llega a la dueña).
     const essential = tieneEssential(nombre) || !!opts.conEssential;
     let material = MATERIALES_LAB.find(m => m.crm.test(mat));
-    if (!material) return { ok: false, motivo: `"${nombre}": el material "${mat}" no tiene equivalencia en SmartLab declarada (catalogo.ts)` };
+    if (!material) return { ok: false, aMano: true, motivo: `el robot no sabe elegir "${nombre}" en SmartLab (el material "${mat}" no tiene equivalencia en el portal)` };
 
     let pasoATenible = false;
     if (opts.conTenido && material.materialId !== MATERIAL_TENIBLE.materialId) {
@@ -262,7 +289,18 @@ export function elegirArticulo(lista: ArticuloPortal[], esp: Especificacion): { 
     const norm = (s: string) => s.toUpperCase().replace(/\s+/g, ' ').trim();
     let candidatos: ArticuloPortal[];
     if (esp.clase === 'STOCK') {
-        candidatos = lista.filter(a => esp.material.debe.test(norm(a.label)) && (esp.rangoExtendido ? /R\. ?EXT/.test(norm(a.label)) : /\bSTOCK\b/.test(norm(a.label))));
+        // Stock = lo que NO es rango extendido: la etiqueta del mineral no dice
+        // "STOCK" ("MINERAL BLANCO ESF -150+050 (3)", visto el 15/10/2026).
+        const ext = (l: string) => /R\. ?EXT/.test(l);
+        candidatos = lista.filter(a => esp.material.debe.test(norm(a.label)) && (esp.rangoExtendido ? ext(norm(a.label)) : !ext(norm(a.label))));
+        if (candidatos.length === 0 && esp.rangoExtendido) {
+            // Vendido como "rango extendido" pero el portal, para esa línea y esa
+            // graduación, solo tiene el artículo de STOCK (Blanco 1.49, Blanco c/AR
+            // 1.56 y Blue c/AR 1.56 no tienen línea R.EXT; 15/10/2026): se toma lo
+            // del portal (regla de Ishtar), que además cuesta menos.
+            const deStock = lista.filter(a => esp.material.debe.test(norm(a.label)) && !ext(norm(a.label)));
+            if (deStock.length === 1) return { ok: true, articulo: deStock[0] };
+        }
         if (candidatos.length === 0 && !esp.rangoExtendido) {
             // Fuera del rango de stock: el portal lo ofrece como rango extendido.
             const ext = lista.filter(a => esp.material.debe.test(norm(a.label)) && /R\. ?EXT/.test(norm(a.label)));
@@ -277,6 +315,23 @@ export function elegirArticulo(lista: ArticuloPortal[], esp: Especificacion): { 
             if (esp.material.articuloNo?.test(l)) return false;
             return esp.material.arIncluido || /ESSENTIAL/.test(l) === esp.essential;
         });
+    }
+    // Un material de varios colores cuya lista trae un artículo por color
+    // ("… FOTO ESPEJADO BLUE" y "… GREEN" en la misma lista, 15/10/2026): se
+    // queda el del color elegido; sin color en la etiqueta no se adivina.
+    if (candidatos.length > 1 && esp.clase === 'LAB' && esp.material.colorId === null) {
+        const delColor = candidatos.filter(a => colorDeLaEtiqueta(norm(a.label)) === esp.colorId);
+        if (delColor.length === 1) return { ok: true, articulo: delColor[0] };
+    }
+    if (candidatos.length === 0 && esp.clase === 'LAB' && !esp.essential && !esp.material.arIncluido) {
+        // El portal SOLO fabrica ese cristal con Essential ("ORG FOTO ULTRA ALTO
+        // INDICE LAB 1.60 C/ESSENTIAL", 15/10/2026): se toma lo del portal (regla de
+        // Ishtar). Quien aprueba lo ve en el artículo de la pantalla.
+        const conAr = lista.filter(a => {
+            const l = norm(a.label);
+            return esp.familia.debe.test(l) && !esp.familia.noDebe?.test(l) && (!esp.material.articulo || esp.material.articulo.test(l)) && !esp.material.articuloNo?.test(l) && /ESSENTIAL/.test(l);
+        });
+        if (conAr.length === 1) return { ok: true, articulo: conAr[0] };
     }
     if (candidatos.length === 1) return { ok: true, articulo: candidatos[0] };
     const vistos = lista.map(a => a.label).join(' · ') || 'ninguno';

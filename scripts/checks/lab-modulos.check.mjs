@@ -20,13 +20,17 @@ import { transicionDeVenta, estadoConjunto, estadoConjuntoDeVenta, paresCompleto
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
 import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados, SALIDAS_A_ERROR_CON_PRUEBA, Borradores } from '../../src/services/lab-modules/carga/borrador.ts';
 import { DURACION_TURNO_MIN, RENOVAR_TURNO_CADA_MS } from '../../src/services/lab-modules/portal/turno.ts';
+import { CARGAS } from '../../src/services/lab-modules/carga/registro.ts';
+import { LABS_CON_CARGA_ASISTIDA, NOMBRE_DE_LAB } from '../../src/lib/laboratorios/identidad.ts';
 import { statSync } from 'node:fs';
 import { join as unirRuta } from 'node:path';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
-import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
+import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable, leerResumen } from '../../src/services/lab-modules/vitolen/resumen.ts';
+import { cambiosAMano, impactoDeCambios, lineasDeCambios, precioDeCodigo, DESCUENTO_SIN_AR } from '../../src/services/lab-modules/vitolen/cambios-a-mano.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
-import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo, diferenciasDePayloadVitolen } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo, diferenciasDePayloadVitolen, cristalesPorPar, tipoArmazonDelPortal, TIPOS_ARMAZON } from '../../src/services/lab-modules/vitolen/carga.ts';
+import { cristalesPorArmazon } from '../../src/lib/order-frames.ts';
 import { rolesDeLaPromoHoya, rolDeLaPromo } from '../../src/lib/laboratorios/vitolen-promo.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/lib/laboratorios/vitolen-catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/lib/laboratorios/vitolen-promo.ts';
@@ -452,6 +456,106 @@ ok('dos pares SIN armazón asignado se arman en el orden del carrito (como la pr
     assert.deepEqual([p1.payload.od.esferico, p1.payload.oi.esferico, p1.payload.armazon.largo], [1, 2, 56]);
     assert.deepEqual([p2.payload.od.esferico, p2.payload.oi.esferico, p2.payload.armazon.largo], [3, 4, 58]);
 });
+ok('qué par es cada cristal lo decide UN solo repartidor: la promo del 2º par, la carga de Vitolen y el cruce coinciden en todas las permutaciones', () => {
+    const LS = 'HOYA LIFESTYLE 4 - 1.50 CLEAR', TACT = 'HOYA TACT BKS - 1.50 CLEAR BLUE FILTER';
+    const c = (fp, eye, nombre, price) => ({ eye, framePosition: fp, price, quantity: 1, productNameSnapshot: nombre, laboratorySnapshot: 'VITOLEN', productCategorySnapshot: 'Cristal', product: { name: nombre, category: 'Cristal' } });
+    const rolDe = (roles, pair) => (!roles ? null : pair === roles.conCargo ? 'PRIMER_PAR' : pair === roles.sinCargo ? 'SEGUNDO_PAR' : null);
+    // el barato PRIMERO en el carrito, sin armazón asignado: el caro (LS4, par 2 por orden) es el 1º de la promo
+    const barataPrimero = [c(null, 'OD', TACT, 80000), c(null, 'OI', TACT, 80000), c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000)];
+    const roles = rolesDeLaPromoHoya(barataPrimero);
+    assert.deepEqual([roles.conCargo, roles.sinCargo, roles.porValor], [2, 1, true]);
+    const porPar = cristalesPorPar({ items: barataPrimero });
+    assert.equal(porPar.get(1)[0].productNameSnapshot, TACT); assert.equal(porPar.get(2)[0].productNameSnapshot, LS);
+    assert.deepEqual([rolDe(roles, 1), rolDe(roles, 2)], ['SEGUNDO_PAR', 'PRIMER_PAR']);
+    // carrito OD, OD, OI, OI sin asignar: el 2º OD y el 2º OI son del par 2 (antes tres cristales caían en el par 2)
+    const intercalado = [c(null, 'OD', TACT, 80000), c(null, 'OD', LS, 100000), c(null, 'OI', TACT, 80000), c(null, 'OI', LS, 100000)];
+    const pp = cristalesPorArmazon({ items: intercalado });
+    assert.deepEqual(pp.get(1).map(i => i.eye + ' ' + i.productNameSnapshot), ['OD ' + TACT, 'OI ' + TACT]);
+    assert.deepEqual(pp.get(2).map(i => i.eye + ' ' + i.productNameSnapshot), ['OD ' + LS, 'OI ' + LS]);
+    assert.equal(rolesDeLaPromoHoya(intercalado).conCargo, 2);
+    // venta mixta: Grupo Óptico asignado al armazón 1, Vitolen sin asignar → Vitolen cae en el armazón 2 (el libre)
+    const go = (eye) => ({ eye, framePosition: 1, price: 50000, quantity: 1, productNameSnapshot: 'Multifocal Smart FREE · Orgánico Blanco 1.49', laboratorySnapshot: 'GRUPO OPTICO', productCategorySnapshot: 'Cristal', product: { name: 'Multifocal Smart FREE · Orgánico Blanco 1.49', category: 'Cristal' } });
+    const mixta = cristalesPorPar({ items: [go('OD'), go('OI'), c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000)] });
+    assert.deepEqual([...mixta.keys()], [2]);
+    // asignación PARCIAL: el caro asignado al armazón 1, el barato sin asignar → el barato cae en el armazón libre (2), no se pega al 1
+    const parcial = cristalesPorPar({ items: [c(null, 'OD', TACT, 80000), c(null, 'OI', TACT, 80000), c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000)] });
+    assert.deepEqual([parcial.get(1)[0].productNameSnapshot, parcial.get(2)[0].productNameSnapshot], [LS, TACT]);
+    assert.deepEqual([rolesDeLaPromoHoya([c(null, 'OD', TACT, 80000), c(null, 'OI', TACT, 80000), c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000)]).conCargo], [1]);
+    // con armazón asignado manda el armazón, no el orden ni el valor
+    const asignado = rolesDeLaPromoHoya([c(2, 'OD', TACT, 80000), c(2, 'OI', TACT, 80000), c(1, 'OD', LS, 100000), c(1, 'OI', LS, 100000)]);
+    assert.deepEqual([asignado.conCargo, asignado.sinCargo], [1, 2]);
+    // mismo valor sin asignar: queda el orden del carrito (par 1 con cargo)
+    const iguales = rolesDeLaPromoHoya([c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000), c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000)]);
+    assert.deepEqual([iguales.conCargo, iguales.sinCargo, iguales.porValor], [1, 2, false]);
+});
+const RESUMEN_MORONCINI = `Pedido de Laboratorio
+Nro de Trabajo\tPor Asignar\tFecha\t15/10/2026 22:10
+Cliente\t11302 - ATELIER OPTICA- CORDOBA\tNro de Caso Interno\t#TDHB 1°par
+Estado\tConfirmación
+\t
+Receta
+
+\t\tTipo de Lente\tMarcas y Modelos de Lentes\tOrigen
+OD\tProgresivo\t10072 - Array 2 1.60 Hilux MR-8 Filter 420\tBloque/Lente de Vitolen
+OI\tProgresivo\t10072 - Array 2 1.60 Hilux MR-8 Filter 420\tBloque/Lente de Vitolen
+\t\tEsférico\tCilíndrico\tEje Cil.\tAdición\tDNP-L\tAltura Pupilar Lejos\tDist. Vértice\tÁng. Pantoscópico\tÁng Envolvencia
+OD\t+2.25\t-0.75\t90\t2.75\t33.00\t25.00\t14\t6\t4
+OI\t+1.75\t-0.50\t101\t2.75\t34.00\t25.00\t14\t6\t4
+\t
+Armazón
+
+Origen\tArmazón del cliente
+Medidas\tLargo\tAltura\tDiag. Mayor\tEje\tPuente\tTipo\tFuncionalidad
+56.00\t39.00\t58.00\t0\t17.00\tZilo\tAro Convencional 
+Forma OD - 1
+
+Características\tHarper Color Marron
+\t
+Trabajos
+
+Tratamientos\tUltra Hi-Vision
+Montajes\tCalibrado
+© 2026 Vitolen S.A | Av. Roque Sáenz Peña 786`;
+ok('el resumen del portal se lee campo por campo (el de Moroncini, 15/10/2026)', () => {
+    const r = leerResumen(RESUMEN_MORONCINI);
+    assert.deepEqual(r.codigos, { od: '10072', oi: '10072' });
+    assert.equal(r.modelos.od, 'Array 2 1.60 Hilux MR-8 Filter 420');
+    assert.deepEqual(r.tratamientos, ['Ultra Hi-Vision']); assert.deepEqual(r.montajes, ['Calibrado']);
+    assert.deepEqual(r.armazon, { largo: '56.00', altura: '39.00', diagonal: '58.00', eje: '0', puente: '17.00', tipo: 'Zilo', forma: 'Forma OD - 1' });
+    assert.deepEqual(r.angulos.od, { vertice: '14', pantoscopico: '6', envolvencia: '4' });
+    assert.equal(r.graduacion.oi, '+1.75 -0.50 101 2.75 34.00 25.00');
+    assert.equal(leerResumen('').codigos.od, null);
+});
+ok('un cambio a mano en el portal se detecta y se valúa con la lista (cristal, AR, calibrado); lo demás se anota sin costo', () => {
+    const antes = leerResumen(RESUMEN_MORONCINI);
+    const precios = { calibrado: 23000 };
+    assert.deepEqual(cambiosAMano(antes, leerResumen(RESUMEN_MORONCINI), precios), []);
+    // destildar el calibrado y cambiar vértice/pantoscópico (como la carga a mano de Ishtar)
+    const t1 = RESUMEN_MORONCINI.replace('Montajes\tCalibrado\n', '').replace(/\t14\t6\t4/g, '\t12\t8\t4');
+    const c1 = cambiosAMano(antes, leerResumen(t1), precios);
+    assert.deepEqual(c1.map(c => [c.campo, c.costo]), [['Montajes', -23000], ['Vértice / pantoscópico / envolvencia OD', 0], ['Vértice / pantoscópico / envolvencia OI', 0]]);
+    assert.deepEqual(impactoDeCambios(c1), { costoExtra: -23000, aConfirmar: false });
+    assert.match(lineasDeCambios(c1)[0], /Montajes: Calibrado → ninguno \(se sacó el calibrado: −\$ 23\.000\)/);
+    // cambiar el cristal a otro código de la lista: diferencia de lista por par
+    const p10072 = precioDeCodigo('10072'); assert.ok(p10072.precio > 0, 'el 10072 tiene precio en la lista');
+    const otro = CATALOGO_VITOLEN.find(c => c.linea === 'lifestyle-4' && c.precioLista);
+    const t2 = RESUMEN_MORONCINI.replace(/10072 - Array 2 1.60 Hilux MR-8 Filter 420/g, `${otro.codigos[0]} - ${otro.nombre}`);
+    const c2 = cambiosAMano(antes, leerResumen(t2), precios);
+    assert.equal(c2.length, 2); assert.equal(c2[0].costo, otro.precioLista - p10072.precio);
+    // sacar el antirreflejo: la lista lo incluye, se descuenta lo de "pedido sin AR"
+    const t3 = RESUMEN_MORONCINI.replace('Tratamientos\tUltra Hi-Vision\n', '');
+    const c3 = cambiosAMano(antes, leerResumen(t3), precios);
+    assert.deepEqual(c3.map(c => [c.campo, c.costo]), [['Tratamientos', -DESCUENTO_SIN_AR]]);
+    // agregar un tratamiento que la lista no valúa: queda "a confirmar"
+    const t4 = RESUMEN_MORONCINI.replace('Tratamientos\tUltra Hi-Vision', 'Tratamientos\tUltra Hi-Vision\tColor');
+    const c4 = cambiosAMano(antes, leerResumen(t4), precios);
+    assert.equal(c4[0].costo, null); assert.equal(impactoDeCambios(c4).aConfirmar, true);
+});
+ok('el tipo de armazón elegido al preparar sobrevive al re-armado del confirm (round-trip etiqueta → portal → etiqueta)', () => {
+    for (const t of TIPOS_ARMAZON) assert.equal(tipoArmazonDelPortal(t)?.[2], t);
+    assert.equal(tipoArmazonDelPortal('acetato')?.[2], 'Zilo');
+    assert.equal(tipoArmazonDelPortal(null), null);
+});
 ok('el tipo de armazón se elige al preparar; sin él (la venta casi nunca lo trae) no se arma', () => {
     const v = ventaBase();
     v.labFrameType = null;
@@ -487,6 +591,10 @@ ok('APROBADO no va a ERROR por la tabla (el portal puede haber confirmado); pued
     assert.equal(transicionValida('APROBADO', 'ERROR'), false);
     assert.equal(transicionValida('APROBADO', 'EN_REVISION'), true);
     assert.equal(transicionValida('PREPARADO', 'ERROR'), true);
+});
+ok('los laboratorios con carga asistida que conoce el navegador son exactamente los del registro del servidor', () => {
+    assert.deepEqual([...LABS_CON_CARGA_ASISTIDA].sort(), CARGAS.map(c => c.lab).sort());
+    for (const lab of LABS_CON_CARGA_ASISTIDA) assert.ok(NOMBRE_DE_LAB[lab], `falta el nombre de ${lab}`);
 });
 ok('las salidas a ERROR con prueba en el WHERE están declaradas, y son exactamente las que Borradores tiene', () => {
     // La tabla dice que APROBADO → ERROR no existe "en general"; estas tres son

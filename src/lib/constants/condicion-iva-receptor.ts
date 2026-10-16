@@ -28,3 +28,17 @@ export function resolverCondicionIvaReceptor(docTipo: number, elegida?: number |
     if (elegida != null && IDS_VALIDOS.has(Number(elegida))) return Number(elegida);
     throw new Error('Con CUIT hay que indicar la condición frente al IVA del receptor (RG 5616).');
 }
+
+/** Nombre oficial de ARCA, para el comprobante (el desplegable usa los cortos). */
+const NOMBRE_OFICIAL: Record<number, string> = {
+    1: 'IVA Responsable Inscripto',
+    4: 'IVA Sujeto Exento',
+    5: 'Consumidor Final',
+    6: 'Responsable Monotributo',
+};
+
+/** Texto para el PDF. Null (facturas anteriores a la RG 5616) = Consumidor Final. */
+export function etiquetaCondicionIva(id?: number | null): string {
+    if (id == null) return 'Consumidor Final';
+    return NOMBRE_OFICIAL[id] ?? CONDICIONES_IVA_RECEPTOR.find(c => c.id === id)?.label ?? 'Consumidor Final';
+}

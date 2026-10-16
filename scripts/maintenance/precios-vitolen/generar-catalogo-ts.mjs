@@ -57,6 +57,9 @@ export function armarCatalogo(lista) {
             codigos,
             variantes: linea.variantes ? linea.variantes.split(' / ').map(s => s.trim().replace(/\s*\(.*\)$/, '')) : [],
             sinAntirreflejo: /SIN ANTIRREFLEJO/.test(f.name),
+            // Precio de lista por par, SIN IVA, con el antirreflejo incluido (L96): lo que
+            // vale un cambio de cristal hecho a mano en el portal (cambios-a-mano.ts).
+            precioLista: Number.isFinite(f.pelado) ? Math.round(f.pelado) : null,
         };
     });
 }
@@ -82,6 +85,8 @@ export interface CristalVitolen {
     codigos: string[];
     variantes: string[];
     sinAntirreflejo: boolean;
+    /** Precio de lista por par, sin IVA, con antirreflejo (L96); null si la lista no lo trae. */
+    precioLista: number | null;
 }
 
 export const LISTA_VITOLEN = ${JSON.stringify(lista.lista)};

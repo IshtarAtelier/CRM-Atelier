@@ -142,7 +142,7 @@ export async function register() {
                     // (8/9/26). Con 9,5 el fetch abortaba a mitad de una corrida
                     // que iba a terminar bien. Corre una vez por día: que tarde
                     // media hora no molesta a nadie.
-                    signal: AbortSignal.timeout(25 * 60 * 1000),
+                    signal: AbortSignal.timeout(60 * 60 * 1000),
                 });
                 if (!res.ok) {
                     const body = await res.text();
@@ -299,6 +299,20 @@ export async function register() {
             embudoSaludRunning = true;
             try { await dispararSimple('embudo-salud', EMBUDO_SALUD_KEY, dateKey, 'embudo-salud'); }
             finally { embudoSaludRunning = false; }
+        };
+
+        // ---- PRESUPUESTOS DE LA TIENDA PARA RETOMAR, a las 9:00 ----
+        // Ishtar (15/10/2026): "que me mande un mensaje a mí para recuperar y
+        // yo me ocupo de escribirles". Un mensaje por día a los ADMIN con la
+        // lista y el texto listo (lib/checkout/presupuestos-tienda-abiertos).
+        const PRESUPUESTOS_TIENDA_KEY = 'presupuestos_tienda_last_run';
+        let presupuestosTiendaRunning = false;
+        const maybeRunPresupuestosTienda = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < 9 || presupuestosTiendaRunning) return;
+            presupuestosTiendaRunning = true;
+            try { await dispararSimple('presupuestos-tienda', PRESUPUESTOS_TIENDA_KEY, dateKey, 'presupuestos-tienda'); }
+            finally { presupuestosTiendaRunning = false; }
         };
 
         // QUINCENAL, no diario: los días 1 y 16 a partir de las 10 (pedido de
@@ -873,6 +887,7 @@ export async function register() {
             maybeRunTurnos().catch(err => console.error('[CRON turnos] maybeRunTurnos:', err));
             maybeRunSeguimientos().catch(err => console.error('[CRON seguimientos] maybeRunSeguimientos:', err));
             maybeRunEmbudoSalud().catch(err => console.error('[CRON embudo-salud] maybeRunEmbudoSalud:', err));
+            maybeRunPresupuestosTienda().catch(err => console.error('[CRON presupuestos-tienda] maybeRunPresupuestosTienda:', err));
             maybeRunSaldo().catch(err => console.error('[CRON recordatorio-saldo] maybeRunSaldo:', err));
             maybeRunCierreBot().catch(err => console.error('[Vigilante bot] maybeRunCierreBot:', err));
             maybeRunMetaConversiones().catch(err => console.error('[CRON meta-conversiones] maybeRunMetaConversiones:', err));
@@ -902,7 +917,7 @@ export async function register() {
                     // el turno del portal (lab-modules/portal/turno.ts, en la
                     // base, válido entre las dos instancias): un pase largo hace
                     // que el tick siguiente se saltee.
-                    signal: AbortSignal.timeout(25 * 60 * 1000),
+                    signal: AbortSignal.timeout(60 * 60 * 1000),
                 });
                 if (!res.ok) {
                     const body = await res.text();

@@ -15,6 +15,7 @@ import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
+import { promoVisible } from "@/lib/promo-visible";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
 import { formatearPrecio } from "@/lib/format-precio";
@@ -22,6 +23,9 @@ import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { etiquetaRangoPrecio } from "@/lib/constants/rangos-precio-tienda";
 import { UMBRAL_ULTIMAS_UNIDADES, textoUltimasUnidades } from "@/lib/constants/social-proof";
 import { track } from "@/lib/client-analytics";
+import { anteojoCompletoDesde } from "@/lib/anteojo-completo";
+import { precioConSigno } from "@/lib/format-precio";
+import { useOpcionesCristal } from "@/hooks/useOpcionesCristal";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
 // devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
@@ -322,9 +326,12 @@ export function TiendaClient({
   // calcula el endpoint contra los OTROS filtros activos (ver el comentario en
   // api/store/products), así que acá solo se transportan a ProductFilters.
   const [conteos, setConteos] = useState<{ marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number>; color?: Record<string, number> } | null>(initialConteos);
+  // Aviso del buscador ("No trabajamos Ray-Ban…"): lo manda /api/store/products (Fase 1.8).
+  const [avisoBusqueda, setAvisoBusqueda] = useState<string | null>(null);
 
   const [isWholesale, setIsWholesale] = useState(false);
   const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
+  const opcionesCristal = useOpcionesCristal();
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
@@ -577,6 +584,7 @@ export function TiendaClient({
           setTotalPages(data.totalPages || 1);
           setTotalCount(data.totalCount || 0);
           setConteos(data.conteos || null);
+          setAvisoBusqueda(typeof data.avisoBusqueda === 'string' ? data.avisoBusqueda : null);
           filtrosDelUltimoFetch.current = claveDeLista;
         }
       } catch (err) {
@@ -848,6 +856,7 @@ export function TiendaClient({
               resultCount={totalCount}
               /* F1-02: cuántos modelos hay detrás de cada opción. */
               conteos={conteos}
+              categoria={activeCategory}
             />
           </Suspense>
         </aside>
@@ -1021,7 +1030,13 @@ export function TiendaClient({
                   </div>
                 )
               ) : (
-                displayedProducts.map((p, index) => {
+                <>
+                {avisoBusqueda && (
+                  <p className="col-span-full -mb-2 text-sm text-stone-700 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3">
+                    {avisoBusqueda}
+                  </p>
+                )}
+                {displayedProducts.map((p, index) => {
                 const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
                 const imgUrl = p.imagenesCatalogo?.length > 0
                   ? resolveStorageUrl(p.imagenesCatalogo[0])
@@ -1213,6 +1228,14 @@ export function TiendaClient({
                         // que es; el cartel llamativo es exclusivo de la rebaja
                         // real y vive arriba, sobre la foto (7/9).
                         const v = PricingService.vidrieraDeProducto(p, { descuentoTransferenciaPct, cuotasSinInteres: installmentsCount });
+                        const desde = anteojoCompletoDesde({
+                          producto: p,
+                          categoriaWeb: p.category,
+                          esMayorista: isWholesale,
+                          opciones: opcionesCristal,
+                          descuentoTransferenciaPct,
+                        });
+
                         return (
                           <div className="pt-1 flex items-center justify-between gap-2">
                             {/* El valor GRANDE es el de transferencia (pedido
@@ -1224,18 +1247,13 @@ export function TiendaClient({
                               <span className="font-black text-base text-stone-900">
                                 ${formatearPrecio(v.transferencia)}
                               </span>
-                              {/* El de lista TACHADO, solo con rebaja real
-                                  (pedido de Ishtar, 8/9: "que la oferta se vea"),
-                                  con el mismo % aplicado para que los dos
-                                  números se puedan comparar. */}
-                              {v.transferenciaSinOferta !== null && (
-                                <span className="ml-1.5 text-xs font-medium text-stone-400 line-through decoration-1">
-                                  ${formatearPrecio(v.transferenciaSinOferta)}
-                                </span>
-                              )}
-                              {/* El % va en el MISMO renglón que el precio
-                                  (pedido de Ishtar, 5/9). */}
-                              <span className="text-emerald-700 text-xs font-bold"> {descuentoTransferenciaPct}% OFF transf.</span>
+                              {/* Una sola promo por tarjeta (Fase 1.3, 15/10): con
+                                  rebaja, el sello "26% OFF 🔥" sobre la foto es
+                                  la promo y acá no va ni el tachado ni el 15 %;
+                                  sin rebaja, el 15 % explica el número. La regla
+                                  vive en src/lib/promo-visible.ts. El % va en el
+                                  MISMO renglón que el precio (Ishtar, 5/9). */}
+                              <span className="text-emerald-700 text-xs font-bold"> {promoVisible(v, descuentoTransferenciaPct).etiquetaTransferenciaCorta}</span>
                               {/* Las cuotas van SIEMPRE —también en celular— y
                                   una debajo de la otra (pedido de Ishtar, 5/9).
                                   "fijas" distingue las 12 (llevan el costo
@@ -1247,6 +1265,18 @@ export function TiendaClient({
                               <span className="block text-xs text-stone-500">
                                 {v.cuotas} cuotas sin interés de ${formatearPrecio(v.valorCuota)}
                               </span>
+                              {/* El precio de arriba es el armazón solo. El de
+                                  receta casi siempre se lleva con cristales
+                                  (95,5% de la plata, auditoría 25/9): acá ve
+                                  cuánto le sale el anteojo que de verdad compra.
+                                  Mismo cálculo que el configurador; si los
+                                  precios de cristal no cargan, no se muestra. */}
+                              {desde && (
+                                <span className="mt-2 block border-t border-stone-200 pt-2 text-xs text-stone-700">
+                                  <span className="block font-bold">Anteojo completo desde {precioConSigno(desde.lista)}</span>
+                                  <span className="block text-stone-500">{precioConSigno(desde.transferencia)} transf.</span>
+                                </span>
+                              )}
                             </p>
                           </div>
                         );
@@ -1258,7 +1288,8 @@ export function TiendaClient({
                     </div>
                   </Link>
                 );
-              })
+              })}
+                </>
             )}
             </motion.div>
           </AnimatePresence>

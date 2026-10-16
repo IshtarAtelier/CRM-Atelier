@@ -143,3 +143,61 @@ export async function registrarExtraNoCobrado(args: { orderId: string; nombreLab
         await logAudit({ userId: actor.id, userName: quien, action: 'NOTIFY', entityType: 'ORDER', entityId: orderId, details: { tipo: 'EXTRA_NO_COBRADO_SIN_AVISO', motivo: String(err?.message || err) } }).catch(() => null);
     });
 }
+
+/**
+ * Alguien cambió a mano el pedido en el portal antes de aprobar (Vitolen:
+ * "Modificar" + releer). Nunca bloquea; al CARGAR queda en la ficha del
+ * cliente y en el AuditLog, y la dueña recibe un mensaje interno con el
+ * detalle, el impacto de costo según la lista y la justificación (Ishtar,
+ * 15/10/2026). A diferencia del extra no cobrado, acá el aviso le llega a
+ * TODAS las cuentas ADMIN, también si la que aprobó es la dueña.
+ */
+export async function registrarCambioAMano(args: { orderId: string; nombreLab: string; pair: number; numero: string | null; lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string; quien: string; actor: Actor }): Promise<void> {
+    const { orderId, actor } = args;
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, clientId: true, createdAt: true, total: true, labSentBy: true, client: { select: { name: true } } },
+    });
+    if (!order) throw new Error('La venta no existe.');
+    const codigoVenta = codigoCortoDeVenta(orderId);
+    const impacto = args.costoExtra > 0 ? `sale ${precioConSigno(args.costoExtra)} MÁS caro que lo que dice la venta`
+        : args.costoExtra < 0 ? `sale ${precioConSigno(-args.costoExtra)} más barato que lo que dice la venta`
+            : 'sin cambio de costo según la lista';
+    const linea = `✏️ ${args.quien} cambió a mano en ${args.nombreLab} el pedido${args.numero ? ` ${args.numero}` : ''} de la venta ${codigoVenta} (par ${args.pair}): ${args.lineas.join(' · ')}. Costo: ${impacto}${args.aConfirmar ? ' (parte sin precio en la lista: a confirmar con el laboratorio)' : ''}. Motivo: ${args.motivo}`;
+    const yaEnFicha = await prisma.interaction.findFirst({
+        where: { clientId: order.clientId, type: 'LAB_STATUS', content: { contains: `cambió a mano en ${args.nombreLab} el pedido${args.numero ? ` ${args.numero}` : ''}` }, createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+        select: { id: true },
+    }).catch(() => null);
+    if (yaEnFicha) return;
+    await prisma.interaction.create({ data: { clientId: order.clientId, type: 'LAB_STATUS', content: linea, userId: actor.id, userName: args.quien } })
+        .catch(err => console.error('[lab-modulos] no se pudo anotar el cambio a mano en la ficha:', err));
+    await logAudit({
+        userId: actor.id, userName: args.quien, action: 'UPDATE', entityType: 'ORDER', entityId: orderId,
+        details: { tipo: 'CAMBIO_A_MANO_EN_PORTAL', lab: args.nombreLab, pair: args.pair, numero: args.numero, cambios: args.lineas, costoExtra: args.costoExtra, aConfirmar: args.aConfirmar, motivo: args.motivo },
+    });
+    const admins = await destinatariosDeExtras(null);
+    const creadorId = actor.id ?? admins[0] ?? null;
+    const para = admins.filter(id => id !== creadorId);
+    if (!creadorId) { console.error('[lab-modulos] cambio a mano sin cuentas ADMIN a quien avisar:', codigoVenta); return; }
+    await InternalMessagingService.crearConversacion({
+        creadorId, paraIds: para.length ? para : [creadorId],
+        subject: `Cambio a mano en un pedido de ${args.nombreLab}`,
+        primerMensaje: [
+            `✏️ ${args.quien} cambió a mano en el portal de ${args.nombreLab} el pedido${args.numero ? ` ${args.numero}` : ''} de la venta ${codigoVenta} (par ${args.pair}) antes de aprobarlo.`,
+            '',
+            'Qué cambió:',
+            ...args.lineas.map(l => `  · ${l}`),
+            '',
+            `Costo según la lista: ${impacto}.${args.aConfirmar ? ' Parte del cambio no tiene precio en la lista: confirmarlo con el laboratorio.' : ''}`,
+            '',
+            `Justificación que escribió: "${args.motivo}"`,
+            '',
+            `Venta ${codigoVenta} · ${order.client?.name || 'sin cliente'} · ${formatDate(order.createdAt)}${order.labSentBy ? ` · vendió ${order.labSentBy}` : ''} · total ${precioConSigno(order.total)}`,
+            `Ficha: ${appUrl()}/admin/ventas?id=${orderId}`,
+        ].join('\n'),
+        urgent: true, copiaWhatsapp: true,
+    }, actor).catch(async err => {
+        console.error('[lab-modulos] no se pudo avisar el cambio a mano por mensajería interna:', err);
+        await logAudit({ userId: actor.id, userName: args.quien, action: 'NOTIFY', entityType: 'ORDER', entityId: orderId, details: { tipo: 'CAMBIO_A_MANO_SIN_AVISO', motivo: String(err?.message || err) } }).catch(() => null);
+    });
+}

@@ -1,5 +1,4 @@
-import { prisma } from '../../../lib/db';
-import { parseLabNumbers } from '../../../lib/lab-order-numbers';
+import { numerosDeLaVenta, type OpcionesDeNumeros } from './numeros';
 
 /**
  * ¿Este par YA tiene pedido en el laboratorio? Cargado por el robot, visto por
@@ -43,35 +42,21 @@ export function decidirExistente(datos: {
     return sinPar ? { numero: sinPar, ambiguo: true } : null;
 }
 
-export interface OpcionesExistente {
+/** Opciones del lector único de números (ver carga/numeros.ts) + el nº propio a excluir. */
+export interface OpcionesExistente extends OpcionesDeNumeros {
     /** Un nº que NO cuenta (el borrador propio en el portal, al confirmar). */
     excluir?: string | null;
-    /** Qué nº tipeados en la venta son de ESTE laboratorio (los de otro lab no cuentan). */
-    esNumeroDelLab?: (n: string) => boolean;
-    /** Cómo se comparan los nº del portal con los tipeados (Vitolen muestra "6981382L" y la venta guarda "6981382"). */
-    normalizar?: (n: string) => string;
 }
 
 export async function pedidoExistenteDelPar(lab: string, orderId: string, pair: number, pares: number, opciones: OpcionesExistente = {}): Promise<PedidoExistente | null> {
     const norm = opciones.normalizar ?? ((n: string) => n);
-    const [cargados, espejo, venta] = await Promise.all([
-        prisma.labOrderDraft.findMany({ where: { orderId, lab, status: { in: ['CARGADO', 'RECHAZADO', 'ERROR'] } }, select: { pair: true, portalNumber: true, status: true, resumenPortal: true } }),
-        prisma.labPortalOrder.findMany({ where: { orderId, lab }, select: { portalNumber: true, pair: true, status: true } }),
-        prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true, postSaleCases: { where: { newOrderNumber: { not: null } }, select: { newOrderNumber: true } } } }),
-    ]);
-    // Los nº de reproceso (post-venta) no son el pedido de ningún par.
-    const deReprocesos = new Set((venta?.postSaleCases || []).flatMap(c => parseLabNumbers(c.newOrderNumber)).map(norm));
+    const n = await numerosDeLaVenta(lab, orderId, opciones);
     return decidirExistente({
         pair, pares,
         excluir: opciones.excluir ? norm(opciones.excluir) : null,
-        // CARGADO por el robot, o un borrador rechazado/errado cuyo pedido del portal
-        // alguien confirmó a mano (el CRM sabe de qué par era).
-        cargadosPorPar: cargados
-            .map(c => ({ pair: c.pair, numero: c.status === 'CARGADO' ? c.portalNumber : ((c.resumenPortal as any)?.confirmadoAManoNumero as string | undefined) ?? null }))
-            .filter(c => !!c.numero)
-            .map(c => ({ pair: c.pair, numero: norm(c.numero!) })),
-        espejo: espejo.map(e => ({ numero: norm(e.portalNumber), pair: e.pair, anulado: e.status === 'ANULADO' })),
-        numerosEnVenta: parseLabNumbers(venta?.labOrderNumber).filter(n => (opciones.esNumeroDelLab ? opciones.esNumeroDelLab(n) : true)).map(norm).filter(n => !deReprocesos.has(n)),
+        cargadosPorPar: n.cargadosPorPar,
+        espejo: n.espejo,
+        numerosEnVenta: n.numerosEnVenta,
     });
 }
 

@@ -35,7 +35,8 @@ export interface CampoDePreparacion {
     tipo: 'select' | 'numero' | 'extra';
     /** Solo `extra`: lo que lee quien lo agrega antes de confirmar. */
     advertencia?: string;
-    opciones?: { value: string; label: string }[];
+    /** `imagen`: la ficha muestra la opción con su dibujo (las formas de armazón del portal de Vitolen) en vez de un desplegable. */
+    opciones?: { value: string; label: string; imagen?: string }[];
     obligatorio: boolean;
     porDefecto?: string;
     ayuda?: string;
@@ -55,6 +56,13 @@ export interface ParParaCargar {
     espera?: string | null;
     /** Si viene, el par ya tiene pedido en el laboratorio: no se carga otro. */
     yaCargado?: string | null;
+    /**
+     * Si viene, el robot NO puede cargar este par (el portal no tiene cómo elegir
+     * el cristal) y se carga a mano: la ficha lo anuncia y no ofrece Preparar
+     * (Ishtar, 15/10/2026: "que el bot anuncie que no se puede cargar con bot,
+     * que se revise a mano y listo").
+     */
+    aMano?: string | null;
     /** Rol en una promo de dos pares: el tipo decide el color; la etiqueta, el texto ("SIN CARGO · 2x1", "2º par · promo"). */
     rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null;
 }
@@ -74,6 +82,8 @@ export interface VistaDeBorrador {
     documento?: { url: string; etiqueta: string } | null;
     /** Quedó un pedido sin confirmar en el portal que hay que cancelar. */
     pendienteEnPortal?: { id: string; url: string | null } | null;
+    /** Lo que alguien cambió a mano en el portal después de preparar (Vitolen, "Modificar" + releer): se aprueba igual, con motivo, y la dueña recibe el aviso con el impacto de costo. */
+    cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null;
     /**
      * Si viene, "Aprobar y cargar" abre primero un aviso con este texto y pide
      * confirmar (regla de Ishtar, 8/10/2026: en los 2x1 que nadie olvide el nº
@@ -106,4 +116,6 @@ export interface CargaAsistida {
     cancelarEnPortal?(borradorId: string, actor?: Actor): Promise<{ cancelado: boolean; motivo?: string }>;
     /** Volver a mirar el portal sin cambiar de estado (Vitolen: después de "Modificar" a mano). */
     releerPortal?(borradorId: string, actor: Actor): Promise<unknown>;
+    /** Antes de aprobar: lo que el lab exige del cuerpo (Vitolen: el motivo de los cambios a mano). Lanza ErrorDeCarga si falta. */
+    antesDeAprobar?(borradorId: string, body: Record<string, unknown>, actor: Actor): Promise<void>;
 }

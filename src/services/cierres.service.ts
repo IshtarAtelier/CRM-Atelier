@@ -5,6 +5,8 @@ import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
 import { SOLO_CLIENTES_POSIBLES } from '@/lib/no-cliente';
 import { ensureClientForAbandonedCart } from '@/services/cart-recovery.service';
+import { productoMiradoPorCliente } from '@/services/producto-mirado.service';
+import { etiquetaMiraba } from '@/lib/producto-mirado-web';
 import {
     DIAS_PARA_ENFRIARSE, DIAS_TICKET_ALTO, DIAS_PRESUPUESTO_COMUN, DIAS_SIN_PRESUPUESTO,
     DIAS_CARRITO, DIAS_ESCONDIDA_TRAS_ESCRIBIRLE,
@@ -176,6 +178,13 @@ async function presupuestos(): Promise<Oportunidad[]> {
     return out;
 }
 
+/** "Victoria C7" o "Victoria C7 y 1 más": lo que quedó en el carrito. */
+function nombreDelCarrito(items: { brand?: string; model?: string; name?: string }[]): string {
+    const nombres = items.map(i => [i.brand, i.model].filter(Boolean).join(' ') || i.name || '').map(n => n.trim()).filter(Boolean);
+    if (!nombres.length) return '';
+    return nombres.length === 1 ? nombres[0] : `${nombres[0]} y ${nombres.length - 1} más`;
+}
+
 async function carritos(): Promise<Oportunidad[]> {
     const sesiones = await prisma.checkoutSession.findMany({
         where: {
@@ -207,7 +216,7 @@ async function carritos(): Promise<Oportunidad[]> {
         const descartado = s.clientId ? descartes.get(s.clientId) : null;
         if (descartado && s.createdAt < descartado) continue;
 
-        const items = Array.isArray(s.cartData) ? (s.cartData as { brand?: string; model?: string; category?: string }[]) : [];
+        const items = Array.isArray(s.cartData) ? (s.cartData as { brand?: string; model?: string; name?: string; category?: string }[]) : [];
         const especial = items.some(i => esLenteEspecial(`${i.brand || ''} ${i.model || ''} ${i.category || ''}`));
         const horas = Math.floor((Date.now() - s.createdAt.getTime()) / (60 * 60 * 1000));
         const dias = diasDesde(s.createdAt);
@@ -217,7 +226,7 @@ async function carritos(): Promise<Oportunidad[]> {
             clientId: s.clientId, phone: s.phone, email: s.email,
             // Todo carrito entra: el monto decide si es importante, no si aparece.
             isPriority: especial, importante: esMontoAlto(s.total) || especial,
-            detail: `Carrito de ${plata(s.total)} hace ${horas >= 48 ? `${dias} días` : `${horas} horas`}`,
+            detail: `Carrito de ${plata(s.total)} hace ${horas >= 48 ? `${dias} días` : `${horas} horas`}${nombreDelCarrito(items) ? ` · ${nombreDelCarrito(items)}` : ''}`,
             amount: s.total, daysElapsed: dias, lastActivity: s.createdAt.toISOString(),
         });
     }
@@ -353,6 +362,17 @@ export const CierresService = {
             const t = llaveTelefono(o.phone), e = llaveEmail(o.email), n = llaveNombre(o.clientName);
             return !((t && compradores.has(`t:${t}`)) || (e && compradores.has(`e:${e}`)) || (n && compradores.has(`n:${n}`)));
         });
+        // Qué miraba en la tienda (plan 15/10/2026, 3.7): va en el detalle de la
+        // tarjeta, así quien le escribe sabe de qué hablarle. Se lee del chat.
+        try {
+            const miraba = await productoMiradoPorCliente(candidatos.map(o => o.clientId).filter((x): x is string => !!x));
+            for (const o of candidatos) {
+                const p = o.clientId ? miraba.get(o.clientId) : null;
+                if (p) o.detail = `${o.detail} · ${etiquetaMiraba(p)}`;
+            }
+        } catch (e: any) {
+            console.error('[Cierres] No se pudo leer qué producto miraba cada uno:', e?.message);
+        }
         const personas = agruparPorPersona(candidatos);
         const contactos = await ultimosContactos([...new Set(personas.flatMap(p => p.fichas))]);
         return armarPanel(personas, contactos);

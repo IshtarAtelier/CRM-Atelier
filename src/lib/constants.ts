@@ -58,6 +58,12 @@ export const PRIVATE_ADMIN_EMAILS = process.env.PRIVATE_ADMIN_EMAILS || 'pisano.
 // que sacar a alguien de un lado lo sacara del otro sin que nadie lo decidiera.
 export const ADS_REPORT_EMAILS = process.env.ADS_REPORT_EMAILS || 'pisano.ishtar@gmail.com';
 
+// Casilla del SISTEMA: archivo buscable de avisos de rutina (cada pago
+// registrado, etc.). No es de nadie: sirve para encontrar un dato después, no
+// para que se lea al llegar. Ishtar, 15/10/2026: el mail de "Nuevo pago" no
+// debe llegar a su casilla personal, solo a esta.
+export const SYSTEM_MAILBOX_EMAIL = process.env.SYSTEM_MAILBOX_EMAIL || 'crm.atelier.optica@gmail.com';
+
 // "Sin atender" — borrón y cuenta nueva. El backlog viejo de leads sin atender se
 // dio por cerrado el 2026-07-06: solo los contactos ingresados a partir de este
 // momento cuentan/marcan como "sin atender" (contador del botón, badge del sidebar,
@@ -132,6 +138,7 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
     'TRANSFER': 0,
     'TRANSFERENCIA_ISHTAR': 0,
     'TRANSFERENCIA_LUCIA': 0,
+    'TRANSFERENCIA_ESSILOR': 0,
     'CREDIT': 0,
 };
 
@@ -187,6 +194,7 @@ export const METHOD_LABELS: Record<string, string> = {
     TRANSFER: 'Transferencia',
     TRANSFERENCIA_ISHTAR: 'Transf. Ishtar',
     TRANSFERENCIA_LUCIA: 'Transf. Lucía',
+    TRANSFERENCIA_ESSILOR: 'Transf. Essilor',
     PAY_WAY_3_ISH: 'PayWay 3c Ish',
     PAY_WAY_3_YANI: 'PayWay 3c Yani',
     PAY_WAY_6_ISH: 'PayWay 6c Ish',

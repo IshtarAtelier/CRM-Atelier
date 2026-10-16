@@ -1,5 +1,6 @@
 import { formatDate } from '@/lib/format-date';
 import { cargarJsPDF } from '@/lib/cargar-jspdf';
+import { etiquetaCondicionIva } from '@/lib/constants/condicion-iva-receptor';
 export interface InvoiceData {
     invoice: any;
     issuer: {
@@ -107,7 +108,7 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     doc.setFontSize(9);
     const docLabel = invoice.docType === 80 ? 'CUIT' : invoice.docType === 96 ? 'DNI' : 'Doc';
     doc.text(`${docLabel}: ${invoice.docNumber}`, 12, 77);
-    doc.text(`IVA: Consumidor Final`, 12, 83);
+    doc.text(`IVA: ${etiquetaCondicionIva(invoice.receiverIvaCondition)}`, 12, 83);
     
     // Condición de Venta destacada a la derecha
     doc.setFont('helvetica', 'bold');

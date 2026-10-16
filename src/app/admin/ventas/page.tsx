@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users, Bot } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { PostSaleCard } from '@/components/orders/PostSaleCard';
 import { caseTypeStyle, POST_SALE_PIPELINE, POST_SALE_MOVABLE_STATUSES, postSaleColumn } from '@/lib/constants/postSale';
@@ -18,7 +18,7 @@ import { webPaymentGatewayLabel } from '@/lib/checkout/payment-gateway';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
-import CargaLaboratorio from '@/components/orders/CargaLaboratorio';
+import { LABS_CON_CARGA_ASISTIDA, NOMBRE_DE_LAB, ventaLlevaCristalesDe } from '@/lib/laboratorios/identidad';
 import ComprobanteLab from '@/components/orders/ComprobanteLab';
 import { colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
 import { estadoConfirmacionCliente } from '@/lib/confirmacion-cliente';
@@ -63,6 +63,9 @@ export default function VentasPage() {
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
     const [solicitudFactura, setSolicitudFactura] = useState<{ order: Order; cobrado: number; sugerido: number } | null>(null);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
+    /** "Procesar en <lab>": abre la ficha y el robot arranca solo. `n` cambia por clic para poder repetirlo. */
+    const [cargaPedida, setCargaPedida] = useState<{ orderId: string; lab: string; n: number } | null>(null);
+    const procesarEn = (orderId: string, lab: string) => { setExpandedDetail(orderId); setCargaPedida(c => ({ orderId, lab, n: (c?.n ?? 0) + 1 })); };
     const [caseTypeFilter, setCaseTypeFilter] = useState<string>('');
     const [viewMode, setViewMode] = useState<'VENTAS' | 'POST_VENTA'>(searchParams.get('mode') === 'POST_VENTA' ? 'POST_VENTA' : 'VENTAS');
     const [isSyncing, setIsSyncing] = useState(false);
@@ -89,6 +92,16 @@ export default function VentasPage() {
     const [loadingMore, setLoadingMore] = useState(false);
 
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [recordando, setRecordando] = useState<string | null>(null);
+    const recordarConfirmacion = async (orderId: string) => {
+        if (!window.confirm('Se le manda por WhatsApp un texto y un audio recordándole que sin su OK no se procesa el pedido. ¿Mandar?')) return;
+        setRecordando(orderId);
+        try {
+            const res = await fetch(`/api/orders/${orderId}/recordar-confirmacion`, { method: 'POST' });
+            const json = await res.json().catch(() => ({}));
+            window.alert(res.ok ? (json.mensaje || 'Recordatorio enviado.') : (json.error || 'No se pudo mandar el recordatorio.'));
+        } finally { setRecordando(null); }
+    };
     const [requestingInvoiceId, setRequestingInvoiceId] = useState<string | null>(null);
 
     const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
@@ -634,7 +647,7 @@ export default function VentasPage() {
             const pregunta = c.estado === 'OBSERVACION'
                 ? `${icono} ${c.texto}\n\nEl cliente pidió revisar algo. ¿Ya lo resolvieron y querés procesarlo igual?`
                 : c.estado === 'ESPERANDO'
-                    ? `${icono} ${c.texto}\n\nTodavía no dijo OK ni pasaron las 24 h. ¿Procesar igual?`
+                    ? `${icono} ${c.texto}\n\nTodavía no respondió. Revisá en la conversación de WhatsApp si dio el OK. ¿Procesar igual?`
                     : `${icono} ${c.texto}\n\n¿Procesar el pedido?`;
             if (!window.confirm(pregunta)) return;
         }
@@ -1155,9 +1168,18 @@ export default function VentasPage() {
                                                                 : 'bg-stone-100 text-stone-700 border-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700';
                                                     const icono = c.tono === 'verde' ? '✅' : c.tono === 'rojo' ? '✋' : c.tono === 'ambar' ? '⏳' : '⏱️';
                                                     return (
-                                                        <span title={c.texto} className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 max-w-[320px] truncate ${tono}`}>
-                                                            {icono} {c.estado === 'OK' ? 'Cliente: OK' : c.estado === 'TACITA' ? 'Cliente: 24 h sin respuesta · confirmado' : c.estado === 'OBSERVACION' ? `Cliente: observación — ${(order.clientConfirmationText || '').slice(0, 40)}` : c.estado === 'ESPERANDO' ? 'Cliente: esperando su OK' : 'Sin confirmación enviada'}
-                                                        </span>
+                                                        <>
+                                                            <span title={c.texto} className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 max-w-[320px] truncate ${tono}`}>
+                                                                {icono} {c.estado === 'OK' ? 'Cliente: OK' : c.estado === 'TACITA' ? 'Cliente: 24 h sin respuesta · confirmado' : c.estado === 'OBSERVACION' ? `Cliente: observación — ${(order.clientConfirmationText || '').slice(0, 40)}` : c.estado === 'ESPERANDO' ? 'Cliente: esperando su OK' : 'Sin confirmación enviada'}
+                                                            </span>
+                                                            {/* No contestó: se le recuerda por WhatsApp (texto + audio) que sin su OK no se procesa (Ishtar, 15/10/2026). */}
+                                                            {c.estado === 'ESPERANDO' && (
+                                                                <button type="button" disabled={recordando === order.id} onClick={() => recordarConfirmacion(order.id)} title="Le manda por WhatsApp un texto y un audio: sin su OK no se procesa el pedido"
+                                                                    className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest border border-amber-300 bg-white text-amber-800 hover:bg-amber-50 dark:bg-stone-900 dark:text-amber-300 dark:border-amber-800/50 disabled:opacity-50">
+                                                                    {recordando === order.id ? 'Mandando…' : '📣 Recordarle el OK'}
+                                                                </button>
+                                                            )}
+                                                        </>
                                                     );
                                                 })()}
                                                 {order.status === 'WEB_PENDING' && (
@@ -1342,16 +1364,6 @@ export default function VentasPage() {
                                         );
                                     })()}
 
-                                {/* Carga del pedido en el portal de Vitolen (un solo componente para
-                                    todos los labs): solo Ishtar y Milena — la API responde 403 al resto y
-                                    el bloque no se dibuja. Grupo Óptico va en el panel de la venta
-                                    (OrderDetailPanel): acá dibujaría un bloque por cada venta del listado. */}
-                                {orderLabs.some(l => /vitolen/i.test(l)) && (
-                                    <div className="mt-4">
-                                        <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={fetchOrders} />
-                                    </div>
-                                )}
-
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
                                     <div className="w-full lg:w-72">
@@ -1413,6 +1425,22 @@ export default function VentasPage() {
 
                                     {/* Actions */}
                                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 lg:flex-shrink-0 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
+                                        {/* "Procesar en <lab>": LA MISMA entrada para todo laboratorio con carga
+                                            asistida (LABS_CON_CARGA_ASISTIDA, sin código por lab). Un clic abre la
+                                            ficha y el robot arma el pedido en el portal; se aprueba viendo la
+                                            pantalla real (CargaLaboratorio, el mismo bloque para todos). Acá no se
+                                            dibuja el bloque: sería una consulta por cada venta del listado
+                                            (Ishtar, 15/10/2026: "Procesar en Vitolen / Procesar en Grupo Óptico,
+                                            algo simple e intuitivo; misma estética en todos los laboratorios"). */}
+                                        {!['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && LABS_CON_CARGA_ASISTIDA.filter(lab => ventaLlevaCristalesDe(order.items, lab)).map(lab => (
+                                            <button key={lab} type="button" onClick={() => procesarEn(order.id, lab)}
+                                                title={`Vos no cargás nada: el robot entra al portal de ${NOMBRE_DE_LAB[lab]}, arma el pedido y te muestra la pantalla real para que solo des el OK`}
+                                                className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-sm bg-stone-900 text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900">
+                                                {/* Texto corto y en broma a propósito (Ishtar, 15/10/2026): el pedido lo carga el robot, no ellos.
+                                                    Sin nombre de laboratorio: "el sistema ya sabe a dónde entrar" (la venta lo dice en su etiqueta). */}
+                                                <Bot className="w-3.5 h-3.5" /> Hacé lo tuyo
+                                            </button>
+                                        ))}
                                         {/* Advance Status Button */}
                                         {nextStepInfo && (
                                             <button
@@ -1648,6 +1676,7 @@ export default function VentasPage() {
                                         isAutoSubmitting={isAutoSubmitting}
                                         userRole={userRole}
                                         onRefresh={() => fetchOrders(search)}
+                                        cargaPedida={cargaPedida?.orderId === order.id ? cargaPedida : null}
                                     />
                                 )}
                             </div>
@@ -1836,6 +1865,7 @@ export default function VentasPage() {
                                         isAutoSubmitting={isAutoSubmitting}
                                         userRole={userRole}
                                         onRefresh={() => fetchOrders(search)}
+                                        cargaPedida={cargaPedida?.orderId === order.id ? cargaPedida : null}
                                     />
                                 </div>
                             </div>

@@ -140,9 +140,10 @@ export function portalSinResolver(b: { status: string; resumenPortal: unknown })
  *  · APROBADO viejo: la confirmación no terminó → se anota para reintentar,
  *    nunca ERROR (el portal puede haberla tomado).
  */
-// Un robot vivo late cada 2 min (`conRobot`, mueve `updatedAt`), así que
-// "30 min sin novedades" es un robot muerto, no uno lento: ningún paso suelto
-// del robot (login, espera de turno, un GET al portal) dura más de 5 min.
+// Un robot vivo late cada 2 min (`conRobot`, mueve `updatedAt`) también mientras
+// Playwright espera (el setInterval corre en el event loop), así que "30 min
+// sin novedades" es un robot muerto, no uno lento — aunque un paso del portal
+// de Grupo Óptico pueda tardar hasta 30 min (techo ampliado el 15/10/2026).
 export const COLGADO_TRAS_MIN = 30;
 
 export function colgados(
@@ -212,7 +213,8 @@ export function accionesDe(
     return {
         // Con un "releer" en vuelo no se aprueba: el confirm compararía contra el texto viejo.
         aprobar: enRevision && !contexto.bloqueadoPorExistente && !robotEnCurso,
-        rechazar: enRevision,
+        // Con un "releer" en vuelo no se rechaza: Vitolen tiene que poder cancelar el borrador del portal después.
+        rechazar: enRevision && !robotEnCurso,
         reintentar: aprobado && !robotEnCurso && (!!b.error || demorado),
         // Solo un borrador que NUNCA mandó nada, y sin robot encima. Un PREPARADO
         // colgado puede haber dejado un borrador en el portal (Vitolen apretó
@@ -242,12 +244,15 @@ const ULTIMA_SENAL_DEL_ROBOT = Prisma.sql`COALESCE("resumenPortal"->>'robotLatid
  * consigue, 409 — dos clics de "releer" o "cancelar en el portal" ya no
  * arrancan dos Chromium (auditoría 4, M1). Devuelve la identidad.
  */
-async function robotArranca(id: string, etapa: string, heredar: string | null): Promise<string> {
+async function robotArranca(id: string, etapa: string, heredar: string | null, enEstado: EstadoBorrador[]): Promise<string> {
     const robotDesde = heredar ?? new Date().toISOString();
     const limite = new Date(Date.now() - ROBOT_EN_CURSO_MAX_MS).toISOString();
+    // También el ESTADO en el WHERE: un confirm que arranca sobre un borrador que
+    // alguien devolvió a revisión en el medio no toma el candado ni gasta un turno.
+    const estados = Prisma.join(enEstado);
     const n = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotDesde, robotLatidoEl: null, etapa })}::jsonb, "updatedAt" = NOW()
-        WHERE id = ${id} AND (${ULTIMA_SENAL_DEL_ROBOT} IS NULL OR ${ULTIMA_SENAL_DEL_ROBOT} < ${limite} OR ("resumenPortal"->>'robotDesde') = ${robotDesde})`;
-    if (n !== 1) throw new ErrorDeCarga('El robot ya está trabajando con este pedido: esperá a que termine (la ficha se actualiza sola).', 'ESTADO');
+        WHERE id = ${id} AND status IN (${estados}) AND (${ULTIMA_SENAL_DEL_ROBOT} IS NULL OR ${ULTIMA_SENAL_DEL_ROBOT} < ${limite} OR ("resumenPortal"->>'robotDesde') = ${robotDesde})`;
+    if (n !== 1) throw new ErrorDeCarga(`El robot ya está trabajando con este pedido, o el borrador ya no está ${enEstado.join('/')}: la ficha se actualiza sola.`, 'ESTADO');
     return robotDesde;
 }
 
@@ -376,6 +381,8 @@ export const Borradores = {
     async rechazar(id: string, actor: Actor, motivo: string) {
         if (!puedeAprobar(actor)) throw new ErrorDeCarga('El rechazo tiene que hacerlo una persona identificada.', 'PERMISO');
         if (!motivo?.trim()) throw new ErrorDeCarga('Decí por qué se rechaza: es lo que el vendedor va a leer.', 'DATOS');
+        const r = ((await prisma.labOrderDraft.findUnique({ where: { id }, select: { resumenPortal: true } }))?.resumenPortal || {}) as RastroPortal;
+        if (r.robotDesde && Date.now() - Date.parse(r.robotLatidoEl ?? r.robotDesde) < ROBOT_EN_CURSO_MAX_MS) throw new ErrorDeCarga('El robot está trabajando con este pedido ahora mismo: esperá a que termine antes de rechazarlo.', 'ESTADO');
         const texto = motivo.trim().slice(0, 500);
         return cambiarEstado(id, 'RECHAZADO', { error: texto }, actor, { motivo: texto });
     },
@@ -496,8 +503,8 @@ export const Borradores = {
      * pisa el estado del nuevo (auditoría de robustez 3, A1 y M3). La tarea
      * recibe su identidad para pasársela a `anotarFalla`.
      */
-    async conRobot<T>(id: string, etapa: string, tarea: (robot: string) => Promise<T>, opts: { heredar?: string | null } = {}): Promise<T> {
-        const robot = await robotArranca(id, etapa, opts.heredar ?? null);
+    async conRobot<T>(id: string, etapa: string, tarea: (robot: string) => Promise<T>, opts: { heredar?: string | null; enEstado: EstadoBorrador[] }): Promise<T> {
+        const robot = await robotArranca(id, etapa, opts.heredar ?? null, opts.enEstado);
         const latido = setInterval(() => {
             prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ robotLatidoEl: new Date().toISOString() })}::jsonb, "updatedAt" = NOW()
                 WHERE id = ${id} AND ("resumenPortal"->>'robotDesde') = ${robot}`

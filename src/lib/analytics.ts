@@ -9,6 +9,7 @@
  */
 import { prisma } from '@/lib/db';
 import { captureError } from '@/lib/logger';
+import { esEventoDeRuido } from '@/lib/analitica/ruido';
 
 export const ANALYTICS_EVENT_TYPES = [
   'page_view', // navegación general
@@ -131,7 +132,10 @@ export function sanitizeEvents(raw: unknown, fallback: Partial<AnalyticsEventInp
  * Inserta eventos sin bloquear ni lanzar. Devuelve la cantidad insertada.
  * Llamar SIN await desde rutas calientes.
  */
-export async function recordEvents(events: AnalyticsEventInput[]): Promise<number> {
+export async function recordEvents(eventos: AnalyticsEventInput[]): Promise<number> {
+  // El producto de prueba no entra nunca, venga del navegador o del server
+  // (la compra `purchase` la graba el checkout). Ver src/lib/analitica/ruido.ts.
+  const events = eventos.filter((e) => !esEventoDeRuido(e));
   if (!events.length) return 0;
   try {
     const res = await prisma.analyticsEvent.createMany({

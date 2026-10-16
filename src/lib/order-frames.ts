@@ -206,26 +206,32 @@ export function cristalesPorArmazon(order: any): Map<number, any[]> {
         return esCristalDePar(prod);
     });
 
-    // Los que ya saben a qué armazón van.
+    // Los que ya saben a qué armazón van (y qué ojo ocupan en él).
+    const ocupados = new Map<number, Set<string>>();
+    for (let p = 1; p <= total; p++) ocupados.set(p, new Set());
     const sinAsignar: any[] = [];
     for (const it of cristales) {
-        if (it.framePosition && mapa.has(it.framePosition)) mapa.get(it.framePosition)!.push(it);
-        else sinAsignar.push(it);
+        if (it.framePosition && mapa.has(it.framePosition)) {
+            mapa.get(it.framePosition)!.push(it);
+            const ojo = (it.eye || '').toUpperCase();
+            if (ojo) ocupados.get(it.framePosition)!.add(ojo);
+        } else sinAsignar.push(it);
     }
 
-    // El resto, por orden: se completa un anteojo (OD + OI) antes de pasar al
-    // siguiente. Un cristal sin ojo cuenta como medio par.
-    let pos = 1;
-    const ojosUsados = new Set<string>();
+    // El resto, en el orden del carrito: cada cristal va al PRIMER armazón que
+    // todavía no tiene su ojo. Así el 2º OD y el 2º OI son del par 2 aunque el
+    // carrito venga OD, OD, OI, OI (antes, "completar un anteojo antes de pasar
+    // al siguiente" mandaba tres cristales al par 2), y en una venta mixta los
+    // cristales sin asignar de un lab caen en el armazón que el otro lab no
+    // ocupa (15/10/2026). Es LA regla de "qué par es cada cristal": la promo del
+    // 2º par, la carga a los laboratorios y el cruce leen de acá.
     for (const it of sinAsignar) {
         const ojo = (it.eye || '').toUpperCase();
-        const clave = `${pos}|${ojo}`;
-        if (ojo && ojosUsados.has(clave) && pos < total) {
-            pos++;
-            ojosUsados.clear();
-        }
-        mapa.get(Math.min(pos, total))!.push(it);
-        if (ojo) ojosUsados.add(`${pos}|${ojo}`);
+        let pos = 1;
+        if (ojo) { while (pos < total && ocupados.get(pos)!.has(ojo)) pos++; }
+        else { while (pos < total && mapa.get(pos)!.length >= 2) pos++; }
+        mapa.get(pos)!.push(it);
+        if (ojo) ocupados.get(pos)!.add(ojo);
     }
 
     return mapa;

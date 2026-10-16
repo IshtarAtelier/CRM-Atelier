@@ -7,6 +7,9 @@ import { Modal } from '@/components/ui/Modal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import { MONOTRIBUTO_UNIT_PRICE_LIMIT } from '@/lib/constants/billing';
 import { CONDICIONES_IVA_RECEPTOR } from '@/lib/constants/condicion-iva-receptor';
+import { METHOD_LABELS } from '@/lib/constants';
+import { formatDate } from '@/lib/format-date';
+import { precioConSigno } from '@/lib/format-precio';
 
 interface InvoiceItem {
 // ... (rest of interface remains same)
@@ -26,7 +29,7 @@ interface InvoiceModalProps {
             phone?: string | null;
         };
         items?: any[];
-        payments?: { method: string }[];
+        payments?: { method: string; amount?: number; date?: string | Date }[];
     };
     initialAccount?: 'ISH' | 'YANI' | 'LUCIA';
     initialAmount?: number; // Target amount to invoice
@@ -521,6 +524,21 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, ini
                                 )}
                             </div>
                         </div>
+
+                        {/* Pagos de la venta: para verificar lo que se factura */}
+                        {(order.payments || []).some(p => typeof p.amount === 'number') && (
+                            <div className="bg-stone-50 dark:bg-stone-800/40 p-5 rounded-2xl border-2 border-stone-100 dark:border-stone-800">
+                                <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Pagos de la venta</label>
+                                <ul className="space-y-1 text-xs">
+                                    {(order.payments || []).map((p, i) => (
+                                        <li key={i} className="flex justify-between gap-3">
+                                            <span>{p.date ? formatDate(p.date) : ''} · {METHOD_LABELS[p.method] || p.method}</span>
+                                            <strong>{precioConSigno(p.amount)}</strong>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
                         {/* Observations Panel */}
                         <div className="bg-stone-50 dark:bg-stone-800/40 p-5 rounded-2xl border-2 border-stone-100 dark:border-stone-800">

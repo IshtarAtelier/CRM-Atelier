@@ -1,9 +1,10 @@
 import { prisma } from '@/lib/db';
 import { formatearPrecio } from '@/lib/format-precio';
-import { telefonoLegible } from '@/lib/phone-utils';
-import { CRM_ORIGIN } from '@/lib/constants';
+import { formatPhoneForWhatsApp, telefonoLegible } from '@/lib/phone-utils';
+import { CRM_ORIGIN, STORE_ORIGIN } from '@/lib/constants';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
 import { SIN_ROBOTS } from '@/lib/checkout/robots';
+import { ensureClientForAbandonedCart } from '@/services/cart-recovery.service';
 
 /**
  * Aviso al equipo por la mensajería interna cuando una PERSONA dejó sus datos
@@ -24,12 +25,25 @@ const MINUTOS_SIN_ACTIVIDAD = 45;
 /** No avisar carritos de más de 3 días: ya no se recuperan. */
 const DIAS_MAXIMOS = 3;
 
-type ItemCarrito = { brand?: string; model?: string; name?: string };
+type ItemCarrito = { brand?: string; model?: string; name?: string; slug?: string };
 
-function describirCarrito(cartData: unknown): string {
+/** Cada producto con su link a la ficha de la tienda, si el carrito guardó el slug. */
+export function describirCarrito(cartData: unknown): string {
   const items = Array.isArray(cartData) ? (cartData as ItemCarrito[]) : [];
-  const nombres = items.map((i) => [i.brand, i.model].filter(Boolean).join(' ') || i.name).filter(Boolean);
+  const nombres = items
+    .map((i) => {
+      const nombre = [i.brand, i.model].filter(Boolean).join(' ') || i.name || '';
+      if (!nombre) return '';
+      return i.slug ? `${nombre} (${STORE_ORIGIN}/producto/${i.slug})` : nombre;
+    })
+    .filter(Boolean);
   return nombres.length ? nombres.join(', ') : 'productos de la tienda';
+}
+
+/** Link para escribirle ya, desde el celular propio (sin gastar plantilla). */
+function linkParaEscribirle(telefono: string | null): string {
+  const numero = formatPhoneForWhatsApp(telefono);
+  return numero ? `https://wa.me/${numero}` : '';
 }
 
 export async function avisarCarritosAbandonados(ahora = new Date()): Promise<{ avisados: number }> {
@@ -43,7 +57,7 @@ export async function avisarCarritosAbandonados(ahora = new Date()): Promise<{ a
       OR: [{ phone: { not: null, notIn: [''] } }, { email: { not: null, notIn: [''] } }],
       ...SIN_ROBOTS,
     },
-    select: { id: true, firstName: true, lastName: true, phone: true, email: true, total: true, cartData: true },
+    select: { id: true, clientId: true, firstName: true, lastName: true, phone: true, email: true, total: true, cartData: true },
     take: 20,
   });
   if (!carritos.length) return { avisados: 0 };
@@ -56,13 +70,27 @@ export async function avisarCarritosAbandonados(ahora = new Date()): Promise<{ a
     const yaAvisado = await prisma.internalMessage.findFirst({ where: { body: { contains: marca } }, select: { id: true } });
     if (yaAvisado) continue;
 
+    // La ficha se asegura ACÁ, a los 45 min, y no recién a las 24 h: el aviso
+    // tiene que llevar a la ficha del cliente (plan 15/10/2026, 3.4), y es en
+    // la ficha donde queda firmado lo que se le escriba. Si falla, el aviso
+    // sale igual, con el link al panel.
+    let clientId = c.clientId;
+    if (!clientId) {
+      try { clientId = await ensureClientForAbandonedCart(c); } catch (err) { console.error('[Aviso carrito] No se pudo asegurar la ficha:', err); }
+    }
+
     const nombre = [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Sin nombre';
     const contacto = [c.phone ? `📱 ${telefonoLegible(c.phone)}` : '', c.email ? `✉️ ${c.email}` : ''].filter(Boolean).join(' · ');
+    const ficha = clientId ? `${CRM_ORIGIN}/admin/contactos?clientId=${clientId}` : `${CRM_ORIGIN}/admin`;
+    const escribirle = linkParaEscribirle(c.phone);
     const cuerpo =
       `🛒 Carrito abandonado en la web\n` +
       `${nombre} · ${contacto}\n` +
       `Quería: ${describirCarrito(c.cartData)} · $${formatearPrecio(c.total || 0)}\n` +
-      `Dejó sus datos y no pagó. Escribile por WhatsApp desde Oportunidades de Cierre: ${CRM_ORIGIN}/admin\n` +
+      `Dejó sus datos y no pagó.\n` +
+      `Ficha: ${ficha}\n` +
+      (escribirle ? `Escribile por WhatsApp: ${escribirle}\n` : `Sin WhatsApp: solo dejó el mail.\n`) +
+      `Si en 24 h nadie le escribió, el sistema le manda la plantilla de recupero.\n` +
       `Ref. ${marca}`;
 
     for (const u of equipo) {

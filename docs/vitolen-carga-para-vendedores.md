@@ -56,7 +56,7 @@ Es **la misma forma de trabajar que con Grupo Óptico**: preparar, mirar la
 pantalla real del laboratorio, aprobar.
    - Si es un detalle chico, el link "abrilo en el portal" lleva al borrador:
      se corrige con **Modificar** en Vitolen y después se aprueba acá.
-5. **Segundo par de la promo Hoya**: el bloque te lo marca en amarillo. Antes
+6. **Segundo par de la promo Hoya**: el bloque te lo marca en amarillo. Antes
    de aprobar, abrí el borrador en el portal con "Modificar" y asociá el
    **pedido origen** (el nº del primer par) con la promoción HOYALUX. El
    robot todavía no lo hace solo.
@@ -98,6 +98,11 @@ pantalla real del laboratorio, aprobar.
   trae. Con dos pares y los cristales sin armazón asignado, los pares se arman
   en el orden del carrito (el 2º OD y el 2º OI son del par 2), igual que la
   promo del 2º par.
+- **Si cambiaste algo a mano en el portal** (botón "Abrir en Vitolen para
+  modificar" → Modificar → guardar → botón "Releer el portal"): la ficha te
+  muestra qué cambió y si cuesta más o menos según la lista; al aprobar te pide
+  el **motivo**. Se aprueba igual: el detalle, el costo y tu motivo le llegan a
+  Ishtar por la mensajería interna cuando el pedido queda cargado.
 - **Aprobado pero "no se pudo confirmar"**: botón **"Reintentar la
   carga"**. Nunca se crea un pedido duplicado: si Vitolen ya lo tomó,
   el robot lee el nº y listo. Si el portal sigue caído o te arrepentiste,

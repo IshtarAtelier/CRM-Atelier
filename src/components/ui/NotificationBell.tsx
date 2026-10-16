@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink, AlertTriangle, Factory, ShoppingCart } from "lucide-react";
+import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink, AlertTriangle, Factory, ShoppingCart, Undo2 } from "lucide-react";
 
 interface Notification {
     id: string;
@@ -138,6 +138,7 @@ export function NotificationBell() {
         if (type === "LAB_CHECK") return <Factory className="w-4 h-4 text-amber-500" />;
         if (type === "WEB_SALE") return <ShoppingCart className="w-4 h-4 text-emerald-600" />;
         if (type === "MP_COBRO") return <ShoppingCart className="w-4 h-4 text-sky-600" />;
+        if (type === "WITHDRAWAL_REQUEST") return <Undo2 className="w-4 h-4 text-red-600" />;
         return <Bell className="w-4 h-4" />;
     };
 
@@ -149,6 +150,7 @@ export function NotificationBell() {
         if (type === "LAB_CHECK") return "Corroborar con Laboratorio";
         if (type === "WEB_SALE") return "Nueva Venta Web";
         if (type === "MP_COBRO") return "Cobro en Mercado Pago";
+        if (type === "WITHDRAWAL_REQUEST") return "Botón de Arrepentimiento";
         return "Notificación";
     };
 

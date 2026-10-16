@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Check, X, Loader2, RefreshCw, AlertTriangle, Maximize2, FileText, ChevronDown } from 'lucide-react';
+import { Bot, Check, X, Loader2, RefreshCw, AlertTriangle, Maximize2, FileText, ChevronDown, ExternalLink, Pencil } from 'lucide-react';
 import { formatDate } from '@/lib/format-date';
 
 /**
@@ -20,10 +20,10 @@ import { formatDate } from '@/lib/format-date';
  * aprueba a ciegas.
  */
 
-interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
-interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
+interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
+interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; aMano?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
 interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
-interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null }
+interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
     preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista; acciones?: Acciones;
@@ -44,13 +44,23 @@ const VIVOS = ['PREPARADO', 'EN_REVISION', 'APROBADO'];
 const esImagen = (url: string | null | undefined) => { if (!url) return false; try { return !/\.pdf(\?|$|%)/i.test(decodeURIComponent(url)); } catch { return false; } };
 
 /** Colores por laboratorio (clases completas: Tailwind no arma nombres dinámicos). */
-const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde: string; anillo: string }> = {
-    VITOLEN: { caja: 'from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-100 dark:border-red-900/40', titulo: 'text-red-600', boton: 'bg-red-600', borde: 'border-red-100 dark:border-red-900/30', anillo: 'hover:ring-red-400' },
-    GRUPO_OPTICO: { caja: 'from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-indigo-100 dark:border-indigo-900/50', titulo: 'text-indigo-600 dark:text-indigo-400', boton: 'bg-indigo-600', borde: 'border-indigo-100 dark:border-indigo-900/40', anillo: 'hover:ring-indigo-400' },
+const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde: string; anillo: string; seleccion: string }> = {
+    VITOLEN: { caja: 'from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-100 dark:border-red-900/40', titulo: 'text-red-600', boton: 'bg-red-600', borde: 'border-red-100 dark:border-red-900/30', anillo: 'hover:ring-red-400', seleccion: 'border-red-600 ring-red-300' },
+    GRUPO_OPTICO: { caja: 'from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-indigo-100 dark:border-indigo-900/50', titulo: 'text-indigo-600 dark:text-indigo-400', boton: 'bg-indigo-600', borde: 'border-indigo-100 dark:border-indigo-900/40', anillo: 'hover:ring-indigo-400', seleccion: 'border-indigo-600 ring-indigo-300' },
 };
 
-export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: string; orderId: string; onChanged?: () => void }) {
+/**
+ * `arrancar`: un número > 0 pide que, apenas se lea el laboratorio, el bloque se
+ * traiga a la vista y el robot prepare el primer par que esté listo (es lo que
+ * hace el botón "Procesar en <lab>" del listado de ventas: un clic y el robot
+ * arranca; Ishtar, 15/10/2026). Cada clic manda un número distinto; el mismo
+ * número no arranca dos veces. Si al par le falta algo para elegir (tipo de
+ * armazón, forma), se queda en el formulario para que lo elijan.
+ */
+export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0 }: { lab: string; orderId: string; onChanged?: () => void; arrancar?: number }) {
     const [datos, setDatos] = useState<Datos | null>(null);
+    const caja = useRef<HTMLDivElement>(null);
+    const arrancado = useRef(0);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState('');
     const [ocupado, setOcupado] = useState<string | null>(null);
@@ -65,6 +75,9 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     const dialogo = useRef<HTMLDivElement>(null);
     // Aviso previo a aprobar (2x1 / promo del 2º par): el nº de operación del otro par es lo que hace el descuento.
     const [confirmando, setConfirmando] = useState<Borrador | null>(null);
+    /** Un pedido cambiado a mano en el portal: antes de aprobar se pide el motivo (le llega a la dueña con el costo). */
+    const [cambiosDe, setCambiosDe] = useState<Borrador | null>(null);
+    const [motivoCambios, setMotivoCambios] = useState<Record<string, string>>({});
     // Un extra NO cobrado (Essential): "¿estás seguro?" + motivo obligatorio antes de aceptarlo (Ishtar, 8/10/2026).
     const [extraPendiente, setExtraPendiente] = useState<{ pair: number; campo: Campo } | null>(null);
     const [motivoExtra, setMotivoExtra] = useState('');
@@ -74,7 +87,8 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     const cartelConfirmar = useRef<HTMLDivElement>(null);
     useEffect(() => { if (extraPendiente) cartelExtra.current?.focus(); }, [extraPendiente]);
     useEffect(() => { if (confirmando) cartelConfirmar.current?.focus(); }, [confirmando]);
-    const aprobar = (b: Borrador) => (b.vista.confirmarAntesDeAprobar ? setConfirmando(b) : decidir(b.id, 'aprobar'));
+    const aprobarConMotivo = (b: Borrador) => decidir(b.id, 'aprobar', b.vista.cambiosAMano ? { motivo: motivoCambios[b.id] || '' } : undefined);
+    const aprobar = (b: Borrador) => (b.vista.cambiosAMano?.lineas.length ? setCambiosDe(b) : b.vista.confirmarAntesDeAprobar ? setConfirmando(b) : aprobarConMotivo(b));
     // El foco va al diálogo UNA vez al abrirlo (para que Escape lo cierre), no en cada render:
     // si se lo robara en cada render, no se podría escribir el motivo del rechazo.
     useEffect(() => { if (ampliada) dialogo.current?.focus(); }, [ampliada]);
@@ -128,10 +142,23 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
         } finally { setOcupado(null); }
     };
 
-    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal' | 'anular' | 'retirar-aprobacion' | 'releer') => {
+    /** ¿Este par se puede preparar ya, sin que nadie elija nada? */
+    const parListo = (p: Par) => !p.yaCargado && !p.espera && !p.aMano && p.faltantes.length === 0
+        && !datos?.borradores.some(b => b.pair === p.pair && (VIVOS.includes(b.status) || b.status === 'CARGADO'))
+        && !p.campos.some(c => c.obligatorio && !valorDe(p.pair, c));
+    // "Procesar en <lab>" desde el listado: traer el bloque a la vista y arrancar el robot.
+    useEffect(() => {
+        if (!arrancar || arrancar === arrancado.current || !datos || ocupado) return;
+        arrancado.current = arrancar;
+        caja.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const par = datos.pares.find(parListo);
+        if (par) void preparar(par);
+    }, [arrancar, datos]);
+
+    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal' | 'anular' | 'retirar-aprobacion' | 'releer', extra?: { motivo?: string }) => {
         setOcupado(`${accion}-${id}`); setError('');
         try {
-            const res = await fetch(`/api/lab-modulos/borradores/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, motivo: motivo[id] || '' }) });
+            const res = await fetch(`/api/lab-modulos/borradores/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, motivo: extra?.motivo ?? (motivo[id] || '') }) });
             const json = await res.json().catch(() => ({}));
             // Tras cualquier decisión se cierra la vista ampliada y se recarga: si la
             // carga falló, el estado nuevo y el error se leen en la ficha (dentro de la
@@ -178,12 +205,26 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         <X className="w-3.5 h-3.5" /> Rechazar
                     </button>
                 </div>
+                {/* Corregir a mano ANTES de aprobar (Vitolen): se abre el borrador real en el portal
+                    ("Modificar"), y "Releer el portal" trae la pantalla como quedó. Botones, no un
+                    link escondido en el texto (Ishtar, 15/10/2026). */}
+                {b.vista.enlacePortal && b.acciones?.releer && (
+                    <div className={`flex flex-wrap items-center gap-2 text-xs ${claro ? 'text-stone-300' : 'text-stone-600 dark:text-stone-300'}`}>
+                        <span>¿Hay que corregir algo?</span>
+                        <a href={b.vista.enlacePortal} target="_blank" rel="noreferrer" className={`${boton} ${claro ? 'bg-stone-700' : 'bg-stone-600'}`}>
+                            <Pencil className="w-3.5 h-3.5" /> Abrir en {nombre} para modificar <ExternalLink className="w-3 h-3" />
+                        </a>
+                        <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'releer')} className={`${boton} ${claro ? 'bg-stone-700' : 'bg-stone-600'}`}>
+                            {ocupado === `releer-${b.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Releer el portal (después de modificar)
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };
 
     return (
-        <div className={`bg-gradient-to-br ${tema.caja} rounded-2xl border p-5 shadow-sm`}>
+        <div ref={caja} id={`carga-${lab}`} className={`bg-gradient-to-br ${tema.caja} rounded-2xl border p-5 shadow-sm scroll-mt-20`}>
             <div className="flex items-center justify-between mb-4">
                 <h4 className={`text-[10px] font-black ${tema.titulo} uppercase tracking-widest flex items-center gap-1.5`}>
                     <Bot className="w-3.5 h-3.5" /> {nombre} · carga del pedido
@@ -259,6 +300,14 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         {/* ── Sin borrador vivo ni cargado: preparar ── */}
                         {!b && !cargado && (
                             par.yaCargado ? <p className="text-xs text-emerald-800 dark:text-emerald-400 font-bold">{par.yaCargado}</p>
+                            /* El robot no puede con este cristal: se anuncia y se carga a mano, sin botón de Preparar. */
+                            : par.aMano ? (
+                                <div className="text-xs text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/40 rounded-lg px-3 py-2 space-y-1">
+                                    <p className="font-bold flex items-center gap-1"><Bot className="w-3.5 h-3.5" /> Este pedido va a mano: el robot no lo puede cargar.</p>
+                                    <p>{par.aMano}.</p>
+                                    <p>Cargalo a mano en el portal de {nombre} y anotá acá el nº de pedido (el seguimiento y el cruce de costos siguen igual).</p>
+                                </div>
+                            )
                             : par.espera ? <p className="text-xs text-stone-500">{par.espera}</p>
                             : par.faltantes.length > 0 ? (
                                 <div className="text-xs text-amber-800 dark:text-amber-400">
@@ -280,7 +329,21 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                         )
                                     ) : (
                                         <label key={c.clave} className="text-[10px] text-stone-500" title={c.ayuda}>{c.etiqueta}
-                                            {c.tipo === 'select' ? (
+                                            {c.tipo === 'select' && c.opciones?.some(o => o.imagen) ? (
+                                                /* Opciones con dibujo (las formas del portal): se elige viendo la forma. */
+                                                <div role="radiogroup" aria-label={c.etiqueta} className="mt-0.5 flex flex-wrap gap-1.5">
+                                                    {(c.opciones || []).map(o => {
+                                                        const elegida = valorDe(par.pair, c) === o.value;
+                                                        return (
+                                                            <button key={o.value} type="button" role="radio" aria-checked={elegida} title={o.label}
+                                                                onClick={() => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: o.value }))}
+                                                                className={`flex flex-col items-center gap-0.5 rounded-lg border-2 bg-white px-1.5 py-1 ${elegida ? `ring-2 ${tema.seleccion}` : 'border-stone-200 hover:border-stone-400'}`}>
+                                                                {o.imagen ? <img src={o.imagen} alt={o.label} className="w-20 h-auto" /> : <span className="text-[10px]">{o.label}</span>}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : c.tipo === 'select' ? (
                                                 <select value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={input}>
                                                     {!c.porDefecto && <option value="">{c.obligatorio ? 'Elegir…' : '—'}</option>}
                                                     {(c.opciones || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -358,9 +421,16 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                             <div className="space-y-2">
                                 <p className="text-xs text-stone-600 dark:text-stone-300">
                                     {b.vista.textoRevision}
-                                    {b.vista.enlacePortal && b.acciones?.releer ? <> Para corregir algo antes, <a href={b.vista.enlacePortal} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> y después <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'releer')} className="underline font-bold">{ocupado === `releer-${b.id}` ? 'releyendo…' : 'releé el portal'}</button> para ver cómo quedó.</> : null}
+                                    {b.vista.enlacePortal && b.acciones?.releer ? <> Para corregir algo antes de aprobar, usá los botones de abajo: abrilo en el portal, modificalo, y releé.</> : null}
                                     {b.error ? <span className="block mt-1 text-rose-700 dark:text-rose-400">{b.error}</span> : null}
                                 </p>
+                                {b.vista.cambiosAMano && b.vista.cambiosAMano.lineas.length > 0 && (
+                                    <div className="text-xs text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/40 rounded-lg px-3 py-2">
+                                        <p className="font-bold flex items-center gap-1"><Pencil className="w-3 h-3" /> Cambiado a mano en el portal{b.vista.cambiosAMano.costoExtra ? ` · ${b.vista.cambiosAMano.costoExtra > 0 ? '+' : '−'}$ ${Math.round(Math.abs(b.vista.cambiosAMano.costoExtra)).toLocaleString('es-AR')} de costo según la lista` : ' · sin cambio de costo'}{b.vista.cambiosAMano.aConfirmar ? ' · parte a confirmar' : ''}</p>
+                                        <ul className="list-disc pl-4 mt-1 space-y-0.5">{b.vista.cambiosAMano.lineas.map(l => <li key={l}>{l}</li>)}</ul>
+                                        <p className="mt-1">Al aprobar se pide el motivo y le llega a la dueña.</p>
+                                    </div>
+                                )}
                                 {b.vista.avisos.length > 0 && (
                                     <div className="text-xs text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
                                         <p className="font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {b.vista.tituloAvisos || 'Mirá esto antes de aprobar:'}</p>
@@ -429,6 +499,31 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                 </div>
             )}
 
+            {/* El pedido se cambió a mano en el portal: se aprueba igual, con un motivo, y la dueña recibe el detalle con el costo. */}
+            {cambiosDe && cambiosDe.vista.cambiosAMano && (
+                <div role="alertdialog" aria-label="El pedido se cambió a mano en el portal" className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" aria-modal="true" onKeyDown={e => { if (e.key === 'Escape') setCambiosDe(null); }} tabIndex={-1}>
+                    <div role="document" className="bg-white text-stone-900 rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-3">
+                        <p className="flex items-center gap-2 text-sm font-black"><Pencil className="w-5 h-5 text-amber-600 flex-shrink-0" /> El pedido se cambió a mano en el portal</p>
+                        <ul className="text-sm leading-relaxed list-disc pl-5 space-y-1">{cambiosDe.vista.cambiosAMano.lineas.map(l => <li key={l}>{l}</li>)}</ul>
+                        <p className="text-sm font-bold">
+                            {cambiosDe.vista.cambiosAMano.costoExtra > 0 ? `Según la lista sale $ ${Math.round(cambiosDe.vista.cambiosAMano.costoExtra).toLocaleString('es-AR')} más caro que lo que dice la venta.`
+                                : cambiosDe.vista.cambiosAMano.costoExtra < 0 ? `Según la lista sale $ ${Math.round(-cambiosDe.vista.cambiosAMano.costoExtra).toLocaleString('es-AR')} más barato.`
+                                    : 'Según la lista no cambia el costo.'}
+                            {cambiosDe.vista.cambiosAMano.aConfirmar ? ' Parte del cambio no tiene precio en la lista: se confirma con el laboratorio.' : ''}
+                        </p>
+                        <label className="block text-xs text-stone-600">Motivo (le llega a la dueña junto con el cambio y el costo)
+                            <textarea value={motivoCambios[cambiosDe.id] || ''} onChange={e => setMotivoCambios(m => ({ ...m, [cambiosDe.id]: e.target.value }))} rows={3} placeholder="Por qué se cambió (al menos 10 letras)" className="block mt-1 w-full text-sm rounded border border-stone-300 bg-white px-2 py-1.5" />
+                        </label>
+                        <div className="flex flex-wrap justify-end gap-2 pt-1">
+                            <button type="button" onClick={() => setCambiosDe(null)} className={`${boton} bg-stone-500`}>Volver a mirar</button>
+                            <button type="button" disabled={ocupado !== null || (motivoCambios[cambiosDe.id] || '').trim().length < 10} onClick={() => { const b = cambiosDe; setCambiosDe(null); if (b.vista.confirmarAntesDeAprobar) setConfirmando(b); else aprobarConMotivo(b); }} className={`${boton} bg-emerald-600 px-4`}>
+                                <Check className="w-3.5 h-3.5" /> Con ese motivo: aprobar y cargar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Antes de aprobar un par de una promo de dos pares: que nadie olvide el nº de operación del otro par. */}
             {confirmando && (
                 <div role="alertdialog" aria-label={confirmando.vista.confirmarAntesDeAprobar?.titulo} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" aria-modal="true" onKeyDown={e => { if (e.key === 'Escape') setConfirmando(null); }} tabIndex={-1} ref={cartelConfirmar}>
@@ -437,7 +532,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         <p className="text-sm leading-relaxed">{confirmando.vista.confirmarAntesDeAprobar?.texto}</p>
                         <div className="flex flex-wrap justify-end gap-2 pt-1">
                             <button type="button" onClick={() => { setConfirmando(null); dialogo.current?.focus(); }} className={`${boton} bg-stone-500`}>Volver a mirar</button>
-                            <button type="button" disabled={ocupado !== null} onClick={() => { const b = confirmando; setConfirmando(null); decidir(b.id, 'aprobar'); }} className={`${boton} bg-emerald-600 px-4`}>
+                            <button type="button" disabled={ocupado !== null} onClick={() => { const b = confirmando; setConfirmando(null); aprobarConMotivo(b); }} className={`${boton} bg-emerald-600 px-4`}>
                                 <Check className="w-3.5 h-3.5" /> Lo revisé: aprobar y cargar
                             </button>
                         </div>

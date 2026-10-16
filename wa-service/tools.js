@@ -198,8 +198,28 @@ async function detectContactSourceFromChat(chatId) {
 
 /**
  * Tool: Convert a chat into a Lead in the CRM
+ *
+ * Una sola alta por teléfono a la vez EN ESTE PROCESO: el 21/9/2026 ocho
+ * corridas del extractor pasivo (una por mensaje de una ráfaga) vieron el chat
+ * sin ficha y crearon ocho "Titino" en el mismo segundo. La llamada que llega
+ * mientras otra igual está en vuelo se cuelga de esa misma promesa y recibe la
+ * misma ficha. El candado de verdad está en el CRM (ContactService.create,
+ * pg_advisory_xact_lock por teléfono); esto evita ocho viajes para una ficha.
  */
-async function convertIntoLead({ phone, name, contactSource, interest, chatId, insurance, firstContactAt }) {
+const altasEnCurso = new Map();
+function convertIntoLead(args) {
+    const clave = String((args && args.phone) || '').replace(/\D/g, '').slice(-8);
+    if (clave.length < 8) return convertIntoLeadSinCandado(args);
+    if (altasEnCurso.has(clave)) {
+        console.log(`  ⏳ [convertIntoLead] Alta en curso para …${clave}: se reutiliza la misma.`);
+        return altasEnCurso.get(clave);
+    }
+    const promesa = convertIntoLeadSinCandado(args).finally(() => altasEnCurso.delete(clave));
+    altasEnCurso.set(clave, promesa);
+    return promesa;
+}
+
+async function convertIntoLeadSinCandado({ phone, name, contactSource, interest, chatId, insurance, firstContactAt }) {
     if (name && isPhrase(name)) {
         return { success: false, error: '[INSTRUCCIÓN INTERNA] El nombre no es válido, parece una frase. Preguntale al cliente su nombre de pila de forma natural.' };
     }

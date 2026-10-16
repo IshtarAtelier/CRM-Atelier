@@ -1,8 +1,9 @@
 import { prisma } from '@/lib/db';
+import { productoMiradoDe } from '@/services/producto-mirado.service';
 import { formatearPrecio } from '@/lib/format-precio';
 import { SOLO_DEL_VENDEDOR, SOLO_DEL_EMBUDO, TIPO_EMBUDO } from '@/lib/tareas/origen';
 import { CashService } from './cash.service';
-import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE, CRM_ORIGIN } from '@/lib/constants';
+import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE, CRM_ORIGIN, SYSTEM_MAILBOX_EMAIL } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
@@ -13,7 +14,7 @@ import { logAudit } from '@/lib/audit';
 import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
-import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
+import { avisarEquipoPorWhatsApp, textoParaPlantilla } from '@/lib/whatsapp/aviso-interno';
 import { TAG_VISITA_LOCAL } from '@/lib/embudo/visito-local';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
 import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
@@ -69,6 +70,9 @@ function parseBirthDate(value: string | null | undefined): Date | null {
     const parsed = new Date(`${String(value).trim().slice(0, 10)}T12:00:00.000Z`);
     return isNaN(parsed.getTime()) ? null : parsed;
 }
+
+/** Prefijo del candado por teléfono (ver ContactService.create). */
+const CANDADO_TELEFONO = 'client-phone:';
 
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
     if (!phone) return '';
@@ -541,51 +545,6 @@ export const ContactService = {
             }
         }
 
-        // 2. Intelligent Phone Match
-        if (!data.forceCreate && normalizedIncomingPhone.length >= 8) {
-            // Buscamos coincidencia usando los ultimos 8 digitos del telefono ingresado
-            // (8 dígitos es suficiente para evitar colisiones con el 15 y códigos de área, y reduce falsos positivos)
-            const searchPhoneStr = normalizedIncomingPhone.slice(-8);
-            const searchParam = `%${searchPhoneStr}%`;
-
-            const rawDuplicates = await prisma.client.findMany({
-                where: {
-                    phone: {
-                        contains: searchPhoneStr
-                    }
-                },
-                select: { id: true }
-            });
-            const duplicateIds = rawDuplicates.map(d => d.id);
-
-            let phoneDuplicatesClient: any[] = [];
-            if (duplicateIds.length > 0) {
-                phoneDuplicatesClient = await prisma.client.findMany({
-                    where: { id: { in: duplicateIds } },
-                    include: {
-                        orders: {
-                            where: { orderType: 'SALE', isDeleted: false },
-                            orderBy: { createdAt: 'desc' },
-                            take: 1,
-                            select: { createdAt: true }
-                        }
-                    }
-                });
-            }
-
-            // Validar que efectivamente coinciden los telefonos para evitar falsos positivos
-            const realPhoneMatchClient = phoneDuplicatesClient.find(p => {
-                const dbPhoneNorm = (p.phone || "").replace(/\D/g, '');
-                return dbPhoneNorm.endsWith(searchPhoneStr) || normalizedIncomingPhone.endsWith(dbPhoneNorm.slice(-8));
-            });
-
-            if (realPhoneMatchClient) {
-                const lastOrder = realPhoneMatchClient.orders[0];
-                const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
-                throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: realPhoneMatchClient.id, name: realPhoneMatchClient.name, phone: realPhoneMatchClient.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: Ya existe el cliente "${realPhoneMatchClient.name}" registrado con el teléfono ${realPhoneMatchClient.phone}${lastDate}.` }));
-            }
-        }
-
         const createData: any = {
             name: data.name,
             email: data.email?.trim() === "" ? null : data.email,
@@ -615,9 +574,66 @@ export const ContactService = {
             }
         }
 
-        const createdClient = await prisma.client.create({
-            data: createData
-        });
+        // Chequeo de duplicado y alta en UNA transacción con un candado por
+        // teléfono (pg_advisory_xact_lock): el 21/9/2026 el bot creó 8 fichas
+        // "Titino" con el mismo número en el mismo segundo, porque ocho llamadas
+        // concurrentes pasaron el findMany antes de que ninguna hubiera hecho el
+        // create. Con el candado, la segunda espera a que la primera confirme y
+        // entonces SÍ ve la ficha: tira isDuplicate y el llamador la enlaza.
+        // No se usa un índice único porque un teléfono compartido es legítimo
+        // (familias: 38 números con más de una ficha en producción el 15/10/2026).
+        const createdClient = await prisma.$transaction(async (tx) => {
+            if (normalizedIncomingPhone.length >= 8) {
+                await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${CANDADO_TELEFONO + normalizedIncomingPhone.slice(-8)}))`;
+            }
+            // 2. Intelligent Phone Match
+            if (!data.forceCreate && normalizedIncomingPhone.length >= 8) {
+                // Buscamos coincidencia usando los ultimos 8 digitos del telefono ingresado
+                // (8 dígitos es suficiente para evitar colisiones con el 15 y códigos de área, y reduce falsos positivos)
+                const searchPhoneStr = normalizedIncomingPhone.slice(-8);
+                const searchParam = `%${searchPhoneStr}%`;
+
+                const rawDuplicates = await tx.client.findMany({
+                    where: {
+                        phone: {
+                            contains: searchPhoneStr
+                        }
+                    },
+                    select: { id: true }
+                });
+                const duplicateIds = rawDuplicates.map(d => d.id);
+
+                let phoneDuplicatesClient: any[] = [];
+                if (duplicateIds.length > 0) {
+                    phoneDuplicatesClient = await tx.client.findMany({
+                        where: { id: { in: duplicateIds } },
+                        include: {
+                            orders: {
+                                where: { orderType: 'SALE', isDeleted: false },
+                                orderBy: { createdAt: 'desc' },
+                                take: 1,
+                                select: { createdAt: true }
+                            }
+                        }
+                    });
+                }
+
+                // Validar que efectivamente coinciden los telefonos para evitar falsos positivos
+                const realPhoneMatchClient = phoneDuplicatesClient.find(p => {
+                    const dbPhoneNorm = (p.phone || "").replace(/\D/g, '');
+                    return dbPhoneNorm.endsWith(searchPhoneStr) || normalizedIncomingPhone.endsWith(dbPhoneNorm.slice(-8));
+                });
+
+                if (realPhoneMatchClient) {
+                    const lastOrder = realPhoneMatchClient.orders[0];
+                    const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
+                    throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: realPhoneMatchClient.id, name: realPhoneMatchClient.name, phone: realPhoneMatchClient.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: Ya existe el cliente "${realPhoneMatchClient.name}" registrado con el teléfono ${realPhoneMatchClient.phone}${lastDate}.` }));
+                }
+            }
+
+
+            return tx.client.create({ data: createData });
+        }, { timeout: 15_000 });
 
         // ── Primer registro del historial: quién creó la ficha y CÓMO ──
         // No es lo mismo que el portero la haya creado solo, a que una persona haya
@@ -1236,6 +1252,15 @@ export const ContactService = {
     },
 
     async getById(id: string) {
+        const ficha = await this.fichaCompleta(id);
+        if (!ficha) return null;
+        // Qué producto de la tienda miraba (plan 15/10/2026, 3.7): se lee de
+        // su chat, no se guarda. Nunca rompe la ficha.
+        const productoWeb = await productoMiradoDe(id).catch(() => null);
+        return { ...ficha, productoWeb };
+    },
+
+    async fichaCompleta(id: string) {
         return await prisma.client.findUnique({
             where: { id },
             include: {
@@ -2215,13 +2240,26 @@ export const ContactService = {
 
             // FIRE BACKGROUND AI VERIFICATION IF RECEIPT EXISTS
             if (receiptUrl) {
+                // Con comprobante, UN solo mail: el del auditor, que ya lleva la
+                // imagen y el veredicto, y acá se le suman los datos del pago
+                // (Ishtar, 15/10/2026). Sin comprobante sale el aviso simple de
+                // más abajo, solo a la casilla del sistema.
+                const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
                 ReceiptAgentService.analyzeReceipt(
                     result.id,
                     orderId,
                     receiptUrl,
                     amount,
                     method,
-                    actorName
+                    actorName,
+                    {
+                        tipo: result.isSena ? 'SEÑA' : 'SALDO',
+                        totalOperacion: result.totalOperacion,
+                        saldo: result.hasBalance
+                            ? `Saldo pendiente: efectivo ${fmt(result.remainingCash)} · transferencia ${fmt(result.remainingTransfer)} · tarjeta/lista ${fmt(result.remainingCard)}`
+                            : 'Pedido totalmente abonado',
+                        notas: notes?.trim() || null,
+                    }
                 ).catch(err => console.error('[ReceiptAgent Background Error]', err));
             }
 
@@ -2259,15 +2297,17 @@ export const ContactService = {
                     msgText += `${remainingText.replace(/\*/g, '')}\n`;
                     msgText += `Ficha del cliente: ${clientLink}`;
 
-                    await sendEmail({
-                        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                        subject: esEfectivo
-                            ? `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')} — ${result.clientName}`
-                            : `💵 Nuevo pago (${tipoPago}): $${amount.toLocaleString('es-AR')} — ${result.clientName}`,
-                        text: msgText,
-                    }).then(r => {
-                        if (!r?.success) console.error('[Payment Notification] Email a administración no salió');
-                    }).catch(err => console.error('[Payment Notification] Error email administración:', err));
+                    if (!receiptUrl) {
+                        await sendEmail({
+                            to: SYSTEM_MAILBOX_EMAIL,
+                            subject: esEfectivo
+                                ? `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')} — ${result.clientName}`
+                                : `💵 Nuevo pago (${tipoPago}): $${amount.toLocaleString('es-AR')} — ${result.clientName}`,
+                            text: msgText,
+                        }).then(r => {
+                            if (!r?.success) console.error('[Payment Notification] Email a administración no salió');
+                        }).catch(err => console.error('[Payment Notification] Error email administración:', err));
+                    }
 
                     const today = new Date().toLocaleDateString('es-AR');
                     // Etiqueta y texto del recibo por su helper: el reenvío a mano
@@ -2362,6 +2402,36 @@ export const ContactService = {
                             details: { tipo: 'aviso_pago_interno', ok: r.ok, motivo: r.ok ? null : `${r.code || r.status}: ${r.error}` },
                         });
                     })().catch(e => console.error('[Payment Notification] Aviso interno:', e.message));
+
+                    // ── Pago a Essilor (Ishtar, 15/10/2026) ─────────────────
+                    // Un pago por TRANSFERENCIA_ESSILOR entró a la cuenta de
+                    // Essilor, no a la del local: Ishtar lo quiere ver aparte
+                    // del aviso general para poder avisarle a Essilor. Va a la
+                    // dueña por la plantilla nota_interna (texto libre si la
+                    // ventana de 24 h está abierta). Fire-and-forget.
+                    if (method === 'TRANSFERENCIA_ESSILOR') {
+                        (async () => {
+                            const detalle = textoParaPlantilla(
+                                `${result.clientName} transfirió $ ${amount.toLocaleString('es-AR')} a la cuenta de Essilor ` +
+                                `(${result.isSena ? 'seña' : 'saldo'}; cargado por ${actorName || 'sin identificar'})` +
+                                ((notes && notes.trim()) ? `. Ref: ${notes.trim()}` : '') +
+                                `. Ficha: ${clientLink}`
+                            );
+                            const r = await sendWhatsAppConReintento({
+                                chatId: ADMIN_WHATSAPP_PHONE,
+                                message: `🔵 *Pago a Essilor*\n${detalle}`,
+                                senderName: 'Sistema Atelier',
+                                isProactive: true,
+                                template: templateSpec('nota_interna', ['Sistema Atelier', 'un pago a Essilor', detalle]),
+                            });
+                            if (!r.ok) console.error('[Payment Notification] Aviso de pago a Essilor no salió:', r.code, r.error);
+                            await logAudit({
+                                userId: actor?.id, userName: actor?.name,
+                                action: 'NOTIFY', entityType: 'ORDER', entityId: orderId,
+                                details: { tipo: 'aviso_pago_essilor', ok: r.ok, motivo: r.ok ? null : `${r.code || r.status}: ${r.error}` },
+                            });
+                        })().catch(e => console.error('[Payment Notification] Aviso Essilor:', e.message));
+                    }
 
                     // Canal EMAIL: si la ficha tiene mail cargado, el recibo va también
                     // por ahí, con copia (BCC) a Atelier. Es un canal ADICIONAL e

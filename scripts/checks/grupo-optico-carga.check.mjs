@@ -20,10 +20,12 @@ import { elegirNumeroDelParConCargo } from '../../src/services/lab-modules/grupo
 import { labDeItem, esDeLab, esCristal, esCristalDePar, labKeyDe, labDeNumero, esNumeroDeLab, codigoCortoDeVenta, esCodigoCorto, soloDigitos as soloDigitosId } from '../../src/lib/laboratorios/identidad.ts';
 import { isCrystal, isTeñidoAddon } from '../../src/lib/promo-utils.ts';
 import { decidirConAprobado } from '../../src/services/lab-modules/grupo-optico/decision.ts';
+import { paletaDeGrupoOptico } from '../../src/lib/constants/paletas-color.ts';
 import { textoDeExtraNoCobrado, lineaDeFicha } from '../../src/services/lab-modules/carga/extras-no-cobrados.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales, pruebaDeQueNoSeCreo, PedidoRechazadoError, PortalRespondioError } from '../../src/services/lab-modules/grupo-optico/robot.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
+import { numerosDeOtrosPares } from '../../src/services/lab-modules/carga/numeros.ts';
 import { pedidoComoLoGuardaElPortal, diferenciasDeVista } from '../../src/services/lab-modules/grupo-optico/vista.ts';
 import { huellaDelPlan, cambiosEntrePayloads } from '../../src/services/lab-modules/grupo-optico/borrador-portal.ts';
 
@@ -95,10 +97,20 @@ ok('colores de varios: el del ítem; sin color, no carga', () => {
     assert.equal(especificacionDe('Multifocal Smart FREE · Orgánico Polarizado Gris / Brown 1.49 2x1').ok, false);
     assert.equal(especificacionDe('Multifocal Smart FREE · Orgánico Polarizado Gris / Brown 1.49 2x1', { colorItem: 'Brown' }).especificacion.colorId, 3);
 });
-ok('un producto sin equivalencia declarada no se carga (y dice qué falta)', () => {
+ok('un producto sin equivalencia declarada no se carga: lo anuncia como "a mano", no como algo que falte en la venta', () => {
     const r = especificacionDe('Sol neutro · Orgánico Espejado — Red / Blue');
     assert.equal(r.ok, false);
-    assert.match(r.motivo, /catalogo\.ts/);
+    assert.equal(r.aMano, true);
+    assert.match(r.motivo, /no puede cargar .* a mano|no sabe elegir|no puede cargar/);
+});
+ok('los stock que el portal no arma para nosotros (sin marca) se declaran a mano ANTES de pedirle nada al portal', () => {
+    for (const n of ['Stock · Orgánico Fotocromático c/AR Gris 1.56', 'Stock · Orgánico Foto Espejado Neutro 1.56', 'Stock · Orgánico Super Blue Asf. c/AR 1.74 · Rango Extendido', 'Sol neutro · Orgánico Polarizado Driver']) {
+        const r = especificacionDe(n);
+        assert.equal(r.ok, false, n);
+        assert.equal(r.aMano, true, n);
+    }
+    // Los demás de stock siguen resolviendo.
+    assert.equal(especificacionDe('Stock · Orgánico Blue c/AR 1.56').ok, true);
 });
 
 console.log('\nEl pedido armado desde la venta');
@@ -375,6 +387,11 @@ ok('qué hace el robot con un APROBADO se decide en seco (decision.ts): lo que y
     // el nº creado manda sobre todo lo demás (ni se busca ni se invalida)
     assert.equal(decidirConAprobado({ ...base, numeroCreado: '80000001', existente: { numero: '80000009', ambiguo: false } }).accion, 'ANOTAR');
 });
+ok('los nº de OTRO par (cargados, devueltos por el portal, del espejo o de un reproceso) nunca se adoptan como de este par', () => {
+    const n = { cargadosPorPar: [{ pair: 1, numero: '80000001' }], borradoresConNumero: [{ pair: 1, numero: '80000001' }, { pair: 2, numero: '80000002' }], espejo: [{ numero: '80000003', pair: 1, anulado: true }, { numero: '80000004', pair: null, anulado: false }, { numero: '80000005', pair: 2, anulado: false }], numerosEnVenta: ['80000001'], reprocesos: ['80000009'] };
+    assert.deepEqual([...numerosDeOtrosPares(n, 2)].sort(), ['80000001', '80000003', '80000009']);
+    assert.deepEqual([...numerosDeOtrosPares(n, 1)].sort(), ['80000002', '80000005', '80000009']);
+});
 ok('solo un 4xx del portal prueba que NO se creó el pedido: un 5xx o un timeout dejan el envío incierto (nunca se reenvía a ciegas)', () => {
     assert.equal(pruebaDeQueNoSeCreo(new PedidoRechazadoError('datos inválidos')), true);
     assert.equal(pruebaDeQueNoSeCreo(new PortalRespondioError(400, 'bad request')), true);
@@ -414,6 +431,45 @@ ok('la identidad del laboratorio por su clave escrita (lab de LabCostEntry/LabOr
     const v = venta2x1(false); v.items = v.items.map(i => (i.eye ? { ...i, price: 0, productCategorySnapshot: null, product: { ...i.product, category: undefined, name: i.framePosition === 2 ? 'Multifocal Smart FREE · Orgánico Blue Light 1.56 · Premium 2x1' : i.product.name, price: i.framePosition === 2 ? 120000 : 80000 } } : i));
     assert.deepEqual([rolesDel2x1(v).conCargo, rolesDel2x1(v).sinCargo], [2, 1]);
     assert.equal(planDeCarga(v, 2, { tipoArmazon: 'PLASTICO' }).plan.rol2x1, 'CON_CARGO');
+});
+ok('espejado 1.49: la venta ofrece solo Azul y Plateado (lo que el portal arma), aunque la lista lo llame "Gris / Plata"', () => {
+    const p = paletaDeGrupoOptico('multifocal smart free · organico gris 3 espejado gris / plata 1.49 2x1');
+    assert.deepEqual(p.tonos.map(t => t.name), ['Azul', 'Plateado']);
+    for (const color of ['Azul', 'Plateado']) assert.ok(especificacionDe('Multifocal Smart FREE · Orgánico Gris 3 Espejado Gris / Plata 1.49 2x1', { colorItem: color }).ok, color);
+    // el foto espejado y el polarizado sí toman los colores del nombre
+    assert.deepEqual(paletaDeGrupoOptico('multifocal smart free · organico polarizado gris / brown 1.49').tonos.map(t => t.name), ['Gris', 'Sepia']);
+});
+ok('si la lista vende algo que el portal solo arma de otra forma, se toma lo del portal (Ishtar, 15/10/2026)', () => {
+    // sin Essential en la venta, pero el portal SOLO lo tiene con Essential → ese
+    const soloConAr = [{ value: '5001', label: 'MONOF MYOFIX ORG FOTO DIGITAL 1.60 C/AR ESSENTIAL' }, { value: '5002', label: 'ORG FOTO ULTRA ALTO INDICE LAB 1.60 C/ESSENTIAL' }];
+    assert.equal(elegido('Monofocal DIGITAL (free-form) · Orgánico Fotocromático Gris 1.60', soloConAr), '5002');
+    // …pero si existen las dos variantes, la venta manda (sin Essential = sin Essential)
+    const ambas = [...soloConAr, { value: '5003', label: 'ORG FOTO ULTRA ALTO INDICE LAB 1.60' }];
+    assert.equal(elegido('Monofocal DIGITAL (free-form) · Orgánico Fotocromático Gris 1.60', ambas), '5003');
+    // vendido como rango extendido, línea sin R.EXT en el portal: el artículo de stock
+    const sinExt = [{ value: '6001', label: 'ORG BLANCO 1.49 STOCK ESF+350 CIL+050' }];
+    assert.equal(elegido('Stock · Orgánico Blanco 1.49 · Rango Extendido', sinExt), '6001');
+    // y con R.EXT disponible, R.EXT
+    const conExt = [...sinExt, { value: '6002', label: 'ORG BLANCO 1.49 R. EXT ESF-750 CIL+050' }];
+    assert.equal(elegido('Stock · Orgánico Blanco 1.49 · Rango Extendido', conExt), '6002');
+    // al revés NO: un stock fuera de rango sigue frenando (el lab lo cobra como R.EXT)
+    const r = especificacionDe('Stock · Orgánico Blanco 1.49 · Esf -2/+2', {});
+    assert.equal(elegirArticulo([{ value: '6002', label: 'ORG BLANCO 1.49 R. EXT ESF-750 CIL+050' }], r.especificacion).ok, false);
+});
+ok('stock mineral: la etiqueta del portal no dice STOCK ("MINERAL BLANCO ESF -150+050 (3)") y aun así es el artículo de stock', () => {
+    const lista = [{ value: '9001', label: 'MINERAL BLANCO ESF -150+050 (3)' }];
+    assert.equal(elegido('Stock · Mineral Blanco 1.523 · Esf -2/+2', lista), '9001');
+    // y con rango extendido en la lista, el de stock sigue siendo el que no dice R.EXT
+    const dos = [{ value: '9001', label: 'MINERAL BLANCO ESF -150+050 (3)' }, { value: '9002', label: 'MINERAL BLANCO R. EXT ESF -800+600' }];
+    assert.equal(elegido('Stock · Mineral Blanco 1.523 · Esf -4/+4', dos), '9001');
+});
+ok('foto espejado: la lista del portal trae un artículo por color (BLUE, GREEN…) y se queda el del color elegido en la venta', () => {
+    const lista = [{ value: '7001', label: 'MULTIFOCAL SMART FREE ORG FOTO ESPEJADO BLUE' }, { value: '7002', label: 'MULTIFOCAL SMART FREE ORG FOTO ESPEJADO GREEN' }];
+    assert.equal(elegido('Multifocal Smart FREE · Orgánico Fotocromático Espejado 1.56 2x1', lista, { colorItem: 'Azul' }), '7001');
+    assert.equal(elegido('Multifocal Smart FREE · Orgánico Fotocromático Espejado 1.56 2x1', lista, { colorItem: 'Verde' }), '7002');
+    // un color que la lista no trae no se adivina
+    const r = especificacionDe('Multifocal Smart FREE · Orgánico Fotocromático Espejado 1.56 2x1', { colorItem: 'Dorado' });
+    assert.equal(elegirArticulo(lista, r.especificacion).ok, false);
 });
 ok('2x1 con el mismo cristal en los dos pares: el par 1 va con cargo y el 2 sin cargo (como siempre)', () => {
     const v = venta2x1(); v.items = v.items.map(i => (i.eye ? { ...i, price: 80000 } : i));

@@ -3,6 +3,7 @@ import { checkRateLimit } from '@/lib/rate-limiter';
 import { recordEvents, sanitizeEvents, type AnalyticsEventInput } from '@/lib/analytics';
 import { AdsService } from '@/services/ads.service';
 import { esNavegadorMayorista, esTraficoInterno } from '@/lib/trafico-interno';
+import { esEventoDeRuido, esUserAgentRobot } from '@/lib/analitica/ruido';
 import { decrypt } from '@/lib/auth';
 
 /**
@@ -110,6 +111,11 @@ export async function POST(req: Request) {
     // cookie igual pasa por esta puerta. Las compras no entran por esta ruta.
     if (esTraficoInterno(req.headers.get('cookie'))) return ended();
 
+    // Robots (el de Google Merchant Center, navegadores headless): ni a la
+    // analítica propia ni a Meta. Ver src/lib/analitica/ruido.ts.
+    const userAgent = req.headers.get('user-agent');
+    if (esUserAgentRobot(userAgent)) return ended();
+
     // Rate limit generoso por IP (una visita normal emite varios eventos/min).
     const rl = checkRateLimit(`track:${clientIp(req)}`, { limit: 240, windowMs: 60_000 });
     if (!rl.success) return ended();
@@ -126,7 +132,11 @@ export async function POST(req: Request) {
       device: (body as any).device,
     };
 
-    const events = sanitizeEvents(rawEvents, fallback).slice(0, MAX_EVENTS_PER_REQUEST);
+    // El producto de prueba ("prueba-compra-un-peso") no es tienda: se descarta
+    // ANTES de guardar y antes de espejar, con la misma regla que usan los lectores.
+    const events = sanitizeEvents(rawEvents, fallback)
+      .filter((e) => !esEventoDeRuido(e, userAgent))
+      .slice(0, MAX_EVENTS_PER_REQUEST);
     if (events.length) {
       const quien = await quienNavega(req);
       if (quien === 'equipo') return ended();

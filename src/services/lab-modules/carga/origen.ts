@@ -1,6 +1,5 @@
-import { prisma } from '../../../lib/db';
-import { parseLabNumbers } from '../../../lib/lab-order-numbers';
 import type { OpcionesExistente } from './existentes';
+import { numerosDeLaVenta } from './numeros';
 
 /**
  * EL Nº DEL PAR CON CARGO de una promo de dos pares, para cualquier laboratorio:
@@ -37,17 +36,13 @@ export function elegirNumeroDelParConCargo(datos: {
 }
 
 export async function numeroDelParConCargo(lab: string, orderId: string, pair: number, opciones: OpcionesExistente = {}): Promise<string | null> {
-    const norm = opciones.normalizar ?? ((n: string) => n);
-    const [cargado, espejo, venta] = await Promise.all([
-        prisma.labOrderDraft.findFirst({ where: { orderId, lab, pair, status: 'CARGADO' }, orderBy: { loadedAt: 'desc' }, select: { portalNumber: true } }),
-        prisma.labPortalOrder.findMany({ where: { orderId, lab }, select: { portalNumber: true, pair: true, status: true } }),
-        prisma.order.findUnique({ where: { id: orderId }, select: { labOrderNumber: true, postSaleCases: { where: { newOrderNumber: { not: null } }, select: { newOrderNumber: true } } } }),
-    ]);
+    const n = await numerosDeLaVenta(lab, orderId, opciones);
     return elegirNumeroDelParConCargo({
         pair,
-        cargado: cargado?.portalNumber ? norm(cargado.portalNumber) : null,
-        espejo: espejo.map(e => ({ numero: norm(e.portalNumber), pair: e.pair, anulado: e.status === 'ANULADO' })),
-        numerosEnVenta: parseLabNumbers(venta?.labOrderNumber).filter(n => (opciones.esNumeroDelLab ? opciones.esNumeroDelLab(n) : true)).map(norm),
-        reprocesos: (venta?.postSaleCases || []).flatMap(c => parseLabNumbers(c.newOrderNumber)).map(norm),
+        // El pedido del par con cargo según el CRM (cargado por el robot o confirmado a mano).
+        cargado: n.cargadosPorPar.find(c => c.pair === pair)?.numero ?? null,
+        espejo: n.espejo,
+        numerosEnVenta: n.numerosEnVenta,
+        reprocesos: n.reprocesos,
     });
 }

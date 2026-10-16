@@ -30,6 +30,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { precioConOferta } from '../../src/lib/precio-oferta.ts';
+import { promoVisible } from '../../src/lib/promo-visible.ts';
 import { effectiveFramePrice } from '../../src/lib/checkout/checkout-pricing.ts';
 import { PricingService } from '../../src/services/PricingService.ts';
 import { problemasDelCartel, revisarCartel, CARTEL_PROMO_POR_DEFECTO, cartelQueSePuedeMostrar } from '../../src/lib/promo-cuotas.ts';
@@ -123,20 +124,46 @@ for (const [archivo, queEs] of PASAN_SALEPRICE) {
     else mal(`${queEs}: NO le pasa salePrice a la grilla`, `${archivo} arma el producto sin la oferta, así que la grilla muestra el precio de lista`);
 }
 
-// ── 5. Donde hay oferta, se VE: cartel de % y precio de lista tachado ───────
-// Pedido de Ishtar (8/9): "la idea es que la oferta se vea". Un precio rebajado
-// sin nada contra qué compararlo se lee como un precio normal.
+// ── 5. Donde hay oferta, se VE: UNA sola promo por tarjeta y por ficha ──────
+// Pedido de Ishtar (8/9): "la idea es que la oferta se vea". Hasta el 15/10 eso
+// era cartel de % + precio de lista tachado + "15% OFF transf." en la misma
+// tarjeta, y en la ficha además un chip rojo sobre la foto: tres precios y dos
+// descuentos que se leían como si se sumaran (auditoría de fichas del 15/10,
+// plan tienda Fase 1.3). Ahora la oferta se ve con el sello de la rebaja
+// ("26% OFF 🔥"), que es la ÚNICA promo cuando hay rebaja: ni tachado ni 15 %
+// al lado. Sin rebaja, el 15 % explica el número. La regla vive en
+// src/lib/promo-visible.ts y todas las superficies la leen de ahí.
+{
+    const conRebaja = promoVisible({ enOferta: true, descuentoPct: 26 }, 15);
+    if (conRebaja.sello === '26% OFF' && !/\d+%/.test(conRebaja.etiquetaTransferencia) && !/\d+%/.test(conRebaja.etiquetaTransferenciaCorta)) ok('promoVisible con rebaja: el sello es la única promo, la etiqueta no repite el 15 %');
+    else mal('promoVisible con rebaja', JSON.stringify(conRebaja));
+    const sinRebaja = promoVisible({ enOferta: false, descuentoPct: 0 }, 15);
+    if (sinRebaja.sello === null && sinRebaja.etiquetaTransferencia === '15% OFF por transferencia' && sinRebaja.etiquetaTransferenciaCorta === '15% OFF transf.') ok('promoVisible sin rebaja: sin sello, el 15 % explica el número');
+    else mal('promoVisible sin rebaja', JSON.stringify(sinRebaja));
+}
 const MUESTRAN_LA_OFERTA = [
-    ['src/components/Storefront/HomeProductCarousel.tsx', 'carrusel del home'],
-    ['src/components/Storefront/CategoryGrid.tsx', 'grilla de categoría'],
-    ['src/app/tienda/TiendaClient.tsx', 'grilla de /tienda'],
+    ['src/components/Storefront/HomeProductCarousel.tsx', 'carrusel del home', true],
+    ['src/components/Storefront/CategoryGrid.tsx', 'grilla de categoría', true],
+    ['src/app/tienda/TiendaClient.tsx', 'grilla de /tienda', true],
+    ['src/app/producto/[slug]/ProductClient.tsx', 'ficha de producto', false],
+    ['src/components/Storefront/StorefrontNavbar.tsx', 'buscador', false],
 ];
-for (const [archivo, queEs] of MUESTRAN_LA_OFERTA) {
+for (const [archivo, queEs, conCartelSobreLaFoto] of MUESTRAN_LA_OFERTA) {
     const src = readFileSync(resolve(raiz, archivo), 'utf8');
-    const tachado = src.includes('line-through');
-    const cartel = /OFF\s*🔥|descuentoPct/.test(src);
-    if (tachado && cartel) ok(`${queEs}: muestra el % y el precio de lista tachado`);
-    else mal(`${queEs}: la oferta no se ve entera`, `tachado: ${tachado ? 'sí' : 'NO'} · cartel de %: ${cartel ? 'sí' : 'NO'}`);
+    const cartel = conCartelSobreLaFoto ? /OFF\s*🔥/.test(src) : true;
+    const usaLaRegla = src.includes('promoVisible(');
+    // El tachado del precio de transferencia sin oferta era la segunda promo.
+    const tachaLaOferta = /transferenciaSinOferta[\s\S]{0,300}line-through/.test(src);
+    // El 15 % escrito a mano al lado del precio, fuera de la regla.
+    const quinceAMano = /\{descuentoTransferenciaPct\}% OFF transf\.|\{cashDiscount\}% OFF por transferencia|Transferencia \{descuentoTransferenciaPct\}% OFF/.test(src);
+    if (cartel && usaLaRegla && !tachaLaOferta && !quinceAMano) ok(`${queEs}: una sola promo visible (promo-visible.ts)`);
+    else mal(`${queEs}: más de una promo a la vista`, `cartel: ${cartel ? 'sí' : 'NO'} · usa promoVisible: ${usaLaRegla ? 'sí' : 'NO'} · tacha la oferta: ${tachaLaOferta ? 'SÍ' : 'no'} · 15 % a mano: ${quinceAMano ? 'SÍ' : 'no'}`);
+}
+// El chip rojo "-9% OFF" sobre la foto de la ficha: fuera.
+{
+    const ficha = readFileSync(resolve(raiz, 'src/app/producto/[slug]/ProductClient.tsx'), 'utf8');
+    if (!/-\{pctOff\}% OFF|-\{[a-zA-Z.]+\}% OFF/.test(ficha)) ok('ficha: sin chip de % sobre la foto');
+    else mal('ficha: volvió el chip de % sobre la foto', 'la rebaja se dice una sola vez, al lado del precio');
 }
 
 // ── 6. Los números de la TARJETA salen de UN lugar (10/10/2026) ─────────────

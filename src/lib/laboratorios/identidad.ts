@@ -32,6 +32,26 @@ export const LAB_ITEM_PATTERNS: Record<LabKey, RegExp> = {
 
 export const LAB_KEYS = Object.keys(LAB_ITEM_PATTERNS) as LabKey[];
 
+/** El nombre con el que se muestra cada laboratorio en pantalla. */
+export const NOMBRE_DE_LAB: Record<LabKey, string> = { OPTOVISION: 'Optovisión', GRUPO_OPTICO: 'Grupo Óptico', LA_CAMARA: 'La Cámara', VITOLEN: 'Vitolen' };
+
+/**
+ * Los laboratorios con carga asistida (robot + OK humano). Es lo que la ficha
+ * y el listado de ventas necesitan saber del lado del navegador; la verdad
+ * vive en el registro de módulos del servidor (`lab-modules/carga/registro.ts`)
+ * y `npm run check:lab-modulos` fija que las dos listas coincidan. Sumar un
+ * laboratorio = su módulo + una entrada acá.
+ */
+export const LABS_CON_CARGA_ASISTIDA: LabKey[] = ['GRUPO_OPTICO', 'VITOLEN'];
+
+/**
+ * ¿La venta lleva cristales de ese laboratorio? Lo mismo que decide la carga:
+ * un cristal sin laboratorio cargado (ventas viejas) se asume de Grupo Óptico.
+ */
+export function ventaLlevaCristalesDe(items: (ItemConLaboratorio & { productCategorySnapshot?: string | null; product?: { category?: string | null; laboratory?: string | null } | null })[] | null | undefined, lab: LabKey): boolean {
+    return (items || []).some(it => esCristalDeLab(it, lab, { sinLaboratorio: lab === 'GRUPO_OPTICO' ? lab : null }));
+}
+
 /** La clave de un laboratorio escrito como string (`LabCostEntry.lab`, `LabOrderDraft.lab`: "GRUPO_OPTICO", "vitolen"); null si no es uno conocido. Puro. */
 export function labKeyDe(lab: string | null | undefined): LabKey | null {
     const k = String(lab || '').toUpperCase() as LabKey;

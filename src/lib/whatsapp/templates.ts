@@ -39,6 +39,13 @@ export interface TemplateDef {
     footer?: string;
     /** Botones (URL fija o de respuesta rápida). */
     buttons?: ({ type: 'URL'; text: string; url: string } | { type: 'QUICK_REPLY'; text: string })[];
+    /**
+     * BORRADOR: el texto todavía no lo aprobó Ishtar, así que NO se crea en
+     * Meta (crear-plantillas.mjs lo saltea) y ningún envío automático lo
+     * manda: el código mira el espejo `WhatsAppTemplate` y sin fila APPROVED
+     * no sale nada. Sacar esta marca = pedirle la aprobación a Meta.
+     */
+    borrador?: true;
 }
 
 export const TEMPLATE_LANGUAGE = 'es_AR';
@@ -646,6 +653,57 @@ export const WHATSAPP_TEMPLATES = {
             { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
             { type: 'QUICK_REPLY', text: 'No quiero más mensajes' },
         ],
+    },
+
+    // ── Recupero de carrito por WhatsApp a las 24 h ──────────────────────────
+    // PENDIENTE: aprobación de ISHTAR (texto) y de META (plantilla). Plan de la
+    // tienda del 15/10/2026, 3.4: a las 24 h de abandonar el carrito con el
+    // WhatsApp cargado, si ningún humano le escribió, sale esta plantilla con
+    // el carrito. `borrador: true` la deja fuera de crear-plantillas.mjs y el
+    // envío (src/lib/checkout/recupero-whatsapp.ts) exige APPROVED en el
+    // espejo local: hasta entonces solo se cuenta como "pendiente de plantilla".
+    // UTILITY y no MARKETING: es un recordatorio de una compra que la persona
+    // empezó (Meta lo acepta como utility cuando nombra el carrito concreto).
+    // Cupón para retomar un presupuesto de la tienda (Ishtar, 15/10/2026): los
+    // 13 presupuestos abiertos del mes llegaron por WhatsApp sin mail, así que
+    // el único camino automático fuera de la ventana de 24 h es una plantilla.
+    // MARKETING: lleva un descuento, Meta no lo acepta como utility. El cupón
+    // (código, %, vencimiento) sale del cupón real de la base, nunca tipeado.
+    presupuesto_cupon: {
+        name: 'presupuesto_cupon',
+        inventario: 'Plan tienda 15/10/2026 · campaña de cupón a presupuestos abiertos',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Soy de Atelier Óptica. Te pasamos el precio de {{2}} hace unos días y no queremos que quede en la nada: te guardamos un {{3}} extra con el código {{4}}, que vale hasta el {{5}} en la tienda online o en el local. Si querés, te lo reservo para que vengas a probártelo. ¿Qué día te queda cómodo?',
+        params: [
+            { label: 'nombre', example: 'Julio' },
+            { label: 'qué cotizó', example: 'Calipso Oval Negro' },
+            { label: 'descuento', example: '10% OFF' },
+            { label: 'código', example: 'VOLVE10' },
+            { label: 'vence el', example: '31/10/2026' },
+        ],
+        buttons: [
+            { type: 'URL', text: 'Ver la tienda', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'QUICK_REPLY', text: 'Quiero reservarlo' },
+            { type: 'QUICK_REPLY', text: 'Ya no me interesa' },
+        ],
+        borrador: true,
+    },
+    recupero_carrito_web: {
+        name: 'recupero_carrito_web',
+        inventario: 'Plan tienda 15/10/2026 · 3.4 (recupero de carrito a las 24 h)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! Soy de Atelier Óptica. Te quedó en el carrito de la tienda: {{3}}. Si querés lo terminamos juntos por acá, y si tenés alguna duda sobre el modelo o los cristales, contame. Envío gratis a todo el país, o lo retirás en el local.',
+        params: [
+            { label: 'nombre', example: 'Julio' },
+            { label: 'saludo según la hora', example: 'buen día' },
+            { label: 'qué quedó en el carrito', example: 'Victoria C7 ($145.000)' },
+        ],
+        buttons: [
+            { type: 'URL', text: 'Ver mi carrito', url: 'https://atelieroptica.com.ar/checkout' },
+            { type: 'QUICK_REPLY', text: 'Tengo una duda' },
+            { type: 'QUICK_REPLY', text: 'Ya no me interesa' },
+        ],
+        borrador: true,
     },
 } as const satisfies Record<string, TemplateDef>;
 

@@ -239,6 +239,7 @@ export default async function RecetaPage() {
                 availableBrands={availableBrands}
                 availableShapes={availableShapes}
                 availableMaterials={availableMaterials}
+                categoria="Receta"
               />
             </Suspense>
           </aside>

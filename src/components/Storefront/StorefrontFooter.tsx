@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { getWebSettings } from "@/lib/web-settings";
+import { LegalesDelPie } from "./LegalesDelPie";
 
 // Nota: este footer NO se rebrandea para ópticas — se usa en páginas públicas
 // minoristas (home, blog, etc.) que la óptica no visita (el middleware la limita
@@ -113,7 +114,7 @@ export async function StorefrontFooter() {
               <span className="w-1 h-1 rounded-full bg-stone-300"></span>
               <span className="text-[11px] text-stone-300 font-medium">Envíos asegurados a todo el país</span>
             </div>
-            <p className="text-[11px] text-stone-300">Comprobante AFIP Data Fiscal</p>
+            <LegalesDelPie />
           </div>
         </div>
 

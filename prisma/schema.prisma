@@ -542,6 +542,8 @@ model Invoice {
   totalAmount    Float
   docType        Int       @default(99)
   docNumber      String    @default("0")
+  /// Condición frente al IVA del receptor informada a ARCA (RG 5616); null = anterior, Consumidor Final.
+  receiverIvaCondition Int?
   pdfUrl         String?
   billingAccount String    @default("ISH")
   status         String    @default("COMPLETED")
