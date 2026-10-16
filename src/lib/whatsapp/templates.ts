@@ -372,32 +372,25 @@ export const WHATSAPP_TEMPLATES = {
     // (dirección, horarios, links, reseñas) y una salida digna. Datos del
     // 8/10: el 1º toque vendió 6 veces en un mes; el de día 4 y el de día 15
     // (los largos) 0 en 386 envíos. Hasta que Meta apruebe estas tres, el
-    // motor manda las viejas (ejecutor.ts, PLANTILLA_LEGADA).
-    seguimiento_presupuesto_v2: {
-        name: 'seguimiento_presupuesto_v2',
+    // motor manda las viejas (ejecutor.ts, PLANTILLA_LEGADA). SIN botones
+    // (Ishtar, 16/10: "hacen muy robótico el mensaje"); el "ya lo resolví"
+    // escrito a mano lo lee lib/embudo/respuesta.ts igual.
+    seguimiento_presupuesto_v3: {
+        name: 'seguimiento_presupuesto_v3',
         inventario: 'E2 (primer seguimiento) · texto de Ishtar 16/10/2026',
         category: 'UTILITY',
         body: 'Hola {{1}}! Soy {{2}}, de Atelier. Qué te pareció el presu, es lo que estabas buscando o querés que veamos una opción más económica? Contame, te quedaría cómodo venir al local esta semana?',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'vendedor', example: 'Mati' }],
-        buttons: [
-            { type: 'QUICK_REPLY', text: 'Voy a pasar' },
-            { type: 'QUICK_REPLY', text: 'Lo estoy pensando' },
-            { type: 'QUICK_REPLY', text: 'Ya lo resolví' },
-        ],
     },
-    seguimiento_segundo_v1: {
-        name: 'seguimiento_segundo_v1',
+    seguimiento_segundo_v2: {
+        name: 'seguimiento_segundo_v2',
         inventario: 'E3 (segundo seguimiento, día 7) · reemplaza invitacion_local_v4',
         category: 'UTILITY',
         body: 'Hola {{1}}, seguís pensándolo? Si hay algo que te frena, decímelo y lo vemos.',
         params: [{ label: 'nombre', example: 'Julio' }],
-        buttons: [
-            { type: 'QUICK_REPLY', text: 'Tengo una duda' },
-            { type: 'QUICK_REPLY', text: 'Ya lo resolví' },
-        ],
     },
-    ultimo_seguimiento_v2: {
-        name: 'ultimo_seguimiento_v2',
+    ultimo_seguimiento_v3: {
+        name: 'ultimo_seguimiento_v3',
         inventario: 'E4 (cierre, día 15) · reemplaza ultimo_seguimiento y el retome del día 30',
         category: 'MARKETING',
         body: 'Hola {{1}}, te dejo un {{2}} con el código {{3}} hasta el {{4}}, por si te sirve. Si ya lo resolviste, no hay drama, avisame y listo.',
@@ -406,10 +399,6 @@ export const WHATSAPP_TEMPLATES = {
             { label: 'descuento', example: '10% OFF' },
             { label: 'código', example: 'VOLVE10' },
             { label: 'vence el', example: '31/10/2026' },
-        ],
-        buttons: [
-            { type: 'QUICK_REPLY', text: 'Quiero el descuento' },
-            { type: 'QUICK_REPLY', text: 'Ya lo resolví' },
         ],
     },
     ultimo_seguimiento: {

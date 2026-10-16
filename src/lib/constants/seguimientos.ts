@@ -72,9 +72,9 @@ export const PLANTILLAS_AUTOMATICAS: readonly TemplateName[] = [
     'ultimo_seguimiento',
     'retomar_con_cupon',
     // Versión corta (16/10/2026); las viejas quedan como respaldo hasta la aprobación de Meta.
-    'seguimiento_presupuesto_v2',
-    'seguimiento_segundo_v1',
-    'ultimo_seguimiento_v2',
+    'seguimiento_presupuesto_v3',
+    'seguimiento_segundo_v2',
+    'ultimo_seguimiento_v3',
 ];
 
 /**

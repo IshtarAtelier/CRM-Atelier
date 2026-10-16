@@ -29,9 +29,9 @@ const ETIQUETA_POR_PLANTILLA = {
     seguimiento_carrito: 'SEGUIMIENTO_DIA_1',
     invitacion_local_v4: 'SEGUIMIENTO_DIA_4',
     ultimo_seguimiento: 'SEGUIMIENTO_DIA_15',
-    seguimiento_presupuesto_v2: 'SEGUIMIENTO_DIA_1',
-    seguimiento_segundo_v1: 'SEGUIMIENTO_DIA_4',
-    ultimo_seguimiento_v2: 'SEGUIMIENTO_DIA_15',
+    seguimiento_presupuesto_v3: 'SEGUIMIENTO_DIA_1',
+    seguimiento_segundo_v2: 'SEGUIMIENTO_DIA_4',
+    ultimo_seguimiento_v3: 'SEGUIMIENTO_DIA_15',
     retomar_con_cupon: 'SEGUIMIENTO_RETOME',
 };
 const REMITENTE_AUTOMATICO = 'Sistema';

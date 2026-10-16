@@ -47,9 +47,9 @@ export const ETIQUETA_POR_PLANTILLA: Partial<Record<TemplateName, string>> = {
     ultimo_seguimiento: 'SEGUIMIENTO_DIA_15',
     // Versión corta (16/10/2026): mismas etiquetas que las viejas, así el
     // clasificador y las estadísticas no distinguen cuál salió.
-    seguimiento_presupuesto_v2: 'SEGUIMIENTO_DIA_1',
-    seguimiento_segundo_v1: 'SEGUIMIENTO_DIA_4',
-    ultimo_seguimiento_v2: 'SEGUIMIENTO_DIA_15',
+    seguimiento_presupuesto_v3: 'SEGUIMIENTO_DIA_1',
+    seguimiento_segundo_v2: 'SEGUIMIENTO_DIA_4',
+    ultimo_seguimiento_v3: 'SEGUIMIENTO_DIA_15',
     // El último intento antes de cerrar (8/10/2026). No es un escalón del
     // clasificador: no mueve de columna, solo marca que ya se intentó.
     retomar_con_cupon: 'SEGUIMIENTO_RETOME',
@@ -64,9 +64,9 @@ export function esPlantillaDeSeguimiento(nombre: string): nombre is TemplateName
 
 /** Escalón de seguimiento → plantilla que le corresponde. */
 const PLANTILLA_POR_ESCALON: Record<'seguimiento1' | 'seguimiento2' | 'seguimiento10dias', TemplateName> = {
-    seguimiento1: 'seguimiento_presupuesto_v2',
-    seguimiento2: 'seguimiento_segundo_v1',
-    seguimiento10dias: 'ultimo_seguimiento_v2',
+    seguimiento1: 'seguimiento_presupuesto_v3',
+    seguimiento2: 'seguimiento_segundo_v2',
+    seguimiento10dias: 'ultimo_seguimiento_v3',
 };
 
 /** Escalón → cuántas horas después del presupuesto vence. */
@@ -78,9 +78,9 @@ const VENCE_A_LAS_HORAS: Record<'seguimiento1' | 'seguimiento2' | 'seguimiento10
 
 /** Nombres cortos para mostrar en la tarjeta y en el resumen. */
 export const NOMBRE_CORTO_PLANTILLA: Partial<Record<TemplateName, string>> = {
-    seguimiento_presupuesto_v2: '¿Viste el presupuesto? (corto)',
-    seguimiento_segundo_v1: '¿Seguís pensándolo?',
-    ultimo_seguimiento_v2: 'Cierre con cupón',
+    seguimiento_presupuesto_v3: '¿Viste el presupuesto? (corto)',
+    seguimiento_segundo_v2: '¿Seguís pensándolo?',
+    ultimo_seguimiento_v3: 'Cierre con cupón',
     seguimiento_presupuesto: 'Seguimiento del presupuesto',
     seguimiento_lentes_sin_receta: 'Retomar la charla (sin receta)',
     seguimiento_lentes_con_receta: 'Retomar la charla (con receta)',

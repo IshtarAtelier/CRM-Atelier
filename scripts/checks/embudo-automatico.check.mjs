@@ -37,13 +37,13 @@ const txt = (a) => `(${a.tipo}${a.plantilla ? ' ' + a.plantilla : ''}${a.vencida
 console.log('\nCon presupuesto: la cadencia de siempre, y al final cierra solo');
 let a;
 a = accion({ presupuestoHace: 0.4 }); check('10 h: esperar', es(a, 'esperar') && !a.vencida, txt(a));
-a = accion({ presupuestoHace: 3 }); check('3 días, nadie escribió: 1er toque', es(a, 'plantilla', 'seguimiento_presupuesto_v2') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 3 }); check('3 días, nadie escribió: 1er toque', es(a, 'plantilla', 'seguimiento_presupuesto_v3') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 3, labels: ['SEGUIMIENTO_DIA_1'] }); check('3 días con DIA_1: esperar al día 7', es(a, 'esperar'), txt(a));
 a = accion({ presupuestoHace: 6, labels: ['SEGUIMIENTO_DIA_1'] }); check('6 días solo DIA_1: todavía espera (el 2º toque es al día 7 desde el 16/10/2026)', es(a, 'esperar'), txt(a));
-a = accion({ presupuestoHace: 8, labels: ['SEGUIMIENTO_DIA_1'] }); check('8 días solo DIA_1: 2º toque corto', es(a, 'plantilla', 'seguimiento_segundo_v1') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 8, labels: ['SEGUIMIENTO_DIA_1'] }); check('8 días solo DIA_1: 2º toque corto', es(a, 'plantilla', 'seguimiento_segundo_v2') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 6, labels: ['SEGUIMIENTO_DIA_1'], visito: true }); check('6 días, ya vino: no se lo invita, espera al día 15', es(a, 'esperar'), txt(a));
-a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1'] }); check('20 días con solo DIA_1: toca el 2º (en orden, no el último)', es(a, 'plantilla', 'seguimiento_segundo_v1'), txt(a));
-a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] }); check('20 días con DIA_4: cierre con cupón', es(a, 'plantilla', 'ultimo_seguimiento_v2') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1'] }); check('20 días con solo DIA_1: toca el 2º (en orden, no el último)', es(a, 'plantilla', 'seguimiento_segundo_v2'), txt(a));
+a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] }); check('20 días con DIA_4: cierre con cupón', es(a, 'plantilla', 'ultimo_seguimiento_v3') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 2 }); check(`último toque hace 2 días: esperar (cierra a los ${CIERRE_TRAS_ULTIMO_TOQUE_DIAS})`, es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ presupuestoHace: 24, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8 }); check('último toque hace 8 días, sin respuesta: CERRAR (antes: "Definir ganado o perdido" para una persona)', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 24, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8, actividadHace: 2 }); check('último toque hace 8 días pero el cliente (o Matías) escribió hace 2: NO se cierra, la venta está viva', es(a, 'esperar') && !a.vencida, txt(a));
@@ -53,7 +53,7 @@ a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RET
 a = accion({ presupuestoHace: 45, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_RETOME'], ultimoToqueHace: 8 }); check('45 días, retome hace 8 días sin respuesta: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 45, chat: false }); check('45 días sin chat: nada que intentar, CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ presupuestoHace: 200 }); check(`${DIAS_MAX_CIERRE_AUTOMATICO}+ días: fuera del embudo, no se toca`, es(a, 'esperar') && !a.vencida, txt(a));
-a = accion({ presupuestoHace: 6, humanoHace: 1 }); check('una persona le escribió ayer (día 5): el toque NO se da por hecho; el 1º sigue debiéndose (la compuerta de 48 h lo demora, no lo borra)', es(a, 'plantilla', 'seguimiento_presupuesto_v2') && a.vencida, txt(a));
+a = accion({ presupuestoHace: 6, humanoHace: 1 }); check('una persona le escribió ayer (día 5): el toque NO se da por hecho; el 1º sigue debiéndose (la compuerta de 48 h lo demora, no lo borra)', es(a, 'plantilla', 'seguimiento_presupuesto_v3') && a.vencida, txt(a));
 
 console.log('\nSin presupuesto: MISMA cadencia desde el alta (antes: un toque y "Falta cotizar" para una persona)');
 a = accion({ altaHace: 1 }); check('1 día: "Falta cotizar" informa, NO vence', es(a, 'cotizar') && !a.vencida, txt(a));
@@ -62,8 +62,8 @@ a = accion({ altaHace: 3 }); check('3 días sin receta: retomar la charla (sin r
 a = accion({ altaHace: 3, receta: true }); check('3 días con receta: retomar la charla (con receta)', es(a, 'plantilla', 'seguimiento_lentes_con_receta') && a.vencida, txt(a));
 a = accion({ altaHace: 3, labels: ['SEGUIMIENTO_DIA_1'] }); check('3 días ya retomada: esperar al día 7 (antes: "Falta cotizar")', es(a, 'esperar'), txt(a));
 a = accion({ altaHace: 6, labels: ['SEGUIMIENTO_DIA_1'] }); check('6 días con DIA_1: espera al día 7', es(a, 'esperar'), txt(a));
-a = accion({ altaHace: 8, labels: ['SEGUIMIENTO_DIA_1'] }); check('8 días con DIA_1: 2º toque corto', es(a, 'plantilla', 'seguimiento_segundo_v1') && a.vencida, txt(a));
-a = accion({ altaHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] }); check('20 días con DIA_4: cierre con cupón', es(a, 'plantilla', 'ultimo_seguimiento_v2') && a.vencida, txt(a));
+a = accion({ altaHace: 8, labels: ['SEGUIMIENTO_DIA_1'] }); check('8 días con DIA_1: 2º toque corto', es(a, 'plantilla', 'seguimiento_segundo_v2') && a.vencida, txt(a));
+a = accion({ altaHace: 20, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] }); check('20 días con DIA_4: cierre con cupón', es(a, 'plantilla', 'ultimo_seguimiento_v3') && a.vencida, txt(a));
 a = accion({ altaHace: 25, labels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'], ultimoToqueHace: 8 }); check('último toque hace 8 días: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
 a = accion({ altaHace: 10, chat: false }); check('sin chat: nada que mandar, espera al cierre del día 30', es(a, 'esperar') && !a.vencida, txt(a));
 a = accion({ altaHace: 40, chat: false }); check('sin chat, 40 días: CERRAR', es(a, 'cerrar') && a.vencida, txt(a));
@@ -74,8 +74,8 @@ console.log('\nOrden del día: la cadencia primero, los últimos intentos despu�
     const item = (o, stage = 'seguimiento1') => ({ proximaAccion: accion(o), stage });
     const lista = ordenarPorUrgencia([item({ presupuestoHace: 100, labels: ['SEGUIMIENTO_DIA_1'] }), item({ presupuestoHace: 35, labels: ['SEGUIMIENTO_DIA_1'] }), item({ presupuestoHace: 3 }), item({ presupuestoHace: 0.4 })]);
     check('1º el toque de la cadencia, después los cierres (retome del día 30 apagado el 16/10/2026), último lo que no vence',
-        lista.some(x => x.proximaAccion.plantilla === 'seguimiento_presupuesto_v2') && !lista.some(x => x.proximaAccion.plantilla === 'retomar_con_cupon')
-            && lista.findIndex(x => x.proximaAccion.plantilla === 'seguimiento_presupuesto_v2') < lista.findIndex(x => !x.proximaAccion.vencida),
+        lista.some(x => x.proximaAccion.plantilla === 'seguimiento_presupuesto_v3') && !lista.some(x => x.proximaAccion.plantilla === 'retomar_con_cupon')
+            && lista.findIndex(x => x.proximaAccion.plantilla === 'seguimiento_presupuesto_v3') < lista.findIndex(x => !x.proximaAccion.vencida),
         lista.map(x => x.proximaAccion.etiqueta).join(' | '));
 }
 

@@ -77,9 +77,9 @@ export function armarParametros(plantilla: keyof typeof WHATSAPP_TEMPLATES, nomb
  * plantilla vieja como respaldo: el embudo no se frena por la aprobación.
  */
 export const PLANTILLA_LEGADA: Partial<Record<keyof typeof WHATSAPP_TEMPLATES, keyof typeof WHATSAPP_TEMPLATES>> = {
-    seguimiento_presupuesto_v2: 'seguimiento_presupuesto',
-    seguimiento_segundo_v1: 'invitacion_local_v4',
-    ultimo_seguimiento_v2: 'ultimo_seguimiento',
+    seguimiento_presupuesto_v3: 'seguimiento_presupuesto',
+    seguimiento_segundo_v2: 'invitacion_local_v4',
+    ultimo_seguimiento_v3: 'ultimo_seguimiento',
 };
 
 /** Qué plantillas están APPROVED en el espejo local de Meta. */
