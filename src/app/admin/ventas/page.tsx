@@ -1370,6 +1370,15 @@ export default function VentasPage() {
                                         <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={fetchOrders} />
                                     </div>
                                 )}
+                                {/* Grupo Óptico: el bloque del robot está en la ficha; desde acá se abre directo (Ishtar, 15/10/2026: "¿dónde dice procesar en SmartLab?"). */}
+                                {orderLabs.some(l => /grupo[\s_-]?[oó]ptico/i.test(l)) && !['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && (
+                                    <div className="mt-4">
+                                        <button type="button" onClick={() => setExpandedDetail(order.id)}
+                                            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                                            🤖 Cargar en Grupo Óptico (SmartLab) — abre la ficha
+                                        </button>
+                                    </div>
+                                )}
 
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
