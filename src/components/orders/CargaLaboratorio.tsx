@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Check, X, Loader2, RefreshCw, AlertTriangle, Maximize2, FileText, ChevronDown } from 'lucide-react';
+import { Bot, Check, X, Loader2, RefreshCw, AlertTriangle, Maximize2, FileText, ChevronDown, ExternalLink, Pencil } from 'lucide-react';
 import { formatDate } from '@/lib/format-date';
 
 /**
@@ -178,6 +178,20 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         <X className="w-3.5 h-3.5" /> Rechazar
                     </button>
                 </div>
+                {/* Corregir a mano ANTES de aprobar (Vitolen): se abre el borrador real en el portal
+                    ("Modificar"), y "Releer el portal" trae la pantalla como quedó. Botones, no un
+                    link escondido en el texto (Ishtar, 15/10/2026). */}
+                {b.vista.enlacePortal && b.acciones?.releer && (
+                    <div className={`flex flex-wrap items-center gap-2 text-xs ${claro ? 'text-stone-300' : 'text-stone-600 dark:text-stone-300'}`}>
+                        <span>¿Hay que corregir algo?</span>
+                        <a href={b.vista.enlacePortal} target="_blank" rel="noreferrer" className={`${boton} ${claro ? 'bg-stone-700' : 'bg-stone-600'}`}>
+                            <Pencil className="w-3.5 h-3.5" /> Abrir en {nombre} para modificar <ExternalLink className="w-3 h-3" />
+                        </a>
+                        <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'releer')} className={`${boton} ${claro ? 'bg-stone-700' : 'bg-stone-600'}`}>
+                            {ocupado === `releer-${b.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Releer el portal (después de modificar)
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };
@@ -372,7 +386,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                             <div className="space-y-2">
                                 <p className="text-xs text-stone-600 dark:text-stone-300">
                                     {b.vista.textoRevision}
-                                    {b.vista.enlacePortal && b.acciones?.releer ? <> Para corregir algo antes, <a href={b.vista.enlacePortal} target="_blank" rel="noreferrer" className="underline">abrilo en el portal</a> y después <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'releer')} className="underline font-bold">{ocupado === `releer-${b.id}` ? 'releyendo…' : 'releé el portal'}</button> para ver cómo quedó.</> : null}
+                                    {b.vista.enlacePortal && b.acciones?.releer ? <> Para corregir algo antes de aprobar, usá los botones de abajo: abrilo en el portal, modificalo, y releé.</> : null}
                                     {b.error ? <span className="block mt-1 text-rose-700 dark:text-rose-400">{b.error}</span> : null}
                                 </p>
                                 {b.vista.avisos.length > 0 && (
