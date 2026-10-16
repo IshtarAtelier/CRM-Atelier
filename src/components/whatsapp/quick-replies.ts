@@ -23,7 +23,8 @@ export const QUICK_REPLIES: QuickReply[] = [
     // No se incluyen las transaccionales (pedido_listo, factura, comprobante)
     // porque llevan datos de un pedido puntual que no tiene sentido tipear a mano.
     { label: '12 cuotas', templateName: 'promo_12_cuotas_v2', text: WHATSAPP_TEMPLATES.promo_12_cuotas_v2.body },
-    { label: 'Seguimiento presupuesto', templateName: 'seguimiento_presupuesto', text: WHATSAPP_TEMPLATES.seguimiento_presupuesto.body },
+    { label: 'Seguimiento presupuesto', templateName: 'seguimiento_presupuesto_v2', text: WHATSAPP_TEMPLATES.seguimiento_presupuesto_v2.body },
+    { label: '¿Seguís pensándolo?', templateName: 'seguimiento_segundo_v1', text: WHATSAPP_TEMPLATES.seguimiento_segundo_v1.body },
     { label: 'Seguimiento lentes', templateName: 'seguimiento_lentes', text: WHATSAPP_TEMPLATES.seguimiento_lentes.body },
     { label: 'Seguimiento carrito', templateName: 'seguimiento_carrito', text: WHATSAPP_TEMPLATES.seguimiento_carrito.body },
     { label: 'Invitación al local', templateName: 'invitacion_local_v2', text: WHATSAPP_TEMPLATES.invitacion_local_v2.body },

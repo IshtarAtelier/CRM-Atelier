@@ -65,7 +65,7 @@ export function esperaRespuestaHumana(chat: Pick<EstadoDelChat, 'lastInboundAt' 
 }
 
 /** Plantillas que dan la charla por terminada: no salen mientras un humano deba retomarla. */
-export const PLANTILLAS_QUE_CIERRAN: readonly string[] = ['ultimo_seguimiento', 'retomar_con_cupon'];
+export const PLANTILLAS_QUE_CIERRAN: readonly string[] = ['ultimo_seguimiento', 'ultimo_seguimiento_v2', 'retomar_con_cupon'];
 
 /** Motivo por el que el motor NO puede cerrar (ni mandar el cierre) a este chat, o null. */
 export function vetoDeCierre(chat: EstadoDelChat | null | undefined): string | null {
