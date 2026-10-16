@@ -210,7 +210,26 @@ export async function editar(n) {
   const pelo8 = Buffer.alloc(LADO * LADO);
   for (let p = 0, i = 0; p < LADO * LADO; p++, i += 3) if (mk.data[p] > 128 && lum(col[i], col[i + 1], col[i + 2]) < 0.36 * 255) pelo8[p] = 255;
   const peloD = (await raw(sharp(pelo8, { raw: { width: LADO, height: LADO, channels: 1 } }).blur(18).extractChannel(0))).data;
-  const sinPelo = (p) => 1 - clamp((peloD[p] / 255 - 0.08) * 4, 0, 1);
+  // ZONA DE CARA (auditoría 3): el relleno y el freno de pelo dependen de DÓNDE está el píxel.
+  //  - Debajo de las cejas el freno de pelo no corre: la barba es pelo oscuro y frenar ahí dejaba un hueco
+  //    oscuro y redondo en la mandíbula.
+  //  - Arriba de las cejas y fuera del ancho de la cara está el cuero cabelludo (el degradé rapado): ahí
+  //    no hay relleno, porque aclaraba la piel entre los pelitos y quedaban manchas beige.
+  //  - De frente, fuera del ancho de la cara (orejas) tampoco hay relleno: el lóbulo quedaba posterizado.
+  const rsZ = a.rasgos || {};
+  const cejasZ = ['cejaIzq', 'cejaDer'].filter(k => rsZ[k]).map(k => fy(rsZ[k][1]));
+  const lineaCejas = (cejasZ.length ? Math.min(...cejasZ) : fy(c.y + c.h * 0.15)) + c.h * s * 0.06;
+  const caraX0 = fx(c.x - c.w * 0.04), caraX1 = fx(c.x + c.w * 1.04), RAMPA = 40;
+  const rampa = (v) => clamp(v / RAMPA, 0, 1);
+  const zonaCara = new Float32Array(LADO * LADO), debajoCejas = new Float32Array(LADO * LADO);
+  for (let p = 0; p < LADO * LADO; p++) {
+    const x = p % LADO, y = (p / LADO) | 0;
+    const dentroX = Math.min(rampa(x - caraX0), rampa(caraX1 - x)), abajo = rampa(y - lineaCejas);
+    debajoCejas[p] = abajo;
+    zonaCara[p] = girado || perfil ? Math.max(dentroX, abajo) : dentroX;
+  }
+  const frenoPelo = (p) => 1 - clamp((peloD[p] / 255 - 0.08) * 4, 0, 1);
+  const sinPelo = process.env.SIN_FRENO_PELO === "1" ? () => 1 : (p) => 1 - (1 - frenoPelo(p)) * (1 - debajoCejas[p]);
   // 6) Relleno de luz sobre la PIEL: la luz de la sesión entra de un costado y deja la otra mitad de la
   //    cara oscura, más las sombras duras del armazón y la nariz. Se estima la luz local (luminancia muy
   //    desenfocada) y cada zona de piel sube hacia el tono de la piel bien iluminada. Pelo, armazón,
@@ -244,7 +263,7 @@ export async function editar(n) {
   ref.sort((u, v) => u - v); const pielLuz = ref.length ? ref[Math.floor(ref.length * 0.8)] : PIEL_OBJETIVO;
   let rellenoMedio = 0, nRelleno = 0;
   for (let p = 0, i = 0; p < LADO * LADO; p++, i += 3) {
-    let w = pesoPiel.data[p] / 255 * (1 - objeto[p]) * sinPelo(p); if (w < 0.01) continue;
+    let w = pesoPiel.data[p] / 255 * (1 - objeto[p]) * sinPelo(p) * zonaCara[p]; if (w < 0.01) continue;
     if (SOL) { // cristal de sol: lo que se ve a través es mucho más oscuro que la piel; ahí no se aclara (cambiaría el color del cristal)
       const yy = (p / LADO) | 0, banda = Math.min(1, Math.max(0, Math.min(yy - yLente0, yLente1 - yy) / 40));
       if (banda > 0) { const lp = lum(col[i], col[i + 1], col[i + 2]) / 255; w *= 1 - banda * (1 - clamp((lp - pielLuz * 0.55) / (pielLuz * 0.25), 0, 1)); }
