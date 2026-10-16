@@ -634,7 +634,7 @@ export default function VentasPage() {
             const pregunta = c.estado === 'OBSERVACION'
                 ? `${icono} ${c.texto}\n\nEl cliente pidió revisar algo. ¿Ya lo resolvieron y querés procesarlo igual?`
                 : c.estado === 'ESPERANDO'
-                    ? `${icono} ${c.texto}\n\nTodavía no dijo OK ni pasaron las 24 h. ¿Procesar igual?`
+                    ? `${icono} ${c.texto}\n\nTodavía no respondió. Revisá en la conversación de WhatsApp si dio el OK. ¿Procesar igual?`
                     : `${icono} ${c.texto}\n\n¿Procesar el pedido?`;
             if (!window.confirm(pregunta)) return;
         }
