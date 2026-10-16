@@ -44,9 +44,18 @@ export const ReviewRequestService = {
             select: { id: true, name: true, googleReviewAt: true },
         });
         if (!client) throw new Error('Cliente no encontrado');
-        if (client.googleReviewAt) return { yaEstaba: true, cerradas: 0 };
 
         const ahora = new Date();
+        if (client.googleReviewAt) {
+            // Ya estaba marcado: igual se cierra lo que haya quedado abierto
+            // (sin volver a firmar la ficha ni duplicar la nota).
+            const { count } = await prisma.clientTask.updateMany({
+                where: { clientId, type: TIPO_TAREA_RESENA, status: 'PENDING' },
+                data: { status: 'COMPLETED', completedBy: actor.name, completedAt: ahora },
+            });
+            return { yaEstaba: true, cerradas: count };
+        }
+
         const { count } = await prisma.$transaction(async tx => {
             await tx.client.update({
                 where: { id: clientId },
