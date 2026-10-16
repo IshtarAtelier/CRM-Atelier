@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const title = withClaim
     ? `La Óptica Mejor Puntuada de Córdoba (★ ${rating.toFixed(1).replace(".", ",")} en Google)`
-    : "Óptica en Córdoba | Atelier Óptica · Cerro de las Rosas";
+    : "Óptica en Córdoba · Cerro de las Rosas";
   const description = withClaim
     ? `Atelier Óptica: ★ ${rating.toFixed(1).replace(".", ",")} en Google con +${userRatingCount} reseñas. Cristales Varilux, laboratorio propio, cuotas sin interés y envíos a todo el país. Cerro de las Rosas, Córdoba.`
     : "Atelier Óptica, en el Cerro de las Rosas: cristales Varilux, laboratorio propio, cuotas sin interés y envíos a todo el país.";

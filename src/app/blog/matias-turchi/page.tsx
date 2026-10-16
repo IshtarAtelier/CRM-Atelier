@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/matias-turchi' },
-  title: "Matías Turchi | Especialista en Lentes Multifocales y Essilor Expert en Córdoba",
+  title: "Matías Turchi | Especialista en Multifocales, Essilor Expert",
   description: "Conocé a Matías Turchi, especialista en lentes multifocales y cristales Varilux certificado como Essilor Expert en Cerro de las Rosas, Córdoba. Tecnología digital y adaptación precisa sin mareos.",
   keywords: [
     "lentes multifocales Córdoba", 

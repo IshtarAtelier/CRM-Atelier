@@ -1810,6 +1810,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               // una URL externa queda como está. Corre DESPUÉS del filtrado de
               // atributos, así que no abre nada que el sanitizado cerró.
               transformTags: {
+                // El título de la nota ya es el <h1> de la página. 18 notas de
+                // Essilor traen OTRO <h1> en el cuerpo (medido 16/10/2026): dos
+                // h1 por página. Se baja a h2 al renderizar, sin tocar la base.
+                h1: 'h2',
                 img: imagenDelCuerpoOptimizada,
                 a: (tagName: string, attribs: Record<string, string>) => ({
                   tagName,
