@@ -11,7 +11,7 @@ import InvoiceModal from '@/components/billing/InvoiceModal';
 import { MERCADO_PAGO_ISH_METHODS, MERCADO_PAGO_YANI_METHODS } from '@/lib/constants';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
-import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import { enviarFacturaPorWhatsApp } from '@/lib/billing/enviar-factura-whatsapp';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import type { Order } from '@/types/orders';
 
@@ -95,51 +95,10 @@ export default function BillingPage() {
     };
 
     const handleSendWhatsAppInvoice = async (order: Order, invoiceId: string) => {
-        const phone = formatPhoneForWhatsApp(order.client?.phone);
-        if (!phone || phone === '549') {
-            alert('⚠️ El cliente no tiene teléfono registrado.');
-            return;
-        }
-
         setDownloadingId(`wsp-${invoiceId}`);
         try {
-            const res = await fetch(`/api/billing/invoice/${invoiceId}/pdf-data`);
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Error al obtener datos de la factura');
-            }
-            const data = await res.json();
-            const pdfResult = await generateInvoicePDF(data, true);
-            
-            if (!pdfResult) {
-                throw new Error('Error generando PDF');
-            }
-
-            const text = `✨ *ATELIER ÓPTICA* ✨\n\nHola ${order.client.name},\nTe enviamos adjunta tu factura electrónica de compra.\n\n¡Gracias por elegirnos!`;
-
-            const sendRes = await fetch('/api/whatsapp/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chatId: `${phone}@c.us`,
-                    message: text,
-                    media: {
-                        base64: pdfResult.base64,
-                        mimetype: 'application/pdf',
-                        filename: pdfResult.fileName
-                    },
-                    // API oficial: si el cliente no escribió en 24 h, sale la
-                    // plantilla "factura_electronica" (A11) con el PDF adjunto.
-                    template: { name: 'factura_electronica', bodyParams: [order.client.name.split(' ')[0]] }
-                })
-            });
-
-            if (sendRes.ok) {
-                alert('✅ Factura enviada por WhatsApp al cliente');
-            } else {
-                const errData = await sendRes.json().catch(() => ({}));
-                throw new Error(errData.error || 'Error de conexión con el bot de WhatsApp');
-            }
+            await enviarFacturaPorWhatsApp(order.client, invoiceId);
+            alert('✅ Factura enviada por WhatsApp al cliente');
         } catch (error: any) {
             console.error('Error sending invoice via WhatsApp:', error);
             alert(`❌ Error enviando la factura: ${error.message}`);
@@ -539,7 +498,8 @@ export default function BillingPage() {
                                 })
                             });
                         }
-                        setSelectedOrder(null);
+                        // El modal queda abierto mostrando el comprobante, con
+                        // descargar y mandar por WhatsApp; se cierra con "Finalizar".
                         refreshData();
                     }}
                 />

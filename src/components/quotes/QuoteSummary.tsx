@@ -1345,7 +1345,8 @@ export default function QuoteSummary({
                     initialAmount={invoiceOrder.customAmount}
                     onClose={() => setInvoiceOrder(null)}
                     onSuccess={async () => {
-                        setInvoiceOrder(null);
+                        // El modal queda abierto con el comprobante (descargar /
+                        // WhatsApp); se cierra con "Finalizar".
                         if (onRefreshContact) await onRefreshContact();
                     }}
                 />
