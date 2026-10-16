@@ -142,6 +142,9 @@ jobs:
       - name: Motor de seguimientos (compuertas antes de mandar solo)
         run: npm run check:motor
 
+      - name: 2º pedido de reseña (solo tarea al vendedor, uno solo, exclusiones)
+        run: npm run check:resena-segundo-pedido
+
       - name: Embudo 100 % automático (cadencia, lectura de respuestas, cierre solo)
         run: npm run check:embudo
 

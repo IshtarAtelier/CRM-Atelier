@@ -2688,7 +2688,14 @@ export class OrderService {
                 }
             });
 
-            if (!existingTask) {
+            // Ya dejó su reseña en Google ("Ya comentó" o cruce con Places):
+            // no se le vuelve a pedir en cada compra.
+            const yaComento = await prisma.client.findUnique({
+                where: { id: order.clientId },
+                select: { googleReviewAt: true },
+            });
+
+            if (!existingTask && !yaComento?.googleReviewAt) {
                 await ContactService.addReviewRequest(order.clientId, taskDescription);
             }
         }

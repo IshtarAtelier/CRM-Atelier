@@ -308,6 +308,7 @@ export default function ContactDetail({
                             contact={contact}
                             onAddTask={(desc, date) => onAddTask(contactId, desc, date).then(() => fetchContact())}
                             onToggleTask={(tid, status) => onUpdateTaskStatus(contactId, tid, status).then(() => fetchContact())}
+                            onRefresh={fetchContact}
                         />
                     )}
 
