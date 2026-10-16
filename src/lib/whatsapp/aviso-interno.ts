@@ -22,7 +22,7 @@
  */
 
 import { sendWhatsApp, type WhatsAppMedia } from './send';
-import { templateSpec } from './templates';
+import { templateSpec, type TemplateSpec } from './templates';
 // phone-utils y no contact.service: contact.service importa este módulo, y un
 // ciclo de imports acá es la clase de bug que aparece solo en producción.
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
@@ -70,6 +70,19 @@ export interface AvisoInternoInput {
      * resultado lo dice en `adjuntosEnviados` para que el llamador lo sepa.
      */
     adjuntos?: WhatsAppMedia[] | null;
+    /**
+     * Primera línea del texto libre, en lugar de "📝 Fulano te dejó un mensaje
+     * sobre …". Para avisos que tienen que empezar de una forma concreta
+     * ("Solicitud de factura — …").
+     */
+    titulo?: string | null;
+    /**
+     * Plantilla propia para cuando la ventana está cerrada, en lugar de
+     * `nota_interna` (p. ej. una con el comprobante como encabezado). El
+     * llamador garantiza que está APPROVED; `plantillaMedia` es su encabezado.
+     */
+    plantilla?: TemplateSpec | null;
+    plantillaMedia?: WhatsAppMedia | null;
 }
 
 export interface AvisoInternoResultado {
@@ -93,9 +106,11 @@ export async function avisarEquipoPorWhatsApp(input: AvisoInternoInput): Promise
 
     // Texto libre (solo sale si la ventana de 24 h está abierta): completo y
     // con link. La plantilla lleva la versión de un renglón.
+    const primeraLinea = input.titulo?.trim() || `📝 *${remitenteNombre}* te dejó un mensaje sobre ${contexto}:`;
     const textoLibre =
-        `📝 *${remitenteNombre}* te dejó un mensaje sobre ${contexto}:\n\n${input.texto.trim()}` +
+        `${primeraLinea}\n\n${input.texto.trim()}` +
         (input.link ? `\n\n${input.link}` : '');
+    const plantilla = input.plantilla ?? templateSpec('nota_interna', [remitenteNombre, contexto, resumen]);
 
     const vistos = new Set<string>();
     const resultados: AvisoInternoResultado[] = [];
@@ -110,7 +125,8 @@ export async function avisarEquipoPorWhatsApp(input: AvisoInternoInput): Promise
                 message: textoLibre,
                 senderName: 'Sistema Atelier',
                 isProactive: true,
-                template: templateSpec('nota_interna', [remitenteNombre, contexto, resumen]),
+                template: plantilla,
+                templateMedia: input.plantilla ? input.plantillaMedia ?? undefined : undefined,
             });
             let adjuntosEnviados = 0;
             if (r.ok && r.via === 'text' && input.adjuntos?.length) {

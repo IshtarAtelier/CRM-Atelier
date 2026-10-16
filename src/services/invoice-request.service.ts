@@ -22,6 +22,7 @@ import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
 import { PricingService } from '@/services/PricingService';
 import { getFileBuffer } from '@/lib/storage';
 import type { WhatsAppMedia } from '@/lib/whatsapp/send';
+import { templateSpec, TEMPLATE_LANGUAGE } from '@/lib/whatsapp/templates';
 
 export interface SolicitudFacturaInput {
     orderId: string;
@@ -174,13 +175,24 @@ export const InvoiceRequestService = {
             (observaciones ? ` Observación: ${observaciones}.` : ' Sin observación.') +
             ` Pagos (${precioConSigno(cobrado)} cobrado): ${pagos || 'ninguno'}.` +
             (adjuntos.length > 0 ? ` Te mando ${adjuntos.length === 1 ? 'el comprobante' : `los ${adjuntos.length} comprobantes`} a continuación.` : ' Sin comprobantes cargados.');
+
+        // Ventana cerrada: la plantilla propia arranca con "Solicitud de
+        // factura" y lleva el (primer) comprobante como encabezado. Solo si
+        // Meta ya la aprobó; si no, cae a nota_interna como siempre.
+        const plantillaPropia = adjuntos.length > 0 && await plantillaAprobada('solicitud_factura')
+            ? templateSpec('solicitud_factura', [actor.name, precioConSigno(monto), clienteNombre, doc, `#${numero}`, observaciones || 'sin observación', pagos || 'ninguno', link])
+            : null;
+
         avisarEquipoPorWhatsApp({
             destinatarios: admins,
             remitente: { id: actor.id, name: actor.name },
-            contexto: `una factura de ${clienteNombre}`,
+            contexto: `una solicitud de factura de ${clienteNombre}`,
+            titulo: `🧾 *Solicitud de factura* — ${actor.name}`,
             // El link ya va dentro del texto: así también llega por la plantilla.
             texto,
             adjuntos,
+            plantilla: plantillaPropia,
+            plantillaMedia: plantillaPropia ? adjuntos[0] : null,
         }).catch(console.error);
 
         return notification;
@@ -218,4 +230,13 @@ async function comprobantesDePagos(
         }
     }
     return adjuntos;
+}
+
+/** true solo si el espejo local de Meta dice que la plantilla está APPROVED. */
+async function plantillaAprobada(nombre: string): Promise<boolean> {
+    const fila = await prisma.whatsAppTemplate.findFirst({
+        where: { name: nombre, language: TEMPLATE_LANGUAGE },
+        select: { status: true },
+    }).catch(() => null);
+    return fila?.status === 'APPROVED';
 }

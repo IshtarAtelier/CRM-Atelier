@@ -741,6 +741,33 @@ export const WHATSAPP_TEMPLATES = {
         ],
         borrador: true,
     },
+    // ── Solicitud de factura (aviso interno a la administración) ──────────
+    // Pedido de Ishtar del 16/10/2026: que el aviso EMPIECE con "Solicitud de
+    // factura" y traiga la FOTO del comprobante de pago. Con la ventana de 24 h
+    // cerrada el aviso sale por plantilla, y `nota_interna` ni arranca así ni
+    // admite imagen; ésta lleva el comprobante como encabezado. Con la ventana
+    // abierta el aviso va en texto libre y las fotos en mensajes aparte
+    // (invoice-request.service.ts). La última variable no puede cerrar el
+    // cuerpo, por eso termina en "— Atelier Óptica".
+    solicitud_factura: {
+        name: 'solicitud_factura',
+        inventario: 'B4 (solicitud de factura del vendedor a la administración)',
+        category: 'UTILITY',
+        header: 'IMAGE',
+        imagenMuestra: 'public/social/ad-2x1-armazones-cuadrado/01.jpg',
+        body: 'Solicitud de factura — {{1}} pide facturar {{2}} a {{3}} ({{4}}), venta {{5}}. Observación: {{6}}. Pagos: {{7}}. Comprobante adjunto. Facturar: {{8}} — Atelier Óptica',
+        params: [
+            { label: 'vendedor', example: 'Milena Magallanes' },
+            { label: 'monto', example: '$ 964.410' },
+            { label: 'cliente', example: 'Juan San Martin' },
+            { label: 'documento', example: 'DNI 31667082' },
+            { label: 'nº de venta', example: '#3VL6' },
+            { label: 'observación', example: 'Obra social Swiss Medical, plan SMG30' },
+            { label: 'pagos', example: '16/10/2026 MP 12c Yani $ 964.410' },
+            { label: 'link para facturar', example: 'https://atelieroptica.com.ar/admin/facturacion?solicitud=abc123' },
+        ],
+        borrador: true,
+    },
 } as const satisfies Record<string, TemplateDef>;
 
 export type TemplateName = keyof typeof WHATSAPP_TEMPLATES;
