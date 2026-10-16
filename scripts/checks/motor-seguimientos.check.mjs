@@ -141,6 +141,7 @@ console.log('\nSi el cliente responde a un seguimiento, NO hay tarea para nadie 
     const sync = readFileSync(new URL('../../src/lib/embudo/sincronizar-tareas.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('sincronizar-tareas ya NO crea tareas EMBUDO (solo limpia)', !sync.includes('clientTask.create') && sync.includes("status: 'CANCELLED'"));
     const ruta = readFileSync(new URL('../../src/app/api/cron/seguimientos/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('15/10 · una despedida inequívoca de los últimos días cierra aunque haya un toque posterior (caso Rubén)', ruta.includes('esDespedidaInequivoca(') && ruta.includes('DIAS_DESPEDIDA_RECIENTE'));
     check('el motor lee la respuesta y ejecuta cierre/pausa', ruta.includes('clasificarRespuesta(') && ruta.includes('cerrarComoPerdido(') && ruta.includes('posponerSeguimiento('));
     check("el motor ejecuta los 'cerrar' del playbook", ruta.includes("tipo === 'cerrar'"));
     check('8/10 · responder al retome reserva el 10 % en la ficha', ruta.includes('reservarDescuentoRetome(') && ruta.includes("ultimaPlantilla.get(f.id) === PLANTILLA_RETOME"));

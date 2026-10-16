@@ -134,6 +134,21 @@ export function clasificarRespuesta(mensajes: MensajeEntrante[]): Clasificacion 
     return 'seguir';
 }
 
+/**
+ * ¿Este mensaje es una despedida INEQUÍVOCA ("ya compré en otra óptica", "no
+ * me escriban más")? Se usa para mirar hacia atrás, no solo la respuesta al
+ * último toque: Rubén dijo "ya hemos encargado los lentes" el 6/10 y el 8/10,
+ * el motor no lo entendió, le mandó otro toque el 11/10 y, como después de ESE
+ * toque no volvió a escribir, la ventana normal ya no lo veía. Solo los
+ * patrones fuertes: un "no" suelto de hace diez días puede ser otra cosa.
+ */
+export const DIAS_DESPEDIDA_RECIENTE = 14;
+export function esDespedidaInequivoca(m: MensajeEntrante): boolean {
+    if (m.type && m.type !== 'TEXT' && m.type !== 'CHAT') return false;
+    const t = normalizar(m.content || '');
+    return !!t && CIERRE_FUERTE_N.some(r => r.test(t));
+}
+
 /** Cuánto se pausa a quien pidió "más adelante". */
 export const PAUSA_POSPONER_DIAS = 30;
 
