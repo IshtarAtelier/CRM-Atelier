@@ -104,6 +104,7 @@
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",
+    "@breezystack/lamejs": "^1.2.7",
     "@google/genai": "^2.2.0",
     "@langchain/core": "^1.1.48",
     "@langchain/google-genai": "^2.1.31",

@@ -89,6 +89,16 @@ export default function VentasPage() {
     const [loadingMore, setLoadingMore] = useState(false);
 
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [recordando, setRecordando] = useState<string | null>(null);
+    const recordarConfirmacion = async (orderId: string) => {
+        if (!window.confirm('Se le manda por WhatsApp un texto y un audio recordándole que sin su OK no se procesa el pedido. ¿Mandar?')) return;
+        setRecordando(orderId);
+        try {
+            const res = await fetch(`/api/orders/${orderId}/recordar-confirmacion`, { method: 'POST' });
+            const json = await res.json().catch(() => ({}));
+            window.alert(res.ok ? (json.mensaje || 'Recordatorio enviado.') : (json.error || 'No se pudo mandar el recordatorio.'));
+        } finally { setRecordando(null); }
+    };
     const [requestingInvoiceId, setRequestingInvoiceId] = useState<string | null>(null);
 
     const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
@@ -1155,9 +1165,18 @@ export default function VentasPage() {
                                                                 : 'bg-stone-100 text-stone-700 border-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700';
                                                     const icono = c.tono === 'verde' ? '✅' : c.tono === 'rojo' ? '✋' : c.tono === 'ambar' ? '⏳' : '⏱️';
                                                     return (
-                                                        <span title={c.texto} className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 max-w-[320px] truncate ${tono}`}>
-                                                            {icono} {c.estado === 'OK' ? 'Cliente: OK' : c.estado === 'TACITA' ? 'Cliente: 24 h sin respuesta · confirmado' : c.estado === 'OBSERVACION' ? `Cliente: observación — ${(order.clientConfirmationText || '').slice(0, 40)}` : c.estado === 'ESPERANDO' ? 'Cliente: esperando su OK' : 'Sin confirmación enviada'}
-                                                        </span>
+                                                        <>
+                                                            <span title={c.texto} className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 max-w-[320px] truncate ${tono}`}>
+                                                                {icono} {c.estado === 'OK' ? 'Cliente: OK' : c.estado === 'TACITA' ? 'Cliente: 24 h sin respuesta · confirmado' : c.estado === 'OBSERVACION' ? `Cliente: observación — ${(order.clientConfirmationText || '').slice(0, 40)}` : c.estado === 'ESPERANDO' ? 'Cliente: esperando su OK' : 'Sin confirmación enviada'}
+                                                            </span>
+                                                            {/* No contestó: se le recuerda por WhatsApp (texto + audio) que sin su OK no se procesa (Ishtar, 15/10/2026). */}
+                                                            {c.estado === 'ESPERANDO' && (
+                                                                <button type="button" disabled={recordando === order.id} onClick={() => recordarConfirmacion(order.id)} title="Le manda por WhatsApp un texto y un audio: sin su OK no se procesa el pedido"
+                                                                    className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest border border-amber-300 bg-white text-amber-800 hover:bg-amber-50 dark:bg-stone-900 dark:text-amber-300 dark:border-amber-800/50 disabled:opacity-50">
+                                                                    {recordando === order.id ? 'Mandando…' : '📣 Recordarle el OK'}
+                                                                </button>
+                                                            )}
+                                                        </>
                                                     );
                                                 })()}
                                                 {order.status === 'WEB_PENDING' && (
