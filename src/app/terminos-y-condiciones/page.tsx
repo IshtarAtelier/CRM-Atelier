@@ -1,3 +1,4 @@
+import { PLAZOS_DESPACHO } from '@/lib/ficha/que-incluye';
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
@@ -82,7 +83,7 @@ export default function TerminosYCondicionesPage() {
             </div>
             <div className="space-y-4">
               <p>
-                Los tiempos de preparación estimados son de <strong>2 días hábiles</strong> para armazones solos o anteojos de sol sin receta, y de <strong>5 a 7 días hábiles</strong> para cristales recetados debido al proceso de calibración y laboratorio.
+                Los tiempos de preparación estimados son de <strong>{PLAZOS_DESPACHO.sinCristales}</strong> para armazones solos, anteojos de sol o clip-on sin receta, y de <strong>{PLAZOS_DESPACHO.conCristales}</strong> para cristales recetados debido al proceso de calibración y laboratorio.
               </p>
               <p>
                 Una vez despachado el pedido mediante el correo postal, se le enviará un código de seguimiento al cliente. Atelier Óptica no se responsabiliza por demoras operativas exclusivas del servicio de correo.

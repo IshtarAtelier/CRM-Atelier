@@ -664,6 +664,30 @@ export const WHATSAPP_TEMPLATES = {
     // espejo local: hasta entonces solo se cuenta como "pendiente de plantilla".
     // UTILITY y no MARKETING: es un recordatorio de una compra que la persona
     // empezó (Meta lo acepta como utility cuando nombra el carrito concreto).
+    // Cupón para retomar un presupuesto de la tienda (Ishtar, 15/10/2026): los
+    // 13 presupuestos abiertos del mes llegaron por WhatsApp sin mail, así que
+    // el único camino automático fuera de la ventana de 24 h es una plantilla.
+    // MARKETING: lleva un descuento, Meta no lo acepta como utility. El cupón
+    // (código, %, vencimiento) sale del cupón real de la base, nunca tipeado.
+    presupuesto_cupon: {
+        name: 'presupuesto_cupon',
+        inventario: 'Plan tienda 15/10/2026 · campaña de cupón a presupuestos abiertos',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Soy de Atelier Óptica. Te pasamos el precio de {{2}} hace unos días y no queremos que quede en la nada: te guardamos un {{3}} extra con el código {{4}}, que vale hasta el {{5}} en la tienda online o en el local. Si querés, te lo reservo para que vengas a probártelo. ¿Qué día te queda cómodo?',
+        params: [
+            { label: 'nombre', example: 'Julio' },
+            { label: 'qué cotizó', example: 'Calipso Oval Negro' },
+            { label: 'descuento', example: '10% OFF' },
+            { label: 'código', example: 'VOLVE10' },
+            { label: 'vence el', example: '31/10/2026' },
+        ],
+        buttons: [
+            { type: 'URL', text: 'Ver la tienda', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'QUICK_REPLY', text: 'Quiero reservarlo' },
+            { type: 'QUICK_REPLY', text: 'Ya no me interesa' },
+        ],
+        borrador: true,
+    },
     recupero_carrito_web: {
         name: 'recupero_carrito_web',
         inventario: 'Plan tienda 15/10/2026 · 3.4 (recupero de carrito a las 24 h)',

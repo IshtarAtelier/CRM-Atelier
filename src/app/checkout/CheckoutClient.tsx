@@ -1,5 +1,6 @@
 "use client";
 
+import { PLAZOS_DESPACHO } from '@/lib/ficha/que-incluye';
 import { refrescarCarrito, useCarritoAlDia } from '@/hooks/useCarritoAlDia';
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 import { tieneCristales } from '@/lib/cristales-web/claves';
@@ -943,7 +944,7 @@ export function CheckoutClient({
                 ? "Hemos registrado tu pedido mayorista con éxito. Descontamos el stock de la mercadería."
                 : "Hemos registrado tu pedido de forma exitosa. Te enviamos un correo con la confirmación."}
             <br/><br/>
-            <strong>Tiempo de entrega estimado:</strong> {hasCrystals ? '5 días hábiles por trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
+            <strong>Tiempo de entrega estimado:</strong> {hasCrystals ? `${PLAZOS_DESPACHO.conCristales} por trabajo de laboratorio a medida.` : `Despacho dentro de los ${PLAZOS_DESPACHO.sinCristales}.`}
           </p>
 
           {formData.paymentMethod === 'TRANSFER' && (
