@@ -8,6 +8,7 @@ import {
     DIAS_PARA_SEGUNDO_PEDIDO,
     DIAS_MAXIMOS_SEGUNDO_PEDIDO,
     DIAS_SIN_RECLAMOS,
+    MAX_SEGUNDOS_PEDIDOS_POR_DIA,
     ESTADOS_POSVENTA_CERRADOS,
     TIPOS_INTERACCION_SIN_RECLAMO,
     decidirSegundoPedido,
@@ -137,13 +138,18 @@ export const ReviewRequestService = {
                 completedAt: { gte: desde, lte: hasta },
             },
             select: { id: true, clientId: true, status: true, completedAt: true, completedBy: true, description: true, reminderOfTaskId: true },
-            orderBy: { completedAt: 'asc' },
+            // Los más frescos primero: el tope diario deja afuera a los más viejos.
+            orderBy: { completedAt: 'desc' },
         });
 
         const res: ResultadoSegundoPedido = { revisados: primeros.length, creados: [], salteados: [], dryRun: opts.dryRun };
         const vistos = new Set<string>();
 
         for (const t of primeros) {
+            if (res.creados.length >= MAX_SEGUNDOS_PEDIDOS_POR_DIA) {
+                res.salteados.push({ clientId: t.clientId, nombre: '', motivo: `tope diario (${MAX_SEGUNDOS_PEDIDOS_POR_DIA}); queda para mañana` });
+                continue;
+            }
             // Un cliente con dos 1º pedidos en la ventana recibe un solo 2º.
             if (vistos.has(t.clientId)) continue;
             vistos.add(t.clientId);

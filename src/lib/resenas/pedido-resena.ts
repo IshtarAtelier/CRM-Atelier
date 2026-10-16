@@ -28,6 +28,14 @@ export const DIAS_PARA_SEGUNDO_PEDIDO = 7;
  * pedirle una reseña a alguien que retiró hace tres meses ya no suma.
  */
 export const DIAS_MAXIMOS_SEGUNDO_PEDIDO = 30;
+/**
+ * Tope de 2º pedidos que el robot crea por día. El dry-run contra producción
+ * del 16/10/2026 daba 84 el primer día (todo el atraso de un mes junto): eso
+ * tapa el panel del vendedor. Se crean primero los más recientes (los que la
+ * venta tiene más fresca); los que quedan esperan al día siguiente o vencen a
+ * los 30 días.
+ */
+export const MAX_SEGUNDOS_PEDIDOS_POR_DIA = 15;
 /** Ventana en la que un reclamo en la ficha frena el 2º pedido. */
 export const DIAS_SIN_RECLAMOS = 30;
 

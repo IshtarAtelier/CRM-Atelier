@@ -92,6 +92,12 @@ ok('el service crea con reminderOfTaskId y createdBy del 1º, y solo mira tareas
     assert.match(s, /P2002/);
 });
 
+ok('tope diario de 2º pedidos, más frescos primero', () => {
+    const s = leer('src/services/review-request.service.ts');
+    assert.match(s, /res\.creados\.length >= MAX_SEGUNDOS_PEDIDOS_POR_DIA/);
+    assert.match(s, /orderBy: \{ completedAt: 'desc' \}/);
+});
+
 console.log('\n3. Exclusiones');
 for (const [campo, valor] of [
     ['yaComento', true], ['tienePosventaAbierta', true], ['tieneSaldo', true],
