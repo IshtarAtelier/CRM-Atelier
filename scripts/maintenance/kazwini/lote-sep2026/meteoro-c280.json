@@ -28,9 +28,10 @@
   "slug": "meteoro-c280",
   "_familia": "tr-polarizado",
   "_fuentePrecio": "Olimpo (decisión Ishtar)",
-  "_fotoDelPedido": true,
+  "_fotoDelPedido": false,
   "_verificador": {
     "ok": true,
     "motivo": "La foto muestra un armazón de cristal translúcido beige/taupe claro (se ve el interior de las varillas en azul marino a través del plástico), con lentes marrones opacas de sol, consistente con \"TR SOLAR KAZWINI POLARIZADO PREMIUM\". La forma es cuadrada tipo wayfarer, con esquinas apenas redondeadas y proporción cercana a 1:1 (no lo bastante alargada para ser Rectangular ni redonda para ser Redondo/Ovalado). El material plástico translúcido y la línea \"TR\" del proveedor son coherentes con TR90. Todo coincide con la propuesta."
-  }
+  },
+  "_fotoReemplazada": "2026-10-03 foto oficial del proveedor"
 }

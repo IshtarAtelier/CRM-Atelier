@@ -27,9 +27,10 @@
   "slug": "zafiro",
   "_familia": "acetato-sol",
   "_fuentePrecio": "Adhara C4 / Fénix C1",
-  "_fotoDelPedido": true,
+  "_fotoDelPedido": false,
   "_verificador": {
     "ok": true,
     "motivo": "La foto muestra un armazón de acetato translúcido verde esmeralda, grueso y de líneas rectas, con lentes oscuras gris/negro. La forma es cuadrada chunky (bloque recto, estilo Kazwini acetato solar), y el material coincide con acetato Mazzucchelli del catálogo. Color, lente, forma y material coinciden con la propuesta."
-  }
+  },
+  "_fotoReemplazada": "2026-10-03 foto oficial del proveedor"
 }

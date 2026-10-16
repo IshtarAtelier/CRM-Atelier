@@ -27,9 +27,10 @@
   "slug": "lucca",
   "_familia": "clip-on",
   "_fuentePrecio": "Capri/Siena/Riviera/Verona/Génova/Venice/Torino/Florence",
-  "_fotoDelPedido": true,
+  "_fotoDelPedido": false,
   "_verificador": {
     "ok": true,
     "motivo": "La foto muestra un armazón de acetato negro brillante, grueso, con aros claramente cuadrados (lados rectos, esquinas marcadas) y un clip-on con lentes gris oscuro. Color, forma y material coinciden con la propuesta y con el catálogo del proveedor (acetato clip-on)."
-  }
+  },
+  "_fotoReemplazada": "2026-10-03 foto oficial del proveedor"
 }

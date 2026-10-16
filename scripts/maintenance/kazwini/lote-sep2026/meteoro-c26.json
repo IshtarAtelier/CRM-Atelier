@@ -28,9 +28,10 @@
   "slug": "meteoro-c26",
   "_familia": "tr-polarizado",
   "_fuentePrecio": "Olimpo (decisión Ishtar)",
-  "_fotoDelPedido": true,
+  "_fotoDelPedido": false,
   "_verificador": {
     "ok": true,
     "motivo": "La foto muestra un armazón cristal transparente (con detalle negro en el interior de las varillas), lentes muy oscuras de tono verde/negro, forma cuadrada tipo wayfarer con bordes apenas redondeados. Coincide con la propuesta; el catálogo \"TR SOLAR\" respalda TR90."
-  }
+  },
+  "_fotoReemplazada": "2026-10-03 foto oficial del proveedor"
 }

@@ -27,9 +27,10 @@
   "slug": "odiseo",
   "_familia": "estandar",
   "_fuentePrecio": "sin hermano: estándar Kazwini sol",
-  "_fotoDelPedido": true,
+  "_fotoDelPedido": false,
   "_verificador": {
     "ok": true,
     "motivo": "La foto muestra un armazón deportivo envolvente negro mate con insertos amarillos en las puntas de las patillas, lentes marrones con etiqueta de polarizado visible, aro rectangular. Coincide con la propuesta (negro y amarillo, marrón polarizada, Rectangular) y con el catálogo del proveedor \"SOLAR TR90 POLARIZADO\"; el material TR90 es consistente con el acabado mate del plástico deportivo."
-  }
+  },
+  "_fotoReemplazada": "2026-10-03 foto oficial del proveedor"
 }
