@@ -47,9 +47,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/arma-tus-lentes',
     '/urgencias',
     '/obras-sociales',
+  // Sin lastModified en las rutas fijas: `new Date()` decía "cambió hoy" en
+  // cada pedido del sitemap, y Google deja de creerle al lastmod de un sitio
+  // que siempre lo dice. Solo llevan fecha las que tienen una real (notas y
+  // productos, por updatedAt).
   ].map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: route === '' ? 1 : 0.8,
   }));
@@ -82,7 +85,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/blog/varilux-vs-kodak-vs-zeiss',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.75,
   }));
@@ -122,7 +124,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const fallbackBlogRoutes = fallbackBlogSlugs.map((slug) => ({
     url: `${baseUrl}/blog/${slug}`,
-    lastModified: new Date(),
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
@@ -161,7 +162,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const categorias = await categoriasConPosts();
     categoriaRoutes = categorias.map((c) => ({
       url: `${baseUrl}/blog/categoria/${c.slug}`,
-      lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.6,
     }));
