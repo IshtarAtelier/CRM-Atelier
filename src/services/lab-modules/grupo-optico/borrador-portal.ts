@@ -1,3 +1,4 @@
+import { mismoJson } from '../../../lib/json-canonico';
 import { prisma } from '../../../lib/db';
 import { uploadFile } from '../../../lib/storage';
 import { logAudit } from '../../../lib/audit';
@@ -287,7 +288,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 // fabricaría otra cosa con el nº correcto (auditoría de robustez, M5).
                 const hoyEnPortal = await resolverEnPortal(page, r.plan);
                 const idsCambiados = (['materialId', 'colorId', 'brandId', 'articuloOD', 'articuloOI', 'typeRimArticleId'] as const).filter(k => String((hoyEnPortal.resuelto as any)[k] ?? '') !== String((rastro0.resuelto as any)?.[k] ?? ''));
-                if (idsCambiados.length || JSON.stringify(hoyEnPortal.resuelto.tinted ?? null) !== JSON.stringify(rastro0.resuelto?.tinted ?? null)) {
+                if (idsCambiados.length || !mismoJson(hoyEnPortal.resuelto.tinted ?? null, rastro0.resuelto?.tinted ?? null)) {
                     throw new AprobacionInvalidaError(`El portal ya no ofrece los mismos artículos que se aprobaron (${[...idsCambiados, ...(idsCambiados.length ? [] : ['teñido'])].join(', ')}): volvé a prepararlo. No se mandó nada.`);
                 }
                 // Par sin cargo: el nº del par con cargo que va en la observación tiene
