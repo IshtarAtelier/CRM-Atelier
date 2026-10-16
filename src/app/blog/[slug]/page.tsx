@@ -1,4 +1,5 @@
  
+import { buildOpticianSchema } from '@/lib/schema';
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -1697,28 +1698,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     ]
   };
 
-  const localBusinessSchema = {
-    "@context": "https://schema.org",
-    "@type": "Optician",
-    "name": "Atelier Óptica",
-    "image": `${baseUrl}/icon.png`,
-    "@id": baseUrl,
-    "url": baseUrl,
-    "telephone": `+${WHATSAPP_PHONE}`,
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "José Luis de Tejeda 4380",
-      "addressLocality": "Cerro de las Rosas",
-      "addressRegion": "Córdoba",
-      "postalCode": "5009",
-      "addressCountry": "AR"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": -31.371234,
-      "longitude": -64.234123
-    }
-  };
+  // La misma entidad Optician (@id #optica) que el resto del sitio. Antes cada
+  // nota armaba la suya con otro @id (la home) y otras coordenadas: para Google
+  // eran dos negocios distintos en la misma dirección.
+  const localBusinessSchema = buildOpticianSchema();
 
   const postFaqs = (blogFaqs as any)[post.slug];
   const faqSchema = postFaqs && postFaqs.length > 0 ? {

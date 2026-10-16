@@ -1,3 +1,4 @@
+import { BUSINESS_INFO } from '@/lib/business-info';
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
@@ -29,13 +30,8 @@ export default function MatiasTurchiPage() {
     "jobTitle": "Especialista en Lentes Multifocales (Essilor Expert)",
     "worksFor": {
       "@type": "Optician",
-      "name": "Atelier Óptica",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Córdoba",
-        "addressRegion": "Córdoba",
-        "addressCountry": "AR"
-      }
+      "@id": BUSINESS_INFO.entityId,
+      "name": BUSINESS_INFO.name,
     },
     "description": "Profesional óptico especialista en adaptación de lentes de alta tecnología, multifocales y cristales Essilor Varilux en Córdoba.",
     "image": "https://atelieroptica.com.ar/images/blog/matias-turchi.png",
