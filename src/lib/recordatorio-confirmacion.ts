@@ -16,7 +16,7 @@ export function textoRecordatorioConfirmacion(nombre: string | null | undefined)
         '',
         'Te mandamos la confirmación de tu pedido para que revises los datos (cristales, armazón, graduación) y nos respondas *OK*.',
         '',
-        '⚠️ *Sin tu OK no podemos procesar el pedido ni mandarlo al laboratorio.* Es tu garantía de que se fabrica exactamente lo que elegiste.',
+        '⚠️ *Sin tu OK no podemos procesar el pedido ni mandarlo al laboratorio*, y mientras tanto la entrega se demora. Es tu garantía de que se fabrica exactamente lo que elegiste.',
         '',
         'Si está todo bien, respondé *OK*. Si hay algo para corregir, decinos qué y lo vemos antes de fabricar.',
         '',
@@ -27,7 +27,7 @@ export function textoRecordatorioConfirmacion(nombre: string | null | undefined)
 /** Lo que dice el AUDIO (sin emojis ni asteriscos: se lee en voz alta). */
 export function guionRecordatorioConfirmacion(nombre: string | null | undefined): string {
     const saludo = nombre ? `Hola ${nombre}` : 'Hola';
-    return `${saludo}, te hablamos de Atelier Óptica. Te mandamos la confirmación de tu pedido para que revises los datos y nos respondas OK. Es importante: sin tu OK no podemos procesar el pedido ni mandarlo al laboratorio, porque es tu garantía de que se fabrica exactamente lo que elegiste. Si está todo bien, respondé OK; y si hay algo para corregir, decinos qué y lo vemos antes de fabricar. ¡Gracias!`;
+    return `${saludo}, te hablamos de Atelier Óptica. Te mandamos la confirmación de tu pedido para que revises los datos y nos respondas OK. Es importante: sin tu OK no podemos procesar el pedido ni mandarlo al laboratorio, y mientras tanto la entrega se va demorando. Es tu garantía de que se fabrica exactamente lo que elegiste. Si está todo bien, respondé OK; y si hay algo para corregir, decinos qué y lo vemos antes de fabricar. ¡Gracias!`;
 }
 
 /** Cuánto se espera entre un recordatorio y el siguiente a la misma venta. */

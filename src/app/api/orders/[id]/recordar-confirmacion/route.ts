@@ -24,11 +24,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const { id: orderId } = await params;
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            select: { id: true, clientId: true, labSentAt: true, clientConfirmation: true, client: { select: { name: true, phone: true } } },
+            select: { id: true, clientId: true, labSentAt: true, labStatus: true, clientConfirmation: true, client: { select: { name: true, phone: true } } },
         });
         if (!order) return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
         if (!order.labSentAt) return NextResponse.json({ error: 'Todavía no se le mandó la confirmación: primero enviá la venta a fábrica.' }, { status: 409 });
         if (order.clientConfirmation) return NextResponse.json({ error: `El cliente ya respondió (${order.clientConfirmation}): no hace falta recordarle.` }, { status: 409 });
+        // Solo mientras el pedido NO se mandó a fabricar: a uno ya en proceso no se le puede decir "sin tu OK no se procesa".
+        if (order.labStatus !== 'SENT') return NextResponse.json({ error: `El pedido ya está ${order.labStatus === 'IN_PROGRESS' ? 'en proceso en el laboratorio' : order.labStatus}: el recordatorio diría algo que ya no es cierto.` }, { status: 409 });
         const tel = (order.client.phone || '').replace(/\D/g, '');
         if (tel.length < 10) return NextResponse.json({ error: 'El cliente no tiene un teléfono de WhatsApp válido en la ficha.' }, { status: 400 });
 
