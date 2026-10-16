@@ -28,6 +28,7 @@ export function CristalesTabs() {
       tabs: [
         { name: "Varilux", path: "/cristales-opticos/varilux" },
         { name: "Kodak", path: "/cristales-opticos/kodak" },
+        { name: "Hoya", path: "/cristales-opticos/hoya" },
       ]
     },
     {

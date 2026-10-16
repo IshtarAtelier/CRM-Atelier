@@ -92,7 +92,7 @@ export async function GET(request: Request) {
                 user: { select: { name: true } },
                 total: true,
                 paid: true,
-                subtotalWithMarkup: true, // ADDED
+                subtotalWithMarkup: true, postSaleCharge: true, // ADDED
                 // Sin discountCash el conversor a efectivo aplicaría 20% plano a
                 // TODAS las ventas (el ?? 20 de calculateOrderFinancials dispara
                 // con undefined) — incluidas las que tienen 15/25/30%.
@@ -147,7 +147,7 @@ export async function GET(request: Request) {
             allOrders = await prisma.order.findMany({
                 where: { orderType: 'SALE', isDeleted: false },
                 select: {
-                    total: true, subtotalWithMarkup: true, labSentAt: true, createdAt: true,
+                    total: true, subtotalWithMarkup: true, postSaleCharge: true, labSentAt: true, createdAt: true,
                     paid: true, discountCash: true, discountTransfer: true, labNotes: true,
                     payments: { select: { method: true, amount: true } },
                 },
@@ -317,7 +317,7 @@ export async function GET(request: Request) {
             }
             const openQuotes = await prisma.order.findMany({
                 where: quoteWhere,
-                select: { total: true, subtotalWithMarkup: true, clientId: true },
+                select: { total: true, subtotalWithMarkup: true, postSaleCharge: true, clientId: true },
                 orderBy: { createdAt: 'desc' }
             });
             
@@ -591,7 +591,7 @@ export async function GET(request: Request) {
                     isDeleted: false,
                 },
                 select: {
-                    total: true, subtotalWithMarkup: true, paid: true, discountCash: true, discountTransfer: true, labNotes: true,
+                    total: true, subtotalWithMarkup: true, postSaleCharge: true, paid: true, discountCash: true, discountTransfer: true, labNotes: true,
                     payments: { select: { method: true, amount: true } },
                 },
             });

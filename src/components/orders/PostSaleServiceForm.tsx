@@ -35,6 +35,7 @@ export interface PostSaleFormValue {
     newOrderNumber?: string | null;
     /** Si el caso ya se descontó de una caja, el costo y el responsable quedan cerrados. */
     cashEntryId?: string | null;
+    clientChargedAt?: string | Date | null;
 }
 
 /** Adapta una venta (campos `postSale*`) a lo que espera el formulario. */
@@ -54,6 +55,7 @@ export function postSaleValueFromOrder(order: any): PostSaleFormValue {
         orderOption: order.postSaleOrderOption,
         newOrderNumber: order.postSaleNewOrderNumber,
         cashEntryId: order.postSaleCashEntryId,
+        clientChargedAt: (order as any).postSaleClientChargedAt,
     };
 }
 
@@ -74,6 +76,7 @@ export function postSaleValueFromCase(c: any): PostSaleFormValue {
         orderOption: c.orderOption,
         newOrderNumber: c.newOrderNumber,
         cashEntryId: c.cashEntryId,
+        clientChargedAt: c.clientChargedAt,
     };
 }
 
@@ -147,7 +150,7 @@ export function PostSaleServiceForm({
     const isAdmin = userRole === 'ADMIN';
     // Caso ya descontado de una caja: el costo y el responsable son historia y
     // corregirlos exige revertir el movimiento (la API los rechaza igual).
-    const yaImputado = !!value.cashEntryId;
+    const yaImputado = !!(value.cashEntryId || value.clientChargedAt);
 
     const [open, setOpen] = useState(defaultOpen);
     const [users, setUsers] = useState<PostSaleUser[]>([]);
@@ -352,7 +355,7 @@ export function PostSaleServiceForm({
         <div className="flex flex-wrap items-center gap-1.5">
             <span className={`${CHIP} ${caseTypeStyle(value.caseType)}`}>{value.caseType || 'Sin tipificar'}</span>
             <span className={`${CHIP} border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300`}>
-                {postSaleColumnLabel({ status: value.status, cost: value.cost, cashEntryId: value.cashEntryId })}
+                {postSaleColumnLabel({ status: value.status, cost: value.cost, cashEntryId: value.cashEntryId, clientChargedAt: value.clientChargedAt })}
             </span>
             {value.coverage && (
                 <span className={`${CHIP} ${value.coverage === 'Con cargo'

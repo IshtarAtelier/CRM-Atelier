@@ -8,7 +8,7 @@ import { staticPosts } from '@/lib/static-blog-posts';
 import { prisma } from '@/lib/db';
 import { seoKeywords } from '@/lib/seo-keywords';
 import { SeoAccordion } from '@/components/blog/SeoAccordion';
-import { categoriasConPosts } from '@/lib/blog-categorias';
+import { categoriasConPosts, esSlugConHashHeredado } from '@/lib/blog-categorias';
 
 export const revalidate = 300;
 
@@ -43,7 +43,7 @@ export default async function BlogPage() {
     console.error("Error loading blog posts from database:", error);
   }
 
-  const mappedDbPosts = dbPosts.map(p => ({
+  const mappedDbPosts = dbPosts.filter(p => !esSlugConHashHeredado(p.slug)).map(p => ({
     slug: p.slug,
     title: p.title,
     excerpt: p.excerpt,

@@ -34,6 +34,7 @@ export interface MensajeEntrante {
 /** "Más adelante": se mira ANTES que el cierre, porque "por ahora no" también tiene un "no". */
 const POSPONER: RegExp[] = [
     /^ahora no\.?$/, // el botón de `retomar_conversacion`
+    /^lo estoy pensando\.?$/, // botón del 1º toque corto (16/10/2026)
     /m[aá]s adelante/,
     /por ahora no/,
     /por el momento/,
@@ -54,6 +55,7 @@ const POSPONER: RegExp[] = [
  * marcos, pasame presupuesto". Solo cuenta lo que no admite otra lectura.
  */
 const CIERRE: RegExp[] = [
+    /^ya lo resolv[ií]\.?$/,
     /\bno,? (muchas )?gracias\b/,
     /\bno (me )?interesa|no estoy interesad|no me sirve|no lo necesito|no quiero|no voy a (querer|comprar|hacer)/,
     /\bno (te|les) agradezco\b/,
@@ -84,6 +86,7 @@ const NO_PELADO = /^no\b[\s.,!]*(gracias|muchas gracias|te agradezco)?[\s.!]*$/;
  * obra social?"). Solo le gana lo que no admite otra lectura.
  */
 const CIERRE_FUERTE: RegExp[] = [
+    /^ya lo resolv[ií]\.?$/, // botón de los tres toques cortos (16/10/2026)
     // Singular, plural y tiempos compuestos. El 11/10/2026 Rubén escribió "ya
     // hemos encargado los lentes" DOS veces y el motor, que solo conocía "ya
     // encargué", le siguió mandando toques (15/10, revisión de Ishtar).

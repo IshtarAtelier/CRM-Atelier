@@ -450,6 +450,7 @@ export default function VentasPage() {
         paidReal: 0,
         listEquivalentPaid: 0,
         remainingList: 0,
+        postSaleCharge: 0,
         remainingCash: 0,
         remainingTransfer: 0,
         remainingCard: 0,
@@ -1771,6 +1772,7 @@ export default function VentasPage() {
                                         status: o.postSaleStatus,
                                         cost: o.postSaleCost,
                                         cashEntryId: (o as any).postSaleCashEntryId,
+                                        clientChargedAt: (o as any).postSaleClientChargedAt,
                                     });
                                     if (col !== column.key) return false;
                                     if (caseTypeFilter) {

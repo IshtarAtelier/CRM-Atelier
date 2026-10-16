@@ -236,7 +236,7 @@ export class OrderService {
                 appliedPromoDiscount: true,
                 discountCard: true,
                 specialDiscount: true,
-                subtotalWithMarkup: true,
+                subtotalWithMarkup: true, postSaleCharge: true,
                 frameSource: true,
                 userFrameBrand: true,
                 userFrameModel: true,
@@ -1485,7 +1485,7 @@ export class OrderService {
                     // desataría un descuento y un número de caso que ya no coinciden.
                     // La corrección de un caso cerrado se hace revirtiendo la caja, no
                     // pisando el caso.
-                    const yaImputado = !!(activeCase as any).cashEntryId;
+                    const yaImputado = !!((activeCase as any).cashEntryId || (activeCase as any).clientChargedAt);
                     if (yaImputado && (postSaleCost !== undefined || postSaleFault !== undefined || postSaleFaultUserId !== undefined)) {
                         throw new Error('Este caso ya fue imputado a caja: el costo y la atribución quedan de solo lectura. Para corregirlo, hay que revertir el movimiento de caja primero.');
                     }
@@ -2487,7 +2487,7 @@ export class OrderService {
                 orderType: true,
                 total: true,
                 paid: true,
-                subtotalWithMarkup: true,
+                subtotalWithMarkup: true, postSaleCharge: true,
                 discountCash: true,
                 discountTransfer: true,
                 discountCard: true,
@@ -2688,7 +2688,14 @@ export class OrderService {
                 }
             });
 
-            if (!existingTask) {
+            // Ya dejó su reseña en Google ("Ya comentó" o cruce con Places):
+            // no se le vuelve a pedir en cada compra.
+            const yaComento = await prisma.client.findUnique({
+                where: { id: order.clientId },
+                select: { googleReviewAt: true },
+            });
+
+            if (!existingTask && !yaComento?.googleReviewAt) {
                 await ContactService.addReviewRequest(order.clientId, taskDescription);
             }
         }

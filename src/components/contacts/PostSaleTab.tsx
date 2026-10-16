@@ -10,6 +10,8 @@ import {
 import { PostSaleServiceForm, postSaleValueFromCase } from '@/components/orders/PostSaleServiceForm';
 import { formatDate, formatDateTime } from '@/lib/format-date';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { PricingService } from '@/services/PricingService';
+import AddPaymentModal from '@/components/quotes/AddPaymentModal';
 
 interface PostSaleNote {
     id: string;
@@ -41,7 +43,11 @@ interface PostSaleCase {
     costConfirmedBy?: string | null;
     faultUserId?: string | null;
     cashEntryId?: string | null;
-    order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null } | null;
+    // Alternativa a la caja: lo paga el cliente; se carga acá y suma al saldo de la venta.
+    clientCharge?: number | null;
+    clientChargedAt?: string | Date | null;
+    clientChargedBy?: string | null;
+    order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null; [k: string]: any } | null;
     notesList?: PostSaleNote[];
 }
 
@@ -55,9 +61,13 @@ function operationNumbers(c: PostSaleCase): string[] {
  * el costo real lo cierra el laboratorio al facturar TODAS las operaciones, y
  * hasta entonces lo que hay es la estimación que cargó el vendedor.
  */
-type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'IMPUTADO';
+type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'IMPUTADO' | 'CARGADO_CLIENTE';
+/** Valor del select de destino cuando el costo lo paga el cliente. */
+const PAGA_CLIENTE = '__CLIENTE__';
+
 function costStage(c: PostSaleCase): CostStage {
     if (c.cashEntryId) return 'IMPUTADO';
+    if (c.clientChargedAt) return 'CARGADO_CLIENTE';
     if (c.costSource === 'LAB') return 'CERRADO';
     if ((c.cost ?? 0) > 0) return 'ESTIMADO';
     return 'SIN_COSTO';
@@ -67,6 +77,7 @@ const COST_STAGE_UI: Record<CostStage, { label: string; cls: string }> = {
     SIN_COSTO: { label: 'Sin costo', cls: 'bg-stone-100 text-stone-500 border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700' },
     ESTIMADO: { label: 'Estimado · esperando laboratorio', cls: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/40' },
     CERRADO: { label: 'Costo cerrado · listo para cobrar', cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40' },
+    CARGADO_CLIENTE: { label: 'Lo paga el cliente', cls: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-900/40' },
     IMPUTADO: { label: 'Cobrado a caja', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40' },
 };
 
@@ -233,7 +244,11 @@ function OperationNumbers({ c }: { c: PostSaleCase }) {
 function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolean; onRefresh: () => void }) {
     const stage = costStage(c);
     const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
-    const [vendorId, setVendorId] = useState<string>(c.faultUserId || '');
+    // '' = caja Ishtar (lo cubre Atelier); PAGA_CLIENTE = lo paga el cliente y
+    // queda como saldo del caso; cualquier otro valor = caja de esa persona.
+    const [vendorId, setVendorId] = useState<string>(
+        c.fault === 'Cliente' || c.coverage === 'Con cargo' ? PAGA_CLIENTE : (c.faultUserId || '')
+    );
     const [working, setWorking] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -245,29 +260,44 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
             .catch(() => setVendors([]));
     }, [isAdmin, stage]);
 
-    if (stage === 'SIN_COSTO') return null;
-
     const monto = c.cost ?? 0;
     const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+    const pagaCliente = vendorId === PAGA_CLIENTE;
     const loCubreAtelier = !vendorId;
 
-    const imputar = async () => {
-        if (working) return;
+    const llamar = async (body: Record<string, unknown>): Promise<boolean> => {
+        if (working) return false;
         setWorking(true);
         setError(null);
         try {
             const res = await fetch(`/api/post-sale/${c.id}/cost`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'impute', vendorId: vendorId || undefined }),
+                body: JSON.stringify(body),
             });
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || 'No se pudo imputar'); return; }
+            if (!res.ok) { setError(d.error || 'No se pudo completar la operación'); return false; }
             onRefresh();
+            return true;
         } catch {
             setError('No se pudo conectar con el servidor.');
+            return false;
         } finally { setWorking(false); }
     };
+
+    const imputar = () => pagaCliente
+        ? llamar({ action: 'charge_client' })
+        : llamar({ action: 'impute', vendorId: vendorId || undefined });
+
+    // ── Cobro al cliente: el saldo es el de la VENTA (incluye este cargo) ──
+    // y el pago es el pago normal de la venta (comprobante, caja y recibo).
+    const [pagando, setPagando] = useState(false);
+    const finVenta = c.order ? PricingService.calculateOrderFinancials(c.order) : null;
+    const saldoVenta = finVenta?.remainingCard ?? 0;
+    const anularCargo = () => llamar({ action: 'revert_client_charge' });
+
+    // Después de TODOS los hooks: un return antes cambiaría su orden entre renders.
+    if (stage === 'SIN_COSTO') return null;
 
     return (
         <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-800/30 p-3 space-y-2">
@@ -290,6 +320,50 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
                 </p>
             )}
 
+            {stage === 'CARGADO_CLIENTE' && (
+                <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                        <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">Cargo de post-venta</p>
+                            <p className="text-sm font-black text-stone-800 dark:text-stone-100">{fmt(c.clientCharge ?? 0)}</p>
+                        </div>
+                        <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">Saldo de la venta (con el cargo)</p>
+                            <p className={`text-sm font-black ${saldoVenta > 1000 ? 'text-violet-700 dark:text-violet-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{fmt(saldoVenta)}</p>
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-violet-700 dark:text-violet-400 font-bold leading-relaxed">
+                        Cargado por {c.clientChargedBy || '—'}{c.clientChargedAt ? ` · ${formatDateTime(c.clientChargedAt)}` : ''}.
+                        Suma al saldo de la venta y figura en la lista de saldos.
+                    </p>
+                    {c.order?.id && (
+                        <button
+                            onClick={() => setPagando(true)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-violet-700 text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90"
+                        >
+                            Registrar pago del cliente (efectivo o transferencia)
+                        </button>
+                    )}
+                    {pagando && c.order?.id && (
+                        <AddPaymentModal
+                            orderId={c.order.id}
+                            totalAmount={finVenta?.listPrice ?? 0}
+                            paidAmount={finVenta?.paidReal ?? 0}
+                            soloEfectivoYTransferencia
+                            onClose={() => setPagando(false)}
+                            onSuccess={() => { setPagando(false); onRefresh(); }}
+                        />
+                    )}
+                    {isAdmin && (
+                        <button onClick={() => { if (window.confirm('¿Anular el cargo al cliente? Se quita del saldo de la venta; los pagos ya cargados no se tocan.')) anularCargo(); }} disabled={working}
+                            className="text-[9px] font-black uppercase tracking-widest text-stone-500 underline disabled:opacity-40">
+                            Anular el cargo al cliente
+                        </button>
+                    )}
+                    {error && <p className="text-[10px] font-bold text-rose-600">{error}</p>}
+                </div>
+            )}
+
             {stage === 'IMPUTADO' && (
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-relaxed">
                     Ya descontado de caja{c.costConfirmedBy ? ` por ${c.costConfirmedBy}` : ''}
@@ -300,16 +374,22 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
             {stage === 'CERRADO' && (isAdmin ? (
                 <div className="space-y-2">
                     <div>
-                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Descontar de la caja de</p>
+                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Quién lo paga</p>
                         <select
                             value={vendorId}
                             onChange={(e) => setVendorId(e.target.value)}
                             className="w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300"
                         >
                             <option value="">Caja Ishtar — lo cubre Atelier</option>
+                            <option value={PAGA_CLIENTE}>El cliente — se suma al saldo de la venta</option>
                             {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                         </select>
-                        {c.fault && c.fault !== 'Óptica' && (
+                        {pagaCliente && (
+                            <p className="mt-1 text-[9px] text-violet-600 dark:text-violet-400">
+                                Se suma al saldo de la venta y aparece en la lista de saldos. El pago se registra con comprobante desde acá. No se descuenta de ninguna caja.
+                            </p>
+                        )}
+                        {!pagaCliente && c.fault && c.fault !== 'Óptica' && (
                             <p className="mt-1 text-[9px] text-stone-400">
                                 La atribución es <b>{c.fault}</b>: por defecto lo absorbe Atelier.
                             </p>
@@ -321,7 +401,11 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
                     >
                         <Wallet className="w-3.5 h-3.5" />
-                        {working ? 'Imputando…' : `Descontar ${fmt(monto)} de ${loCubreAtelier ? 'caja Ishtar' : (vendors.find(v => v.id === vendorId)?.name || 'la caja')}`}
+                        {working
+                            ? (pagaCliente ? 'Cargando…' : 'Imputando…')
+                            : pagaCliente
+                                ? `Cobrarle ${fmt(monto)} al cliente`
+                                : `Descontar ${fmt(monto)} de ${loCubreAtelier ? 'caja Ishtar' : (vendors.find(v => v.id === vendorId)?.name || 'la caja')}`}
                     </button>
                     {error && <p className="text-[10px] font-bold text-rose-600">{error}</p>}
                 </div>
@@ -368,7 +452,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                             </span>
                             {stage !== 'SIN_COSTO' && (
                                 <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
-                                    {stage === 'IMPUTADO' ? 'Cobrado' : stage === 'CERRADO' ? 'Listo para cobrar' : 'Estimado'}
+                                    {stage === 'IMPUTADO' ? 'Cobrado' : stage === 'CARGADO_CLIENTE' ? 'Lo paga el cliente' : stage === 'CERRADO' ? 'Listo para cobrar' : 'Estimado'}
                                     {(c.cost ?? 0) > 0 ? ` · $${Math.round(c.cost!).toLocaleString('es-AR')}` : ''}
                                 </span>
                             )}

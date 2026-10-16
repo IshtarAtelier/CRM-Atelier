@@ -140,7 +140,7 @@ export async function POST(request: Request) {
                     discountTransfer: true,
                     discountCard: true,
                     specialDiscount: true,
-                    subtotalWithMarkup: true,
+                    subtotalWithMarkup: true, postSaleCharge: true,
                     // Sin estos dos, la cotización guardada no puede mostrar el
                     // armazón bonificado ni el chip del descuento de la promo.
                     appliedPromoName: true,
@@ -230,7 +230,7 @@ export async function POST(request: Request) {
                     discountTransfer: true,
                     discountCard: true,
                     specialDiscount: true,
-                    subtotalWithMarkup: true,
+                    subtotalWithMarkup: true, postSaleCharge: true,
                     // Sin estos dos, la cotización guardada no puede mostrar el
                     // armazón bonificado ni el chip del descuento de la promo.
                     appliedPromoName: true,
@@ -417,7 +417,7 @@ export async function GET(request: Request) {
             discountTransfer: true,
             discountCard: true,
             specialDiscount: true,
-            subtotalWithMarkup: true,
+            subtotalWithMarkup: true, postSaleCharge: true,
             appliedPromoName: true,
             appliedPromoDiscount: true,
             frameSource: true,
@@ -463,6 +463,8 @@ export async function GET(request: Request) {
                     // postSaleCostSource / postSaleCashEntryId / postSaleCaseId.
                     costSource: true,
                     cashEntryId: true,
+                    clientCharge: true,
+                    clientChargedAt: true,
                     notesList: {
                         select: {
                             id: true,
@@ -563,6 +565,7 @@ export async function GET(request: Request) {
                 ) pay ON TRUE
                 WHERE o."isDeleted" = false
                   AND COALESCE(NULLIF(o."subtotalWithMarkup", 0), o."total", 0)
+                      + COALESCE(o."postSaleCharge", 0)
                       - (CASE WHEN pay.eq = 0 AND COALESCE(o."paid", 0) > 0 THEN COALESCE(o."paid", 0) ELSE pay.eq END)
                       > 1000
             `;

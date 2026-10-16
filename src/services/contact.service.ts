@@ -1348,7 +1348,7 @@ export const ContactService = {
                         discountCash: true,
                         discountTransfer: true,
                         discountCard: true,
-                        subtotalWithMarkup: true,
+                        subtotalWithMarkup: true, postSaleCharge: true,
                         // Facturas emitidas en ARCA: la ficha del cliente permite
                         // facturar (solo ADMIN) y abrir el PDF sin pasar por /admin/ventas.
                         // Select angosto: solo lo que la tarjeta muestra o necesita para
@@ -1398,7 +1398,17 @@ export const ContactService = {
                         costConfirmedBy: true,
                         faultUserId: true,
                         cashEntryId: true,
-                        order: { select: { id: true, total: true, createdAt: true, labOrderNumber: true } },
+                        clientCharge: true,
+                        clientChargedAt: true,
+                        clientChargedBy: true,
+                        // El saldo de la venta (incluye el cargo al cliente) se calcula en pantalla
+                        // con PricingService: hacen falta los pagos y los descuentos.
+                        order: { select: {
+                            id: true, total: true, createdAt: true, labOrderNumber: true,
+                            subtotalWithMarkup: true, postSaleCharge: true, discountCash: true, discountTransfer: true,
+                            paid: true,
+                            payments: { select: { amount: true, method: true } },
+                        } },
                         notesList: {
                             orderBy: { createdAt: 'asc' },
                             select: {
@@ -1882,7 +1892,7 @@ export const ContactService = {
                     clientId: true, 
                     paid: true, 
                     total: true, 
-                    subtotalWithMarkup: true,
+                    subtotalWithMarkup: true, postSaleCharge: true,
                     isDeleted: true,
                     client: {
                         select: {
@@ -2185,7 +2195,7 @@ export const ContactService = {
                     clientId: true,
                     total: true,
                     paid: true,
-                    subtotalWithMarkup: true,
+                    subtotalWithMarkup: true, postSaleCharge: true,
                     discountCash: true,
                     discountTransfer: true,
                     payments: {
@@ -2747,7 +2757,7 @@ export const ContactService = {
                             id: true,
                             clientId: true,
                             total: true,
-                            subtotalWithMarkup: true,
+                            subtotalWithMarkup: true, postSaleCharge: true,
                             client: { select: { name: true } },
                             invoices: {
                                 where: { status: 'COMPLETED' },

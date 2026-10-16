@@ -267,6 +267,7 @@ export function PostSaleCard({
         status: order.postSaleStatus,
         cost: order.postSaleCost,
         cashEntryId: (order as any).postSaleCashEntryId,
+        clientChargedAt: (order as any).postSaleClientChargedAt,
     });
     const statusKeys: string[] = [...POST_SALE_MOVABLE_STATUSES];
     const currentStatus = order.postSaleStatus === 'FINISHED' ? 'READY' : (order.postSaleStatus || 'SENT');
