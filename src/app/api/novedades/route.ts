@@ -23,7 +23,13 @@ const normalizar = (t: string) =>
     (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /** Las novedades activas y a quién le aparecen. */
-const NOVEDADES = [
+const NOVEDADES: { id: string; audiencia: (nombre: string, rol: string | null) => boolean }[] = [
+    {
+        // Solicitud de factura del vendedor (15/10/2026): a todo el equipo de
+        // vendedores. Va primero para que se vea antes que cualquier otra.
+        id: 'solicitar-factura-2026-10',
+        audiencia: (_nombre, rol) => rol === 'STAFF',
+    },
     {
         id: 'tenido-una-linea-2026-08',
         // La audiencia se decide por NOMBRE (insensible a mayúsculas y tildes):
@@ -54,7 +60,7 @@ export async function GET(request: NextRequest) {
 
         const vistas = await vistasPorNovedad();
         const pendiente = NOVEDADES.find(n =>
-            n.audiencia(actor.name || '') && !(vistas[n.id] || []).includes(actor.id!)
+            n.audiencia(actor.name || '', actor.role) && !(vistas[n.id] || []).includes(actor.id!)
         );
         return NextResponse.json({ pendiente: pendiente?.id || null });
     } catch (error: any) {
