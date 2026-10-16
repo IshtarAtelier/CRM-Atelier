@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-pegaso-c2",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Pegaso",
+    "color": "C2",
+    "familia": "receta"
+  },
+  "caption": "Pegaso C2 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-pegaso-c2/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-pegaso-c2/02.jpg"
+    }
+  ]
+}

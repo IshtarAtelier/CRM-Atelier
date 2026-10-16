@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-cratos",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Cratos",
+    "color": "",
+    "familia": "receta"
+  },
+  "caption": "Cratos · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-cratos/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-cratos/02.jpg"
+    }
+  ]
+}

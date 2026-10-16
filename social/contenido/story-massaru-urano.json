@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-urano",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Urano",
+    "color": "",
+    "familia": "sol"
+  },
+  "caption": "Urano · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-urano/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-urano/02.jpg"
+    }
+  ]
+}

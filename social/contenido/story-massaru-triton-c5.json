@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-triton-c5",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Tritón",
+    "color": "C5",
+    "familia": "sol"
+  },
+  "caption": "Tritón C5 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-triton-c5/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-triton-c5/02.jpg"
+    }
+  ]
+}

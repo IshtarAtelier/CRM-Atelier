@@ -262,6 +262,8 @@ export async function editar(n) {
   const ref = []; for (let p = 0; p < LADO * LADO; p += 7) if (piel01[p]) ref.push(base.data[p] / 255);
   ref.sort((u, v) => u - v); const pielLuz = ref.length ? ref[Math.floor(ref.length * 0.8)] : PIEL_OBJETIVO;
   let rellenoMedio = 0, nRelleno = 0;
+  // luz fina (escala de poros): reparte el relleno según la textura, sin depender de la luz de escala media
+  const lumFino = (await raw(sharp(Buffer.from(LUM.map(v => clamp(Math.round(v * 255 * 0.8), 0, 255))), { raw: { width: LADO, height: LADO, channels: 1 } }).blur(3).extractChannel(0))).data;
   for (let p = 0, i = 0; p < LADO * LADO; p++, i += 3) {
     let w = pesoPiel.data[p] / 255 * (1 - objeto[p]) * sinPelo(p) * zonaCara[p]; if (w < 0.01) continue;
     if (SOL) { // cristal de sol: lo que se ve a través es mucho más oscuro que la piel; ahí no se aclara (cambiaría el color del cristal)
@@ -279,7 +281,13 @@ export async function editar(n) {
     // aclarar sin saturar: la oreja a contraluz y la piel muy saturada casi no suben (salían rojas)
     const r0 = col[i], b0 = col[i + 2], cr0 = (r0 - b0) / Math.max(r0, 1), rj0 = (r0 - col[i + 1]) / Math.max(r0, 1), freno = Math.max(clamp((cr0 - 0.45) / 0.2, 0, 1), clamp((rj0 - 0.4) / 0.15, 0, 1));
     const gg2 = 1 + (gg - 1) * (1 - 0.75 * freno);
-    const l0 = lum(col[i], col[i + 1], col[i + 2]), l1 = Math.min(l0 * gg2, Math.max(l0, pielLuz * 255 * 1.04));
+    // RELLENO ADITIVO (auditoría 3): una luz de relleno SUMA luz pareja a toda la zona en sombra. Multiplicar
+    // por una ganancia agrandaba ×3-5 cualquier zona un poco más clara dentro de la sombra (la luz que pasa por
+    // el cristal) y quedaba una mancha con borde en la mejilla. Se suma (gg2-1)·luz amplia, repartida según la
+    // textura fina para que poros y pecas no se laven.
+    const l0 = lum(col[i], col[i + 1], col[i + 2]);
+    const lf = Math.max(lumFino[p] / 0.8, 1), tex = clamp(l0 / lf, 0.6, 1.5);
+    const l1 = Math.min(l0 + (gg2 - 1) * bl * 255 * tex, Math.max(l0, pielLuz * 255 * 1.04));
     for (let ch = 0; ch < 3; ch++) col[i + ch] = l1 + (col[i + ch] - l0) * (1 + (l1 / Math.max(l0, 1) - 1) * 0.5);
   }
 

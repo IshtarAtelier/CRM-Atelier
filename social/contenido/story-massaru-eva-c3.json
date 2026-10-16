@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-eva-c3",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Eva",
+    "color": "C3",
+    "familia": "sol"
+  },
+  "caption": "Eva C3 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-eva-c3/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-eva-c3/02.jpg"
+    }
+  ]
+}

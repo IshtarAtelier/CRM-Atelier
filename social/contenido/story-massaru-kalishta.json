@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-kalishta",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Kalishta",
+    "color": "",
+    "familia": "sol"
+  },
+  "caption": "Kalishta · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-kalishta/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-kalishta/02.jpg"
+    }
+  ]
+}
