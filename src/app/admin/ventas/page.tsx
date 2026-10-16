@@ -450,6 +450,7 @@ export default function VentasPage() {
         paidReal: 0,
         listEquivalentPaid: 0,
         remainingList: 0,
+        postSaleCharge: 0,
         remainingCash: 0,
         remainingTransfer: 0,
         remainingCard: 0,

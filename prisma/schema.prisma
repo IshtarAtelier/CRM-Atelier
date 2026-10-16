@@ -463,6 +463,10 @@ model Order {
   appliedPromoName     String?
   prescriptionSnapshot String?
   specialDiscount      Float?             @default(0)
+  // Lo que el post-venta le cobra al CLIENTE (suma de PostSaleCase.clientCharge
+  // de esta venta). Se SUMA al saldo en PricingService.calculateOrderFinancials;
+  // NUNCA toca total ni subtotalWithMarkup. Lo mantiene PostSaleChargeService.
+  postSaleCharge       Float              @default(0)
   smartLabSector       String?
   smartLabProgress     Int?
   smartLabLastSync     DateTime?
@@ -1378,13 +1382,12 @@ model PostSaleCase {
   // Movimiento de caja generado por este caso. Su presencia es el candado que
   // impide imputar dos veces el mismo costo.
   cashEntryId     String?   @unique
-  // El costo lo paga el CLIENTE en vez de salir de una caja: el caso mismo lleva
-  // el saldo (clientCharge − pagos). Es la alternativa a cashEntryId. NO toca la
-  // venta: sus pagos y su saldo son aparte (PostSalePayment).
+  // El costo lo paga el CLIENTE en vez de salir de una caja. Se carga acá, en el
+  // caso, y SUMA al saldo de la venta (Order.postSaleCharge); los pagos son los
+  // pagos normales de la venta. Es la alternativa a cashEntryId.
   clientCharge    Float?
   clientChargedAt DateTime?
   clientChargedBy String?
-  clientPayments  PostSalePayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1722,23 +1725,4 @@ model HolidayShift {
 
   @@unique([fecha, userId])
   @@index([fecha])
-}
-
-/// Pago del cliente contra el saldo de un caso de post-venta (PostSaleCase.clientCharge).
-/// Aparte de Payment a propósito: Payment cuelga de una venta y mezclarlos le
-/// movería el saldo a la venta original.
-model PostSalePayment {
-  id            String   @id @default(cuid())
-  caseId        String
-  amount        Float
-  method        String
-  date          DateTime @default(now())
-  notes         String?
-  receiptUrl    String?
-  createdById   String?
-  createdByName String?
-  createdAt     DateTime @default(now())
-  postSaleCase  PostSaleCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
-
-  @@index([caseId])
 }

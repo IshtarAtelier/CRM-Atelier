@@ -10,6 +10,8 @@ import {
 import { PostSaleServiceForm, postSaleValueFromCase } from '@/components/orders/PostSaleServiceForm';
 import { formatDate, formatDateTime } from '@/lib/format-date';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { PricingService } from '@/services/PricingService';
+import AddPaymentModal from '@/components/quotes/AddPaymentModal';
 
 interface PostSaleNote {
     id: string;
@@ -41,12 +43,11 @@ interface PostSaleCase {
     costConfirmedBy?: string | null;
     faultUserId?: string | null;
     cashEntryId?: string | null;
-    // Alternativa a la caja: lo paga el cliente; el saldo y los pagos viven en el caso.
+    // Alternativa a la caja: lo paga el cliente; se carga acá y suma al saldo de la venta.
     clientCharge?: number | null;
     clientChargedAt?: string | Date | null;
     clientChargedBy?: string | null;
-    clientPayments?: { id: string; amount: number; method: string; date: string | Date; notes?: string | null; receiptUrl?: string | null; createdByName?: string | null }[];
-    order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null } | null;
+    order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null; [k: string]: any } | null;
     notesList?: PostSaleNote[];
 }
 
@@ -63,14 +64,6 @@ function operationNumbers(c: PostSaleCase): string[] {
 type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'IMPUTADO' | 'CARGADO_CLIENTE';
 /** Valor del select de destino cuando el costo lo paga el cliente. */
 const PAGA_CLIENTE = '__CLIENTE__';
-
-const METODOS_PAGO_CLIENTE = [
-    { id: 'EFECTIVO', label: 'Efectivo' },
-    { id: 'TRANSFERENCIA', label: 'Transferencia' },
-    { id: 'MERCADO_PAGO', label: 'Mercado Pago' },
-    { id: 'TARJETA', label: 'Tarjeta' },
-    { id: 'OTRO', label: 'Otro (aclarar)' },
-];
 
 function costStage(c: PostSaleCase): CostStage {
     if (c.cashEntryId) return 'IMPUTADO';
@@ -296,26 +289,11 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
         ? llamar({ action: 'charge_client' })
         : llamar({ action: 'impute', vendorId: vendorId || undefined });
 
-    // ── Pagos del cliente (solo cuando el caso está cargado al cliente) ──
-    const pagos = c.clientPayments || [];
-    const pagado = pagos.reduce((a, p) => a + p.amount, 0);
-    const saldo = Math.max(0, Math.round((c.clientCharge ?? 0) - pagado));
-    const [pagoMonto, setPagoMonto] = useState('');
-    const [pagoMetodo, setPagoMetodo] = useState('TRANSFERENCIA');
-    const [pagoNotas, setPagoNotas] = useState('');
-    const [pagoFoto, setPagoFoto] = useState<File | null>(null);
-    const registrarPago = async () => {
-        const monto = Number(pagoMonto || saldo);
-        if (!(monto > 0)) { setError('Poné el importe del pago.'); return; }
-        if (pagoMetodo !== 'EFECTIVO' && !pagoFoto) { setError('Falta la foto del comprobante de pago.'); return; }
-        let receiptUrl: string | null = null;
-        if (pagoFoto) {
-            receiptUrl = await uploadImage(pagoFoto);
-            if (!receiptUrl) { setError('No se pudo subir el comprobante. Probá de nuevo.'); return; }
-        }
-        const ok = await llamar({ action: 'add_client_payment', amount: monto, method: pagoMetodo, notes: pagoNotas, receiptUrl });
-        if (ok) { setPagoMonto(''); setPagoNotas(''); setPagoFoto(null); }
-    };
+    // ── Cobro al cliente: el saldo es el de la VENTA (incluye este cargo) ──
+    // y el pago es el pago normal de la venta (comprobante, caja y recibo).
+    const [pagando, setPagando] = useState(false);
+    const finVenta = c.order ? PricingService.calculateOrderFinancials(c.order) : null;
+    const saldoVenta = finVenta?.remainingCard ?? 0;
     const anularCargo = () => llamar({ action: 'revert_client_charge' });
 
     // Después de TODOS los hooks: un return antes cambiaría su orden entre renders.
@@ -344,73 +322,40 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
 
             {stage === 'CARGADO_CLIENTE' && (
                 <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                        {[['A cobrar', c.clientCharge ?? 0], ['Pagado', pagado], ['Saldo', saldo]].map(([t, v]) => (
-                            <div key={t as string} className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">{t}</p>
-                                <p className={`text-sm font-black ${t === 'Saldo' && saldo > 0 ? 'text-violet-700 dark:text-violet-400' : 'text-stone-800 dark:text-stone-100'}`}>{fmt(v as number)}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    {pagos.length > 0 && (
-                        <ul className="space-y-1">
-                            {pagos.map(p => (
-                                <li key={p.id} className="flex items-center gap-2 text-[11px] text-stone-700 dark:text-stone-300">
-                                    <span className="font-black">{fmt(p.amount)}</span>
-                                    <span>{METODOS_PAGO_CLIENTE.find(m => m.id === p.method)?.label || p.method}</span>
-                                    <span className="text-stone-400">{formatDateTime(p.date)}{p.createdByName ? ` · ${p.createdByName}` : ''}</span>
-                                    {p.receiptUrl && (
-                                        <a href={p.receiptUrl} target="_blank" rel="noreferrer" className="ml-auto underline font-bold">Ver comprobante</a>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-
-                    {saldo > 0 ? (
-                        <div className="rounded-xl border border-violet-200 dark:border-violet-900/40 p-3 space-y-2">
-                            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Registrar pago del cliente</p>
-                            <div className="grid grid-cols-2 gap-2">
-                                <input
-                                    type="number" inputMode="numeric" min={0} value={pagoMonto}
-                                    onChange={(e) => setPagoMonto(e.target.value)}
-                                    placeholder={`Importe (saldo ${fmt(saldo)})`}
-                                    className="text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none"
-                                />
-                                <select
-                                    value={pagoMetodo} onChange={(e) => setPagoMetodo(e.target.value)}
-                                    className="text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none"
-                                >
-                                    {METODOS_PAGO_CLIENTE.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                                </select>
-                            </div>
-                            <input
-                                value={pagoNotas} onChange={(e) => setPagoNotas(e.target.value)}
-                                placeholder={pagoMetodo === 'OTRO' ? 'Cuál fue la forma de pago (obligatorio)' : 'Nota / nº de operación (opcional)'}
-                                className="w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none"
-                            />
-                            <label className="flex items-center gap-2 text-[11px] font-bold text-stone-600 dark:text-stone-300 cursor-pointer">
-                                <span className="px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600">
-                                    {pagoFoto ? 'Cambiar foto' : '📎 Foto del comprobante'}{pagoMetodo !== 'EFECTIVO' ? ' *' : ''}
-                                </span>
-                                <span className="truncate">{pagoFoto?.name || ''}</span>
-                                <input type="file" accept="image/*" capture="environment" className="hidden"
-                                    onChange={(e) => setPagoFoto(e.target.files?.[0] || null)} />
-                            </label>
-                            <button
-                                onClick={registrarPago} disabled={working}
-                                className="w-full px-4 py-2.5 rounded-xl bg-violet-700 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
-                            >
-                                {working ? 'Guardando…' : 'Registrar pago'}
-                            </button>
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                        <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">Cargo de post-venta</p>
+                            <p className="text-sm font-black text-stone-800 dark:text-stone-100">{fmt(c.clientCharge ?? 0)}</p>
                         </div>
-                    ) : (
-                        <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Saldo cancelado: el cliente pagó todo.</p>
+                        <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">Saldo de la venta (con el cargo)</p>
+                            <p className={`text-sm font-black ${saldoVenta > 1000 ? 'text-violet-700 dark:text-violet-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{fmt(saldoVenta)}</p>
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-violet-700 dark:text-violet-400 font-bold leading-relaxed">
+                        Cargado por {c.clientChargedBy || '—'}{c.clientChargedAt ? ` · ${formatDateTime(c.clientChargedAt)}` : ''}.
+                        Suma al saldo de la venta y figura en la lista de saldos.
+                    </p>
+                    {c.order?.id && (
+                        <button
+                            onClick={() => setPagando(true)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-violet-700 text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90"
+                        >
+                            Registrar pago del cliente (efectivo o transferencia)
+                        </button>
                     )}
-
-                    {isAdmin && pagos.length === 0 && (
-                        <button onClick={anularCargo} disabled={working}
+                    {pagando && c.order?.id && (
+                        <AddPaymentModal
+                            orderId={c.order.id}
+                            totalAmount={finVenta?.listPrice ?? 0}
+                            paidAmount={finVenta?.paidReal ?? 0}
+                            soloEfectivoYTransferencia
+                            onClose={() => setPagando(false)}
+                            onSuccess={() => { setPagando(false); onRefresh(); }}
+                        />
+                    )}
+                    {isAdmin && (
+                        <button onClick={() => { if (window.confirm('¿Anular el cargo al cliente? Se quita del saldo de la venta; los pagos ya cargados no se tocan.')) anularCargo(); }} disabled={working}
                             className="text-[9px] font-black uppercase tracking-widest text-stone-500 underline disabled:opacity-40">
                             Anular el cargo al cliente
                         </button>
@@ -436,12 +381,12 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
                             className="w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300"
                         >
                             <option value="">Caja Ishtar — lo cubre Atelier</option>
-                            <option value={PAGA_CLIENTE}>El cliente — queda como saldo del caso</option>
+                            <option value={PAGA_CLIENTE}>El cliente — se suma al saldo de la venta</option>
                             {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                         </select>
                         {pagaCliente && (
                             <p className="mt-1 text-[9px] text-violet-600 dark:text-violet-400">
-                                El caso lleva su propio saldo y sus pagos con comprobante. Aparece en la lista de saldos. No toca la venta ni ninguna caja.
+                                Se suma al saldo de la venta y aparece en la lista de saldos. El pago se registra con comprobante desde acá. No se descuenta de ninguna caja.
                             </p>
                         )}
                         {!pagaCliente && c.fault && c.fault !== 'Óptica' && (

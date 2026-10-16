@@ -16,6 +16,8 @@ interface AddPaymentModalProps {
     paidAmount: number;
     onClose: () => void;
     onSuccess: (payment: any) => void;
+    /** Post-venta: el cliente solo paga en efectivo o por transferencia (sin tarjetas ni cuotas). */
+    soloEfectivoYTransferencia?: boolean;
 }
 
 const COLOR_STYLES: Record<string, { active: string; inactive: string; iconActive: string; iconInactive: string }> = {
@@ -78,7 +80,8 @@ export default function AddPaymentModal({
     totalAmount,
     paidAmount,
     onClose,
-    onSuccess
+    onSuccess,
+    soloEfectivoYTransferencia = false,
 }: AddPaymentModalProps) {
     const [amount, setAmount] = useState('');
     const [method, setMethod] = useState('EFECTIVO');
@@ -348,7 +351,7 @@ export default function AddPaymentModal({
                             Método de Pago
                         </label>
                         <div className="space-y-4">
-                            {PAYMENT_GROUPS.map((group) => (
+                            {PAYMENT_GROUPS.filter(g => !soloEfectivoYTransferencia || g.id === 'principales').map((group) => (
                                 <fieldset key={group.id} className="space-y-2">
                                 <legend className="text-xs font-bold text-stone-600 dark:text-stone-300 pl-1 mb-2">{group.titulo}</legend>
                                 <div className={`grid gap-2 ${group.items.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : group.items.length === 1 ? 'grid-cols-1' : 'grid-cols-3'}`}>

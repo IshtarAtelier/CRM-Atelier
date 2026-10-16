@@ -59,12 +59,11 @@ export async function POST(
 
         // Segunda vía de cierre: el costo lo paga el CLIENTE y queda como saldo
         // del caso (con sus propios pagos y comprobantes). Ver PostSaleChargeService.
-        if (['charge_client', 'revert_client_charge', 'add_client_payment'].includes(body.action)) {
+        if (['charge_client', 'revert_client_charge'].includes(body.action)) {
             try {
                 if (body.action === 'charge_client') return NextResponse.json({ ok: true, ...(await PostSaleChargeService.chargeClient(id, actor)) });
-                if (body.action === 'revert_client_charge') { await PostSaleChargeService.revertClientCharge(id, actor); return NextResponse.json({ ok: true }); }
-                const payment = await PostSaleChargeService.addPayment(id, body, actor);
-                return NextResponse.json({ ok: true, payment });
+                await PostSaleChargeService.revertClientCharge(id, actor);
+                return NextResponse.json({ ok: true });
             } catch (e) {
                 if (e instanceof CargoError) return NextResponse.json({ error: e.message }, { status: e.status });
                 throw e;

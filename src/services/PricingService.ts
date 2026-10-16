@@ -47,6 +47,8 @@ export interface OrderFinancials {
     paidReal: number;
     listEquivalentPaid: number;
     remainingList: number;
+    /** Cargo de post-venta que paga el cliente: ya está sumado en remainingList. */
+    postSaleCharge: number;
     remainingCash: number;
     remainingTransfer: number;
     remainingCard: number;
@@ -485,7 +487,11 @@ export class PricingService {
         // Si usamos el failsafe de 'paid', ajustamos el listEquivalentPaid si este era 0
         const finalListEquivalentPaid = (listEquivalentPaid === 0 && paidReal > 0) ? paidReal : listEquivalentPaid;
 
-        const remainingList = Math.max(0, listPrice - finalListEquivalentPaid);
+        // Cargo de post-venta que paga el cliente (PostSaleCase "lo paga el
+        // cliente"): se suma a lo que se DEBE, pero no a listPrice — el precio
+        // de la venta no se redefine, y totales/ventas siguen leyendo listPrice.
+        const postSaleCharge = Math.max(0, order.postSaleCharge || 0);
+        const remainingList = Math.max(0, listPrice + postSaleCharge - finalListEquivalentPaid);
         const hasBalance = remainingList > 1000; // Tolerancia de 1000 pesos solicitada por el usuario
         
         const progress = listPrice > 0 ? (finalListEquivalentPaid / listPrice) * 100 : 0;
@@ -502,6 +508,7 @@ export class PricingService {
             paidReal,
             listEquivalentPaid: Math.round(listEquivalentPaid * 100) / 100,
             remainingList: Math.round(remainingList),
+            postSaleCharge,
             remainingCash: Math.round(remainingList * (1 - discCash / 100)),
             remainingTransfer: Math.round(remainingList * (1 - discTrans / 100)),
             remainingCard: Math.round(remainingList),
