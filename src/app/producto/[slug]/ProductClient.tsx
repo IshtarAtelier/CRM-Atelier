@@ -17,6 +17,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION, fichaMuestraGarantiaDeAdaptacion } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
+import { queIncluye, PLAZOS_DESPACHO } from "@/lib/ficha/que-incluye";
 import { formatearPrecio, precioConSigno } from "@/lib/format-precio";
 import { anteojoCompletoDesde } from "@/lib/anteojo-completo";
 import { useOpcionesCristal } from "@/hooks/useOpcionesCristal";
@@ -909,15 +910,32 @@ export function ProductClient({
                     mismo acordeón de envíos ya publica, dicho junto al CTA.
                     Solo plazos ya prometidos por la ficha — nada nuevo. */}
                 <span className="text-[11px] text-[#2c6e49] leading-tight">
-                  {product.category === "Receta"
-                    ? <>Comprando hoy: solo armazón se despacha en <strong>2 días hábiles</strong>; con cristales, en <strong>5</strong>.</>
+                  {product.category === "Receta" || product.category === "Clip-On"
+                    ? <>Comprando hoy: solo armazón se despacha en <strong>{PLAZOS_DESPACHO.sinCristales}</strong>; con cristales, en <strong>{PLAZOS_DESPACHO.conCristales}</strong>.</>
                     : product.category === "Cristal"
-                      ? <>Comprando hoy: calibrado y laboratorio en <strong>5 días hábiles</strong>.</>
-                      : <>Comprando hoy, se despacha en <strong>2 días hábiles</strong>.</>}
+                      ? <>Comprando hoy: calibrado y laboratorio en <strong>{PLAZOS_DESPACHO.conCristales}</strong>.</>
+                      : <>Comprando hoy, se despacha en <strong>{PLAZOS_DESPACHO.sinCristales}</strong>.</>}
                 </span>
               </div>
             </div>
             
+            {/* Qué incluye (plan 15/10/2026, 1.5): la auditoría de fichas vio que
+                sol y clip-on no decían si eran polarizados, si venía estuche ni
+                cuándo llegaba, y la gente preguntaba por WhatsApp en vez de
+                comprar. Los renglones salen de UN helper (lib/ficha/que-incluye),
+                el mismo plazo que el checkout y los términos. */}
+            <div className="order-6 lg:order-none mb-6 border border-stone-200 bg-white px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 mb-2">Qué incluye</p>
+              <ul className="space-y-1.5">
+                {queIncluye(product.category).map((r) => (
+                  <li key={r} className="flex gap-2 text-[13px] text-stone-800 leading-snug">
+                    <span aria-hidden className="text-[#2c6e49]">✓</span>
+                    <span>{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
               {/* E-Commerce Accordions.
                   SIN animación de entrada: ver A-01 de la auditoría del 2/9/26.
                   El estado final es el default; la animación es la excepción. */}
