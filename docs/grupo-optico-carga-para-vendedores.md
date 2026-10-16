@@ -29,9 +29,9 @@ El robot carga lo que dice la venta. Si falta algo, no prepara y dice qué.
 
 En **Ventas**, cada venta que lleva cristales de Grupo Óptico tiene el botón
 negro **"🤖 Hacé lo tuyo"** (al lado de "Procesado"; las de Vitolen tienen el
-mismo, y las de otros laboratorios no tienen ninguno; si una venta lleva
-cristales de los dos labs con robot, cada botón dice su laboratorio). El nombre
-es en broma a propósito: el pedido lo carga el robot, vos solo lo revisás y das
+mismo, y las de otros laboratorios no tienen ninguno). No dice el laboratorio:
+el sistema ya sabe a dónde entrar por los cristales de la venta. El nombre es
+en broma a propósito: el pedido lo carga el robot, vos solo lo revisás y das
 el OK.
 Un clic abre la ficha en el bloque **"Grupo Óptico · carga del pedido"** y, si
 no hace falta elegir nada, el robot arranca solo.
