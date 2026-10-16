@@ -35,8 +35,8 @@ export const API_BASE = `${PORTAL_BASE}/smartlab-api-v2/public/index.php`;
 export const URL_LOGIN = `${PORTAL_BASE}/smartlab/auth/authSmartlab/login`;
 export const URL_LISTADO = `${PORTAL_BASE}/smartlab/laboratory/list`;
 const VARIABLES = 'SMARTLAB_USER/SMARTLAB_PASSWORD';
-/** Cinco minutos por paso: un pase lento que TERMINA vale más que uno rápido que aborta (Ishtar, 7/9/2026). */
-export const ESPERA_SMARTLAB_MS = 300_000;
+/** Treinta minutos por paso: un pase lento que TERMINA vale más que uno rápido que aborta (Ishtar, 7/9/2026). */
+export const ESPERA_SMARTLAB_MS = 30 * 60_000; // techo ampliado el 15/10/2026 (cortes a los 5 min el 13 y 14/10)
 const URL_DE_LOGIN = /\/login|\/auth\//i;
 const TEXTO_DE_RECHAZO = /incorrect|no se pudo iniciar sesi|credenciales inv/i;
 const INTENTOS_LOGIN = 3;
@@ -140,7 +140,7 @@ export async function conSesionSmartLab<T>(tarea: (page: Page) => Promise<T>, op
 }
 
 /** GET JSON con la sesión del navegador, desde adentro de la página, con tope. */
-export async function pedirJsonDesdeLaPagina<T = any>(page: Page, url: string, timeoutMs = 180_000): Promise<T> {
+export async function pedirJsonDesdeLaPagina<T = any>(page: Page, url: string, timeoutMs = 15 * 60_000): Promise<T> {
     const res: any = await page.evaluate(async ({ u, t }) => {
         // AbortSignal.timeout: un fetch que el portal nunca responde colgaría
         // el evaluate (y el navegador) para siempre.

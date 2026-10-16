@@ -460,6 +460,15 @@ porqué de cada decisión están en `docs/plan-publicacion-meta.md`.
   fondo claro, `--dorado-solido` cuando el dorado es el FONDO y arriba va texto
   blanco. Cambiarlos en masa rompe la mitad: ya pasó el 14/9 en Nuestro Local.
 
+- **Los timeouts del portal de Grupo Óptico son un techo ancho, a propósito**
+  (Ishtar, 15/10/2026: "que no pase por esto al 100 %"). Una pasada lenta que
+  TERMINA vale más que una rápida que aborta: el 13 y 14/10 el PDF de
+  comprobantes cortó a los 5 min y no entraron importes. Hoy: PDF de
+  comprobantes 30 min, cada paso del portal 30 min (`ESPERA_SMARTLAB_MS`),
+  listado 15 min, parseo 10 min, y el cron que los llama 60 min
+  (`instrumentation.ts`). **No bajarlos** ni "ajustarlos" para que el log quede
+  más corto; el candado de turno se renueva solo mientras la pasada vive.
+
 ## Pendientes / notas
 - Token de GitHub en texto plano en `.git/config` (remote origin) — conviene rotar
   y pasar a credential helper.

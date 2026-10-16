@@ -1,5 +1,6 @@
 import { sendEmail } from '@/lib/email';
 import { getFileBuffer } from '@/lib/storage';
+import { PRIVATE_ADMIN_EMAILS, SYSTEM_MAILBOX_EMAIL } from '@/lib/constants';
 
 const EXT_CONTENT_TYPES: Record<string, string> = {
     jpg: 'image/jpeg',
@@ -31,6 +32,15 @@ export interface DuplicatePaymentRef {
     clientName: string;
     clientId?: string;
     orderId: string;
+}
+
+/** Datos del pago que se suman al mail de la auditoría (seña/saldo, total, saldo). */
+export interface ResumenDelPago {
+    tipo: 'SEÑA' | 'SALDO';
+    totalOperacion: number;
+    /** "Pedido totalmente abonado" o el saldo que queda por forma de pago. */
+    saldo: string;
+    notas?: string | null;
 }
 
 interface ReceiptUploadedInfo {
@@ -67,6 +77,8 @@ interface ReceiptUploadedInfo {
     auditIncomplete?: boolean;
     /** Si hubo duplicado, los pagos anteriores con el mismo nº de operación. */
     duplicateRefs?: DuplicatePaymentRef[];
+    /** Presente cuando el mail es el aviso de un pago nuevo (no una re-subida). */
+    pago?: ResumenDelPago | null;
 }
 
 function appUrl() {
@@ -148,11 +160,28 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
         </div>
     ` : '';
 
-    const subjectPrefix = hasWarnings
-        ? '⚠️ Comprobante con observaciones'
+    // El asunto dice de entrada si la auditoría quedó bien o hay algo que mirar.
+    const veredicto = hasWarnings
+        ? '⚠️ REVISAR'
         : info.auditIncomplete
-            ? '⚠️ Comprobante a revisar a mano'
-            : '📎 Comprobante subido';
+            ? '⚠️ REVISAR A MANO'
+            : info.auditErrors
+                ? '✅ Auditoría OK'
+                : '⚠️ SIN AUDITAR';
+    const subjectPrefix = info.pago
+        ? `${veredicto} — Nuevo pago (${info.pago.tipo})`
+        : hasWarnings
+            ? '⚠️ Comprobante con observaciones'
+            : info.auditIncomplete
+                ? '⚠️ Comprobante a revisar a mano'
+                : '📎 Comprobante subido';
+
+    const pagoBlock = info.pago ? `
+        <li><strong>Tipo de pago:</strong> ${esc(info.pago.tipo)}</li>
+        <li><strong>Total de la operación:</strong> $${info.pago.totalOperacion.toLocaleString('es-AR')}</li>
+        <li><strong>Estado del pedido:</strong> ${esc(info.pago.saldo)}</li>
+        ${info.pago.notas ? `<li><strong>Referencia/Notas:</strong> ${esc(info.pago.notas)}</li>` : ''}
+    ` : '';
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
@@ -163,7 +192,8 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
           <li><strong>Venta:</strong> #${shortOrder}</li>
           <li><strong>Monto cargado:</strong> $${info.amount.toLocaleString('es-AR')}</li>
           <li><strong>Método:</strong> ${esc(info.method)}</li>
-          ${info.reference ? `<li><strong>Referencia:</strong> ${esc(info.reference)}</li>` : ''}
+          ${info.reference ? `<li><strong>Referencia (leída del comprobante):</strong> ${esc(info.reference)}</li>` : ''}
+          ${pagoBlock}
         </ul>
         ${auditBlock}
         ${duplicatesBlock}
@@ -181,8 +211,10 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
     `;
 
     await sendEmail({
-        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-        subject: `${subjectPrefix}: $${info.amount.toLocaleString('es-AR')} - ${info.clientName} (#${shortOrder})${info.uploadedByName ? ` · subió ${info.uploadedByName}` : ''}`,
+        // La dueña (solo ella, nunca la casilla del local) y la casilla del
+        // sistema, que queda de archivo para buscar el dato después.
+        to: `${PRIVATE_ADMIN_EMAILS}, ${SYSTEM_MAILBOX_EMAIL}`,
+        subject: `${subjectPrefix}: $${info.amount.toLocaleString('es-AR')} - ${info.clientName} (#${shortOrder})${info.uploadedByName ? ` · cargó ${info.uploadedByName}` : ''}`,
         html,
         ...(buffer ? {
             attachments: [{
