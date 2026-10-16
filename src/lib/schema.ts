@@ -49,6 +49,6 @@ export function buildOpticianSchema() {
     openingHoursSpecification: BUSINESS_INFO.openingHoursSpecification,
     hasMap: BUSINESS_INFO.mapsUrl,
     // El perfil de Google (cid) también: es la ficha que concentra las reseñas.
-    sameAs: [BUSINESS_INFO.instagramUrl, BUSINESS_INFO.youtubeUrl, BUSINESS_INFO.mapsUrl],
+    sameAs: [BUSINESS_INFO.instagramUrl, BUSINESS_INFO.facebookUrl, BUSINESS_INFO.youtubeUrl, BUSINESS_INFO.mapsUrl],
   };
 }
