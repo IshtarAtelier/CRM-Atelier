@@ -8,7 +8,7 @@ import { ejecutar, FALLAS_SEGUIDAS_PARA_FRENAR } from '@/lib/seguimientos/ejecut
 import { agruparVetos, diaArt, horaArt, registrarCorrida } from '@/lib/seguimientos/registro';
 import { vetoDeCierre, type Candidato, type EstadoDelChat } from '@/lib/seguimientos/politica';
 import { asegurarRetomeHumano } from '@/lib/seguimientos/respuesta-humana';
-import { clasificarRespuesta, respuestasAlToque, type Clasificacion } from '@/lib/embudo/respuesta';
+import { clasificarRespuesta, respuestasAlToque, esDespedidaInequivoca, DIAS_DESPEDIDA_RECIENTE, type Clasificacion } from '@/lib/embudo/respuesta';
 import { cerrarComoPerdido, posponerSeguimiento, reservarDescuentoRetome, PLANTILLA_RETOME } from '@/lib/seguimientos/cierre';
 import {
     CUPO_DIARIO_POR_DEFECTO, HORA_DESDE, HORA_HASTA, LOTE_POR_TICK, MODO_POR_DEFECTO, PLANTILLAS_AUTOMATICAS,
@@ -240,6 +240,26 @@ export async function GET(request: Request) {
                     console.error(`[Motor seguimientos] No se pudo aplicar la respuesta de ${nombre}:`, e?.message);
                     lecturas.push({ nombre, motivo: `NO se pudo aplicar (${clase}): ${e?.message}` });
                 }
+            }
+        }
+
+        // Despedidas recientes que la ventana "respuesta al último toque" no ve:
+        // si en los últimos DIAS_DESPEDIDA_RECIENTE días el cliente dijo algo
+        // inequívoco ("ya compré en otra óptica", "no me escriban"), se cierra,
+        // haya o no un toque posterior. Caso Rubén, 15/10/2026.
+        const sinCierre = filas.filter(f => f.lastInboundAt && respuestas.get(f.id) !== 'cierre'
+            && f.lastInboundAt.getTime() > now - DIAS_DESPEDIDA_RECIENTE * 86_400_000);
+        if (sinCierre.length) {
+            const despedidas = await prisma.whatsAppMessage.findMany({
+                where: { chatId: { in: sinCierre.map(f => f.id) }, direction: 'INBOUND', createdAt: { gte: new Date(now - DIAS_DESPEDIDA_RECIENTE * 86_400_000) } },
+                orderBy: { createdAt: 'asc' },
+                select: { chatId: true, content: true, type: true, createdAt: true },
+            });
+            for (const f of sinCierre) {
+                const dicha = despedidas.find(m => m.chatId === f.id && esDespedidaInequivoca(m));
+                if (!dicha) continue;
+                respuestas.set(f.id, 'cierre');
+                lecturas.push({ nombre: nombrePorChat.get(f.id) ?? f.id, motivo: `se despidió el ${dicha.createdAt.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })} («${(dicha.content || '').slice(0, 80)}»): se cierra como perdido` });
             }
         }
         // Último SALIENTE de cada chat (de quien sea): lo mira la compuerta de 48 h.

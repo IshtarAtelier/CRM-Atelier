@@ -23,6 +23,7 @@ import { decidirConAprobado } from '../../src/services/lab-modules/grupo-optico/
 import { paletaDeGrupoOptico } from '../../src/lib/constants/paletas-color.ts';
 import { textoDeExtraNoCobrado, lineaDeFicha } from '../../src/services/lab-modules/carga/extras-no-cobrados.ts';
 import { pedidoYaCreado, diferenciasConLoAprobado, puedeCrearPedidosReales, pruebaDeQueNoSeCreo, PedidoRechazadoError, PortalRespondioError } from '../../src/services/lab-modules/grupo-optico/robot.ts';
+import { saldoPorArticulo, articuloVirtualDe, saldoDe, ventasSinStock, transicionesDeStock, textoAvisoVenta, textoAvisoAgotado, lineaDeStockVirtual } from '../../src/services/lab-modules/grupo-optico/stock-virtual.ts';
 import { parDeFila } from '../../src/services/lab-modules/grupo-optico/pedidos.ts';
 import { decidirExistente } from '../../src/services/lab-modules/grupo-optico/existentes.ts';
 import { numerosDeOtrosPares } from '../../src/services/lab-modules/carga/numeros.ts';
@@ -705,6 +706,71 @@ ok('stock: sin medidas ni forma del armazón y con base 4, como lo arma el formu
     assert.equal(p.rightEyeStockArticle, '1'); assert.equal(p.rightEyeAddition, 0); assert.equal(p.rightEyeNearSpherical, null);
     // y la ficha lo dice, en vez de descartar medidas y forma callada
     assert.ok(r.avisos.some(a => /stock: el formulario del portal no lleva medidas ni forma/.test(a)), r.avisos.join(' | '));
+});
+
+// ── Stock virtual (stock-virtual.ts): solo cristales de stock, ni 2x1 ni teñidos ni tratamientos ──
+console.log('\nStock virtual');
+const FILAS_VIRTUALES = [
+    { IdVentaVirtual: '1', IdArticulo: '8921', articuloNombre: 'ORG BLUE C/AR 1.56 STOCK ESF+VIRTUAL', Codigo: '8+VIRTUAL', Comprado: '20.000', Entregado: '.000', Pendiente: '20.000', fecha: '2026-10-14 12:07:18.000' },
+    { IdVentaVirtual: '2', IdArticulo: '8921', articuloNombre: 'ORG BLUE C/AR 1.56 STOCK ESF+VIRTUAL', Codigo: '8+VIRTUAL', Comprado: '50.000', Entregado: '48.000', Pendiente: '2.000', fecha: '2026-07-20 10:00:00.000' },
+    { IdVentaVirtual: '3', IdArticulo: '15431', articuloNombre: 'BIF F.T ORG BLUE LIGHT CUT VIRTUAL', Codigo: 'VIR BIF F.T ORG BLUE L.CUT', Comprado: '3.000', Entregado: '3.000', Pendiente: '.000', fecha: '2026-10-14 12:07:18.000' },
+    { IdVentaVirtual: '4', IdArticulo: '7001', articuloNombre: 'ORG BLANCO 1.49 R. EXT ESF+REV CILIRTU', Codigo: '1+REVIRTUAL', Comprado: '10.000', Entregado: '10.000', Pendiente: '.000', fecha: '2026-08-21 09:00:00.000' },
+];
+ok('el saldo se suma por artículo y se redondea a medio par', () => {
+    const s = saldoPorArticulo(FILAS_VIRTUALES);
+    const blue = s.find(x => x.articleId === '8921');
+    assert.deepEqual({ comprado: blue.comprado, entregado: blue.entregado, pendiente: blue.pendiente, ultima: blue.ultimaCompra }, { comprado: 70, entregado: 48, pendiente: 22, ultima: '2026-10-14' });
+    assert.equal(s[0].articleId, '8921', 'el de más saldo primero');
+});
+ok('cada cristal de stock del CRM sabe cuál es su artículo virtual; teñidos, tratamientos, foto, poli, mineral y 2x1 no', () => {
+    assert.equal(articuloVirtualDe('Stock · Orgánico Blue c/AR 1.56').nombre, 'Orgánico Blue c/AR 1.56 (stock)');
+    assert.equal(articuloVirtualDe('Stock · Orgánico Blue c/AR 1.56 · Rango Extendido').nombre, 'Orgánico Blue c/AR 1.56 (rango extendido)');
+    assert.equal(articuloVirtualDe('Stock · Orgánico Super Blue Asf. c/AR 1.60').nombre, 'Orgánico Super Blue 1.60 (stock)');
+    assert.equal(articuloVirtualDe('Stock · Orgánico Blanco 1.49').nombre, 'Orgánico Blanco 1.49 (stock)');
+    assert.equal(articuloVirtualDe('Stock · Orgánico Blanco c/AR 1.56').nombre, 'Orgánico Blanco c/AR 1.56 (stock)');
+    assert.equal(articuloVirtualDe('Bifocal Flat Top · Orgánico Blue Light Cut 1.56').nombre, 'Bifocal Flat Top Blue Light Cut');
+    assert.equal(articuloVirtualDe('Bifocal Flat Top · Orgánico Blanco 1.5').nombre, 'Bifocal Flat Top Orgánico Blanco');
+    for (const n of ['Stock · Orgánico Fotocromático c/AR Gris 1.56', 'Stock · Policarbonato c/AR 1.59 · Esf -6/+6 Cil -2/2', 'Stock · Mineral Blanco 1.523 · Esf -2/+2', 'Stock · Orgánico Super Blue Asf. c/AR 1.74 · Rango Extendido', 'Teñido compacto', 'Essential (antirreflejo)', 'Multifocal Smart FREE · Orgánico Blanco 1.49 2x1', 'Stock · Orgánico Blue c/AR 1.56 2x1', '']) {
+        assert.equal(articuloVirtualDe(n), null, n);
+    }
+});
+ok('el saldo de un cristal se lee por su artículo virtual (rango extendido y stock no se mezclan)', () => {
+    const s = saldoPorArticulo(FILAS_VIRTUALES);
+    assert.deepEqual(saldoDe(s, 'Stock · Orgánico Blue c/AR 1.56'), { articulo: 'Orgánico Blue c/AR 1.56 (stock)', pendiente: 22, comprado: 70, existe: true });
+    assert.deepEqual(saldoDe(s, 'Stock · Orgánico Blue c/AR 1.56 · Rango Extendido'), { articulo: 'Orgánico Blue c/AR 1.56 (rango extendido)', pendiente: 0, comprado: 0, existe: false });
+    assert.equal(saldoDe(s, 'Stock · Orgánico Fotocromático c/AR Gris 1.56'), null);
+});
+ok('"entró un pedido sin stock": solo cristales de GO en cero, una vez por venta y por artículo, nunca en un 2x1', () => {
+    const s = saldoPorArticulo(FILAS_VIRTUALES);
+    const ventas = [
+        { id: 'v1', cliente: 'Ana', labSentAt: '2026-10-15', es2x1: false, items: [{ nombre: 'Bifocal Flat Top · Orgánico Blue Light Cut 1.56', esCristalDeGO: true }, { nombre: 'Bifocal Flat Top · Orgánico Blue Light Cut 1.56', esCristalDeGO: true }, { nombre: 'Teñido compacto', esCristalDeGO: false }] },
+        { id: 'v2', cliente: 'Beto', labSentAt: '2026-10-15', es2x1: false, items: [{ nombre: 'Stock · Orgánico Blue c/AR 1.56', esCristalDeGO: true }] },
+        { id: 'v3', cliente: 'Caro', labSentAt: '2026-10-15', es2x1: true, items: [{ nombre: 'Bifocal Flat Top · Orgánico Blue Light Cut 1.56', esCristalDeGO: true }] },
+        { id: 'v4', cliente: 'Dani', labSentAt: '2026-10-15', es2x1: false, items: [{ nombre: 'Stock · Orgánico Blanco 1.49 · Rango Extendido', esCristalDeGO: true }] },
+        { id: 'v5', cliente: 'Eva', labSentAt: '2026-10-15', es2x1: false, items: [{ nombre: 'Stock · Orgánico Blanco c/AR 1.56', esCristalDeGO: true }] },
+        { id: 'v6', cliente: 'Fer', labSentAt: '2026-10-15', es2x1: false, items: [{ nombre: 'Stock · Orgánico Blanco 1.49', esCristalDeGO: false }] },
+    ];
+    const avisos = ventasSinStock(ventas, s, { v5: '2026-10-15T00:00:00Z' });
+    assert.deepEqual(avisos.map(a => [a.orderId, a.articulo, a.existe]), [['v1', 'Bifocal Flat Top Blue Light Cut', true], ['v4', 'Orgánico Blanco 1.49 (rango extendido)', true]]);
+    assert.match(textoAvisoVenta(avisos[0], 'https://x/admin/ventas?id=v1'), /NO hay stock virtual de Bifocal Flat Top Blue Light Cut \(quedan 0 pares\)/);
+});
+ok('"se acabó": se avisa una vez por artículo declarado y se olvida cuando vuelve a haber', () => {
+    const s = saldoPorArticulo(FILAS_VIRTUALES);
+    const t1 = transicionesDeStock(s, {});
+    assert.deepEqual(t1.agotados.map(a => a.nombre).sort(), ['BIF F.T ORG BLUE LIGHT CUT VIRTUAL', 'ORG BLANCO 1.49 R. EXT ESF+REV CILIRTU']);
+    assert.deepEqual(t1.repuestos, []);
+    const t2 = transicionesDeStock(s, { 'BIF F.T ORG BLUE LIGHT CUT VIRTUAL': '2026-10-15T00:00:00Z', 'ORG BLUE C/AR 1.56 STOCK ESF+VIRTUAL': '2026-09-01T00:00:00Z' });
+    assert.deepEqual(t2.agotados.map(a => a.nombre), ['ORG BLANCO 1.49 R. EXT ESF+REV CILIRTU']);
+    assert.deepEqual(t2.repuestos, ['ORG BLUE C/AR 1.56 STOCK ESF+VIRTUAL']);
+    assert.match(textoAvisoAgotado(t1.agotados[0]), /Se acabó el stock virtual de .* Pedí que carguen stock/);
+});
+ok('la ficha dice el saldo del par (o que no hay), y nada si el cristal no tiene virtual', () => {
+    const foto = { leidoEl: '2026-10-16T03:00:00Z', saldos: saldoPorArticulo(FILAS_VIRTUALES), agotadosAvisados: {}, ventasAvisadas: {} };
+    assert.match(lineaDeStockVirtual(foto, 'Stock · Orgánico Blue c/AR 1.56'), /quedan 22 pares/);
+    assert.match(lineaDeStockVirtual(foto, 'Bifocal Flat Top · Orgánico Blue Light Cut 1.56'), /SIN stock virtual/);
+    assert.match(lineaDeStockVirtual(foto, 'Stock · Orgánico Super Blue Asf. c/AR 1.60'), /nunca se compró/);
+    assert.equal(lineaDeStockVirtual(foto, 'Stock · Policarbonato c/AR 1.59 · Esf -6/+6 Cil -2/2'), null);
+    assert.match(lineaDeStockVirtual(null, 'Stock · Orgánico Blue c/AR 1.56'), /todavía no lo leyó/);
 });
 
 console.log(fallas ? `\n❌ ${fallas} falla(s).` : '\n✅ Carga de Grupo Óptico: todo en orden.');

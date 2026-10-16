@@ -11,6 +11,7 @@ import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_GRUPO_OPTICO, 
 import { LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO } from './portal';
 import { leerVentaParaCargaGO } from './venta';
 import { mensajeExistente, pedidoExistenteDelPar, type PedidoExistente } from './existentes';
+import { leerFotoStockVirtual, lineaDeStockVirtual } from './stock-virtual';
 
 /**
  * La carga asistida de Grupo Óptico detrás del contrato común.
@@ -68,6 +69,9 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
         for (const p of pares) yaCargados.set(p, await pedidoExistenteDelPar(orderId, p, totalPares));
         // 2x1: el par de mayor valor va con cargo; el otro, con su nº (roles-2x1.ts).
         const roles = rolesDel2x1(venta as any);
+        // El saldo de stock virtual que el robot leyó en su última pasada (no toca el portal).
+        // En un 2x1 no aplica (Ishtar, 16/10/2026).
+        const fotoVirtual = roles ? null : await leerFotoStockVirtual();
         const origen = roles ? await numeroDelParConCargo(orderId, roles.conCargo) : null;
         const campos: CampoDePreparacion[] = [
             { clave: 'tipoArmazon', etiqueta: 'Tipo de armazón', tipo: 'select', obligatorio: true, opciones: [{ value: 'PLASTICO', label: 'Plástico' }, { value: 'METALICO', label: 'Metálico' }] },
@@ -89,7 +93,7 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                     pair,
                     titulo: items[0]?.product?.name ?? items[0]?.productNameSnapshot ?? null,
                     faltantes: r.ok || r.aMano ? [] : r.faltantes,
-                    avisos: r.avisos,
+                    avisos: [...r.avisos, ...(roles ? [] : [lineaDeStockVirtual(fotoVirtual, nombreProducto)].filter((l): l is string => !!l))],
                     aMano: r.ok ? null : (r.aMano ?? null),
                     // Stock: el portal no lleva forma del armazón; no se ofrece.
                     campos: [...(esStock ? campos.filter(c => c.clave !== 'forma') : campos), ...(extraEssential ? [extraEssential] : [])],

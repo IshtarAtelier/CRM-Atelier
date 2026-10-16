@@ -79,6 +79,12 @@ model Client {
   createdBy              String?           @default("Sistema")
   isDeleted              Boolean           @default(false)
   opportunityDismissedAt DateTime?
+  // Ya dejó la reseña en Google (Ishtar, 16/10/2026). Lo marca el vendedor con
+  // "Ya comentó" o el cruce con Places (googleReviewSource = MANUAL | GOOGLE).
+  // Con esto puesto, el robot del 2º pedido de reseña no lo vuelve a sugerir.
+  googleReviewAt         DateTime?
+  googleReviewSource     String?
+  googleReviewBy         String?
   tasks                  ClientTask[]
   interactions           Interaction[]
   orders                 Order[]
@@ -264,6 +270,10 @@ model ClientTask {
   completedBy String?
   completedAt DateTime?
   type        String    @default("TASK")
+  // 2º pedido de reseña: apunta al 1º (ClientTask REVIEW_REQUEST cerrado).
+  // UNIQUE: la base garantiza un solo 2º pedido por cada 1º, aunque dos
+  // instancias corran el robot a la vez.
+  reminderOfTaskId String?   @unique
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
@@ -453,6 +463,10 @@ model Order {
   appliedPromoName     String?
   prescriptionSnapshot String?
   specialDiscount      Float?             @default(0)
+  // Lo que el post-venta le cobra al CLIENTE (suma de PostSaleCase.clientCharge
+  // de esta venta). Se SUMA al saldo en PricingService.calculateOrderFinancials;
+  // NUNCA toca total ni subtotalWithMarkup. Lo mantiene PostSaleChargeService.
+  postSaleCharge       Float              @default(0)
   smartLabSector       String?
   smartLabProgress     Int?
   smartLabLastSync     DateTime?
@@ -1385,6 +1399,12 @@ model PostSaleCase {
   // Movimiento de caja generado por este caso. Su presencia es el candado que
   // impide imputar dos veces el mismo costo.
   cashEntryId     String?   @unique
+  // El costo lo paga el CLIENTE en vez de salir de una caja. Se carga acá, en el
+  // caso, y SUMA al saldo de la venta (Order.postSaleCharge); los pagos son los
+  // pagos normales de la venta. Es la alternativa a cashEntryId.
+  clientCharge    Float?
+  clientChargedAt DateTime?
+  clientChargedBy String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -45,6 +45,11 @@ export const ETIQUETA_POR_PLANTILLA: Partial<Record<TemplateName, string>> = {
     seguimiento_carrito: 'SEGUIMIENTO_DIA_1',
     invitacion_local_v4: 'SEGUIMIENTO_DIA_4',
     ultimo_seguimiento: 'SEGUIMIENTO_DIA_15',
+    // Versión corta (16/10/2026): mismas etiquetas que las viejas, así el
+    // clasificador y las estadísticas no distinguen cuál salió.
+    seguimiento_presupuesto_v3: 'SEGUIMIENTO_DIA_1',
+    seguimiento_segundo_v2: 'SEGUIMIENTO_DIA_4',
+    ultimo_seguimiento_v5: 'SEGUIMIENTO_DIA_15',
     // El último intento antes de cerrar (8/10/2026). No es un escalón del
     // clasificador: no mueve de columna, solo marca que ya se intentó.
     retomar_con_cupon: 'SEGUIMIENTO_RETOME',
@@ -59,9 +64,9 @@ export function esPlantillaDeSeguimiento(nombre: string): nombre is TemplateName
 
 /** Escalón de seguimiento → plantilla que le corresponde. */
 const PLANTILLA_POR_ESCALON: Record<'seguimiento1' | 'seguimiento2' | 'seguimiento10dias', TemplateName> = {
-    seguimiento1: 'seguimiento_presupuesto',
-    seguimiento2: 'invitacion_local_v4',
-    seguimiento10dias: 'ultimo_seguimiento',
+    seguimiento1: 'seguimiento_presupuesto_v3',
+    seguimiento2: 'seguimiento_segundo_v2',
+    seguimiento10dias: 'ultimo_seguimiento_v5',
 };
 
 /** Escalón → cuántas horas después del presupuesto vence. */
@@ -73,6 +78,9 @@ const VENCE_A_LAS_HORAS: Record<'seguimiento1' | 'seguimiento2' | 'seguimiento10
 
 /** Nombres cortos para mostrar en la tarjeta y en el resumen. */
 export const NOMBRE_CORTO_PLANTILLA: Partial<Record<TemplateName, string>> = {
+    seguimiento_presupuesto_v3: '¿Viste el presupuesto? (corto)',
+    seguimiento_segundo_v2: '¿Seguís pensándolo?',
+    ultimo_seguimiento_v5: 'Cierre con cupón',
     seguimiento_presupuesto: 'Seguimiento del presupuesto',
     seguimiento_lentes_sin_receta: 'Retomar la charla (sin receta)',
     seguimiento_lentes_con_receta: 'Retomar la charla (con receta)',
@@ -97,6 +105,14 @@ export type TipoDeAccion =
  * de cerrar como perdido. Es la "ventana de respuesta" al último mensaje.
  */
 export const CIERRE_TRAS_ULTIMO_TOQUE_DIAS = 7;
+
+/**
+ * El retome del día 30 con cupón (8/10/2026) se APAGA el 16/10/2026: el
+ * cierre del día 15 ya lleva el cupón, y volver a escribir 15 días después
+ * con lo mismo, más largo, es exactamente lo que Ishtar pidió sacar. Si se
+ * quiere volver a prender, es esta constante.
+ */
+export const RETOME_DIA_30_ACTIVO = false;
 
 /**
  * Más viejo que esto no se cierra solo: ya es otra época y marcar perdidos
@@ -221,7 +237,7 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
     // (`cierre.ts`) y al volver se le ofrece otra vez — hasta los 120 días.
     if (dias > VENTANA_EMBUDO_DIAS) {
         const yaIntentado = e.chatLabels.some(l => l.toUpperCase() === ETIQUETA_POR_PLANTILLA.retomar_con_cupon);
-        if (!yaIntentado && e.tieneChat) {
+        if (RETOME_DIA_30_ACTIVO && !yaIntentado && e.tieneChat) {
             return { tipo: 'plantilla', plantilla: 'retomar_con_cupon', etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA.retomar_con_cupon} (${queEs.toLowerCase()} hace ${dias} días)`, venceEn: vence(VENTANA_EMBUDO_DIAS * 24), vencida: true };
         }
         const desde = silencioDesde(ref.getTime() + VENTANA_EMBUDO_DIAS * 24 * HORA_MS);

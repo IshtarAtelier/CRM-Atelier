@@ -7,6 +7,7 @@ import {
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { calculateQuoteTotals } from '@/services/PricingService';
+import { esArchivado } from '@/lib/cristales-web/claves';
 
 interface OrderManagerProps {
     contactId: string;
@@ -74,7 +75,10 @@ export default function OrderManager({
         if (availableProducts.length === 0) {
             const r = await fetch('/api/products');
             const data = await r.json();
-            if (Array.isArray(data)) setAvailableProducts(data);
+            // Los ARCHIVADOS no se cotizan (misma regla que el cotizador y la tienda:
+            // la ficha sigue viva para las ventas ya hechas, pero el vendedor no la ve).
+            // El 16/10/2026 los de La Cámara seguían apareciendo desde acá.
+            if (Array.isArray(data)) setAvailableProducts(data.filter((p: any) => !esArchivado(p?.name)));
         }
     };
 

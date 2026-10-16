@@ -6,11 +6,14 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { WhatsAppIcon } from '@/components/ui/icons';
+import { abrirChatPedidoResena, BotonYaComento, EtiquetaSegundoPedido } from '@/components/resenas/acciones-resena';
+import { esTareaDeResena } from '@/lib/resenas/pedido-resena';
 
 interface Task {
     id: string;
     description: string;
     status: string;
+    type?: string | null;
     dueDate?: string | null;
     createdAt: string;
 }
@@ -20,9 +23,11 @@ interface TaskManagerProps {
     contact?: any;
     onAddTask: (description: string, dueDate?: string) => Promise<void>;
     onToggleTask: (taskId: string, status: string) => Promise<void>;
+    /** Vuelve a leer la ficha (p. ej. después de "Ya comentó", que cierra las tareas en el servidor). */
+    onRefresh?: () => void;
 }
 
-export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }: TaskManagerProps) {
+export default function TaskManager({ tasks, contact, onAddTask, onToggleTask, onRefresh }: TaskManagerProps) {
     const [isAdding, setIsAdding] = useState(false);
     const [description, setDescription] = useState('');
     const [dueDate, setDueDate] = useState('');
@@ -119,13 +124,17 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
             <div className="space-y-3">
                 {pendingTasks.length > 0 ? (
                     pendingTasks.map((task, idx) => {
-                        const isReview = task.description?.includes('Solicitar comentario') || false;
+                        const isReview = esTareaDeResena(task);
                         return (
                         <div key={task.id || `task-${idx}`} className={`flex items-center justify-between p-5 bg-white dark:bg-stone-900 rounded-[2.5rem] border-2 transition-all group shadow-sm ${isReview ? 'border-pink-200 dark:border-pink-900/50 hover:border-pink-400 dark:hover:border-pink-500/50 bg-pink-50/30' : 'border-stone-100 dark:border-stone-800 hover:border-emerald-500/30 dark:hover:border-emerald-500/20'}`}>
                             <div className="flex-1 min-w-0 pr-4">
                                 <p className={`text-sm font-bold break-words leading-relaxed ${isReview ? 'text-pink-900 dark:text-pink-100' : 'text-stone-800 dark:text-stone-200'}`}>
                                     {task.description}
+                                    {isReview && <EtiquetaSegundoPedido descripcion={task.description} />}
                                 </p>
+                                {isReview && contact?.id && (
+                                    <BotonYaComento clientId={contact.id} className="mt-2" onDone={onRefresh} />
+                                )}
                                 {task.dueDate && (
                                     <div className={`flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-widest ${new Date(task.dueDate) < new Date() ? 'text-red-500' : isReview ? 'text-pink-400' : 'text-stone-400'}`}>
                                         <Calendar className="w-3.5 h-3.5" />
@@ -140,32 +149,13 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                                         onClick={async (e) => {
                                             e.stopPropagation();
                                             
-                                            const btn = e.currentTarget;
-                                            const originalHTML = btn.innerHTML;
-                                            btn.innerHTML = '<span class="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-white border-t-transparent animate-spin"></span>';
-                                            btn.disabled = true;
-
-                                            const clientName = contact?.name ? contact.name.split(' ')[0] : 'Cliente';
-                                            let productNames = 'anteojos o cristales (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)';
-                                            
-                                            try {
-                                                const res = await fetch(`/api/contacts/${contact.id}`);
-                                                if (res.ok) {
-                                                    const clientData = await res.json();
-                                                    const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
-                                                    if (lastSale && lastSale.items && lastSale.items.length > 0) {
-                                                        productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
-                                                    }
-                                                }
-                                            } catch (err) {
-                                                console.error('Error fetching orders for review task', err);
-                                            }
-
-                                            const message = `Hola ${clientName}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶`;
-                                            let phone = contact.phone.replace(/\D/g, '');
-                                            if (phone.length === 10) phone = '549' + phone;
-                                            
-                                            window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(message)}`;
+                                            e.currentTarget.disabled = true;
+                                            await abrirChatPedidoResena({
+                                                clientId: contact.id,
+                                                nombre: contact?.name,
+                                                telefono: contact.phone,
+                                                descripcion: task.description,
+                                            });
                                         }}
                                         className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all disabled:opacity-50"
                                         title="Ir al chat de WhatsApp en el CRM con el mensaje prearmado"

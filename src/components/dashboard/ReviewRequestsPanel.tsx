@@ -4,6 +4,7 @@ import { Star, X, User, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 import { WhatsAppIcon } from '@/components/ui/icons';
+import { abrirChatPedidoResena, BotonYaComento, EtiquetaSegundoPedido } from '@/components/resenas/acciones-resena';
 
 import { useState } from 'react';
 
@@ -64,7 +65,13 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                                     </p>
                                     <p className="text-xs font-bold text-stone-500 dark:text-stone-400 line-clamp-2 leading-tight lowercase">
                                         {task.description}
+                                        <EtiquetaSegundoPedido descripcion={task.description} />
                                     </p>
+                                    <BotonYaComento
+                                        clientId={task.clientId}
+                                        className="mt-2"
+                                        onDone={() => setCompletedTasks(prev => new Set(prev).add(task.id))}
+                                    />
                                 </div>
                                 <ChevronRight className="w-5 h-5 text-stone-200 group-hover:text-yellow-500 transition-all group-hover:translate-x-1" />
                             </Link>
@@ -76,31 +83,13 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                                         e.preventDefault();
                                         e.stopPropagation();
                                         
-                                        const btn = e.currentTarget;
-                                        const originalHTML = btn.innerHTML;
-                                        btn.innerHTML = '<span class="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-white border-t-transparent animate-spin"></span>';
-                                        btn.disabled = true;
-
-                                        let productNames = 'anteojos o cristales (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)';
-                                        try {
-                                            const res = await fetch(`/api/contacts/${task.clientId}`);
-                                            if (res.ok) {
-                                                const clientData = await res.json();
-                                                const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
-                                                if (lastSale && lastSale.items && lastSale.items.length > 0) {
-                                                    productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
-                                                }
-                                            }
-                                        } catch (err) {
-                                            console.error('Error fetching orders for review task', err);
-                                        }
-                                        
-                                        const finalMessage = `Hola ${task.client.name.split(' ')[0]}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶`;
-
-                                        let phone = task.client.phone.replace(/\D/g, '');
-                                        if (phone.length === 10) phone = '549' + phone;
-                                        
-                                        window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(finalMessage)}`;
+                                        e.currentTarget.disabled = true;
+                                        await abrirChatPedidoResena({
+                                            clientId: task.clientId,
+                                            nombre: task.client.name,
+                                            telefono: task.client.phone,
+                                            descripcion: task.description,
+                                        });
                                         onClose();
                                     }}
                                     className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed"

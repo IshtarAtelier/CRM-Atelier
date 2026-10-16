@@ -90,7 +90,7 @@ export const SELECT_REPASO = {
     // MENOS al cliente por mail. La auditoría lo encontró porque los PDF de
     // prueba se generaban con `include` (que trae todo) y el envío real con
     // este select: los dos documentos del mismo pedido no daban lo mismo.
-    subtotalWithMarkup: true,
+    subtotalWithMarkup: true, postSaleCharge: true,
     specialDiscount: true,
     createdAt: true,
     // Observación del vendedor que el schema promete que "SALE EN EL PDF que

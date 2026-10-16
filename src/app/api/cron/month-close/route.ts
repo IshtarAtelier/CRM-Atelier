@@ -129,7 +129,7 @@ export async function GET(request: Request) {
             select: {
                 id: true,
                 createdAt: true,
-                subtotalWithMarkup: true,
+                subtotalWithMarkup: true, postSaleCharge: true,
                 paid: true,
                 discountCash: true,
                 discountTransfer: true,

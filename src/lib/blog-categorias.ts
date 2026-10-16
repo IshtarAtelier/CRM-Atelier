@@ -20,6 +20,16 @@ export type PostDeBlog = {
     date: string;
 };
 
+/**
+ * Slug heredado de Tienda Nube con sufijo hash (`-529a0209b715`). Sigue
+ * PUBLISHED en la base, pero /blog/[slug] lo redirige 301 a su versión limpia:
+ * listarlo enlaza a una redirección (pasaba en /blog/categoria/cristales-especiales,
+ * medido 16/10/2026). Mismo criterio que el sitemap y HASH_SUFFIX_REGEX.
+ */
+export function esSlugConHashHeredado(slug: string): boolean {
+    return /-[0-9a-f]{12}$/.test(slug);
+}
+
 /** "Salud Visual" → "salud-visual" */
 export function slugDeCategoria(nombre: string): string {
     return String(nombre || '')
@@ -47,7 +57,7 @@ export async function todosLosPosts(): Promise<PostDeBlog[]> {
         console.error('[blog] no se pudieron leer los posts de la base:', error);
     }
 
-    const deLaBase: PostDeBlog[] = dbPosts.map(p => ({
+    const deLaBase: PostDeBlog[] = dbPosts.filter(p => !esSlugConHashHeredado(p.slug)).map(p => ({
         slug: p.slug,
         title: p.title,
         excerpt: p.excerpt,

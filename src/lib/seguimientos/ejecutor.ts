@@ -2,6 +2,7 @@ import { SYSTEM_ACTOR } from '@/lib/actor';
 import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { templateSpec, WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
 import { saludoSegunHoraArgentina } from '@/lib/whatsapp/saludo';
+import { prisma } from '@/lib/db';
 import { registrarSeguimientoEnviado } from '@/lib/embudo/registrar-seguimiento';
 import { PAUSA_ENTRE_ENVIOS_MS } from '@/lib/constants/seguimientos';
 import { nombreDePila, type Candidato } from './politica';
@@ -48,13 +49,54 @@ const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));
  * catálogo. Si una plantilla pide algo que el motor no sabe llenar, se corta
  * acá con error en vez de mandar un mensaje con un hueco.
  */
-export function armarParametros(plantilla: keyof typeof WHATSAPP_TEMPLATES, nombre: string, now: Date): string[] {
+export interface ExtrasDeParametros {
+    /** Nombre de pila de quien "firma" el toque corto: el último del equipo que escribió en ese chat, o el de guardia. */
+    vendedor?: string | null;
+    /** El cupón de recupero de /admin/web, ya resuelto (recovery.ts); null si no hay uno activo. */
+    cupon?: { code: string; label: string; venceEl: string } | null;
+}
+
+/** Quién firma cuando ningún vendedor escribió todavía en el chat. */
+export const VENDEDOR_DE_GUARDIA = 'Mati';
+
+export function armarParametros(plantilla: keyof typeof WHATSAPP_TEMPLATES, nombre: string, now: Date, extras: ExtrasDeParametros = {}): string[] {
     const def = WHATSAPP_TEMPLATES[plantilla] as { params?: readonly { label: string }[] };
     return (def.params ?? []).map(p => {
         if (p.label === 'nombre') return nombreDePila(nombre) ?? '';
         if (p.label === 'saludo según la hora') return saludoSegunHoraArgentina(now);
+        if (p.label === 'vendedor') return nombreDePila(extras.vendedor || '') || VENDEDOR_DE_GUARDIA;
+        if (p.label === 'descuento') { if (!extras.cupon) throw new Error('sin cupón de recupero activo en /admin/web'); return extras.cupon.label; }
+        if (p.label === 'código') { if (!extras.cupon) throw new Error('sin cupón de recupero activo en /admin/web'); return extras.cupon.code; }
+        if (p.label === 'vence el') { if (!extras.cupon) throw new Error('sin cupón de recupero activo en /admin/web'); return extras.cupon.venceEl; }
         throw new Error(`La plantilla ${plantilla} pide "${p.label}" y el motor no sabe llenarlo`);
     });
+}
+
+/**
+ * Hasta que Meta apruebe las versiones cortas (16/10/2026), cada una tiene su
+ * plantilla vieja como respaldo: el embudo no se frena por la aprobación.
+ */
+export const PLANTILLA_LEGADA: Partial<Record<keyof typeof WHATSAPP_TEMPLATES, keyof typeof WHATSAPP_TEMPLATES>> = {
+    seguimiento_presupuesto_v3: 'seguimiento_presupuesto',
+    seguimiento_segundo_v2: 'invitacion_local_v4',
+    ultimo_seguimiento_v5: 'ultimo_seguimiento',
+};
+
+/** Qué plantillas están APPROVED en el espejo local de Meta. */
+async function plantillasAprobadas(nombres: string[]): Promise<Set<string>> {
+    if (!nombres.length) return new Set();
+    const filas = await prisma.whatsAppTemplate.findMany({ where: { name: { in: nombres }, status: 'APPROVED' }, select: { name: true } });
+    return new Set(filas.map(f => f.name));
+}
+
+/** Nombre de pila del último del equipo (no bot, no sistema, no "Teléfono") que escribió en el chat. */
+async function ultimoVendedorDelChat(chatId: string): Promise<string | null> {
+    const m = await prisma.whatsAppMessage.findFirst({
+        where: { chatId, direction: 'OUTBOUND', senderName: { notIn: ['Bot', 'Sistema', 'Teléfono', 'Asistente', 'Agente Bot', 'Atelier Bot'] }, NOT: { senderName: null } },
+        orderBy: { createdAt: 'desc' },
+        select: { senderName: true },
+    });
+    return m?.senderName ?? null;
 }
 
 export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise<{ resultados: ResultadoEnvio[]; frenado: boolean }> {
@@ -62,9 +104,15 @@ export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise
     const dia = diaArt(now);
     let frenado = false;
 
+    const aprobadas = await plantillasAprobadas(Object.keys(PLANTILLA_LEGADA));
+    const { getRecoveryCoupon } = await import('@/lib/checkout/recovery');
+    const cupon = (await getRecoveryCoupon().catch(() => undefined)) ?? null;
+
     for (let i = 0; i < elegidos.length; i++) {
         const c = elegidos[i];
-        const plantilla = c.plantilla!;
+        const pedida = c.plantilla!;
+        // Versión corta sin aprobar todavía → sale la vieja equivalente.
+        const plantilla = (PLANTILLA_LEGADA[pedida] && !aprobadas.has(pedida)) ? PLANTILLA_LEGADA[pedida]! : pedida;
         if (frenado) {
             resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: false, salteado: true, detalle: `freno: ${FALLAS_SEGUIDAS_PARA_FRENAR} fallas seguidas; se reintenta en el próximo tick` });
             continue;
@@ -77,7 +125,10 @@ export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise
             continue;
         }
         try {
-            const params = armarParametros(plantilla, c.nombre, now);
+            const vendedor = (WHATSAPP_TEMPLATES[plantilla] as { params?: readonly { label: string }[] }).params?.some(p => p.label === 'vendedor')
+                ? await ultimoVendedorDelChat(c.waChatId!)
+                : null;
+            const params = armarParametros(plantilla, c.nombre, now, { vendedor, cupon });
             const r = await sendWhatsApp({
                 chatId: c.waChatId!,
                 message: '',

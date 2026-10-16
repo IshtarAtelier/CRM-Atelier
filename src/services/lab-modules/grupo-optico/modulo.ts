@@ -11,6 +11,7 @@ import {
     numerosNoEncontrados, progresoDeFila, resumenTracker, type DetalleTracker, type FilaApiSmartLab,
 } from './pedidos';
 import { conSesionSmartLab, LAB_GRUPO_OPTICO, leerPedidosApi, NOMBRE_GRUPO_OPTICO, ROBOT_GRUPO_OPTICO } from './portal';
+import { leerStockVirtual, procesarStockVirtual } from './stock-virtual';
 
 /**
  * EL MÓDULO DE GRUPO ÓPTICO (portal SmartLab). Reemplaza al seguimiento de
@@ -51,7 +52,12 @@ async function seguirPedidos(opts: OpcionesCorrida = {}): Promise<ResultadoSegui
     const activos = [...new Set([...numerosDe.values()].flat())];
     console.log(`[Grupo Óptico] ${ventas.length} ventas activas, ${activos.length} nº de pedido a seguir; ventana de ${ventanaDias} días.`);
 
-    const lectura = await conSesionSmartLab(page => leerPedidosApi(page, desde));
+    // En la misma sesión se lee el stock virtual (stock-virtual.ts): si esa
+    // lectura falla no frena el seguimiento, solo queda sin actualizar.
+    const { lectura, virtuales } = await conSesionSmartLab(async page => ({
+        lectura: await leerPedidosApi(page, desde),
+        virtuales: await leerStockVirtual(page).catch((err: unknown) => { console.error('[Grupo Óptico] no se pudo leer el stock virtual:', (err as Error)?.message || err); return null; }),
+    }));
     // Una API que no devuelve ni un pedido no es "no hay pedidos": el portal
     // siempre tiene historial. Es la sesión que no entró o la API que cambió,
     // y sobre eso no se afirma nada (si se siguiera, TODO saldría "no encontrado").
@@ -71,6 +77,9 @@ async function seguirPedidos(opts: OpcionesCorrida = {}): Promise<ResultadoSegui
     const { cambios, nuevos, vinculados } = await reflejar(LAB_GRUPO_OPTICO, pedidos, ventas);
 
     await registrarHuerfanos([...filaDe.values()]);
+
+    // Stock virtual: guardar el saldo y avisar agotados / pedidos sin stock (nunca lanza).
+    if (virtuales) await procesarStockVirtual(virtuales, ahora);
 
     // Se aplica el estado a TODA venta activa con pedidos en el espejo, no solo
     // a las que cambiaron: `aplicarEstadoEnVenta` no hace nada si no hay nada

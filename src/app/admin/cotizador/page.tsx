@@ -51,6 +51,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import TablaCotizador from './TablaCotizador';
 import FiltrosDeCategoria, { CATEGORIA_TODAS, coincideCategoria, etiquetaCategoria } from '@/components/inventory/FiltrosDeCategoria';
 import { PRODUCT_CATEGORIES } from '@/lib/constants';
+import { esArchivado } from '@/lib/cristales-web/claves';
 
 // Chips de la barra de filtros. Estaban con la clase copiada cuatro veces, y con
 // `border-sidebar-border` — un tono que NO existe: sin color declarado el borde cae a
@@ -245,7 +246,7 @@ function CotizadorPageContent() {
                     // para las ventas ya hechas, los reportes de costo de
                     // laboratorio siguen cuadrando, pero el vendedor no lo ve.
                     // Borrarlo dejaría huérfanas esas ventas.
-                    setProducts(data.filter((p: Product) => !/^\s*\[archivado\]/i.test(p.name || '')));
+                    setProducts(data.filter((p: Product) => !esArchivado(p.name)));
                 } else {
                     console.error('Error loading products:', data);
                     setProducts([]);

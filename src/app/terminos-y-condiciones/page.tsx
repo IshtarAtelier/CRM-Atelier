@@ -58,7 +58,7 @@ export default function TerminosYCondicionesPage() {
                 Los pagos realizados con tarjeta de crédito en nuestra plataforma son procesados a través de la pasarela de pago <strong>Payway (Prisma Medios de Pago S.A.)</strong>, garantizando altos estándares de encriptación y seguridad digital (SSL/PCI-DSS).
               </p>
               <p>
-                Las promociones de cuotas sin interés (3 y 6 cuotas) están sujetas a las condiciones y promociones bancarias vigentes provistas por Payway y pueden ser modificadas sin previo aviso. El descuento del 15% por efectivo o transferencia bancaria se aplicará sobre el precio de lista indicado en la tienda.
+                Las promociones de cuotas sin interés (3 y 6 cuotas) están sujetas a las condiciones y promociones bancarias vigentes provistas por Payway y pueden ser modificadas sin previo aviso. El descuento del 15% por transferencia bancaria se aplicará sobre el precio de lista indicado en la tienda.
               </p>
               {/* Los T&C son el ÚNICO lugar donde el 10% de costo financiero
                   sigue escrito con todas las letras. La decisión de Ishtar del

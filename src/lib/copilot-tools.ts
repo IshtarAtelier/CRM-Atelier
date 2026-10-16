@@ -81,7 +81,7 @@ const getClientBalance: CopilotTool = {
         orders: {
           where: { isDeleted: false },
           select: {
-            orderType: true, total: true, subtotalWithMarkup: true, paid: true,
+            orderType: true, total: true, subtotalWithMarkup: true, postSaleCharge: true, paid: true,
             discountCash: true, discountTransfer: true,
             payments: { select: { amount: true, method: true } },
           },
@@ -128,7 +128,7 @@ const getOrderStatus: CopilotTool = {
       },
       select: {
         id: true, status: true, labStatus: true, total: true, paid: true,
-        discountCash: true, discountTransfer: true, subtotalWithMarkup: true,
+        discountCash: true, discountTransfer: true, subtotalWithMarkup: true, postSaleCharge: true,
         payments: { select: { amount: true, method: true } },
         labOrderNumber: true, createdAt: true,
         client: { select: { name: true } },
@@ -673,7 +673,7 @@ const getClientHistory: CopilotTool = {
         // Lo que necesita PricingService para calcular el saldo de verdad:
         // el precio de lista y los pagos con su método, para convertir cada uno
         // a su equivalente de lista antes de restarlo.
-        subtotalWithMarkup: true,
+        subtotalWithMarkup: true, postSaleCharge: true,
         discountCash: true,
         discountTransfer: true,
         payments: { select: { amount: true, method: true } },
@@ -741,7 +741,7 @@ const getSalesVsTarget: CopilotTool = {
       select: {
         total: true,
         paid: true,
-        subtotalWithMarkup: true,
+        subtotalWithMarkup: true, postSaleCharge: true,
         discountCash: true,
         discountTransfer: true,
         labNotes: true,
@@ -841,7 +841,7 @@ const getFinancialReport: CopilotTool = {
     const orders = await prisma.order.findMany({
       where: { orderType: 'SALE', isDeleted: false, createdAt: { gte: from, lte: to } },
       select: {
-        total: true, paid: true, subtotalWithMarkup: true,
+        total: true, paid: true, subtotalWithMarkup: true, postSaleCharge: true,
         items: { select: { price: true, quantity: true, eye: true, productCostSnapshot: true, productUnitTypeSnapshot: true, product: { select: { cost: true, unitType: true, category: true } } } },
         payments: { select: { amount: true, method: true } },
       },
@@ -1075,7 +1075,7 @@ const getPendingBalances: CopilotTool = {
         orders: {
           where: { isDeleted: false },
           select: {
-            orderType: true, total: true, subtotalWithMarkup: true, paid: true,
+            orderType: true, total: true, subtotalWithMarkup: true, postSaleCharge: true, paid: true,
             discountCash: true, discountTransfer: true,
             payments: { select: { amount: true, method: true } },
           },
