@@ -389,7 +389,7 @@ export const WHATSAPP_TEMPLATES = {
         name: 'seguimiento_segundo_v1',
         inventario: 'E3 (segundo seguimiento, día 7) · reemplaza invitacion_local_v4',
         category: 'UTILITY',
-        body: '{{1}}, seguís pensándolo? Si hay algo que te frena, decímelo y lo vemos.',
+        body: 'Hola {{1}}, seguís pensándolo? Si hay algo que te frena, decímelo y lo vemos.',
         params: [{ label: 'nombre', example: 'Julio' }],
         buttons: [
             { type: 'QUICK_REPLY', text: 'Tengo una duda' },
@@ -400,7 +400,7 @@ export const WHATSAPP_TEMPLATES = {
         name: 'ultimo_seguimiento_v2',
         inventario: 'E4 (cierre, día 15) · reemplaza ultimo_seguimiento y el retome del día 30',
         category: 'MARKETING',
-        body: '{{1}}, te dejo un {{2}} con el código {{3}} hasta el {{4}}, por si te sirve. Si ya lo resolviste, no hay drama, avisame y listo.',
+        body: 'Hola {{1}}, te dejo un {{2}} con el código {{3}} hasta el {{4}}, por si te sirve. Si ya lo resolviste, no hay drama, avisame y listo.',
         params: [
             { label: 'nombre', example: 'Julio' },
             { label: 'descuento', example: '10% OFF' },
