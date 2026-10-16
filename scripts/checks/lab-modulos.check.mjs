@@ -20,6 +20,8 @@ import { transicionDeVenta, estadoConjunto, estadoConjuntoDeVenta, paresCompleto
 import { ventaDelPedido, cambioEnPedido, ventasSinPedidoEnPortal, pedidosAtrasados } from '../../src/services/lab-modules/espejo.ts';
 import { transicionValida, borradorVivo, puedeAprobar, portalSinResolver, colgados, SALIDAS_A_ERROR_CON_PRUEBA, Borradores } from '../../src/services/lab-modules/carga/borrador.ts';
 import { DURACION_TURNO_MIN, RENOVAR_TURNO_CADA_MS } from '../../src/services/lab-modules/portal/turno.ts';
+import { CARGAS } from '../../src/services/lab-modules/carga/registro.ts';
+import { LABS_CON_CARGA_ASISTIDA, NOMBRE_DE_LAB } from '../../src/lib/laboratorios/identidad.ts';
 import { statSync } from 'node:fs';
 import { join as unirRuta } from 'node:path';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
@@ -589,6 +591,10 @@ ok('APROBADO no va a ERROR por la tabla (el portal puede haber confirmado); pued
     assert.equal(transicionValida('APROBADO', 'ERROR'), false);
     assert.equal(transicionValida('APROBADO', 'EN_REVISION'), true);
     assert.equal(transicionValida('PREPARADO', 'ERROR'), true);
+});
+ok('los laboratorios con carga asistida que conoce el navegador son exactamente los del registro del servidor', () => {
+    assert.deepEqual([...LABS_CON_CARGA_ASISTIDA].sort(), CARGAS.map(c => c.lab).sort());
+    for (const lab of LABS_CON_CARGA_ASISTIDA) assert.ok(NOMBRE_DE_LAB[lab], `falta el nombre de ${lab}`);
 });
 ok('las salidas a ERROR con prueba en el WHERE están declaradas, y son exactamente las que Borradores tiene', () => {
     // La tabla dice que APROBADO → ERROR no existe "en general"; estas tres son

@@ -18,7 +18,7 @@ import { webPaymentGatewayLabel } from '@/lib/checkout/payment-gateway';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
-import CargaLaboratorio from '@/components/orders/CargaLaboratorio';
+import { LABS_CON_CARGA_ASISTIDA, NOMBRE_DE_LAB, ventaLlevaCristalesDe } from '@/lib/laboratorios/identidad';
 import ComprobanteLab from '@/components/orders/ComprobanteLab';
 import { colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
 import { estadoConfirmacionCliente } from '@/lib/confirmacion-cliente';
@@ -1361,22 +1361,20 @@ export default function VentasPage() {
                                         );
                                     })()}
 
-                                {/* Carga del pedido en el portal de Vitolen (un solo componente para
-                                    todos los labs): solo Ishtar y Milena — la API responde 403 al resto y
-                                    el bloque no se dibuja. Grupo Óptico va en el panel de la venta
-                                    (OrderDetailPanel): acá dibujaría un bloque por cada venta del listado. */}
-                                {orderLabs.some(l => /vitolen/i.test(l)) && (
-                                    <div className="mt-4">
-                                        <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={fetchOrders} />
-                                    </div>
-                                )}
-                                {/* Grupo Óptico: el bloque del robot está en la ficha; desde acá se abre directo (Ishtar, 15/10/2026: "¿dónde dice procesar en SmartLab?"). */}
-                                {orderLabs.some(l => /grupo[\s_-]?[oó]ptico/i.test(l)) && !['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && (
-                                    <div className="mt-4">
-                                        <button type="button" onClick={() => setExpandedDetail(order.id)}
-                                            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-                                            🤖 Cargar en Grupo Óptico (SmartLab) — abre la ficha
-                                        </button>
+                                {/* Carga asistida (robot + OK humano): LA MISMA entrada para todo laboratorio
+                                    que la tenga (LABS_CON_CARGA_ASISTIDA, sin código por lab): un botón que
+                                    abre la ficha, donde vive el bloque completo (CargaLaboratorio, el mismo
+                                    componente para todos). Acá no se dibuja el bloque: sería uno y una
+                                    consulta por cada venta del listado (Ishtar, 15/10/2026: "misma estética
+                                    en todos los laboratorios, modular, escalable y robusto"). */}
+                                {!['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && LABS_CON_CARGA_ASISTIDA.filter(lab => ventaLlevaCristalesDe(order.items, lab)).length > 0 && (
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {LABS_CON_CARGA_ASISTIDA.filter(lab => ventaLlevaCristalesDe(order.items, lab)).map(lab => (
+                                            <button key={lab} type="button" onClick={() => setExpandedDetail(order.id)} title={`Abre la ficha en el bloque de ${NOMBRE_DE_LAB[lab]}: el robot arma el pedido y se aprueba viendo el portal`}
+                                                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg bg-stone-900 text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900">
+                                                🤖 Cargar en {NOMBRE_DE_LAB[lab]} con el robot
+                                            </button>
+                                        ))}
                                     </div>
                                 )}
 
