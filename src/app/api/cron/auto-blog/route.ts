@@ -133,6 +133,7 @@ Reglas estrictas:
 
     } catch (error: any) {
         console.error('[AutoBlog] Error:', error);
+        await (await import('@/lib/ai-error-handler')).avisarSiSinCredito(error, 'Blog automático');
         return NextResponse.json({ error: error.message || 'Error del servidor en cron handler' }, { status: 500 });
     }
 }

@@ -126,6 +126,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ salud, veredicto: JSON.parse(crudo) });
   } catch (error: unknown) {
     console.error('[admin/tienda/veredicto]', error);
+    await (await import('@/lib/ai-error-handler')).avisarSiSinCredito(error, 'Veredicto de la tienda');
     // Si falla la IA, se devuelven los números igual: mejor un panel con datos
     // y sin veredicto que una pantalla de error.
     try {

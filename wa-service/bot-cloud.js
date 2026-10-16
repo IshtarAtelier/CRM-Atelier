@@ -54,6 +54,9 @@ const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
 const { leerReceta, MAX_FOTOS_POR_LECTURA } = require('./shared/leer-receta');
 const { urlDelMedio } = require('./shared/url-del-medio');
 const { CLAVE_PROMPT_ACTIVO, promptVivoActivo, promptDeVentas } = require('./shared/prompt-custom');
+const { claseDe, esFallaDeSaldo } = require('./shared/errores-ia');
+const { crearMonitorDeCredito, CLAVE_EPISODIO } = require('./shared/credito-ia');
+const { ANTIGUEDAD_MAXIMA_PARA_VOLVER_H } = require('./shared/duenio-del-chat');
 
 // Cuánto se espera antes de contestar, para juntar las burbujas que el cliente
 // manda seguidas (mismo criterio que el transporte legacy). Configurable por
@@ -77,6 +80,12 @@ const BARRIDO_DE_VUELTAS_MS = 60 * 1000;
 // Tope de chats por barrido: alcanza de sobra (hoy son decenas) y acota el
 // costo si algo se descontrola.
 const MAX_CHATS_POR_BARRIDO = 200;
+// Al volver el crédito de la IA se rescatan los chats con un entrante desde
+// un poco antes de que este proceso viera la primera falla (el entrante que la
+// disparó llegó un debounce antes). Nunca más atrás que el tope de 24 h.
+const MARGEN_RESCATE_MS = 5 * 60 * 1000;
+// Separación entre los turnos rescatados: no salir todos en el mismo segundo.
+const ESPACIO_ENTRE_RESCATES_MS = 4000;
 
 
 /** Mimetype por extensión: la Cloud API decide imagen/documento por el mimetype. */
@@ -210,6 +219,9 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 console.log(`🧾 [BotCloud] Prompt de ventas: ${elegido.fuente === 'vivo' ? 'el VIVO (SystemSetting.bot_prompt)' : 'el del REPO (prompts/salesPrompt.js)'} — ${elegido.motivo}.`);
             }
             agentState.promptFuente = elegido.fuente;
+            // ¿El CRM ya dio por cerrado el episodio sin crédito? (la sonda de
+            // cada 30 min lo cierra aunque nadie le escriba al bot).
+            creditoIA.revisar().catch(() => {});
         } catch (e) {
             agentState.agentEnabled = false; // fail-safe, igual que isEnabled()
             console.error('[BotCloud] No se pudo cargar la config del bot:', e.message);
@@ -621,6 +633,64 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         return true;
     }
 
+    // ── IA sin crédito (16/10/2026) ─────────────────────────────────────────
+
+    /**
+     * Gemini rechazó por PLATA o CUOTA. No es culpa del chat: no cuenta como
+     * falla, no apaga el bot y el cliente no recibe nada. El turno queda
+     * pendiente y, cuando vuelve el crédito, `rescatarSinRespuesta` lo
+     * reprograma. El aviso a la dueña (WhatsApp + canal del sistema, uno por
+     * episodio) lo decide el CRM con su candado en la base.
+     */
+    async function sinSaldo(chat, waId, profileName, clase, err) {
+        console.error(`  💳 [BotCloud] IA ${clase === 'sin_credito' ? 'SIN CRÉDITO' : 'sin cuota'}: el turno de ${profileName || waId} queda pendiente (el bot sigue prendido en el chat).`);
+        await creditoIA.falla(clase, { origen: 'bot de WhatsApp', detalle: (err && err.message) || String(err) });
+    }
+
+    /**
+     * Volvió la IA: los chats con el bot prendido y un entrante desde el
+     * episodio se reprograman. El turno mismo vuelve a mirar si queda algo sin
+     * contestar, y la ventana de 24 h la sigue cuidando el transporte.
+     */
+    async function rescatarSinRespuesta(desde) {
+        if (!(await isEnabled())) return;
+        const tope = Date.now() - ANTIGUEDAD_MAXIMA_PARA_VOLVER_H * 60 * 60 * 1000;
+        const corte = new Date(Math.max(desde.getTime() - MARGEN_RESCATE_MS, tope));
+        const chats = await prisma.whatsAppChat.findMany({
+            where: { botEnabled: true, lastInboundAt: { gte: corte } },
+            select: { id: true, waId: true, realPhone: true, profileName: true, botEnabled: true, chatLabels: true, clientId: true },
+            orderBy: { lastInboundAt: 'asc' },
+            take: MAX_CHATS_POR_BARRIDO,
+        });
+        let n = 0;
+        for (const chat of chats) {
+            if (debounceTimers.has(chat.id) || candado.tengo(chat.id)) continue;
+            const fila = await prisma.whatsAppMessage.findFirst({
+                where: { chatId: chat.id, direction: 'INBOUND' },
+                orderBy: ORDEN_DE_LLEGADA_DESC,
+                select: { type: true, content: true },
+            }).catch(() => null);
+            if (!fila) continue;
+            const msg = { ...entranteDeFila(fila), profileName: chat.profileName, from: chat.realPhone };
+            if (await tieneExclusion(chat, msg)) continue;
+            programarTurno(chat, msg, REINTENTO_CON_TURNO_EN_CURSO_MS + n * ESPACIO_ENTRE_RESCATES_MS);
+            n++;
+        }
+        console.log(`  💳 [BotCloud] Rescate tras volver la IA: ${n} chat(s) reprogramado(s).`);
+    }
+
+    const creditoIA = crearMonitorDeCredito({
+        rescatar: rescatarSinRespuesta,
+        // Cerrado = el CRM vació la marca DESPUÉS de que empezó nuestro
+        // episodio. Sin fila, no se sabe (null): se espera a un turno que ande.
+        episodioAbiertoEnCrm: async (desde) => {
+            const row = await prisma.systemSetting.findUnique({ where: { key: CLAVE_EPISODIO } });
+            if (!row) return null;
+            if (row.value) return true;
+            return row.updatedAt >= desde ? false : null;
+        },
+    });
+
     // ── El turno ────────────────────────────────────────────────────────────
 
     // ── Lector dedicado de recetas ──────────────────────────────────────────
@@ -783,6 +853,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
 
             let result;
             let reloj = null;
+            let modeloRespondio = false;
             try {
                 result = await Promise.race([
                     graph.invoke(state, config),
@@ -794,13 +865,26 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                         }, GRAPH_TIMEOUT_MS);
                     }),
                 ]);
+                modeloRespondio = true;
             } catch (graphErr) {
                 console.error(`  ❌ [BotCloud] graph.invoke: ${graphErr.message}`);
                 turno.cancelar();
+                // El error del modelo NO se traga (16/10/2026): antes quedaba
+                // `messages: []`, se contaba como falla del chat y al 3er turno
+                // se apagaba el bot ahí, sin que nadie supiera que era plata.
+                const claseIA = claseDe(graphErr);
+                if (esFallaDeSaldo(claseIA)) {
+                    clearTimeout(reloj);
+                    await sinSaldo(chat, waId, profileName, claseIA, graphErr);
+                    return;
+                }
                 result = { messages: [] };
             } finally {
                 clearTimeout(reloj);
             }
+            // La IA contestó: si este proceso venía de un episodio sin crédito,
+            // se cierra y se rescata lo que quedó esperando.
+            if (modeloRespondio && creditoIA.enEpisodio()) creditoIA.exito().catch(() => {});
 
             const salida = Array.isArray(result && result.messages) ? result.messages : [];
 
@@ -1098,10 +1182,12 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 console.warn(`  ⏳ [BotCloud] Ventana de 24 h cerrada para ${waId}: el bot no insiste.`);
                 return;
             }
-            if (/429|RESOURCE_EXHAUSTED/.test(err.message || '')) {
-                chatErrorCounts.delete(chat.id);
-                await disableBotForChatById(chat.id, 'Cuota agotada de API (Error 429)', MOTIVO_APAGADO.CREDITO);
-                if (io) io.emit('bot_error', { chatId: chat.id, name: profileName || 'Cliente', phone: waId, error: 'Crédito Agotado (Error 429)' });
+            // Sin crédito / sin cuota: NO se apaga el bot del chat ni cuenta
+            // como falla (16/10/2026). Antes un 429 lo apagaba y el 402 —el
+            // del prepago agotado— ni se reconocía.
+            const claseIA = claseDe(err);
+            if (esFallaDeSaldo(claseIA)) {
+                await sinSaldo(chat, waId, profileName, claseIA, err).catch(() => {});
                 return;
             }
             await fallaTransitoria(chat, waId, profileName, err.message).catch(() => {});

@@ -187,6 +187,9 @@ jobs:
       - name: El wa-service migra antes de arrancar y pide columnas explícitas (no pierde entrantes en el rollout)
         run: npm run check:rollout-wa
 
+      - name: IA sin crédito avisa por WhatsApp una vez por episodio y no apaga el bot
+        run: npm run check:credito-ia
+
       - name: Build Next.js app
         run: npm run build
         env:

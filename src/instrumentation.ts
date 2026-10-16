@@ -958,6 +958,34 @@ export async function register() {
             }
         };
 
+        // ---- SONDA DE CRÉDITO DE LA IA, cada 30 min (16/10/2026) ----
+        // Una llamada de 5 tokens con la clave del bot: si da 402 avisa por
+        // WhatsApp a la dueña aunque nadie le esté escribiendo al bot, y si
+        // vuelve a andar cierra el episodio ("volvió"). Con dos instancias
+        // corre dos veces; el aviso igual sale uno (candado en SystemSetting).
+        // Costo: menos de USD 0,10 por mes (ver constants/ia-credito.ts).
+        {
+            const { MINUTOS_ENTRE_SONDAS_DE_CREDITO } = await import('@/lib/constants/ia-credito');
+            let sondando = false;
+            const sondarCredito = async () => {
+                if (sondando) return;
+                sondando = true;
+                try {
+                    const { sondearCreditoIA } = await import('@/services/ia-credito.service');
+                    const r = await sondearCreditoIA();
+                    if (r !== 'ok') console.warn(`[CRON crédito IA] La sonda dio: ${r}`);
+                } catch (err) {
+                    console.error('[CRON crédito IA] La sonda falló:', err);
+                } finally {
+                    sondando = false;
+                }
+            };
+            setTimeout(() => {
+                sondarCredito();
+                setInterval(sondarCredito, MINUTOS_ENTRE_SONDAS_DE_CREDITO * 60 * 1000);
+            }, 90_000);
+        }
+
         // Esperar 30 segundos después del inicio para el primer sync
         setTimeout(() => {
             runSync();
