@@ -16,6 +16,8 @@ export interface CristalVitolen {
     codigos: string[];
     variantes: string[];
     sinAntirreflejo: boolean;
+    /** Precio de lista por par, sin IVA, con antirreflejo (L96); null si la lista no lo trae. */
+    precioLista: number | null;
 }
 
 export const LISTA_VITOLEN = "L96 - V28 - ARG 09/2026";
@@ -38,7 +40,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "Indoor",
             "Outdoor"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 514200
     },
     {
         "nombre": "HOYA LIFESTYLE 4 - 1.50 SENSITY 2",
@@ -57,7 +60,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "Indoor",
             "Outdoor"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 726800
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.50 CLEAR BLUE FILTER",
@@ -70,7 +74,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10050"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 428000
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.50 SENSITY 2",
@@ -83,7 +88,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10052"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 612600
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.59 CLEAR BLUE FILTER",
@@ -96,7 +102,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10060"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 432800
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.59 SENSITY 2",
@@ -109,7 +116,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10062"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 663000
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.59 POLARIZED",
@@ -122,7 +130,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10064/66/68"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 500800
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.60 CLEAR",
@@ -135,7 +144,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10070"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 432800
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.60 BLUE FILTER UV-420",
@@ -148,7 +158,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10072"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 457200
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.60 SENSITY 2",
@@ -161,7 +172,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10074/76/78"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 694600
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.67 CLEAR",
@@ -174,7 +186,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10080"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 466200
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.67 CLEAR BLUE FILTER",
@@ -187,7 +200,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10082"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 505600
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.67 SENSITY 2",
@@ -200,7 +214,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10084"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 751000
     },
     {
         "nombre": "HOYA ARRAY 2 - 1.74 CLEAR",
@@ -213,7 +228,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10086"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 608000
     },
     {
         "nombre": "HOYA SUMMIT - 1.50 CLEAR BLUE FILTER",
@@ -226,7 +242,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10150"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 373800
     },
     {
         "nombre": "HOYA SUMMIT - 1.50 SENSITY 2",
@@ -239,7 +256,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10152"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 544000
     },
     {
         "nombre": "HOYA SUMMIT - 1.50 POLARIZED",
@@ -252,7 +270,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10154/56"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 407800
     },
     {
         "nombre": "HOYA SUMMIT - 1.59 CLEAR BLUE FILTER",
@@ -265,7 +284,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10160"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 383600
     },
     {
         "nombre": "HOYA SUMMIT - 1.59 SENSITY 2",
@@ -278,7 +298,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10162"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 584000
     },
     {
         "nombre": "HOYA SUMMIT - 1.59 POLARIZED",
@@ -291,7 +312,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10164/66/68"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 445800
     },
     {
         "nombre": "HOYA SUMMIT - 1.60 CLEAR",
@@ -304,7 +326,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10170"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 383600
     },
     {
         "nombre": "HOYA SUMMIT - 1.60 BLUE FILTER UV-420",
@@ -317,7 +340,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10172"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 404000
     },
     {
         "nombre": "HOYA SUMMIT - 1.60 SENSITY 2",
@@ -330,7 +354,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10174/76/78"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 607600
     },
     {
         "nombre": "HOYA SUMMIT - 1.67 CLEAR",
@@ -343,7 +368,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10180"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 393600
     },
     {
         "nombre": "HOYA SUMMIT - 1.67 CLEAR BLUE FILTER",
@@ -356,7 +382,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10182"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 450200
     },
     {
         "nombre": "HOYA SUMMIT - 1.67 SENSITY 2",
@@ -369,7 +396,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10184"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 651200
     },
     {
         "nombre": "HOYA SUMMIT - 1.74 CLEAR",
@@ -382,7 +410,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10186"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 560200
     },
     {
         "nombre": "HOYA ARGOS - 1.50 CLEAR",
@@ -395,7 +424,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10000"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 292800
     },
     {
         "nombre": "HOYA ARGOS - 1.50 CLEAR BLUE FILTER",
@@ -408,7 +438,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10002"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 326400
     },
     {
         "nombre": "HOYA ARGOS - 1.50 SENSITY 2",
@@ -421,7 +452,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10004"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 492800
     },
     {
         "nombre": "HOYA ARGOS - 1.50 POLARIZED",
@@ -434,7 +466,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10006/08"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 385800
     },
     {
         "nombre": "HOYA ARGOS - 1.59 CLEAR",
@@ -447,7 +480,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10010"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 296000
     },
     {
         "nombre": "HOYA ARGOS - 1.59 CLEAR BLUE FILTER",
@@ -460,7 +494,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10012"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 342000
     },
     {
         "nombre": "HOYA ARGOS - 1.59 SENSITY 2",
@@ -473,7 +508,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10014"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 524800
     },
     {
         "nombre": "HOYA ARGOS - 1.60 CLEAR",
@@ -486,7 +522,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10022"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 342000
     },
     {
         "nombre": "HOYA ARGOS - 1.60 BLUE FILTER UV-420",
@@ -499,7 +536,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10024"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 360200
     },
     {
         "nombre": "HOYA ARGOS - 1.60 SENSITY 2",
@@ -512,7 +550,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10026/28/30"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 553800
     },
     {
         "nombre": "MI PRIMER HOYA ARRAY 2 - 1.50 CLEAR BLUE FILTER",
@@ -523,7 +562,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.50",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 214600
     },
     {
         "nombre": "MI PRIMER HOYA ARRAY 2 - 1.50 SENSITY 2",
@@ -534,7 +574,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.50",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 307000
     },
     {
         "nombre": "MI PRIMER HOYA ARRAY 2 - 1.59 CLEAR BLUE FILTER",
@@ -545,7 +586,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.59",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 217000
     },
     {
         "nombre": "MI PRIMER HOYA ARRAY 2 - 1.59 SENSITY 2",
@@ -556,7 +598,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.59",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 332200
     },
     {
         "nombre": "MI PRIMER HOYA ARRAY 2 - 1.59 POLARIZED",
@@ -567,7 +610,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.59",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 251000
     },
     {
         "nombre": "MI PRIMER HOYA ARRAY 2 - 1.60 CLEAR",
@@ -578,7 +622,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.60",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 217000
     },
     {
         "nombre": "MI PRIMER HOYA ARRAY 2 - 1.60 BLUE FILTER UV-420",
@@ -589,7 +634,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.60",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 229200
     },
     {
         "nombre": "MI PRIMER HOYA ARRAY 2 - 1.60 SENSITY 2",
@@ -600,7 +646,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.60",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 348000
     },
     {
         "nombre": "MI PRIMER HOYA SUMMIT - 1.50 CLEAR BLUE FILTER",
@@ -611,7 +658,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.50",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 187600
     },
     {
         "nombre": "MI PRIMER HOYA SUMMIT - 1.50 SENSITY 2",
@@ -622,7 +670,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.50",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 272600
     },
     {
         "nombre": "MI PRIMER HOYA SUMMIT - 1.59 CLEAR BLUE FILTER",
@@ -633,7 +682,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.59",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 192400
     },
     {
         "nombre": "MI PRIMER HOYA SUMMIT - 1.59 SENSITY 2",
@@ -644,7 +694,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.59",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 292600
     },
     {
         "nombre": "MI PRIMER HOYA SUMMIT - 1.59 POLARIZED",
@@ -655,7 +706,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.59",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 223600
     },
     {
         "nombre": "MI PRIMER HOYA SUMMIT - 1.60 CLEAR",
@@ -666,7 +718,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.60",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 192400
     },
     {
         "nombre": "MI PRIMER HOYA SUMMIT - 1.60 BLUE FILTER UV-420",
@@ -677,7 +730,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.60",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 202600
     },
     {
         "nombre": "MI PRIMER HOYA SUMMIT - 1.60 SENSITY 2",
@@ -688,7 +742,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
         "indice": "1.60",
         "codigos": [],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 304400
     },
     {
         "nombre": "HOYA TACT BKS - 1.50 CLEAR BLUE FILTER",
@@ -705,7 +760,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 197000
     },
     {
         "nombre": "HOYA TACT BKS - 1.50 SENSITY 2",
@@ -722,7 +778,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 346800
     },
     {
         "nombre": "HOYA TACT BKS - 1.59 CLEAR BLUE FILTER",
@@ -739,7 +796,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 200800
     },
     {
         "nombre": "HOYA TACT BKS - 1.59 SENSITY 2",
@@ -756,7 +814,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 386000
     },
     {
         "nombre": "HOYA TACT BKS - 1.60 CLEAR",
@@ -773,7 +832,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 200800
     },
     {
         "nombre": "HOYA TACT BKS - 1.60 BLUE FILTER UV-420",
@@ -790,7 +850,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 216600
     },
     {
         "nombre": "HOYA TACT BKS - 1.60 SENSITY 2",
@@ -807,7 +868,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 409000
     },
     {
         "nombre": "HOYA TACT BKS - 1.67 CLEAR",
@@ -824,7 +886,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 281600
     },
     {
         "nombre": "HOYA TACT BKS - 1.67 CLEAR BLUE FILTER",
@@ -841,7 +904,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "40",
             "60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 318400
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.50 CLEAR BLUE FILTER",
@@ -854,7 +918,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10450"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 142800
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.50 SENSITY 2",
@@ -867,7 +932,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10452"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 246600
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.50 POLARIZED",
@@ -880,7 +946,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10454/56"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 208400
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.59 CLEAR BLUE FILTER",
@@ -893,7 +960,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10460"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 145800
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.59 SENSITY 2",
@@ -906,7 +974,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10462"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 295600
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.59 POLARIZED",
@@ -919,7 +988,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10464/66/68"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 255800
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.60 CLEAR",
@@ -932,7 +1002,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10470"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 143800
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.60 BLUE FILTER UV-420",
@@ -945,7 +1016,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10472"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 151200
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.60 SENSITY 2",
@@ -958,7 +1030,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10474/76/78"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 319400
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.67 CLEAR",
@@ -971,7 +1044,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10479"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 218200
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.67 CLEAR BLUE FILTER",
@@ -984,7 +1058,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10480"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 232800
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.67 SENSITY 2",
@@ -997,7 +1072,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10482"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 418400
     },
     {
         "nombre": "HOYA NULUX IDENTITY V+ - 1.74 CLEAR",
@@ -1010,7 +1086,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10484"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 381000
     },
     {
         "nombre": "HOYA SYNC III - 1.50 CLEAR BLUE FILTER",
@@ -1031,7 +1108,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 149800
     },
     {
         "nombre": "HOYA SYNC III - 1.50 SENSITY 2",
@@ -1052,7 +1130,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 257600
     },
     {
         "nombre": "HOYA SYNC III - 1.59 CLEAR BLUE FILTER",
@@ -1073,7 +1152,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 154600
     },
     {
         "nombre": "HOYA SYNC III - 1.59 SENSITY 2",
@@ -1094,7 +1174,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 310200
     },
     {
         "nombre": "HOYA SYNC III - 1.60 CLEAR",
@@ -1115,7 +1196,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 150000
     },
     {
         "nombre": "HOYA SYNC III - 1.60 BLUE FILTER UV-420",
@@ -1136,7 +1218,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 162600
     },
     {
         "nombre": "HOYA SYNC III - 1.60 SENSITY 2",
@@ -1157,7 +1240,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 335400
     },
     {
         "nombre": "HOYA SYNC III - 1.67 CLEAR",
@@ -1178,7 +1262,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 228200
     },
     {
         "nombre": "HOYA SYNC III - 1.67 CLEAR BLUE FILTER",
@@ -1199,7 +1284,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 243000
     },
     {
         "nombre": "HOYA SYNC III - 1.67 SENSITY 2",
@@ -1220,7 +1306,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "0.95",
             "1.32)"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 438000
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.50 CLEAR BLUE FILTER — SIN ANTIRREFLEJO",
@@ -1233,7 +1320,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10552"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 42400
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.50 SENSITY 2 — SIN ANTIRREFLEJO",
@@ -1246,7 +1334,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10554"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 180000
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.50 POLARIZED — SIN ANTIRREFLEJO",
@@ -1259,7 +1348,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10556/58"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 100600
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.59 CLEAR BLUE FILTER — SIN ANTIRREFLEJO",
@@ -1272,7 +1362,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10564"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 49300
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.59 SENSITY 2 — SIN ANTIRREFLEJO",
@@ -1285,7 +1376,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10566"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 212800
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.60 CLEAR — SIN ANTIRREFLEJO",
@@ -1298,7 +1390,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10574"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 63800
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.60 BLUE FILTER UV-420 — SIN ANTIRREFLEJO",
@@ -1311,7 +1404,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10576"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 76600
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.67 CLEAR — SIN ANTIRREFLEJO",
@@ -1324,7 +1418,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10584"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 129100
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.67 CLEAR BLUE FILTER — SIN ANTIRREFLEJO",
@@ -1337,7 +1432,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10586"
         ],
         "variantes": [],
-        "sinAntirreflejo": true
+        "sinAntirreflejo": true,
+        "precioLista": 163800
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.50 CLEAR BLUE FILTER — CON ANTIRREFLEJO",
@@ -1350,7 +1446,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10552"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 83900
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.50 SENSITY 2 — CON ANTIRREFLEJO",
@@ -1363,7 +1460,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10554"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 221500
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.50 POLARIZED — CON ANTIRREFLEJO",
@@ -1376,7 +1474,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10556/58"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 142100
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.59 CLEAR BLUE FILTER — CON ANTIRREFLEJO",
@@ -1389,7 +1488,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10564"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 90800
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.59 SENSITY 2 — CON ANTIRREFLEJO",
@@ -1402,7 +1502,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10566"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 254300
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.60 CLEAR — CON ANTIRREFLEJO",
@@ -1415,7 +1516,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10574"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 105300
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.60 BLUE FILTER UV-420 — CON ANTIRREFLEJO",
@@ -1428,7 +1530,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10576"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 118100
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.67 CLEAR — CON ANTIRREFLEJO",
@@ -1441,7 +1544,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10584"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 170600
     },
     {
         "nombre": "HOYA VISIÓN SIMPLE DIGITAL - 1.67 CLEAR BLUE FILTER — CON ANTIRREFLEJO",
@@ -1454,7 +1558,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "10586"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 205300
     },
     {
         "nombre": "PENTAX ALLFOCUS PRO - 1.50 ORGÁNICO CLEAR",
@@ -1467,7 +1572,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "20000"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 240000
     },
     {
         "nombre": "PENTAX ALLFOCUS PRO - 1.50 SENSITY FOTO GREY",
@@ -1480,7 +1586,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "20005"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 325200
     },
     {
         "nombre": "PENTAX ALLFOCUS PRO - 1.59 POLICARBONATO CLEAR",
@@ -1493,7 +1600,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "20010"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 260000
     },
     {
         "nombre": "PENTAX ALLFOCUS PRO - 1.60 BLUE FILTER UV-420",
@@ -1506,7 +1614,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "20015"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 297000
     },
     {
         "nombre": "PENTAX ALLFOCUS FLEX - 1.50 ORGÁNICO CLEAR",
@@ -1519,7 +1628,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "20040"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 214200
     },
     {
         "nombre": "PENTAX ALLFOCUS FLEX - 1.50 SENSITY FOTO GREY",
@@ -1532,7 +1642,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "20045"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 299600
     },
     {
         "nombre": "PENTAX ALLFOCUS FLEX - 1.59 POLICARBONATO CLEAR",
@@ -1545,7 +1656,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "20050"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 232400
     },
     {
         "nombre": "PENTAX ALLFOCUS FLEX - 1.60 BLUE FILTER UV-420",
@@ -1558,7 +1670,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "20055"
         ],
         "variantes": [],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 267600
     },
     {
         "nombre": "PENTAX OFFICE - 1.50 ORGÁNICO CLEAR",
@@ -1575,7 +1688,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "DP40",
             "SP60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 120400
     },
     {
         "nombre": "PENTAX OFFICE - 1.59 POLICARBONATO CLEAR",
@@ -1592,7 +1706,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "DP40",
             "SP60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 133800
     },
     {
         "nombre": "PENTAX OFFICE - 1.60 BLUE FILTER UV-420",
@@ -1609,7 +1724,8 @@ export const CATALOGO_VITOLEN: CristalVitolen[] = [
             "DP40",
             "SP60"
         ],
-        "sinAntirreflejo": false
+        "sinAntirreflejo": false,
+        "precioLista": 162000
     }
 ];
 

@@ -239,6 +239,12 @@ export async function labConfigDe(lab: string) {
     return cacheLabs.filas.find(l => normal(l.name) === normal(lab));
 }
 
+/** Suma de los cambios a mano valuados en los borradores CARGADOS de la venta en ese lab (0 si no hay). */
+export async function costoDeCambiosAMano(orderId: string, lab: string): Promise<number> {
+    const borradores = await prisma.labOrderDraft.findMany({ where: { orderId, lab: lab.toUpperCase().replace(/\s+/g, '_'), status: 'CARGADO' }, select: { resumenPortal: true } }).catch(() => []);
+    return borradores.reduce((t, b) => t + (Number((b.resumenPortal as any)?.cambiosAMano?.costoExtra) || 0), 0);
+}
+
 export async function upsertEntry(input: LabCostInput) {
     // UN Nº DE PEDIDO TIENE 5 DÍGITOS O MÁS.
     //
@@ -384,7 +390,11 @@ export async function upsertEntry(input: LabCostInput) {
         : (billedNet ?? billedTotal ?? null);
     // La config del lab (calibrado e IVA) se pasa explícita: así el cruce y la pantalla valúan igual.
     const labConfig = order ? await labConfigDe(String(input.lab)) : null;
-    const systemCost = order ? systemCostForLab(order, input.lab, labConfig) : null;
+    // Lo que se cambió a mano en el portal antes de aprobar (Vitolen, valuado con la
+    // lista: cristal, AR, calibrado) también se espera pagar: si no, el cruce lo
+    // acusaría como sobrecosto. Vive en el rastro del borrador CARGADO.
+    const extrasAMano = order ? await costoDeCambiosAMano(order.id, String(input.lab)) : 0;
+    const systemCost = order ? systemCostForLab(order, input.lab, labConfig) + extrasAMano : null;
 
     // Una venta puede tener varios pedidos de lab ("580841-580844", típico en
     // 2x1: el lab cobra un par real y el otro ~$0). El costo sistema es de TODA

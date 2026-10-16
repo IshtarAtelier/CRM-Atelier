@@ -75,6 +75,8 @@ export interface VistaDeBorrador {
     documento?: { url: string; etiqueta: string } | null;
     /** Quedó un pedido sin confirmar en el portal que hay que cancelar. */
     pendienteEnPortal?: { id: string; url: string | null } | null;
+    /** Lo que alguien cambió a mano en el portal después de preparar (Vitolen, "Modificar" + releer): se aprueba igual, con motivo, y la dueña recibe el aviso con el impacto de costo. */
+    cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null;
     /**
      * Si viene, "Aprobar y cargar" abre primero un aviso con este texto y pide
      * confirmar (regla de Ishtar, 8/10/2026: en los 2x1 que nadie olvide el nº
@@ -107,4 +109,6 @@ export interface CargaAsistida {
     cancelarEnPortal?(borradorId: string, actor?: Actor): Promise<{ cancelado: boolean; motivo?: string }>;
     /** Volver a mirar el portal sin cambiar de estado (Vitolen: después de "Modificar" a mano). */
     releerPortal?(borradorId: string, actor: Actor): Promise<unknown>;
+    /** Antes de aprobar: lo que el lab exige del cuerpo (Vitolen: el motivo de los cambios a mano). Lanza ErrorDeCarga si falta. */
+    antesDeAprobar?(borradorId: string, body: Record<string, unknown>, actor: Actor): Promise<void>;
 }

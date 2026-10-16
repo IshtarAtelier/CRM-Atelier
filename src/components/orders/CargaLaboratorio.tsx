@@ -23,7 +23,7 @@ import { formatDate } from '@/lib/format-date';
 interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
 interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
-interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null }
+interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
     preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista; acciones?: Acciones;
@@ -65,6 +65,9 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     const dialogo = useRef<HTMLDivElement>(null);
     // Aviso previo a aprobar (2x1 / promo del 2º par): el nº de operación del otro par es lo que hace el descuento.
     const [confirmando, setConfirmando] = useState<Borrador | null>(null);
+    /** Un pedido cambiado a mano en el portal: antes de aprobar se pide el motivo (le llega a la dueña con el costo). */
+    const [cambiosDe, setCambiosDe] = useState<Borrador | null>(null);
+    const [motivoCambios, setMotivoCambios] = useState<Record<string, string>>({});
     // Un extra NO cobrado (Essential): "¿estás seguro?" + motivo obligatorio antes de aceptarlo (Ishtar, 8/10/2026).
     const [extraPendiente, setExtraPendiente] = useState<{ pair: number; campo: Campo } | null>(null);
     const [motivoExtra, setMotivoExtra] = useState('');
@@ -74,7 +77,8 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
     const cartelConfirmar = useRef<HTMLDivElement>(null);
     useEffect(() => { if (extraPendiente) cartelExtra.current?.focus(); }, [extraPendiente]);
     useEffect(() => { if (confirmando) cartelConfirmar.current?.focus(); }, [confirmando]);
-    const aprobar = (b: Borrador) => (b.vista.confirmarAntesDeAprobar ? setConfirmando(b) : decidir(b.id, 'aprobar'));
+    const aprobarConMotivo = (b: Borrador) => decidir(b.id, 'aprobar', b.vista.cambiosAMano ? { motivo: motivoCambios[b.id] || '' } : undefined);
+    const aprobar = (b: Borrador) => (b.vista.cambiosAMano?.lineas.length ? setCambiosDe(b) : b.vista.confirmarAntesDeAprobar ? setConfirmando(b) : aprobarConMotivo(b));
     // El foco va al diálogo UNA vez al abrirlo (para que Escape lo cierre), no en cada render:
     // si se lo robara en cada render, no se podría escribir el motivo del rechazo.
     useEffect(() => { if (ampliada) dialogo.current?.focus(); }, [ampliada]);
@@ -128,10 +132,10 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
         } finally { setOcupado(null); }
     };
 
-    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal' | 'anular' | 'retirar-aprobacion' | 'releer') => {
+    const decidir = async (id: string, accion: 'aprobar' | 'rechazar' | 'reintentar' | 'cancelar-portal' | 'anular' | 'retirar-aprobacion' | 'releer', extra?: { motivo?: string }) => {
         setOcupado(`${accion}-${id}`); setError('');
         try {
-            const res = await fetch(`/api/lab-modulos/borradores/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, motivo: motivo[id] || '' }) });
+            const res = await fetch(`/api/lab-modulos/borradores/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, motivo: extra?.motivo ?? (motivo[id] || '') }) });
             const json = await res.json().catch(() => ({}));
             // Tras cualquier decisión se cierra la vista ampliada y se recarga: si la
             // carga falló, el estado nuevo y el error se leen en la ficha (dentro de la
@@ -389,6 +393,13 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                                     {b.vista.enlacePortal && b.acciones?.releer ? <> Para corregir algo antes de aprobar, usá los botones de abajo: abrilo en el portal, modificalo, y releé.</> : null}
                                     {b.error ? <span className="block mt-1 text-rose-700 dark:text-rose-400">{b.error}</span> : null}
                                 </p>
+                                {b.vista.cambiosAMano && b.vista.cambiosAMano.lineas.length > 0 && (
+                                    <div className="text-xs text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/40 rounded-lg px-3 py-2">
+                                        <p className="font-bold flex items-center gap-1"><Pencil className="w-3 h-3" /> Cambiado a mano en el portal{b.vista.cambiosAMano.costoExtra ? ` · ${b.vista.cambiosAMano.costoExtra > 0 ? '+' : '−'}$ ${Math.round(Math.abs(b.vista.cambiosAMano.costoExtra)).toLocaleString('es-AR')} de costo según la lista` : ' · sin cambio de costo'}{b.vista.cambiosAMano.aConfirmar ? ' · parte a confirmar' : ''}</p>
+                                        <ul className="list-disc pl-4 mt-1 space-y-0.5">{b.vista.cambiosAMano.lineas.map(l => <li key={l}>{l}</li>)}</ul>
+                                        <p className="mt-1">Al aprobar se pide el motivo y le llega a la dueña.</p>
+                                    </div>
+                                )}
                                 {b.vista.avisos.length > 0 && (
                                     <div className="text-xs text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
                                         <p className="font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {b.vista.tituloAvisos || 'Mirá esto antes de aprobar:'}</p>
@@ -457,6 +468,31 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                 </div>
             )}
 
+            {/* El pedido se cambió a mano en el portal: se aprueba igual, con un motivo, y la dueña recibe el detalle con el costo. */}
+            {cambiosDe && cambiosDe.vista.cambiosAMano && (
+                <div role="alertdialog" aria-label="El pedido se cambió a mano en el portal" className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" aria-modal="true" onKeyDown={e => { if (e.key === 'Escape') setCambiosDe(null); }} tabIndex={-1}>
+                    <div role="document" className="bg-white text-stone-900 rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-3">
+                        <p className="flex items-center gap-2 text-sm font-black"><Pencil className="w-5 h-5 text-amber-600 flex-shrink-0" /> El pedido se cambió a mano en el portal</p>
+                        <ul className="text-sm leading-relaxed list-disc pl-5 space-y-1">{cambiosDe.vista.cambiosAMano.lineas.map(l => <li key={l}>{l}</li>)}</ul>
+                        <p className="text-sm font-bold">
+                            {cambiosDe.vista.cambiosAMano.costoExtra > 0 ? `Según la lista sale $ ${Math.round(cambiosDe.vista.cambiosAMano.costoExtra).toLocaleString('es-AR')} más caro que lo que dice la venta.`
+                                : cambiosDe.vista.cambiosAMano.costoExtra < 0 ? `Según la lista sale $ ${Math.round(-cambiosDe.vista.cambiosAMano.costoExtra).toLocaleString('es-AR')} más barato.`
+                                    : 'Según la lista no cambia el costo.'}
+                            {cambiosDe.vista.cambiosAMano.aConfirmar ? ' Parte del cambio no tiene precio en la lista: se confirma con el laboratorio.' : ''}
+                        </p>
+                        <label className="block text-xs text-stone-600">Motivo (le llega a la dueña junto con el cambio y el costo)
+                            <textarea value={motivoCambios[cambiosDe.id] || ''} onChange={e => setMotivoCambios(m => ({ ...m, [cambiosDe.id]: e.target.value }))} rows={3} placeholder="Por qué se cambió (al menos 10 letras)" className="block mt-1 w-full text-sm rounded border border-stone-300 bg-white px-2 py-1.5" />
+                        </label>
+                        <div className="flex flex-wrap justify-end gap-2 pt-1">
+                            <button type="button" onClick={() => setCambiosDe(null)} className={`${boton} bg-stone-500`}>Volver a mirar</button>
+                            <button type="button" disabled={ocupado !== null || (motivoCambios[cambiosDe.id] || '').trim().length < 10} onClick={() => { const b = cambiosDe; setCambiosDe(null); if (b.vista.confirmarAntesDeAprobar) setConfirmando(b); else aprobarConMotivo(b); }} className={`${boton} bg-emerald-600 px-4`}>
+                                <Check className="w-3.5 h-3.5" /> Con ese motivo: aprobar y cargar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Antes de aprobar un par de una promo de dos pares: que nadie olvide el nº de operación del otro par. */}
             {confirmando && (
                 <div role="alertdialog" aria-label={confirmando.vista.confirmarAntesDeAprobar?.titulo} className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-4" aria-modal="true" onKeyDown={e => { if (e.key === 'Escape') setConfirmando(null); }} tabIndex={-1} ref={cartelConfirmar}>
@@ -465,7 +501,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged }: { lab: str
                         <p className="text-sm leading-relaxed">{confirmando.vista.confirmarAntesDeAprobar?.texto}</p>
                         <div className="flex flex-wrap justify-end gap-2 pt-1">
                             <button type="button" onClick={() => { setConfirmando(null); dialogo.current?.focus(); }} className={`${boton} bg-stone-500`}>Volver a mirar</button>
-                            <button type="button" disabled={ocupado !== null} onClick={() => { const b = confirmando; setConfirmando(null); decidir(b.id, 'aprobar'); }} className={`${boton} bg-emerald-600 px-4`}>
+                            <button type="button" disabled={ocupado !== null} onClick={() => { const b = confirmando; setConfirmando(null); aprobarConMotivo(b); }} className={`${boton} bg-emerald-600 px-4`}>
                                 <Check className="w-3.5 h-3.5" /> Lo revisé: aprobar y cargar
                             </button>
                         </div>

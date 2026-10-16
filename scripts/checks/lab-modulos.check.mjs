@@ -24,7 +24,8 @@ import { statSync } from 'node:fs';
 import { join as unirRuta } from 'node:path';
 import { tocaPaseRapido } from '../../src/services/lab-modules/corrida.ts';
 import { retiroAutomaticoPermitido } from '../../src/services/lab-modules/retiro.ts';
-import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable } from '../../src/services/lab-modules/vitolen/resumen.ts';
+import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparable, leerResumen } from '../../src/services/lab-modules/vitolen/resumen.ts';
+import { cambiosAMano, impactoDeCambios, lineasDeCambios, precioDeCodigo, DESCUENTO_SIN_AR } from '../../src/services/lab-modules/vitolen/cambios-a-mano.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
 import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo, diferenciasDePayloadVitolen, cristalesPorPar, tipoArmazonDelPortal, TIPOS_ARMAZON } from '../../src/services/lab-modules/vitolen/carga.ts';
 import { cristalesPorArmazon } from '../../src/lib/order-frames.ts';
@@ -484,6 +485,69 @@ ok('qué par es cada cristal lo decide UN solo repartidor: la promo del 2º par,
     // mismo valor sin asignar: queda el orden del carrito (par 1 con cargo)
     const iguales = rolesDeLaPromoHoya([c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000), c(null, 'OD', LS, 100000), c(null, 'OI', LS, 100000)]);
     assert.deepEqual([iguales.conCargo, iguales.sinCargo, iguales.porValor], [1, 2, false]);
+});
+const RESUMEN_MORONCINI = `Pedido de Laboratorio
+Nro de Trabajo\tPor Asignar\tFecha\t15/10/2026 22:10
+Cliente\t11302 - ATELIER OPTICA- CORDOBA\tNro de Caso Interno\t#TDHB 1°par
+Estado\tConfirmación
+\t
+Receta
+
+\t\tTipo de Lente\tMarcas y Modelos de Lentes\tOrigen
+OD\tProgresivo\t10072 - Array 2 1.60 Hilux MR-8 Filter 420\tBloque/Lente de Vitolen
+OI\tProgresivo\t10072 - Array 2 1.60 Hilux MR-8 Filter 420\tBloque/Lente de Vitolen
+\t\tEsférico\tCilíndrico\tEje Cil.\tAdición\tDNP-L\tAltura Pupilar Lejos\tDist. Vértice\tÁng. Pantoscópico\tÁng Envolvencia
+OD\t+2.25\t-0.75\t90\t2.75\t33.00\t25.00\t14\t6\t4
+OI\t+1.75\t-0.50\t101\t2.75\t34.00\t25.00\t14\t6\t4
+\t
+Armazón
+
+Origen\tArmazón del cliente
+Medidas\tLargo\tAltura\tDiag. Mayor\tEje\tPuente\tTipo\tFuncionalidad
+56.00\t39.00\t58.00\t0\t17.00\tZilo\tAro Convencional 
+Forma OD - 1
+
+Características\tHarper Color Marron
+\t
+Trabajos
+
+Tratamientos\tUltra Hi-Vision
+Montajes\tCalibrado
+© 2026 Vitolen S.A | Av. Roque Sáenz Peña 786`;
+ok('el resumen del portal se lee campo por campo (el de Moroncini, 15/10/2026)', () => {
+    const r = leerResumen(RESUMEN_MORONCINI);
+    assert.deepEqual(r.codigos, { od: '10072', oi: '10072' });
+    assert.equal(r.modelos.od, 'Array 2 1.60 Hilux MR-8 Filter 420');
+    assert.deepEqual(r.tratamientos, ['Ultra Hi-Vision']); assert.deepEqual(r.montajes, ['Calibrado']);
+    assert.deepEqual(r.armazon, { largo: '56.00', altura: '39.00', diagonal: '58.00', eje: '0', puente: '17.00', tipo: 'Zilo', forma: 'Forma OD - 1' });
+    assert.deepEqual(r.angulos.od, { vertice: '14', pantoscopico: '6', envolvencia: '4' });
+    assert.equal(r.graduacion.oi, '+1.75 -0.50 101 2.75 34.00 25.00');
+    assert.equal(leerResumen('').codigos.od, null);
+});
+ok('un cambio a mano en el portal se detecta y se valúa con la lista (cristal, AR, calibrado); lo demás se anota sin costo', () => {
+    const antes = leerResumen(RESUMEN_MORONCINI);
+    const precios = { calibrado: 23000 };
+    assert.deepEqual(cambiosAMano(antes, leerResumen(RESUMEN_MORONCINI), precios), []);
+    // destildar el calibrado y cambiar vértice/pantoscópico (como la carga a mano de Ishtar)
+    const t1 = RESUMEN_MORONCINI.replace('Montajes\tCalibrado\n', '').replace(/\t14\t6\t4/g, '\t12\t8\t4');
+    const c1 = cambiosAMano(antes, leerResumen(t1), precios);
+    assert.deepEqual(c1.map(c => [c.campo, c.costo]), [['Montajes', -23000], ['Vértice / pantoscópico / envolvencia OD', 0], ['Vértice / pantoscópico / envolvencia OI', 0]]);
+    assert.deepEqual(impactoDeCambios(c1), { costoExtra: -23000, aConfirmar: false });
+    assert.match(lineasDeCambios(c1)[0], /Montajes: Calibrado → ninguno \(se sacó el calibrado: −\$ 23\.000\)/);
+    // cambiar el cristal a otro código de la lista: diferencia de lista por par
+    const p10072 = precioDeCodigo('10072'); assert.ok(p10072.precio > 0, 'el 10072 tiene precio en la lista');
+    const otro = CATALOGO_VITOLEN.find(c => c.linea === 'lifestyle-4' && c.precioLista);
+    const t2 = RESUMEN_MORONCINI.replace(/10072 - Array 2 1.60 Hilux MR-8 Filter 420/g, `${otro.codigos[0]} - ${otro.nombre}`);
+    const c2 = cambiosAMano(antes, leerResumen(t2), precios);
+    assert.equal(c2.length, 2); assert.equal(c2[0].costo, otro.precioLista - p10072.precio);
+    // sacar el antirreflejo: la lista lo incluye, se descuenta lo de "pedido sin AR"
+    const t3 = RESUMEN_MORONCINI.replace('Tratamientos\tUltra Hi-Vision\n', '');
+    const c3 = cambiosAMano(antes, leerResumen(t3), precios);
+    assert.deepEqual(c3.map(c => [c.campo, c.costo]), [['Tratamientos', -DESCUENTO_SIN_AR]]);
+    // agregar un tratamiento que la lista no valúa: queda "a confirmar"
+    const t4 = RESUMEN_MORONCINI.replace('Tratamientos\tUltra Hi-Vision', 'Tratamientos\tUltra Hi-Vision\tColor');
+    const c4 = cambiosAMano(antes, leerResumen(t4), precios);
+    assert.equal(c4[0].costo, null); assert.equal(impactoDeCambios(c4).aConfirmar, true);
 });
 ok('el tipo de armazón elegido al preparar sobrevive al re-armado del confirm (round-trip etiqueta → portal → etiqueta)', () => {
     for (const t of TIPOS_ARMAZON) assert.equal(tipoArmazonDelPortal(t)?.[2], t);

@@ -1,6 +1,9 @@
 import { Borradores } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { armarFormulario, cristalesPorPar, esSegundoParDePromo, leerVentaParaCarga, TIPOS_ARMAZON } from './carga';
+import { lineasDeCambios } from './cambios-a-mano';
+import { prisma } from '../../../lib/db';
+import { ErrorDeCarga } from '../carga/errores';
 import { cristalVitolenPorNombre } from '../../../lib/laboratorios/vitolen-catalogo';
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, releerBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
@@ -98,6 +101,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
             ],
             avisos: Array.isArray(r.pendientes) ? r.pendientes : [],
             tituloAvisos: 'Quedó para hacer a mano en el portal antes de aprobar:',
+            cambiosAMano: r.cambiosAMano?.cambios?.length ? { lineas: lineasDeCambios(r.cambiosAMano.cambios), costoExtra: r.cambiosAMano.costoExtra, aConfirmar: !!r.cambiosAMano.aConfirmar, motivo: r.cambiosAManoMotivo ?? null } : null,
             confirmarAntesDeAprobar: esSegundoParDePromo(p) ? {
                 titulo: 'Es el 2º par de la promo de Vitolen',
                 texto: `Antes de aprobar, fijate en la pantalla del portal que el pedido tenga "Pedido origen" con el nº del 1er par (${p.pedidoOrigen ?? 'la venta todavía no lo tiene'}) y la promo del segundo par asociada con "Modificar". Sin eso Vitolen factura el par entero, no el 20 % de lista.`,
@@ -157,6 +161,15 @@ export const CARGA_VITOLEN: CargaAsistida = {
     },
 
     confirmar: confirmarBorradorAprobado,
+    /** Con cambios a mano en el portal, aprobar exige el motivo (10 letras); queda en el rastro y viaja en el aviso al cargar. Nunca bloquea por costo. */
+    async antesDeAprobar(borradorId, body, actor) {
+        const b = await prisma.labOrderDraft.findUnique({ where: { id: borradorId }, select: { resumenPortal: true } });
+        const r = (b?.resumenPortal || {}) as { cambiosAMano?: { cambios?: unknown[] } | null };
+        if (!r.cambiosAMano?.cambios?.length) return;
+        const motivo = String(body.motivo || '').trim();
+        if (motivo.length < 10) throw new ErrorDeCarga('El pedido se cambió a mano en el portal: escribí el motivo (al menos 10 letras) para aprobarlo. Le llega a la dueña con el cambio y su costo.', 'DATOS');
+        await Borradores.anotarRastro(borradorId, { cambiosAManoMotivo: motivo.slice(0, 500), cambiosAManoPor: actor.name } as any);
+    },
     despuesDeRechazar: cancelarEnPortal,
     cancelarEnPortal,
     releerPortal: releerBorradorEnPortal,

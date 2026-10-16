@@ -42,6 +42,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         if (!carga) return NextResponse.json({ error: `El laboratorio ${fila.lab} no tiene carga asistida.` }, { status: 400 });
 
         if (accion === 'aprobar' || accion === 'reintentar') {
+            // Lo que el lab exige antes de aprobar (Vitolen: el motivo de un cambio a mano).
+            if (accion === 'aprobar' && carga.antesDeAprobar) await carga.antesDeAprobar(id, body, actor);
             if (accion === 'aprobar') await Borradores.aprobar(id, actor);
             // Reintentar también crea un pedido real: persona identificada, se limpia el
             // error viejo y se toma el candado del robot (su identidad) para que un
