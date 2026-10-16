@@ -9,8 +9,8 @@ import { precioConSigno } from '@/lib/format-precio';
 const TOLERANCIA_REDONDEO = 0.5;
 
 /**
- * El vendedor pide la factura: confirma los datos, dice si hace falta una
- * observación y la escribe. La administración recibe un WhatsApp con el link
+ * El vendedor pide la factura: confirma los datos (el monto ya viene puesto,
+ * no se tipea), dice si hace falta una observación y la escribe. La administración recibe un WhatsApp con el link
  * que abre la factura ya armada (ver invoice-request.service.ts).
  */
 interface SolicitarFacturaModalProps {
@@ -25,21 +25,25 @@ interface SolicitarFacturaModalProps {
 }
 
 export default function SolicitarFacturaModal({ orderId, clienteNombre, clienteDni, cobrado, montoSugerido, onClose }: SolicitarFacturaModalProps) {
-    const [monto, setMonto] = useState(String(Math.round(montoSugerido || cobrado)));
+    const [nombre, setNombre] = useState(clienteNombre);
+    const [dni, setDni] = useState(clienteDni || '');
     const [confirmado, setConfirmado] = useState(false);
     const [necesitaObs, setNecesitaObs] = useState<boolean | null>(null);
     const [observaciones, setObservaciones] = useState('');
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState('');
 
-    const montoNum = parseFloat(monto.replace(/\./g, '').replace(',', '.'));
+    // El monto no se pide: es lo cobrado y sin facturar, redondeado al peso.
+    // Si hace falta otro importe, va en la observación (Ishtar, 16/10/2026).
+    const montoNum = Math.round(montoSugerido || cobrado);
     // Misma tolerancia que el servidor (invoice-request.service.ts): lo cobrado
     // puede traer centavos ($964.409,60) y el sugerido va redondeado al peso
     // ($964.410). Sin tolerancia, el monto propuesto por el propio modal se
     // rechazaba por 40 centavos (Milena, 16/10/2026).
     const montoValido = Number.isFinite(montoNum) && montoNum > 0 && montoNum <= cobrado + TOLERANCIA_REDONDEO;
     const obsValida = necesitaObs === false || (necesitaObs === true && observaciones.trim().length > 0);
-    const puedeEnviar = montoValido && confirmado && obsValida && !enviando;
+    const nombreValido = nombre.trim().length > 1;
+    const puedeEnviar = montoValido && nombreValido && confirmado && obsValida && !enviando;
 
     const enviar = async () => {
         if (!puedeEnviar) return;
@@ -52,6 +56,8 @@ export default function SolicitarFacturaModal({ orderId, clienteNombre, clienteD
                 body: JSON.stringify({
                     orderId,
                     monto: montoNum,
+                    // Si corrigió nombre o DNI, se guardan en la ficha: la factura sale de ahí.
+                    cliente: { nombre: nombre.trim(), dni: dni.trim() || null },
                     datosConfirmados: confirmado,
                     observaciones: necesitaObs ? observaciones.trim() : null,
                 }),
@@ -79,32 +85,29 @@ export default function SolicitarFacturaModal({ orderId, clienteNombre, clienteD
                 <h2 className="text-lg font-black">Solicitar factura</h2>
                 <div className="rounded-2xl border-2 border-stone-100 dark:border-stone-800 p-4 space-y-2 text-sm">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Datos a facturar</p>
-                    <p><span className="text-stone-500 dark:text-stone-400">Cliente:</span> <strong>{clienteNombre}</strong></p>
-                    <p><span className="text-stone-500 dark:text-stone-400">Documento:</span> <strong>{clienteDni ? `DNI ${clienteDni}` : 'Sin documento (consumidor final)'}</strong></p>
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400">Nombre, apellido y DNI salen así en la factura. Si están mal, corregilos acá: se actualiza la ficha.</p>
                     <label className="block">
-                        <span className="text-stone-500 dark:text-stone-400">Monto:</span>
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            value={monto}
-                            onChange={e => setMonto(e.target.value)}
-                            className="mt-1 w-full px-4 py-2 bg-stone-50 dark:bg-stone-800 rounded-xl font-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                        <span className="text-[11px] text-stone-500 dark:text-stone-400">Cobrado hasta hoy: {precioConSigno(cobrado)}</span>
+                        <span className="text-stone-500 dark:text-stone-400">Nombre y apellido:</span>
+                        <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="mt-1 w-full px-4 py-2 bg-stone-50 dark:bg-stone-800 rounded-xl font-black focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </label>
-                    {!montoValido && monto !== '' && (
-                        <p className="text-xs text-red-600">El monto tiene que ser mayor a 0 y no superar lo cobrado.</p>
+                    <label className="block">
+                        <span className="text-stone-500 dark:text-stone-400">DNI:</span>
+                        <input type="text" inputMode="numeric" value={dni} onChange={e => setDni(e.target.value)} placeholder="Vacío = consumidor final" className="mt-1 w-full px-4 py-2 bg-stone-50 dark:bg-stone-800 rounded-xl font-black focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </label>
+                    <p><span className="text-stone-500 dark:text-stone-400">Monto:</span> <strong>{precioConSigno(montoNum)}</strong> <span className="text-[11px] text-stone-500 dark:text-stone-400">(lo cobrado hasta hoy y sin facturar)</span></p>
+                    {!montoValido && (
+                        <p className="text-xs text-red-600">No hay un monto cobrado para facturar.</p>
                     )}
                 </div>
 
                 <label className="flex items-start gap-3 cursor-pointer">
                     <input type="checkbox" checked={confirmado} onChange={e => setConfirmado(e.target.checked)} className="mt-1 w-4 h-4" />
-                    <span className="text-sm font-bold">Confirmo que los datos a facturar están correctos.</span>
+                    <span className="text-sm font-bold">Confirmo que nombre, apellido y DNI son los de la factura.</span>
                 </label>
 
                 <div className="space-y-2">
                     <p className="text-sm font-bold">¿Necesita alguna observación?</p>
-                    <p className="text-[11px] text-stone-500 dark:text-stone-400">Ej.: factura a CUIT (con la condición frente al IVA), a nombre de otra persona, otro monto o algún dato a corregir.</p>
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400">Es lo que lee quien factura. Ej.: factura a CUIT (con la condición frente al IVA), otro monto, obra social o plan, o qué cristales/armazón detallar.</p>
                     <div className="flex gap-2">
                         <button type="button" onClick={() => setNecesitaObs(false)} className={opcion(necesitaObs === false)}>No</button>
                         <button type="button" onClick={() => setNecesitaObs(true)} className={opcion(necesitaObs === true)}>Sí</button>

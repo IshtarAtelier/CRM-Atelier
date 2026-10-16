@@ -24,6 +24,8 @@ import { PricingService } from '@/services/PricingService';
 export interface SolicitudFacturaInput {
     orderId: string;
     monto: number;
+    /** Nombre y DNI tal como van en la factura; si difieren de la ficha, la ficha se corrige. */
+    cliente?: { nombre: string; dni: string | null } | null;
     /** El vendedor confirmó que nombre, documento y monto están bien. */
     datosConfirmados: boolean;
     /** Texto para la factura o para quien factura; vacío = sin observación. */
@@ -75,6 +77,42 @@ export const InvoiceRequestService = {
         }
 
         const numero = order.id.slice(-4).toUpperCase();
+
+        // Facturación arma el comprobante con la ficha del cliente: lo que el
+        // vendedor corrigió en el modal se guarda ahí, firmado en la ficha.
+        if (order.client && input.cliente) {
+            const nombreNuevo = input.cliente.nombre.trim();
+            const dniNuevo = (input.cliente.dni || '').trim() || null;
+            const cambios: string[] = [];
+            if (nombreNuevo.length > 1 && nombreNuevo !== order.client.name) cambios.push(`nombre "${order.client.name}" → "${nombreNuevo}"`);
+            if (dniNuevo !== (order.client.dni || null)) cambios.push(`DNI ${order.client.dni || 'sin dato'} → ${dniNuevo || 'sin dato'}`);
+            if (cambios.length > 0) {
+                await prisma.client.update({
+                    where: { id: order.client.id },
+                    data: { ...(nombreNuevo.length > 1 ? { name: nombreNuevo } : {}), dni: dniNuevo },
+                    select: { id: true },
+                });
+                order.client = { ...order.client, name: nombreNuevo.length > 1 ? nombreNuevo : order.client.name, dni: dniNuevo };
+                await prisma.interaction.create({
+                    data: {
+                        clientId: order.clientId,
+                        type: 'SISTEMA',
+                        content: `✏️ ${actor.name} corrigió los datos para facturar: ${cambios.join('; ')}.`,
+                        userId: actor.id,
+                        userName: actor.name,
+                    },
+                });
+                logAudit({
+                    userId: actor.id,
+                    userName: actor.name,
+                    action: 'UPDATE',
+                    entityType: 'CONTACT',
+                    entityId: order.client.id,
+                    details: { motivo: 'solicitud de factura', cambios },
+                }).catch(console.error);
+            }
+        }
+
         const clienteNombre = order.client?.name || 'Cliente';
         const message = `Solicitar factura de ${precioConSigno(monto)} para venta #${numero} (${clienteNombre})` +
             (observaciones ? ` — Obs.: ${observaciones}` : '');
