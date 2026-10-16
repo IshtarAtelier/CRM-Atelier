@@ -61,8 +61,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       'Guía de los cristales Hoya en Córdoba: progresivos iD LifeStyle 4, Summit, Array 2 y Argos, monofocales Nulux iDentity V+ y Sync III, y el ocupacional Tact. Promo segundo par con 80% de descuento.',
     keywords: ['Hoya', 'cristales Hoya', 'iD LifeStyle 4', 'Hoya Array 2', 'Hoya Summit', 'Sync III', 'Nulux', 'Hoya Tact', 'multifocales Hoya Córdoba'],
     date: '2026-10-16',
-    imageUrl: '/images/blog/multifocal-mujer-lectura.webp',
-    imageAlt: 'Mujer leyendo con anteojos multifocales',
+    imageUrl: '/images/cristales/hoya/hoya-id-lifestyle-4.jpg',
+    imageAlt: 'Mujer con anteojos progresivos Hoya iD LifeStyle 4 (imagen: Hoya Vision)',
     resumen:
       'Hoya es un fabricante japonés de cristales oftálmicos fundado en 1941. Su progresivo más completo es el iD LifeStyle 4; Summit, Array 2 y Argos son las opciones intermedias y de entrada, y Mi Primer Hoya está pensado para quien estrena multifocales. En Atelier Óptica (Córdoba) los hacemos con el laboratorio Vitolen, con 80% de descuento en el segundo par de progresivos seleccionados.',
     intro: [
@@ -92,7 +92,7 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       },
       {
         titulo: 'Monofocales y ocupacionales',
-        imagen: { src: '/images/blog/medicion-pupilar-optica.webp', alt: 'Toma de medidas para un cristal personalizado' },
+        imagen: { src: '/images/cristales/hoya/hoya-monofocal-pantallas.jpg', alt: 'Monofocal Hoya para el uso del celular (imagen: Hoya Vision)' },
         items: [
           { nombre: 'Nulux iDentity V+', texto: 'el monofocal más personalizado de Hoya: free-form, bi-asférico, calculado según tu armazón y tus medidas de uso. Visión nítida también en los bordes del cristal.' },
           { nombre: 'Sync III', texto: 'monofocal para aliviar la fatiga por pantallas. Hoya lo recomienda de los 13 a los 45 años, para quien pasa dos horas o más por día frente a una pantalla.' },
@@ -134,8 +134,8 @@ export const NOTAS_MARCAS_CRISTALES: NotaMarcaCristal[] = [
       'Cristales Pentax en Córdoba: progresivos Allfocus Flex y Allfocus Pro y el ocupacional Pentax Office. Qué son, para quién conviene cada uno y la promo del segundo par.',
     keywords: ['Pentax', 'Pentax Allfocus', 'Allfocus Pro', 'Allfocus Flex', 'Pentax Office', 'multifocales Pentax', 'Córdoba'],
     date: '2026-10-16',
-    imageUrl: '/images/blog/mujer-oficina-multifocal.webp',
-    imageAlt: 'Mujer trabajando en la oficina con anteojos multifocales',
+    imageUrl: '/images/cristales/hoya/pentax-allfocus-vision.jpg',
+    imageAlt: 'Visión nítida a través de un cristal Pentax (imagen: Pentax Optical)',
     resumen:
       'Pentax es una marca de cristales de Hoya Vision Care desde 2008, sin relación con las cámaras. Su línea de progresivos Allfocus tiene dos versiones: Flex, para empezar o ganar comodidad, y Pro, la de mayor gama; Pentax Office es su ocupacional para la oficina. Participa de la promo de 80% en el segundo par.',
     intro: [
