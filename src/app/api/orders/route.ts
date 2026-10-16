@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
 import { auditarPreciosBajoLista } from '@/services/order.service';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
-import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
+import { recalculateCrystalPrices, applyTeñidoPromoDiscount, errorTenidoCruzado } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { descuentoNegativo, excedeTopeVendedor, FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
@@ -69,6 +69,12 @@ export async function POST(request: Request) {
             it.product = dbProducts.find(p => p.id === it.productId);
         });
         recalculateCrystalPrices(items);
+        // El teñido tiene que ser del laboratorio de los cristales (la UI lo
+        // frena, pero por la API entraba igual).
+        const tenidoCruzado = errorTenidoCruzado(items);
+        if (tenidoCruzado) {
+            return NextResponse.json({ error: tenidoCruzado }, { status: 400 });
+        }
         const tintStylePrices = Object.fromEntries(
             (await prisma.tintStylePrice.findMany()).map(t => [t.category, t.price])
         );

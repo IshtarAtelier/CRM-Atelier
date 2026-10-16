@@ -59,9 +59,13 @@ export function estiloDeTenidoDelProducto(product: any): 'COMPACTO' | 'MUESTRA' 
         .toLowerCase()
         .normalize('NFD')
         .replace(/[̀-ͯ]/g, '');
-    if (!n.includes('tenido')) return null;
+    // Grupo Óptico los llama "Teñido …"; Optovisión, "Coloración …" (plena =
+    // compacto). Aquarelle y doble color son coloraciones especiales de
+    // Optovisión: no son ninguno de los tres estilos (y por eso nunca entran
+    // como el teñido sin cargo del 2x1).
+    if (!n.includes('tenido') && !n.includes('coloracion')) return null;
     if (n.includes('degrade')) return 'DEGRADE';
     if (n.includes('muestra')) return 'MUESTRA';
-    if (n.includes('compacto')) return 'COMPACTO';
+    if (n.includes('compacto') || n.includes('plena')) return 'COMPACTO';
     return null;
 }

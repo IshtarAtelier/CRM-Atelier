@@ -37,6 +37,8 @@ import {
     safePrice,
     recalculateCrystalPrices,
     applyTeñidoPromoDiscount,
+    isTeñidoAddon,
+    tenidoDeOtroLaboratorio,
     armarParesDeCristal
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals, PricingService } from '@/services/PricingService';
@@ -604,9 +606,14 @@ function CotizadorPageContent() {
         // a precio de lista un armazón que la web mostraba rebajado.
         const sprice = safePrice(precioConOferta(p).final);
         
+        // Un teñido es del laboratorio de los cristales, o no entra.
+        const labCristales = tenidoDeOtroLaboratorio(p, quoteItems);
+        if (labCristales) {
+            alert(`Los cristales de este presupuesto son de ${labCristales}: elegí el teñido de ${labCristales}, no el de ${p.laboratory}.`);
+            return;
+        }
         // Teñido addon validation: warn if no orgánico blanco in cart
-        const isTeñidoAddon = (p.name || '').toLowerCase() === 'teñido' && p.type === 'ADDON';
-        if (isTeñidoAddon) {
+        if (isTeñidoAddon(p)) {
             const hasOrganicoBlanco = quoteItems.some(item => {
                 const name = (item.product?.name || '').toLowerCase();
                 return !!item.product && isCrystal(item.product) && (name.includes('orgánico blanco') || name.includes('organico blanco'));

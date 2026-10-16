@@ -7,7 +7,7 @@ import { Save, Loader2,
 import { 
     isMultifocal2x1, isCrystal, isFrame, safePrice,
     hasActive2x1Promo, pick2x1FrameDiscount,
-    armarParesDeCristal, recalculateCrystalPrices, applyTeñidoPromoDiscount,
+    armarParesDeCristal, recalculateCrystalPrices, applyTeñidoPromoDiscount, tenidoDeOtroLaboratorio,
     AVISO_TENIDO_2X1
 } from '@/lib/promo-utils';
 import { descuentoSegundoParHoya } from '@/lib/promo-segundo-par-hoya';
@@ -215,6 +215,13 @@ export default function CotizadorCart({
     }, [items, setItems]);
 
     const handleAddItem = (product: any) => {
+        // Un teñido es del laboratorio de los cristales, o no entra.
+        const labCristales = tenidoDeOtroLaboratorio(product, items);
+        if (labCristales) {
+            alert(`Los cristales de este pedido son de ${labCristales}: elegí el teñido de ${labCristales}, no el de ${product.laboratory}.`);
+            setFullSearch('');
+            return;
+        }
         if (isCrystal(product)) {
             const selectedRx = prescriptionId ? prescriptions.find(r => r.id === prescriptionId) : null;
             if (selectedRx) {

@@ -26,7 +26,7 @@
 
 import assert from 'node:assert/strict';
 import { PricingService } from '../../src/services/PricingService.ts';
-import { hasActive2x1Promo, pick2x1FrameDiscount, recalculateCrystalPrices, armarParesDeCristal } from '../../src/lib/promo-utils.ts';
+import { hasActive2x1Promo, pick2x1FrameDiscount, recalculateCrystalPrices, armarParesDeCristal, applyTeñidoPromoDiscount, isTeñidoAddon, tenidoDeOtroLaboratorio, errorTenidoCruzado } from '../../src/lib/promo-utils.ts';
 
 const cristal2x1 = (eye, precio = 305167) => ({ product: { id: 'c2x1', category: 'Cristal', type: 'Cristal Multifocal', name: 'Varilux Comfort', is2x1: true }, quantity: 1, price: precio, eye });
 // La venta 2x1 REAL lleva DOS pares: uno cobrado y otro sin cargo (desde el
@@ -145,6 +145,75 @@ const casos = [
             assert.equal(pick2x1FrameDiscount([{ product: null, quantity: 1, price: 100 }, cristal2x1('OD')]).discount, 0);
         }],
 ];
+
+// ── Teñidos (Ishtar, 16/10/2026): cada laboratorio tiñe sus cristales, y en el
+// 2x1 el 2º par lleva UN teñido sin cargo, compacto/plena o degradé.
+const cristalGO = (eye) => ({ product: { id: 'cgo', category: 'Cristal', type: 'Cristal Multifocal', name: 'Varilux Comfort', is2x1: true, laboratory: 'GRUPO OPTICO' }, quantity: 1, price: 300000, eye });
+const cristalOpto = (eye) => ({ product: { id: 'copto', category: 'Cristal', type: 'Cristal Multifocal', name: 'Multifocal Opto 2x1', is2x1: true, laboratory: 'OPTOVISION' }, quantity: 1, price: 300000, eye });
+const tenidoGO = (name, extra = {}) => ({ product: { id: 'tgo-' + name, category: 'Tratamiento', type: 'Tratamientos', name, laboratory: 'GRUPO OPTICO', price: 30000 }, quantity: 1, price: 30000, ...extra });
+const colorOpto = (name, extra = {}) => ({ product: { id: 'topto-' + name, category: 'Tratamiento', type: 'Tratamientos', name, laboratory: 'OPTOVISION', price: 35073 }, quantity: 1, price: 35073, ...extra });
+const dosPares = (c) => [c('OD'), c('OI'), { ...c('OD'), price: 0, isPromo: true }, { ...c('OI'), price: 0, isPromo: true }];
+const precioDe = (it) => (it.customPrice !== undefined ? it.customPrice : it.price);
+casos.push(
+    ['las coloraciones de Optovisión SON teñidos (antes solo contaba "Teñido …")',
+        () => {
+            assert.equal(isTeñidoAddon({ name: 'Coloración plena — hasta tinte 1 · Optovisión', category: 'Tratamiento' }), true);
+            assert.equal(isTeñidoAddon({ name: 'Teñido Compacto · Grupo Óptico', category: 'Tratamiento' }), true);
+            assert.equal(isTeñidoAddon({ name: 'Multifocal fotocromático teñido', category: 'Cristal' }), false);
+        }],
+    ['un teñido de Grupo Óptico no entra sobre cristales de Optovisión (y al revés)',
+        () => {
+            assert.equal(tenidoDeOtroLaboratorio(tenidoGO('Teñido Compacto · Grupo Óptico').product, dosPares(cristalOpto)), 'OPTOVISION');
+            assert.equal(tenidoDeOtroLaboratorio(colorOpto('Coloración plena · Optovisión').product, dosPares(cristalGO)), 'GRUPO OPTICO');
+            assert.equal(tenidoDeOtroLaboratorio(colorOpto('Coloración plena · Optovisión').product, dosPares(cristalOpto)), null);
+            // Sin cristales todavía, no hay con qué comparar: se deja agregar.
+            assert.equal(tenidoDeOtroLaboratorio(tenidoGO('Teñido Compacto · Grupo Óptico').product, []), null);
+            assert.match(errorTenidoCruzado([...dosPares(cristalOpto), tenidoGO('Teñido Compacto · Grupo Óptico')]), /OPTOVISION/);
+            assert.equal(errorTenidoCruzado([...dosPares(cristalGO), tenidoGO('Teñido Compacto · Grupo Óptico')]), null);
+        }],
+    ['2x1 de Optovisión: la coloración plena del 2º par va sin cargo',
+        () => {
+            const items = [...dosPares(cristalOpto), colorOpto('Coloración plena — hasta tinte 1 · Optovisión')];
+            applyTeñidoPromoDiscount(items, {});
+            assert.equal(precioDe(items[4]), 0);
+            assert.equal(items[4].isPromo, true);
+        }],
+    ['2x1 con DOS teñidos: se bonifica el del 2º par (el último cargado), el del 1º se cobra',
+        () => {
+            const items = [...dosPares(cristalGO), tenidoGO('Teñido Compacto · Grupo Óptico'), tenidoGO('Teñido Degradé · Grupo Óptico')];
+            applyTeñidoPromoDiscount(items, {});
+            assert.equal(precioDe(items[4]), 30000);
+            assert.equal(precioDe(items[5]), 0);
+        }],
+    ['2x1 con DOS teñidos asignados a sus armazones: el bonificado es el del armazón que regala el 2x1',
+        () => {
+            const armazon = (id, price, framePosition) => ({ product: { id, category: 'Armazón', type: 'Armazón', name: 'Marco ' + id, eligible2x1: true }, quantity: 1, price, framePosition });
+            const items = [...dosPares(cristalGO), armazon('a1', 100000, 'P1'), armazon('a2', 80000, 'P2'),
+                tenidoGO('Teñido Degradé · Grupo Óptico', { framePosition: 'P2' }), tenidoGO('Teñido Compacto · Grupo Óptico', { framePosition: 'P1' })];
+            assert.equal(pick2x1FrameDiscount(items).item.framePosition, 'P2');
+            applyTeñidoPromoDiscount(items, {});
+            assert.equal(precioDe(items[6]), 0, 'el del armazón bonificado (P2) va sin cargo');
+            assert.equal(precioDe(items[7]), 30000, 'el del 1º par se cobra');
+        }],
+    ['según muestra, Aquarelle y doble color se cobran siempre, también con el 2x1',
+        () => {
+            for (const nombre of ['Teñido según muestra · Grupo Óptico', 'Coloración según muestra · Optovisión', 'Coloración Aquarelle · Optovisión', 'Coloración doble color · Optovisión']) {
+                const t = nombre.startsWith('Teñido') ? tenidoGO(nombre) : colorOpto(nombre);
+                const items = [...dosPares(nombre.startsWith('Teñido') ? cristalGO : cristalOpto), t];
+                applyTeñidoPromoDiscount(items, {});
+                assert.equal(precioDe(items[4]), t.product.price, nombre);
+                assert.equal(items[4].isPromo, false, nombre);
+            }
+        }],
+    ['sin 2x1, el teñido se cobra al precio del producto de SU laboratorio',
+        () => {
+            // Sin la marca is2x1 y sin "2x1" en el nombre (el nombre también enciende la promo).
+            const sin2x1 = (c) => ['OD', 'OI'].map(eye => ({ ...c(eye), product: { ...c(eye).product, is2x1: false, name: 'Multifocal común' } }));
+            const items = [...sin2x1(cristalOpto), colorOpto('Coloración degradé · Optovisión')];
+            applyTeñidoPromoDiscount(items, {});
+            assert.equal(precioDe(items[2]), 35073);
+        }],
+);
 
 let fallas = 0;
 for (const [nombre, fn] of casos) {
