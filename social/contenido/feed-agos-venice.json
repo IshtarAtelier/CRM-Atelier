@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-venice",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Venice",
+    "color": "",
+    "familia": "clip"
+  },
+  "caption": "Venice · Cápsula Escarlata\nClip-on · receta + sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-venice/01.jpg",
+      "alt": "Venice, clip-on · receta + sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-venice/02.jpg",
+      "alt": "Venice, clip-on · receta + sol, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

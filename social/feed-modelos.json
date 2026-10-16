@@ -1,0 +1,591 @@
+{
+  "_comentario": [
+    "El carril de MODELOS del feed (Ishtar, 16/10/2026: 'lanzá en feed alternados",
+    "imágenes de Agostina frente/perfil y alternadas de Massaru'). Todos los días",
+    "a las 17:00 ART el cron /api/cron/social-feed?que=modelo publica UN carrusel",
+    "de 2 slides (frente, perfil) de un modelo: los días pares del calendario sale",
+    "uno de Agostina, los impares uno de Massaru, en el orden de cada carril.",
+    "",
+    "NO se edita a mano: lo escribe entero",
+    "  node scripts/social/generar-feed-modelos.mjs",
+    "que también renderiza las placas (public/social/feed-*/NN.jpg). Dar de alta",
+    "o baja un modelo es tocar modelos-agostina.mjs / modelos-massaru.mjs y volver",
+    "a correrlo. Sin precio adentro: no vencen (fuente fotos-*, no base).",
+    "",
+    "La elección es determinística: díasDesde(1/1/2026) par → agostina, impar →",
+    "massaru; la posición dentro del carril es la mitad de ese número, módulo el",
+    "largo del carril. Se sabe de antemano qué sale mañana y un problema se puede",
+    "reproducir. Es independiente del carrusel programado de las 11:00",
+    "(feed-programacion.json): ese sigue igual."
+  ],
+  "carriles": {
+    "agostina": [
+      {
+        "id": "feed-agos-victoria-c5",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-dionisio-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-frida-c5",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-venice",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-polaris-c7",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-gala-c7",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-gala-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-torino-c4",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-pegaso-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-polaris-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-helena-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-torino-c3",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-frida-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-frida-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-victoria-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-palermo-c3",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-polaris-c6",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-victoria-c6",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-roma",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-verona-c1",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-hera",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-onix-negro",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-frida-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-capri-c5",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-andromeda-c6",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-olimpia",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-andromeda-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-monaco-c2",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-gala-c8",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-helena-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-victoria-c7",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-riviera-c1",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-helena-c5",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-gala-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-gala-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-florence-c2",
+        "tipo": "clip"
+      },
+      {
+        "id": "feed-agos-helena-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-andromeda-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-altair-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-antares-c1",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-minerva-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-aquiles-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-pandora-c5",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-sirio-c1",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-ariadne-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-hermes-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-ariadne-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-sirio-c2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-teseo-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-diana-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-aquiles-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-deneb-c2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-venus-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-hermes-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-poseidon-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-vega-c2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-teseo-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-orfeo-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-cronos-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-adhara-c4",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-cronos-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-orfeo-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-orfeo-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-deneb-c1",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-hermes-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-poseidon-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-pandora-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-vega-c1",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-hermes-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-orfeo-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-diana-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-mizar-c2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-diana-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-venus-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-hestia-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-fenix-c1",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-hestia-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-selene-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-selene-c5",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-canopo-c2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-rigel-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-rigel-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-orion-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-nashira-c3",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-electra-c5",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-electra-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-agos-minerva-c3",
+        "tipo": "receta"
+      }
+    ],
+    "massaru": [
+      {
+        "id": "feed-massaru-zeus-c33-p01",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-orfeo-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-zeus-c33-p86",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-poseidon-c6",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-zeus-c33-p18-2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-poseidon-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-zeus-c33-p18-1",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-poseidon-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-kalishta",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-pegaso-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-odiseo",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-cronos-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-eva-c3",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-ulises-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-pluton-c7",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-orfeo-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-vega-c2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-hermes-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-eva-c2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-osiris-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-fenix-c2",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-teseo-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-vega-c1",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-aquiles-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-olimpo-sepia",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-hermes-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-olimpo-pink",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-helios-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-olimpo-grey",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-hestia-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-edipo",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-hestia-c2",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-persefone",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-aquiles-c4",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-olimpo-black",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-andromeda-c6",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-demeter",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-polaris-c7",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-pluton-c4",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-cronos-c3",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-triton-c3",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-olimpia-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-triton-c5",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-lumen-c1",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-sol",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-cratos",
+        "tipo": "receta"
+      },
+      {
+        "id": "feed-massaru-calisto-c5",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-perseo-c4",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-perseo-c5",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-calisto-c4",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-urano",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-meteoro-c4",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-meteoro-c275",
+        "tipo": "sol"
+      },
+      {
+        "id": "feed-massaru-meteoro-c26",
+        "tipo": "sol"
+      }
+    ]
+  }
+}

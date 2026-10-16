@@ -1,0 +1,31 @@
+{
+  "id": "feed-massaru-ulises-c4",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Ulises",
+    "color": "C4",
+    "familia": "receta"
+  },
+  "caption": "Ulises C4 · Atelier Óptica\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-massaru-ulises-c4/01.jpg",
+      "alt": "Ulises C4, armazón de receta, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-massaru-ulises-c4/02.jpg",
+      "alt": "Ulises C4, armazón de receta, de perfil · Atelier Óptica"
+    }
+  ]
+}

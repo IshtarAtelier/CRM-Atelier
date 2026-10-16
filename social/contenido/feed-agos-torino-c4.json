@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-torino-c4",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Torino",
+    "color": "C4",
+    "familia": "clip"
+  },
+  "caption": "Torino C4 · Cápsula Escarlata\nClip-on · receta + sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-torino-c4/01.jpg",
+      "alt": "Torino C4, clip-on · receta + sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-torino-c4/02.jpg",
+      "alt": "Torino C4, clip-on · receta + sol, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

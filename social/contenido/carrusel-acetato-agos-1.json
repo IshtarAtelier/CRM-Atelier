@@ -1,0 +1,92 @@
+{
+  "id": "carrusel-acetato-agos-1",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "generadoDesde": "produccion",
+  "criterio": "ficha activa cuyo alt dice \"en acetato\"",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "seleccion": {
+    "nombre": null,
+    "acetato": true,
+    "modelos": [
+      "Atenea C3",
+      "Victoria C5",
+      "Dionisio C2",
+      "Frida C5",
+      "Polaris C7",
+      "Gala C7",
+      "Gala C1",
+      "Pegaso C2",
+      "Polaris C2",
+      "Frida C1"
+    ]
+  },
+  "caption": "Armazones de acetato (1/3) · Cápsula Escarlata\nAtenea C3 · Victoria C5 · Dionisio C2 · Frida C5 · Polaris C7 · Gala C7 · Gala C1 · Pegaso C2 · Polaris C2 · Frida C1\n6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/01.jpg",
+      "alt": "Atenea C3, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/02.jpg",
+      "alt": "Victoria C5, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/03.jpg",
+      "alt": "Dionisio C2, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/04.jpg",
+      "alt": "Frida C5, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/05.jpg",
+      "alt": "Polaris C7, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/06.jpg",
+      "alt": "Gala C7, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/07.jpg",
+      "alt": "Gala C1, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/08.jpg",
+      "alt": "Pegaso C2, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/09.jpg",
+      "alt": "Polaris C2, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-1/10.jpg",
+      "alt": "Frida C1, armazón de receta, de frente · Cápsula Escarlata"
+    }
+  ]
+}

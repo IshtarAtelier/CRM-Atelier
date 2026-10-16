@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-sirio-c2",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Sirio",
+    "color": "C2",
+    "familia": "sol"
+  },
+  "caption": "Sirio C2 · Cápsula Escarlata\nLentes de sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-sirio-c2/01.jpg",
+      "alt": "Sirio C2, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-sirio-c2/02.jpg",
+      "alt": "Sirio C2, lentes de sol, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

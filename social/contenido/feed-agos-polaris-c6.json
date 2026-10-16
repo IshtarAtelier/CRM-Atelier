@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-polaris-c6",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Polaris",
+    "color": "C6",
+    "familia": "receta"
+  },
+  "caption": "Polaris C6 · Cápsula Escarlata\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-polaris-c6/01.jpg",
+      "alt": "Polaris C6, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-polaris-c6/02.jpg",
+      "alt": "Polaris C6, armazón de receta, de perfil · Cápsula Escarlata"
+    }
+  ]
+}
