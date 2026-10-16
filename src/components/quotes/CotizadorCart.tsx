@@ -153,9 +153,12 @@ export default function CotizadorCart({
     const promoHoya = useMemo(() => descuentoSegundoParHoya(items), [items]);
     const promoLensUids = useMemo(() => new Set<string | number>(promoHoya.uids), [promoHoya]);
 
-    const { subtotal, subtotalWithMarkup: priceWithMarkup, totalCash } = useMemo(() => {
+    const { subtotal, subtotalWithMarkup: priceWithMarkup, totalCash, specialDiscountAmount } = useMemo(() => {
         return calculateQuoteTotals(items, markup, discountCash, availableProducts, specialDiscount);
     }, [items, markup, discountCash, availableProducts, specialDiscount]);
+    // Lo que vale la operación ANTES del descuento especial: es el monto exacto
+    // que hay que descontar para dejarla en $0 (ver "Dejar en $0" en los controles).
+    const precioAntesDelEspecial = Math.round(priceWithMarkup + specialDiscountAmount);
 
     const totalTransfer = priceWithMarkup * (1 - safePrice(discountTransfer) / 100);
 
@@ -426,6 +429,7 @@ export default function CotizadorCart({
                 discountTransfer={discountTransfer} setDiscountTransfer={setDiscountTransfer}
                 discountCard={discountCard} setDiscountCard={setDiscountCard}
                 specialDiscount={specialDiscount} setSpecialDiscount={setSpecialDiscount}
+                precioAntesDelEspecial={precioAntesDelEspecial}
                 currentUserRole={currentUserRole}
                 isCard={isCard}
             />
