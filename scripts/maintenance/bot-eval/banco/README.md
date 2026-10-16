@@ -51,3 +51,15 @@ y veredicto del juez) y un `_resumen.json`.
 Los escenarios viven en `escenarios.cjs` (nombres y datos inventados; las
 aperturas de anuncio son los textos precargados reales de cada anuncio).
 `BANCO_VERBOSO=1` muestra los logs del bot por consola.
+
+## Por Vertex AI (`--vertex`) — diferencia con prod
+
+Con `--vertex` el modelo (bot, cliente simulado y juez) va por Vertex AI con la
+cuenta de servicio del `.env` (`GOOGLE_VERTEX_AI_WEB_CREDENTIALS`,
+`GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`), que se factura a mes vencido.
+Producción usa `ChatGoogleGenerativeAI` (AI Studio, `GOOGLE_GENAI_API_KEY`); el
+banco sustituye ese cliente por `ChatVertexAI` (`@langchain/google-vertexai-web`,
+ya instalado en wa-service) con el MISMO modelo (`gemini-2.5-flash`) y los mismos
+parámetros. Es el mismo modelo por otro proveedor: diferencias finas de
+serialización de herramientas o de "thinking" no se pueden descartar (p.ej. una
+respuesta vacía del modelo puede ser propia de Vertex).

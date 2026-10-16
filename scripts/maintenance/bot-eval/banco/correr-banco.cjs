@@ -29,7 +29,20 @@ if (!FIXTURES || !SALIDA) { console.error('Uso: --fixtures <dir> --salida <dir>'
 const RAIZ = path.resolve(__dirname, '../../../..');
 if (path.resolve(SALIDA).startsWith(RAIZ)) { console.error('--salida tiene que estar FUERA del repo (los transcripts no se commitean).'); process.exit(1); }
 
-const claveGemini = (() => {
+// --vertex: el modelo va por Vertex AI (cuenta de servicio del .env) en vez de la
+// clave de AI Studio. DIFERENCIA CON PROD: prod usa ChatGoogleGenerativeAI con
+// GOOGLE_GENAI_API_KEY; acá se sustituye por ChatVertexAI con el mismo modelo y parámetros.
+const VERTEX = argv.includes('--vertex');
+const leerEnv = (clave) => {
+    for (const f of [path.join(RAIZ, '.env'), path.join(RAIZ, '../atelier/.env')]) {
+        if (!fs.existsSync(f)) continue;
+        const m = fs.readFileSync(f, 'utf8').match(new RegExp('^' + clave + '=(.*)$', 'm'));
+        if (m) return m[1].trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+    }
+    return null;
+};
+const vertexEnv = VERTEX ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS: leerEnv('GOOGLE_VERTEX_AI_WEB_CREDENTIALS'), GOOGLE_CLOUD_PROJECT: leerEnv('GOOGLE_CLOUD_PROJECT'), GOOGLE_CLOUD_LOCATION: leerEnv('GOOGLE_CLOUD_LOCATION') } : {};
+const claveGemini = VERTEX ? 'no-se-usa-vertex' : (() => {
     for (const f of [path.join(RAIZ, '.env'), path.join(RAIZ, '../atelier/.env')]) {
         if (!fs.existsSync(f)) continue;
         const m = fs.readFileSync(f, 'utf8').match(/^GOOGLE_GENAI_API_KEY=(.*)$/m);
@@ -47,6 +60,7 @@ Object.assign(process.env, {
     BOT_DEBOUNCE_MS: '300',
     DATABASE_URL: 'postgresql://nadie@127.0.0.1:1/no-existe',
     NODE_ENV: 'test',
+    ...vertexEnv,
 });
 if (!claveGemini) { console.error('Falta GOOGLE_GENAI_API_KEY'); process.exit(1); }
 
@@ -61,7 +75,17 @@ function modeloDeSimulacro() {
     }
     return { ChatGoogleGenerativeAI: ChatFalso };
 }
-const entorno = crearEntorno({ fixtures: { productos: leer('productos.json'), settings: leer('settings.json'), tags: leer('tags.json') }, modeloFalso: SIMULACRO ? modeloDeSimulacro() : null });
+function modeloVertex() {
+    const { ChatVertexAI } = require(path.join(WA, 'node_modules/@langchain/google-vertexai-web'));
+    class ChatGoogleGenerativeAI extends ChatVertexAI {
+        constructor(p = {}) {
+            const { apiKey, ...resto } = p;
+            super({ ...resto, location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1' });
+        }
+    }
+    return { ChatGoogleGenerativeAI };
+}
+const entorno = crearEntorno({ fixtures: { productos: leer('productos.json'), settings: leer('settings.json'), tags: leer('tags.json') }, modeloFalso: SIMULACRO ? modeloDeSimulacro() : (VERTEX ? modeloVertex() : null) });
 const { prisma, registro } = entorno;
 
 // Logs del bot por conversación (los timers del debounce heredan el contexto).
@@ -80,7 +104,7 @@ const { createCloudBot } = require(path.join(WA, 'bot-cloud'));
 const graphMod = require(path.join(WA, 'graph'));
 const { esNombreValido } = require(path.join(WA, 'shared/nombre-de-persona'));
 const { noEsCastellano } = require(path.join(WA, 'shared/idioma'));
-const { ChatGoogleGenerativeAI } = require(path.join(WA, 'node_modules/@langchain/google-genai'));
+const { ChatGoogleGenerativeAI } = VERTEX ? modeloVertex() : require(path.join(WA, 'node_modules/@langchain/google-genai'));
 const { SystemMessage, HumanMessage } = require(path.join(WA, 'node_modules/@langchain/core/messages'));
 const { ESCENARIOS, ESTILO } = require('./escenarios.cjs');
 

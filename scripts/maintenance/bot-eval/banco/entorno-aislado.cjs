@@ -31,7 +31,8 @@ const RAIZ = path.resolve(__dirname, '../../../..');
 const WA = path.join(RAIZ, 'wa-service');
 const CRM_FALSO = 'http://crm-falso.invalid/api/bot';
 
-const HOSTS_PERMITIDOS = new Set(['generativelanguage.googleapis.com']);
+const HOSTS_PERMITIDOS = new Set(['generativelanguage.googleapis.com', 'aiplatform.googleapis.com', 'oauth2.googleapis.com']);
+const hostPermitido = (h) => HOSTS_PERMITIDOS.has(h) || /^[a-z0-9-]+-aiplatform\.googleapis\.com$/.test(h);
 
 function crearEntorno({ fixtures, modeloFalso = null }) {
     const registro = { escrituras: [], crm: [], envios: [], bloqueos: [], pricing: [], mails: [] };
@@ -47,7 +48,7 @@ function crearEntorno({ fixtures, modeloFalso = null }) {
     const fetchOriginal = globalThis.fetch;
     globalThis.fetch = async (input, init) => {
         const url = new URL(typeof input === 'string' ? input : input.url);
-        if (HOSTS_PERMITIDOS.has(url.hostname)) return fetchOriginal(input, init);
+        if (hostPermitido(url.hostname)) return fetchOriginal(input, init);
         registro.bloqueos.push({ via: 'fetch', url: url.origin + url.pathname, metodo: (init && init.method) || 'GET' });
         if (url.hostname.endsWith('atelieroptica.com.ar') && (init && init.method) === 'HEAD') {
             return new Response(null, { status: 200, headers: { 'content-type': 'image/jpeg' } });
@@ -60,7 +61,7 @@ function crearEntorno({ fixtures, modeloFalso = null }) {
             mod[fn] = function (...args) {
                 const a = args[0];
                 const host = typeof a === 'string' ? new URL(a).hostname : (a instanceof URL ? a.hostname : (a && (a.hostname || a.host)) || '');
-                if (HOSTS_PERMITIDOS.has(String(host).split(':')[0])) return orig.apply(this, args);
+                if (hostPermitido(String(host).split(':')[0])) return orig.apply(this, args);
                 registro.bloqueos.push({ via: `${mod === https ? 'https' : 'http'}.${fn}`, url: String(host) });
                 throw new Error(`[entorno aislado] red bloqueada: ${host}`);
             };
