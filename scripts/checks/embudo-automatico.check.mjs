@@ -103,6 +103,12 @@ for (const [t, esperado] of [
     ['Hola .. gracias, conseguí hacerlos x Pami', 'cierre'],
     ['Buenas tardes.. no, no esta dentro del presupuesto previsto,, veo otras opciones, gracias', 'cierre'],
     ['por favor no me escriban más', 'cierre'],
+    // 15/10/2026: plural y compuestos (Rubén, "ya hemos encargado los lentes", recibió dos toques más)
+    ['Hola. Sí, miré el presupuesto. Como les había comentado el día que los contacté, ya hemos encargado los lentes. Pero queríamos saber cómo era con otras ópticas', 'cierre'],
+    ['ya los compramos en otra optica, gracias igual', 'cierre'],
+    ['Ya los tenía encargados, gracias', 'cierre'],
+    ['los hicimos con la obra social', 'cierre'],
+    ['ya pedí los lentes, gracias', 'cierre'],
     ['Buen día si los vi gracias🙏💕 debo esperar cobrar', 'posponer'],
     ['por ahora no, gracias, en todo caso me vuelvo a comunicar', 'posponer'],
     ['Muchísimas gracias cualquier cosa les escribo por ahora sigo viendo', 'posponer'],

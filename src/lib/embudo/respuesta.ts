@@ -57,7 +57,12 @@ const CIERRE: RegExp[] = [
     /\bno,? (muchas )?gracias\b/,
     /\bno (me )?interesa|no estoy interesad|no me sirve|no lo necesito|no quiero|no voy a (querer|comprar|hacer)/,
     /\bno (te|les) agradezco\b/,
-    /\bya (los? |las? |lo |la |me )?(compr[eé]|resolv[ií]|hice|consegu[ií]|encargu[eé]|realic[eé])/,
+    // Singular, plural y tiempos compuestos. El 11/10/2026 Rubén escribió "ya
+    // hemos encargado los lentes" DOS veces y el motor, que solo conocía "ya
+    // encargué", le siguió mandando toques (15/10, revisión de Ishtar).
+    /\bya (los? |las? |lo |la |me |nos )?(compr[eé]|resolv[ií]|hice|consegu[ií]|encargu[eé]|realic[eé]|ped[ií]|compramos|resolvimos|hicimos|conseguimos|encargamos|realizamos|pedimos)/,
+    /\bya (los? |las? |lo |la |me |nos |se )?(he|hemos|hab[ií]a|hab[ií]amos|ten[ií]a|ten[ií]amos) ?(los? |las? |lo |la )?(comprado|resuelto|hecho|conseguido|encargado|realizado|pedido)/,
+    /\b(los |las |lo |la |me |se )?(compramos|encargamos|hicimos|conseguimos|pedimos) (en|por|con) (otra|otro|la|el|un|una)\b/,
     /(en |por |de )otra [oó]ptica|en otro lado|en otro lugar/,
     /\b(ya|consegu[ií]).{0,20}\b(por|x|con) (el )?(pami|(la |mi )?obra social)/,
     /no (me )?(escriban|escribas|manden|mandes|molesten|molestes|insistan)/,
@@ -79,7 +84,12 @@ const NO_PELADO = /^no\b[\s.,!]*(gracias|muchas gracias|te agradezco)?[\s.!]*$/;
  * obra social?"). Solo le gana lo que no admite otra lectura.
  */
 const CIERRE_FUERTE: RegExp[] = [
-    /\bya (los? |las? |lo |la |me )?(compr[eé]|resolv[ií]|hice|consegu[ií]|encargu[eé]|realic[eé])/,
+    // Singular, plural y tiempos compuestos. El 11/10/2026 Rubén escribió "ya
+    // hemos encargado los lentes" DOS veces y el motor, que solo conocía "ya
+    // encargué", le siguió mandando toques (15/10, revisión de Ishtar).
+    /\bya (los? |las? |lo |la |me |nos )?(compr[eé]|resolv[ií]|hice|consegu[ií]|encargu[eé]|realic[eé]|ped[ií]|compramos|resolvimos|hicimos|conseguimos|encargamos|realizamos|pedimos)/,
+    /\bya (los? |las? |lo |la |me |nos |se )?(he|hemos|hab[ií]a|hab[ií]amos|ten[ií]a|ten[ií]amos) ?(los? |las? |lo |la )?(comprado|resuelto|hecho|conseguido|encargado|realizado|pedido)/,
+    /\b(los |las |lo |la |me |se )?(compramos|encargamos|hicimos|conseguimos|pedimos) (en|por|con) (otra|otro|la|el|un|una)\b/,
     /(en |por |de )otra [oó]ptica|en otro lado|en otro lugar/,
     /no (me )?(escriban|escribas|manden|mandes|molesten|molestes|insistan)|no (sigas|sigan|sigu[aá]s) (insistiendo|escribiendo|mandando)/,
 ];
