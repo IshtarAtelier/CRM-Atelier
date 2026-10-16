@@ -28,8 +28,10 @@ El robot carga lo que dice la venta. Si falta algo, no prepara y dice qué.
 ## Paso a paso
 
 En **Ventas**, cada venta que lleva cristales de Grupo Óptico tiene el botón
-naranja **"Procesar en Grupo Óptico"** (al lado de "Procesado"; las de Vitolen
-tienen "Procesar en Vitolen", y las de otros laboratorios no tienen ninguno).
+negro **"🤖 Robot, procesámelo en Grupo Óptico"** (al lado de "Procesado"; las
+de Vitolen tienen el mismo con "Vitolen", y las de otros laboratorios no tienen
+ninguno). El nombre es en broma a propósito: el pedido lo carga el robot, vos
+solo lo revisás y das el OK.
 Un clic abre la ficha en el bloque **"Grupo Óptico · carga del pedido"** y, si
 no hace falta elegir nada, el robot arranca solo.
 

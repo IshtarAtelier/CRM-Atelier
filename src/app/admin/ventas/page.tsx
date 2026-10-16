@@ -1434,9 +1434,10 @@ export default function VentasPage() {
                                             algo simple e intuitivo; misma estética en todos los laboratorios"). */}
                                         {!['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '') && LABS_CON_CARGA_ASISTIDA.filter(lab => ventaLlevaCristalesDe(order.items, lab)).map(lab => (
                                             <button key={lab} type="button" onClick={() => procesarEn(order.id, lab)}
-                                                title={`El robot arma el pedido en el portal de ${NOMBRE_DE_LAB[lab]} y te muestra la pantalla real para que lo apruebes`}
+                                                title={`Vos no cargás nada: el robot entra al portal de ${NOMBRE_DE_LAB[lab]}, arma el pedido y te muestra la pantalla real para que solo des el OK`}
                                                 className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-sm bg-stone-900 text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900">
-                                                <Bot className="w-3.5 h-3.5" /> Procesar en {NOMBRE_DE_LAB[lab]}
+                                                {/* Texto en broma a propósito (Ishtar, 15/10/2026): que quede claro que el pedido lo carga el robot, no ellos. */}
+                                                <Bot className="w-3.5 h-3.5" /> Robot, procesámelo en {NOMBRE_DE_LAB[lab]}
                                             </button>
                                         ))}
                                         {/* Advance Status Button */}
