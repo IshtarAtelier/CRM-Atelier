@@ -42,7 +42,13 @@ pantallas, listado y estados de pedido, buscador (`bus_pedido` / `buscar_rx`),
 formulario de carga campo por campo, comprobantes/cuenta corriente, peticiones
 JSON si las hay, y si "guardar" crea algo (frenar y preguntar).
 
-## 3. Etapas (OK de Ishtar en cada una)
+## 3. Alcance acordado (15/10, Ishtar)
+
+**Solo falta la carga asistida.** Seguimiento y costos se dejan como están
+(costos por mail IMAP). Las etapas 1 y 2 de la tabla quedan FUERA de alcance.
+Orden real: E0 (relevamiento del formulario de OVES) → E3 → E3b → E4 → E5.
+
+## 3b. Etapas (OK de Ishtar en cada una)
 
 | # | Etapa | Entrega | Depende de |
 |---|---|---|---|
