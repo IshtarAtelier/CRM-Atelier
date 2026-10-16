@@ -346,6 +346,11 @@ export interface ContactCreateData {
     firstContactAt?: string | Date | null;
 }
 
+/** El cierre de una tarea de reseña frenado porque la reseña no figura en Google. */
+export class ResenaNoFiguraError extends Error {
+    constructor(public detalle?: string) { super('La reseña no figura en Google'); }
+}
+
 export const ContactService = {
     async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null, location?: string | null, unattended?: boolean) {
         try {
@@ -1481,13 +1486,32 @@ export const ContactService = {
         });
     },
 
-    async updateTaskStatus(taskId: string, status: string, actor?: Actor) {
+    async updateTaskStatus(taskId: string, status: string, actor?: Actor, opciones?: { forzar?: boolean }) {
         // Obtener la tarea para saber qué se está finalizando
         const task = await prisma.clientTask.findUnique({
-            where: { id: taskId }
+            where: { id: taskId },
+            include: { client: { select: { name: true } } },
         });
 
         if (!task) throw new Error('Tarea no encontrada');
+
+        // "Solicitar comentario": un robot mira si la reseña FIGURA en Google
+        // antes de darla por hecha (Ishtar, 16/10/2026). Si no figura, no se
+        // cierra sola: el vendedor decide si la cancela igual, y entonces
+        // queda CANCELADA —no hecha— para que no cuente como reseña lograda.
+        let notaResena = '';
+        if (task.type === 'REVIEW_REQUEST' && status === 'COMPLETED') {
+            const { GoogleReviewsCheckService } = await import('@/services/google-reviews-check.service');
+            const v = await GoogleReviewsCheckService.verificar(task.client?.name || '');
+            if (v.figura) {
+                notaResena = ` — 🤖 reseña confirmada en Google (${v.autor})`;
+            } else if (!opciones?.forzar) {
+                throw new ResenaNoFiguraError(v.error);
+            } else {
+                status = 'CANCELLED';
+                notaResena = ' — 🤖 la reseña NO figura en Google; cancelada igual';
+            }
+        }
 
         const isClosing = status === 'COMPLETED' || status === 'CANCELLED';
         const updatedTask = await prisma.clientTask.update({
@@ -1499,12 +1523,12 @@ export const ContactService = {
         });
 
         // Si se marca como completada, registrar en el historial con quién la finalizó
-        if (status === 'COMPLETED') {
+        if (status === 'COMPLETED' || notaResena) {
             await prisma.interaction.create({
                 data: {
                     clientId: task.clientId,
                     type: 'TASK_COMPLETED',
-                    content: `✅ ${actor?.name || 'Sistema'} finalizó la tarea: ${task.description}`,
+                    content: `${status === 'COMPLETED' ? '✅' : '⚠️'} ${actor?.name || 'Sistema'} ${status === 'COMPLETED' ? 'finalizó' : 'canceló'} la tarea: ${task.description}${notaResena}`,
                     userId: actor?.id || null,
                     userName: actor?.name || null
                 }
@@ -1517,7 +1541,7 @@ export const ContactService = {
             action: 'STATUS_CHANGE',
             entityType: 'TASK',
             entityId: taskId,
-            details: { clientId: task.clientId, description: task.description, from: task.status, to: status }
+            details: { clientId: task.clientId, description: task.description, from: task.status, to: status, ...(notaResena ? { resena: notaResena } : {}) }
         }).catch(console.error);
 
         return updatedTask;

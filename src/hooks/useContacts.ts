@@ -1,3 +1,4 @@
+import { cerrarTarea } from '@/lib/tareas/cerrar-tarea';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Contact, ContactStatus, ContactFormData } from '@/types/contacts';
 
@@ -224,15 +225,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
 
     const updateTaskStatus = async (id: string, taskId: string, status: string) => {
         try {
-            const res = await fetch(`/api/contacts/${id}/tasks`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ taskId, status })
-            });
-            if (res.ok && typeof window !== 'undefined') {
-                window.dispatchEvent(new Event('tasks-updated'));
-            }
-            return res.ok;
+            return await cerrarTarea(id, taskId, status);
         } catch (err) {
             return false;
         }
