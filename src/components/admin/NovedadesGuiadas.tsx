@@ -13,7 +13,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Palette, Sun, Ruler, Lock, Gift, Check, X as XIcon, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
+import { Palette, Sun, Ruler, Lock, Gift, Check, X as XIcon, ArrowRight, Loader2, AlertTriangle, FileText, MessageCircle } from 'lucide-react';
 import { AVISO_TENIDO_2X1 } from '@/lib/promo-utils';
 
 interface Paso {
@@ -22,6 +22,68 @@ interface Paso {
 }
 
 const GUIADOS: Record<string, Paso[]> = {
+    'solicitar-factura-2026-10': [
+        {
+            titulo: 'Cambió cómo se pide una factura',
+            cuerpo: (
+                <>
+                    <p>Desde ahora las facturas <strong>no se piden solas</strong> al cargar un pago. Las pedís vos, desde la venta, en 3 pasos. Es 1 minuto.</p>
+                    <p className="flex items-center gap-2 mt-3 p-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+                        <Lock className="w-4 h-4 shrink-0" />
+                        Este aviso no se puede saltear: el botón para cerrarlo aparece en el último paso.
+                    </p>
+                </>
+            ),
+        },
+        {
+            titulo: '1. Tocá «Solicitar factura» en la venta',
+            cuerpo: (
+                <>
+                    <p>En la ficha del cliente, abrí la venta: el botón amarillo <strong>Solicitar factura</strong> está debajo de <em>Abonar</em> y <em>Calcular</em>, con el monto que falta facturar al lado.</p>
+                    <div className="mt-3 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 font-black text-[11px] uppercase tracking-widest ring-2 ring-rose-500 ring-offset-2 ring-offset-white dark:ring-offset-stone-900">
+                        <FileText className="w-4 h-4" /> Solicitar factura <span className="opacity-60">· $110.000</span>
+                    </div>
+                    <p className="mt-3">También está en <strong>Ventas</strong>: el ícono de hoja amarillo en la fila de la venta.</p>
+                    <p className="flex items-center gap-2 mt-3 text-amber-600 dark:text-amber-500 font-bold">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        Solo aparece si la venta tiene pagos sin facturar: si no lo ves, primero registrá el cobro con Abonar.
+                    </p>
+                </>
+            ),
+        },
+        {
+            titulo: '2. Revisá los datos y contá si hay observación',
+            cuerpo: (
+                <>
+                    <p>Se abre una ventana con el <strong>cliente, el DNI y el monto</strong>. Revisalos y tildá <strong>«Confirmo que los datos a facturar están correctos»</strong>.</p>
+                    <p className="mt-2">Después contestá <strong>¿Necesita alguna observación?</strong> Si es Sí, escribila. Por ejemplo:</p>
+                    <ul className="mt-2 list-disc pl-5 space-y-1">
+                        <li>Factura a <strong>CUIT</strong>: el número y si es monotributista, responsable inscripto o exento.</li>
+                        <li>A nombre de otra persona, o un dato a corregir.</li>
+                        <li>Lo que el cliente necesite que figure (obra social, plan).</li>
+                    </ul>
+                    <p className="mt-3 p-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+                        La observación sale impresa en la factura. Sin completar todo, el botón no envía.
+                    </p>
+                </>
+            ),
+        },
+        {
+            titulo: '3. Listo: a Ishtar le llega por WhatsApp',
+            cuerpo: (
+                <>
+                    <p className="flex items-start gap-2">
+                        <MessageCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
+                        <span>Le llega con los datos, tu observación y los pagos de la venta, y la factura queda armada para emitir. En la ficha queda anotado quién la pidió.</span>
+                    </p>
+                    <p className="mt-3">Si la venta ya tiene una solicitud pendiente, el sistema te avisa: no hace falta volver a pedirla.</p>
+                    <p className="mt-3 p-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+                        ¿Dudas? Escribile a Ishtar por la mensajería interna.
+                    </p>
+                </>
+            ),
+        },
+    ],
     'tenido-una-linea-2026-08': [
         {
             titulo: 'Hay cambios en teñidos y recetas',
