@@ -24,7 +24,7 @@ interface Paso {
 /** Si el guiado trae opciones, el último paso cierra con ellas en vez de "Entendido". */
 const OPCIONES: Record<string, { texto: string; principal?: boolean }[]> = {
     'desafio-resenas-lens-cerro-2026-10': [
-        { texto: 'Me sumo al desafío', principal: true },
+        { texto: 'Me aseguro de no terminar el día sin lograrlo', principal: true },
         { texto: 'Dejá, me gusta el segundo puesto' },
     ],
 };
