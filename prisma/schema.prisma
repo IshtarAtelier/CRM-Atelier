@@ -79,6 +79,12 @@ model Client {
   createdBy              String?           @default("Sistema")
   isDeleted              Boolean           @default(false)
   opportunityDismissedAt DateTime?
+  // Ya dejó la reseña en Google (Ishtar, 16/10/2026). Lo marca el vendedor con
+  // "Ya comentó" o el cruce con Places (googleReviewSource = MANUAL | GOOGLE).
+  // Con esto puesto, el robot del 2º pedido de reseña no lo vuelve a sugerir.
+  googleReviewAt         DateTime?
+  googleReviewSource     String?
+  googleReviewBy         String?
   tasks                  ClientTask[]
   interactions           Interaction[]
   orders                 Order[]
@@ -264,6 +270,10 @@ model ClientTask {
   completedBy String?
   completedAt DateTime?
   type        String    @default("TASK")
+  // 2º pedido de reseña: apunta al 1º (ClientTask REVIEW_REQUEST cerrado).
+  // UNIQUE: la base garantiza un solo 2º pedido por cada 1º, aunque dos
+  // instancias corran el robot a la vez.
+  reminderOfTaskId String?   @unique
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
