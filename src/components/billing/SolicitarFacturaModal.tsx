@@ -5,6 +5,9 @@ import { FileText, Loader2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { precioConSigno } from '@/lib/format-precio';
 
+/** Medio peso: lo que puede diferir un importe redondeado al peso de lo cobrado con centavos. */
+const TOLERANCIA_REDONDEO = 0.5;
+
 /**
  * El vendedor pide la factura: confirma los datos, dice si hace falta una
  * observación y la escribe. La administración recibe un WhatsApp con el link
@@ -30,7 +33,11 @@ export default function SolicitarFacturaModal({ orderId, clienteNombre, clienteD
     const [error, setError] = useState('');
 
     const montoNum = parseFloat(monto.replace(/\./g, '').replace(',', '.'));
-    const montoValido = Number.isFinite(montoNum) && montoNum > 0 && montoNum <= cobrado;
+    // Misma tolerancia que el servidor (invoice-request.service.ts): lo cobrado
+    // puede traer centavos ($964.409,60) y el sugerido va redondeado al peso
+    // ($964.410). Sin tolerancia, el monto propuesto por el propio modal se
+    // rechazaba por 40 centavos (Milena, 16/10/2026).
+    const montoValido = Number.isFinite(montoNum) && montoNum > 0 && montoNum <= cobrado + TOLERANCIA_REDONDEO;
     const obsValida = necesitaObs === false || (necesitaObs === true && observaciones.trim().length > 0);
     const puedeEnviar = montoValido && confirmado && obsValida && !enviando;
 
