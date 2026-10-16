@@ -140,9 +140,10 @@ export function portalSinResolver(b: { status: string; resumenPortal: unknown })
  *  · APROBADO viejo: la confirmación no terminó → se anota para reintentar,
  *    nunca ERROR (el portal puede haberla tomado).
  */
-// Un robot vivo late cada 2 min (`conRobot`, mueve `updatedAt`), así que
-// "30 min sin novedades" es un robot muerto, no uno lento: ningún paso suelto
-// del robot (login, espera de turno, un GET al portal) dura más de 5 min.
+// Un robot vivo late cada 2 min (`conRobot`, mueve `updatedAt`) también mientras
+// Playwright espera (el setInterval corre en el event loop), así que "30 min
+// sin novedades" es un robot muerto, no uno lento — aunque un paso del portal
+// de Grupo Óptico pueda tardar hasta 30 min (techo ampliado el 15/10/2026).
 export const COLGADO_TRAS_MIN = 30;
 
 export function colgados(
