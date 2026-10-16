@@ -1485,7 +1485,7 @@ export class OrderService {
                     // desataría un descuento y un número de caso que ya no coinciden.
                     // La corrección de un caso cerrado se hace revirtiendo la caja, no
                     // pisando el caso.
-                    const yaImputado = !!(activeCase as any).cashEntryId;
+                    const yaImputado = !!((activeCase as any).cashEntryId || (activeCase as any).clientChargedAt);
                     if (yaImputado && (postSaleCost !== undefined || postSaleFault !== undefined || postSaleFaultUserId !== undefined)) {
                         throw new Error('Este caso ya fue imputado a caja: el costo y la atribución quedan de solo lectura. Para corregirlo, hay que revertir el movimiento de caja primero.');
                     }

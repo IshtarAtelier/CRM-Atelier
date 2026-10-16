@@ -1771,6 +1771,7 @@ export default function VentasPage() {
                                         status: o.postSaleStatus,
                                         cost: o.postSaleCost,
                                         cashEntryId: (o as any).postSaleCashEntryId,
+                                        clientChargedAt: (o as any).postSaleClientChargedAt,
                                     });
                                     if (col !== column.key) return false;
                                     if (caseTypeFilter) {

@@ -41,6 +41,11 @@ interface PostSaleCase {
     costConfirmedBy?: string | null;
     faultUserId?: string | null;
     cashEntryId?: string | null;
+    // Alternativa a la caja: lo paga el cliente; el saldo y los pagos viven en el caso.
+    clientCharge?: number | null;
+    clientChargedAt?: string | Date | null;
+    clientChargedBy?: string | null;
+    clientPayments?: { id: string; amount: number; method: string; date: string | Date; notes?: string | null; receiptUrl?: string | null; createdByName?: string | null }[];
     order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null } | null;
     notesList?: PostSaleNote[];
 }
@@ -55,9 +60,21 @@ function operationNumbers(c: PostSaleCase): string[] {
  * el costo real lo cierra el laboratorio al facturar TODAS las operaciones, y
  * hasta entonces lo que hay es la estimación que cargó el vendedor.
  */
-type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'IMPUTADO';
+type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'IMPUTADO' | 'CARGADO_CLIENTE';
+/** Valor del select de destino cuando el costo lo paga el cliente. */
+const PAGA_CLIENTE = '__CLIENTE__';
+
+const METODOS_PAGO_CLIENTE = [
+    { id: 'EFECTIVO', label: 'Efectivo' },
+    { id: 'TRANSFERENCIA', label: 'Transferencia' },
+    { id: 'MERCADO_PAGO', label: 'Mercado Pago' },
+    { id: 'TARJETA', label: 'Tarjeta' },
+    { id: 'OTRO', label: 'Otro (aclarar)' },
+];
+
 function costStage(c: PostSaleCase): CostStage {
     if (c.cashEntryId) return 'IMPUTADO';
+    if (c.clientChargedAt) return 'CARGADO_CLIENTE';
     if (c.costSource === 'LAB') return 'CERRADO';
     if ((c.cost ?? 0) > 0) return 'ESTIMADO';
     return 'SIN_COSTO';
@@ -67,6 +84,7 @@ const COST_STAGE_UI: Record<CostStage, { label: string; cls: string }> = {
     SIN_COSTO: { label: 'Sin costo', cls: 'bg-stone-100 text-stone-500 border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700' },
     ESTIMADO: { label: 'Estimado · esperando laboratorio', cls: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/40' },
     CERRADO: { label: 'Costo cerrado · listo para cobrar', cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40' },
+    CARGADO_CLIENTE: { label: 'Lo paga el cliente', cls: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-900/40' },
     IMPUTADO: { label: 'Cobrado a caja', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40' },
 };
 
@@ -233,7 +251,11 @@ function OperationNumbers({ c }: { c: PostSaleCase }) {
 function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolean; onRefresh: () => void }) {
     const stage = costStage(c);
     const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
-    const [vendorId, setVendorId] = useState<string>(c.faultUserId || '');
+    // '' = caja Ishtar (lo cubre Atelier); PAGA_CLIENTE = lo paga el cliente y
+    // queda como saldo del caso; cualquier otro valor = caja de esa persona.
+    const [vendorId, setVendorId] = useState<string>(
+        c.fault === 'Cliente' || c.coverage === 'Con cargo' ? PAGA_CLIENTE : (c.faultUserId || '')
+    );
     const [working, setWorking] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -245,29 +267,59 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
             .catch(() => setVendors([]));
     }, [isAdmin, stage]);
 
-    if (stage === 'SIN_COSTO') return null;
-
     const monto = c.cost ?? 0;
     const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+    const pagaCliente = vendorId === PAGA_CLIENTE;
     const loCubreAtelier = !vendorId;
 
-    const imputar = async () => {
-        if (working) return;
+    const llamar = async (body: Record<string, unknown>): Promise<boolean> => {
+        if (working) return false;
         setWorking(true);
         setError(null);
         try {
             const res = await fetch(`/api/post-sale/${c.id}/cost`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'impute', vendorId: vendorId || undefined }),
+                body: JSON.stringify(body),
             });
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || 'No se pudo imputar'); return; }
+            if (!res.ok) { setError(d.error || 'No se pudo completar la operación'); return false; }
             onRefresh();
+            return true;
         } catch {
             setError('No se pudo conectar con el servidor.');
+            return false;
         } finally { setWorking(false); }
     };
+
+    const imputar = () => pagaCliente
+        ? llamar({ action: 'charge_client' })
+        : llamar({ action: 'impute', vendorId: vendorId || undefined });
+
+    // ── Pagos del cliente (solo cuando el caso está cargado al cliente) ──
+    const pagos = c.clientPayments || [];
+    const pagado = pagos.reduce((a, p) => a + p.amount, 0);
+    const saldo = Math.max(0, Math.round((c.clientCharge ?? 0) - pagado));
+    const [pagoMonto, setPagoMonto] = useState('');
+    const [pagoMetodo, setPagoMetodo] = useState('TRANSFERENCIA');
+    const [pagoNotas, setPagoNotas] = useState('');
+    const [pagoFoto, setPagoFoto] = useState<File | null>(null);
+    const registrarPago = async () => {
+        const monto = Number(pagoMonto || saldo);
+        if (!(monto > 0)) { setError('Poné el importe del pago.'); return; }
+        if (pagoMetodo !== 'EFECTIVO' && !pagoFoto) { setError('Falta la foto del comprobante de pago.'); return; }
+        let receiptUrl: string | null = null;
+        if (pagoFoto) {
+            receiptUrl = await uploadImage(pagoFoto);
+            if (!receiptUrl) { setError('No se pudo subir el comprobante. Probá de nuevo.'); return; }
+        }
+        const ok = await llamar({ action: 'add_client_payment', amount: monto, method: pagoMetodo, notes: pagoNotas, receiptUrl });
+        if (ok) { setPagoMonto(''); setPagoNotas(''); setPagoFoto(null); }
+    };
+    const anularCargo = () => llamar({ action: 'revert_client_charge' });
+
+    // Después de TODOS los hooks: un return antes cambiaría su orden entre renders.
+    if (stage === 'SIN_COSTO') return null;
 
     return (
         <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-800/30 p-3 space-y-2">
@@ -290,6 +342,83 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
                 </p>
             )}
 
+            {stage === 'CARGADO_CLIENTE' && (
+                <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                        {[['A cobrar', c.clientCharge ?? 0], ['Pagado', pagado], ['Saldo', saldo]].map(([t, v]) => (
+                            <div key={t as string} className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5">
+                                <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">{t}</p>
+                                <p className={`text-sm font-black ${t === 'Saldo' && saldo > 0 ? 'text-violet-700 dark:text-violet-400' : 'text-stone-800 dark:text-stone-100'}`}>{fmt(v as number)}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {pagos.length > 0 && (
+                        <ul className="space-y-1">
+                            {pagos.map(p => (
+                                <li key={p.id} className="flex items-center gap-2 text-[11px] text-stone-700 dark:text-stone-300">
+                                    <span className="font-black">{fmt(p.amount)}</span>
+                                    <span>{METODOS_PAGO_CLIENTE.find(m => m.id === p.method)?.label || p.method}</span>
+                                    <span className="text-stone-400">{formatDateTime(p.date)}{p.createdByName ? ` · ${p.createdByName}` : ''}</span>
+                                    {p.receiptUrl && (
+                                        <a href={p.receiptUrl} target="_blank" rel="noreferrer" className="ml-auto underline font-bold">Ver comprobante</a>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    {saldo > 0 ? (
+                        <div className="rounded-xl border border-violet-200 dark:border-violet-900/40 p-3 space-y-2">
+                            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Registrar pago del cliente</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <input
+                                    type="number" inputMode="numeric" min={0} value={pagoMonto}
+                                    onChange={(e) => setPagoMonto(e.target.value)}
+                                    placeholder={`Importe (saldo ${fmt(saldo)})`}
+                                    className="text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none"
+                                />
+                                <select
+                                    value={pagoMetodo} onChange={(e) => setPagoMetodo(e.target.value)}
+                                    className="text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none"
+                                >
+                                    {METODOS_PAGO_CLIENTE.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                </select>
+                            </div>
+                            <input
+                                value={pagoNotas} onChange={(e) => setPagoNotas(e.target.value)}
+                                placeholder={pagoMetodo === 'OTRO' ? 'Cuál fue la forma de pago (obligatorio)' : 'Nota / nº de operación (opcional)'}
+                                className="w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none"
+                            />
+                            <label className="flex items-center gap-2 text-[11px] font-bold text-stone-600 dark:text-stone-300 cursor-pointer">
+                                <span className="px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600">
+                                    {pagoFoto ? 'Cambiar foto' : '📎 Foto del comprobante'}{pagoMetodo !== 'EFECTIVO' ? ' *' : ''}
+                                </span>
+                                <span className="truncate">{pagoFoto?.name || ''}</span>
+                                <input type="file" accept="image/*" capture="environment" className="hidden"
+                                    onChange={(e) => setPagoFoto(e.target.files?.[0] || null)} />
+                            </label>
+                            <button
+                                onClick={registrarPago} disabled={working}
+                                className="w-full px-4 py-2.5 rounded-xl bg-violet-700 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
+                            >
+                                {working ? 'Guardando…' : 'Registrar pago'}
+                            </button>
+                        </div>
+                    ) : (
+                        <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Saldo cancelado: el cliente pagó todo.</p>
+                    )}
+
+                    {isAdmin && pagos.length === 0 && (
+                        <button onClick={anularCargo} disabled={working}
+                            className="text-[9px] font-black uppercase tracking-widest text-stone-500 underline disabled:opacity-40">
+                            Anular el cargo al cliente
+                        </button>
+                    )}
+                    {error && <p className="text-[10px] font-bold text-rose-600">{error}</p>}
+                </div>
+            )}
+
             {stage === 'IMPUTADO' && (
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-relaxed">
                     Ya descontado de caja{c.costConfirmedBy ? ` por ${c.costConfirmedBy}` : ''}
@@ -300,16 +429,22 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
             {stage === 'CERRADO' && (isAdmin ? (
                 <div className="space-y-2">
                     <div>
-                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Descontar de la caja de</p>
+                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Quién lo paga</p>
                         <select
                             value={vendorId}
                             onChange={(e) => setVendorId(e.target.value)}
                             className="w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300"
                         >
                             <option value="">Caja Ishtar — lo cubre Atelier</option>
+                            <option value={PAGA_CLIENTE}>El cliente — queda como saldo del caso</option>
                             {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                         </select>
-                        {c.fault && c.fault !== 'Óptica' && (
+                        {pagaCliente && (
+                            <p className="mt-1 text-[9px] text-violet-600 dark:text-violet-400">
+                                El caso lleva su propio saldo y sus pagos con comprobante. Aparece en la lista de saldos. No toca la venta ni ninguna caja.
+                            </p>
+                        )}
+                        {!pagaCliente && c.fault && c.fault !== 'Óptica' && (
                             <p className="mt-1 text-[9px] text-stone-400">
                                 La atribución es <b>{c.fault}</b>: por defecto lo absorbe Atelier.
                             </p>
@@ -321,7 +456,11 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
                     >
                         <Wallet className="w-3.5 h-3.5" />
-                        {working ? 'Imputando…' : `Descontar ${fmt(monto)} de ${loCubreAtelier ? 'caja Ishtar' : (vendors.find(v => v.id === vendorId)?.name || 'la caja')}`}
+                        {working
+                            ? (pagaCliente ? 'Cargando…' : 'Imputando…')
+                            : pagaCliente
+                                ? `Cobrarle ${fmt(monto)} al cliente`
+                                : `Descontar ${fmt(monto)} de ${loCubreAtelier ? 'caja Ishtar' : (vendors.find(v => v.id === vendorId)?.name || 'la caja')}`}
                     </button>
                     {error && <p className="text-[10px] font-bold text-rose-600">{error}</p>}
                 </div>
@@ -368,7 +507,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                             </span>
                             {stage !== 'SIN_COSTO' && (
                                 <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
-                                    {stage === 'IMPUTADO' ? 'Cobrado' : stage === 'CERRADO' ? 'Listo para cobrar' : 'Estimado'}
+                                    {stage === 'IMPUTADO' ? 'Cobrado' : stage === 'CARGADO_CLIENTE' ? 'Lo paga el cliente' : stage === 'CERRADO' ? 'Listo para cobrar' : 'Estimado'}
                                     {(c.cost ?? 0) > 0 ? ` · $${Math.round(c.cost!).toLocaleString('es-AR')}` : ''}
                                 </span>
                             )}

@@ -196,6 +196,8 @@ export interface PostSaleColumnInput {
     status?: string | null;
     cost?: number | null;
     cashEntryId?: string | null;
+    /** Lo paga el cliente: el saldo vive en el caso (PostSaleChargeService). */
+    clientChargedAt?: string | Date | null;
 }
 
 /**
@@ -207,6 +209,8 @@ export interface PostSaleColumnInput {
  */
 export function postSaleColumn(c: PostSaleColumnInput): PostSaleColumnKey {
     if (c.cashEntryId) return 'CLOSED';
+    // Cargado al cliente: el caso no vuelve a "a cobrar" de caja; su plata es el saldo.
+    if (c.clientChargedAt) return 'CLOSED';
     const status = c.status || 'SENT';
     if (status === 'DELIVERED') return (c.cost ?? 0) > 0 ? 'DELIVERED' : 'CLOSED';
     if (status === 'READY' || status === 'FINISHED') return 'READY';

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { PostSaleChargeService, CargoError } from '@/services/post-sale-charge.service';
 
 /**
  * CIERRE ECONÓMICO DE UN CASO DE POST VENTA: imputar el costo como descuento en
@@ -56,10 +57,24 @@ export async function POST(
         const { id } = await params;
         const body = await request.json().catch(() => ({}));
 
+        // Segunda vía de cierre: el costo lo paga el CLIENTE y queda como saldo
+        // del caso (con sus propios pagos y comprobantes). Ver PostSaleChargeService.
+        if (['charge_client', 'revert_client_charge', 'add_client_payment'].includes(body.action)) {
+            try {
+                if (body.action === 'charge_client') return NextResponse.json({ ok: true, ...(await PostSaleChargeService.chargeClient(id, actor)) });
+                if (body.action === 'revert_client_charge') { await PostSaleChargeService.revertClientCharge(id, actor); return NextResponse.json({ ok: true }); }
+                const payment = await PostSaleChargeService.addPayment(id, body, actor);
+                return NextResponse.json({ ok: true, payment });
+            } catch (e) {
+                if (e instanceof CargoError) return NextResponse.json({ error: e.message }, { status: e.status });
+                throw e;
+            }
+        }
+
         const pvCase = await prisma.postSaleCase.findUnique({
             where: { id },
             select: {
-                id: true, cost: true, costSource: true, cashEntryId: true,
+                id: true, cost: true, costSource: true, cashEntryId: true, clientChargedAt: true,
                 fault: true, faultUserId: true, caseType: true,
                 orderLabel: true, newOrderNumber: true,
                 client: { select: { name: true } },
@@ -72,6 +87,12 @@ export async function POST(
         if (pvCase.cashEntryId) {
             return NextResponse.json(
                 { error: 'El costo de este caso ya fue imputado a caja.' },
+                { status: 409 }
+            );
+        }
+        if (pvCase.clientChargedAt) {
+            return NextResponse.json(
+                { error: 'Este caso ya está cargado al cliente. Anulá ese cargo antes de descontarlo de una caja.' },
                 { status: 409 }
             );
         }

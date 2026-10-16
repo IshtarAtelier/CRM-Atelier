@@ -291,5 +291,6 @@ export function mapOrderPostSale(order: any): any {
         postSaleCostSource: activeCase?.costSource || null,
         postSaleCashEntryId: activeCase?.cashEntryId || null,
         postSaleCaseId: activeCase?.id || null,
+        postSaleClientChargedAt: activeCase?.clientChargedAt || null,
     };
 }

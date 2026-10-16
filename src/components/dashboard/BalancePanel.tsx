@@ -127,6 +127,11 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                                             de Saldo
                                         </p>
                                     </div>
+                                    {(order.postSaleBalance ?? 0) > 0 && (
+                                        <p className="text-[11px] font-bold mt-1 uppercase tracking-wider text-violet-600 dark:text-violet-400">
+                                            Incluye ${Math.round(order.postSaleBalance).toLocaleString('es-AR')} de post-venta
+                                        </p>
+                                    )}
                                     <p className={`text-[11px] font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-stone-500'}`}>
                                         Pedido del {format(new Date(order.createdAt), "d 'de' MMM", { locale: es })} ({bizDays} {bizDays === 1 ? 'día' : 'días'} hábiles)
                                     </p>

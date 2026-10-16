@@ -463,6 +463,8 @@ export async function GET(request: Request) {
                     // postSaleCostSource / postSaleCashEntryId / postSaleCaseId.
                     costSource: true,
                     cashEntryId: true,
+                    clientCharge: true,
+                    clientChargedAt: true,
                     notesList: {
                         select: {
                             id: true,

@@ -21,6 +21,7 @@ import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
 import { calculateEstimatedDays } from '@/lib/business-days';
 import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
+import { saldoDeCaso } from '@/services/post-sale-charge.service';
 import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
 import { etiquetasQueLeCorresponden, esEtiquetaDesconectable } from '@/lib/contact-tags';
 
@@ -1398,6 +1399,10 @@ export const ContactService = {
                         costConfirmedBy: true,
                         faultUserId: true,
                         cashEntryId: true,
+                        clientCharge: true,
+                        clientChargedAt: true,
+                        clientChargedBy: true,
+                        clientPayments: { orderBy: { date: 'asc' }, select: { id: true, amount: true, method: true, date: true, notes: true, receiptUrl: true, createdByName: true } },
                         order: { select: { id: true, total: true, createdAt: true, labOrderNumber: true } },
                         notesList: {
                             orderBy: { createdAt: 'asc' },
@@ -3139,6 +3144,12 @@ export const ContactService = {
                 }
             },
             include: {
+                // Casos de post-venta que paga el cliente: su saldo es del caso,
+                // no de la venta, y se suma aparte (saldoDeCaso).
+                postSaleCases: {
+                    where: { clientChargedAt: { not: null } },
+                    select: { id: true, clientCharge: true, clientPayments: { select: { amount: true } } },
+                },
                 orders: {
                     // Solo VENTAS: el cálculo de abajo procesa únicamente las órdenes
                     // con orderType === 'SALE' e ignora los presupuestos. Traer los QUOTE
@@ -3209,10 +3220,18 @@ export const ContactService = {
                 }
             });
 
+            // Post-venta cobrable al cliente: sin descuentos, el mismo importe en
+            // efectivo, transferencia o tarjeta.
+            const postSaleBalance = (client as any).postSaleCases.reduce((a: number, c: any) => a + saldoDeCaso(c), 0);
+            totalRemainingCash += postSaleBalance;
+            totalRemainingTransfer += postSaleBalance;
+            totalRemainingCard += postSaleBalance;
+
             const balance = totalRemainingCard;
 
             return {
                 id: client.id, 
+                postSaleBalance,
                 clientId: client.id,
                 client: { name: client.name },
                 total: totalSales,
