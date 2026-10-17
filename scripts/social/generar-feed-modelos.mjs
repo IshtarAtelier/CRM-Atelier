@@ -20,14 +20,15 @@
  * TODAS LAS CABEZAS A LA MISMA ALTURA Y DEL MISMO TAMAÑO (Ishtar, 16/10: "en
  * el feed se nota mucho"): el recorte lo hace `alinear-cara.mjs` con Vision,
  * fijando la línea de los ojos y el alto de la cara en el mismo punto de todas
- * las placas. Por eso se parte de las fotos ORIGINALES de las dos sesiones (hay
- * aire para encuadrar) y no de las fotos cuadradas de la tienda ni de las
- * stories, que ya vienen recortadas. Las dos sesiones llevan el mismo retoque
- * (`retoque-foto.mjs`), el de las stories de Agos.
+ * las placas. Por eso hace falta aire alrededor de la cabeza: Agos parte de
+ * los ORIGINALES de la sesión con el retoque de sus stories; Massaru, de los
+ * cuadrados de 1920 que entrega su pipeline de edición (STORY=1 CUADRADO=1 en
+ * scripts/maintenance/fotos-sesion/editar.mjs), porque esas fotos ya están
+ * editadas con los criterios de Ishtar y no se vuelven a retocar.
  *
- * Las fotos fuente NO viven en el repo: la carpeta de Agos y la de originales
- * de Massaru se pasan con `--fotos-agos` / `--fotos-massaru` o se toman del
- * escritorio de Ishtar. Un modelo sin foto se salta y se avisa.
+ * Las fotos fuente NO viven en el repo: se pasan con `--fotos-agos` /
+ * `--fotos-massaru` o se toman del escritorio de Ishtar. Un modelo sin foto
+ * se salta y se avisa.
  *
  * SALIDA: public/social/feed-<agos|massaru>-<modelo>/01.jpg y 02.jpg (JPEG
  * real), social/contenido/feed-<...>.json y social/feed-modelos.json entero.

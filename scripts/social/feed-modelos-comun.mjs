@@ -5,9 +5,9 @@
  * los Victoria", "los de acetato"). Las sesiones, dónde está cada foto, cuál es
  * el frente y cuál el perfil, la detección de caras y la placa de cada slide.
  *
- * Las fotos fuente NO viven en el repo: la carpeta de Agos y la de originales
- * de Massaru se pasan con `--fotos-agos` / `--fotos-massaru` o se toman del
- * escritorio de Ishtar.
+ * Las fotos fuente NO viven en el repo: la carpeta de Agos (originales) y la
+ * de cuadrados editados de Massaru se pasan con `--fotos-agos` /
+ * `--fotos-massaru` o se toman del escritorio de Ishtar.
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import os from 'node:os';
@@ -17,7 +17,7 @@ import { MODELOS as AGOS, RECETA, SOL, CLIP } from './modelos-agostina.mjs';
 import { MODELOS as MASSARU } from './modelos-massaru.mjs';
 import { TEXTO_CUOTAS_POR_DEFECTO, textoCuotasLargasSinPrecio } from './condiciones-pago.mjs';
 import { detectarCaras, correccionPerfil, recortarAlineado } from './alinear-cara.mjs';
-import { retoque, retoqueCalido } from './retoque-foto.mjs';
+import { retoque } from './retoque-foto.mjs';
 
 export { RECETA, SOL, CLIP };
 export const LEYENDA = { [RECETA]: 'Armazón de receta', [SOL]: 'Lentes de sol', [CLIP]: 'Clip-on · receta + sol' };
@@ -47,7 +47,12 @@ function frenteYPerfil(familia, numeros) {
 export function cargarSesiones(args) {
     const valor = (op) => (args.includes(op) ? args[args.indexOf(op) + 1] : null);
     const FOTOS_AGOS = valor('--fotos-agos') || path.join(ESCRITORIO, 'Fotos-Agos-Gutierrez-2026');
-    const FOTOS_MASSARU = valor('--fotos-massaru') || path.join(ESCRITORIO, 'Contenido de Atelier', 'Sesión Massaru - oct 2026 (originales)');
+    // Massaru NO parte de los originales: sus fotos ya están editadas con los
+    // criterios de Ishtar (scripts/maintenance/fotos-sesion, luz cálida, granito,
+    // sombras a la mitad, fondo limpio). Se usa el cuadrado entero de 1920 que
+    // entrega editar.mjs con STORY=1 CUADRADO=1 (`<n>-cuadrado.jpg`): es la misma
+    // edición de las stories, con ancho de sobra para alinear la cabeza.
+    const FOTOS_MASSARU = valor('--fotos-massaru') || path.join(ESCRITORIO, 'Contenido de Atelier', 'Sesión Massaru - oct 2026 (cuadrados editados)');
     for (const [c, op] of [[FOTOS_AGOS, '--fotos-agos'], [FOTOS_MASSARU, '--fotos-massaru']]) {
         if (!existsSync(c)) { console.error(`No encuentro la carpeta de fotos: ${c} (pasarla con ${op}).`); process.exit(1); }
     }
@@ -57,12 +62,13 @@ export function cargarSesiones(args) {
         return f ? path.join(FOTOS_AGOS, f) : null;
     };
     const fotoMassaru = (numero) => {
-        const f = path.join(FOTOS_MASSARU, `26.1 -${numero}.jpg`);
+        const f = path.join(FOTOS_MASSARU, `${numero}-cuadrado.jpg`);
         return existsSync(f) ? f : null;
     };
     const sesiones = [
         { nombre: 'agos', pilar: 'agostina', fuente: 'fotos-agostina', marca: 'Cápsula Escarlata', modelos: AGOS, foto: fotoAgos, retocar: retoque },
-        { nombre: 'massaru', pilar: 'massaru', fuente: 'fotos-massaru', marca: 'Atelier Óptica', modelos: MASSARU, foto: fotoMassaru, retocar: retoqueCalido },
+        // Sin retoque: la edición ya está hecha por el pipeline de la sesión.
+        { nombre: 'massaru', pilar: 'massaru', fuente: 'fotos-massaru', marca: 'Atelier Óptica', modelos: MASSARU, foto: fotoMassaru, retocar: (img) => img },
     ];
     const salteados = [];
     for (const sesion of sesiones) {

@@ -14,7 +14,7 @@ Escribe archivos, no la base. Las fotos se vinculan a las fichas con
 | Archivo | Qué hace |
 |---|---|
 | `analizar.swift` | Corre Vision (macOS) sobre cada foto y devuelve la cara, los rasgos (ojos, cejas, nariz, labios), las manos, el tope del pelo y la máscara de la persona. Se compila con `swiftc -O -o analizar analizar.swift`. |
-| `editar.mjs` | La edición. Con `MEDIO=1 FUERZA_SOMBRA=0.5` da la foto de tienda. Con `STORY=1` da además la franja 9:16 para stories. |
+| `editar.mjs` | La edición. Con `MEDIO=1 FUERZA_SOMBRA=0.5` da la foto de tienda. Con `STORY=1` da además la franja 9:16 para stories; con `STORY=1 CUADRADO=1`, también el cuadrado entero de 1920 (`<n>-cuadrado.jpg`), que es lo que leen los carruseles 4:5 del feed (`scripts/social/generar-feed-modelos.mjs`). |
 | `especiales.mjs` | Recorte a mano para las fotos sin cara utilizable (anteojo en la mano, cuerpo entero). No cambia el fondo; corrige el granito con coordenadas a mano. |
 | `armar.mjs` | Copia las fotos con el nombre del producto (`<producto>-<sesión>-<n>.webp`) y arma las láminas de auditoría (original \| editada \| ficha). |
 | `massaru/` | Los datos de la sesión Massaru: `mapa.json` (qué foto es qué armazón, por claqueta y hora EXIF), `usables.json` y `especiales.json`. |
@@ -43,6 +43,8 @@ swiftc -O -o /tmp/analizar scripts/maintenance/fotos-sesion/analizar.swift
 /tmp/analizar <mascaras> <fotos...> > analisis.json
 MEDIO=1 FUERZA_SOMBRA=0.5 [SOL=1] node scripts/maintenance/fotos-sesion/editar.mjs <originales> <mascaras> analisis.json <salida> <números...>
 STORY=1 MEDIO=1 FUERZA_SOMBRA=0.5 [SOL=1] node ... (lo mismo, para las stories)
+STORY=1 CUADRADO=1 AIRE_STORY=0.12 MEDIO=1 FUERZA_SOMBRA=0.5 [SOL=1] node ... (lo mismo + el cuadrado de 1920 para el feed, con más aire arriba;
+   el 16/10/2026 se dejaron en "Contenido de Atelier/Sesión Massaru - oct 2026 (cuadrados editados)")
 node scripts/maintenance/fotos-sesion/especiales.mjs <originales> <salida> scripts/maintenance/fotos-sesion/massaru/especiales.json
 ```
 
