@@ -1,0 +1,793 @@
+# Chats de los 13 presupuestos abiertos de la tienda (15/10/2026)
+
+Sacado de producción, solo lectura. Un bloque por persona, en orden cronológico. `→` es lo que escribió el cliente, `←` lo que salió de la óptica (entre paréntesis quién: Bot, Sistema o la persona).
+
+## ana duarte · 5492804333920
+53 mensajes · 19 del cliente · 32 de una persona del equipo · último: 2026-10-15 09:16 (Teléfono)
+
+- `2026-10-09 19:47` → Hola, entré a la web de Atelier y me gustaría recibir asesoramiento.
+- `2026-10-09 19:47` → [Mensaje image]
+- `2026-10-09 19:50` ← (Teléfono) Hola Ana! como estas?
+- `2026-10-09 19:50` ← (Teléfono) soy Matias!
+- `2026-10-09 19:51` → Hola Matias. Podrías cotizarme aproximadamente?
+- `2026-10-09 19:51` ← (Teléfono) [Mensaje audio]
+- `2026-10-09 19:51` → Ya uso multifocales
+- `2026-10-09 19:51` ← (Teléfono) [Mensaje audio]
+- `2026-10-09 19:51` → Fotocromaticos también
+- `2026-10-09 19:51` ← (Teléfono) bien excelente
+- `2026-10-09 19:52` ← (Teléfono) bueno, te cuento!
+- `2026-10-09 19:52` → Use varilux. Ahora creo q Kodak
+- `2026-10-09 19:52` ← (Teléfono) [Mensaje image]
+- `2026-10-09 19:52` → Uso pantallas
+- `2026-10-09 19:52` → Manejo también
+- `2026-10-09 19:52` ← (Teléfono) [Reacción]
+- `2026-10-09 19:52` ← (Teléfono) [Reacción]
+- `2026-10-09 19:53` ← (Teléfono) [Mensaje audio]
+- `2026-10-09 19:54` ← (Teléfono) [Mensaje audio]
+- `2026-10-09 19:55` ← (Matias Turchi) Hola ana, adjunto tu presupuesto por: KODAK PRECISE - ORMA + CRIZAL 2x1.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-10-09 19:56` ← (Teléfono) [Mensaje document]
+- `2026-10-09 19:56` ← (Teléfono) [Mensaje document]
+- `2026-10-09 19:56` ← (Teléfono) te paso 3, intermedia, intermedia/alta y alta!
+- `2026-10-09 20:00` → Perfecto.  Los Kodak estarían.
+- `2026-10-09 20:00` → [Mensaje audio]
+- `2026-10-10 13:59` ← (Teléfono) buen dia Ana!
+- `2026-10-10 14:00` ← (Teléfono) sii tenemos varias!
+- `2026-10-10 14:00` ← (Teléfono) si queres, para terminar de despejar dudas te puedo llamar
+- `2026-10-10 14:05` ← (Teléfono) o te envio por este medio como prefieras
+- `2026-10-10 14:07` → Por este medio. Por favor. Estoy manejando. Gracias
+- `2026-10-10 15:01` ← (Teléfono) bien no hay problema
+- `2026-10-10 15:01` ← (Teléfono) si tenemos otras marcas mas economicas que kodak
+- `2026-10-10 15:01` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* ana duarte  • Smart Lens · Multifocal Smart FREE · Orgánico Blue Light 1.56 · Essential 2x1  *Precio Lista: $877.136* 🏦 *Transf. (-15%): $745.566* 💵 *Efectivo (-20%): $701.709* 💳 *Tarjeta (Lista): $877.136*    ↳ 
+- `2026-10-10 15:01` ← (Matias Turchi) Hola ana, adjunto tu presupuesto por: Multifocal Smart FREE · Orgánico Blue Light 1.56 · Essential 2x1.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-10-10 15:02` ← (Teléfono) esta marca es por ejemplo digital y nacional, tambien cuenta con promo 2x1
+- `2026-10-10 15:02` ← (Teléfono) hay muchas opciones
+- `2026-10-10 15:02` ← (Teléfono) cuando le quedaria comodo llegarse?
+- `2026-10-10 15:17` → Creo q este estaría bien  Pero lo seguiré viendo
+- `2026-10-10 15:17` → Yo llego a Córdoba el 22/10
+- `2026-10-10 15:17` → Cuánto demoran?
+- `2026-10-10 15:17` → Iría a verlos el 23
+- `2026-10-10 15:18` ← (Teléfono) claro, lo ideal es que cuando usted llegue
+- `2026-10-10 15:18` ← (Teléfono) pueda enseñarle todas las opciones y vemos cual es la mejor para usted
+- `2026-10-10 15:18` ← (Teléfono) unos 15 dias
+- `2026-10-10 15:19` ← (Teléfono) hacemos envios sin cargo a todo el pais, por si necesita a la hora de retirar
+- `2026-10-10 15:22` → Creo q si Me lo van a tener que enviar
+- `2026-10-10 15:23` ← (Teléfono) no va haber problema, lo hacemos con frecuencia y a domicilio
+- `2026-10-10 15:24` → Gracias 🫂
+- `2026-10-12 16:07` ← (Sistema) Hola Ana, buenas tardes! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+- `2026-10-15 09:06` ← (Sistema) Hola Ana, buen día! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7onCp Lunes
+- `2026-10-15 09:11` → Holaaa  Siii. Voy a pasar por el local. Llego a Córdoba el 23/10
+- `2026-10-15 09:11` → Nos vemos
+- `2026-10-15 09:16` ← (Teléfono) [Sticker]
+
+## CLAUDIO · 5493532468643
+59 mensajes · 22 del cliente · 22 de una persona del equipo · último: 2026-10-07 15:09 (Sistema)
+
+- `2026-10-02 18:45` → ¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.
+- `2026-10-02 18:45` → Hola, buenas tardes
+- `2026-10-02 18:46` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-10-02 18:46` → Me pueden presupuestar por este medio unos anteojos fotocromaticos antireflex multifocales
+- `2026-10-02 18:46` → Si les paso la receta
+- `2026-10-02 18:47` ← (Bot) Dale, sí. Pasame la receta por acá y te armo un presupuesto con opciones.
+- `2026-10-02 18:47` → [Mensaje image]
+- `2026-10-02 18:47` → Lo mejor que tenga en calidad,   gracias
+- `2026-10-02 18:48` → [Mensaje image]
+- `2026-10-02 18:48` → Esos son mis anteojos multifocales antireflex sin fotocrom.
+- `2026-10-02 18:49` ← (Bot) Dale, Claudio, acá tenés algunas opciones de cristales fotocromáticos, antireflex y multifocales de alta calidad: *Opción 1 – Sygnus Essilor – Gama Media* • Precio contado: *$981.614* • 6 cuotas sin interés de *$192.473* (total *$1.154.840*) 🎉 *Promo 2x1* - In
+- `2026-10-02 18:49` → Son grandes los pedi asi porque el marco me molesta para la visión, pero es un poco pesado y se caen seguido
+- `2026-10-02 18:50` ← (Bot) Entiendo, es clave que sean cómodos y no se te caigan. Hay muchos armazones livianos que te pueden servir para que no te molesten.
+- `2026-10-02 18:50` ← (Bot) Te gustaría que te muestre algunos modelos de armazones livianos?
+- `2026-10-02 18:50` → Tampoco los quiero muy chicos que sean algo intermedio,  y con respecto a los cristales vienen mas delgados y livianos?
+- `2026-10-02 18:51` ← (Bot) Sí, Claudio, con tu graduación y para que no pesen y sean más delgados, los cristales tallados en materiales de alto índice son la mejor opción.
+- `2026-10-02 18:51` ← (Bot) Quedan mucho más finos y livianos. Si querés te muestro algunos armazones intermedios y livianos para hombre.
+- `2026-10-02 18:51` → Dale, gracias
+- `2026-10-02 18:52` ← (Bot) *Cápsula Escarlata Aquiles C1* • Precio contado: *$153.000* 👉 https://atelieroptica.com.ar/producto/aquiles-c1
+- `2026-10-02 18:52` ← (Bot) *Cápsula Escarlata Cratos* • Precio contado: *$136.000* 👉 https://atelieroptica.com.ar/producto/cratos
+- `2026-10-02 18:52` ← (Bot) *Cápsula Escarlata Cronos C1* • Precio contado: *$136.000* 👉 https://atelieroptica.com.ar/producto/cronos-c1
+- `2026-10-02 18:52` ← (Bot) Acá tenés algunos modelos, Claudio. También podés ver todos en nuestro catálogo: https://atelieroptica.com.ar/catalogo/hombre Cuál te gustó más?
+- `2026-10-02 18:54` → Veo que los precios son parecidos,  cuanto me costaría uno con todo lo mejor con los marcos
+- `2026-10-02 18:55` ← (Bot) Para un presupuesto con los mejores cristales y un armazón de alta calidad, como la Opción 1 de cristales Sygnus Essilor (Gama Media) y un armazón Cápsula Escarlata Aquiles C1: *Cristales Sygnus Essilor Gama Media (fotocromáticos, antireflex, multifocales)* + 
+- `2026-10-02 18:55` → Los cristales que sean lo mejor, no se cual de los 3, no conozco
+- `2026-10-02 18:55` ← (Bot) Son cristales de última generación que ofrecen la mejor visión y confort. • Precio contado: *$1.134.614*
+- `2026-10-02 18:56` → El fotocromatico quiero el que oscurece y aclara mas rapido
+- `2026-10-02 18:57` → Es hasta 6 cuotas?
+- `2026-10-02 19:24` ← (Teléfono) bien la linea transitions de Varilux es la que mas rapido activa y descativa
+- `2026-10-02 19:24` ← (Teléfono) si queres te puedo contar un pcoo sobre algunas marcas y diseños
+- `2026-10-02 20:10` → Si ok
+- `2026-10-03 09:18` ← (Teléfono) Hola Claudio buen dia! como estas?
+- `2026-10-03 09:18` ← (Teléfono) Soy Matias un gusto, le voy a enviar cotizacion de los 2 mejores cristales que tenemos para ofrecerle en multifocales, con antirrflejeo, filtro azul y fotocromatico
+- `2026-10-03 09:22` ← (Teléfono) luego tendra un minuto asi lo llamo y lo asesoro bien?
+- `2026-10-03 09:40` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* CLAUDIO  • Varilux · VARILUX XR DESIGN - ORMA TRANSITIONS GEN S + CRIZAL 2x1 (Laboratorio)  *Precio Lista: $2.899.120* 🏦 *Transf. (-15%): $2.464.252* 💵 *Efectivo (-20%): $2.319.296* 💳 *Tarjeta (Lista): $2.899.120
+- `2026-10-03 09:40` ← (Matias Turchi) Hola CLAUDIO, adjunto tu presupuesto por: VARILUX XR DESIGN - ORMA TRANSITIONS GEN S + CRIZAL 2x1.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-10-03 09:41` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* CLAUDIO  • Hoya · HOYA SUMMIT - 1.67 SENSITY 2 (Laboratorio)  *Precio Lista: $2.039.456* 🏦 *Transf. (-15%): $1.733.538* 💵 *Efectivo (-20%): $1.631.565* 💳 *Tarjeta (Lista): $2.039.456*    ↳ 3 cuotas sin interés: $
+- `2026-10-03 09:42` ← (Teléfono) [Mensaje document]
+- `2026-10-03 10:04` ← (Teléfono) me avisa y lo llamo asi le explico cada uno
+- `2026-10-03 10:30` → Buen dia
+- `2026-10-03 10:30` → Estoy viendo los presupuestos,  ya le aviso
+- `2026-10-03 11:27` ← (Teléfono) perfecto!
+- `2026-10-03 11:27` ← (Teléfono) me avisa
+- `2026-10-03 11:27` ← (Teléfono) marcos quiere que le envie fotos?
+- `2026-10-03 12:00` → Disculpe pero me parece un presupuesto muy alto
+- `2026-10-03 12:00` → Cualquier cosa le aviso,  si me interesa la financiación con tarjeta,  pero se me va muy alto el importe
+- `2026-10-03 12:44` ← (Teléfono) si claudio! son valores de los mejors multifocales que hay a nivel internacional
+- `2026-10-03 12:44` ← (Teléfono) sin embargo, no es necesario realizar esas gamas para que usted tenga un buen comfort visual
+- `2026-10-03 12:45` ← (Teléfono) tenemos alternativas de primer nivel, de buen campo visual y personalizadas! que le van a permitir un comfort visual super comodo
+- `2026-10-03 12:45` ← (Teléfono) quiere que lo llame asi lo asesoro bien?
+- `2026-10-03 12:47` → Si, ok
+- `2026-10-03 13:02` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* CLAUDIO  • Hoya · HOYA ARRAY 2 - 1.50 SENSITY 2  *Precio Lista: $1.922.690* 🏦 *Transf. (-15%): $1.634.287* 💵 *Efectivo (-20%): $1.538.152* 💳 *Tarjeta (Lista): $1.922.690*    ↳ 3 cuotas sin interés: $640.897 c/u  
+- `2026-10-03 13:03` ← (Matias Turchi) Hola CLAUDIO, adjunto tu presupuesto por: HOYA ARRAY 2 - 1.50 SENSITY 2.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-10-03 13:03` ← (Teléfono) [Mensaje image]
+- `2026-10-03 13:03` ← (Teléfono) y fotocromatico
+- `2026-10-03 13:05` → Estas serian las imágenes con los lentes?
+- `2026-10-03 13:39` ← (Teléfono) si estos los diseños
+- `2026-10-05 14:09` ← (Sistema) Hola Claudio, buenas tardes! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+- `2026-10-07 15:09` ← (Sistema) Hola Claudio, buenas tardes! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7o
+
+## Diego Herrera · 5493512165320
+21 mensajes · 8 del cliente · 8 de una persona del equipo · último: 2026-10-10 16:08 (Sistema)
+
+- `2026-10-05 21:02` → ¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.
+- `2026-10-05 21:02` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-10-05 21:03` → Quería consultar si arreglan anteojos de ciclismo ya que se me quebró una pata
+- `2026-10-05 21:04` ← (Bot) Ufa 🤕 Traelos al local así los vemos y te confirmamos si se pueden arreglar. Te esperamos cuando gustes.
+- `2026-10-05 21:06` → Ok muchas gracias mañana voy
+- `2026-10-05 21:07` ← (Bot) Dale, te esperamos! Estamos de 9 a 20hs.
+- `2026-10-06 09:18` ← (Teléfono) Hola buenas! como estas?
+- `2026-10-06 09:18` ← (Teléfono) me queres enviar foto? y te digo si es posible
+- `2026-10-06 09:21` → Buenos días ok enseguida le mando muchas gracias
+- `2026-10-06 09:30` ← (Teléfono) perfecto!
+- `2026-10-06 09:39` → Se me quebró la pata
+- `2026-10-06 09:43` ← (Teléfono) Diego lamentablemente eso no tiene arreglo
+- `2026-10-06 09:43` ← (Teléfono) si era la bisagra o algo similar se podia llegar a ver, pero ese tipo de rotura no tiene arreglo
+- `2026-10-06 09:43` ← (Teléfono) lo unico que s epuede hacer es pegar con gotita 😅
+- `2026-10-06 09:43` → Poniendo otra pata
+- `2026-10-06 09:44` ← (Teléfono) que marca es el anteojo?
+- `2026-10-06 09:44` → [Mensaje image]
+- `2026-10-06 09:44` ← (Teléfono) no lamentblemente no tenemos respuestos de esa marca
+- `2026-10-06 09:45` → Ah bien bueno muchas gracias por la atención,
+- `2026-10-08 11:10` ← (Sistema) Hola Diego, buen día! ¿Cómo estás? Te escribo por tu consultita ¿seguís interesado en que confeccionemos el presupuesto? Recordá enviarme la recetita para poder evaluarla y si querés te mando fotitos de nuestros modelitos disponibles. También te dejo nuestro c
+- `2026-10-10 16:08` ← (Sistema) Hola Diego, buenas tardes! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7onC
+
+## Fede · 5493513111957
+50 mensajes · 14 del cliente · 22 de una persona del equipo · último: 2026-10-11 18:22 (cliente)
+
+- `2026-09-19 19:09` → Los vi en la nueva web de Atelier, quisiera que me asesoren.
+- `2026-09-19 19:09` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-09-19 19:10` → Buenas tardes. Busco este estilo de lentes de sol
+- `2026-09-19 19:10` → [Mensaje image]
+- `2026-09-19 19:11` ← (Bot) Entiendo el estilo que te gustó. Querés que te mande fotitos de modelos parecidos?
+- `2026-09-19 19:11` → Si por favor
+- `2026-09-19 19:12` ← (Bot) *Cápsula Escarlata Vega C1* • Precio contado: *$182.750* 👉 https://atelieroptica.com.ar/producto/vega-c1
+- `2026-09-19 19:12` ← (Bot) *Cápsula Escarlata Vega C2* • Precio contado: *$182.750* 👉 https://atelieroptica.com.ar/producto/vega-c2
+- `2026-09-19 19:12` ← (Bot) *Cápsula Escarlata Adhara C4* • Precio contado: *$191.250* 👉 https://atelieroptica.com.ar/producto/adhara-c4
+- `2026-09-19 19:12` ← (Bot) Dale, ya te las mandé! Acá los podés ver todos: https://atelieroptica.com.ar/catalogo/sol?search=Chopard%20Classic%20Racing Cuál te gustó más?
+- `2026-09-19 19:13` → Busco que sea rectangular, sin marco
+- `2026-09-19 19:13` ← (Bot) *Cápsula Escarlata Vega C1* • Precio contado: *$182.750* 👉 https://atelieroptica.com.ar/producto/vega-c1
+- `2026-09-19 19:13` ← (Bot) *Cápsula Escarlata Vega C2* • Precio contado: *$182.750* 👉 https://atelieroptica.com.ar/producto/vega-c2
+- `2026-09-19 19:13` ← (Bot) *Cápsula Escarlata Adhara C4* • Precio contado: *$191.250* 👉 https://atelieroptica.com.ar/producto/adhara-c4
+- `2026-09-19 19:14` ← (Bot) Ya te mandé opciones que son sin marco y rectangulares. Acá los podés ver todos: https://atelieroptica.com.ar/catalogo/hombre/sol?search=rectangular%20sin%20marco Cuál te gustó más?
+- `2026-09-22 10:01` ← (Sistema) Hola Fede, buen día! ¿Cómo estás? Te escribo por tu consultita ¿seguís interesado en que confeccionemos el presupuesto? Recordá enviarme la recetita para poder evaluarla y si querés te mando fotitos de nuestros modelitos disponibles. También te dejo nuestro ca
+- `2026-09-22 10:02` → Buen dia, los modelos no coinciden con lo que busco. Gracias
+- `2026-09-22 10:02` ← (Bot) Disculpá que no dimos con el estilo que buscabas. Para que puedas probarte y ver más variedad, te espero por el local. Es en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. De lunes a viernes de 9 a 20hs, y sábados de 9 a 17hs. Acá te dejo el link a Goo
+- `2026-09-22 10:05` ← (Teléfono) proximamente van a ingresar estos modelitos, que son media montura
+- `2026-09-22 10:05` ← (Teléfono) y montados al aire, tenemos de receta que se realizan de sol con el color e intensdad que gustes
+- `2026-09-22 10:06` → Genial, va por ahi. ¿Cuales otros montados al aire tienen?
+- `2026-09-22 10:06` → Y los que vayan a ingresar
+- `2026-09-22 10:07` ← (Teléfono) ya te muestro
+- `2026-09-22 10:08` ← (Teléfono) te muestro, asi son los modelos que van a ingresar
+- `2026-09-22 10:08` ← (Teléfono) pero el montado al aire tiene una ventaja...
+- `2026-09-22 10:08` ← (Teléfono) usted puede darle la forma que guste, y es un trabajito que solo tarda dos o 3 dias
+- `2026-09-22 10:08` ← (Teléfono) y queda un anteojo a medida
+- `2026-09-22 10:09` ← (Teléfono) entonces, puede optar por las patillas y terminales negras, grises o doradas y colocar el color de cristal que mas comodo te quede y forma tambien
+- `2026-09-22 10:09` ← (Teléfono) aso si queres, te podes llegar cuando quieras sin compromiso y te muestro el proceso
+- `2026-09-22 10:09` ← (Teléfono) y si te gusta, cuando lleguen los modelos te aviso y se encargan ☺️👌🏼
+- `2026-09-22 10:11` → Genial ¿me das algun rango de precio para hacerlo a medida?
+- `2026-09-22 10:11` → [Reacción] ❤️
+- `2026-09-22 10:12` ← (Teléfono) si claro! ahi te armo el presupuesto de como te quedaria
+- `2026-09-22 10:12` → Gracias
+- `2026-09-22 10:13` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Fede  • Kazwini · KAZZWINI • Smart Lens · Stock · Orgánico Blanco 1.49 (Stock) • Smart Lens · Teñido Compacto · Grupo Óptico  *Precio Lista: $224.480* 🏦 *Transf. (-15%): $190.808* 💵 *Efectivo (-20%): $179.584* 💳 
+- `2026-09-22 10:13` ← (Teléfono) [Mensaje image]
+- `2026-09-22 10:14` ← (Teléfono) [Mensaje audio]
+- `2026-09-22 10:14` ← (Teléfono) Atelier Optica   Indicación Ladrillo visto al lado de la verdulería que tiene la vaca (frente a Cremolatti )  Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.  Ubicación: https://share.google/j2ZT7ReboDLt7onCp  Horarios:    • Lunes a viernes d
+- `2026-09-22 10:14` ← (Teléfono) cuando quieras llegate sin compromiso, asi los ves
+- `2026-09-22 10:15` → Gracias! Me llego al local estos dias
+- `2026-09-22 10:15` ← (Teléfono) [Reacción]
+- `2026-09-22 10:16` ← (Teléfono) [Sticker]
+- `2026-09-22 10:16` → [Reacción] ❤️
+- `2026-09-25 19:53` ← (Teléfono) [Mensaje audio]
+- `2026-09-25 19:55` ← (Teléfono) [Mensaje video]
+- `2026-09-30 13:10` ← (Teléfono) Hola Fede! como estas??
+- `2026-09-30 13:11` ← (Teléfono) conseguiste tu anteojo de sol ?
+- `2026-10-09 10:09` ← (Sistema) Hola Fede, buen día! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7onCp Lune
+- `2026-10-11 11:08` ← (Sistema) Hola Fede, buen día! ¿Cómo estás? Te quería invitar a seguirnos en Instagram, ahí subimos los modelos que van entrando: https://www.instagram.com/atelieroptica_. Y contame, ¿al final resolviste lo de tus anteojitos? Si todavía no, tengo un descuento especial p
+- `2026-10-11 18:22` → [Reacción] ❤️
+
+## Mariano · 5492664843869
+47 mensajes · 13 del cliente · 31 de una persona del equipo · último: 2026-10-15 11:15 (Teléfono)
+
+- `2026-10-13 09:31` → ¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento.  https://atelieroptica.com.ar/tienda
+- `2026-10-13 09:32` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-10-13 09:32` → Hola como estas? Estoy buscando gafas deportivas que se puedan graduar
+- `2026-10-13 09:33` ← (Bot) Para asesorarte bien con las gafas deportivas graduables, necesito ver tu receta. La tenés a mano? Así te armo un presupuesto.
+- `2026-10-13 09:33` → [Mensaje image]
+- `2026-10-13 09:34` ← (Bot) Genial, Mariano. Te paso algunas opciones de gafas deportivas que se pueden graduar: *Opción 1 – Atelier Atelier Eco* • Precio contado: *$76.500* • 6 cuotas sin interés de *$15.000* (total *$90.000*) *Opción 2 – 360 360 anteojo receta* • Precio contado: *$119.
+- `2026-10-13 09:34` ← (Teléfono) .
+- `2026-10-13 09:35` → Necesito algo que resista impacto
+- `2026-10-13 11:09` ← (Teléfono) bien
+- `2026-10-13 11:09` ← (Teléfono) [Mensaje revoke]
+- `2026-10-13 11:10` ← (Teléfono) [Mensaje audio]
+- `2026-10-13 11:10` ← (Teléfono) [Mensaje image]
+- `2026-10-13 11:10` ← (Teléfono) [Mensaje audio]
+- `2026-10-13 11:10` ← (Teléfono) [Mensaje image]
+- `2026-10-13 11:11` ← (Teléfono) [Mensaje audio]
+- `2026-10-13 11:11` ← (Teléfono) [Mensaje video]
+- `2026-10-13 11:12` ← (Teléfono) [Mensaje image]
+- `2026-10-13 11:12` ← (Teléfono) [Mensaje audio]
+- `2026-10-13 11:12` ← (Teléfono) [Mensaje audio]
+- `2026-10-13 11:13` → Como estas buen día
+- `2026-10-13 11:14` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Mariano  • Cápsula Escarlata · Kalishta • Smart · Stock · Policarbonato Blanco 1.59 (sin antirreflejo)  *Precio Lista: $250.000* 🏦 *Transf. (-15%): $212.500* 💵 *Efectivo (-20%): $200.000* 💳 *Tarjeta (Lista): $250
+- `2026-10-13 11:14` → [Mensaje audio]
+- `2026-10-13 11:14` ← (Matias Turchi) Hola Mariano, adjunto tu presupuesto por: Kalishta, Stock · Policarbonato Blanco 1.59 (sin antirreflejo).  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-10-13 11:15` ← (Teléfono) bien excelente! entonces el 2do que te envie es excelente para Padel
+- `2026-10-13 11:15` → [Mensaje audio]
+- `2026-10-13 11:15` ← (Teléfono) este mismo
+- `2026-10-13 11:15` → [Mensaje audio]
+- `2026-10-13 11:17` ← (Teléfono) este seria el precio final
+- `2026-10-13 11:17` ← (Teléfono) te podes llegar a probarlo o encargarlo con envio a tu domicilio ☺️🙌🏻
+- `2026-10-13 11:19` → Vos estas en Cba no?
+- `2026-10-13 11:20` → Las patas son antideslizantes?
+- `2026-10-13 11:22` ← (Teléfono) asi es!
+- `2026-10-13 11:22` ← (Teléfono) son de acetato y goma, si queres ajusatdo se coloca un tope de oreja
+- `2026-10-13 11:22` ← (Teléfono) que lo hace sujetar con firmeza
+- `2026-10-13 11:23` → Como seria el tope de oreja?
+- `2026-10-13 11:23` ← (Teléfono) ya te mando foto
+- `2026-10-13 11:24` ← (Teléfono) [Mensaje image]
+- `2026-10-13 11:24` ← (Teléfono) [Mensaje image]
+- `2026-10-13 11:25` ← (Teléfono) [Mensaje image]
+- `2026-10-13 11:25` ← (Teléfono) Ese es el tope de oreja
+- `2026-10-13 11:25` ← (Teléfono) Que se ajusta bien y el anteojo queda bien firme
+- `2026-10-13 11:25` → Bien comprendo
+- `2026-10-13 11:26` → [Mensaje audio]
+- `2026-10-13 11:26` ← (Teléfono) $10.000
+- `2026-10-13 11:26` ← (Teléfono) el par
+- `2026-10-15 11:15` ← (Teléfono) Hola Mariano!
+- `2026-10-15 11:15` ← (Teléfono) como estas?? pudiste organizar tu visita?
+
+## Nico Amaya · 5493584830728
+24 mensajes · 6 del cliente · 16 de una persona del equipo · último: 2026-10-02 12:05 (Sistema)
+
+- `2026-09-27 22:03` → Los vi en la nueva web de Atelier, quisiera que me asesoren.
+- `2026-09-27 22:04` → Hola buenas noches !! Buscando un poco encontré que probablemente en su óptica me puedan cambiar los cristales de mis meta rayban gen 2, yo quisiera ponerle los cristales transition ya que los míos tienen los cristales negros , muchas gracias !!
+- `2026-09-27 22:14` ← (Teléfono) Hola cómo estás ?
+- `2026-09-27 22:14` ← (Teléfono) Sí claro
+- `2026-09-27 22:15` ← (Teléfono) Los queres graduados ?
+- `2026-09-27 22:15` ← (Teléfono) O sin graduación
+- `2026-09-27 22:15` → Sin graduación quería
+- `2026-09-27 22:20` ← (Teléfono) Perfecto
+- `2026-09-27 22:22` ← (Teléfono) Mañana te envío los presupuestos de las opciones de Fotocromaticos que tenemos disponibles
+- `2026-09-27 22:23` → Perfecto muchas gracias !!
+- `2026-09-28 09:02` ← (Teléfono) Hola buen dia ☺️
+- `2026-09-28 09:02` ← (Teléfono) como estas? soy Matias
+- `2026-09-28 09:02` ← (Teléfono) te envio los presupuestos para tu RayBan
+- `2026-09-28 09:04` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Nico Amaya  • Smart Lens · Monofocal TALLADO (CNC) · Orgánico Fotocromático Smart Color (Brown/Green/Blue/Pink/Purple) 1.56 (Laboratorio) • Smart Lens · Antirreflejo Element — selectivo · Grupo Óptico  *Precio Li
+- `2026-09-28 09:04` ← (Matias Turchi) Hola Nico, adjunto tu presupuesto por: Monofocal TALLADO (CNC) · Orgánico Fotocromático Smart Color (Brown/Green/Blue/Pink/Purple) 1.56, Antirreflejo Element — selectivo · Grupo Óptico.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-09-28 09:04` ← (Teléfono) si tenes un momento te llamo y te lo explico
+- `2026-09-28 09:16` → Buen día Matias, perfecto ya lo miro y te pregunto si tengo alguna duda
+- `2026-09-28 09:16` → Estoy trabajando sino no tendría drama pero trabajo despachando combustible
+- `2026-09-28 10:15` ← (Teléfono) buenisimo! si es para comentarte mas que todo de la lente
+- `2026-09-28 10:39` ← (Teléfono) Contame si estás en Córdoba
+- `2026-09-28 10:39` ← (Teléfono) O si lo enviarías al anteojito
+- `2026-09-28 10:39` ← (Teléfono) Y cuando quisieras realizar la compra  .
+- `2026-09-30 11:09` ← (Sistema) Hola Nico, buen día! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+- `2026-10-02 12:05` ← (Sistema) Hola Nico, buen día! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7onCp Lune
+
+## Pau!💚 · 5492901561431
+41 mensajes · 12 del cliente · 25 de una persona del equipo · último: 2026-10-15 10:54 (cliente)
+
+- `2026-10-11 10:01` → ¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento.  https://atelieroptica.com.ar/producto/rigel-c3
+- `2026-10-11 10:01` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-10-11 10:02` → Multifocales
+- `2026-10-11 10:03` ← (Bot) Para armar un presupuesto para tus multifocales necesito tu receta. La tenés a mano para mandarme una foto? Así vemos qué cristales van mejor para vos 😊
+- `2026-10-11 10:04` → [Mensaje image]
+- `2026-10-11 10:05` ← (Bot) Lo confirmo y te escribo en un ratito 😊
+- `2026-10-11 10:06` → Muchas gracias
+- `2026-10-12 09:42` ← (Teléfono) Hola Pau!
+- `2026-10-12 09:42` ← (Teléfono) buen dia ☺️
+- `2026-10-12 09:43` ← (Teléfono) [Mensaje audio]
+- `2026-10-12 09:44` → Buen dia!
+- `2026-10-12 09:44` → Si,si uso
+- `2026-10-12 09:44` ← (Teléfono) [Mensaje audio]
+- `2026-10-12 09:44` ← (Teléfono) [Reacción]
+- `2026-10-12 09:44` → Varlux?
+- `2026-10-12 09:44` ← (Teléfono) [Reacción]
+- `2026-10-12 09:44` ← (Teléfono) perfecto! si
+- `2026-10-12 09:44` ← (Teléfono) Varilux existe y es una de las mejores marcas
+- `2026-10-12 09:44` → Mucho tiempo pantalla, leo mucho
+- `2026-10-12 09:45` ← (Teléfono) [Mensaje audio]
+- `2026-10-12 09:46` → [Mensaje audio]
+- `2026-10-12 09:46` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Pau!💚  • Varilux · VARILUX COMFORT - ORMA + CRIZAL 2x1  *Precio Lista: $1.404.104* 🏦 *Transf. (-15%): $1.193.488* 💵 *Efectivo (-20%): $1.123.283* 💳 *Tarjeta (Lista): $1.404.104*    ↳ 3 cuotas sin interés: $468.03
+- `2026-10-12 09:46` → [Mensaje audio]
+- `2026-10-12 09:47` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Pau!💚  • Varilux · VARILUX PHYSIO - ORMA + CRIZAL 2x1  *Precio Lista: $1.908.538* 🏦 *Transf. (-15%): $1.622.257* 💵 *Efectivo (-20%): $1.526.830* 💳 *Tarjeta (Lista): $1.908.538*    ↳ 3 cuotas sin interés: $636.179
+- `2026-10-12 09:48` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Pau!💚  • Hoya · HOYA ARRAY 2 - 1.50 CLEAR BLUE FILTER  *Precio Lista: $1.364.276* 🏦 *Transf. (-15%): $1.159.635* 💵 *Efectivo (-20%): $1.091.421* 💳 *Tarjeta (Lista): $1.364.276*    ↳ 3 cuotas sin interés: $454.759
+- `2026-10-12 09:50` ← (Teléfono) [Mensaje audio]
+- `2026-10-12 09:50` ← (Teléfono) [Mensaje audio]
+- `2026-10-12 09:51` ← (Teléfono) es un gusto!!! 🤩
+- `2026-10-12 09:51` ← (Teléfono) sii con lluvia y todo abrimos hoy para aquellos que se les es dificil llegarse con la rutina
+- `2026-10-12 09:51` ← (Teléfono) [Mensaje image]
+- `2026-10-12 09:52` ← (Teléfono) te mande mucha info! la podes ver tranquila y vamos despejando dudas! por este medio tambien te puedo mostrar algunos marcos para que chusmees https://atelieroptica.com.ar/ y tambien esta la pagina!
+- `2026-10-12 10:05` → Cuanto demorarían?
+- `2026-10-12 10:07` ← (Teléfono) depende de la gama!
+- `2026-10-12 10:07` ← (Teléfono) pero son 15 dias aprox
+- `2026-10-12 10:07` ← (Teléfono) a veces se tardan sus 15 dias, a veces nos soprenden y estan mucho antes ☺️
+- `2026-10-12 10:08` ← (Teléfono) usted tiene algun contra tiempo que atender? si es asi vemos de gestionarlo con prioridad con laboratorio
+- `2026-10-12 14:29` ← (Teléfono) que tal Pau, buenas tardes! pudiste ver los precios que te envie?
+- `2026-10-14 15:07` ← (Sistema) Hola Pau!💚, buenas tardes! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+- `2026-10-15 09:36` ← (Teléfono) Hola Pau, como estas?
+- `2026-10-15 09:37` ← (Teléfono) contame que te parecio el presupuesto, queria recordarte que podes hacer pago mixto por ejemplo una parte en 6 cuotas y otra en 12 cuotas o mezclar todas las fromas de pago que queiras, comentame y lo armamos
+- `2026-10-15 10:54` → Cualquier cosa me comunico. Muchas gracias
+
+## Rubén Darío Pedernera · 5493543570987
+38 mensajes · 18 del cliente · 13 de una persona del equipo · último: 2026-10-11 09:08 (Sistema)
+
+- `2026-10-02 15:46` → Hola, entré a la web de Atelier y me gustaría recibir asesoramiento.
+- `2026-10-02 15:47` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-10-02 15:48` → Hola. Buenas tardes. Quería saber si trabajan unos lentes que le recetaron a mi nene. Es el monofocal MiYOSMART y, de ser así, que precio rondaría. Teniendo en cuenta también el armazón. Y si trabajan con Sancor Salud.
+- `2026-10-02 15:48` ← (Bot) Hola! Sí, trabajamos los lentes MiYOSMART. Son excelentes para el control de la miopía en niños. Con Sancor Salud trabajamos con reintegro. Te damos la factura y la documentación y ellos te reintegran el porcentaje que tengas con tu plan. Para darte un precio 
+- `2026-10-02 15:53` → No. La receta no la tenemos. Los lentes ya los encargamos. Pero queríamos averiguar en otras ópticas, porque ya tuvimos que comprar tres lentes distintos y simepre nos quedamos en el mismo lugar. Queremos averiguar para la próxima vez los vlaores, forams de pa
+- `2026-10-02 15:54` → [Mensaje edit]
+- `2026-10-03 16:46` ← (Teléfono) Hola como estas Ruben con gusto te puedo enviar fotos de armazones y cotizarte precios con descuento para Sancor
+- `2026-10-03 16:46` ← (Teléfono) tenes a mano la receta ??
+- `2026-10-03 16:52` → Hola. No. La receta no la tenemos. Los lentes ya los encargamos. Pero queríamos averiguar en otras ópticas, porque ya tuvimos que comprar tres lentes distintos y simpre nos quedamos en el mismo lugar. Queremos averiguar para la próxima vez los vlaores, formas 
+- `2026-10-05 09:29` ← (Matias Turchi) Hola Rubén, te enviamos el presupuesto que armamos para vos en Atelier Óptica por $ 521.290. Tiene validez de 15 días. Cualquier duda, respondé este mensaje y lo vemos juntos.
+- `2026-10-05 09:29` ← (Matias Turchi) Hola Rubén, te enviamos el presupuesto que armamos para vos en Atelier Óptica por $ 521.290. Tiene validez de 15 días. Cualquier duda, respondé este mensaje y lo vemos juntos.
+- `2026-10-05 09:56` → Buen día. Muchas gracias! Saludos.
+- `2026-10-05 15:03` → Hola. Conseguí la foto de la receta, para que me presupuestes el MiYosmart.
+- `2026-10-05 15:03` → [Mensaje image]
+- `2026-10-05 15:04` ← (Bot) Disculpá, recién veo que Matias te había enviado un presupuesto antes con esos lentes. Contame qué te pareció ese presupuesto por los MiYOSMART.
+- `2026-10-05 15:05` → Pero el presupuesto que me envió no es por los MiYosmart, por los MyoFix. El nene ya tiene MyoFix y ahora le mandaron los MiYosmart.
+- `2026-10-05 15:06` → Por eso te envío la receta, para que me pasen el presupuesto por los MiYosmart.
+- `2026-10-05 15:06` ← (Teléfono) Hola
+- `2026-10-05 15:06` ← (Teléfono) buenas tardes,
+- `2026-10-05 15:07` → Buenas tardes.
+- `2026-10-05 15:08` → [Mensaje edit]
+- `2026-10-05 15:12` ← (Teléfono) ahora te envio precios
+- `2026-10-05 15:21` → gracias!
+- `2026-10-05 16:15` ← (Teléfono) [Mensaje audio]
+- `2026-10-05 16:16` ← (Teléfono) [Mensaje audio]
+- `2026-10-05 16:16` ← (Milena Magallanes) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Rubén Darío Pedernera  • Essilor · Stellest - Control Miopia Airwear  *Precio Lista: $837.986* 🏦 *Transf. (-15%): $712.288* 💵 *Efectivo (-20%): $670.389* 💳 *Tarjeta (Lista): $837.986*    ↳ 3 cuotas sin interés: $
+- `2026-10-05 16:16` ← (Milena Magallanes) Hola Rubén, adjunto tu presupuesto por: Stellest - Control Miopia Airwear.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-10-05 16:20` → eso es sin el marco, verdad?
+- `2026-10-05 16:22` ← (Teléfono) si si la montura
+- `2026-10-05 16:24` → Ok. Perfecto. Gracias!
+- `2026-10-06 14:32` ← (Teléfono) Hola Ruben como estas! Mile aqui, queria saber si le pudiste dar un vistazo al presupuestoq ue te envie, si te hace faltra te envio fotitos de armazones
+- `2026-10-06 17:08` → Hola. Sí, miré el presupuesto. Como les había comentado el día que los contacté, ya hemos encargado los lentes. Pero queríamos saber cómo era con otras ópticas, porque hemos comprado tres lentes distintos en un año y siempre nos hemos quedado en la misma óptic
+- `2026-10-08 17:09` ← (Sistema) Hola Rubén, buenas tardes! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+- `2026-10-08 17:12` → Hola. Sí, miré el presupuesto. Como les había comentado el día que los contacté y en el mensaje anterior, ya hemos encargado los lentes. Pero queríamos saber cómo era con otras ópticas, porque hemos comprado tres lentes distintos en un año y siempre nos hemos 
+- `2026-10-08 17:13` ← (Bot) Qué bueno que te sirvió el presupuesto, Rubén!
+- `2026-10-08 17:13` ← (Bot) Nos alegra mucho que nos tengas en cuenta para la próxima 😊 Cualquier cosa que necesites, ya sabés dónde encontrarnos.
+- `2026-10-08 17:13` → Muchas gracias a ustedes!
+- `2026-10-11 09:08` ← (Sistema) Hola Rubén, buen día! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7onCp Lun
+
+## Sofia Gaitan · 5493518113171
+48 mensajes · 7 del cliente · 38 de una persona del equipo · último: 2026-10-15 13:02 (Sistema)
+
+- `2026-10-13 11:58` → ¡Hola! Estoy en la web de Atelier y quisiera que me asesoren.
+- `2026-10-13 11:58` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-10-13 11:59` → hola
+- `2026-10-13 11:59` ← (Bot) Contame qué te interesa de la óptica, así te doy una mano.
+- `2026-10-13 11:59` ← (Teléfono) como estas Sofi?
+- `2026-10-13 12:00` ← (Teléfono) soy Matias, un gusto
+- `2026-10-13 12:00` ← (Teléfono) si tenes receta enviame foto
+- `2026-10-13 12:00` → [Mensaje image]
+- `2026-10-13 12:13` → RECIBEN BORAL
+- `2026-10-13 12:13` → [Mensaje edit]
+- `2026-10-13 12:30` ← (Teléfono) genial gracias
+- `2026-10-13 12:30` ← (Teléfono) con Boreal tenemos descuento en los Cristales
+- `2026-10-13 12:31` ← (Teléfono) te puedo enviar algunas alternativas en cuanto a cristales
+- `2026-10-13 12:33` → Si decime
+- `2026-10-13 12:34` ← (Milena Magallanes) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Sofia Gaitan  • Smart Lens · Stock · Orgánico Blue c/AR 1.56  *Precio Lista: $75.314* 🏦 *Transf. (-15%): $64.017* 💵 *Efectivo (-20%): $60.251* 💳 *Tarjeta (Lista): $75.314*    ↳ 3 cuotas sin interés: $25.105 c/u  
+- `2026-10-13 12:34` ← (Milena Magallanes) Hola Sofia, adjunto tu presupuesto por: Stock · Orgánico Blue c/AR 1.56.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-10-13 12:34` ← (Milena Magallanes) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Sofia Gaitan  • Smart Lens · Stock · Orgánico Super Blue Asf. c/AR 1.60  *Precio Lista: $159.500* 🏦 *Transf. (-15%): $135.575* 💵 *Efectivo (-20%): $127.600* 💳 *Tarjeta (Lista): $159.500*    ↳ 3 cuotas sin interés
+- `2026-10-13 12:35` ← (Teléfono) estas son dos opciones en cristales una seria mas delgadita quie la otra
+- `2026-10-13 12:35` ← (Teléfono) en cuanto a armazones, tenes algo en mente ? te puedo mandar algunas fotitos si te parece
+- `2026-10-13 12:36` → SI ME PASAS
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:37` ← (Teléfono) [Mensaje image]
+- `2026-10-13 12:44` ← (Teléfono) decime si algo asi es mas o menos lo que buscas ?
+- `2026-10-15 13:02` ← (Sistema) Hola Sofia, buenas tardes! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+
+## Titino · 5493517879038
+72 mensajes · 33 del cliente · 35 de una persona del equipo · último: 2026-09-25 15:02 (cliente)
+
+- `2026-09-21 13:08` → ¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento.  https://atelieroptica.com.ar/tienda
+- `2026-09-21 13:08` → Tenes anteojos de sol deportivos?
+- `2026-09-21 13:08` → Fotocromáticos a naranja
+- `2026-09-21 13:08` ← (Teléfono) Hola
+- `2026-09-21 13:09` ← (Teléfono) como estas buenas tardes mi nombre es Mile
+- `2026-09-21 13:10` ← (Bot) Hola! Querés que te mande fotos de anteojos de sol deportivos?
+- `2026-09-21 13:10` → Porfa
+- `2026-09-21 13:11` → Con cámara tenes alguno?
+- `2026-09-21 13:11` ← (Teléfono) los querrias
+- `2026-09-21 13:11` ← (Teléfono) sin graduacion ?
+- `2026-09-21 13:11` → Estaba buscando algo así
+- `2026-09-21 13:11` → Si
+- `2026-09-21 13:12` ← (Teléfono) te muestro algo similar
+- `2026-09-21 13:14` ← (Teléfono) [Mensaje image]
+- `2026-09-21 13:15` ← (Teléfono) [Mensaje audio]
+- `2026-09-21 13:15` ← (Teléfono) [Mensaje audio]
+- `2026-09-21 13:15` → Para trail es
+- `2026-09-21 13:15` ← (Teléfono) [Mensaje image]
+- `2026-09-21 13:15` → Running
+- `2026-09-21 13:15` → Mmm
+- `2026-09-21 13:15` → No me gustan
+- `2026-09-21 13:16` ← (Teléfono) [Mensaje image]
+- `2026-09-21 13:18` ← (Teléfono) [Mensaje audio]
+- `2026-09-21 13:18` ← (Teléfono) [Mensaje video]
+- `2026-09-21 13:18` ← (Teléfono) Viene en varios colores
+- `2026-09-21 13:24` → Y este?
+- `2026-09-21 13:24` → No es fotocromático no?
+- `2026-09-21 13:25` ← (Teléfono) no solo trae esa placa
+- `2026-09-21 13:25` ← (Teléfono) muy pocas marcas hacen fotocromaticas la placas de sol deportivas
+- `2026-09-21 13:25` ← (Teléfono) Oakley y Rudy por ejemplo
+- `2026-09-21 13:25` → Y no manejas esas?
+- `2026-09-21 13:26` ← (Teléfono) no por el momento nada
+- `2026-09-21 13:28` → Bueno
+- `2026-09-21 13:28` → Gracias
+- `2026-09-21 13:36` ← (Milena Magallanes) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Titino  • Hannover · Lentes de sol Hannover  *Precio Lista: $150.000* 🏦 *Transf. (-15%): $127.500* 💵 *Efectivo (-20%): $120.000* 💳 *Tarjeta (Lista): $150.000*    ↳ 3 cuotas sin interés: $50.000 c/u    ↳ 6 cuotas 
+- `2026-09-21 13:36` ← (Milena Magallanes) Hola Titino, adjunto tu presupuesto por: Lentes de sol Hannover.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-09-21 13:36` ← (Milena Magallanes) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Titino  • Mormaii · Lentes de sol Mormaii  *Precio Lista: $160.000* 🏦 *Transf. (-15%): $136.000* 💵 *Efectivo (-20%): $128.000* 💳 *Tarjeta (Lista): $160.000*    ↳ 3 cuotas sin interés: $53.333 c/u    ↳ 6 cuotas si
+- `2026-09-21 13:36` ← (Teléfono) te dejo precios para que lo veas cuando quieras
+- `2026-09-21 13:47` → Este cual es?
+- `2026-09-21 13:47` ← (Teléfono) hannover
+- `2026-09-23 14:01` ← (Sistema) Hola Titino, buenas tardes! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+- `2026-09-25 14:06` ← (Sistema) Hola Titino, buenas tardes! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7on
+- `2026-09-25 14:42` → Hola! Gracias! No eran los lentes que buscaba
+- `2026-09-25 14:43` ← (Bot) Dale Titino, entiendo! disculpá que no dimos con el modelo justo. contame qué tipo de lentes buscabas, así te muestro algo que te guste más 😊
+- `2026-09-25 14:43` → Gracias!
+- `2026-09-25 14:57` ← (Teléfono) [Mensaje image]
+- `2026-09-25 14:58` ← (Teléfono) Ingresaron modelitos así
+- `2026-09-25 14:58` → Uh ya compré
+- `2026-09-25 14:58` ← (Teléfono) Jaja no hay problema
+- `2026-09-25 14:58` → Compré unos fotocromáticos
+- `2026-09-25 14:58` → Naranja
+- `2026-09-25 14:58` → Kapvoe tk9023
+- `2026-09-25 14:58` ← (Teléfono) que lindoooos
+- `2026-09-25 14:58` → Si te sirve
+- `2026-09-25 14:59` → Son más de ciclismo
+- `2026-09-25 14:59` ← (Teléfono) me alegro que hayas conseguido
+- `2026-09-25 14:59` ← (Teléfono) sii
+- `2026-09-25 14:59` → Va para las dos cosas pero los compré en una bicicleteria
+- `2026-09-25 15:00` ← (Teléfono) yo uso los Radar de Oakley y las lentes de ciclismo tienen que ser muy comodas
+- `2026-09-25 15:00` → Busqué en un montón de ópticas pero no tenían
+- `2026-09-25 15:00` ← (Teléfono) [Reacción]
+- `2026-09-25 15:00` → [Reacción] ❤️
+- `2026-09-25 15:00` ← (Teléfono) si jaj son dificiles de conseguir
+- `2026-09-25 15:00` ← (Teléfono) me alegro entonces 😊 yo vi esos y me acorde que buscabas algo asi
+- `2026-09-25 15:01` ← (Teléfono) que tengas un excelente finde
+- `2026-09-25 15:01` → Muchas gracias🙌
+- `2026-09-25 15:01` → Igualmente para vos
+- `2026-09-25 15:01` → Disculpa que no te respondí el otro dia
+- `2026-09-25 15:01` → Anduve a full
+- `2026-09-25 15:01` ← (Teléfono) tranqui no hay ningun problema
+- `2026-09-25 15:02` ← (Teléfono) a disfrutar el finde Rodando 🚴‍♂️
+- `2026-09-25 15:02` → 🙌🙌🙏
+
+## Vale · 5493513463232
+115 mensajes · 39 del cliente · 70 de una persona del equipo · último: 2026-10-13 14:06 (Sistema)
+
+- `2026-09-25 17:46` → Los vi en la nueva web de Atelier, quisiera que me asesoren.
+- `2026-09-25 17:46` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-09-25 17:47` ← (Teléfono) soy Matias, un gusto!
+- `2026-09-25 17:47` ← (Teléfono) ya tenes receta?
+- `2026-09-25 17:55` → [Mensaje image]
+- `2026-09-25 17:55` → me podrás hacer un presupuesto es para una persona mayor
+- `2026-09-25 17:55` → tiene muy baja la visión
+- `2026-09-25 17:55` → y tiene que cambiar el marco
+- `2026-09-25 17:56` → aunque el marco se que debe ir ella, por lo menos quiero saber el precio de los cristales
+- `2026-09-25 18:12` ← (Teléfono) [Mensaje audio]
+- `2026-09-25 18:13` ← (Teléfono) si se le es complicado venir, podes traer su anteojito asi tambien vemos el tamañano y lo hacemos a distancia
+- `2026-09-25 18:13` ← (Teléfono) mira te mando los valores
+- `2026-09-25 18:14` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Vale  • Smart Lens · Stock · Orgánico Blanco 1.49 · Rango Extendido (Stock)  *Precio Lista: $68.864* 🏦 *Transf. (-15%): $58.534* 💵 *Efectivo (-20%): $55.091* 💳 *Tarjeta (Lista): $68.864*    ↳ 3 cuotas sin interés
+- `2026-09-25 18:14` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Vale  • Smart Lens · Stock · Orgánico Super Blue Asf. c/AR 1.60 · Rango Extendido (Stock)  *Precio Lista: $173.148* 🏦 *Transf. (-15%): $147.176* 💵 *Efectivo (-20%): $138.518* 💳 *Tarjeta (Lista): $173.148*    ↳ 3 
+- `2026-09-25 18:15` ← (Teléfono) [Mensaje audio]
+- `2026-09-25 18:33` → Esta bárbaro
+- `2026-09-25 18:33` → Lo que no quiere es que sean esos cristales re gruesos
+- `2026-09-25 18:33` → Y el marco tenia unos de pami que se quebraron
+- `2026-09-25 18:33` → Tarjetas tenemos naranja
+- `2026-09-25 18:40` ← (Teléfono) claro, si era todo el anteojo de pami seguro se le quebro por el grosor y material
+- `2026-09-25 18:40` ← (Teléfono) haciendo el 1.60, y armazon bonito
+- `2026-09-25 18:40` ← (Teléfono) le va a quedar liviano
+- `2026-09-25 18:40` ← (Teléfono) te mando algunas fotos queres? como le gustan?
+- `2026-09-25 18:40` ← (Teléfono) buenisimo
+- `2026-09-25 18:41` ← (Teléfono) tenes 3 y 6 ctas sin interes
+- `2026-09-25 18:41` ← (Teléfono) o 12 con un minimo recargo del 10%
+- `2026-09-25 18:41` → Dale
+- `2026-09-25 18:41` → mañana abren ?
+- `2026-09-25 18:41` ← (Teléfono) sii abrimos
+- `2026-09-25 18:41` ← (Teléfono) Atelier Optica   Indicación Ladrillo visto al lado de la verdulería que tiene la vaca (frente a Cremolatti )  Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.  Ubicación: https://share.google/j2ZT7ReboDLt7onCp  Horarios:    • Lunes a viernes d
+- `2026-09-25 18:41` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:44` → Por favor
+- `2026-09-25 18:44` ← (Teléfono) dale
+- `2026-09-25 18:48` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:48` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:48` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:48` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:48` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` → y esos marcos cuánto salen mas o menos
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje no soportado]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:49` ← (Teléfono) y te pase de $90.00 de $140.000 y $160.000
+- `2026-09-25 18:50` ← (Teléfono) van desde los $90.000 a los $270.000 aprox
+- `2026-09-25 18:51` → este?
+- `2026-09-25 18:51` ← (Teléfono) $90.000 ese ☺️
+- `2026-09-25 18:51` ← (Teléfono) queres que te arme con ese le presupuesto final?
+- `2026-09-25 18:51` → quiero ver si puede ir mañana ella
+- `2026-09-25 18:52` → porque me dijo algo de lo violaceo ella no quiere que se le haga ningun colo el anteojo
+- `2026-09-25 18:52` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Vale  • Atelier · Atelier Eco • Smart Lens · Stock · Orgánico Super Blue Asf. c/AR 1.60 · Rango Extendido (Stock)  *Precio Lista: $263.148* 🏦 *Transf. (-15%): $223.676* 💵 *Efectivo (-20%): $210.518* 💳 *Tarjeta (L
+- `2026-09-25 18:52` → [Mensaje edit]
+- `2026-09-25 18:53` ← (Teléfono) ahhh bien bien, esos son los fitros azules
+- `2026-09-25 18:53` ← (Teléfono) ella lo quiere blanco
+- `2026-09-25 18:53` → y finito que no se rompan facilmente
+- `2026-09-25 18:53` ← (Teléfono) bien perfecto
+- `2026-09-25 18:54` → hablo con ella y le aviso
+- `2026-09-25 18:54` ← (Teléfono) dale buenisimo!
+- `2026-09-25 18:54` → y despues te aviso si va
+- `2026-09-25 18:54` ← (Teléfono) [Mensaje image]
+- `2026-09-25 18:54` ← (Teléfono) Atelier Optica   Indicación Ladrillo visto al lado de la verdulería que tiene la vaca (frente a Cremolatti )  Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.  Ubicación: https://share.google/j2ZT7ReboDLt7onCp  Horarios:    • Lunes a viernes d
+- `2026-09-25 18:54` ← (Teléfono) el lunes tambien abrimos por la mañana
+- `2026-09-26 09:34` ← (Teléfono) buen dia!!! como estas??
+- `2026-09-26 09:34` ← (Teléfono) las espero hoy sabado? ☺️
+- `2026-09-26 11:10` → Hola
+- `2026-09-26 11:10` → Intentamos
+- `2026-09-26 11:10` → Pero hoy no amaneció muy bien
+- `2026-09-26 11:11` → Vemos el lunes
+- `2026-09-26 11:23` ← (Teléfono) ah bueno bueno! que se recupere bien y que tengan lindo finde ☺️
+- `2026-09-26 11:23` ← (Teléfono) el Lunes feriado abrimos de 9 a 13hs ✨
+- `2026-09-28 12:05` ← (Sistema) Hola Vale, buen día! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+- `2026-09-28 12:06` → Si
+- `2026-09-28 12:06` → Hola
+- `2026-09-28 12:07` → mañana vamos
+- `2026-09-28 12:07` ← (Teléfono) buenisimo Vale!
+- `2026-09-28 12:07` ← (Teléfono) [Sticker]
+- `2026-09-29 09:22` ← (Teléfono) Buen dia ☺️
+- `2026-09-29 09:22` ← (Teléfono) Atelier Optica   Indicación Ladrillo visto al lado de la verdulería que tiene la vaca (frente a Cremolatti )  Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.  Ubicación: https://share.google/j2ZT7ReboDLt7onCp  Horarios:    • Lunes a viernes d
+- `2026-09-29 09:22` ← (Teléfono) les dejo la direccion a mano, las esperamos ✨
+- `2026-09-29 09:23` → Hola
+- `2026-09-29 13:24` → Hola
+- `2026-09-29 13:24` → mañana 9hs estamos ahí
+- `2026-09-29 13:55` → mañana atienden?
+- `2026-09-29 13:56` ← (Bot) Sí, mañana abrimos de 9 a 20hs. Te esperamos 😊
+- `2026-09-30 09:01` → Hola ya abrieron
+- `2026-09-30 09:01` ← (Teléfono) buenas!
+- `2026-09-30 09:01` ← (Teléfono) sii ☺️
+- `2026-09-30 09:04` ← (Teléfono) Atelier Optica   Indicación Ladrillo visto al lado de la verdulería que tiene la vaca (frente a Cremolatti )  Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.  Ubicación: https://share.google/j2ZT7ReboDLt7onCp  Horarios:    • Lunes a viernes d
+- `2026-10-08 16:25` → Hola
+- `2026-10-08 16:25` → Hay novedades sobre los anteojos
+- `2026-10-08 16:27` ← (Teléfono) Hola Vale como estas? buenos dias
+- `2026-10-08 16:27` ← (Teléfono) me recordas a nombre de quien esta el pedido?
+- `2026-10-08 16:27` ← (Teléfono) asi te informo
+- `2026-10-08 16:28` → Teresita Lucía Solis
+- `2026-10-08 16:31` ← (Teléfono) llegaron hace un ratito
+- `2026-10-08 16:31` → En serio?
+- `2026-10-08 16:31` ← (Teléfono) en breve hacemos el control de calidad y pueden venir a retirar
+- `2026-10-08 16:31` ← (Teléfono) sisi
+- `2026-10-08 16:32` ← (Teléfono) nomas que se aviso al numero que nos dejo teresita
+- `2026-10-08 16:32` ← (Teléfono) asique justo ☺️
+- `2026-10-08 16:32` ← (Teléfono) desde las 17hs van a poder retirar
+- `2026-10-08 16:32` ← (Teléfono) las esperamoss
+- `2026-10-09 13:00` → Hola
+- `2026-10-09 13:00` → Cierran a la siesta?
+- `2026-10-09 13:00` ← (Bot) No, abrimos de 9 a 20hs de corrido 😊
+- `2026-10-11 13:06` ← (Sistema) Hola Vale, buenas tardes! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7onCp
+- `2026-10-13 14:06` ← (Sistema) Hola Vale, buenas tardes! ¿Cómo estás? Te quería invitar a seguirnos en Instagram, ahí subimos los modelos que van entrando: https://www.instagram.com/atelieroptica_. Y contame, ¿al final resolviste lo de tus anteojitos? Si todavía no, tengo un descuento espec
+
+## Victor · 5492942522581
+144 mensajes · 57 del cliente · 79 de una persona del equipo · último: 2026-10-08 17:56 (Teléfono)
+
+- `2026-09-20 13:38` → Los vi en la nueva web de Atelier, quisiera que me asesoren.
+- `2026-09-20 13:38` ← (Bot) Hola! Contame qué estás buscando y te ayudo 😊
+- `2026-09-20 13:40` → Estoy buscando lentes inteligentes Ray Ban quería saber qué modelos tienen , y si pueden colocarle mi graduación !  Tengo discapacidad visual del 70% veo con un solo ojo ! Me gustaría comprarlos para mejorar algunas cosas de mi vida cotidiana ! Ya que el que v
+- `2026-09-20 13:41` ← (Bot) Hola Victor! Entiendo tu búsqueda para mejorar tu día a día. Sobre los lentes inteligentes, la mayoría de los modelos no permiten colocarles graduación, ya que vienen con sus lentes de fábrica. Es el caso de las gafas Wicue, por ejemplo. Pero podemos ver si ha
+- `2026-09-20 13:53` → Hola  muchas gracias! En armazón tradicional tengo bien aumento con buenos cristales , ya no pueden darme más aumento ! Un amigo usa un modelo de  Ray Ban. Y él me había recomendado usarlos
+- `2026-09-20 13:54` → Pero claro si o si necesito mi graduación
+- `2026-09-20 13:54` ← (Bot) Lo confirmo y te escribo en un ratito 😊
+- `2026-09-20 13:57` → Gracias
+- `2026-09-21 09:59` ← (Teléfono) Hola!
+- `2026-09-21 09:59` ← (Teléfono) [Mensaje audio]
+- `2026-09-21 10:14` → Buen día muchas gracias!! Ahí lo vamos a evaluar con el oftalmólogo que fue quien me los recomendó ! O sea que si los pienso traer de afuera ustedes podrían colocar mi aumento en ellos ?
+- `2026-09-21 10:15` ← (Matias Turchi) exacto, si podemos 
+- `2026-09-21 10:23` → Gracias ! Ahí estaremos en contacto saludos desde el sur
+- `2026-09-21 10:29` ← (Teléfono) buenisimo Victor, lo esperamos ☺️🙌🏻 podemos gestionar de manera virtual los envios en caso de necesitar cuando los tenga
+- `2026-09-21 11:17` → [Mensaje audio]
+- `2026-09-21 11:18` → ¡Mirá lo que encontré! Anteojos Inteligentes Meta Rayban Gen 2 Negro / Transparente en Mercado Libre. Entrá acá: https://www.mercadolibre.com.ar/up/MLAU5157345522?matt_tool=89488245&pdp_filters=item_id:MLA2076867843&ua=r9DDfSBn-VNp-giS4OStmHO6ZysZ2ryO2XgJAm2tY
+- `2026-09-21 11:20` ← (Teléfono) si claro no es ninguna molestia
+- `2026-09-21 11:20` ← (Teléfono) este es el que me envia usted
+- `2026-09-21 11:20` ← (Teléfono) a ese mismo si le podemos cambiar el cristal
+- `2026-09-21 11:21` → Perfecto !! Muchas gracias ! Tendría que ver la manera de hacerlos llegar a Córdoba tengo un amigo allá que podría llevarlos
+- `2026-09-21 11:22` ← (Teléfono) dale excelente! luego nosotros se lo podemos enviar por correo argentino si quiere
+- `2026-09-21 11:23` → Voy a buscar la  receta así me hacen la cotización quisiera algún cristal que ayude a mi discapacidad en color azul o fotocromáticos ! Tengo aceite de silicona en mi ojo derecho
+- `2026-09-21 11:23` ← (Teléfono) dale! espero la foto y te asesoro bien
+- `2026-09-21 11:23` ← (Teléfono) fotocromatico de color azul podemos realizar por ejemplo
+- `2026-09-21 11:23` → Cuál es la dirección así le digo a mi amigo a ver si le queda cerca
+- `2026-09-21 11:23` ← (Teléfono) pero debemos ver su graduaicon
+- `2026-09-21 11:23` ← (Teléfono) Atelier Optica   Indicación Ladrillo visto al lado de la verdulería que tiene la vaca (frente a Cremolatti )  Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.  Ubicación: https://share.google/j2ZT7ReboDLt7onCp  Horarios:    • Lunes a viernes d
+- `2026-09-21 11:23` → [Reacción] ❤️
+- `2026-09-21 11:23` ← (Teléfono) [Mensaje image]
+- `2026-09-21 11:24` → Excelente estamos en contacto  pronto muchas gracias
+- `2026-09-21 11:25` ← (Teléfono) Victor como es tu apellido asi te agendo!
+- `2026-09-21 11:31` → Tilleria Víctor Eduardo
+- `2026-09-21 11:32` → Ahí hablé con mi amigo ya no tiene problemas en acercarlos y él me los envía no habría problemas
+- `2026-09-21 11:32` ← (Teléfono) ah buenisimo Victor! un exito!
+- `2026-09-21 11:32` → Ni bien tenga los lentes acá me contacto con ustedes ! Cómo es tu nombre así te agendo también ?
+- `2026-09-21 11:33` ← (Teléfono) Matias! de Optica Atelier
+- `2026-09-21 11:33` ← (Teléfono) si no estoy yo esta Milena, que ya le comenta tambien
+- `2026-09-21 11:34` → Muchas gracias! Saludos 🫂
+- `2026-09-21 11:46` ← (Teléfono) un saludo ☺️🙌🏻
+- `2026-09-21 11:56` ← (Teléfono) Victor ya hiciste la compra de los anteojos ?
+- `2026-09-21 11:56` ← (Teléfono) Y si no los compraste aún decime Qué modelo exacto estabas buscando
+- `2026-09-21 11:57` ← (Teléfono) Que Puedo consultar con un proveedor si los tiene disponibles.
+- `2026-09-21 11:57` ← (Teléfono) Y traértelos a pedido .
+- `2026-09-21 11:58` → Anteojos Inteligentes Meta Rayban Gen 2 Negro / Transparente
+- `2026-09-21 11:58` → Estos son ! Si ya me los compré!
+- `2026-09-21 12:00` → Lástima no haberles consultado antes
+- `2026-09-21 12:01` → Porque el que conseguí es este dentro de los que  están disponibles en mercado
+- `2026-09-21 12:01` ← (Teléfono) no hya problema Victor, queres que te llame para ver el tema del cristal?
+- `2026-09-21 12:02` → Dale  si es posible
+- `2026-09-21 12:11` ← (Teléfono) compro el mismo del link verdad? ahi le pase el modelo que usted me mando del link asi te confirmamos ☺️
+- `2026-09-21 12:12` → Si ese mismo
+- `2026-09-21 12:12` ← (Teléfono) perfecto, que talle lo encargo?
+- `2026-09-21 12:13` ← (Teléfono) 50-22-150
+- `2026-09-21 12:13` ← (Teléfono) [Mensaje image]
+- `2026-09-21 12:13` ← (Teléfono) le figura el talle?
+- `2026-09-21 12:14` → Que macana no me fijé ese detalle
+- `2026-09-21 12:14` → Como lo medís
+- `2026-09-21 12:15` ← (Teléfono) no te preocupes, ahi lo pude ver ☺️
+- `2026-09-21 12:16` → Igual espérame a ver si me deja cancelar la compra y que te envíe la graduación
+- `2026-09-21 12:16` ← (Teléfono) sisi claro, esos datos son para poder averiguarle y comentarle
+- `2026-09-21 12:17` → Te envío la foto de los que uso a diario
+- `2026-09-21 12:18` ← (Teléfono) perfecto, mandame en realidad foto de la patilla
+- `2026-09-21 12:18` ← (Teléfono) de la parte interna
+- `2026-09-21 12:18` ← (Teléfono) tiene unos numeritos
+- `2026-09-21 12:20` ← (Teléfono) Victor, como abono el anteojo? en caso de poder cancelar y hacerlo con nosotros, lo haria en un pago o en cuotas?
+- `2026-09-21 12:23` → [Mensaje image]
+- `2026-09-21 12:23` → Ahí lo vemos de acuerdo al precio final con los cristales incluidos
+- `2026-09-21 12:25` ← (Teléfono) excelente Victor
+- `2026-09-21 12:26` ← (Teléfono) espero la foto de la receta asi te hago el precio del cristal y te paso el valor
+- `2026-09-21 12:27` → Si ahí estoy buscando pero no aparece che !
+- `2026-09-21 12:28` ← (Teléfono) recuerda aproximadamente? asi al menso le hago un estimativo
+- `2026-09-21 12:30` → No no me acuerdo tampoco ! Pero ahí  aparecerá !
+- `2026-09-21 12:30` ← (Teléfono) perfecto! ahi ya dejamos la consulta de precio y demora
+- `2026-09-21 12:30` ← (Teléfono) y te enviamos apenas tengamos la info
+- `2026-09-21 12:35` → Dale ahí cuando la encuentre te envío ! Y ahora quiero ver si puedo cancelar la compra ! Ahí nos escribimos
+- `2026-09-21 12:35` ← (Teléfono) [Reacción]
+- `2026-09-21 12:35` → Gracias por todo
+- `2026-09-21 12:35` ← (Teléfono) un gusto Victor! ☺️🙌🏻 Genial espero eso
+- `2026-09-21 13:07` → [Mensaje image]
+- `2026-09-21 13:09` → Esas son las medidas de los que había comprado ! Estoy intentando cancelar la compra ! La receta no la encuentro , así que le escribí a mi oftalmólogo en Neuquén a ver si me la reenvía o tendré que ir en unos días a la ciudad a volver a pedir la receta !
+- `2026-09-21 13:09` → Así que si me reenvía les paso enseguida y si no esperaremos unos días a que viaje yo a la ciudad
+- `2026-09-21 13:20` ← (Teléfono) Ahora reviso lo que me envias
+- `2026-09-21 13:22` → Dale si son chicos ! Ahí cancele la compra necesito un talle L creo
+- `2026-09-21 13:43` ← (Teléfono) Todavía me falta que me confirmen con qué cristal va a llegar disponible.  Pero seguramente venga en G15 que es de sol (verde)  De todas formas los cristales que traen se retirarían y reemplazarían por los graduados (así mismo te guardamos y enviamos los crist
+- `2026-09-21 13:44` → [Mensaje image]
+- `2026-09-21 13:44` ← (Teléfono) Por lo que vi el que habías pedido no es un talle L ; pero te recomiendo que mires que talles usas actualmente en tus anteojos en uso y que compares
+- `2026-09-21 13:44` → Acá encontré la receta
+- `2026-09-21 13:45` → Te envié las fotos ya
+- `2026-09-21 13:49` → [Mensaje image]
+- `2026-09-21 13:51` ← (Teléfono) gracias
+- `2026-09-21 16:08` ← (Teléfono) Hola Victor!  buenas tardes!
+- `2026-09-21 16:09` → Buenas tardes
+- `2026-09-21 16:10` ← (Milena Magallanes) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* Victor  • Smart Lens · Monofocal TALLADO (CNC) · Orgánico Fotocromático Smart Color (Brown/Green/Blue/Pink/Purple) 1.56 (Laboratorio)  *Precio Lista: $340.330* 🏦 *Transf. (-15%): $289.281* 💵 *Efectivo (-20%): $27
+- `2026-09-21 16:10` ← (Teléfono) ese seria el valor de los cristales
+- `2026-09-21 16:10` ← (Teléfono) te paso un precio final;
+- `2026-09-21 16:12` → Y los anteojos los pueden conseguir ?
+- `2026-09-21 16:14` ← (Teléfono) $1.539.281 Transferencia o 6 ctas de $306.721
+- `2026-09-21 16:14` → Sería el modelo que hablamos hoy?
+- `2026-09-21 16:17` → En qué color crees no es tan oscuro el fotocromatico
+- `2026-09-21 16:17` ← (Teléfono) ahi en 5 minutos lo llamo asi te comento bien del cristal
+- `2026-09-21 16:17` → Dale perfecto te espero
+- `2026-09-22 10:43` → Buen día chicos como están ! Cuando puedan confirmarme lo de los anteojos me avisan por favor 🙏 estoy viajando a mi control de trasplante estos días así coordinamos ! El pago lo haría por transferencia
+- `2026-09-22 10:43` ← (Bot) Buen día Victor. Espero que tu control salga muy bien 🙏
+- `2026-09-22 10:43` ← (Bot) Sí, el precio total de $1.539.281 por transferencia es por los lentes inteligentes Ray-Ban, con los cristales Smart Lens que llevan tu graduación y son fotocromáticos.
+- `2026-09-22 10:43` ← (Bot) Esos cristales fotocromáticos pueden venir en marrón, verde, azul, rosa o violeta.
+- `2026-09-22 10:43` ← (Bot) Avisanos cuando estés de vuelta para coordinar. Te esperamos! 😊
+- `2026-09-22 10:43` ← (Teléfono) [Mensaje revoke]
+- `2026-09-22 10:44` ← (Teléfono) [Mensaje revoke]
+- `2026-09-22 10:44` ← (Teléfono) [Mensaje revoke]
+- `2026-09-22 10:44` ← (Teléfono) perdon, fueron mensajitos automaticos
+- `2026-09-22 10:44` ← (Teléfono) Buen dia! si claro por supuesto !
+- `2026-09-22 10:45` → Aún no te confirmaron nada entonces!  La semana próxima ya tendríamos que definir si los consiguen si no viajaría a temuco chile que tengo cerca y ahí los puedo conseguir también ! Espero que me avises primero
+- `2026-09-22 10:47` ← (Teléfono) usted pudo realizar la cancelacion de la compra? me falta definir en realidad el color y el modelo del ray ban. ahi consulte en cuanto me respondan te escribo inmediatamente asi coordinamos
+- `2026-09-22 11:14` → El modelo que quiero es el  ray-ban meta wayfarer  G2 talle L
+- `2026-09-22 11:15` → Espero que me confirmen ustedes si lo consiguen y avanzamos ya les dije a tus compañeros que cancele la compra  porque era standar la medida que me habían ofrecido
+- `2026-09-22 11:16` → [Reacción] ❤️
+- `2026-09-22 11:22` ← (Teléfono) okei ☺️
+- `2026-09-22 11:23` ← (Teléfono) dame unos minutos 🙌🏻
+- `2026-09-24 12:01` ← (Sistema) Hola Victor, buen día! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.
+- `2026-09-24 12:09` ← (Teléfono) [Mensaje revoke]
+- `2026-09-24 12:10` ← (Teléfono) Hola Victor! buenos dias!!! no me he olvidado de usted
+- `2026-09-24 12:10` ← (Teléfono) por las dudas
+- `2026-09-24 12:19` → Buen día! No te hagas problema por ahora lo dejo ahí lo de los lentes ! Surgieron otros gastos este mes con la salud ! Así que será el próximo mes ! Así que no te hagas problema
+- `2026-09-24 12:20` ← (Teléfono) [Reacción]
+- `2026-09-24 12:20` ← (Teléfono) espero que pueda solucionarlo Victor!
+- `2026-09-24 12:20` ← (Teléfono) y que se encuentre bien
+- `2026-09-24 12:20` ← (Teléfono) mientras, yo le voy adjuntando la informacion y todo... para que llegado el momento este listo
+- `2026-09-24 12:22` → Muchas gracias!!
+- `2026-10-07 11:56` ← (Teléfono) Hola Eduardo
+- `2026-10-07 11:56` ← (Teléfono) como le va? buenos dias!
+- `2026-10-07 11:56` ← (Teléfono) como estas? esta mejor de salud?
+- `2026-10-07 11:56` ← (Teléfono) mi mensajito es para comentarle que ya tenemos el anteojo a disposicion
+- `2026-10-07 12:31` → Hola buenos días ! Como están sigo por la capital con tratamiento ! Contame cómo está el precio con el cristal que hablamos en su momento ?
+- `2026-10-07 16:45` ← (Teléfono) espero que vaya todo bien, Victor!
+- `2026-10-07 16:45` ← (Teléfono) ahora le paso
+- `2026-10-08 15:14` ← (Milena Magallanes) Hola Victor, te enviamos el presupuesto que armamos para vos en Atelier Óptica por $ 340.330. Tiene validez de 15 días. Cualquier duda, respondé este mensaje y lo vemos juntos.
+- `2026-10-08 15:14` ← (Milena Magallanes) Hola Victor, te enviamos el presupuesto que armamos para vos en Atelier Óptica por $ 340.330. Tiene validez de 15 días. Cualquier duda, respondé este mensaje y lo vemos juntos.
+- `2026-10-08 15:35` → Hola buenas tardes me enviaste dos veces el mismo presupuesto ! No está el de los anteojos
+- `2026-10-08 15:36` ← (Teléfono) disculpa , ahora te envio
+- `2026-10-08 17:10` ← (Teléfono) Ray-Ban Meta Gen 2 Wayfarer Medidas 50-22 $ 1.500.000 en transferencia / ef 920 usd CRISTALES FOTOCROMATICOS *: *Precio Lista: $340.330* 🏦 *Transf. (-15%): $289.281* 💵 *Efectivo (-20%): $272.264* 💳 *Tarjeta (Lista): $340.330*    ↳ 3 cuotas sin interés: $113.44
+- `2026-10-08 17:10` ← (Teléfono) Le dejo el precio por separado!
+- `2026-10-08 17:22` → Dale por ahora es imposible ese monto ! Al menos por el momento estoy con muchos gastos con mis tratamientos ! Así que será más adelante seguramente
+- `2026-10-08 17:56` ← (Teléfono) si Victor! recuerdo que me comento que lo postergo
+- `2026-10-08 17:56` ← (Teléfono) quedo atento! y espero que solucione pronto ☺️
+
+## xu · 5493456020451
+26 mensajes · 11 del cliente · 7 de una persona del equipo · último: 2026-10-13 12:28 (cliente)
+
+- `2026-10-09 14:15` → ¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento.  https://atelieroptica.com.ar/producto/lentes-sol-clip-on-florence-tr12173
+- `2026-10-09 14:16` ← (Bot) Entiendo, te interesan los lentes de sol clip-on. El modelo Florence TR12173 está muy bueno.
+- `2026-10-09 14:16` ← (Bot) Si querés te puedo mostrar más opciones de clip-ons.
+- `2026-10-09 14:16` → quisiera saber costo de armazones con cristales recetados y clip on. cod postal 3206. Muchas gracias
+- `2026-10-09 14:17` ← (Bot) Perfecto, el modelo Florence TR12173 corresponde a nuestro Clip-on Classic. *Opción 1 – Clip-on Classic* • Precio contado: *$170.000* • 6 cuotas sin interés de *$33.333* (total *$200.000*) Para cotizar los armazones con cristales recetados, tenés tu recetita a
+- `2026-10-09 14:17` → [Mensaje image]
+- `2026-10-09 14:18` ← (Bot) Perfecto, ya tengo tu recetita. Con esos valores te armo un presupuesto para tus multifocales.
+- `2026-10-09 14:18` ← (Bot) Si querés, te puedo pasar unas fotos de armazones para que veas modelos.
+- `2026-10-09 14:19` → sólo los de lejos. no multifocales😎
+- `2026-10-09 14:19` ← (Bot) Entiendo, solo monofocales. Acá te paso una opción: *Opción 1 – Smart Lens Stock · Orgánico Blanco c/AR 1.56* • Precio contado: *$42.075* • 6 cuotas sin interés de *$8.250* (total *$49.500*) Contame qué te parece esta opción.
+- `2026-10-09 14:46` ← (Teléfono) [Mensaje audio]
+- `2026-10-09 15:24` → [Reacción] ❤️
+- `2026-10-09 15:25` → hola Milena. gracias por tu respuesta. lo que necesito son monofocales. solamente los de lejos
+- `2026-10-09 15:49` ← (Teléfono) buenisimo ahora te envio cotizacion solo de monofocales
+- `2026-10-09 15:49` → [Reacción] 👍
+- `2026-10-11 16:07` ← (Sistema) Hola Xu, buenas tardes! ¿Cómo estás? Te escribo por tu consultita, ¿retomamos el armado de tu presupuesto? Te dejo nuestro catálogo de la tienda atelieroptica.com.ar para que me cuentes qué estilo de modelito te gusta y te envío más fotitos.
+- `2026-10-13 10:12` → https://atelieroptica.com.ar/producto/lentes-sol-clipon-capri-c5-g5929
+- `2026-10-13 10:12` ← (Bot) Perfecto, el modelo Capri C5 G5929 es nuestro Clip-on Classic. *Opción 1 – Clip-on Classic* • Precio contado: *$170.000* • 6 cuotas sin interés de *$33.333* (total *$200.000*)
+- `2026-10-13 10:13` → Hola buen día. Por ejemplo con estos armadores  más los cristales
+- `2026-10-13 10:13` → [Mensaje edit]
+- `2026-10-13 12:26` ← (Matias Turchi) ✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨ 👤 *Cliente:* xu  • Cápsula Escarlata · Capri C5 • Smart Lens · Stock · Orgánico Super Blue Asf. c/AR 1.60  *Precio Lista: $334.500* 🏦 *Transf. (-15%): $284.325* 💵 *Efectivo (-20%): $267.600* 💳 *Tarjeta (Lista): $334.500*    ↳
+- `2026-10-13 12:26` ← (Matias Turchi) Hola xu, adjunto tu presupuesto por: Capri C5, Stock · Orgánico Super Blue Asf. c/AR 1.60.  Atelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.
+- `2026-10-13 12:26` ← (Teléfono) Buen dia! como estas???
+- `2026-10-13 12:26` ← (Teléfono) soy Mati
+- `2026-10-13 12:26` ← (Teléfono) ahi te dejo el valor final del antojo con los cristales que necesita para que no dañen
+- `2026-10-13 12:28` → muchas gracias
