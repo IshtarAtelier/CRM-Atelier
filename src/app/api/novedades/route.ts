@@ -42,9 +42,9 @@ const NOVEDADES: { id: string; desde?: string; audiencia: (nombre: string, rol: 
     },
     {
         // Desafío del día de reseñas contra Lens Cerro (Ishtar, 16/10/2026):
-        // a Matías, desde el 17/10.
+        // a Matías, desde el 19/10. Meta: 10 arriba (741 vs 746 → 15 nuevas).
         id: 'desafio-resenas-lens-cerro-2026-10',
-        desde: '2026-10-17',
+        desde: '2026-10-19',
         audiencia: (nombre: string) => normalizar(nombre).includes('matias'),
     },
 ];

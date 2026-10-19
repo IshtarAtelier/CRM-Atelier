@@ -94,13 +94,13 @@ const GUIADOS: Record<string, Paso[]> = {
     ],
     'desafio-resenas-lens-cerro-2026-10': [
         {
-            titulo: 'Desafío del día: ganarle a Lens Cerro',
+            titulo: 'Desafío del día: 10 reseñas arriba de Lens Cerro',
             cuerpo: (
                 <>
-                    <p><strong>Lens Cerro es tu rival directo:</strong> está a 80 metros, en Tejeda 4300, y tiene casi las mismas reseñas que vos (<strong>746 contra tus 739</strong>).</p>
+                    <p><strong>Lens Cerro es tu rival directo:</strong> está a 80 metros, en Tejeda 4300, y tiene casi las mismas reseñas que vos (<strong>746 contra tus 741</strong>).</p>
                     <p className="mt-2">Ganarle en reseñas es lo que más te sube en el mapa.</p>
                     <p className="flex items-center gap-2 mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 font-bold">
-                        <Gift className="w-4 h-4 shrink-0" /> El desafío de hoy: conseguir las reseñas que faltan para pasarlos. Son 8.
+                        <Gift className="w-4 h-4 shrink-0" /> El desafío de hoy: quedar al menos 10 reseñas arriba de ellos. Son 15 reseñas nuevas.
                     </p>
                 </>
             ),
