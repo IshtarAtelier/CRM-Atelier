@@ -60,6 +60,12 @@ const getProduct = cache(async (slug: string) => {
       // Nombre visible: sin el código de color del proveedor (display-name.ts).
       const nombreCrudo = webProduct.name || webProduct.product.model || '';
       const nombreVisible = armarNombreVisible([])(nombreCrudo);
+      // Los textos curados (descripción, SEO) nombran al modelo con el código
+      // ("el modelo Minerva C4-1"): se reemplaza SOLO el nombre exacto.
+      const sinCodigo = (texto: string | null | undefined) =>
+        texto && nombreCrudo !== nombreVisible
+          ? texto.replace(new RegExp(nombreCrudo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), nombreVisible)
+          : texto;
       return {
         id: webProduct.product.id,
         brand: webProduct.product.brand || 'ATELIER',
@@ -78,14 +84,14 @@ const getProduct = cache(async (slug: string) => {
         imagenesCatalogo: versionarImagenesLocales(webProduct.images.length > 0 ? webProduct.images : webProduct.product.imagenesCatalogo),
         imageAlts: webProduct.images.length > 0 ? webProduct.imageAlts : [],
         category: webProduct.category,
-        description: webProduct.description,
+        description: sinCodigo(webProduct.description),
         slug: webProduct.slug,
         lensWidth: webProduct.product.lensWidth,
         bridgeWidth: webProduct.product.bridgeWidth,
         templeLength: webProduct.product.templeLength,
         frameHeight: webProduct.product.frameHeight,
-        seoTitle: webProduct.product.seoTitle,
-        seoDescription: webProduct.product.seoDescription,
+        seoTitle: sinCodigo(webProduct.product.seoTitle),
+        seoDescription: sinCodigo(webProduct.product.seoDescription),
         seoTags: webProduct.product.seoTags,
         mpn: webProduct.product.mpn,
         gender: webProduct.product.gender,
@@ -461,7 +467,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       return elegidos.map(({ c }) => ({
         id: c.product.id,
         brand: c.product.brand || 'ATELIER',
-        model: c.name || c.product.model || '',
+        model: armarNombreVisible([])(c.name || c.product.model || ''),
         price: c.product.price,
         salePrice: c.product.salePrice,
         // 0 y no el valor real: esta página es ISR, o sea que el MISMO HTML se
