@@ -25,7 +25,7 @@
  *
  * SALIDA: public/social/<id>/NN.jpg y social/contenido/<id>.json. NO publica
  * ni programa nada: se publica con
- *   node scripts/social/publicar-directo.mjs social/<id> "<caption>" --instagram --facebook
+ *   node scripts/social/publicar-directo.mjs public/social/<id> "<caption>" --instagram --facebook
  * o se agrega a social/feed-programacion.json con su fecha.
  */
 import { writeFileSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
@@ -128,6 +128,6 @@ for (const [k, parte] of partes.entries()) {
         })),
     }, null, 2) + '\n');
     console.log(`✅ ${piezaId}: ${parte.length} slides`);
-    console.log(`   publicar: node scripts/social/publicar-directo.mjs social/${piezaId} ${JSON.stringify(caption.split('\n')[0])} --instagram --facebook`);
+    console.log(`   publicar: node scripts/social/publicar-directo.mjs public/social/${piezaId} ${JSON.stringify(caption.split('\n')[0])} --instagram --facebook`);
 }
 await browser.close();
