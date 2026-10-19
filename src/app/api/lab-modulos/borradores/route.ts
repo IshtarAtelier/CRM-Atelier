@@ -52,6 +52,8 @@ export async function GET(request: Request) {
         }),
         espejo, pares: analisis.pares,
         puedeCancelarEnPortal: !!carga.cancelarEnPortal,
+        // El botón "abrir el portal para cargarlo a mano": siempre, en cualquier estado.
+        portal: carga.portal,
     });
 }
 

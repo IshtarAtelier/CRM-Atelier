@@ -601,6 +601,11 @@ ok('APROBADO no va a ERROR por la tabla (el portal puede haber confirmado); pued
 });
 ok('los laboratorios con carga asistida que conoce el navegador son exactamente los del registro del servidor', () => {
     assert.deepEqual([...LABS_CON_CARGA_ASISTIDA].sort(), CARGAS.map(c => c.lab).sort());
+    // Todo lab con carga asistida deja SIEMPRE un botón para abrir su portal y terminar a mano (Ishtar, 19/10/2026).
+    for (const c of CARGAS) {
+        assert.match(c.portal?.url || '', /^https:\/\/.+\/new$/, `${c.lab}: la URL de alta del portal`);
+        assert.match(c.portal?.etiqueta || '', /a mano/i, `${c.lab}: la etiqueta del botón`);
+    }
     for (const lab of LABS_CON_CARGA_ASISTIDA) assert.ok(NOMBRE_DE_LAB[lab], `falta el nombre de ${lab}`);
 });
 ok('las salidas a ERROR con prueba en el WHERE están declaradas, y son exactamente las que Borradores tiene', () => {

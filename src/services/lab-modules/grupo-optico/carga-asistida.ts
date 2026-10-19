@@ -8,7 +8,7 @@ import { especificacionDe, tieneEssential, familiaDelNombre } from './catalogo';
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { TIPO_ARMAZON, TIPO_ARO } from './catalogo';
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_GRUPO_OPTICO, type PayloadBorradorGO } from './borrador-portal';
-import { LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO } from './portal';
+import { LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO, PORTAL_BASE } from './portal';
 import { leerVentaParaCargaGO } from './venta';
 import { mensajeExistente, pedidoExistenteDelPar, type PedidoExistente } from './existentes';
 import { leerFotoStockVirtual, lineaDeStockVirtual } from './stock-virtual';
@@ -57,6 +57,7 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
     lab: LAB_GRUPO_OPTICO,
     nombre: NOMBRE_GRUPO_OPTICO,
     robot: ROBOT_ACTOR_GRUPO_OPTICO,
+    portal: { url: `${PORTAL_BASE}/smartlab/laboratory/new`, etiqueta: 'Abrir SmartLab para cargarlo a mano' },
 
     async analizar(orderId) {
         const venta = await leerVentaParaCargaGO(orderId);
