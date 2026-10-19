@@ -773,5 +773,19 @@ ok('la ficha dice el saldo del par (o que no hay), y nada si el cristal no tiene
     assert.match(lineaDeStockVirtual(null, 'Stock · Orgánico Blue c/AR 1.56'), /todavía no lo leyó/);
 });
 
+console.log('\nLa vista previa de un pedido de STOCK (Milena, 17/10/2026)');
+ok('el formulario de edición del portal no repite la marca ni el nombre de garantía: no es diferencia (el robot manda más, nunca menos)', () => {
+    const stock = { rightEyeStockArticle: '1', brandId: 135, warrantyPatientName: 'Casado Mora', rightEyeArticle: 9339, materialId: 8 };
+    assert.deepEqual(diferenciasDeVista(stock, { ...stock, brandId: null, warrantyPatientName: null, action: 'update', isEdit: true }), []);
+    // al revés sí frena: el portal con valor y el robot sin
+    assert.equal(diferenciasDeVista({ ...stock, warrantyPatientName: null }, { ...stock, warrantyPatientName: 'Otro' }).length, 1);
+    // y una marca distinta (no vacía) también
+    assert.equal(diferenciasDeVista(stock, { ...stock, brandId: 140 }).length, 1);
+    // en un pedido de LABORATORIO la marca vacía sigue siendo diferencia (ahí la marca elige la familia)
+    const lab = { ...stock, rightEyeStockArticle: '0' };
+    assert.equal(diferenciasDeVista(lab, { ...lab, brandId: null }).length, 1);
+    assert.deepEqual(diferenciasDeVista(lab, { ...lab, warrantyPatientName: null }), []);
+});
+
 console.log(fallas ? `\n❌ ${fallas} falla(s).` : '\n✅ Carga de Grupo Óptico: todo en orden.');
 process.exit(fallas ? 1 : 0);
