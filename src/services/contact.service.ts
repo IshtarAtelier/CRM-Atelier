@@ -348,7 +348,13 @@ export interface ContactCreateData {
 
 /** El cierre de una tarea de reseña frenado porque la reseña no figura en Google. */
 export class ResenaNoFiguraError extends Error {
-    constructor(public detalle?: string) { super('La reseña no figura en Google'); }
+    // Sin "parameter property" (constructor(public x)): el strip-only de Node
+    // que corre check:lab-modulos no la acepta y el check caía.
+    detalle?: string;
+    constructor(detalle?: string) {
+        super('La reseña no figura en Google');
+        this.detalle = detalle;
+    }
 }
 
 export const ContactService = {
