@@ -242,7 +242,8 @@ async function avisarALasAdmin(texto: string, dedupePrefijo: string): Promise<vo
     const admins = await destinatariosDeExtras(null);
     if (!admins.length) { console.error('[Grupo Óptico] stock virtual: no hay cuentas ADMIN a quien avisar'); return; }
     for (const paraUserId of admins) {
-        await InternalMessagingService.mensajeDeIA({ paraUserId, cuerpo: texto, urgent: true, dedupePrefijo })
+        // Urgente y con copia al celular: es para que Ishtar pida que carguen stock (19/10/2026: "que me mande mensaje por WhatsApp").
+        await InternalMessagingService.mensajeDeIA({ paraUserId, cuerpo: texto, urgent: true, copiaWhatsapp: true, dedupePrefijo })
             .catch(err => console.error('[Grupo Óptico] stock virtual: no se pudo avisar:', err));
     }
 }
