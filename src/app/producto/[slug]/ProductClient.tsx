@@ -588,8 +588,11 @@ export function ProductClient({
                   Este modelo viene en {variants.length} colores — tocá para verlos
                 </span>
                 <div className="flex flex-wrap gap-3">
-                  {variants.map((v) => {
+                  {variants.map((v, i) => {
                     const isActive = v.slug === product.slug;
+                    // El código de color ("C33-P86") es interno: los círculos
+                    // se nombran por orden, y la foto dice de qué color es.
+                    const nombreColor = `Color ${i + 1}`;
                     return (
                       <Link
                         key={v.slug}
@@ -614,13 +617,13 @@ export function ProductClient({
                             ? 'border-black scale-110 shadow-sm bg-white' 
                             : 'border-stone-200 hover:border-black bg-stone-50'
                         }`}
-                        title={`Color: ${v.colorCode}`}
+                        title={nombreColor}
                       >
                         {v.imageUrl ? (
                           <div className="w-11 h-11 rounded-full overflow-hidden relative bg-white">
                             <Image unoptimized={String(resolveStorageUrl(v.imageUrl)).startsWith('data:')}
                               src={resolveStorageUrl(v.imageUrl)}
-                              alt={v.colorCode}
+                              alt={`${product.model} · ${nombreColor}`}
                               fill
                               sizes="44px"
                               style={{ objectFit: 'contain' }}
@@ -628,13 +631,8 @@ export function ProductClient({
                             />
                           </div>
                         ) : (
-                          <span className="text-xs font-mono font-bold uppercase px-2 py-1">
-                            {v.colorCode}
-                          </span>
-                        )}
-                        {isActive && (
-                          <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-wider text-black bg-white px-1.5 py-0.5 rounded shadow-sm border border-stone-100 whitespace-nowrap z-20 pointer-events-none">
-                            {v.colorCode}
+                          <span className="text-xs font-bold uppercase px-2 py-1">
+                            {i + 1}
                           </span>
                         )}
                       </Link>
@@ -647,12 +645,8 @@ export function ProductClient({
 
             <div className="flex flex-wrap items-center gap-2 mb-6 text-[11px] text-stone-500">
               <span className="uppercase tracking-widest font-bold">SKU: {product.id?.substring(0, 8).toUpperCase() || 'ATELIER'}</span>
-              {product.modelCode && (
-                <>
-                  <span className="mx-1">•</span>
-                  <span className="uppercase tracking-widest font-bold">COD: {product.modelCode}</span>
-                </>
-              )}
+              {/* Sin "COD: TR3381 C33-P86": el código del proveedor es interno
+                  (Ishtar, 19/10/2026). Sigue en el CRM y en el feed. */}
               <span className="mx-1">•</span>
               {product.stock !== undefined && product.stock !== null ? (
                 product.stock <= 0 ? (

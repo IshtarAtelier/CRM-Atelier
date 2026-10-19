@@ -13,7 +13,7 @@ export const revalidate = 300;
 import { ProductClient } from './ProductClient';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { resolveStorageUrl } from "@/lib/utils/storage";
-import { armarNombreVisible, baseDelNombre } from '@/lib/catalog/display-name';
+import { armarNombreVisible } from '@/lib/catalog/display-name';
 import { precioConOferta } from '@/lib/precio-oferta';
 import { slugVigenteDe } from '@/lib/catalog/slugs-historicos';
 import { FICHA_EN_TIENDA, FICHA_PUBLICADA } from '@/lib/catalog/queries';
@@ -57,27 +57,9 @@ const getProduct = cache(async (slug: string) => {
     });
 
     if (webProduct) {
-      // Nombre visible: sin sufijo de color si este estelar tiene una sola
-      // variante activa (misma regla que la grilla — ver display-name.ts).
+      // Nombre visible: sin el código de color del proveedor (display-name.ts).
       const nombreCrudo = webProduct.name || webProduct.product.model || '';
-      const base = baseDelNombre(nombreCrudo);
-      let nombreVisible = nombreCrudo;
-      if (base && base !== nombreCrudo) {
-        // startsWith es un pre-filtro barato; la igualdad real de estelar la
-        // decide baseDelNombre ("Gaia" no debe contar a "Gaiana C1").
-        const candidatos = await prisma.webProduct.findMany({
-          // Las variantes que cuenta la grilla: la misma regla de la tienda.
-          where: { ...FICHA_EN_TIENDA, name: { startsWith: base, mode: 'insensitive' } },
-          select: { name: true },
-        });
-        const nombres = candidatos
-          .map((c) => c.name || '')
-          .filter((n) => baseDelNombre(n).toLowerCase() === base.toLowerCase());
-        // La ficha que se abre cuenta siempre, aunque esté agotada y la grilla
-        // no la liste: si no, "Gala C4" sin stock al lado de "Gala C3" se
-        // llamaba "Gala", igual que la otra (revisión del 10/10/2026).
-        nombreVisible = armarNombreVisible([...new Set([...nombres, nombreCrudo])])(nombreCrudo);
-      }
+      const nombreVisible = armarNombreVisible([])(nombreCrudo);
       return {
         id: webProduct.product.id,
         brand: webProduct.product.brand || 'ATELIER',
