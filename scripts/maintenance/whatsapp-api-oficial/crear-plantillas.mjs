@@ -57,7 +57,12 @@ async function graph(path, init = {}) {
     const sep = path.includes('?') ? '&' : '?';
     const r = await fetch(`${GRAPH}/${V}/${path}${sep}access_token=${TOKEN}`, init);
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(`${path.split('?')[0]} → ${r.status} ${j?.error?.message || ''} (code ${j?.error?.code || '?'})`);
+    // Meta explica el motivo real en error_user_title / error_user_msg
+    // ("Invalid parameter" a secas no dice qué variable o texto rechazó).
+    if (!r.ok) {
+        const detalle = [j?.error?.error_user_title, j?.error?.error_user_msg].filter(Boolean).join(': ');
+        throw new Error(`${path.split('?')[0]} → ${r.status} ${j?.error?.message || ''} (code ${j?.error?.code || '?'}, subcode ${j?.error?.error_subcode || '-'})${detalle ? `\n     ${detalle}` : ''}`);
+    }
     return j;
 }
 
