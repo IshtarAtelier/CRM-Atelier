@@ -21,6 +21,14 @@ interface Paso {
     cuerpo: React.ReactNode;
 }
 
+/** Si el guiado trae opciones, el último paso cierra con ellas en vez de "Entendido". */
+const OPCIONES: Record<string, { texto: string; principal?: boolean; festejo?: boolean }[]> = {
+    'desafio-resenas-lens-cerro-2026-10': [
+        { texto: 'Me aseguro de no terminar el día sin lograrlo', principal: true, festejo: true },
+        { texto: 'Dejá, me gusta el segundo puesto' },
+    ],
+};
+
 const GUIADOS: Record<string, Paso[]> = {
     'solicitar-factura-2026-10': [
         {
@@ -79,6 +87,20 @@ const GUIADOS: Record<string, Paso[]> = {
                     <p className="mt-3">Si la venta ya tiene una solicitud pendiente, el sistema te avisa: no hace falta volver a pedirla.</p>
                     <p className="mt-3 p-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
                         ¿Dudas? Escribile a Ishtar por la mensajería interna.
+                    </p>
+                </>
+            ),
+        },
+    ],
+    'desafio-resenas-lens-cerro-2026-10': [
+        {
+            titulo: 'Desafío del día: 10 reseñas arriba de Lens Cerro',
+            cuerpo: (
+                <>
+                    <p><strong>Lens Cerro es tu rival directo:</strong> está a 80 metros, en Tejeda 4300, y tiene casi las mismas reseñas que vos (<strong>746 contra tus 741</strong>).</p>
+                    <p className="mt-2">Ganarle en reseñas es lo que más te sube en el mapa.</p>
+                    <p className="flex items-center gap-2 mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 font-bold">
+                        <Gift className="w-4 h-4 shrink-0" /> El desafío de hoy: quedar al menos 10 reseñas arriba de ellos. Son 15 reseñas nuevas.
                     </p>
                 </>
             ),
@@ -197,7 +219,65 @@ const GUIADOS: Record<string, Paso[]> = {
     ],
 };
 
+/** Festejo de gol: fuegos artificiales, lluvia de papelitos y la pantalla
+ *  temblando. CSS puro, sin librerías. Dura ~6 s. */
+const COLORES_FESTEJO = ['#c8a55c', '#10b981', '#f43f5e', '#6366f1', '#f59e0b', '#ffffff', '#38bdf8'];
+// Posiciones y demoras fijas (no Math.random): mismo festejo en cada render.
+const FOCOS_FESTEJO = [[15, 25, 0], [80, 20, .3], [50, 15, .6], [25, 70, .9], [75, 65, 1.2], [45, 45, 1.5], [10, 50, 1.8], [90, 45, 2.1]];
+function Festejo() {
+    return (
+        <div className="fixed inset-0 z-[210] pointer-events-none overflow-hidden bg-black/75" aria-live="polite" style={{ animation: 'temblor .12s linear 8' }}>
+            <style>{`
+                @keyframes chispa { 0% { transform: translate(0,0) scale(1.4); opacity: 1 } 100% { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0 } }
+                @keyframes cohete { 0% { transform: translateY(100vh); opacity: 1 } 100% { transform: translateY(0); opacity: 0 } }
+                @keyframes papelito { 0% { transform: translateY(-10vh) rotate(0) } 100% { transform: translateY(110vh) rotate(900deg) } }
+                @keyframes gol { 0% { transform: scale(.1) rotate(-15deg); opacity: 0 } 30% { transform: scale(1.4) rotate(6deg); opacity: 1 } 50% { transform: scale(.95) rotate(-3deg) } 70% { transform: scale(1.1) } 100% { transform: scale(1) } }
+                @keyframes latido { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.12) } }
+                @keyframes pelota { 0% { transform: translate(-60vw, 40vh) rotate(0) } 70% { transform: translate(0, 0) rotate(1080deg) } 85% { transform: translateY(-30px) } 100% { transform: translateY(0) rotate(1080deg) } }
+                @keyframes temblor { 0%, 100% { transform: translate(0,0) } 25% { transform: translate(-8px, 5px) } 75% { transform: translate(8px, -5px) } }
+                @keyframes destello { 0%, 100% { opacity: 0 } 10% { opacity: .35 } }
+            `}</style>
+            <div className="absolute inset-0 bg-white" style={{ animation: 'destello .6s ease-out 3' }} />
+            {FOCOS_FESTEJO.map(([x, y, d], f) => (
+                <div key={f}>
+                    <span className="absolute w-1 h-10 rounded-full bg-amber-200" style={{ left: `${x}%`, top: `${y}%`, animation: `cohete .5s ease-in ${d}s both` }} />
+                    <div className="absolute" style={{ left: `${x}%`, top: `${y}%` }}>
+                        {Array.from({ length: 28 }, (_, i) => {
+                            const ang = (i / 28) * Math.PI * 2;
+                            const dist = 110 + (i % 4) * 40;
+                            return (
+                                <span key={i} className="absolute w-2.5 h-2.5 rounded-full" style={{
+                                    background: COLORES_FESTEJO[(i + f) % COLORES_FESTEJO.length],
+                                    boxShadow: `0 0 10px ${COLORES_FESTEJO[(i + f) % COLORES_FESTEJO.length]}`,
+                                    ['--dx' as string]: `${Math.cos(ang) * dist}px`,
+                                    ['--dy' as string]: `${Math.sin(ang) * dist}px`,
+                                    animation: `chispa 1s ease-out ${d + .5}s infinite`,
+                                }} />
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+            {Array.from({ length: 70 }, (_, i) => (
+                <span key={i} className="absolute top-0 w-2 h-3.5" style={{
+                    left: `${(i * 37) % 100}%`,
+                    background: COLORES_FESTEJO[i % COLORES_FESTEJO.length],
+                    animation: `papelito ${2.2 + (i % 5) * .4}s linear ${(i % 10) * .25}s infinite`,
+                }} />
+            ))}
+            <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center" style={{ animation: 'gol 1s ease-out both' }}>
+                    <div className="text-8xl" style={{ animation: 'pelota 1.2s ease-out both' }}>⚽</div>
+                    <p className="mt-4 text-7xl font-black text-white tracking-tight drop-shadow-[0_0_25px_rgba(250,204,21,.8)]" style={{ animation: 'latido .5s ease-in-out 1.2s infinite' }}>¡GOOOOOL!</p>
+                    <p className="mt-4 text-xl font-black text-amber-300 uppercase tracking-widest">¡Vamos por el primer puesto! 🏆</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function NovedadesGuiadas() {
+    const [festejando, setFestejando] = useState(false);
     const [guiadoId, setGuiadoId] = useState<string | null>(null);
     const [paso, setPaso] = useState(0);
     const [guardando, setGuardando] = useState(false);
@@ -216,21 +296,28 @@ export default function NovedadesGuiadas() {
     // monta en todo /admin y tampoco se puede cerrar, así que tapaba la
     // pantalla del arqueo y dejaba a quien lo hace sin poder trabajar. Sigue
     // pendiente en el resto del panel: no se saltea, solo no estorba ahí.
+    if (festejando) return <Festejo />;
     if (!guiadoId || ruta?.startsWith('/admin/caja')) return null;
     const pasos = GUIADOS[guiadoId];
     const esUltimo = paso === pasos.length - 1;
 
-    const confirmar = async () => {
+    const confirmar = async (respuesta?: string, festejo?: boolean) => {
         setGuardando(true);
         try {
             const res = await fetch('/api/novedades', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: guiadoId }),
+                body: JSON.stringify({ id: guiadoId, respuesta }),
             });
             // Solo se cierra si el server lo registró: si falló, mañana no
             // tiene que "haberse visto solo".
-            if (res.ok) setGuiadoId(null);
+            if (res.ok) {
+                setGuiadoId(null);
+                if (festejo) {
+                    setFestejando(true);
+                    setTimeout(() => setFestejando(false), 6000);
+                }
+            }
         } catch { /* se queda abierto */ }
         setGuardando(false);
     };
@@ -264,10 +351,24 @@ export default function NovedadesGuiadas() {
                                 Atrás
                             </button>
                         )}
-                        {esUltimo ? (
+                        {esUltimo && OPCIONES[guiadoId] ? (
+                            OPCIONES[guiadoId].map(o => (
+                                <button
+                                    key={o.texto}
+                                    type="button"
+                                    onClick={() => confirmar(o.texto, o.festejo)}
+                                    disabled={guardando}
+                                    className={o.principal
+                                        ? 'inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-60'
+                                        : 'px-4 py-2.5 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 font-bold text-[11px] uppercase tracking-widest transition-colors disabled:opacity-60'}
+                                >
+                                    {o.texto}
+                                </button>
+                            ))
+                        ) : esUltimo ? (
                             <button
                                 type="button"
-                                onClick={confirmar}
+                                onClick={() => confirmar()}
                                 disabled={guardando}
                                 className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-60"
                             >

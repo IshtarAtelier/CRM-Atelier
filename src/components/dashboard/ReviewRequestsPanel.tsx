@@ -1,4 +1,5 @@
 'use client';
+import { cerrarTarea } from '@/lib/tareas/cerrar-tarea';
 
 import { Star, X, User, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
@@ -107,18 +108,9 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                                     if (isCompleting === task.id) return;
                                     setIsCompleting(task.id);
                                     try {
-                                        const res = await fetch(`/api/contacts/${task.clientId}/tasks`, {
-                                            method: 'PATCH',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ taskId: task.id, status: 'COMPLETED' })
-                                        });
-                                        if (res.ok) {
+                                        // Las de reseña pasan por el robot de Google (ver cerrarTarea).
+                                        if (await cerrarTarea(task.clientId, task.id, 'COMPLETED')) {
                                             setCompletedTasks(prev => new Set(prev).add(task.id));
-                                            if (typeof window !== 'undefined') {
-                                                window.dispatchEvent(new Event('tasks-updated'));
-                                            }
-                                        } else {
-                                            alert('❌ Error al completar la tarea.');
                                         }
                                     } catch (err) {
                                         alert('❌ Error de red.');

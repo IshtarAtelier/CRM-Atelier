@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ContactService } from '@/services/contact.service';
+import { ContactService, ResenaNoFiguraError } from '@/services/contact.service';
 import { getActor } from '@/lib/actor';
 
 export async function GET(
@@ -42,11 +42,14 @@ export async function PATCH(
     try {
         const { id } = await params; // Note: id here might be taskId if we nested differently, but for now we use clientId/tasks
         const body = await request.json();
-        const { taskId, status } = body;
+        const { taskId, status, forzar } = body;
 
-        const task = await ContactService.updateTaskStatus(taskId, status, getActor(request));
+        const task = await ContactService.updateTaskStatus(taskId, status, getActor(request), { forzar: forzar === true });
         return NextResponse.json(task);
     } catch (error) {
+        if (error instanceof ResenaNoFiguraError) {
+            return NextResponse.json({ code: 'RESENA_NO_FIGURA', error: error.detalle || null }, { status: 409 });
+        }
         return NextResponse.json({ error: 'Error al actualizar tarea' }, { status: 500 });
     }
 }
