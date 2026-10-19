@@ -21,6 +21,7 @@ import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
 import { calculateEstimatedDays } from '@/lib/business-days';
 import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
+import { PostSaleChargeService } from '@/services/post-sale-charge.service';
 import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
 import { etiquetasQueLeCorresponden, esEtiquetaDesconectable } from '@/lib/contact-tags';
 import { actualizarChatsBot, datosDePrendido } from '@/lib/whatsapp/motivo-apagado-bot';
@@ -1265,10 +1266,21 @@ export const ContactService = {
     async getById(id: string) {
         const ficha = await this.fichaCompleta(id);
         if (!ficha) return null;
+        // Reparto vigente del costo de cada caso de post-venta (qué parte fue a
+        // qué caja y cuánto al cliente). El movimiento de caja no es una relación
+        // de Prisma, así que se busca aparte y se adjunta como `reparto`.
+        const cashIds = (ficha.postSaleCases || []).map((c: any) => c.cashEntryId).filter(Boolean) as string[];
+        const entries = cashIds.length
+            ? await prisma.vendorCashEntry.findMany({ where: { id: { in: cashIds } }, select: { id: true, amount: true, vendorId: true, vendor: { select: { name: true } } } })
+            : [];
+        const postSaleCases = (ficha.postSaleCases || []).map((c: any) => ({
+            ...c,
+            reparto: PostSaleChargeService.armarVigente(c, entries.find(e => e.id === c.cashEntryId) || null),
+        }));
         // Qué producto de la tienda miraba (plan 15/10/2026, 3.7): se lee de
         // su chat, no se guarda. Nunca rompe la ficha.
         const productoWeb = await productoMiradoDe(id).catch(() => null);
-        return { ...ficha, productoWeb };
+        return { ...ficha, postSaleCases, productoWeb };
     },
 
     async fichaCompleta(id: string) {

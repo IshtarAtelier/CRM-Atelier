@@ -285,8 +285,8 @@ export async function completePostSaleCost(order: any, pvCase: any, pedido: stri
                 ${costo > 0 ? `
                 <div style="border: 1px solid #e7e5e4; border-radius: 12px; padding: 16px; margin: 20px 0; background: #fafaf9;">
                     <p style="margin: 0 0 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #78716c; font-weight: 700;">Listo para cobrar</p>
-                    <p style="margin: 0 0 14px; font-size: 14px;">Descontar <strong>${fmt(costo)}</strong> de <strong>${destinoCaja}</strong>.</p>
-                    <a href="${linkCaso}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 11px 20px; border-radius: 9px; font-size: 14px; font-weight: 600;">Revisar y disparar el cobro</a>
+                    <p style="margin: 0 0 14px; font-size: 14px;">Propuesta: descontar <strong>${fmt(costo)}</strong> de <strong>${destinoCaja}</strong>. Desde el caso se puede mandar todo o una parte al cliente como saldo de la venta, y cambiarlo después.</p>
+                    <a href="${linkCaso}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 11px 20px; border-radius: 9px; font-size: 14px; font-weight: 600;">Revisar y repartir el costo</a>
                     <p style="margin: 12px 0 0; font-size: 12px; color: #78716c;">El descuento se genera desde el caso, con un click. Nada se mueve hasta que lo confirmes ahí.</p>
                 </div>` : `
                 <p style="font-size: 14px;">Sin cargo: no hay nada que imputar a caja.</p>
