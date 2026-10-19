@@ -187,12 +187,43 @@ export function etiquetaArmazon(position: number, total: number): string {
 
 
 /**
+ * Los cristales de par que NO dicen a qué armazón van, en una venta de DOS o
+ * más armazones. Vacío = está todo asignado (o hay un solo armazón, donde no
+ * hay nada que asignar).
+ *
+ * REGLA DE ISHTAR (19/10/2026): en una venta de dos pares (2x1 o no) cada
+ * cristal TIENE que tener su armazón asignado ("siempre tiene que estar
+ * completo; ponelo como obligatorio"). Lo exige el envío a fábrica
+ * (order.service) y lo exigen los dos laboratorios al cargar: ningún robot
+ * adivina. El reparto por orden de `cristalesPorArmazon` queda solo para LEER
+ * ventas viejas (cruce, reportes), nunca para cargar un pedido. Puro.
+ */
+export function cristalesSinArmazonAsignado(order: any): any[] {
+    const total = cantidadDeArmazones(order);
+    if (total < 2) return [];
+    return (order?.items || []).filter((it: any) => {
+        if (!esCristalDePar(productoDe(it))) return false;
+        const p = it.framePosition;
+        return !(Number.isInteger(p) && p >= 1 && p <= total);
+    });
+}
+
+/** El texto que frena el envío a fábrica / la carga cuando falta asignar. Puro. */
+export function mensajeDeArmazonSinAsignar(order: any): string | null {
+    const faltan = cristalesSinArmazonAsignado(order);
+    if (faltan.length === 0) return null;
+    return `hay ${faltan.length === 1 ? 'un cristal' : `${faltan.length} cristales`} sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal`;
+}
+
+/**
  * Qué cristales le tocan a cada armazón.
  *
- * Si el item dice `framePosition`, manda eso. Si no —los cristales todavía no
- * se asignan a mano— se reparten POR ORDEN: el primer par OD/OI es el primer
- * anteojo, el segundo par el segundo. Es exactamente el mismo criterio con el
- * que se cuentan los armazones, así que no agrega un supuesto nuevo.
+ * Si el item dice `framePosition`, manda eso. Si no —ventas viejas, de antes
+ * de que fuera obligatorio asignarlos (19/10/2026)— se reparten POR ORDEN: el
+ * primer par OD/OI es el primer anteojo, el segundo par el segundo. Es
+ * exactamente el mismo criterio con el que se cuentan los armazones, así que
+ * no agrega un supuesto nuevo. Para CARGAR un pedido, antes se pasa por
+ * `cristalesSinArmazonAsignado`: acá ya viene todo asignado.
  *
  * Devuelve un mapa posición → items.
  */

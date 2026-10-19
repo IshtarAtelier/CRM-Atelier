@@ -20,7 +20,7 @@ import { formatDateTime } from '@/lib/format-date';
 import { avisarAlEquipo } from '@/lib/avisos/aviso-al-equipo';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { ventaRecapCompleto } from '@/lib/sale-recap-text';
-import { framesDeLaOrden, cantidadDeArmazones } from '@/lib/order-frames';
+import { framesDeLaOrden, cantidadDeArmazones, mensajeDeArmazonSinAsignar } from '@/lib/order-frames';
 import { faltantesDeColor } from '@/lib/crystal-color';
 import { faltanAsociarArmazones } from '@/lib/armazon-por-par';
 import { SELECT_REPASO, SELECT_ITEMS_REPASO, SELECT_FRAMES_REPASO } from '@/lib/order-recap-select';
@@ -1222,6 +1222,14 @@ export class OrderService {
 
             data.labStatus = labStatus;
             if (labStatus === 'SENT') {
+                // Mismo candado que al convertir en venta: con dos armazones, cada
+                // cristal tiene que decir a cuál va (Ishtar, 19/10/2026).
+                const paraArmazones = await prisma.order.findUnique({
+                    where: { id },
+                    select: { appliedPromoName: true, items: { select: { eye: true, quantity: true, framePosition: true, productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { name: true, category: true, type: true } } } } },
+                });
+                const sinArmazon = paraArmazones ? mensajeDeArmazonSinAsignar(paraArmazones) : null;
+                if (sinArmazon) throw new Error(`No se puede enviar a fábrica: ${sinArmazon}. Se elige en el renglón de cada cristal del pedido.`);
                 data.labSentAt = new Date();
             }
             // Auto-complete order when lab marks as delivered
@@ -1969,7 +1977,7 @@ export class OrderService {
                             // aunque estuvieran cargadas, y el pedido no podía pasar a
                             // venta nunca.
                             frames: SELECT_FRAMES_REPASO,
-                            items: { select: { eye: true, quantity: true, productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { name: true, category: true, type: true } } } },
+                            items: { select: { eye: true, quantity: true, framePosition: true, productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { name: true, category: true, type: true } } } },
                             labFrameShape: true, frameA: true, frameB: true, frameDbl: true, frameEdc: true,
                             labFrameDetails: true, frameImageUrl: true, labHeightOD: true, labHeightOI: true,
                             labFrameShape2: true, frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
@@ -2012,6 +2020,15 @@ export class OrderService {
                     }
                     if (faltaCarga.length > 0) {
                         throw new Error(`No se puede convertir en venta: falta ${faltaCarga.join(', ')}. Se cargan en el cuadro de ese armazón, en el renglón del pedido, y quedan guardadas solas.`);
+                    }
+
+                    // Check: con dos armazones, CADA cristal dice a cuál va
+                    // (regla de Ishtar, 19/10/2026: "siempre tiene que estar
+                    // completo"). Los robots de los laboratorios no adivinan el
+                    // par: un 2x1 sin esto quedaba trabado recién al cargar.
+                    const sinArmazon = mensajeDeArmazonSinAsignar(conFrames);
+                    if (sinArmazon) {
+                        throw new Error(`No se puede convertir en venta: ${sinArmazon}. Se elige en el renglón de cada cristal del pedido.`);
                     }
                 }
 

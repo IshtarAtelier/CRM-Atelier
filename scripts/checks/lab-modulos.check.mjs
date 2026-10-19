@@ -30,7 +30,7 @@ import { idDeBorradorDeUrl, numeroDeTrabajoDe, estadoDeCabecera, resumenComparab
 import { cambiosAMano, impactoDeCambios, lineasDeCambios, precioDeCodigo, DESCUENTO_SIN_AR } from '../../src/services/lab-modules/vitolen/cambios-a-mano.ts';
 import { tocaPasadaCompleta } from '../../src/services/lab-modules/corrida.ts';
 import { armarFormulario, codigoDeCristal, tipoRecetaDe, esSegundoParDePromo, diferenciasDePayloadVitolen, cristalesPorPar, tipoArmazonDelPortal, TIPOS_ARMAZON } from '../../src/services/lab-modules/vitolen/carga.ts';
-import { cristalesPorArmazon } from '../../src/lib/order-frames.ts';
+import { cristalesPorArmazon, cristalesSinArmazonAsignado } from '../../src/lib/order-frames.ts';
 import { rolesDeLaPromoHoya, rolDeLaPromo } from '../../src/lib/laboratorios/vitolen-promo.ts';
 import { CATALOGO_VITOLEN, cristalVitolenPorNombre } from '../../src/lib/laboratorios/vitolen-catalogo.ts';
 import { importeEsperadoSegundoPar, importeEsperadoSegundoParDe, segundoParCobradoDeMas } from '../../src/lib/laboratorios/vitolen-promo.ts';
@@ -439,22 +439,29 @@ ok('el segundo par lleva el pedido origen del primero', () => {
     assert.equal(r.payload.pedidoOrigen, '5001234');
     assert.equal(r.payload.armazon.largo, 50);
 });
-ok('dos pares SIN armazón asignado se arman en el orden del carrito (como la promo del 2º par)', () => {
+ok('dos pares SIN armazón asignado NO se adivinan: falta asignarlos en la venta (Ishtar, 19/10/2026); asignados, cada par lleva lo suyo', () => {
     // Así llegó la primera venta real (Moroncini, 15/10/2026): dos armazones y
-    // cuatro cristales con framePosition vacío, nombre sin la marca.
+    // cuatro cristales con framePosition vacío. Desde el 19/10 es obligatorio.
     const v = ventaBase();
-    const cristal = (eye, s) => ({ ...v.items[0], eye, productNameSnapshot: 'Array 2 - 1.60 Clear', sphereVal: s, framePosition: null });
+    const cristal = (eye, s, framePosition = null) => ({ ...v.items[0], eye, productNameSnapshot: 'Array 2 - 1.60 Clear', sphereVal: s, framePosition });
     v.items = [cristal('OD', 1), cristal('OI', 2), cristal('OD', 3), cristal('OI', 4)];
     v.frames = [
         { position: 1, shape: null, a: '56', b: '39', dbl: '17', edc: '58', details: 'Harper', heightOD: 25, heightOI: 25 },
         { position: 2, shape: null, a: '58', b: '40', dbl: '18', edc: '61', details: 'Aviador', heightOD: 26, heightOI: 26 },
     ];
+    const sin = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
+    assert.equal(sin.ok, false);
+    assert.ok(sin.faltantes.some(f => /4 cristales sin armazón asignado/.test(f)), sin.faltantes.join(' · '));
+    // asignados (el caro en el 2º armazón a propósito: manda la asignación, no el orden)
+    v.items = [cristal('OD', 1, 2), cristal('OI', 2, 2), cristal('OD', 3, 1), cristal('OI', 4, 1)];
     const p1 = armarFormulario(v, { forma: 'Forma 1', ejeDiagonal: 0 });
     const p2 = armarFormulario(v, { pair: 2, forma: 'Forma 1', ejeDiagonal: 0, pedidoOrigen: '1L' });
     assert.equal(p1.ok, true, p1.faltantes.join(' · '));
     assert.equal(p2.ok, true, p2.faltantes.join(' · '));
-    assert.deepEqual([p1.payload.od.esferico, p1.payload.oi.esferico, p1.payload.armazon.largo], [1, 2, 56]);
-    assert.deepEqual([p2.payload.od.esferico, p2.payload.oi.esferico, p2.payload.armazon.largo], [3, 4, 58]);
+    assert.deepEqual([p1.payload.od.esferico, p1.payload.oi.esferico, p1.payload.armazon.largo], [3, 4, 56]);
+    assert.deepEqual([p2.payload.od.esferico, p2.payload.oi.esferico, p2.payload.armazon.largo], [1, 2, 58]);
+    // un solo armazón: no hay nada que asignar
+    assert.deepEqual(cristalesSinArmazonAsignado({ items: [cristal('OD', 1), cristal('OI', 2)] }), []);
 });
 ok('qué par es cada cristal lo decide UN solo repartidor: la promo del 2º par, la carga de Vitolen y el cruce coinciden en todas las permutaciones', () => {
     const LS = 'HOYA LIFESTYLE 4 - 1.50 CLEAR', TACT = 'HOYA TACT BKS - 1.50 CLEAR BLUE FILTER';

@@ -1,6 +1,6 @@
 import { jsonCanonico } from '../../../lib/json-canonico';
 import { prisma } from '../../../lib/db';
-import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../../../lib/order-frames';
+import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden, mensajeDeArmazonSinAsignar } from '../../../lib/order-frames';
 import { codigoCortoDeVenta, esCristalDeLab } from '../../../lib/laboratorios/identidad';
 import { cristalVitolenPorNombre, type CristalVitolen } from '../../../lib/laboratorios/vitolen-catalogo';
 import { disenoDelPortal, materialDelPortal } from './materiales';
@@ -208,11 +208,16 @@ export function armarFormulario(
     // Sin rol explícito (borradores de antes del 8/10/2026), el par 2 es el 2º de la promo.
     const rolPromo = opts.rolPromo === undefined ? (pair === 2 ? 'SEGUNDO_PAR' : null) : opts.rolPromo;
 
-    // Los cristales del par: por armazón asignado, o en el orden del carrito si
-    // ninguno lo tiene (decisión del 15/10/2026 con la primera venta real).
+    // Los cristales del par: por armazón asignado. Con dos armazones es
+    // OBLIGATORIO que cada cristal diga a cuál va (Ishtar, 19/10/2026: "siempre
+    // tiene que estar completo"); el reparto por orden del carrito del 15/10
+    // ya no se usa para cargar (lib/order-frames: cristalesSinArmazonAsignado,
+    // la misma regla que frena el envío a fábrica).
     const totalPares = cantidadDeArmazones(venta as any);
     const fueraDeRango = venta.items.find(i => esCristalDeLab(i, 'VITOLEN') && i.framePosition != null && (i.framePosition < 1 || i.framePosition > totalPares));
     if (fueraDeRango) faltantes.push(`hay un cristal asignado al armazón ${fueraDeRango.framePosition}, que la venta no tiene: reasignalo`);
+    const sinArmazon = mensajeDeArmazonSinAsignar({ ...venta, items: venta.items.filter(i => esCristalDeLab(i, 'VITOLEN')) });
+    if (sinArmazon) faltantes.push(sinArmazon);
     const cristales = cristalesPorPar(venta).get(pair) ?? [];
     if (cristales.length === 0) {
         // Con lo ya detectado (un cristal asignado a un armazón que la venta no tiene).
