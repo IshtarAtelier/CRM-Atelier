@@ -389,6 +389,16 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, seguís pensándolo? Si hay algo que te frena, decímelo y lo vemos.',
         params: [{ label: 'nombre', example: 'Julio' }],
     },
+    // v3 (Ishtar, 19/10/2026, texto suyo tal cual): le da al cliente tres
+    // salidas concretas (dudas, fotos, venir) en vez de "¿seguís pensándolo?".
+    // La v2 queda como respaldo hasta que Meta apruebe ésta.
+    seguimiento_segundo_v3: {
+        name: 'seguimiento_segundo_v3',
+        inventario: 'E3 (segundo seguimiento, día 7) · reemplaza seguimiento_segundo_v2',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, ¿cómo estás?\nContame qué dudas tenés respecto a lo que vimos, ¿querés que te mande fotitos de modelos disponibles?\n¿O te gustaría venir al local?',
+        params: [{ label: 'nombre', example: 'Julio' }],
+    },
     ultimo_seguimiento_v5: {
         name: 'ultimo_seguimiento_v5',
         inventario: 'E4 (cierre, día 15) · reemplaza ultimo_seguimiento y el retome del día 30',
