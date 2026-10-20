@@ -473,11 +473,16 @@ export default function VentasPage() {
             o.postSaleStatus
         ).filter(o => {
             if (search === '') return true;
-            return (o.client?.name || '').toLowerCase().includes(search.toLowerCase()) ||
-                   o.id.toLowerCase().includes(search.toLowerCase()) ||
-                   (o.labOrderNumber || '').toLowerCase().includes(search.toLowerCase()) ||
-                   (o.postSaleNewOrderNumber || '').toLowerCase().includes(search.toLowerCase()) ||
-                   (o.postSaleNotes || '').toLowerCase().includes(search.toLowerCase());
+            const q = search.toLowerCase();
+            // Una venta puede tener VARIOS casos de postventa, cada uno con su
+            // nº de operación y sus notas: se busca en todos, no solo en el último.
+            const casos: Array<{ newOrderNumber?: string | null; notes?: string | null }> = (o as any).postSaleCases || [];
+            return (o.client?.name || '').toLowerCase().includes(q) ||
+                   o.id.toLowerCase().includes(q) ||
+                   (o.labOrderNumber || '').toLowerCase().includes(q) ||
+                   (o.postSaleNewOrderNumber || '').toLowerCase().includes(q) ||
+                   (o.postSaleNotes || '').toLowerCase().includes(q) ||
+                   casos.some(c => (c.newOrderNumber || '').toLowerCase().includes(q) || (c.notes || '').toLowerCase().includes(q));
         });
     }, [orders, search]);
 
