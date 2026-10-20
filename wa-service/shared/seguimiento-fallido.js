@@ -32,6 +32,7 @@ const ETIQUETA_POR_PLANTILLA = {
     ultimo_seguimiento: 'SEGUIMIENTO_DIA_15',
     seguimiento_presupuesto_v3: 'SEGUIMIENTO_DIA_1',
     seguimiento_segundo_v2: 'SEGUIMIENTO_DIA_4',
+    seguimiento_segundo_v3: 'SEGUIMIENTO_DIA_4',
     ultimo_seguimiento_v5: 'SEGUIMIENTO_DIA_15',
     retomar_con_cupon: 'SEGUIMIENTO_RETOME',
 };

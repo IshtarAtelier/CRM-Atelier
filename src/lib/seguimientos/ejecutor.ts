@@ -80,6 +80,8 @@ export function armarParametros(plantilla: keyof typeof WHATSAPP_TEMPLATES, nomb
 export const PLANTILLA_LEGADA: Partial<Record<keyof typeof WHATSAPP_TEMPLATES, keyof typeof WHATSAPP_TEMPLATES>> = {
     seguimiento_presupuesto_v3: 'seguimiento_presupuesto',
     seguimiento_segundo_v2: 'invitacion_local_v4',
+    // 19/10/2026: la v3 (texto de Ishtar) cae a la v2 hasta que Meta la apruebe.
+    seguimiento_segundo_v3: 'seguimiento_segundo_v2',
     ultimo_seguimiento_v5: 'ultimo_seguimiento',
 };
 
