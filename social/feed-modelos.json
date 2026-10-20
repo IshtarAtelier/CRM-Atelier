@@ -1,22 +1,22 @@
 {
   "_comentario": [
     "El carril de MODELOS del feed (Ishtar, 16/10/2026: 'lanzá en feed alternados",
-    "imágenes de Agostina frente/perfil y alternadas de Massaru'). Todos los días",
-    "a las 17:00 ART el cron /api/cron/social-feed?que=modelo publica UN carrusel",
-    "de 2 slides (frente, perfil) de un modelo: los días pares del calendario sale",
-    "uno de Agostina, los impares uno de Massaru, en el orden de cada carril.",
+    "imágenes de Agostina frente/perfil y alternadas de Massaru'). El cron",
+    "/api/cron/social-feed?que=modelo corre todos los días a las 17:00 ART y publica",
+    "UN carrusel de 2 slides (frente, perfil) de un modelo SOLO los días de `dias`",
+    "(Ishtar, 19/10/2026: 'por lo menos un carrusel por semana, pero no todos",
+    "juntos'). Alterna: un lunes Agostina, el siguiente Massaru. Si ese día ya hay",
+    "una pieza en feed-programacion.json (p. ej. 'todos los Victoria'), el modelo",
+    "no sale: nunca dos carruseles el mismo día.",
     "",
-    "NO se edita a mano: lo escribe entero",
+    "NO se edita a mano salvo `dias`: los carriles los escribe entero",
     "  node scripts/social/generar-feed-modelos.mjs",
     "que también renderiza las placas (public/social/feed-*/NN.jpg). Dar de alta",
     "o baja un modelo es tocar modelos-agostina.mjs / modelos-massaru.mjs y volver",
     "a correrlo. Sin precio adentro: no vencen (fuente fotos-*, no base).",
     "",
-    "La elección es determinística: díasDesde(1/1/2026) par → agostina, impar →",
-    "massaru; la posición dentro del carril es la mitad de ese número, módulo el",
-    "largo del carril. Se sabe de antemano qué sale mañana y un problema se puede",
-    "reproducir. Es independiente del carrusel programado de las 11:00",
-    "(feed-programacion.json): ese sigue igual."
+    "Qué sale qué día lo muestra  node scripts/social/planner-feed.mjs  (y es",
+    "determinístico: díasDesde(1/1/2026) par → agostina, impar → massaru)."
   ],
   "carriles": {
     "agostina": [

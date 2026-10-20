@@ -65,10 +65,13 @@
     "pieza; las cuatro son piezas distintas. Las notas del blog que acompañan",
     "viven en src/lib/constants/stellest-notas.ts.",
     "",
-    "MODELO DEL DÍA (16/10/26, Ishtar): aparte de esto, TODOS los días a las",
-    "17:00 ART sale un carrusel de 2 slides (frente, perfil) con un modelo de",
-    "Agostina o de Massaru, alternados. No se programa acá: lo decide",
-    "social/feed-modelos.json y el mismo cron con ?que=modelo.",
+    "LUNES = FOTOS DE MODELO (19/10/26, Ishtar: 'por lo menos un carrusel por",
+    "semana de imágenes, pero no todos juntos'). El lunes era el día libre del feed;",
+    "ahora es el día del carrusel de fotos: primero los de selección programados acá",
+    "(26/10 todos los Victoria, 2/11, 9/11 y 16/11 acetato 1/3, 2/3 y 3/3) y, los",
+    "lunes sin nada programado, el modelo del día (Agostina / Massaru alternados)",
+    "que decide social/feed-modelos.json con ?que=modelo a las 17:00. Nunca dos",
+    "carruseles el mismo día. El planner: node scripts/social/planner-feed.mjs.",
     "",
     "STELLEST ENTRA EN OCTUBRE (28/8/26). El calendario estaba lleno hasta el",
     "31/10 y las piezas del lanzamiento habrían esperado a noviembre. Para",
@@ -331,6 +334,10 @@
       "pieza": "campania-6-cuotas-feed"
     },
     {
+      "fecha": "2026-10-26",
+      "pieza": "carrusel-victoria"
+    },
+    {
       "fecha": "2026-10-27",
       "pieza": "lentes-de-contacto"
     },
@@ -353,6 +360,10 @@
     {
       "fecha": "2026-11-01",
       "pieza": "campania-12-pagos-feed"
+    },
+    {
+      "fecha": "2026-11-02",
+      "pieza": "carrusel-acetato-agos-1"
     },
     {
       "fecha": "2026-11-03",
@@ -379,6 +390,10 @@
       "pieza": "varilux-xr-design"
     },
     {
+      "fecha": "2026-11-09",
+      "pieza": "carrusel-acetato-agos-2"
+    },
+    {
       "fecha": "2026-11-10",
       "pieza": "stellest-preguntas-de-padres"
     },
@@ -401,6 +416,10 @@
     {
       "fecha": "2026-11-15",
       "pieza": "campania-6-cuotas-feed"
+    },
+    {
+      "fecha": "2026-11-16",
+      "pieza": "carrusel-acetato-agos-3"
     },
     {
       "fecha": "2026-11-17",

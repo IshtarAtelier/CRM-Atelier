@@ -4,7 +4,7 @@ import path from 'node:path';
 import { prisma } from '@/lib/db';
 import { publicarCarrusel, publicarReel, origenPublico } from '@/services/social-publisher.service';
 import { evaluarFrescura } from '@/lib/social/frescura';
-import { modeloDelDia } from '@/lib/social/modelo-del-dia';
+import { modeloDelDia, tocaHoy } from '@/lib/social/modelo-del-dia';
 
 /**
  * Publica en el feed de Facebook + Instagram. Dos cosas, según `?que=`:
@@ -18,8 +18,10 @@ import { modeloDelDia } from '@/lib/social/modelo-del-dia';
  *       con las fotos de Agostina o de Massaru, alternados día por medio,
  *       según `social/feed-modelos.json` (Ishtar, 16/10/2026: "lanzá en feed
  *       alternados imágenes de Agostina frente/perfil y alternadas de
- *       Massaru"). Sale TODOS los días, a las 17:00 ART, separado del
- *       carrusel programado para que la cuenta no dispare dos piezas juntas.
+ *       Massaru"). El cron corre todos los días a las 17:00 ART pero publica
+ *       solo los días de `dias` del JSON (por defecto los lunes: "por lo menos
+ *       un carrusel por semana, pero no todos juntos", Ishtar 19/10/2026), y
+ *       nunca si ese día ya hay algo programado en feed-programacion.json.
  *       La elección es determinística (ver `modeloDelDia`): se sabe de
  *       antemano qué sale mañana y un problema se puede reproducir.
  *
@@ -143,7 +145,15 @@ async function publicarPieza(piezaId: string, dryRun: boolean, extra: Record<str
 
 /** El modelo del día (?que=modelo). */
 async function publicarModelo(dryRun: boolean) {
-    const { carriles } = await leerJson('social', 'feed-modelos.json');
+    const { carriles, dias } = await leerJson('social', 'feed-modelos.json');
+    const hoy = hoyART();
+    if (!tocaHoy(dias, hoy)) return { ok: true, motivo: `Hoy (${hoy}) no toca modelo: salen los ${(dias || ['lun']).join(', ')}.` };
+    // Si ese día ya hay un carrusel programado (por ejemplo uno de selección:
+    // "todos los Victoria"), el modelo del día no sale: nunca dos juntos
+    // (Ishtar, 19/10/2026).
+    const prog = await leerJson('social', 'feed-programacion.json');
+    const programada = (prog.programacion || []).find((e: any) => e.fecha === hoy);
+    if (programada) return { ok: true, motivo: `Hoy ya sale "${programada.pieza || programada.reel}" programado: el modelo del día no se suma.` };
     const dia = diasDesdeElOrigen();
     const eleccion = modeloDelDia(carriles || {}, dia);
     if (!eleccion) return { ok: true, motivo: 'El carril de modelos está vacío: correr scripts/social/generar-feed-modelos.mjs.' };

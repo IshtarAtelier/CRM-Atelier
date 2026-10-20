@@ -10,6 +10,16 @@
  */
 export const ORDEN_CARRILES = ['agostina', 'massaru'] as const;
 
+/** Días de la semana en que sale el modelo (Ishtar, 19/10/2026: "por lo menos un carrusel por semana, pero no todos juntos"). */
+export const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'] as const;
+export type Dia = (typeof DIAS)[number];
+
+/** ¿Hoy toca modelo? `dias` viene de social/feed-modelos.json; sin lista, solo los lunes. */
+export function tocaHoy(dias: readonly string[] | undefined, fechaISO: string): boolean {
+    const dia = DIAS[new Date(`${fechaISO}T12:00:00Z`).getUTCDay()];
+    return (dias?.length ? dias : ['lun']).includes(dia);
+}
+
 export function modeloDelDia(
     carriles: Record<string, { id: string }[]>,
     dia: number,

@@ -16,12 +16,11 @@
  * persona, misma distancia); si no hay frente, se corrige por la relación
  * mediana frente/perfil de la sesión (`correccionPerfil`).
  *
- * Si el encuadre pedido se sale de la foto (poco aire arriba o a los
- * costados), primero se corre la ventana hacia adentro y, si la ventana es
- * más grande que la foto entera, lo que falta se completa con el borde
- * DESENFOCADO (la misma idea que el fondo de las stories): queda como fondo
- * fuera de foco. No con espejo: espejar una cara que está contra el borde
- * dejaba una segunda cara fantasma. Nunca se achica la cabeza para que entre.
+ * La ventana NUNCA se sale de la foto (Ishtar, 19/10/2026: "que no tengan
+ * ningún recuadro raro": el relleno desenfocado del borde se veía en el feed).
+ * Si a la escala pedida la ventana no entra, la escala sube lo justo para que
+ * entre (la cabeza queda apenas más grande en esa foto) y después la ventana
+ * se corre hacia adentro. Nunca se agrega borde, ni espejado ni desenfocado.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
@@ -36,7 +35,7 @@ export const ANCHO = 1080, ALTO = 1350;
 /** Dónde cae la línea de los ojos, en fracción del alto de la placa. */
 export const OJOS_Y = 0.40;
 /** Cuánto mide la cara (la caja de Vision), en fracción del alto de la placa. */
-export const ALTO_CARA = 0.40;
+export const ALTO_CARA = 0.50;
 /** De perfil, cuánto se corre el centro hacia la nuca, en anchos de cara. */
 const CORRIMIENTO_PERFIL = 0.12;
 
@@ -72,41 +71,6 @@ export function correccionPerfil(pares, caras) {
     return r.length ? r[Math.floor(r.length / 2)] : 1;
 }
 
-/**
- * La foto con sus bordes continuados hacia afuera, desenfocados. `falta` dice
- * cuántos píxeles agregar de cada lado; devuelve un Buffer con la foto derecha.
- */
-async function extenderSuave(base, { W, H }, falta) {
-    const foto = await base.toBuffer();
-    if (!falta.left && !falta.top && !falta.right && !falta.bottom) return foto;
-    const ancho = W + falta.left + falta.right, alto = H + falta.top + falta.bottom;
-    const capas = [];
-    const franja = (lado, tamano) => {
-        if (!tamano) return;
-        const grosor = Math.max(8, Math.round((lado === 'left' || lado === 'right' ? W : H) * 0.08));
-        const recorte = lado === 'left' ? { left: 0, top: 0, width: grosor, height: H }
-            : lado === 'right' ? { left: W - grosor, top: 0, width: grosor, height: H }
-                : lado === 'top' ? { left: 0, top: 0, width: W, height: grosor }
-                    : { left: 0, top: H - grosor, width: W, height: grosor };
-        const medida = lado === 'left' || lado === 'right' ? { width: tamano, height: H } : { width: W, height: tamano };
-        const posicion = lado === 'left' ? { left: 0, top: falta.top }
-            : lado === 'right' ? { left: falta.left + W, top: falta.top }
-                : lado === 'top' ? { left: falta.left, top: 0 }
-                    : { left: falta.left, top: falta.top + H };
-        capas.push((async () => ({
-            input: await sharp(foto).extract(recorte).resize({ ...medida, fit: 'fill' }).blur(40).toBuffer(),
-            ...posicion,
-        }))());
-    };
-    franja('left', falta.left); franja('right', falta.right); franja('top', falta.top); franja('bottom', falta.bottom);
-    const bordes = await Promise.all(capas);
-    // Las esquinas quedan del color medio de la foto; las tapa el degradado o son fondo liso.
-    const { dominant } = await sharp(foto).stats();
-    return sharp({ create: { width: ancho, height: alto, channels: 3, background: dominant } })
-        .composite([...bordes, { input: foto, left: falta.left, top: falta.top }])
-        .jpeg({ quality: 95 }).toBuffer();
-}
-
 async function dimensiones(base) {
     const m = await base.metadata();
     const girada = (m.orientation ?? 1) >= 5;
@@ -120,7 +84,6 @@ async function dimensiones(base) {
  */
 export async function recortarAlineado(archivo, cara, { perfil = false, correccion = 1, referencia = null, retocar = (x) => x } = {}) {
     if (!cara) throw new Error(`Sin cara detectada en ${archivo}`);
-    // El corrimiento que hizo falta se informa para poder revisar esas fotos a mano.
     const base = sharp(archivo).rotate();
     const { W, H } = await dimensiones(base);
     const [, , cw, ch] = cara.caja;
@@ -130,41 +93,23 @@ export async function recortarAlineado(archivo, cara, { perfil = false, correcci
     // (Atenea C3, a 90°) es tan chica que la corrección mediana la agrandaba
     // de más. Sin frente, vale la corrección mediana de la sesión.
     const altoCara = perfil && referencia ? referencia.caja[3] * H : ch * H * (perfil ? correccion : 1);
-    const s = (ALTO_CARA * ALTO) / altoCara;                  // píxeles de placa por píxel de foto
-    const wS = ANCHO / s, hS = ALTO / s;                      // la ventana, en píxeles de la foto
+    // Escala pedida, y si con ella la ventana no entra en la foto, la mínima que entra.
+    const sPedida = (ALTO_CARA * ALTO) / altoCara;
+    const s = Math.max(sPedida, ANCHO / W, ALTO / H);
+    if (s > sPedida * 1.03) console.log(`   🔍 ${path.basename(archivo)}: cabeza ${Math.round((s / sPedida - 1) * 100)} % más grande para que la ventana entre en la foto`);
+    const wS = Math.min(W, Math.round(ANCHO / s)), hS = Math.min(H, Math.round(ALTO / s));
     const haciaLaNuca = perfil ? -Math.sign(cara.yaw || 1) * CORRIMIENTO_PERFIL * cw * W : 0;
     const cx = (cara.caja[0] + cw / 2) * W + haciaLaNuca;
-    // Si la ventana se sale de la foto por un costado o por arriba, primero se
-    // CORRE hacia adentro (la cabeza queda unos píxeles descentrada o más baja,
-    // que no se nota) y solo se rellena con espejo cuando la ventana es más
-    // grande que la foto entera. Rellenar con espejo donde hay una cara dejaba
-    // una segunda cara fantasma en el borde (Andrómeda C7 de perfil, 16/10).
-    const dentro = (v, tamanoVentana, tamanoFoto) =>
-        tamanoVentana >= tamanoFoto ? v : Math.max(0, Math.min(tamanoFoto - tamanoVentana, v));
-    let left = dentro(Math.round(cx - wS / 2), Math.round(wS), W);
-    // De perfil con la ventana más ancha que la foto, todo lo que falta va del
-    // lado de la NUCA (la foto queda pegada al borde del lado de la cara): el
-    // fondo desenfocado detrás del pelo pasa desapercibido; delante de la cara
-    // dejaba una mancha del color del armazón (Andrómeda C7, 16/10).
-    if (perfil && wS > W) left = (cara.yaw || 0) > 0 ? Math.round(W - wS) : 0;
-    const top = dentro(Math.round(cara.ojos[1] * H - (OJOS_Y * ALTO) / s), Math.round(hS), H);
-    const falta = {
-        left: Math.max(0, -left),
-        top: Math.max(0, -top),
-        right: Math.max(0, left + Math.round(wS) - W),
-        bottom: Math.max(0, top + Math.round(hS) - H),
-    };
-    // En dos pasos a propósito: sharp aplica las operaciones en un orden fijo
-    // (extract antes que extend, rotate antes que extract), no en el orden en
-    // que se llaman. Primero la foto derecha y extendida, recién después el recorte.
+    const dentro = (v, tamanoVentana, tamanoFoto) => Math.max(0, Math.min(tamanoFoto - tamanoVentana, v));
     const pedidoLeft = Math.round(cx - wS / 2), pedidoTop = Math.round(cara.ojos[1] * H - (OJOS_Y * ALTO) / s);
+    const left = dentro(pedidoLeft, wS, W), top = dentro(pedidoTop, hS, H);
     const corrido = { x: left - pedidoLeft, y: top - pedidoTop };
     if (Math.abs(corrido.x) > W * 0.02 || Math.abs(corrido.y) > H * 0.02) {
         console.log(`   ↔ ${path.basename(archivo)}: corrida ${Math.round(corrido.x / W * 100)} % en x, ${Math.round(corrido.y / H * 100)} % en y para no salirse de la foto`);
     }
-    const extendida = await extenderSuave(base, { W, H }, falta);
-    const img = sharp(extendida)
-        .extract({ left: left + falta.left, top: top + falta.top, width: Math.round(wS), height: Math.round(hS) })
-        .resize(ANCHO, ALTO);
+    // En dos pasos a propósito: sharp aplica rotate antes que extract, no en el
+    // orden en que se llaman; primero la foto derecha, después el recorte.
+    const derecha = await base.toBuffer();
+    const img = sharp(derecha).extract({ left, top, width: wS, height: hS }).resize(ANCHO, ALTO);
     return retocar(img).jpeg({ quality: 90 }).toBuffer();
 }
