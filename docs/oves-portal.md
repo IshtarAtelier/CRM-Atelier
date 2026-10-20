@@ -124,8 +124,11 @@ Secciones y campos (name/id), en orden:
   Trio Cliean Blue / Multicot / Numax / sin tratamiento / Crizal Sapphire;
   CAL = Calibrado Comun / perforado / perforado con cambio de forma / ranurado /
   ranurado con cambio de forma / sin calibrado; COL = color pleno / degrade /
-  muestra / sin color; OTR = sin otros servicios / Pack 3 paños. El value del
-  select es la DESCRIPCIÓN misma (así lo guarda `consulta`).
+  muestra / sin color; OTR = sin otros servicios / Pack 3 paños. **En un pedido
+  NUEVO el value de cada opción es la CLAVE** (`|WR|EYST|TRAT|2`, `|WR|EYST|CAL|1`,
+  `|WR|EYST|COL|3`, `|WR|EYST|OTR|6`): es lo que viaja en el POST de grabar.
+  (En la consulta de un pedido ya cargado el select se rellena con la
+  descripción, por eso ahí se ve el texto.)
 - **Mensajes**: `mensajeRX` — si tiene texto, `Grabar` se niega ("Hay datos
   pendientes de corregir").
 - **Prescripcion** (por ojo, sufijo `_d` / `_i`): `esf`, `cil`, `eje` (texto);
@@ -206,8 +209,14 @@ Cada producto es `{ label, value, promoCode, promoDest }` con
 `promoCode=VXXP` marca los que pueden ser 2º par de la promo XPERIO del
 portal. Relevado con las cinco vocales como `term` por clase: **622 en
 Tallado Digital, 42 en Tallado Tradicional, 21 en Stock con Adicionales
-(685 en total)**. El volcado completo está en
-`src/lib/laboratorios/oves-catalogo.ts` (GENERADO, no se edita a mano).
+(685 en total)**. La fuente es
+`scripts/maintenance/precios-optovision/oves-catalogo.tsv` (verificada byte a
+byte contra el portal: hash FNV-1a `a3b060ab` de las 685 filas ordenadas, en
+los dos lados) y de ahí se GENERA `src/lib/laboratorios/oves-catalogo.ts`
+con `generar-oves-catalogo.mjs`. **OJO: 44 nombres traen espacios dobles**
+(`Multilutz  Short`, `Kodak SV Digital  Airwear 1.59 …`, `… Orma  Blue UV`):
+el portal los guarda así y la búsqueda `exact=` es literal. Nunca "limpiar"
+esos nombres.
 
 ## Promos — lo que el portal sabe vs. el procedimiento de Optovisión
 
