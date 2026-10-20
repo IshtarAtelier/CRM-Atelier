@@ -223,8 +223,14 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
     const pares = cantidadDeArmazones(venta as any);
     if (par < 1 || par > pares) return { ok: false, faltantes: [`la venta no tiene par ${par}`], avisos };
 
-    // Con dos pares, un cristal sin armazón asignado no se adivina (regla de todos los módulos).
-    if (pares > 1 && venta.items.some(i => esCristalOpto(i) && i.framePosition == null)) faltantes.push('hay cristales sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal');
+    // Con dos pares y cristales sin armazón asignado, el repartidor único de la
+    // venta (`cristalesPorArmazon`) los pone en orden del carrito: los dos
+    // primeros al par 1, los siguientes al par 2 (decisión del 15/10/2026 con la
+    // primera venta real de Vitolen; en Optovisión, 55 de 68 pares de los
+    // últimos 13 meses venían así). No se frena: se AVISA, y la persona ve en la
+    // pantalla real qué graduación y qué armazón lleva cada pedido. Si después
+    // la venta se edita y el orden cambia, la huella del plan lo detecta.
+    if (pares > 1 && venta.items.some(i => esCristalOpto(i) && i.framePosition == null)) avisos.push(`los cristales no tienen armazón asignado en la venta: el par ${par} se armó con los ${par === 1 ? 'dos primeros' : 'siguientes'} del carrito — fijate en la pantalla del portal que sean los de este armazón`);
     const fueraDeRango = venta.items.find(i => esCristalOpto(i) && i.framePosition != null && (i.framePosition < 1 || i.framePosition > pares));
     if (fueraDeRango) faltantes.push(`hay un cristal asignado al armazón ${fueraDeRango.framePosition}, que la venta no tiene: reasignalo`);
     const cristales = cristalesPorPar(venta).get(par) ?? [];

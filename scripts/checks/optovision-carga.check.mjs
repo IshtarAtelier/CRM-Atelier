@@ -98,6 +98,8 @@ t('diseños de tallado digital: nombres reales de producción → producto de OV
     assert.equal(label('VARILUX XR DESIGN - ORMA TRANSITIONS GEN S + CRIZAL 2x1', { color: 'Gris' }), 'Varilux XR Design Orma Transitions GenS Gris');
     assert.equal(label('ESSILOR NEW EDITIONS - Orma BLUE UV + AR NUMAX 2x1'), 'Sygnus New Edition Orma  Blue UV');
     assert.equal(label('SYGNUS MONOFOCAL ONE - Airwear 1.59 + AR NUMAX'), 'Sygnus ONE Airwear 1.59');
+    assert.equal(label('ESSILOR NEW EDITIONS - Orgánico Fotosensible BLC + AR NUMAX 2x1'), 'Sygnus New Edition Orgánico Fotosensible BLC');
+    assert.equal(label('ESSILOR NEW EDITIONS - Policarbonato Polarizado Espejado Azul/Plata + AR NUMAX 2x1'), 'Sygnus New Edition Policarbonato Polarizado Espejado Azul / Plata');
     assert.equal(label('SYGNUS DRIVER - Orma Xperio Gris + AR NUMAX'), 'Sygnus Driver Orma Xperio Gris');
     assert.equal(label('SYGNUS BIFOCAL - Stylis BLUE UV + AR NUMAX'), 'Sygnus Bifocal Stylis 1.67 Blue UV');
     assert.equal(label('PRO-LINE DIGITAL TDI · Orma Blue UV 1.50 — SIN ANTIRREFLEJO'), 'Pro-Line TDI Orma  Blue UV');
@@ -233,6 +235,14 @@ const ventaDoble = () => {
     v.prescription.addition = 2.25;
     return v;
 };
+t('con dos pares y cristales sin armazón asignado no se frena: se reparten por orden y se avisa', () => {
+    const v = ventaDoble();
+    for (const i of v.items) i.framePosition = null;
+    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', pedidoOrigen: '628377' });
+    assert.ok(r.ok, r.ok ? '' : r.faltantes.join(' · '));
+    assert.ok(r.avisos.some(a => /armazón asignado.*dos primeros/.test(a)), JSON.stringify(r.avisos));
+    assert.equal(r.plan.producto.label, 'Varilux Comfort Orma blue uv');
+});
 t('promo doble: el par de mayor valor de lista va 1º (con el cupón), el otro 2º (con el nº del 1º)', () => {
     const v = ventaDoble();
     assert.equal(esPromoDobleDeOptovision(v), true);

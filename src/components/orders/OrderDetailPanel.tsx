@@ -1262,6 +1262,12 @@ export function OrderDetailPanel({
                         <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'VITOLEN' ? cargaPedida.n : 0} />
                     )}
 
+                    {/* Optovisión: carga asistida en OVES con OK humano (lab-modules/optovision).
+                        El seguimiento sigue por la factura (lab-recon); acá solo la carga. */}
+                    {isOptovision && (
+                        <CargaLaboratorio lab="OPTOVISION" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'OPTOVISION' ? cargaPedida.n : 0} />
+                    )}
+
 
                     {/* Post Venta — desde el tablero de post venta va arriba de todo,
                         no acá abajo: es lo único que se fue a ver. */}

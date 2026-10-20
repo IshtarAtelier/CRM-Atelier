@@ -148,8 +148,17 @@ const A_MANO: { crm: RegExp; motivo: string }[] = [
     { crm: /^monofocal de laboratorio · policast polarizado/, motivo: 'OVES no lista el POLICAST Polarizado Espejado' },
     { crm: /^stock optovision · (blc hmc 1\.56$|numax 1\.50 · rango|cr 39 1\.50 · rango|cr 39 fotocromatico con multicot 1\.50 · rango|hd super hmc asferico blc uv420 1\.61 · rango|blc hmc fotosensible)/, motivo: 'esa variante de stock (con o sin rango extendido) no figura con ese nombre en OVES' },
     { crm: /^hd mr7/, motivo: 'el HD MR7 no figura en el catálogo de OVES' },
+    { crm: /^essilor new editions? - alto indice 1\.74/, motivo: 'OVES no lista el Sygnus New Edition en 1.74' },
     { crm: /^monofocal de laboratorio - (orma|airwear)/, motivo: 'OVES no tiene "Monofocal de laboratorio" Orma ni Airwear sin Blue UV (solo CR 39 Blanco o la versión Blue UV): confirmar con Optovisión cuál corresponde' },
     { crm: /^blue uv filter system - orma — sin antirreflejo/, motivo: 'un Orma Blue UV sin antirreflejo se pide a Optovisión como CR 39 Blanco o con tratamiento: confirmar antes de cargar' },
+];
+
+/** Variantes de tallado digital con código propio (el material del catálogo no dice lo que son): se buscan por línea y código. */
+const ESPECIALES_RXTD: { crm: RegExp; linea: string; cod: string; familia: string; tipo: TipoDeLente }[] = [
+    { crm: /^essilor new editions? - organico fotosensible blc/, linea: 'SYGN', cod: '37', familia: 'Sygnus New Edition', tipo: 'MULTIFOCAL' },
+    { crm: /^essilor new editions? - organico espejado azul/, linea: 'SYGN', cod: 'PR', familia: 'Sygnus New Edition', tipo: 'MULTIFOCAL' },
+    { crm: /^essilor new editions? - organico fotosensible espejado/, linea: 'SYGN', cod: 'PT', familia: 'Sygnus New Edition', tipo: 'MULTIFOCAL' },
+    { crm: /^essilor new editions? - policarbonato polarizado espejado/, linea: 'SYGN', cod: 'BK', familia: 'Sygnus New Edition', tipo: 'MULTIFOCAL' },
 ];
 
 /** Diseños de tallado digital: familia del CRM → línea del portal. `eleccion` dice qué tiene que elegir quien prepara. */
@@ -297,6 +306,14 @@ export function especificacionDe(nombreCRM: string | null | undefined, opts: { c
         const r = elegirProductoOves({ clase: propio.clase, linea: 'S/T', cod: propio.cod });
         if (!r.ok) return { ok: false, motivo: r.motivo, aMano: true };
         return { ok: true, especificacion: { clase: propio.clase, producto: r.producto, familia: r.producto.marca || r.producto.label, tipo: propio.tipo, material: materialDe(r.producto.material), variante: varianteDe(base), color: null, tratamiento, esPromo2x1, esMiPrimer, avisos: [] } };
+    }
+
+    // 1b. Variantes de tallado digital con código propio.
+    const especial = ESPECIALES_RXTD.find(e => e.crm.test(base));
+    if (especial) {
+        const r = elegirProductoOves({ clase: 'RXTD', linea: especial.linea, cod: especial.cod });
+        if (!r.ok) return { ok: false, motivo: r.motivo, aMano: true };
+        return { ok: true, especificacion: { clase: 'RXTD', producto: r.producto, familia: especial.familia, tipo: especial.tipo, material: materialDe(r.producto.material), variante: varianteDe(base), color: null, tratamiento, esPromo2x1, esMiPrimer, avisos: [] } };
     }
 
     // 2. Monofocales de laboratorio tradicional (Blue UV Filter System, Transitions Gen S tallado, Xperio, Interview) y Varilux XR: línea S/T.
