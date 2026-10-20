@@ -1,80 +1,76 @@
-# Módulo Optovisión (Essilor / Varilux / Kodak / Crizal) — plan por etapas
+# Módulo Optovisión (Essilor / Varilux / Kodak / Crizal) — plan y estado
 
-Estado al 15/10/2026. Rama `feat/optovision-modulo` (worktree `../atelier-optovision`).
-Referencia: marco `src/services/lab-modules/` (Grupo Óptico, Vitolen), `docs/lab-modulos.md`.
+Rama `feat/optovision-modulo` (worktree `../atelier-optovision`, sobre `origin/main`).
+Referencia: marco `src/services/lab-modules/` (Grupo Óptico, Vitolen), `docs/lab-modulos.md` § Optovisión,
+relevamiento del portal en `docs/oves-portal.md`.
 
-## 1. Lo que ya se sabe
+## Alcance (Ishtar, 16/10/2026)
 
-**Volumen (producción, solo lectura, ventas con cristal enviadas a fábrica, 90 días):**
-Grupo Óptico 150 ventas / 352 cristales · **Optovisión 39 / 136** · Cámara 5 · Vitolen 1.
-Por mes (Optovisión): jun 5 · jul 8 · ago 12 · sep 19 · **oct 1** (al 15/10).
-Presupuestos de octubre con cristal Optovisión sin enviar a fábrica: **71** (GO: 190).
-→ Hay que entender el corte de octubre antes de decidir la prioridad (ver §4).
+**Solo la carga asistida.** El seguimiento y los costos siguen por la factura
+(`lab-recon`): costos por IMAP, aviso de "corroborar" a los 5 días hábiles.
+Operatoria idéntica a GO y Vitolen: el robot arma el pedido, muestra la
+pantalla real del portal y una persona aprueba; botón "🤖 Hacé lo tuyo" en
+Ventas y el mismo bloque `CargaLaboratorio` en la ficha.
 
-**Catálogo:** 235 cristales (Varilux 48, Essilor 59, Kodak 44+8 "Mi primer…",
-Sygnus 45, Optovisión 55). `LaboratoryConfig`: calibrado $23.000, IVA 21.
+## Lo que se sabe
 
-**Nº de pedido: no hay formato único.** Casi siempre dos nº de 6 dígitos (uno por
-par) con separadores sueltos (`626134 -  626139`); también 7 dígitos (serie
-TM/TI, `3581795`), 8 dígitos (`80527352`), textos (`3578631 - Ficha`) y vacíos.
-El módulo debe guardar el nº que devuelve OVES, normalizado, uno por par.
+- **Volumen** (producción, 90 días al 15/10): GO 150 ventas / Optovisión 39 /
+  Cámara 5 / Vitolen 1. Por mes (Optovisión): jun 5 · jul 8 · ago 12 · sep 19 ·
+  oct 1, con 71 presupuestos de octubre sin cerrar (pregunta abierta: ¿por qué?).
+  **29 de las 39 ventas de 13 meses son promos.**
+- **Catálogo CRM**: 235 cristales (Varilux 48, Essilor 59, Kodak 44 + 8 "Mi primer",
+  Sygnus 45, Optovisión 55). `LaboratoryConfig`: calibrado $23.000, IVA 21.
+- **Nº de pedido**: 6 dígitos (nº web de OVES), uno por par; la venta los guarda
+  con separadores sueltos (`626134 -  626139`). El NRO RX de 7 dígitos
+  (`TI-7104272`) es el de la factura. Hay 3 ventas con el campo vacío.
+- **Costos hoy (IMAP/PDF)**: 112 `LabCostEntry` (7 OK, 17 OVERCOST, 67 UNDERCOST, 16 UNMATCHED, 4 PENDING).
+- **Gmail**: `procesos@optovisionsa.com.ar` manda `FA_3008-…pdf`; `procesos@essilor.com.ar`,
+  comprobantes electrónicos y el resumen de cuenta. No hay mails de confirmación
+  de pedido ni de estado: el seguimiento solo podría salir de OVES.
+- **OVES por dentro**: `docs/oves-portal.md` (relevado el 19/10/2026 desde el
+  Chrome de Ishtar; catálogo de 685 productos verificado byte a byte).
+- **Red**: desde la Mac de Ishtar y desde Anthropic el servidor (`200.80.42.219`)
+  no contesta en 443/80 durante 3 días y con 2 IPs; desde el celular y el Chrome
+  con extensión sí. Riesgo para el robot en Railway.
 
-**Costos hoy (por mail, IMAP/PDF):** 112 `LabCostEntry` (7 OK, 17 OVERCOST,
-67 UNDERCOST, 16 UNMATCHED, 4 PENDING).
+## Etapas
 
-**Gmail (60 días), lo que manda el proveedor:**
-- `procesos@optovisionsa.com.ar` → `FA_3008-000xxxxx.pdf`, una por comprobante.
-- `procesos@essilor.com.ar` → "Comprobante electrónico" y el resumen de cuenta
-  semanal (cuenta 123870).
-- **No hay mail de confirmación de pedido ni de cambio de estado.** El seguimiento
-  solo puede salir del portal OVES.
+| # | Etapa | Estado |
+|---|---|---|
+| 0 | Relevamiento de OVES | **Hecho** 19/10 |
+| 1–2 | Seguimiento y costos por portal | Fuera de alcance (siguen por la factura) |
+| 3 | Carga asistida (`lab-modules/optovision/`, ficha, botón, `check:carga-optovision`) | **Escrita** 19/10, sin probar contra el portal real |
+| 3b | Promo: cupón + observaciones + mail a promociones@/cordoba@ | **Escrita**; el mail exige el código de vendedor en SystemSetting `optovision_codigos_vendedor` |
+| 4 | Auditorías (arquitectura + robustez) hasta que quede solo low | En curso |
+| 5 | Prueba real con credenciales en `.env` → deploy (push a `main` solo con OK explícito) | Pendiente |
 
-**Código existente:** `lab-recon/imap.ts`, `lab-providers/essilor-statement.ts`,
-`optovision-parser.service.ts`, `optovision-audit.service.ts`,
-`lab-recon/cost-matching.ts`; identidad en `lib/laboratorios/identidad.ts`
-(`OPTOVISION` ya es `LabKey`, falta sumarlo a `LABS_CON_CARGA_ASISTIDA`).
+Corrida contra la copia de producción (39 ventas, 68 pares, 13 meses): 50
+pares se arman, 6 van a mano con motivo (Stellest, HD MR7, nombres
+archivados), 12 frenan por datos reales de la venta (altura del 2º armazón,
+medidas del armazón, color del Transitions).
 
-## 2. Qué falta saber (relevamiento de OVES — lo hace Ishtar logueada)
+## Decisiones abiertas (Ishtar)
 
-La clave la tipea Ishtar en su Chrome; Claude solo mira, sin guardar ni confirmar.
-Una ventana por sesión de OVES. Se documenta en `docs/oves-portal.md`:
-pantallas, listado y estados de pedido, buscador (`bus_pedido` / `buscar_rx`),
-formulario de carga campo por campo, comprobantes/cuenta corriente, peticiones
-JSON si las hay, y si "guardar" crea algo (frenar y preguntar).
+1. **Liso → Blue UV**: el CRM vende "Varilux Comfort / Physio 3.0 / Comfort Max –
+   Orma + Crizal" y OVES solo lista el Blue UV para esos diseños. Hoy el robot
+   lo carga (es el único producto de ese diseño y material) y lo avisa en la
+   revisión. ¿Correcto?
+2. **El mail de la promo**: hoy lo manda el robot (solo en producción) cuando los
+   dos pares están cargados, con el código de vendedor de
+   `optovision_codigos_vendedor` (JSON `{"Nombre como en labSentBy": "VERO02"}`).
+   Hay que cargar ese JSON.
+3. **"Mi Primer Varilux / Kodak"**: ¿lleva mail además del cupón? Hoy no se manda.
+4. **Credenciales**: `OVES_USER` / `OVES_PASSWORD` en Railway y en el `.env` local
+   para la prueba (las carga Ishtar; Claude no tipea claves). La clave pegada en
+   el chat del 15/10 conviene cambiarla.
+5. **Railway → OVES**: comprobar que llega, o pedirle a Optovisión que habilite la IP.
+6. Los 5 commits de `feat/grupo-optico-carga` siguen esperando OK de push.
+7. El corte de ventas de Optovisión en octubre.
 
-## 3. Alcance acordado (15/10, Ishtar)
+## Restricción de diseño: OVES es un sistema viejo y lento (Ishtar, 16/10/2026)
 
-**Solo falta la carga asistida.** Seguimiento y costos se dejan como están
-(costos por mail IMAP). Las etapas 1 y 2 de la tabla quedan FUERA de alcance.
-Orden real: E0 (relevamiento del formulario de OVES) → E3 → E3b → E4 → E5.
-
-## 3b. Etapas (OK de Ishtar en cada una)
-
-| # | Etapa | Entrega | Depende de |
-|---|---|---|---|
-| 0 | Relevamiento OVES | `docs/oves-portal.md` | Ishtar logueada |
-| 1 | Seguimiento por portal | `lab-modules/optovision/{portal,pedidos,modulo}.ts`, `LabPortalOrder`, estados → `estados.ts`, salud/turno del marco, registro | E0; credenciales en Railway (entorno) |
-| 2 | Costos por portal | comprobantes y cuenta corriente del portal al cruce; el IMAP queda de respaldo; sin tercer mail (regla 25/9) | E1 |
-| 3 | Carga asistida | `carga-asistida`, `borrador-portal`, `llenar`; `CargaLaboratorio` y "🤖 Hacé lo tuyo" con `LABS_CON_CARGA_ASISTIDA`; OK humano antes de confirmar | E1; E0 del formulario |
-| 3b | Promos | los 4 pasos: cupón en la web de la promo, mail a promociones@ y cordoba@, observación en el 1º par con el cupón, observación en el 2º con el nº del 1º. Si un paso no se puede automatizar, el módulo frena y lo dice | E3 |
-| 4 | Auditorías | loop arquitectura + robustez hasta que quede solo low; `check:*` nuevo sin red | cada etapa |
-| 5 | Deploy | push a `main` solo con OK explícito; verificar workflow y `desarrollo` | E4 |
-
-## 4. Decisiones abiertas (Ishtar)
-
-1. ¿Por qué casi no hay ventas de Optovisión desde el 30/9? (precios/promos hacia GO,
-   stock, ventas sin cerrar). Cambia el orden: si el volumen no vuelve, el valor
-   mayor está en E2 (costos) y no en E3.
-2. Credenciales de OVES: variables de entorno en Railway; ninguna en archivos.
-   (La clave pegada en el chat el 15/10 queda en ese historial: conviene cambiarla.)
-3. Promos: ¿el robot puede mandar los mails a promociones@/cordoba@ o los manda una persona?
-4. Los 5 commits de `feat/grupo-optico-carga` siguen sin subir: esperan OK.
-
-## 5. Restricción de diseño: OVES es un sistema viejo y lento (Ishtar, 16/10/2026)
-
-Todo timeout del módulo es ANCHO, igual criterio que el portal de Grupo Óptico
-(una pasada lenta que termina vale más que una rápida que aborta): cada paso
-del navegador, login, búsqueda y guardado con techo de varios minutos, con
-reintentos pacientes y sin bajar los techos "para que el log quede corto".
-El candado de turno se renueva solo mientras la pasada vive. Una ventana por
-sesión: nunca dos robots a la vez.
+Todo timeout del módulo es ANCHO (30 min por paso, `ESPERA_OVES_MS`), igual
+criterio que Grupo Óptico: una pasada lenta que termina vale más que una
+rápida que aborta. Reintentos pacientes, sin bajar los techos "para que el log
+quede corto". El turno del portal (`portal/turno.ts`) garantiza un solo robot
+a la vez.
