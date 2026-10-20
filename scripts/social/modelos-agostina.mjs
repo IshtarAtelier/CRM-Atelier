@@ -72,7 +72,7 @@ export const MODELOS = [
     ['cronos-c3', 'Cronos', 'C3', RECETA, ['276', '277', '278']],
     ['orfeo-c1', 'Orfeo', 'C1', RECETA, ['281', '282', '283']],
     ['orfeo-c3', 'Orfeo', 'C3', RECETA, ['286', '287', '288']],
-    ['hermes-c1', 'Hermes', 'C1', RECETA, ['291', '292', '293']],
+    // ['hermes-c1', 'Hermes', 'C1', RECETA, ['291', '292', '293']],  // FUERA (Ishtar, 20/10/2026): en la 291 tiene los ojos cerrados y el video no da calidad. Volver cuando haya foto nueva.
     ['poseidon-c2', 'Poseidon', 'C2', RECETA, ['296', '297', '298']],
     ['pandora-c3', 'Pandora', 'C3', RECETA, ['306', '307', '308']],
     ['hermes-c2', 'Hermes', 'C2', RECETA, ['311', '312', '313']],
