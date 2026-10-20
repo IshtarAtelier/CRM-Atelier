@@ -206,7 +206,7 @@ const PLANTILLAS = {
       <div class="p-precio">
         ${slide.cuotaImporte ? `<p class="p-cuota-n">${esc(slide.cuotasN)} cuotas sin interés de</p><p class="p-cuota">${esc(slide.cuotaImporte)}</p>` : ''}
         ${slide.doceCuotas ? `<p class="p-linea">${esc(slide.doceCuotas)} · Transferencia ${esc(slide.descuento)}% off: <b>${esc(slide.transferencia)}</b></p>` : ''}
-        ${slide.linea ? `<p class="p-linea suave${slide.lineaGrande ? ' grande' : ''}">${esc(slide.linea)}</p>` : ''}
+        ${slide.linea ? `<p class="p-linea suave">${esc(slide.linea)}</p>` : ''}
       </div>
     </div>
     <div class="p-pie">
@@ -368,8 +368,6 @@ function cssPuesta(id, { esStory }) {
   .p-linea { font-weight:500; line-height:1.35; }
   .p-linea b { font-weight:800; }
   .p-linea.suave { color:${suave}; }
-  /* lineaGrande: cuando la pieza no tiene precio y la línea es el mensaje (stories de fotos de producto, 19/10/26). */
-  .p-linea.grande { font-size:38px; color:${id.oscuro}; max-width:860px; }
   .p-pie { position:absolute; left:40px; right:40px; display:flex; align-items:center; justify-content:space-between;
     border-top:1px solid ${filete}; color:${suave}; }
   .p-pie img { width:auto; }
