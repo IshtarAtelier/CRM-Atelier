@@ -32,7 +32,7 @@ const feedModelos = leer('social', 'feed-modelos.json');
 const stories = leer('social', 'stories-diarias.json').carriles;
 
 // Espejo del PLAN del cron social-story-diaria (route.ts).
-const PLAN = { manana: { contenido: 2, agostina: 2 }, tarde: { contenido: 2 } };
+const PLAN = { manana: { contenido: 2, agostina: 2, 'massaru-sol': 2 }, tarde: { contenido: 2, 'massaru-receta': 2 } };
 const TANDAS = Object.keys(PLAN);
 const ORIGEN = Date.UTC(2026, 0, 1);
 
@@ -71,7 +71,7 @@ async function miniatura(rel) {
     const abs = path.join(RAIZ, 'public', rel);
     let out = '';
     if (existsSync(abs)) {
-        const buf = await sharp(abs).resize({ width: 160 }).jpeg({ quality: 60 }).toBuffer();
+        const buf = await sharp(abs).resize({ width: 200 }).jpeg({ quality: 60 }).toBuffer();
         out = `data:image/jpeg;base64,${buf.toString('base64')}`;
     }
     miniaturas.set(rel, out);
@@ -137,6 +137,25 @@ async function main() {
         dias.push({ fecha: f, feed, tandas });
     }
 
+    // DUPLICADOS (Ishtar, 19/10/2026: "asegurate que lo programado no esté
+    // duplicado"): misma story dos veces el mismo día, el mismo modelo en el
+    // feed y en stories el mismo día, y repeticiones del feed antes del plazo
+    // (21 días los carruseles, 42 los reels; desfile-modelos se exime a propósito).
+    const modelo = (id) => id.replace(/^(story|feed)-(agos|massaru)-/, '');
+    for (const d of dias) {
+        const todas = Object.values(d.tandas).flat();
+        const vistos = new Set();
+        for (const s of todas) { if (vistos.has(s.id)) avisos.push(`${ddmm(d.fecha)} · story ${s.id} sale dos veces el mismo día.`); vistos.add(s.id); }
+        if (d.feed?.clase === 'fotos') for (const s of todas) if (modelo(s.id) === modelo(d.feed.id)) avisos.push(`${ddmm(d.fecha)} · ${modelo(s.id)} sale en el feed y en stories el mismo día.`);
+    }
+    const ultima = new Map();
+    for (const d of dias) {
+        if (!d.feed) continue;
+        const k = `${d.feed.clase}:${d.feed.id}`, plazo = d.feed.clase === 'reel' ? 42 : 21;
+        if (ultima.has(k)) { const gap = diasDesdeOrigen(d.fecha) - diasDesdeOrigen(ultima.get(k)); if (gap < plazo && d.feed.id !== 'desfile-modelos') avisos.push(`${ddmm(d.fecha)} · ${d.feed.id} repite a los ${gap} días (mínimo ${plazo}).`); }
+        ultima.set(k, d.fecha);
+    }
+
     const resumen = {
         carruseles: dias.filter(d => d.feed?.clase === 'carrusel').length,
         fotos: dias.filter(d => d.feed?.clase === 'fotos').length,
@@ -159,6 +178,25 @@ async function main() {
             ${s.imgData ? `<img src="${s.imgData}">` : '<div class="falta">sin imagen</div>'}
             <div class="st">${esc(s.titulo)}${(s.slides ?? 1) > 1 ? ` <span class="n">×${s.slides}</span>` : ''}</div>
         </div>`;
+
+    // ANEXO (Ishtar, 19/10/2026: "mostrame los carruseles programados, todas las
+    // fotos que incluye"): cada carrusel que va al feed, una vez, con todas sus slides.
+    const anexo = [];
+    const yaEnAnexo = new Set();
+    for (const d of dias) {
+        const f = d.feed;
+        if (!f || f.clase === 'reel' || yaEnAnexo.has(f.id)) continue;
+        yaEnAnexo.add(f.id);
+        const slides = f.pieza?.slides?.length || 1;
+        const fotos = [];
+        for (let i = 1; i <= slides; i++) fotos.push(await miniatura(`social/${f.id}/${String(i).padStart(2, '0')}.jpg`));
+        const fechas = dias.filter(x => x.feed?.id === f.id).map(x => ddmm(x.fecha).slice(0, 5));
+        anexo.push({ ...f, fotos, fechas, caption: f.pieza?.caption || '' });
+    }
+    const anexoHtml = `<div class="anexo"><h2>Anexo · los carruseles del feed, foto por foto (${anexo.length})</h2>
+      ${anexo.map(a => `<div class="car"><div class="cab"><span class="tag ${a.clase}">${ETIQUETA[a.clase]}</span> <b>${esc(a.titulo)}</b> <span class="id">${esc(a.id)}</span> · ${a.fotos.length} ${a.fotos.length === 1 ? 'foto' : 'fotos'} · sale: ${a.fechas.join(', ')}</div>
+        <div class="fotos">${a.fotos.map((m, i) => m ? `<div class="f"><img src="${m}"><small>${i + 1}</small></div>` : `<div class="f falta">falta ${i + 1}</div>`).join('')}</div>
+        ${a.caption ? `<div class="cap">${esc(a.caption.split('\n')[0].slice(0, 160))}</div>` : ''}</div>`).join('')}</div>`;
 
     const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Planner de contenido</title>
     <style>
@@ -183,10 +221,17 @@ async function main() {
       .feed .t { font-weight: 600; } .feed .id { color: #777; font-size: 8px; } .aviso { color: #a33; font-weight: 700; font-size: 8.5px; }
       .nada { color: #999; }
       .stories { display: flex; gap: 4px; flex-wrap: wrap; }
-      .story { width: 78px; } .story img { width: 78px; height: 48px; object-fit: cover; object-position: top; border-radius: 3px; display: block; }
+      .story { width: 78px; } .story img { width: 78px; height: 48px; object-fit: cover; object-position: center 28%; border-radius: 3px; display: block; }
       .story .st { font-size: 7.5px; line-height: 1.2; margin-top: 2px; max-height: 2.4em; overflow: hidden; }
-      .story.agostina .st { color: #4a6b8a; } .story.feriados img { outline: 2px solid #a33; } .n { color: #777; }
+      .story.agostina .st { color: #4a6b8a; } .story.massaru-sol .st, .story.massaru-receta .st { color: #8a6d3b; } .story.feriados img { outline: 2px solid #a33; } .n { color: #777; }
       .falta { width: 78px; height: 48px; background: #eee; color: #a33; font-size: 7px; display: flex; align-items: center; justify-content: center; border-radius: 3px; }
+      .anexo { page-break-before: always; } .anexo h2 { font-size: 14px; }
+      .car { page-break-inside: avoid; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #ddd; }
+      .cab { font-size: 10px; margin-bottom: 4px; } .cab .id { color: #777; font-size: 8px; }
+      .fotos { display: flex; gap: 5px; flex-wrap: wrap; } .f { position: relative; } .f img { width: 96px; height: 120px; object-fit: cover; border-radius: 4px; display: block; }
+      .f small { position: absolute; left: 3px; top: 3px; background: rgba(0,0,0,.6); color: #fff; font-size: 8px; padding: 0 4px; border-radius: 3px; }
+      .f.falta { width: 96px; height: 120px; background: #eee; color: #a33; font-size: 8px; display: flex; align-items: center; justify-content: center; }
+      .cap { color: #555; font-size: 8.5px; margin-top: 3px; }
       .avisos { page-break-before: always; } .avisos h2 { font-size: 14px; } .avisos li { margin: 3px 0; font-size: 10px; }
     </style></head><body>
     <h1>Planner de contenido · Atelier Óptica</h1>
@@ -197,7 +242,7 @@ async function main() {
       <div><b>${resumen.reels}</b>reels</div>
       <div><b>${resumen.stories}</b>stories (placas) en ${dias.length} días</div>
     </div>
-    <div class="leyenda">Feed: martes, jueves, sábado y domingo carrusel · miércoles y viernes reel · lunes fotos de modelo (Agostina / Massaru alternados). Stories: mañana 8:00 (2 de contenido + 2 modelos de Agostina, intercaladas; antes, la del feriado si hay) y tarde 18:05 (2 de contenido). ×n = cantidad de placas seguidas del mismo modelo. Borde rojo = story de feriado.</div>
+    <div class="leyenda">Feed: martes, jueves, sábado y domingo carrusel · miércoles y viernes reel · lunes fotos de modelo (Agostina / Massaru alternados). Stories: mañana 8:00 (2 de contenido + 2 modelos de Agostina + 2 de Massaru sol, intercaladas; antes, la del feriado si hay) y tarde 18:05 (2 de contenido + 2 de Massaru receta). ×n = cantidad de placas seguidas del mismo modelo. Borde rojo = story de feriado.</div>
     ${semanas.map(s => `
       <div class="semana"><h2>Semana del ${ddmm(s.lunes)} al ${ddmm(sumar(s.lunes, 6))} · ${MESES[Number(s.lunes.slice(5, 7)) - 1]}</h2>
       <table><thead><tr><th class="fecha">Día</th><th class="feedcol">Feed (FB + IG)</th><th>Stories · mañana 8:00</th><th>Stories · tarde 18:05</th></tr></thead><tbody>
@@ -212,6 +257,7 @@ async function main() {
         </tr>`; }).join('')}
       </tbody></table></div>`).join('')}
     ${avisos.length ? `<div class="avisos"><h2>Avisos (${avisos.length})</h2><p>Lo que a su fecha NO va a salir como está, o va a salir sin imagen. Los carruseles con precio (fuente: base) de más de 10 días el cron no los publica: hay que regenerarlos antes.</p><ul>${avisos.map(a => `<li>${esc(a)}</li>`).join('')}</ul></div>` : ''}
+    ${anexoHtml}
     </body></html>`;
 
     mkdirSync(path.dirname(SALIDA), { recursive: true });

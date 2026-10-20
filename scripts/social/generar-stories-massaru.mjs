@@ -20,8 +20,12 @@
  * SECUENCIA por modelo: frente → perfil (las de Massaru no tienen foto del
  * anteojo en manos salvo 4 especiales, que no van a stories).
  *
- * PARA QUÉ: subirlas con publicar-stories-directo.mjs y pasarlas a destacados.
- * NO tocan el carril diario (social/stories-diarias.json).
+ * CARRIL DIARIO (Ishtar, 19/10/2026: "sumá dos de Massaru de sol a la mañana y
+ * dos de receta en otro horario, la tarde"): al final escribe ENTEROS los
+ * carriles `massaru-sol` y `massaru-receta` de social/stories-diarias.json, en
+ * el orden de modelos-massaru.mjs. El cron social-story-diaria saca 2 de sol a
+ * la mañana y 2 de receta a la tarde (PLAN de la ruta). Para rearmar solo los
+ * carriles sin volver a renderizar:  --solo-carril  (no necesita --fotos).
  *
  * QUÉ MODELOS: los de la sesión con ficha activa en la tienda (16/10/2026).
  * Afuera hasta que Ishtar confirme: Saturno (en la foto es blanco con celeste y
@@ -45,7 +49,9 @@ const args = process.argv.slice(2);
 const valor = (op) => (args.includes(op) ? args[args.indexOf(op) + 1] : null);
 const FOTOS = valor('--fotos');
 const VISTA = valor('--vista');
+const SOLO_CARRIL = args.includes('--solo-carril');
 const soloUno = args.find((a, i) => !a.startsWith('--') && !['--fotos', '--vista'].includes(args[i - 1]));
+if (SOLO_CARRIL) { escribirCarriles(); process.exit(0); }
 if (!FOTOS || !existsSync(FOTOS)) {
     console.error('Falta --fotos <carpeta con las fotos 9:16 editadas (147.jpg, …)>.');
     process.exit(1);
@@ -55,6 +61,27 @@ if (!FOTOS || !existsSync(FOTOS)) {
 // con generar-feed-modelos.mjs).
 const LEYENDA = { [RECETA]: 'Armazón de receta', [SOL]: 'Lentes de sol' };
 const ROLES = ['frente', 'perfil'];
+
+/**
+ * Los carriles diarios de Massaru, uno por familia, con los modelos que ya
+ * tienen pieza renderizada. Separados a propósito: sol sale a la mañana y
+ * receta a la tarde, así cada tanda tiene su propia cara.
+ */
+function escribirCarriles() {
+    const carriles = { 'massaru-sol': [], 'massaru-receta': [] };
+    for (const [slug, , , familia] of M) {
+        const piezaId = `story-massaru-${slug}`;
+        const ruta = path.join(RAIZ, 'social', 'contenido', `${piezaId}.json`);
+        if (!existsSync(ruta)) continue;
+        const slides = JSON.parse(readFileSync(ruta, 'utf-8')).slides?.length || 1;
+        carriles[familia === SOL ? 'massaru-sol' : 'massaru-receta'].push({ id: piezaId, tipo: familia, slides });
+    }
+    const rutaCarriles = path.join(RAIZ, 'social', 'stories-diarias.json');
+    const json = JSON.parse(readFileSync(rutaCarriles, 'utf-8'));
+    Object.assign(json.carriles, carriles);
+    writeFileSync(rutaCarriles, JSON.stringify(json, null, 2) + '\n');
+    for (const [c, l] of Object.entries(carriles)) console.log(`📋 carril "${c}": ${l.length} modelos, ${l.reduce((s, e) => s + e.slides, 0)} stories`);
+}
 
 const id = await cargarIdentidad();
 const logo = 'data:image/png;base64,' + readFileSync(id.logo).toString('base64');
@@ -90,6 +117,7 @@ for (const [slug, nombre, color, familia, numeros] of M) {
     console.log(`✅ ${piezaId} (${numeros.length} slides)`);
 }
 await browser.close();
+if (!soloUno) escribirCarriles();
 
 if (VISTA) {
     const filas = [];

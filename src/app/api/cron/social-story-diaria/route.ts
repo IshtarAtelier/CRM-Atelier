@@ -11,10 +11,11 @@ import { feriadosParaAvisarHoy, idPiezaFeriado } from '@/lib/social/stories-feri
  *
  * DOS TANDAS: `?tanda=manana` (default) y `?tanda=tarde`. Horarios fijados
  * por Ishtar (28/8), ver .github/workflows/social-crons.yml:
- *   mañana —  8:00 ART — 2 de contenido + 2 modelos de Agostina
- *   tarde  — 18:05 ART — 2 de contenido
- * DOS MODELOS POR DÍA, con sus tres fotos (Ishtar, 3/10/2026). Los dos van a
- * la mañana; la tarde queda solo de contenido.
+ *   mañana —  8:00 ART — 2 de contenido + 2 modelos de Agostina + 2 de Massaru (sol)
+ *   tarde  — 18:05 ART — 2 de contenido + 2 modelos de Massaru (receta)
+ * DOS MODELOS DE AGOSTINA POR DÍA, con sus fotos (Ishtar, 3/10/2026), a la
+ * mañana. MASSARU (Ishtar, 19/10/2026): dos de sol a la mañana y dos de receta
+ * en otro horario, la tarde — carriles `massaru-sol` y `massaru-receta`.
  * Las stories duran 24 h pero se consumen en el momento: una sola tanda a la
  * mañana deja toda la tarde sin nada nuevo arriba, que es cuando la gente
  * vuelve a mirar.
@@ -95,8 +96,8 @@ function indiceDelDia(cantidad: number, porDia = 1): number {
  * El ORDEN de las claves importa: define el desplazamiento de cada tanda.
  */
 const PLAN = {
-    manana: { contenido: 2, agostina: 2 },
-    tarde: { contenido: 2 },
+    manana: { contenido: 2, agostina: 2, 'massaru-sol': 2 },
+    tarde: { contenido: 2, 'massaru-receta': 2 },
 } as const satisfies Record<string, Record<string, number>>;
 
 type Tanda = keyof typeof PLAN;

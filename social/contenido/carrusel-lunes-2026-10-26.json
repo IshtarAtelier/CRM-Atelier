@@ -1,0 +1,72 @@
+{
+  "id": "carrusel-lunes-2026-10-26",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Orfeo C3, Deneb C1, Hermes C1",
+    "color": "",
+    "familia": "receta"
+  },
+  "caption": "Orfeo C3 · Deneb C1 · Hermes C1 · Cápsula Escarlata\n6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-lunes-2026-10-26/01.jpg",
+      "alt": "Orfeo C3, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-lunes-2026-10-26/02.jpg",
+      "alt": "Orfeo C3, armazón de receta, de perfil · Cápsula Escarlata"
+    },
+    {
+      "type": "producto",
+      "role": "producto",
+      "image": "social/carrusel-lunes-2026-10-26/03.jpg",
+      "alt": "Orfeo C3, armazón de receta, foto de producto · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-lunes-2026-10-26/04.jpg",
+      "alt": "Deneb C1, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-lunes-2026-10-26/05.jpg",
+      "alt": "Deneb C1, lentes de sol, de perfil · Cápsula Escarlata"
+    },
+    {
+      "type": "producto",
+      "role": "producto",
+      "image": "social/carrusel-lunes-2026-10-26/06.jpg",
+      "alt": "Deneb C1, lentes de sol, foto de producto · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-lunes-2026-10-26/07.jpg",
+      "alt": "Hermes C1, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-lunes-2026-10-26/08.jpg",
+      "alt": "Hermes C1, armazón de receta, de perfil · Cápsula Escarlata"
+    },
+    {
+      "type": "producto",
+      "role": "producto",
+      "image": "social/carrusel-lunes-2026-10-26/09.jpg",
+      "alt": "Hermes C1, armazón de receta, foto de producto · Cápsula Escarlata"
+    }
+  ]
+}
