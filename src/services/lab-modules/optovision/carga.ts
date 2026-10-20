@@ -84,6 +84,7 @@ export type ResultadoPlan = { ok: true; plan: PlanOves; avisos: string[] } | { o
 export interface VentaParaCargaOves {
     id: string;
     labStatus?: string | null;
+    labSentAt?: Date | null;
     labNotes?: string | null;
     labCrizal?: string | null;
     labFrameType?: string | null;

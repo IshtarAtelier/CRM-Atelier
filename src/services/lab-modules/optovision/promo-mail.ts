@@ -84,12 +84,18 @@ export async function avisarMailDePromo(orderId: string, robot: Actor, aprobadoP
     const reclamado = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ mailPromoReclamadoEl: new Date().toISOString() })}::jsonb
         WHERE id = ${segundo.id} AND ("resumenPortal"->>'mailPromoEnviadoEl') IS NULL AND (("resumenPortal"->>'mailPromoReclamadoEl') IS NULL OR ("resumenPortal"->>'mailPromoReclamadoEl') < ${limite})`;
     if (reclamado !== 1) return { enviado: false, motivo: 'otro proceso está mandando el mail (o ya salió)' };
-    await sendEmail({
-        to: DESTINATARIOS_PROMO.join(','),
-        bcc: PRIVATE_ADMIN_EMAILS,
-        subject: asunto,
-        text: cuerpoDelMail({ cliente, primerPar: numeroPrimero, segundoPar: numeroSegundo, cupon: primero?.plan.cupon ?? null, promo }),
-    });
+    try {
+        await sendEmail({
+            to: DESTINATARIOS_PROMO.join(','),
+            bcc: PRIVATE_ADMIN_EMAILS,
+            subject: asunto,
+            text: cuerpoDelMail({ cliente, primerPar: numeroPrimero, segundoPar: numeroSegundo, cupon: primero?.plan.cupon ?? null, promo }),
+        });
+    } catch (err: any) {
+        // Se suelta el reclamo y queda PENDIENTE: la ficha lo muestra y lo reintenta al abrirse.
+        await Borradores.anotarRastro(segundo.id, { mailPromoReclamadoEl: null } as any).catch(() => null);
+        return pendiente(`no se pudo mandar el mail a Optovisión (${err?.message || err}); se reintenta al abrir la ficha`);
+    }
     const cuando = new Date().toISOString();
     await Borradores.anotarRastro(segundo.id, { mailPromoEnviadoEl: cuando, mailPromoPendiente: null } as any);
     await prisma.interaction.create({

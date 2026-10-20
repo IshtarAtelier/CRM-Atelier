@@ -10,7 +10,7 @@ export async function leerVentaParaCargaOves(orderId: string): Promise<VentaPara
     const o = await prisma.order.findUnique({
         where: { id: orderId },
         select: {
-            id: true, labStatus: true, labNotes: true, labCrizal: true, labFrameType: true, labDiameter: true, labEdgeInStore: true,
+            id: true, labStatus: true, labSentAt: true, labNotes: true, labCrizal: true, labFrameType: true, labDiameter: true, labEdgeInStore: true,
             labPrismOD: true, labPrismOI: true, appliedPromoName: true,
             userFrameBrand: true, userFrameModel: true, labFrameDetails: true, labFrameDetails2: true, labFrameShape: true, labFrameShape2: true,
             labPdOd: true, labPdOi: true, labHeightOD: true, labHeightOI: true, labHeightOD2: true, labHeightOI2: true,

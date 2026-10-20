@@ -17,7 +17,7 @@ import { marcaDePromo, WEB_DE_PROMO, DESTINATARIOS_PROMO, cuponLimpio, observaci
 import { especificacionDe, colorOvesDe, materialDe, elegirProductoOves, eleccionQuePide, familiaDelNombre, tratamientoDe, varianteDe } from '../../src/services/lab-modules/optovision/catalogo.ts';
 import { PRODUCTOS_OVES, OVES_CATALOGO, valueDeOves } from '../../src/lib/laboratorios/oves-catalogo.ts';
 import { planDeCarga, referenciaDelPedido, observacionDelPedido, esPromoDobleDeOptovision, rolesDeLaPromo, huellaDelPlan, diferenciasDePlan, cristalesPorPar, promoQueNoCierra, nombraPromoDoble } from '../../src/services/lab-modules/optovision/carga.ts';
-import { elegirServicio, diferenciasDeFormulario, numeroDeLaRespuesta, referenciaCoincide, pedidoConsultadoEsNuestro } from '../../src/services/lab-modules/optovision/llenar.ts';
+import { elegirServicio, diferenciasDeFormulario, numeroDeLaRespuesta, referenciaCoincide, pedidoConsultadoEsNuestro, fechaDelPortal } from '../../src/services/lab-modules/optovision/llenar.ts';
 import { textoDeFallaDeConfirmacion } from '../../src/services/lab-modules/carga/robot-comun.ts';
 import { decidirConAprobado } from '../../src/services/lab-modules/carga/decision.ts';
 import { mensajeExistente } from '../../src/services/lab-modules/optovision/existentes.ts';
@@ -289,12 +289,22 @@ t('la referencia del listado coincide aunque el portal la recorte, y la consulta
     assert.equal(referenciaCoincide('#AB12 Juan San Mart', '#AB12 Juan San Martin 2° par'), true);
     assert.equal(referenciaCoincide('#AB12 Juan San Martin 1° par', '#AB12 Juan San Martin 2° par'), false);
     assert.equal(referenciaCoincide('', '#AB12'), false);
-    const consulta = { pel_cod_estado: 'PR', pel_est_solanul: 'N', cliente: 'ATEL01 - PISSANO ISHTAR', producto: 'Eyezen Start Orma Blue UV', paciente: 'Juan San Martin', pedinterno: '#AB12 Juan San Martin 2° par' };
+    // Una referencia corta del portal ("#AB12 Juan", carga a mano) no vale para un par en particular.
+    assert.equal(referenciaCoincide('#AB12 Juan', '#AB12 Juan San Martin 2° par'), false);
+    assert.equal(referenciaCoincide('#AB12 Juan', '#AB12 Juan San Martin'), true);
+    const consulta = { pel_cod_estado: 'PR', pel_est_solanul: 'N', pel_fec_pedido: '17/10/2026 16:26:31', cliente: 'ATEL01 - PISSANO ISHTAR', producto: 'Eyezen Start Orma Blue UV', paciente: 'San Martin Juan', pedinterno: '#AB12 Juan San Martin 2° par' };
     assert.equal(pedidoConsultadoEsNuestro(consulta, { paciente: 'Juan San Martin', pedinterno: '#AB12 Juan San Martin 2° par' }).ok, true);
+    // El nombre en otro orden también es el mismo paciente.
+    assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pedinterno: 'x' }, { paciente: 'Juan San Martin', pedinterno: '' }).ok, true);
     assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_cod_estado: 'AN' }, { paciente: 'Juan San Martin', pedinterno: '' }).motivo, 'está ANULADO en el portal');
     assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_est_solanul: 'S' }, { paciente: 'Juan San Martin', pedinterno: '' }).ok, false);
-    assert.equal(pedidoConsultadoEsNuestro(consulta, { paciente: 'Otra Persona', pedinterno: '#ZZ99 Otra' }).ok, false);
+    const ajeno = pedidoConsultadoEsNuestro(consulta, { paciente: 'Otra Persona', pedinterno: '#ZZ99 Otra' });
+    assert.equal(ajeno.ok, false); assert.equal(ajeno.vivo, true); assert.match(ajeno.motivo, /vivo/);
+    // Un pedido anterior a la venta es otro pedido del mismo cliente.
+    assert.match(pedidoConsultadoEsNuestro(consulta, { paciente: 'Juan San Martin', pedinterno: '', desde: new Date(2026, 9, 30) }).motivo, /anterior a esta venta/);
+    assert.equal(pedidoConsultadoEsNuestro(consulta, { paciente: 'Juan San Martin', pedinterno: '', desde: new Date(2026, 9, 17, 10) }).ok, true);
     assert.equal(pedidoConsultadoEsNuestro(null, { paciente: 'x', pedinterno: 'y' }).ok, false);
+    assert.equal(fechaDelPortal('17/10/2026 16:26:31').getDate(), 17); assert.equal(fechaDelPortal('nada'), null);
 });
 t('una promo que no cierra frena en vez de salir como pedido común sin cupón', () => {
     assert.equal(nombraPromoDoble('Doble Disfrute Varilux'), true); assert.equal(nombraPromoDoble('VARILUX COMFORT - ORMA + CRIZAL 2x1'), true); assert.equal(nombraPromoDoble('Kodak Unique'), false);

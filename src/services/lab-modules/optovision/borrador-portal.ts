@@ -104,8 +104,9 @@ async function enSoloLectura<T>(page: Page, tarea: (atajadas: string[]) => Promi
         // La sonda prueba los DOS caminos: el POST documentado y un RPC sajax por GET.
         const paso = await page.evaluate(async () => {
             let pasoAlguno = false;
-            try { await fetch('include/suggest.php?opc=grabar&prueba=1', { method: 'POST', body: 'lentes=AO', credentials: 'include' }); pasoAlguno = true; } catch { /* atajado */ }
-            try { await fetch('include/suggest.php?rs=x_grabarPedido&rsargs[]=prueba&prueba=2', { credentials: 'include' }); pasoAlguno = true; } catch { /* atajado */ }
+            // Contra una ruta que NO existe: si el bloqueo fallara, el portal contesta 404 y no toca nada.
+            try { await fetch('include/__sonda__.php?opc=grabar&prueba=1', { method: 'POST', body: 'lentes=AO', credentials: 'include' }); pasoAlguno = true; } catch { /* atajado */ }
+            try { await fetch('include/__sonda__.php?rs=x_grabarPedido&rsargs[]=prueba&prueba=2', { credentials: 'include' }); pasoAlguno = true; } catch { /* atajado */ }
             return pasoAlguno;
         });
         if (paso || !atajadas.some(a => /prueba=1/.test(a)) || !atajadas.some(a => /prueba=2/.test(a))) throw new Error(`${NOMBRE_OPTOVISION}: no se pudo poner el navegador en solo lectura; no se toca el formulario.`);
@@ -218,6 +219,8 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
             if (decision.accion === 'BUSCAR_EN_PORTAL') {
                 const ajenos = await numerosDeOtrosPares(b.orderId, b.pair);
                 const enPortal = (await buscarPorReferencia(page, referencia)).filter(f => !ajenos.has(f.numero) && !/anulad/i.test(f.estado));
+                // Dos pedidos vivos con nuestra referencia: uno sobra, y no se elige "el más nuevo" callado (como PedidoAmbiguoError en GO).
+                if (enPortal.length > 1) throw new AdopcionNoVerificadaError(`hay ${enPortal.length} pedidos en OVES con la referencia "${referencia}" (nº ${enPortal.map(f => f.numero).join(', ')}): pedile a Optovisión la anulación del que sobra y dejá en la venta el que queda. No se crea otro`);
                 decision = decidirConAprobado({ ...datos, numeroEnPortal: enPortal[0]?.numero ?? null });
             }
             if (decision.accion === 'INVALIDAR') throw new AprobacionInvalidaError(decision.motivo);
@@ -236,12 +239,15 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                     // Si además el listado tiene una fila con NUESTRA referencia que no es
                     // de otro par, esa es la nuestra: se adopta esa.
                     const ajenos = await numerosDeOtrosPares(b.orderId, b.pair);
-                    const propias = (await buscarPorReferencia(page, referencia)).filter(f => !ajenos.has(f.numero) && !/anulad/i.test(f.estado));
-                    if (propias.length === 1 && propias[0].numero !== numero && adoptadoDe === 'venta') numero = propias[0].numero;
+                    const propias = adoptadoDe === 'venta' ? (await buscarPorReferencia(page, referencia)).filter(f => !ajenos.has(f.numero) && !/anulad/i.test(f.estado)) : [];
+                    if (propias.length > 1) throw new AdopcionNoVerificadaError(`hay ${propias.length} pedidos en OVES con la referencia "${referencia}" (nº ${propias.map(f => f.numero).join(', ')}): pedile a Optovisión la anulación del que sobra y dejá en la venta el que queda. No se crea otro`);
+                    if (propias.length === 1 && propias[0].numero !== numero) numero = propias[0].numero;
                     const consulta = await consultarPedido(page, numero);
-                    const v = pedidoConsultadoEsNuestro(consulta, { paciente: guardado.plan.paciente, pedinterno: referencia });
+                    const v = pedidoConsultadoEsNuestro(consulta, { paciente: guardado.plan.paciente, pedinterno: referencia, desde: ventaHoy.labSentAt ?? null });
                     const incierto = !!rastroActual.envioIniciadoEl;
-                    if (!v.ok) throw new AdopcionNoVerificadaError(`el nº ${numero} que tiene este par ${v.motivo} en OVES: revisalo en el portal y corregí el nº en la venta.${incierto ? ' Hay además un envío de este borrador sin respuesta: el robot NO afirma que no se haya creado nada; buscalo en el listado antes de cargar a mano' : ' No se creó nada'}`);
+                    // Un pedido VIVO que no nombra a este paciente se mira en el portal, nunca se "corrige" borrando el nº (borrarlo → crear → duplicado).
+                    const consejo = v.vivo ? 'confirmalo mirando el pedido en OVES; si es de esta venta, dejá el nº y cargá el par a mano; NO borres el nº' : 'corregí el nº en la venta';
+                    if (!v.ok) throw new AdopcionNoVerificadaError(`el nº ${numero} que tiene este par ${v.motivo}: ${consejo}.${incierto ? ' Hay además un envío de este borrador sin respuesta: el robot NO afirma que no se haya creado nada; buscalo en el listado antes de cargar a mano' : ' No se creó nada'}`);
                 }
             } else {
                 // 3. ¿La venta de hoy sigue dando EXACTAMENTE lo aprobado?
@@ -256,9 +262,10 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 // anuló y el equipo lo recargó a mano, el nº de la observación sería
                 // el viejo y cobrarían los dos pares).
                 if (r.plan.rolPromo === 'SEGUNDO_PAR' && r.plan.pedidoOrigen) {
+                    // Un corte al consultar NO invalida la aprobación (relanza como error común: queda APROBADO y se reintenta).
                     const primero = await consultarPedido(page, r.plan.pedidoOrigen);
                     const v = pedidoConsultadoEsNuestro(primero, { paciente: r.plan.paciente, pedinterno: '' });
-                    if (!v.ok) throw new AprobacionInvalidaError(`El 1er par de la promo (nº ${r.plan.pedidoOrigen}) ${v.motivo} en OVES: corregí en la venta el nº del 1er par vigente y volvé a preparar el 2º. No se mandó nada.`);
+                    if (!v.vivo) throw new AprobacionInvalidaError(`El 1er par de la promo (nº ${r.plan.pedidoOrigen}) ${v.motivo}: corregí en la venta el nº del 1er par vigente y volvé a preparar el 2º. No se mandó nada.`);
                 }
                 // Se vuelve a llenar el formulario (otra sesión, otro navegador) y tiene que quedar IGUAL que lo que la persona vio.
                 await mezclar(b.id, { etapa: `volviendo a llenar el formulario de OVES desde ${new Date().toISOString()}` }).catch(() => null);
@@ -289,7 +296,10 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 // El nº leído de la respuesta se VERIFICA antes de anotarlo: la consulta
                 // de ese pedido tiene que ser de esta venta. Un nº equivocado anotado
                 // como creado dejaría el pedido real huérfano para siempre.
-                const v = pedidoConsultadoEsNuestro(await consultarPedido(page, numero), { paciente: r.plan.paciente, pedinterno: referencia });
+                let consultaGrabado: Record<string, unknown> | null;
+                try { consultaGrabado = await consultarPedido(page, numero); }
+                catch (e: any) { throw new PortalRespondioError(`${NOMBRE_OPTOVISION} contestó al grabar con el nº ${numero}, pero no se pudo consultar para comprobarlo (${e?.message || e}): no se anota todavía. Reintentar busca el pedido por la referencia antes de grabar otro`); }
+                const v = pedidoConsultadoEsNuestro(consultaGrabado, { paciente: r.plan.paciente, pedinterno: referencia });
                 if (!v.ok) throw new PortalRespondioError(`${NOMBRE_OPTOVISION} contestó al grabar con el nº ${numero}, pero su consulta ${v.motivo}: no se anota. Reintentar busca el pedido por la referencia antes de grabar otro`);
             }
             // Anotado en el acto: de acá en más un reintento no vuelve a grabar.

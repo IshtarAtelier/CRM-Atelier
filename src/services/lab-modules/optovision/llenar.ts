@@ -292,6 +292,8 @@ export async function grabarPedido(page: Page, opts: { antesDeConfirmar?: () => 
     const estado: { alerta: string | null; alertaTrasConfirmar: string | null; confirmado: boolean; fallaBarrera: unknown } = { alerta: null, alertaTrasConfirmar: null, confirmado: false, fallaBarrera: null };
     const onDialog = async (d: any) => {
         if (d.type() === 'confirm') {
+            // Si antes hubo un alert (rechazo), el confirm que lo siga no se acepta: no se graba sobre un rechazo.
+            if (estado.alerta) { await d.dismiss().catch(() => null); return; }
             try { await opts.antesDeConfirmar?.(); } catch (err) { estado.fallaBarrera = err; await d.dismiss().catch(() => null); return; }
             estado.confirmado = true;
             await d.accept().catch(() => null);
@@ -309,7 +311,7 @@ export async function grabarPedido(page: Page, opts: { antesDeConfirmar?: () => 
         while (Date.now() < limite) {
             await page.waitForTimeout(1000);
             if (estado.fallaBarrera) throw estado.fallaBarrera;
-            if (estado.alerta) break;
+            if (estado.alerta && !estado.confirmado) break;
             if (estado.alertaTrasConfirmar) {
                 const numero = numeroDeLaRespuesta(estado.alertaTrasConfirmar, opts.excluir ?? []);
                 if (numero) return { numero, respuesta: estado.alertaTrasConfirmar.slice(0, 2000) };
@@ -352,6 +354,10 @@ const normalizarReferencia = (t: string) => t.normalize('NFD').replace(/[\u0300-
 export function referenciaCoincide(enPortal: string, nuestra: string): boolean {
     const a = normalizarReferencia(enPortal), b = normalizarReferencia(nuestra);
     if (!a || !b) return false;
+    // Con dos pares, la del portal tiene que decir el MISMO par: "#AB12 Juan" a secas (carga a mano) serviría para los dos.
+    // …salvo que la del portal sea la nuestra RECORTADA (un prefijo largo: código + nombre), donde el par quedó afuera del corte.
+    const parDe = (t: string) => t.match(/(\d)\s*°?\s*par\b/)?.[1] ?? null;
+    if (parDe(b) && parDe(a) !== parDe(b)) return b.startsWith(a) && a.length >= 15;
     return a === b || a.startsWith(b) || b.startsWith(a);
 }
 
@@ -386,20 +392,35 @@ export async function buscarPorReferencia(page: Page, referencia: string): Promi
 
 /** La consulta de un pedido (`opc=consulta&nroPed=`): el JSON crudo del portal, o null si no existe / no se pudo leer. Solo lee. */
 export async function consultarPedido(page: Page, numero: string): Promise<Record<string, unknown> | null> {
-    const r = await pedirJsonOves<unknown>(page, { opc: 'consulta', nroPed: numero }).catch(() => null);
+    // Un error de red o del portal se RELANZA (no es "no existe"): quien llama decide si queda incierto.
+    const r = await pedirJsonOves<unknown>(page, { opc: 'consulta', nroPed: numero });
     const fila = Array.isArray(r) ? r[0] : r;
-    return fila && typeof fila === 'object' ? (fila as Record<string, unknown>) : null;
+    return fila && typeof fila === 'object' && Object.keys(fila as object).length > 0 ? (fila as Record<string, unknown>) : null;
+}
+
+/** "17/10/2026 16:26:31" (como lo muestra el portal) → Date; null si no se entiende. Puro. */
+export function fechaDelPortal(texto: unknown): Date | null {
+    const m = String(texto ?? '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if (!m) { const d = new Date(String(texto ?? '')); return Number.isNaN(d.getTime()) ? null : d; }
+    return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4] ?? 0), Number(m[5] ?? 0));
 }
 
 /** ¿La consulta de un pedido es de ESTA venta (nombra al paciente o la referencia) y está vivo (no anulado)? Puro. */
-export function pedidoConsultadoEsNuestro(consulta: Record<string, unknown> | null, o: { paciente: string; pedinterno: string }): { ok: boolean; motivo: string } {
-    if (!consulta) return { ok: false, motivo: 'el portal no devolvió el pedido' };
+export function pedidoConsultadoEsNuestro(consulta: Record<string, unknown> | null, o: { paciente: string; pedinterno: string; desde?: Date | null }): { ok: boolean; motivo: string; vivo: boolean } {
+    if (!consulta) return { ok: false, motivo: 'no existe en el portal (la consulta vino vacía)', vivo: false };
     const estado = String(consulta.pel_cod_estado ?? '').toUpperCase();
-    if (estado === 'AN') return { ok: false, motivo: 'está ANULADO en el portal' };
+    if (estado === 'AN') return { ok: false, motivo: 'está ANULADO en el portal', vivo: false };
     const solicitud = String(consulta.pel_est_solanul ?? 'N').toUpperCase();
-    if (solicitud === 'S') return { ok: false, motivo: 'tiene una solicitud de anulación en proceso' };
+    if (solicitud === 'S') return { ok: false, motivo: 'tiene una solicitud de anulación en proceso', vivo: false };
+    // Un pedido más viejo que la venta no es de esta venta (un nº de otra compra del mismo cliente tipeado en la venta).
+    const fecha = fechaDelPortal(consulta.pel_fec_pedido);
+    if (o.desde && fecha && fecha.getTime() < o.desde.getTime() - 86400000) return { ok: false, motivo: `es del ${fecha.toLocaleDateString('es-AR')}, anterior a esta venta: es otro pedido de este cliente`, vivo: true };
     const valores = Object.values(consulta).filter(v => typeof v === 'string').map(v => normalizarReferencia(v as string));
-    const paciente = normalizarReferencia(o.paciente), ref = normalizarReferencia(o.pedinterno);
-    const nombra = valores.some(v => (paciente && v.includes(paciente)) || (ref && (v.includes(ref) || ref.includes(v) && v.length > 6)));
-    return nombra ? { ok: true, motivo: '' } : { ok: false, motivo: 'no nombra a este paciente ni a esta referencia' };
+    // El nombre, por palabras y en cualquier orden: el equipo escribe "Devereux Patricia" o "Patricia Devereux".
+    const palabras = normalizarReferencia(o.paciente).split(' ').filter(w => w.length >= 3);
+    const nombraPaciente = palabras.length > 0 && valores.some(v => palabras.every(w => v.includes(w)));
+    const ref = normalizarReferencia(o.pedinterno);
+    const nombraRef = !!ref && valores.some(v => v.includes(ref) || (v.length > 6 && ref.includes(v)));
+    if (nombraPaciente || nombraRef) return { ok: true, motivo: '', vivo: true };
+    return { ok: false, motivo: 'existe y está vivo, pero no nombra a este paciente ni a esta referencia', vivo: true };
 }
