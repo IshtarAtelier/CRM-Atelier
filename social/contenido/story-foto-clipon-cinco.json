@@ -1,0 +1,24 @@
+{
+  "id": "story-foto-clipon-cinco",
+  "format": "9:16",
+  "theme": "light",
+  "pilar": "producto",
+  "fuente": "fotos-catalogo-oct2026",
+  "caption": "Un armazón, cinco clips. Clip-on con imán: receta de día y sol cuando hace falta.",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "slides": [
+    {
+      "type": "puesta",
+      "soloProducto": true,
+      "role": "portada",
+      "image": "catalogo-social/fotos-oct2026/clipon-cinco-clips.jpg",
+      "eyebrow": "Clip-on",
+      "title": "Cinco clips",
+      "linea": "Clip-on: receta de día y sol cuando hace falta, con un imán. Mirá todos en atelieroptica.com.ar/clip-on",
+      "lineaGrande": true
+    }
+  ]
+}

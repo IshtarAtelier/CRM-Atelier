@@ -1,4 +1,4 @@
-# Los cuatro crons de publicación en redes.
+# Los cinco crons de publicación en redes.
 #
 # Viven en GitHub Actions y no en cron-job.org por una razón práctica: el repo
 # ya está acá, el alta la puede hacer cualquiera con acceso al repo (no depende
@@ -9,6 +9,7 @@
 # que dispara stories, feed y reportes en el mismo minuto se ve automatizada.
 #   11:00 UTC =  8:00 ART → stories, tanda de la MAÑANA (4)
 #   14:00 UTC = 11:00 ART → carrusel del feed, si hay programado
+#   20:00 UTC = 17:00 ART → modelo del día en el feed (Agostina / Massaru, alternados)
 #   21:05 UTC = 18:05 ART → stories, tanda de la TARDE (2)
 #   21:00 UTC = 18:00 ART → mail de cadencia
 #
@@ -47,17 +48,19 @@ on:
     - cron: '40 11 * * *'   # stories mañana, red de seguridad
     - cron: '0 14 * * *'    # feed — 11:00 ART
     - cron: '40 14 * * *'   # feed, red de seguridad
+    - cron: '0 20 * * *'    # feed, modelo del día — 17:00 ART
+    - cron: '40 20 * * *'   # feed modelo, red de seguridad
     - cron: '5 21 * * *'    # stories tarde — 18:05 ART
     - cron: '45 21 * * *'   # stories tarde, red de seguridad
     - cron: '0 21 * * *'    # cadencia — 18:00 ART
   workflow_dispatch:
     inputs:
       cual:
-        description: 'Qué cron disparar (stories-manana | stories-tarde | feed | cadencia)'
+        description: 'Qué cron disparar (stories-manana | stories-tarde | feed | feed-modelo | cadencia)'
         required: true
         default: 'stories-manana'
         type: choice
-        options: [stories-manana, stories-tarde, feed, cadencia]
+        options: [stories-manana, stories-tarde, feed, feed-modelo, cadencia]
 
 jobs:
   disparar:
@@ -83,6 +86,7 @@ jobs:
             case "${{ github.event.schedule }}" in
               '0 11 * * *'|'40 11 * * *') CUAL="stories-manana" ;;
               '0 14 * * *'|'40 14 * * *') CUAL="feed" ;;
+              '0 20 * * *'|'40 20 * * *') CUAL="feed-modelo" ;;
               '5 21 * * *'|'45 21 * * *') CUAL="stories-tarde" ;;
               '0 21 * * *')               CUAL="cadencia" ;;
               *)
@@ -98,6 +102,7 @@ jobs:
             stories-manana) RUTA="social-story-diaria"; QUERY="?tanda=manana" ;;
             stories-tarde)  RUTA="social-story-diaria"; QUERY="?tanda=tarde" ;;
             feed)           RUTA="social-feed" ;;
+            feed-modelo)    RUTA="social-feed"; QUERY="?que=modelo" ;;
             cadencia)       RUTA="social-cadencia" ;;
             *)
               echo "::error::Destino sin mapear: '$CUAL'."

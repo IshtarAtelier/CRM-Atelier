@@ -1,46 +1,32 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
-import { logAudit } from '@/lib/audit';
 import { PostSaleChargeService, CargoError } from '@/services/post-sale-charge.service';
 
 /**
- * CIERRE ECONÓMICO DE UN CASO DE POST VENTA: imputar el costo como descuento en
- * la caja de quien cometió el error.
+ * CIERRE ECONÓMICO DE UN CASO DE POST VENTA: repartir el costo entre una caja
+ * y/o el cliente. Toda la regla vive en PostSaleChargeService; acá solo se
+ * valida quién llama y se traduce el body.
  *
- * El circuito, tal como lo definió el administrador (2/8/2026):
+ * El circuito, tal como lo definió el administrador (2/8/2026, ampliado el
+ * 19/10/2026):
  *   1. El vendedor carga una ESTIMACIÓN del costo al abrir el caso.
- *   2. Cuando el laboratorio facturó TODAS las operaciones del caso (las dos, si
- *      son dos), la conciliación pisa la estimación con el valor real
- *      (costSource = 'LAB') y le manda UN email al administrador con todo el
- *      detalle. Ver completePostSaleCost en services/lab-recon.
- *   3. El administrador revisa ese email y dispara el cobro. Un solo paso: al
- *      imputar queda registrada la corroboración, porque el acto de imputar ES
- *      la corroboración.
- *
- * Por qué el paso 2 espera a TODAS las operaciones: el monto que carga el
- * vendedor puede no coincidir con lo que factura el lab, y con una sola de las
- * dos facturas el costo todavía no es el final. La plata no se mueve hasta que
- * el número está cerrado y un humano lo miró.
+ *   2. Cuando el laboratorio facturó TODAS las operaciones del caso, la
+ *      conciliación pisa la estimación con el valor real (costSource = 'LAB') y
+ *      le manda UN email al administrador. Ver completePostSaleCost en
+ *      services/lab-recon.
+ *   3. El administrador reparte el costo: a su caja (lo cubre Atelier), a la
+ *      caja del vendedor que se equivocó, al cliente como saldo de la venta, o
+ *      una parte a cada uno. Y lo puede cambiar después.
  *
  * El disparo vive acá adentro (sesión autenticada, rol ADMIN) y no en un link
- * del email: es un movimiento de plata, y un link que cobra solo con abrirlo se
- * dispara con un reenvío o una previsualización del cliente de correo. El email
- * lleva todo el detalle y el acceso directo al caso.
+ * del email: es un movimiento de plata.
+ *
+ * Acciones:
+ *   repartir        { cajaVendorId?, cajaMonto, clienteMonto }
+ *   anular_reparto  deshace todo
+ *   impute / charge_client / revert_client_charge  — las formas viejas, traducidas.
  */
-
-/** ¿A qué caja va el descuento? */
-function cajaDelCaso(pvCase: { fault: string | null; faultUserId: string | null }) {
-    // La atribución solo distingue Laboratorio/Óptica/Cliente/Médico. Solo
-    // cuando el error fue de la ÓPTICA hay una persona a la que descontarle, y
-    // esa persona se elige en el caso (faultUserId). Todo lo demás lo absorbe
-    // Atelier → caja del administrador.
-    if (pvCase.fault === 'Óptica' && pvCase.faultUserId) {
-        return { vendorId: pvCase.faultUserId, loCubreAtelier: false };
-    }
-    return { vendorId: null, loCubreAtelier: true };
-}
-
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -49,142 +35,44 @@ export async function POST(
         const actor = getActor(request);
         if (actor.role !== 'ADMIN') {
             return NextResponse.json(
-                { error: 'Solo el administrador puede corroborar e imputar el costo de un caso' },
+                { error: 'Solo el administrador puede corroborar y repartir el costo de un caso' },
                 { status: 403 }
             );
         }
 
         const { id } = await params;
         const body = await request.json().catch(() => ({}));
+        const action = String(body.action || 'impute');
 
-        // Segunda vía de cierre: el costo lo paga el CLIENTE y queda como saldo
-        // del caso (con sus propios pagos y comprobantes). Ver PostSaleChargeService.
-        if (['charge_client', 'revert_client_charge'].includes(body.action)) {
-            try {
-                if (body.action === 'charge_client') return NextResponse.json({ ok: true, ...(await PostSaleChargeService.chargeClient(id, actor)) });
-                await PostSaleChargeService.revertClientCharge(id, actor);
-                return NextResponse.json({ ok: true });
-            } catch (e) {
-                if (e instanceof CargoError) return NextResponse.json({ error: e.message }, { status: e.status });
-                throw e;
-            }
-        }
+        const costoDelCaso = async () => Math.round((await prisma.postSaleCase.findUnique({ where: { id }, select: { cost: true } }))?.cost ?? 0);
 
-        const pvCase = await prisma.postSaleCase.findUnique({
-            where: { id },
-            select: {
-                id: true, cost: true, costSource: true, cashEntryId: true, clientChargedAt: true,
-                fault: true, faultUserId: true, caseType: true,
-                orderLabel: true, newOrderNumber: true,
-                client: { select: { name: true } },
-            },
-        });
-        if (!pvCase) {
-            return NextResponse.json({ error: 'Caso no encontrado' }, { status: 404 });
-        }
-
-        if (pvCase.cashEntryId) {
-            return NextResponse.json(
-                { error: 'El costo de este caso ya fue imputado a caja.' },
-                { status: 409 }
-            );
-        }
-        if (pvCase.clientChargedAt) {
-            return NextResponse.json(
-                { error: 'Este caso ya está cargado al cliente. Anulá ese cargo antes de descontarlo de una caja.' },
-                { status: 409 }
-            );
-        }
-        // El portón del circuito: mientras el costo sea la estimación del
-        // vendedor no hay nada que cobrar. costSource pasa a 'LAB' recién cuando
-        // el laboratorio facturó TODAS las operaciones del caso.
-        if (pvCase.costSource !== 'LAB') {
-            return NextResponse.json({
-                error: 'Todavía no está el costo real del laboratorio: falta la factura de alguna de las operaciones del caso.',
-            }, { status: 409 });
-        }
-        if (!(pvCase.cost > 0)) {
-            return NextResponse.json(
-                { error: 'El caso no tiene costo que imputar (sin cargo).' },
-                { status: 409 }
-            );
+        let reparto: { cajaVendorId: string | null; cajaMonto: number; clienteMonto: number };
+        switch (action) {
+            case 'repartir':
+                reparto = {
+                    cajaVendorId: body.cajaVendorId ? String(body.cajaVendorId) : null,
+                    cajaMonto: Number(body.cajaMonto) || 0,
+                    clienteMonto: Number(body.clienteMonto) || 0,
+                };
+                break;
+            case 'anular_reparto':
+            case 'revert_client_charge':
+                reparto = { cajaVendorId: null, cajaMonto: 0, clienteMonto: 0 };
+                break;
+            case 'charge_client':
+                reparto = { cajaVendorId: null, cajaMonto: 0, clienteMonto: await costoDelCaso() };
+                break;
+            case 'impute':
+                reparto = { cajaVendorId: body.vendorId ? String(body.vendorId) : null, cajaMonto: await costoDelCaso(), clienteMonto: 0 };
+                break;
+            default:
+                return NextResponse.json({ error: `Acción desconocida: ${action}` }, { status: 400 });
         }
 
-        const { vendorId, loCubreAtelier } = cajaDelCaso(pvCase);
-        // Si lo cubre Atelier el descuento va a la caja del administrador que
-        // está imputando (caja Ishtar). Se puede redirigir a otra caja pasando
-        // vendorId explícito, para los casos que la atribución no cubre bien.
-        const destinoId = String(body.vendorId || '') || vendorId || actor.id;
-        if (!destinoId) {
-            return NextResponse.json({ error: 'No se pudo resolver la caja de destino' }, { status: 400 });
-        }
-        const vendor = await prisma.user.findUnique({
-            where: { id: destinoId },
-            select: { id: true, name: true, role: true },
-        });
-        if (!vendor || vendor.role === 'OPTICA') {
-            return NextResponse.json({ error: 'La caja de destino no es válida' }, { status: 404 });
-        }
-
-        // Nombre del caso, para que el movimiento se entienda desde la caja sin
-        // tener que volver al caso.
-        const nombreCaso = [
-            'Post venta',
-            pvCase.client?.name,
-            pvCase.caseType,
-            pvCase.newOrderNumber ? `OP ${pvCase.newOrderNumber}` : pvCase.orderLabel,
-        ].filter(Boolean).join(' · ');
-
-        // El movimiento y el candado del caso van juntos: si algo falla en el
-        // medio, no queda ni un descuento sin caso ni un caso marcado sin
-        // descuento. El @unique de cashEntryId cubre además el doble click.
-        const { entry } = await prisma.$transaction(async tx => {
-            const entry = await tx.vendorCashEntry.create({
-                data: {
-                    vendorId: vendor.id,
-                    type: 'DEBITO',
-                    amount: pvCase.cost,
-                    reason: nombreCaso,
-                    category: 'POST_VENTA',
-                    createdById: actor.id,
-                    createdByName: actor.name,
-                },
-            });
-            // updateMany con el guard `cashEntryId: null`: si otro click ganó la
-            // carrera, actualiza 0 filas y la transacción entera se revierte.
-            const marcado = await tx.postSaleCase.updateMany({
-                where: { id, cashEntryId: null },
-                data: {
-                    cashEntryId: entry.id,
-                    // Imputar ES corroborar: el administrador miró el número y lo
-                    // dio por bueno en el mismo acto.
-                    costConfirmedAt: new Date(),
-                    costConfirmedBy: actor.name,
-                },
-            });
-            if (marcado.count === 0) {
-                throw new Error('El costo de este caso ya fue imputado a caja.');
-            }
-            await tx.postSaleNote.create({
-                data: {
-                    caseId: id,
-                    content: `${actor.name} corroboró el costo e imputó $${Math.round(pvCase.cost).toLocaleString('es-AR')} como descuento en la caja de ${vendor.name}${loCubreAtelier ? ' (lo cubre Atelier)' : ''}.`,
-                    createdBy: 'Sistema',
-                },
-            });
-            return { entry };
-        });
-
-        await logAudit({
-            userId: actor.id, userName: actor.name, action: 'CREATE',
-            entityType: 'VENDOR_CASH', entityId: entry.id,
-            details: {
-                evento: 'imputacion_postventa', caseId: id, vendorId: vendor.id,
-                vendorName: vendor.name, monto: pvCase.cost, loCubreAtelier,
-            },
-        });
-        return NextResponse.json({ ok: true, entry, vendorName: vendor.name, loCubreAtelier });
+        const r = await PostSaleChargeService.repartir(id, reparto, actor);
+        return NextResponse.json({ ok: true, ...r });
     } catch (error: any) {
+        if (error instanceof CargoError) return NextResponse.json({ error: error.message }, { status: error.status });
         console.error('Error en el cierre económico del caso de post venta:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

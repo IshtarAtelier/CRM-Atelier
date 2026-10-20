@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-diana-c4",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Diana",
+    "color": "C4",
+    "familia": "receta"
+  },
+  "caption": "Diana C4 · Cápsula Escarlata\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-diana-c4/01.jpg",
+      "alt": "Diana C4, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-diana-c4/02.jpg",
+      "alt": "Diana C4, armazón de receta, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

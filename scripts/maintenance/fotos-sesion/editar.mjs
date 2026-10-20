@@ -100,7 +100,10 @@ export async function editar(n) {
     side = Math.round(Math.min(W, H, (mentonY - tope0) / 0.42));
     const cxS = perfil || girado ? (xMin + xMax) / 2 : c.x + c.w / 2;
     left = clamp(Math.round(cxS - side / 2), 0, W - side);
-    top = clamp(Math.round(tope0 - 0.07 * side), 0, H - side);
+    // AIRE_STORY: cuánto aire queda sobre el pelo, en lados del cuadrado. 0,07 es
+    // el de las stories publicadas; el cuadrado para el feed (CUADRADO=1) va con
+    // 0,12, porque el recorte 4:5 alineado necesita más lugar arriba de la cabeza.
+    top = clamp(Math.round(tope0 - Number(process.env.AIRE_STORY ?? 0.07) * side), 0, H - side);
     stripLeft = clamp(Math.round((cxS - left) / side * LADO - 540), 0, LADO - 1080);
     if (perfil || girado) { // el frente del anteojo siempre adentro, con aire: la franja se apoya del lado al que mira
       const aire = 70, kx = LADO / side, xa = (xMin - left) * kx, xb = (xMax - left) * kx;
@@ -576,6 +579,10 @@ export async function editar(n) {
   if (MARCAR) for (const g of granitos) for (let a = 0; a < 90; a++) { const x = Math.round(g.cx + Math.cos(a / 90 * 6.283) * (g.r + 6)), y = Math.round(g.cy + Math.sin(a / 90 * 6.283) * (g.r + 6)); if (x >= 0 && y >= 0 && x < LADO && y < LADO) { const i = (y * LADO + x) * 3; out[i] = 0; out[i + 1] = 255; out[i + 2] = 0; } }
   const destino = path.join(salida, `${n}.webp`);
   if (STORY) await sharp(out, { raw: { width: LADO, height: LADO, channels: 3 } }).extract({ left: stripLeft, top: 0, width: 1080, height: 1920 }).sharpen({ sigma: 0.6 }).jpeg({ quality: 92 }).toFile(destino.replace(/\.webp$/, '.jpg'));
+  // CUADRADO=1 (con STORY=1): además el cuadrado entero de 1920, ya editado, para
+  // encuadres que necesitan más ancho que la franja 9:16 (los carruseles 4:5 del
+  // feed alinean la cabeza con Vision y recortan sobre este cuadrado).
+  if (STORY && process.env.CUADRADO === '1') await sharp(out, { raw: { width: LADO, height: LADO, channels: 3 } }).sharpen({ sigma: 0.6 }).jpeg({ quality: 92 }).toFile(destino.replace(/\.webp$/, '-cuadrado.jpg'));
   else await sharp(out, { raw: { width: LADO, height: LADO, channels: 3 } }).sharpen({ sigma: 0.6 }).webp({ quality: CALIDAD, effort: 5 }).toFile(destino);
   return { n, sombraPx: sombrasBorradas, granitos: granitos.length, tapados: granitos.filter(g => g.tapado).length, relleno: nRelleno ? +(rellenoMedio / nRelleno).toFixed(2) : 1, pielLuz: +pielLuz.toFixed(2), side, cara: +(c.w / side).toFixed(2), cabeza: +((R - L) / side).toFixed(2), perfil, piel: +piel.toFixed(2), gamma: +gamma.toFixed(2), cortina: cort.map(Math.round) };
 }

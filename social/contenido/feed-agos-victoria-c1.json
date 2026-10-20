@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-victoria-c1",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Victoria",
+    "color": "C1",
+    "familia": "receta"
+  },
+  "caption": "Victoria C1 · Cápsula Escarlata\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-victoria-c1/01.jpg",
+      "alt": "Victoria C1, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-victoria-c1/02.jpg",
+      "alt": "Victoria C1, armazón de receta, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

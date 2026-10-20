@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-adhara-c4",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Adhara",
+    "color": "C4",
+    "familia": "sol"
+  },
+  "caption": "Adhara C4 · Cápsula Escarlata\nLentes de sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-adhara-c4/01.jpg",
+      "alt": "Adhara C4, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-adhara-c4/02.jpg",
+      "alt": "Adhara C4, lentes de sol, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

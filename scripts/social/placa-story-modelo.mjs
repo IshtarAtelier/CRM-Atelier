@@ -27,3 +27,28 @@ body{margin:0;width:1080px;height:1920px;overflow:hidden;position:relative;backg
 <img class="l" src="${logo}"></body></html>`, { waitUntil: 'networkidle' });
     await page.screenshot({ path: destino, type: 'jpeg', quality: 88 });
 }
+
+/**
+ * La misma placa, en 4:5 (1080×1350) para el FEED (Ishtar, 16/10/2026: las
+ * fotos de Agostina y Massaru alternadas en el feed). Instagram no acepta una
+ * 9:16 en un carrusel, así que no es la story recortada: es la MISMA
+ * composición —foto, degradado, leyenda dorada, nombre, color, logo— con las
+ * medidas a escala del alto. `fotoJpg` ya viene de 1080×1350.
+ */
+export async function renderizarPlacaFeed(page, { id, logo, fotoJpg, leyenda, nombre, color, destino }) {
+    const oro = id.colores.marcaClara;
+    const img = fotoJpg.toString('base64');
+    await page.setContent(`<html><head><link href="${id.googleFonts}" rel="stylesheet"><style>
+body{margin:0;width:1080px;height:1350px;overflow:hidden;position:relative;background:${id.oscuro};font-family:${id.fuentes.titulo}}
+.f{position:absolute;inset:0;background:url(data:image/jpeg;base64,${img}) center/cover}
+.g{position:absolute;left:0;right:0;bottom:0;height:520px;background:linear-gradient(transparent,${id.oscuro})}
+.t{position:absolute;left:0;right:0;bottom:118px;text-align:center;color:#fff}
+.k{font-size:24px;letter-spacing:8px;color:${oro};text-transform:uppercase;margin-bottom:8px}
+.n{font-size:96px;font-weight:700;letter-spacing:3px;line-height:1}
+.c{font-size:32px;color:${oro};letter-spacing:5px;margin-top:6px}
+.l{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);height:42px;filter:brightness(0) invert(1)}
+</style></head><body><div class="f"></div><div class="g"></div>
+<div class="t"><div class="k">${leyenda}</div><div class="n">${nombre}</div>${color ? `<div class="c">${color}</div>` : ''}</div>
+<img class="l" src="${logo}"></body></html>`, { waitUntil: 'networkidle' });
+    await page.screenshot({ path: destino, type: 'jpeg', quality: 88 });
+}

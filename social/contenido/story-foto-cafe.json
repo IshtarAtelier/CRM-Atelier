@@ -1,0 +1,23 @@
+{
+  "id": "story-foto-cafe",
+  "format": "9:16",
+  "theme": "light",
+  "pilar": "producto",
+  "fuente": "fotos-catalogo-oct2026",
+  "caption": "Un café y un armazón nuevo. Venite a probártelos a Cerro de las Rosas, sin apuro.",
+  "temas": [
+    "armazones"
+  ],
+  "slides": [
+    {
+      "type": "puesta",
+      "soloProducto": true,
+      "role": "portada",
+      "image": "catalogo-social/fotos-oct2026/cafe-y-armazon.jpg",
+      "eyebrow": "Nuestro local",
+      "title": "Un café y un armazón",
+      "linea": "Venite a probártelos a Cerro de las Rosas. Te los mostramos sin apuro.",
+      "lineaGrande": true
+    }
+  ]
+}

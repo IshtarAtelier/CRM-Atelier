@@ -1,0 +1,31 @@
+{
+  "id": "feed-massaru-cronos-c3",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Cronos",
+    "color": "C3",
+    "familia": "receta"
+  },
+  "caption": "Cronos C3 · Atelier Óptica\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-massaru-cronos-c3/01.jpg",
+      "alt": "Cronos C3, armazón de receta, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-massaru-cronos-c3/02.jpg",
+      "alt": "Cronos C3, armazón de receta, de perfil · Atelier Óptica"
+    }
+  ]
+}

@@ -755,18 +755,20 @@ export const WHATSAPP_TEMPLATES = {
         category: 'UTILITY',
         header: 'IMAGE',
         imagenMuestra: 'public/social/ad-2x1-armazones-cuadrado/01.jpg',
-        body: 'Solicitud de factura — {{1}} pide facturar {{2}} a {{3}} ({{4}}), venta {{5}}. Observación: {{6}}. Pagos: {{7}}. Comprobante adjunto. Facturar: {{8}} — Atelier Óptica',
+        // Meta rechazó la 1ª versión (subcode 2388293: demasiadas variables para
+        // el largo del texto). Por eso cliente y documento van en UNA variable y
+        // el cuerpo es más largo de lo que haría falta para leerlo.
+        body: 'Solicitud de factura — {{1}} pide emitir una factura de {{2}} a nombre de {{3}}, por la venta {{4}}. Observación del vendedor para quien factura: {{5}}. Pagos registrados en el sistema: {{6}}. El comprobante de pago va adjunto en la imagen de arriba. Para emitir la factura con los datos ya cargados, abrí este link del sistema: {{7}} — Atelier Óptica',
         params: [
             { label: 'vendedor', example: 'Milena Magallanes' },
             { label: 'monto', example: '$ 964.410' },
-            { label: 'cliente', example: 'Juan San Martin' },
-            { label: 'documento', example: 'DNI 31667082' },
+            { label: 'cliente y documento', example: 'Juan San Martin (DNI 31667082)' },
             { label: 'nº de venta', example: '#3VL6' },
             { label: 'observación', example: 'Obra social Swiss Medical, plan SMG30' },
             { label: 'pagos', example: '16/10/2026 MP 12c Yani $ 964.410' },
             { label: 'link para facturar', example: 'https://atelieroptica.com.ar/admin/facturacion?solicitud=abc123' },
         ],
-        borrador: true,
+        // Alta en Meta pedida por Ishtar el 19/10/2026 ("dale de alta").
     },
 } as const satisfies Record<string, TemplateDef>;
 

@@ -1,0 +1,31 @@
+{
+  "id": "feed-massaru-zeus-c33-p01",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Zeus",
+    "color": "C33-P01",
+    "familia": "sol"
+  },
+  "caption": "Zeus C33-P01 · Atelier Óptica\nLentes de sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-massaru-zeus-c33-p01/01.jpg",
+      "alt": "Zeus C33-P01, lentes de sol, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-massaru-zeus-c33-p01/02.jpg",
+      "alt": "Zeus C33-P01, lentes de sol, de perfil · Atelier Óptica"
+    }
+  ]
+}

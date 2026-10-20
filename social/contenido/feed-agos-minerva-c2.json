@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-minerva-c2",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Minerva",
+    "color": "C2",
+    "familia": "receta"
+  },
+  "caption": "Minerva C2 · Cápsula Escarlata\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-minerva-c2/01.jpg",
+      "alt": "Minerva C2, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-minerva-c2/02.jpg",
+      "alt": "Minerva C2, armazón de receta, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

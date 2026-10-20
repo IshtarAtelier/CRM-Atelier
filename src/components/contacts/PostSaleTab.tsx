@@ -47,6 +47,8 @@ interface PostSaleCase {
     clientCharge?: number | null;
     clientChargedAt?: string | Date | null;
     clientChargedBy?: string | null;
+    /** Reparto vigente del costo (lo arma contact.service.getById). */
+    reparto?: { cajaMonto: number; cajaVendorId: string | null; cajaVendorName: string | null; clienteMonto: number } | null;
     order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null; [k: string]: any } | null;
     notesList?: PostSaleNote[];
 }
@@ -61,13 +63,18 @@ function operationNumbers(c: PostSaleCase): string[] {
  * el costo real lo cierra el laboratorio al facturar TODAS las operaciones, y
  * hasta entonces lo que hay es la estimación que cargó el vendedor.
  */
-type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'IMPUTADO' | 'CARGADO_CLIENTE';
-/** Valor del select de destino cuando el costo lo paga el cliente. */
-const PAGA_CLIENTE = '__CLIENTE__';
+type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'REPARTIDO';
+/** Texto corto del chip del caso: a dónde fue el costo. */
+function repartoCorto(c: PostSaleCase): string {
+    const r = c.reparto;
+    if (!r) return 'Repartido';
+    if (r.cajaMonto > 0 && r.clienteMonto > 0) return 'Caja + cliente';
+    if (r.clienteMonto > 0) return 'Lo paga el cliente';
+    return `Cobrado a caja${r.cajaVendorName ? ` · ${r.cajaVendorName}` : ''}`;
+}
 
 function costStage(c: PostSaleCase): CostStage {
-    if (c.cashEntryId) return 'IMPUTADO';
-    if (c.clientChargedAt) return 'CARGADO_CLIENTE';
+    if (c.cashEntryId || c.clientChargedAt) return 'REPARTIDO';
     if (c.costSource === 'LAB') return 'CERRADO';
     if ((c.cost ?? 0) > 0) return 'ESTIMADO';
     return 'SIN_COSTO';
@@ -76,9 +83,8 @@ function costStage(c: PostSaleCase): CostStage {
 const COST_STAGE_UI: Record<CostStage, { label: string; cls: string }> = {
     SIN_COSTO: { label: 'Sin costo', cls: 'bg-stone-100 text-stone-500 border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700' },
     ESTIMADO: { label: 'Estimado · esperando laboratorio', cls: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/40' },
-    CERRADO: { label: 'Costo cerrado · listo para cobrar', cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40' },
-    CARGADO_CLIENTE: { label: 'Lo paga el cliente', cls: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-900/40' },
-    IMPUTADO: { label: 'Cobrado a caja', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40' },
+    CERRADO: { label: 'Costo cerrado · listo para repartir', cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40' },
+    REPARTIDO: { label: 'Costo repartido', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40' },
 };
 
 /** Sube una imagen y devuelve su URL/clave de storage (reusa /api/upload). */
@@ -243,27 +249,51 @@ function OperationNumbers({ c }: { c: PostSaleCase }) {
  */
 function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolean; onRefresh: () => void }) {
     const stage = costStage(c);
+    const costo = Math.round(c.cost ?? 0);
+    const vigente = c.reparto || { cajaMonto: 0, cajaVendorId: null, cajaVendorName: null, clienteMonto: 0 };
+    const hayReparto = vigente.cajaMonto > 0 || vigente.clienteMonto > 0;
     const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
-    // '' = caja Ishtar (lo cubre Atelier); PAGA_CLIENTE = lo paga el cliente y
-    // queda como saldo del caso; cualquier otro valor = caja de esa persona.
-    const [vendorId, setVendorId] = useState<string>(
-        c.fault === 'Cliente' || c.coverage === 'Con cargo' ? PAGA_CLIENTE : (c.faultUserId || '')
-    );
+
+    // El reparto que se está editando. Arranca en lo vigente; si no hay nada
+    // todavía, propone según el caso: "Con cargo" o culpa del cliente ⇒ todo al
+    // cliente; culpa de una persona de la óptica ⇒ todo a su caja; si no, Ishtar.
+    const propuestaInicial = () => {
+        if (hayReparto) return { cajaVendorId: vigente.cajaVendorId || '', caja: vigente.cajaMonto, cliente: vigente.clienteMonto };
+        if (c.fault === 'Cliente' || c.coverage === 'Con cargo') return { cajaVendorId: '', caja: 0, cliente: costo };
+        return { cajaVendorId: c.faultUserId || '', caja: costo, cliente: 0 };
+    };
+    const [cajaVendorId, setCajaVendorId] = useState<string>(propuestaInicial().cajaVendorId);
+    const [caja, setCaja] = useState<number>(propuestaInicial().caja);
+    const [cliente, setCliente] = useState<number>(propuestaInicial().cliente);
     const [working, setWorking] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [pagando, setPagando] = useState(false);
 
     useEffect(() => {
-        if (!isAdmin || stage !== 'CERRADO') return;
+        if (!isAdmin || stage === 'SIN_COSTO' || stage === 'ESTIMADO') return;
         fetch('/api/users')
             .then(r => (r.ok ? r.json() : []))
             .then((d: any[]) => Array.isArray(d) && setVendors(d.filter(u => u.role !== 'OPTICA').map(u => ({ id: u.id, name: u.name }))))
             .catch(() => setVendors([]));
     }, [isAdmin, stage]);
 
-    const monto = c.cost ?? 0;
+    // Si el caso se refresca (se aplicó un reparto), la edición vuelve a lo vigente.
+    useEffect(() => {
+        const p = propuestaInicial();
+        setCajaVendorId(p.cajaVendorId); setCaja(p.caja); setCliente(p.cliente);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [vigente.cajaMonto, vigente.clienteMonto, vigente.cajaVendorId, costo]);
+
     const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
-    const pagaCliente = vendorId === PAGA_CLIENTE;
-    const loCubreAtelier = !vendorId;
+    const clamp = (n: number) => Math.max(0, Math.min(costo, Math.round(Number(n) || 0)));
+    // Los dos renglones siempre suman el costo: tocar uno acomoda al otro.
+    const ponerCaja = (n: number) => { const v = clamp(n); setCaja(v); setCliente(costo - v); };
+    const ponerCliente = (n: number) => { const v = clamp(n); setCliente(v); setCaja(costo - v); };
+
+    const nombreCaja = (id: string) => (id ? (vendors.find(v => v.id === id)?.name || 'esa caja') : 'caja Ishtar');
+    const sinCambios = hayReparto
+        && caja === vigente.cajaMonto && cliente === vigente.clienteMonto
+        && (cajaVendorId || '') === (vigente.cajaVendorId || '');
 
     const llamar = async (body: Record<string, unknown>): Promise<boolean> => {
         if (working) return false;
@@ -284,31 +314,34 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
             return false;
         } finally { setWorking(false); }
     };
+    const aplicar = () => llamar({ action: 'repartir', cajaVendorId: cajaVendorId || undefined, cajaMonto: caja, clienteMonto: cliente });
+    const deshacer = () => {
+        if (window.confirm('¿Deshacer el reparto? Se borra el descuento de caja y se quita el saldo del cliente. Los pagos que el cliente ya hizo no se tocan.')) {
+            llamar({ action: 'anular_reparto' });
+        }
+    };
 
-    const imputar = () => pagaCliente
-        ? llamar({ action: 'charge_client' })
-        : llamar({ action: 'impute', vendorId: vendorId || undefined });
-
-    // ── Cobro al cliente: el saldo es el de la VENTA (incluye este cargo) ──
-    // y el pago es el pago normal de la venta (comprobante, caja y recibo).
-    const [pagando, setPagando] = useState(false);
+    // Saldo de la VENTA (incluye el cargo al cliente): el pago es el pago normal
+    // de la venta, con comprobante, y por eso entra a caja y a la lista de saldos.
     const finVenta = c.order ? PricingService.calculateOrderFinancials(c.order) : null;
     const saldoVenta = finVenta?.remainingCard ?? 0;
-    const anularCargo = () => llamar({ action: 'revert_client_charge' });
 
     // Después de TODOS los hooks: un return antes cambiaría su orden entre renders.
     if (stage === 'SIN_COSTO') return null;
 
+    const CAMPO_MONTO = 'w-28 text-xs text-right rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300';
+    const ATAJO = 'px-2.5 py-1 rounded-lg border border-stone-200 dark:border-stone-700 text-[9px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800';
+
     return (
-        <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-800/30 p-3 space-y-2">
+        <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-800/30 p-3 space-y-3">
             <div className="flex items-center flex-wrap gap-2">
                 <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
                     {COST_STAGE_UI[stage].label}
                 </span>
-                <span className="text-sm font-black text-stone-800 dark:text-stone-100">{fmt(monto)}</span>
-                {stage === 'CERRADO' && c.costEstimated != null && Math.abs(c.costEstimated - monto) >= 1 && (
+                <span className="text-sm font-black text-stone-800 dark:text-stone-100">{fmt(costo)}</span>
+                {stage !== 'ESTIMADO' && c.costEstimated != null && Math.abs(c.costEstimated - costo) >= 1 && (
                     <span className="text-[9px] font-bold text-stone-400">
-                        estimado: {fmt(c.costEstimated)} · {monto > c.costEstimated ? '+' : '−'}{fmt(Math.abs(monto - c.costEstimated))}
+                        estimado: {fmt(c.costEstimated)} · {costo > c.costEstimated ? '+' : '−'}{fmt(Math.abs(costo - c.costEstimated))}
                     </span>
                 )}
             </div>
@@ -316,35 +349,47 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
             {stage === 'ESTIMADO' && (
                 <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
                     Es la estimación cargada a mano. El costo real lo cierra el laboratorio cuando factura
-                    {operationNumbers(c).length > 1 ? ' las dos operaciones' : ' la operación'} del caso. Recién ahí se puede cobrar.
+                    {operationNumbers(c).length > 1 ? ' las dos operaciones' : ' la operación'} del caso. Recién ahí se puede repartir.
                 </p>
             )}
 
-            {stage === 'CARGADO_CLIENTE' && (
-                <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2 text-center">
-                        <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">Cargo de post-venta</p>
-                            <p className="text-sm font-black text-stone-800 dark:text-stone-100">{fmt(c.clientCharge ?? 0)}</p>
-                        </div>
-                        <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">Saldo de la venta (con el cargo)</p>
-                            <p className={`text-sm font-black ${saldoVenta > 1000 ? 'text-violet-700 dark:text-violet-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{fmt(saldoVenta)}</p>
-                        </div>
+            {/* ── Reparto vigente ──────────────────────────────────────────── */}
+            {hayReparto && (
+                <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5 px-2">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">De caja{vigente.cajaVendorName ? ` · ${vigente.cajaVendorName}` : ''}</p>
+                        <p className="text-sm font-black text-stone-800 dark:text-stone-100">{fmt(vigente.cajaMonto)}</p>
                     </div>
-                    <p className="text-[10px] text-violet-700 dark:text-violet-400 font-bold leading-relaxed">
-                        Cargado por {c.clientChargedBy || '—'}{c.clientChargedAt ? ` · ${formatDateTime(c.clientChargedAt)}` : ''}.
-                        Suma al saldo de la venta y figura en la lista de saldos.
-                    </p>
-                    {c.order?.id && (
+                    <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5 px-2">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-stone-400">Al cliente · saldo de la venta</p>
+                        <p className={`text-sm font-black ${vigente.clienteMonto > 0 && saldoVenta > 1000 ? 'text-violet-700 dark:text-violet-400' : 'text-stone-800 dark:text-stone-100'}`}>
+                            {fmt(vigente.clienteMonto)}
+                            {vigente.clienteMonto > 0 && <span className="block text-[9px] font-bold text-stone-400">saldo hoy: {fmt(saldoVenta)}</span>}
+                        </p>
+                    </div>
+                </div>
+            )}
+            {hayReparto && (
+                <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                    Repartido{c.costConfirmedBy ? ` por ${c.costConfirmedBy}` : ''}{c.costConfirmedAt ? ` · ${formatDateTime(c.costConfirmedAt)}` : ''}.
+                    {vigente.clienteMonto > 0 && ' La parte del cliente figura en la lista de saldos y se cobra con comprobante desde acá.'}
+                </p>
+            )}
+
+            {/* ── Cobro al cliente ─────────────────────────────────────────── */}
+            {vigente.clienteMonto > 0 && c.order?.id && (
+                <>
+                    {saldoVenta > 1000 ? (
                         <button
                             onClick={() => setPagando(true)}
                             className="w-full px-4 py-2.5 rounded-xl bg-violet-700 text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90"
                         >
                             Registrar pago del cliente (efectivo o transferencia)
                         </button>
+                    ) : (
+                        <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">La venta no tiene saldo: el cliente ya pagó su parte.</p>
                     )}
-                    {pagando && c.order?.id && (
+                    {pagando && (
                         <AddPaymentModal
                             orderId={c.order.id}
                             totalAmount={finVenta?.listPrice ?? 0}
@@ -354,65 +399,62 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
                             onSuccess={() => { setPagando(false); onRefresh(); }}
                         />
                     )}
-                    {isAdmin && (
-                        <button onClick={() => { if (window.confirm('¿Anular el cargo al cliente? Se quita del saldo de la venta; los pagos ya cargados no se tocan.')) anularCargo(); }} disabled={working}
-                            className="text-[9px] font-black uppercase tracking-widest text-stone-500 underline disabled:opacity-40">
-                            Anular el cargo al cliente
+                </>
+            )}
+
+            {/* ── Editor del reparto (solo admin, con el costo cerrado) ─────── */}
+            {stage !== 'ESTIMADO' && (isAdmin ? (
+                <div className="space-y-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900/40 p-3">
+                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">{hayReparto ? 'Cambiar el reparto' : 'Quién paga el costo'}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                        <button type="button" className={ATAJO} onClick={() => ponerCaja(costo)}>Todo a caja</button>
+                        <button type="button" className={ATAJO} onClick={() => ponerCliente(costo)}>Todo al cliente</button>
+                        <button type="button" className={ATAJO} onClick={() => ponerCaja(Math.round(costo / 2))}>Mitad y mitad</button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={cajaVendorId}
+                            onChange={(e) => setCajaVendorId(e.target.value)}
+                            className="flex-1 min-w-0 text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300"
+                        >
+                            <option value="">Caja Ishtar — lo cubre Atelier</option>
+                            {vendors.map(v => <option key={v.id} value={v.id}>Caja de {v.name}</option>)}
+                        </select>
+                        <input type="number" inputMode="numeric" min={0} max={costo} value={caja} onChange={(e) => ponerCaja(Number(e.target.value))} className={CAMPO_MONTO} aria-label="Monto a caja" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="flex-1 text-xs font-bold text-stone-700 dark:text-stone-300 px-3">El cliente — se suma al saldo de la venta</span>
+                        <input type="number" inputMode="numeric" min={0} max={costo} value={cliente} onChange={(e) => ponerCliente(Number(e.target.value))} className={CAMPO_MONTO} aria-label="Monto al cliente" />
+                    </div>
+                    {cliente > 0 && (
+                        <p className="text-[9px] text-violet-600 dark:text-violet-400">
+                            La parte del cliente aparece en la lista de saldos y se cobra con comprobante (efectivo o transferencia). No se descuenta de ninguna caja.
+                        </p>
+                    )}
+                    <button
+                        onClick={aplicar}
+                        disabled={working || sinCambios}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
+                    >
+                        <Wallet className="w-3.5 h-3.5" />
+                        {working ? 'Aplicando…'
+                            : caja > 0 && cliente > 0 ? `${fmt(caja)} de ${nombreCaja(cajaVendorId)} · ${fmt(cliente)} al cliente`
+                            : cliente > 0 ? `Cobrarle ${fmt(cliente)} al cliente`
+                            : `Descontar ${fmt(caja)} de ${nombreCaja(cajaVendorId)}`}
+                    </button>
+                    {hayReparto && (
+                        <button onClick={deshacer} disabled={working} className="text-[9px] font-black uppercase tracking-widest text-stone-500 underline disabled:opacity-40">
+                            Deshacer el reparto
                         </button>
                     )}
                     {error && <p className="text-[10px] font-bold text-rose-600">{error}</p>}
                 </div>
-            )}
-
-            {stage === 'IMPUTADO' && (
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-relaxed">
-                    Ya descontado de caja{c.costConfirmedBy ? ` por ${c.costConfirmedBy}` : ''}
-                    {c.costConfirmedAt ? ` · ${formatDateTime(c.costConfirmedAt)}` : ''}.
-                </p>
-            )}
-
-            {stage === 'CERRADO' && (isAdmin ? (
-                <div className="space-y-2">
-                    <div>
-                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Quién lo paga</p>
-                        <select
-                            value={vendorId}
-                            onChange={(e) => setVendorId(e.target.value)}
-                            className="w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300"
-                        >
-                            <option value="">Caja Ishtar — lo cubre Atelier</option>
-                            <option value={PAGA_CLIENTE}>El cliente — se suma al saldo de la venta</option>
-                            {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                        </select>
-                        {pagaCliente && (
-                            <p className="mt-1 text-[9px] text-violet-600 dark:text-violet-400">
-                                Se suma al saldo de la venta y aparece en la lista de saldos. El pago se registra con comprobante desde acá. No se descuenta de ninguna caja.
-                            </p>
-                        )}
-                        {!pagaCliente && c.fault && c.fault !== 'Óptica' && (
-                            <p className="mt-1 text-[9px] text-stone-400">
-                                La atribución es <b>{c.fault}</b>: por defecto lo absorbe Atelier.
-                            </p>
-                        )}
-                    </div>
-                    <button
-                        onClick={imputar}
-                        disabled={working}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
-                    >
-                        <Wallet className="w-3.5 h-3.5" />
-                        {working
-                            ? (pagaCliente ? 'Cargando…' : 'Imputando…')
-                            : pagaCliente
-                                ? `Cobrarle ${fmt(monto)} al cliente`
-                                : `Descontar ${fmt(monto)} de ${loCubreAtelier ? 'caja Ishtar' : (vendors.find(v => v.id === vendorId)?.name || 'la caja')}`}
-                    </button>
-                    {error && <p className="text-[10px] font-bold text-rose-600">{error}</p>}
-                </div>
             ) : (
-                <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
-                    El costo ya está cerrado por el laboratorio. Lo revisa y lo imputa el administrador.
-                </p>
+                !hayReparto && (
+                    <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                        El costo ya está cerrado por el laboratorio. Lo revisa y lo reparte el administrador.
+                    </p>
+                )
             ))}
         </div>
     );
@@ -452,7 +494,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                             </span>
                             {stage !== 'SIN_COSTO' && (
                                 <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
-                                    {stage === 'IMPUTADO' ? 'Cobrado' : stage === 'CARGADO_CLIENTE' ? 'Lo paga el cliente' : stage === 'CERRADO' ? 'Listo para cobrar' : 'Estimado'}
+                                    {stage === 'REPARTIDO' ? repartoCorto(c) : stage === 'CERRADO' ? 'Listo para repartir' : 'Estimado'}
                                     {(c.cost ?? 0) > 0 ? ` · $${Math.round(c.cost!).toLocaleString('es-AR')}` : ''}
                                 </span>
                             )}

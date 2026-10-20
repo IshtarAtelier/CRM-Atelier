@@ -180,7 +180,7 @@ export const InvoiceRequestService = {
         // factura" y lleva el (primer) comprobante como encabezado. Solo si
         // Meta ya la aprobó; si no, cae a nota_interna como siempre.
         const plantillaPropia = adjuntos.length > 0 && await plantillaAprobada('solicitud_factura')
-            ? templateSpec('solicitud_factura', [actor.name, precioConSigno(monto), clienteNombre, doc, `#${numero}`, observaciones || 'sin observación', pagos || 'ninguno', link])
+            ? templateSpec('solicitud_factura', [actor.name, precioConSigno(monto), `${clienteNombre} (${doc})`, `#${numero}`, observaciones || 'sin observación', pagos || 'ninguno', link])
             : null;
 
         avisarEquipoPorWhatsApp({

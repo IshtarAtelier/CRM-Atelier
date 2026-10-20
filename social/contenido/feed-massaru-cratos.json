@@ -1,0 +1,31 @@
+{
+  "id": "feed-massaru-cratos",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Cratos",
+    "color": "",
+    "familia": "receta"
+  },
+  "caption": "Cratos · Atelier Óptica\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-massaru-cratos/01.jpg",
+      "alt": "Cratos, armazón de receta, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-massaru-cratos/02.jpg",
+      "alt": "Cratos, armazón de receta, de perfil · Atelier Óptica"
+    }
+  ]
+}

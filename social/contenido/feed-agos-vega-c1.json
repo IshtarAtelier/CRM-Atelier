@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-vega-c1",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Vega",
+    "color": "C1",
+    "familia": "sol"
+  },
+  "caption": "Vega C1 · Cápsula Escarlata\nLentes de sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-vega-c1/01.jpg",
+      "alt": "Vega C1, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-vega-c1/02.jpg",
+      "alt": "Vega C1, lentes de sol, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

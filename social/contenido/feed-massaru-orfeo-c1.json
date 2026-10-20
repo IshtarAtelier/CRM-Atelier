@@ -1,0 +1,31 @@
+{
+  "id": "feed-massaru-orfeo-c1",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Orfeo",
+    "color": "C1",
+    "familia": "receta"
+  },
+  "caption": "Orfeo C1 · Atelier Óptica\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-massaru-orfeo-c1/01.jpg",
+      "alt": "Orfeo C1, armazón de receta, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-massaru-orfeo-c1/02.jpg",
+      "alt": "Orfeo C1, armazón de receta, de perfil · Atelier Óptica"
+    }
+  ]
+}

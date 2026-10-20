@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-gala-c8",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Gala",
+    "color": "C8",
+    "familia": "receta"
+  },
+  "caption": "Gala C8 · Cápsula Escarlata\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-gala-c8/01.jpg",
+      "alt": "Gala C8, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-gala-c8/02.jpg",
+      "alt": "Gala C8, armazón de receta, de perfil · Cápsula Escarlata"
+    }
+  ]
+}
