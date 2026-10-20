@@ -22,6 +22,8 @@ import { conNavegador, CredencialRechazadaError, type OpcionesNavegador } from '
 export const LAB_OPTOVISION = 'OPTOVISION';
 export const NOMBRE_OPTOVISION = 'Optovisión';
 export const ROBOT_OPTOVISION = 'Robot Optovisión';
+/** Fuera de producción el robot prepara pero no graba; para probar a propósito: OVES_PERMITIR_CARGA=1 (carga/produccion.ts). */
+export const VARIABLE_PERMISO_OVES = 'OVES_PERMITIR_CARGA';
 export const PORTAL_BASE = 'http://www.optovision.com.ar/oves/lab/';
 export const URL_SUGGEST = `${PORTAL_BASE}include/suggest.php`;
 const VARIABLES = 'OVES_USER/OVES_PASSWORD';

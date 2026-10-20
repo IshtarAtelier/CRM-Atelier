@@ -45,3 +45,23 @@ node scripts/maintenance/precios-optovision/cuadro-varilux.mjs salida.html
 Copiar el JSON a `varilux-<mes>-<año>.json` y transcribir la nueva. **No pisar
 el archivo viejo**: comparar dos listas es la única forma de saber cuánto
 aumentó el laboratorio de verdad.
+
+## `oves-catalogo.tsv` + `generar-oves-catalogo.mjs` (19/10/2026)
+
+El catálogo de productos de **OVES** (el portal de pedidos de Optovisión), tal
+como lo devolvió el autocompletar `include/suggest.php?opc=producto` para las
+tres clases de pedido (RXTD tallado digital 622, RXTT tradicional 42, RXSA stock
+con adicionales 21): clase, código de variante, línea, marca, material, diseño,
+promo y nombre exacto. Verificado byte a byte contra el portal (hash FNV-1a
+`a3b060ab` de las 685 filas ordenadas). **44 nombres traen espacios dobles**:
+así los guarda el portal y la búsqueda exacta es literal; no "limpiarlos".
+
+`node scripts/maintenance/precios-optovision/generar-oves-catalogo.mjs` genera
+`src/lib/laboratorios/oves-catalogo.ts` (no se edita a mano). Para refrescarlo,
+volver a relevar el portal (docs/oves-portal.md § Catálogo) y reemplazar el TSV.
+
+## `codigos-vendedor.mjs`
+
+Carga los códigos de vendedor que Optovisión le dio a cada persona (ej. VERO02)
+en SystemSetting `optovision_codigos_vendedor`: los lleva el asunto del mail de
+la promo. `--prod` ESCRIBE en producción: solo con OK de Ishtar.

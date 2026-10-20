@@ -17,7 +17,7 @@ import { FORMAS_OVES } from './catalogo';
  * por consulta y a veces minutos.
  */
 
-/** Qué menú abre cada clase de pedido (ids del `li` del menú lateral). */
+/** El id del `li` del menú lateral que abre cada clase de pedido: hoy coinciden con la clase (`resultGrupos` en index.js); si el portal los cambia, se cambia acá. */
 const MENU_POR_CLASE: Record<PlanOves['clase'], string> = { RXTD: 'RXTD', RXTT: 'RXTT', RXSA: 'RXSA' };
 
 /** El portal está "Actualizando…" (bloqueo con reloj) o ya libre. */
@@ -244,11 +244,23 @@ export class PortalRespondioError extends Error {
     constructor(msg: string) { super(msg); this.name = 'PortalRespondioError'; }
 }
 
-/** El nº de pedido web (6 dígitos) que viene en el HTML de la respuesta de grabar. Puro. */
-export function numeroDeLaRespuesta(html: string): string | null {
+/**
+ * El nº de pedido web (6 dígitos) que viene en el HTML de la respuesta de
+ * grabar. El formato exacto todavía no se vio (docs/oves-portal.md): por eso
+ * NUNCA se toma "el primer 6 dígitos" a ciegas — la respuesta puede repetir la
+ * observación ("…asociado al num 628377", el nº del OTRO par). Se descartan los
+ * nº que no pueden ser (`excluir`: el del 1er par, los que ya tiene la venta) y
+ * solo con UN candidato se devuelve; con cero o varios, null (envío incierto,
+ * que el reintento resuelve buscando por la referencia). Puro.
+ */
+export function numeroDeLaRespuesta(html: string, excluir: Iterable<string> = []): string | null {
     const t = String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    const m = t.match(/(?:pedido|n[uú]mero|nro\.?|n[°º])\s*(?:web|de pedido|generado|creado|:)?\s*[:#]?\s*(\d{6})\b/i) ?? t.match(/\b(\d{6})\b/);
-    return m ? m[1] : null;
+    const fuera = new Set([...excluir].map(n => String(n).replace(/\D/g, '')));
+    const candidatos = [...new Set([...t.matchAll(/\b(\d{6})\b/g)].map(m => m[1]))].filter(n => !fuera.has(n));
+    if (candidatos.length === 1) return candidatos[0];
+    // Varios: solo vale el que viene presentado como el nº del pedido.
+    const presentado = candidatos.filter(n => new RegExp(`(?:pedido|n[uú]mero|nro\\.?|n[°º])\\s*(?:web|de pedido|generado|creado|:)?\\s*[:#]?\\s*${n}\\b`, 'i').test(t));
+    return presentado.length === 1 ? presentado[0] : null;
 }
 
 /**
@@ -257,13 +269,18 @@ export function numeroDeLaRespuesta(html: string): string | null {
  * el portal. Un rechazo de validación (alert) es PedidoRechazadoError; un
  * error interno, PortalRespondioError (puede haber grabado).
  */
-export async function grabarPedido(page: Page, opts: { antesDeConfirmar?: () => Promise<void> } = {}): Promise<{ numero: string; respuesta: string }> {
+export async function grabarPedido(page: Page, opts: { antesDeConfirmar?: () => Promise<void>; excluir?: Iterable<string> } = {}): Promise<{ numero: string; respuesta: string }> {
     const antes = (await page.locator('#bottomcontent').innerHTML().catch(() => '')) || '';
     let alerta: string | null = null;
     let confirmado = false;
+    // La barrera corre ADENTRO del handler del dialog (el único momento entre el
+    // clic y el confirm): si falla, el confirm se rechaza y la falla se guarda
+    // acá para lanzarla desde el flujo principal — un throw dentro del handler
+    // se perdería en el emitter y el robot esperaría 10 minutos en vano.
+    let fallaBarrera: unknown = null;
     const onDialog = async (d: any) => {
         if (d.type() === 'confirm') {
-            try { await opts.antesDeConfirmar?.(); } catch (err) { await d.dismiss().catch(() => null); throw err; }
+            try { await opts.antesDeConfirmar?.(); } catch (err) { fallaBarrera = err; await d.dismiss().catch(() => null); return; }
             confirmado = true;
             await d.accept().catch(() => null);
         } else {
@@ -277,13 +294,14 @@ export async function grabarPedido(page: Page, opts: { antesDeConfirmar?: () => 
         const limite = Date.now() + 10 * 60_000;
         while (Date.now() < limite) {
             await page.waitForTimeout(1000);
+            if (fallaBarrera) throw fallaBarrera;
             if (alerta) break;
             const ahora = (await page.locator('#bottomcontent').innerHTML().catch(() => '')) || '';
             if (ahora && ahora !== antes && !/<form/i.test(ahora.slice(0, 200))) {
                 const texto = ahora.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
                 if (/error interno|se produjo un error/i.test(texto)) throw new PortalRespondioError(`${NOMBRE_OPTOVISION} respondió con error al grabar: ${texto.slice(0, 300)}`);
-                const numero = numeroDeLaRespuesta(ahora);
-                if (!numero) throw new PortalRespondioError(`${NOMBRE_OPTOVISION} grabó pero no se encontró el nº de pedido en la respuesta: ${texto.slice(0, 300)}`);
+                const numero = numeroDeLaRespuesta(ahora, opts.excluir ?? []);
+                if (!numero) throw new PortalRespondioError(`${NOMBRE_OPTOVISION} grabó pero no se pudo leer UN nº de pedido en la respuesta: ${texto.slice(0, 300)}`);
                 return { numero, respuesta: texto.slice(0, 2000) };
             }
         }

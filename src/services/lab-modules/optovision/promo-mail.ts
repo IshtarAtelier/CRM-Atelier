@@ -6,9 +6,8 @@ import type { Actor } from '../../../lib/actor';
 import { Borradores } from '../carga/borrador';
 import { puedeCrearPedidosReales } from '../carga/produccion';
 import { asuntoDelMail, DESTINATARIOS_PROMO } from './promo';
-import { LAB_OPTOVISION, NOMBRE_OPTOVISION } from './portal';
+import { LAB_OPTOVISION, NOMBRE_OPTOVISION, VARIABLE_PERMISO_OVES } from './portal';
 import type { PayloadBorradorOves, RastroOves } from './borrador-portal';
-import { VARIABLE_PERMISO_OVES } from './borrador-portal';
 
 /**
  * PASO 2 DEL PROCEDIMIENTO DE LA PROMO (Optovisión Essilor, 23/9/2026): el
@@ -55,7 +54,9 @@ export function cuerpoDelMail(o: { cliente: string; primerPar: string; segundoPa
  * salió, lo manda. Idempotente: se puede llamar en cada CARGADO y en cada
  * reintento. Devuelve qué hizo.
  */
-export async function avisarMailDePromo(orderId: string, actor: Actor): Promise<{ enviado: boolean; motivo: string }> {
+export async function avisarMailDePromo(orderId: string, robot: Actor, aprobadoPor: { id: string | null; name: string } | null = null): Promise<{ enviado: boolean; motivo: string }> {
+    // Lo manda el robot; la persona que aprobó queda nombrada, no firmando (como `aplicarEstadoEnVenta`).
+    const firma = aprobadoPor ? `${robot.name} (aprobó ${aprobadoPor.name})` : robot.name;
     const borradores = await prisma.labOrderDraft.findMany({ where: { orderId, lab: LAB_OPTOVISION, status: 'CARGADO' }, select: { id: true, pair: true, payload: true, portalNumber: true, resumenPortal: true } });
     const conPlan = borradores.map(b => ({ ...b, plan: (b.payload as unknown as PayloadBorradorOves)?.plan })).filter(b => b.plan);
     const segundo = conPlan.find(b => b.plan.rolPromo === 'SEGUNDO_PAR');
@@ -70,7 +71,7 @@ export async function avisarMailDePromo(orderId: string, actor: Actor): Promise<
     const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, clientId: true, labSentBy: true, client: { select: { name: true } } } });
     if (!venta) return pendiente('la venta no existe');
     const codigo = await codigoDeVendedorOptovision(venta.labSentBy);
-    if (!codigo) return pendiente(`falta el código de vendedor de Optovisión de ${venta.labSentBy || 'quien envió la venta'}: cargarlo en Configuración (clave ${CLAVE_CODIGOS_VENDEDOR}) y reintentar desde la ficha. Sin el mail, Optovisión cobra los dos pares.`);
+    if (!codigo) return pendiente(`falta el código de vendedor de Optovisión de ${venta.labSentBy || 'quien envió la venta'}: cargarlo en el ajuste ${CLAVE_CODIGOS_VENDEDOR} (JSON nombre → código, por la API de ajustes o node scripts/maintenance/precios-optovision/codigos-vendedor.mjs) y reintentar desde la ficha. Sin el mail, Optovisión cobra los dos pares.`);
     const asunto = asuntoDelMail(codigo, numeroPrimero, numeroSegundo);
     if (!asunto) return pendiente('no se pudo armar el asunto del mail');
     if (!puedeCrearPedidosReales(VARIABLE_PERMISO_OVES)) return pendiente(`fuera de producción no se manda el mail a Optovisión (asunto: ${asunto})`);
@@ -85,8 +86,8 @@ export async function avisarMailDePromo(orderId: string, actor: Actor): Promise<
     const cuando = new Date().toISOString();
     await Borradores.anotarRastro(segundo.id, { mailPromoEnviadoEl: cuando, mailPromoPendiente: null } as any);
     await prisma.interaction.create({
-        data: { clientId: venta.clientId, type: 'LAB_STATUS', content: `📧 ${actor.name}: mail de la promo ${promo} enviado a ${NOMBRE_OPTOVISION} (${DESTINATARIOS_PROMO.join(', ')}) con asunto "${asunto}".`, userId: actor.id ?? null, userName: actor.name },
+        data: { clientId: venta.clientId, type: 'LAB_STATUS', content: `📧 ${firma}: mail de la promo ${promo} enviado a ${NOMBRE_OPTOVISION} (${DESTINATARIOS_PROMO.join(', ')}) con asunto "${asunto}".`, userId: robot.id ?? null, userName: firma },
     }).catch(err => console.error('[lab-modulos] no se pudo registrar el mail de promo en la ficha:', err));
-    logAudit({ userId: actor.id ?? null, userName: actor.name, action: 'UPDATE', entityType: 'ORDER', entityId: orderId, details: { lab: LAB_OPTOVISION, mailPromo: asunto, destinatarios: DESTINATARIOS_PROMO } }).catch(() => null);
+    logAudit({ userId: robot.id ?? null, userName: firma, action: 'UPDATE', entityType: 'ORDER', entityId: orderId, details: { lab: LAB_OPTOVISION, mailPromo: asunto, destinatarios: DESTINATARIOS_PROMO } }).catch(() => null);
     return { enviado: true, motivo: asunto };
 }

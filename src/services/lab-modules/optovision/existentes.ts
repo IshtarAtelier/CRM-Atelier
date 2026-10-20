@@ -10,7 +10,12 @@ import { LAB_OPTOVISION } from './portal';
  * el equipo los escribe con separadores sueltos ("626134 -  626139"), que
  * `parseLabNumbers` ya separa.
  */
-export { mensajeExistente, type PedidoExistente } from '../carga/existentes';
+export { type PedidoExistente } from '../carga/existentes';
+import { mensajeExistente as mensajeComun, type PedidoExistente as Existente } from '../carga/existentes';
+
+/** En OVES no hay seguimiento ni "código interno" que editar: el nº ambiguo se aclara en la VENTA. */
+export const REMEDIO_AMBIGUO_OVES = 'Para aclararlo, dejá en la venta solo el nº del par que ya está cargado (el que falta lo anota el robot al cargarlo).';
+export const mensajeExistente = (e: Existente, pair: number) => mensajeComun(e, pair, REMEDIO_AMBIGUO_OVES);
 
 export const esNumeroOves = (n: string) => esNumeroDeLab(n, 'OPTOVISION');
 

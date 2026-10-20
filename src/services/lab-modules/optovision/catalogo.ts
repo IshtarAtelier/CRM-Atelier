@@ -361,7 +361,9 @@ export function especificacionDe(nombreCRM: string | null | undefined, opts: { c
         // liso en Varilux / Eyezen, 19/10/2026). No es elegir "el primero": es
         // el ÚNICO producto de ese diseño en ese material, y así lo carga el
         // equipo a mano ("Eyezen Start Orma Blue UV" para el Eyezen 2x1). Se
-        // avisa en la revisión. REGLA A CONFIRMAR con Ishtar.
+        // avisa en la revisión, y la persona lo ve en la pantalla del portal
+        // antes de aprobar. Pendiente de confirmación de Ishtar (decisión 1 de
+        // docs/optovision-plan.md): si dice que no, esto pasa a A_MANO.
         const blue = COD_RXTD.BLUE_UV[material];
         const rb = typeof blue === 'string' ? elegirProductoOves({ clase: 'RXTD', linea, cod: blue, material }) : null;
         if (rb?.ok) { r = rb; avisos.push(`OVES no tiene ${familia.nombre} ${r.producto.material} liso: se carga "${r.producto.label}", el único que ofrece para ese diseño y material`); }

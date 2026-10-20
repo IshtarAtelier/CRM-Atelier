@@ -1,15 +1,14 @@
 import type { Page } from 'playwright';
 import { prisma } from '../../../lib/db';
-import { uploadFile } from '../../../lib/storage';
 import { logAudit } from '../../../lib/audit';
 import type { Actor } from '../../../lib/actor';
 import { Borradores, type RastroPortal } from '../carga/borrador';
 import { aplicarEstadoEnVenta } from '../estados';
-import { conTurno } from '../portal/turno';
 import { puedeCrearPedidosReales } from '../carga/produccion';
 import { numerosDeLaVenta, numerosDeOtrosPares as numerosAjenosAlPar } from '../carga/numeros';
-import { decidirConAprobado } from '../grupo-optico/decision';
-import { conSesionOves, LAB_OPTOVISION, NOMBRE_OPTOVISION, ROBOT_OPTOVISION } from './portal';
+import { decidirConAprobado } from '../carga/decision';
+import { AdopcionNoVerificadaError, AprobacionInvalidaError, enElPortal as enElPortalDe, ESPERA_TRAS_ENVIO_INCIERTO_MS, guardarArchivoDelPortal, textoDeFallaDeConfirmacion, YaCargadoError } from '../carga/robot-comun';
+import { conSesionOves, LAB_OPTOVISION, NOMBRE_OPTOVISION, ROBOT_OPTOVISION, VARIABLE_PERMISO_OVES } from './portal';
 import { diferenciasDePlan, huellaDelPlan, planDeCarga, rolesDeLaPromo, type OpcionesCargaOves, type PlanOves } from './carga';
 import { leerVentaParaCargaOves } from './venta';
 import { abrirFormulario, buscarPorReferencia, capturarFormulario, diferenciasDeFormulario, grabarPedido, llenarFormulario, PedidoRechazadoError, PortalRespondioError, type Llenado } from './llenar';
@@ -42,7 +41,6 @@ import type { EstadoEnPortal } from '../contrato';
  * Toda entrada al portal toma el turno como pasada 'robot'.
  */
 export const ROBOT_ACTOR_OPTOVISION: Actor = { id: null, name: ROBOT_OPTOVISION, role: null };
-export const VARIABLE_PERMISO_OVES = 'OVES_PERMITIR_CARGA';
 
 /** Lo que se guarda en el borrador: lo que se aprobó, tal cual. */
 export interface PayloadBorradorOves {
@@ -70,25 +68,9 @@ export interface RastroOves extends RastroPortal {
     mailPromoPendiente?: string | null;
 }
 
-const ESPERA_TURNO_MS = 4 * 60_000;
-/** Tras un Grabar sin respuesta, cuánto esperar antes de volver a grabar (el portal puede guardarlo tarde). */
-const ESPERA_TRAS_ENVIO_INCIERTO_MS = 15 * 60_000;
-
-async function enElPortal<T>(tarea: () => Promise<T>): Promise<T> {
-    const r = await conTurno(LAB_OPTOVISION, 'robot', tarea, { esperar: true, esperaMaxMs: ESPERA_TURNO_MS, obligatorio: true });
-    if (r && typeof r === 'object' && 'skipped' in (r as any) && (r as any).skipped) {
-        throw new Error(`El portal de ${NOMBRE_OPTOVISION} está ocupado por otra pasada; volvé a intentar en unos minutos.`);
-    }
-    return r as T;
-}
-
+const enElPortal = <T,>(tarea: () => Promise<T>) => enElPortalDe(LAB_OPTOVISION, NOMBRE_OPTOVISION, tarea);
 async function mezclar(id: string, datos: RastroOves) { await Borradores.anotarRastro(id, datos); }
-
-async function guardarCaptura(borradorId: string, sufijo: string, png: Buffer): Promise<string> {
-    // Receta y datos del cliente: clave que /api/storage/view trata como sensible (exige sesión).
-    const key = await uploadFile(png, `lab-modulos/optovision/${borradorId}-${sufijo}-${Date.now()}.png`, 'image/png');
-    return `/api/storage/view?key=${encodeURIComponent(key)}`;
-}
+const guardarCaptura = (borradorId: string, sufijo: string, png: Buffer) => guardarArchivoDelPortal('optovision', borradorId, sufijo, png, 'image/png');
 
 /**
  * Navegador en SOLO LECTURA: se aborta toda petición que grabe en OVES
@@ -167,10 +149,6 @@ export async function prepararEnPortal(borradorId: string) {
     }, { enEstado: ['PREPARADO'] });
 }
 
-class AprobacionInvalidaError extends Error { constructor(m: string) { super(m); this.name = 'AprobacionInvalidaError'; } }
-class YaCargadoError extends Error { constructor() { super('ya cargado'); this.name = 'YaCargadoError'; } }
-class AdopcionNoVerificadaError extends Error { constructor(m: string) { super(m); this.name = 'AdopcionNoVerificadaError'; } }
-
 async function numerosDeOtrosPares(orderId: string, pair: number): Promise<Set<string>> {
     return numerosAjenosAlPar(await numerosDeLaVenta(LAB_OPTOVISION, orderId, { esNumeroDelLab: esNumeroOves }), pair);
 }
@@ -191,7 +169,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
     if (!b) throw new Error('El borrador no existe.');
     if (b.status === 'CARGADO') {
         // Un reintento sobre un CARGADO: si el mail de la promo había quedado pendiente, se vuelve a intentar (idempotente).
-        await avisarMailDePromo(b.orderId, ROBOT_ACTOR_OPTOVISION).catch(err => console.error('[lab-modulos] mail de promo Optovisión:', err?.message || err));
+        await avisarMailDePromo(b.orderId, ROBOT_ACTOR_OPTOVISION, b.approvedBy ? { id: null, name: b.approvedBy } : null).catch(err => console.error('[lab-modulos] mail de promo Optovisión:', err?.message || err));
         return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
     }
     if (b.status !== 'APROBADO') throw new Error(`El borrador está ${b.status}: el robot solo carga los APROBADOS.`);
@@ -260,7 +238,10 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 const dif = diferenciasDeFormulario(rastro0.formulario!, llenado.formulario);
                 if (dif.length) throw new AprobacionInvalidaError(`El formulario de OVES ya no queda como se aprobó (${dif.slice(0, 4).join(' · ')}): volvé a prepararlo. No se mandó nada.`);
                 // 4. Grabar: la barrera (atómica en la base) justo antes de aceptar el confirm del portal.
+                // Los nº que la respuesta NO puede estar anunciando como el nuevo: el del 1er par (va en la observación) y los que la venta ya tiene.
+                const yaConocidos = [...(await numerosDeOtrosPares(b.orderId, b.pair)), ...(r.plan.pedidoOrigen ? [r.plan.pedidoOrigen] : [])];
                 const grabado = await grabarPedido(page, {
+                    excluir: yaConocidos,
                     antesDeConfirmar: async () => {
                         const sigueAprobado = await Borradores.marcarEnvio(b.id, { esperaMs: ESPERA_TRAS_ENVIO_INCIERTO_MS });
                         if (!sigueAprobado) throw new YaCargadoError();
@@ -295,7 +276,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
         const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_OPTOVISION, { portalNumber: resultado.numero, screenshotFinalUrl: capturaFinalUrl });
         if (diferencias.length) await Borradores.anotarFalla(b.id, `Cargado con el nº ${resultado.numero}, pero: ${diferencias.join(' · ')}.`, { soloSi: 'CARGADO' });
         // Paso 2 del procedimiento de la promo: el mail a Optovisión, cuando los dos pares están cargados.
-        await avisarMailDePromo(b.orderId, aprobadoPor ? { id: aprobadoPor.id, name: aprobadoPor.name, role: null } : ROBOT_ACTOR_OPTOVISION).catch(err => console.error('[lab-modulos] mail de promo Optovisión:', err?.message || err));
+        await avisarMailDePromo(b.orderId, ROBOT_ACTOR_OPTOVISION, aprobadoPor).catch(err => console.error('[lab-modulos] mail de promo Optovisión:', err?.message || err));
         return cargado;
     } catch (err: any) {
         if (err instanceof YaCargadoError) return prisma.labOrderDraft.findUniqueOrThrow({ where: { id: b.id } });
@@ -304,19 +285,13 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 .catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador Optovisión rechazado (queda APROBADO):', e));
             throw err;
         }
-        const motivo = (err?.message || String(err)).replace(/\.+$/, '');
+        const motivo = err?.message || String(err);
         const rastroAhora = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { resumenPortal: true } }).then(x => (x?.resumenPortal || {}) as RastroOves).catch(() => ({} as RastroOves));
         if (err instanceof AprobacionInvalidaError && !rastroAhora.envioIniciadoEl && !rastroAhora.numeroCreado) {
             await Borradores.invalidarSinPedido(b.id, ROBOT_ACTOR_OPTOVISION, err.message).catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador Optovisión (queda APROBADO):', e));
             throw err;
         }
-        const texto = err instanceof AdopcionNoVerificadaError
-            ? `${motivo}.`
-            : rastroAhora.numeroCreado
-            ? `El pedido YA está grabado en OVES con el nº ${rastroAhora.numeroCreado}; falta anotarlo en la venta (${motivo}). Reintentar desde la ficha: NO se crea otro, solo se termina de anotar. No lo cargues a mano.`
-            : rastroAhora.envioIniciadoEl || err instanceof PortalRespondioError
-                ? `El envío a OVES quedó sin respuesta clara (${motivo}). Reintentar desde la ficha en unos minutos: el robot busca el pedido en el listado del portal antes de grabar otro. No lo cargues a mano.`
-                : `No se pudo cargar en OVES: ${motivo}. Reintentar desde la ficha (nunca se duplica: el robot busca el pedido antes de grabarlo).`;
+        const texto = textoDeFallaDeConfirmacion({ motivo, numeroCreado: rastroAhora.numeroCreado, envioIncierto: !!rastroAhora.envioIniciadoEl || err instanceof PortalRespondioError, adopcionNoVerificada: err instanceof AdopcionNoVerificadaError, nombrePortal: 'OVES' });
         await Borradores.anotarFalla(b.id, texto, { soloSi: 'APROBADO', robot }).catch(e => console.error('[lab-modulos] no se pudo anotar la falla del borrador Optovisión:', e));
         throw err;
     }

@@ -349,7 +349,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                                     {(c.opciones || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                                 </select>
                                             ) : c.tipo === 'texto' ? (
-                                                <input type="text" maxLength={c.maxLength} pattern={c.patron} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-36`} placeholder={c.ayuda ? '' : undefined} />
+                                                <input type="text" maxLength={c.maxLength} pattern={c.patron} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-36`} />
                                             ) : (
                                                 <input type="number" min={c.min} max={c.max} step={1} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-24`} />
                                             )}

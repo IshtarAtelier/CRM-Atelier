@@ -12,6 +12,10 @@
  *   4. Cargar el 2º par con "Segundo par promo compañero/asociado al num <nº
  *      del 1º par>".
  *
+ * "Mi Primer Varilux / Kodak" es de un solo par: cupón y observación del 1º;
+ * si lleva mail además, Optovisión no lo dijo (decisión abierta, ver
+ * docs/optovision-plan.md) y por eso no se le exige.
+ *
  * Acá vive lo PURO de eso (textos, destinatarios, qué pasos faltan). Nada de
  * red, base ni portal: lo fija `npm run check:carga-optovision`. El módulo de
  * carga arma el plan con esto y, si un paso no se puede hacer solo (el cupón
@@ -38,6 +42,10 @@ export function marcaDePromo(texto: string | null | undefined): MarcaDePromo | n
 }
 
 const soloDigitos = (s: string | null | undefined) => String(s ?? '').replace(/\D/g, '');
+
+/** Un cupón de la web de la promo: 6 a 10 letras o números (VA7AGQWN, KOEUXPQC). */
+export const PATRON_CUPON = /^[A-Za-z0-9]{6,10}$/;
+export const PATRON_CUPON_HTML = '^[A-Za-z0-9]{6,10}$';
 
 /** Un cupón es lo que muestra la web de la promo: solo dígitos y letras, sin espacios. Vacío = no hay. */
 export function cuponLimpio(cupon: string | null | undefined): string {
@@ -73,7 +81,11 @@ export const ETIQUETA_DE_PASO: Record<PasoDePromo, string> = {
     MAIL: 'Mandar el mail a promociones@ y cordoba@',
 };
 
+export type TipoDePromo = 'DOBLE' | 'MI_PRIMER';
+
 export interface EstadoDePromo {
+    /** Doble (dos pares) o Mi Primer (un solo par: cupón y observación del 1º; el mail, hasta que Optovisión lo confirme, no se le exige). */
+    tipo?: TipoDePromo;
     cupon?: string | null;
     numeroPrimerPar?: string | null;
     numeroSegundoPar?: string | null;
@@ -91,6 +103,7 @@ export function pasosPendientes(e: EstadoDePromo): PasoDePromo[] {
     const faltan: PasoDePromo[] = [];
     if (!cuponLimpio(e.cupon)) faltan.push('CUPON');
     if (!soloDigitos(e.numeroPrimerPar)) faltan.push('OBSERVACION_PRIMER_PAR');
+    if (e.tipo === 'MI_PRIMER') return faltan;
     if (!soloDigitos(e.numeroSegundoPar)) faltan.push('OBSERVACION_SEGUNDO_PAR');
     if (!e.mailEnviado) faltan.push('MAIL');
     return faltan;

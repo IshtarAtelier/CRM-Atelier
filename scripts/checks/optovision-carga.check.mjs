@@ -17,6 +17,10 @@ import { marcaDePromo, WEB_DE_PROMO, DESTINATARIOS_PROMO, cuponLimpio, observaci
 import { especificacionDe, colorOvesDe, materialDe, elegirProductoOves, eleccionQuePide, familiaDelNombre, tratamientoDe, varianteDe } from '../../src/services/lab-modules/optovision/catalogo.ts';
 import { PRODUCTOS_OVES, OVES_CATALOGO, valueDeOves } from '../../src/lib/laboratorios/oves-catalogo.ts';
 import { planDeCarga, referenciaDelPedido, observacionDelPedido, esPromoDobleDeOptovision, rolesDeLaPromo, huellaDelPlan, diferenciasDePlan, cristalesPorPar } from '../../src/services/lab-modules/optovision/carga.ts';
+import { elegirServicio, diferenciasDeFormulario, numeroDeLaRespuesta } from '../../src/services/lab-modules/optovision/llenar.ts';
+import { textoDeFallaDeConfirmacion } from '../../src/services/lab-modules/carga/robot-comun.ts';
+import { decidirConAprobado } from '../../src/services/lab-modules/carga/decision.ts';
+import { mensajeExistente } from '../../src/services/lab-modules/optovision/existentes.ts';
 
 let n = 0;
 const t = (nombre, fn) => { try { fn(); n++; } catch (e) { console.error(`✗ ${nombre}`); throw e; } };
@@ -49,7 +53,44 @@ t('asunto del mail', () => {
 });
 t('pasos pendientes, en orden, y vacío solo con todo hecho', () => {
     assert.deepEqual(pasosPendientes({}), ['CUPON', 'OBSERVACION_PRIMER_PAR', 'OBSERVACION_SEGUNDO_PAR', 'MAIL']);
+    assert.deepEqual(pasosPendientes({ cupon: 'X1', numeroPrimerPar: '623012' }), ['OBSERVACION_SEGUNDO_PAR', 'MAIL']);
     assert.deepEqual(pasosPendientes({ cupon: 'X1', numeroPrimerPar: '623012', numeroSegundoPar: '623013', mailEnviado: true }), []);
+    // Mi Primer es de un solo par: con cupón y 1er par cargado no falta nada (el mail no se le exige hasta que Optovisión lo confirme).
+    assert.deepEqual(pasosPendientes({ tipo: 'MI_PRIMER', cupon: 'X1', numeroPrimerPar: '623012' }), []);
+    assert.deepEqual(pasosPendientes({ tipo: 'MI_PRIMER' }), ['CUPON', 'OBSERVACION_PRIMER_PAR']);
+});
+
+// ── llenar.ts (lo puro del robot) ─────────────────────────────────────────
+t('un servicio se elige solo si el portal lo ofrece exactamente una vez', () => {
+    const ofrecidos = [{ key: '|WR|EYST|TRAT|2', descripcion: 'Crizal Forte UV' }, { key: '|WR|EYST|TRAT|3', descripcion: 'Crizal Prevencia' }];
+    assert.deepEqual(elegirServicio(ofrecidos, 'crizal forte uv '), { ok: true, key: '|WR|EYST|TRAT|2' });
+    const falta = elegirServicio(ofrecidos, 'Crizal Sapphire');
+    assert.equal(falta.ok, false); assert.match(falta.motivo, /ofrece: Crizal Forte UV \/ Crizal Prevencia/);
+    const doble = elegirServicio([...ofrecidos, { key: 'x', descripcion: 'Crizal Forte UV' }], 'Crizal Forte UV');
+    assert.equal(doble.ok, false); assert.match(doble.motivo, /no se elige "el primero"/);
+});
+t('el nº de la respuesta de Grabar nunca es "el primer 6 dígitos": se excluyen los conocidos y con varios no se afirma nada', () => {
+    assert.equal(numeroDeLaRespuesta('<b>Pedido grabado. Nro de pedido: 628519</b>'), '628519');
+    // La respuesta repite la observación del 2º par con el nº del 1º: ese no puede ser el nuevo.
+    assert.equal(numeroDeLaRespuesta('Pedido 628519 grabado. Obs: Segundo par promo asociado al num 628377', ['628377']), '628519');
+    assert.equal(numeroDeLaRespuesta('Segundo par promo asociado al num 628377', ['628377']), null);
+    // Dos candidatos y ninguno presentado como "pedido": null (envío incierto, lo resuelve la búsqueda por referencia).
+    assert.equal(numeroDeLaRespuesta('628519 y 628520'), null);
+    assert.equal(numeroDeLaRespuesta('Nro de pedido: 628519. Vinculado a 628520'), '628519');
+    assert.equal(numeroDeLaRespuesta(''), null);
+});
+t('las diferencias del formulario ignoran lo de transporte y normalizan espacios y mayúsculas', () => {
+    assert.deepEqual(diferenciasDeFormulario({ esf_d: '-0.50', claseDePedido: 'RXTD', hLineaRX: 'x', paciente: 'Juan  Perez' }, { esf_d: '-0.50', claseDePedido: 'RXTT', hLineaRX: 'y', paciente: 'juan perez' }), []);
+    assert.deepEqual(diferenciasDeFormulario({ esf_d: '-0.50' }, { esf_d: '-0.75' }), ['esf_d: se aprobó "-0.50" y hoy el formulario tiene "-0.75"']);
+});
+t('el texto de una falla al confirmar nunca invita a cargar a mano si el pedido puede existir', () => {
+    assert.match(textoDeFallaDeConfirmacion({ motivo: 'se cortó', numeroCreado: '628519', envioIncierto: false, adopcionNoVerificada: false, nombrePortal: 'OVES' }), /YA está creado.*628519.*No lo cargues a mano/);
+    assert.match(textoDeFallaDeConfirmacion({ motivo: 'timeout', envioIncierto: true, adopcionNoVerificada: false, nombrePortal: 'OVES' }), /sin respuesta.*No lo cargues a mano/);
+    assert.match(textoDeFallaDeConfirmacion({ motivo: 'red', envioIncierto: false, adopcionNoVerificada: false, nombrePortal: 'OVES' }), /^No se pudo cargar en OVES: red\. Reintentar/);
+    assert.equal(textoDeFallaDeConfirmacion({ motivo: 'el nº no aparece', envioIncierto: false, adopcionNoVerificada: true, nombrePortal: 'OVES' }), 'el nº no aparece.');
+    assert.equal(decidirConAprobado({ pair: 1, numeroCreado: '628519', existente: null, envioIniciadoEl: null, esperaMs: 1 }).accion, 'ANOTAR');
+    assert.match(mensajeExistente({ numero: '626134', ambiguo: true }, 1), /dejá en la venta solo el nº del par que ya está cargado/);
+    assert.doesNotMatch(mensajeExistente({ numero: '626134', ambiguo: true }, 1), /Actualizar pedido|seguimiento/);
 });
 
 // ── oves-catalogo.ts (generado) ───────────────────────────────────────────

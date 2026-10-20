@@ -10,7 +10,7 @@ import { leerVentaParaCargaOves } from './venta';
 import { mensajeExistente, numeroDelPrimerPar, pedidoExistenteDelPar, type PedidoExistente } from './existentes';
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_OPTOVISION, type PayloadBorradorOves, type RastroOves } from './borrador-portal';
 import { LAB_OPTOVISION, NOMBRE_OPTOVISION } from './portal';
-import { cuponLimpio, pasosPendientes, ETIQUETA_DE_PASO, WEB_DE_PROMO } from './promo';
+import { cuponLimpio, pasosPendientes, ETIQUETA_DE_PASO, PATRON_CUPON, PATRON_CUPON_HTML, WEB_DE_PROMO } from './promo';
 
 /**
  * La carga asistida de Optovisión detrás del contrato común (carga/contrato.ts).
@@ -24,8 +24,6 @@ import { cuponLimpio, pasosPendientes, ETIQUETA_DE_PASO, WEB_DE_PROMO } from './
  */
 
 const texto = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
-/** Un cupón de la web de la promo: 6 a 10 letras o números (VA7AGQWN, KOEUXPQC). */
-const PATRON_CUPON = '^[A-Za-z0-9]{6,10}$';
 
 function opcionesDelBody(body: Record<string, unknown>): OpcionesCargaOves {
     const forma = body.forma === undefined || body.forma === null || body.forma === '' ? null : Number(body.forma);
@@ -75,7 +73,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                     { clave: 'tipoArmazon', etiqueta: 'Tipo de armazón', tipo: 'select', obligatorio: true, opciones: TIPO_ARMAZON_OVES.map(t => ({ value: t.value, label: t.label })) },
                     { clave: 'forma', etiqueta: 'Forma del armazón (dibujo del portal, opcional)', tipo: 'select', obligatorio: false, opciones: FORMAS_OVES.map(f => ({ value: String(f), label: `Forma ${String(f).padStart(2, '0')}` })) },
                     { clave: 'enviaArmazon', etiqueta: '¿Se manda el armazón?', tipo: 'select', obligatorio: true, porDefecto: venta.userFrameBrand || venta.userFrameModel ? 'Si' : 'No', opciones: [{ value: 'Si', label: 'Sí (va al laboratorio)' }, { value: 'No', label: 'No' }] },
-                    ...(rol === 'PRIMER_PAR' ? [{ clave: 'cupon', etiqueta: `Cupón de la promo (${promo?.marca === 'KODAK' ? WEB_DE_PROMO.KODAK : WEB_DE_PROMO.VARILUX})`, tipo: 'texto' as const, obligatorio: true, maxLength: 10, patron: PATRON_CUPON, ayuda: 'Se genera en la web de la promo y va en la observación del 1er par. Sin él, Optovisión cobra los dos pares.' }] : []),
+                    ...(rol === 'PRIMER_PAR' ? [{ clave: 'cupon', etiqueta: `Cupón de la promo (${promo?.marca === 'KODAK' ? WEB_DE_PROMO.KODAK : WEB_DE_PROMO.VARILUX})`, tipo: 'texto' as const, obligatorio: true, maxLength: 10, patron: PATRON_CUPON_HTML, ayuda: 'Se genera en la web de la promo y va en la observación del 1er par. Sin él, Optovisión cobra los dos pares.' }] : []),
                 ];
                 const existente = yaCargados.get(pair);
                 const avisos = [...r.avisos, ...(avisoRoles && roles ? [avisoRoles] : [])];
@@ -99,7 +97,11 @@ export const CARGA_OPTOVISION: CargaAsistida = {
         const plan = ((b.payload || {}) as PayloadBorradorOves).plan as PlanOves | undefined;
         const r = (b.resumenPortal || {}) as RastroOves;
         const grad = (o: PlanOves['od']) => o ? `${o.esf}${o.cil ? ` ${o.cil} × ${o.eje}°` : ''}${o.adic ? ` · add +${o.adic}` : ''} · DNP ${o.dnp ?? '—'} · altura ${o.altura ?? '—'}` : '—';
-        const pasos = plan?.promo ? pasosPendientes({ cupon: plan.cupon ?? (plan.rolPromo === 'SEGUNDO_PAR' ? 'ok' : null), numeroPrimerPar: plan.rolPromo === 'PRIMER_PAR' ? (b.portalNumber ?? null) : plan.pedidoOrigen, numeroSegundoPar: plan.rolPromo === 'SEGUNDO_PAR' ? (b.portalNumber ?? null) : (plan.promo.tipo === 'MI_PRIMER' ? 'n/a' : null), mailEnviado: !!r.mailPromoEnviadoEl || plan.promo.tipo === 'MI_PRIMER' }) : [];
+        // Qué le falta a la promo vista desde ESTE borrador: el 1º conoce su cupón y su nº; el 2º, el nº del 1º y el suyo.
+        const pasos = plan?.promo ? pasosPendientes(plan.rolPromo === 'SEGUNDO_PAR'
+            ? { tipo: plan.promo.tipo, cupon: 'del 1er par', numeroPrimerPar: plan.pedidoOrigen, numeroSegundoPar: b.portalNumber ?? null, mailEnviado: !!r.mailPromoEnviadoEl }
+            : { tipo: plan.promo.tipo, cupon: plan.cupon, numeroPrimerPar: b.portalNumber ?? null, numeroSegundoPar: null, mailEnviado: false }
+        ).filter(p => plan.rolPromo === 'SEGUNDO_PAR' || plan.promo!.tipo === 'MI_PRIMER' || (p !== 'OBSERVACION_SEGUNDO_PAR' && p !== 'MAIL')) : [];
         const avisos = [
             ...(((b.payload || {}) as PayloadBorradorOves).avisos || []),
             ...(r.noAplican?.length ? [`el portal no toma para este producto: ${r.noAplican.join(', ')} (quedan sin cargar)`] : []),
@@ -146,8 +148,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
         const opciones = opcionesDelBody(body);
         if (opciones.forma !== null && opciones.forma !== undefined && !(FORMAS_OVES as readonly number[]).includes(opciones.forma)) return { ok: false, status: 400, error: `La forma del armazón tiene que ser una de las del portal (${FORMAS_OVES.join(', ')}).` };
         if (opciones.tipoArmazon && !TIPO_ARMAZON_OVES.some(t => t.value === opciones.tipoArmazon)) return { ok: false, status: 400, error: 'El tipo de armazón tiene que ser uno de los del portal.' };
-        if (texto(body.cupon) && !opciones.cupon) return { ok: false, status: 400, error: 'El cupón tiene que ser el código de la web de la promo (letras y números, 6 a 10).' };
-        if (opciones.cupon && !new RegExp(PATRON_CUPON).test(opciones.cupon)) return { ok: false, status: 400, error: 'El cupón tiene que ser el código de la web de la promo (letras y números, 6 a 10).' };
+        if (texto(body.cupon) && !PATRON_CUPON.test(opciones.cupon ?? '')) return { ok: false, status: 400, error: 'El cupón tiene que ser el código de la web de la promo (letras y números, 6 a 10).' };
         // El nº del 1er par lo deduce el CRM con la regla común (nunca un anulado ni un reproceso): no se acepta del navegador.
         const roles = rolesDeLaPromo(venta);
         if (roles && pair === roles.sinCargo) {
