@@ -150,14 +150,31 @@ export function cristalesPorPar(venta: Pick<VentaParaCargaOves, 'items'>): Map<n
  * Kodak / 2x1 Sygnus)? Dos pares de cristales de Optovisión de la misma
  * familia, vendidos como 2x1 (el producto lo dice o la promo aplicada). Puro.
  */
+/** ¿El texto nombra una promo doble de Optovisión? "2x1", "Doble Disfrute" o "promo" en la promo aplicada. Puro. */
+export const nombraPromoDoble = (s: string | null | undefined) => /\b2\s*x\s*1\b|doble\s*disfrute/i.test(String(s || ''));
+
 export function esPromoDobleDeOptovision(venta: VentaParaCargaOves): boolean {
     if (cantidadDeArmazones(venta as any) < 2) return false;
     const porPar = cristalesPorPar(venta);
     const p1 = porPar.get(1) ?? [], p2 = porPar.get(2) ?? [];
     if (!p1.length || !p2.length) return false;
     if (familiaDelNombre(nombreDe(p1[0])) !== familiaDelNombre(nombreDe(p2[0]))) return false;
-    const dice2x1 = (s: string) => /\b2\s*x\s*1\b/i.test(s);
-    return dice2x1(nombreDe(p1[0])) || dice2x1(nombreDe(p2[0])) || dice2x1(texto(venta.appliedPromoName));
+    return nombraPromoDoble(nombreDe(p1[0])) || nombraPromoDoble(nombreDe(p2[0])) || nombraPromoDoble(venta.appliedPromoName) || /\bpromo\b/i.test(texto(venta.appliedPromoName));
+}
+
+/**
+ * Dos pares de Optovisión con indicio de promo pero de familias distintas: la
+ * regla no cierra y NO se arma un pedido común en silencio (saldría sin cupón
+ * y Optovisión cobraría los dos pares). Devuelve el motivo para frenar. Puro.
+ */
+export function promoQueNoCierra(venta: VentaParaCargaOves): string | null {
+    if (cantidadDeArmazones(venta as any) < 2 || esPromoDobleDeOptovision(venta)) return null;
+    const porPar = cristalesPorPar(venta);
+    const p1 = porPar.get(1) ?? [], p2 = porPar.get(2) ?? [];
+    if (!p1.length || !p2.length) return null;
+    const indicio = nombraPromoDoble(nombreDe(p1[0])) || nombraPromoDoble(nombreDe(p2[0])) || nombraPromoDoble(venta.appliedPromoName) || /\bpromo\b/i.test(texto(venta.appliedPromoName));
+    if (!indicio) return null;
+    return `la venta tiene dos pares de Optovisión con promo pero de familias distintas (${familiaDelNombre(nombreDe(p1[0]))} y ${familiaDelNombre(nombreDe(p2[0]))}): el robot no sabe si es una promo doble; confirmá con Optovisión y cargalo a mano o corregí la venta`;
 }
 
 /** En la promo doble, qué par va 1º (el de mayor valor, con cargo) y cuál 2º (roles-2x1.ts). Puro. */
@@ -235,6 +252,8 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
     if (fueraDeRango) faltantes.push(`hay un cristal asignado al armazón ${fueraDeRango.framePosition}, que la venta no tiene: reasignalo`);
     const cristales = cristalesPorPar(venta).get(par) ?? [];
     if (!cristales.length) return { ok: false, faltantes: [...faltantes, `la venta no tiene cristales de Optovisión para el par ${par}`], avisos };
+    const promoRara = promoQueNoCierra(venta);
+    if (promoRara) faltantes.push(promoRara);
     const productoCRM = nombreDe(cristales[0]);
     const nombres = [...new Set(cristales.map(nombreDe))];
     if (nombres.length > 1) faltantes.push(`el par ${par} mezcla dos cristales distintos (${nombres.join(' y ')}): OVES carga un producto por pedido`);

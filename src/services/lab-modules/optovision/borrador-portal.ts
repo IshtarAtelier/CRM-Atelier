@@ -7,11 +7,11 @@ import { aplicarEstadoEnVenta } from '../estados';
 import { puedeCrearPedidosReales } from '../carga/produccion';
 import { numerosDeLaVenta, numerosDeOtrosPares as numerosAjenosAlPar } from '../carga/numeros';
 import { decidirConAprobado } from '../carga/decision';
-import { AdopcionNoVerificadaError, AprobacionInvalidaError, enElPortal as enElPortalDe, ESPERA_TRAS_ENVIO_INCIERTO_MS, guardarArchivoDelPortal, textoDeFallaDeConfirmacion, YaCargadoError } from '../carga/robot-comun';
+import { AdopcionNoVerificadaError, AprobacionInvalidaError, enElPortal as enElPortalDe, guardarArchivoDelPortal, textoDeFallaDeConfirmacion, YaCargadoError } from '../carga/robot-comun';
 import { conSesionOves, LAB_OPTOVISION, NOMBRE_OPTOVISION, ROBOT_OPTOVISION, VARIABLE_PERMISO_OVES } from './portal';
 import { diferenciasDePlan, huellaDelPlan, planDeCarga, rolesDeLaPromo, type OpcionesCargaOves, type PlanOves } from './carga';
 import { leerVentaParaCargaOves } from './venta';
-import { abrirFormulario, buscarPorReferencia, capturarFormulario, diferenciasDeFormulario, grabarPedido, llenarFormulario, PedidoRechazadoError, PortalRespondioError, type Llenado } from './llenar';
+import { abrirFormulario, buscarPorReferencia, capturarFormulario, consultarPedido, diferenciasDeFormulario, grabarPedido, llenarFormulario, pedidoConsultadoEsNuestro, PedidoRechazadoError, PortalRespondioError, usarUuid, type Llenado } from './llenar';
 import { esNumeroOves, numeroDelPrimerPar, pedidoExistenteDelPar } from './existentes';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { avisarMailDePromo } from './promo-mail';
@@ -55,6 +55,8 @@ export interface RastroOves extends RastroPortal {
     pasos?: { campo: string; valor: string }[];
     noAplican?: string[];
     reglas?: Llenado['reglas'];
+    /** El uuid del formulario con el que salió (o iba a salir) el Grabar: un reintento lo reutiliza (anti doble envío si el portal deduplica). */
+    uuidEnvio?: string | null;
     huella?: string;
     preparadoEl?: string;
     numeroCreado?: string;
@@ -69,6 +71,8 @@ export interface RastroOves extends RastroPortal {
 }
 
 const enElPortal = <T,>(tarea: () => Promise<T>) => enElPortalDe(LAB_OPTOVISION, NOMBRE_OPTOVISION, tarea);
+/** Tras un Grabar sin respuesta, cuánto esperar antes de volver a grabar: 30 min, como el techo de cada paso del portal (OVES puede estar procesándolo). */
+export const ESPERA_TRAS_ENVIO_INCIERTO_MS = 30 * 60_000;
 async function mezclar(id: string, datos: RastroOves) { await Borradores.anotarRastro(id, datos); }
 const guardarCaptura = (borradorId: string, sufijo: string, png: Buffer) => guardarArchivoDelPortal('optovision', borradorId, sufijo, png, 'image/png');
 
@@ -80,12 +84,15 @@ const guardarCaptura = (borradorId: string, sufijo: string, png: Buffer) => guar
  */
 async function enSoloLectura<T>(page: Page, tarea: (atajadas: string[]) => Promise<T>): Promise<T> {
     const atajadas: string[] = [];
-    const ESCRIBE = /opc=(grabar|anular|marcar)|rs=x_(grabarPedido|sendPedido|sendCarrito|borrarProducto|pwdChange|sendCliente)/i;
+    // Lo que escribe en OVES, venga por POST o por GET (sajax manda los RPC por
+    // GET salvo que la app lo cambie: no se asume): grabar, anular, marcar
+    // solicitud, y los RPC x_grabarPedido / x_sendPedido / x_marcar… / etc.
+    const ESCRIBE = /opc=(grabar|anular|marcar\w*)|rs=x_(grabarPedido|sendPedido|sendCarrito|borrarProducto|pwdChange|sendCliente|marcar\w*)/i;
     const handler = async (route: any) => {
         const q = route.request();
         const u: string = q.url();
         const body = q.postData() || '';
-        if ((q.method() !== 'GET' && q.method() !== 'HEAD' && ESCRIBE.test(`${u} ${body}`)) || /opc=grabar/i.test(u)) {
+        if (ESCRIBE.test(`${u} ${body}`)) {
             atajadas.push(u);
             return route.abort('blockedbyclient');
         }
@@ -94,10 +101,14 @@ async function enSoloLectura<T>(page: Page, tarea: (atajadas: string[]) => Promi
     const contexto = page.context();
     await contexto.route('**/*', handler);
     try {
+        // La sonda prueba los DOS caminos: el POST documentado y un RPC sajax por GET.
         const paso = await page.evaluate(async () => {
-            try { await fetch('include/suggest.php?opc=grabar&prueba=1', { method: 'POST', body: 'lentes=AO', credentials: 'include' }); return true; } catch { return false; }
+            let pasoAlguno = false;
+            try { await fetch('include/suggest.php?opc=grabar&prueba=1', { method: 'POST', body: 'lentes=AO', credentials: 'include' }); pasoAlguno = true; } catch { /* atajado */ }
+            try { await fetch('include/suggest.php?rs=x_grabarPedido&rsargs[]=prueba&prueba=2', { credentials: 'include' }); pasoAlguno = true; } catch { /* atajado */ }
+            return pasoAlguno;
         });
-        if (paso || !atajadas.some(a => /prueba=1/.test(a))) throw new Error(`${NOMBRE_OPTOVISION}: no se pudo poner el navegador en solo lectura; no se toca el formulario.`);
+        if (paso || !atajadas.some(a => /prueba=1/.test(a)) || !atajadas.some(a => /prueba=2/.test(a))) throw new Error(`${NOMBRE_OPTOVISION}: no se pudo poner el navegador en solo lectura; no se toca el formulario.`);
         atajadas.length = 0;
         return await tarea(atajadas);
     } finally {
@@ -203,25 +214,34 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
             const existente = rastroActual.numeroCreado ? null : await pedidoExistenteDelPar(b.orderId, b.pair, pares);
             const datos = { pair: b.pair, numeroCreado: rastroActual.numeroCreado ?? null, existente, envioIniciadoEl: rastroActual.envioIniciadoEl ?? null, esperaMs: ESPERA_TRAS_ENVIO_INCIERTO_MS };
             let decision = decidirConAprobado(datos);
+            const referencia = rastroActual.formulario?.pedinterno || guardado.plan.pedinterno;
             if (decision.accion === 'BUSCAR_EN_PORTAL') {
                 const ajenos = await numerosDeOtrosPares(b.orderId, b.pair);
-                const enPortal = (await buscarPorReferencia(page, guardado.plan.pedinterno)).filter(f => !ajenos.has(f.numero) && !/anulad/i.test(f.estado));
+                const enPortal = (await buscarPorReferencia(page, referencia)).filter(f => !ajenos.has(f.numero) && !/anulad/i.test(f.estado));
                 decision = decidirConAprobado({ ...datos, numeroEnPortal: enPortal[0]?.numero ?? null });
             }
             if (decision.accion === 'INVALIDAR') throw new AprobacionInvalidaError(decision.motivo);
             if (decision.accion === 'ESPERAR') throw new Error(decision.motivo);
             if (decision.accion === 'BUSCAR_EN_PORTAL') throw new Error('la decisión pidió buscar en el portal dos veces (no debería pasar)');
             const adoptado = decision.accion === 'VERIFICAR';
+            const adoptadoDe = decision.accion === 'VERIFICAR' ? decision.adoptadoDe : null;
             let numero: string;
             let respuesta = '';
             if (decision.accion !== 'CREAR') {
                 numero = decision.numero;
                 if (adoptado) {
-                    // Un nº ADOPTADO se verifica contra el portal: tiene que estar en el listado con la referencia de esta venta.
-                    const enPortal = await buscarPorReferencia(page, guardado.plan.pedinterno);
-                    const fila = enPortal.find(f => f.numero === numero);
-                    if (!fila) throw new AdopcionNoVerificadaError(`el nº ${numero} que tiene este par no aparece en OVES con la referencia "${guardado.plan.pedinterno}": revisalo en el portal y corregí la venta. No se creó nada`);
-                    if (/anulad/i.test(fila.estado)) throw new AdopcionNoVerificadaError(`el pedido ${numero} está anulado en OVES: corregí el nº en la venta y reintentá. No se creó nada`);
+                    // Un nº ADOPTADO se verifica contra el portal con su consulta: tiene
+                    // que existir, no estar anulado y nombrar a este paciente o esta
+                    // referencia (uno cargado a mano no lleva "#XXXX", pero sí el nombre).
+                    // Si además el listado tiene una fila con NUESTRA referencia que no es
+                    // de otro par, esa es la nuestra: se adopta esa.
+                    const ajenos = await numerosDeOtrosPares(b.orderId, b.pair);
+                    const propias = (await buscarPorReferencia(page, referencia)).filter(f => !ajenos.has(f.numero) && !/anulad/i.test(f.estado));
+                    if (propias.length === 1 && propias[0].numero !== numero && adoptadoDe === 'venta') numero = propias[0].numero;
+                    const consulta = await consultarPedido(page, numero);
+                    const v = pedidoConsultadoEsNuestro(consulta, { paciente: guardado.plan.paciente, pedinterno: referencia });
+                    const incierto = !!rastroActual.envioIniciadoEl;
+                    if (!v.ok) throw new AdopcionNoVerificadaError(`el nº ${numero} que tiene este par ${v.motivo} en OVES: revisalo en el portal y corregí el nº en la venta.${incierto ? ' Hay además un envío de este borrador sin respuesta: el robot NO afirma que no se haya creado nada; buscalo en el listado antes de cargar a mano' : ' No se creó nada'}`);
                 }
             } else {
                 // 3. ¿La venta de hoy sigue dando EXACTAMENTE lo aprobado?
@@ -231,10 +251,22 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 if (huellaDelPlan(r.plan) !== rastro0.huella || cambios.length) {
                     throw new AprobacionInvalidaError(`La venta cambió después de aprobar (${cambios.join(', ') || 'otro dato'}): volvé a prepararlo para revisar el pedido nuevo. No se mandó nada.`);
                 }
+                // 2º par de la promo: el 1º tiene que seguir VIVO en el portal (sin
+                // seguimiento, el CRM no se entera de una anulación; si Optovisión lo
+                // anuló y el equipo lo recargó a mano, el nº de la observación sería
+                // el viejo y cobrarían los dos pares).
+                if (r.plan.rolPromo === 'SEGUNDO_PAR' && r.plan.pedidoOrigen) {
+                    const primero = await consultarPedido(page, r.plan.pedidoOrigen);
+                    const v = pedidoConsultadoEsNuestro(primero, { paciente: r.plan.paciente, pedinterno: '' });
+                    if (!v.ok) throw new AprobacionInvalidaError(`El 1er par de la promo (nº ${r.plan.pedidoOrigen}) ${v.motivo} en OVES: corregí en la venta el nº del 1er par vigente y volvé a preparar el 2º. No se mandó nada.`);
+                }
                 // Se vuelve a llenar el formulario (otra sesión, otro navegador) y tiene que quedar IGUAL que lo que la persona vio.
                 await mezclar(b.id, { etapa: `volviendo a llenar el formulario de OVES desde ${new Date().toISOString()}` }).catch(() => null);
                 await abrirFormulario(page, r.plan.clase);
                 const llenado = await llenarFormulario(page, r.plan);
+                // Un reintento reutiliza el uuid del envío anterior (si el portal deduplica por uuid, un duplicado se vuelve imposible de su lado).
+                await usarUuid(page, rastroActual.uuidEnvio);
+                const uuidEnvio = rastroActual.uuidEnvio || llenado.uuid;
                 const dif = diferenciasDeFormulario(rastro0.formulario!, llenado.formulario);
                 if (dif.length) throw new AprobacionInvalidaError(`El formulario de OVES ya no queda como se aprobó (${dif.slice(0, 4).join(' · ')}): volvé a prepararlo. No se mandó nada.`);
                 // 4. Grabar: la barrera (atómica en la base) justo antes de aceptar el confirm del portal.
@@ -245,6 +277,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                     antesDeConfirmar: async () => {
                         const sigueAprobado = await Borradores.marcarEnvio(b.id, { esperaMs: ESPERA_TRAS_ENVIO_INCIERTO_MS });
                         if (!sigueAprobado) throw new YaCargadoError();
+                        await mezclar(b.id, { uuidEnvio }).catch(() => null);
                     },
                 }).catch(async (e) => {
                     // Solo un rechazo del portal PRUEBA que no se creó nada; un error interno o un silencio deja el envío incierto.
@@ -253,6 +286,11 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 });
                 numero = grabado.numero;
                 respuesta = grabado.respuesta;
+                // El nº leído de la respuesta se VERIFICA antes de anotarlo: la consulta
+                // de ese pedido tiene que ser de esta venta. Un nº equivocado anotado
+                // como creado dejaría el pedido real huérfano para siempre.
+                const v = pedidoConsultadoEsNuestro(await consultarPedido(page, numero), { paciente: r.plan.paciente, pedinterno: referencia });
+                if (!v.ok) throw new PortalRespondioError(`${NOMBRE_OPTOVISION} contestó al grabar con el nº ${numero}, pero su consulta ${v.motivo}: no se anota. Reintentar busca el pedido por la referencia antes de grabar otro`);
             }
             // Anotado en el acto: de acá en más un reintento no vuelve a grabar.
             await mezclar(b.id, { numeroCreado: numero, portalDraftId: numero, respuestaDelPortal: respuesta || undefined, ...(adoptado ? { adoptadoDelPortal: true } : {}) });

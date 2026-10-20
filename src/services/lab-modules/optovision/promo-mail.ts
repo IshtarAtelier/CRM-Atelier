@@ -77,6 +77,13 @@ export async function avisarMailDePromo(orderId: string, robot: Actor, aprobadoP
     if (!puedeCrearPedidosReales(VARIABLE_PERMISO_OVES)) return pendiente(`fuera de producción no se manda el mail a Optovisión (asunto: ${asunto})`);
     const promo = segundo.plan.promo?.marca === 'KODAK' ? '2x1 Kodak' : 'Doble Disfrute Varilux';
     const cliente = venta.client?.name || 'cliente';
+    // Reclamo atómico ANTES de mandar: solo un llamador pasa (dos cargas a la vez
+    // o un reintento encimado mandarían dos mails). Un reclamo de más de 10 min
+    // sin "enviado" se considera caído y se puede volver a reclamar.
+    const limite = new Date(Date.now() - 10 * 60_000).toISOString();
+    const reclamado = await prisma.$executeRaw`UPDATE "LabOrderDraft" SET "resumenPortal" = COALESCE("resumenPortal", '{}'::jsonb) || ${JSON.stringify({ mailPromoReclamadoEl: new Date().toISOString() })}::jsonb
+        WHERE id = ${segundo.id} AND ("resumenPortal"->>'mailPromoEnviadoEl') IS NULL AND (("resumenPortal"->>'mailPromoReclamadoEl') IS NULL OR ("resumenPortal"->>'mailPromoReclamadoEl') < ${limite})`;
+    if (reclamado !== 1) return { enviado: false, motivo: 'otro proceso está mandando el mail (o ya salió)' };
     await sendEmail({
         to: DESTINATARIOS_PROMO.join(','),
         bcc: PRIVATE_ADMIN_EMAILS,

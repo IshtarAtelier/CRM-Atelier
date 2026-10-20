@@ -9,6 +9,8 @@ import { eleccionQuePide, FORMAS_OVES, SERVICIO_CALIBRADO, TIPO_ARMAZON_OVES } f
 import { leerVentaParaCargaOves } from './venta';
 import { mensajeExistente, numeroDelPrimerPar, pedidoExistenteDelPar, type PedidoExistente } from './existentes';
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_OPTOVISION, type PayloadBorradorOves, type RastroOves } from './borrador-portal';
+import { avisarMailDePromo } from './promo-mail';
+import { prisma } from '../../../lib/db';
 import { LAB_OPTOVISION, NOMBRE_OPTOVISION } from './portal';
 import { cuponLimpio, pasosPendientes, ETIQUETA_DE_PASO, PATRON_CUPON, PATRON_CUPON_HTML, WEB_DE_PROMO } from './promo';
 
@@ -47,6 +49,12 @@ export const CARGA_OPTOVISION: CargaAsistida = {
     async analizar(orderId) {
         const venta = await leerVentaParaCargaOves(orderId);
         if (!venta) return null;
+        // Un mail de promo que quedó pendiente (faltaba el código del vendedor, no
+        // era producción) se reintenta cada vez que alguien abre la ficha: es
+        // idempotente y con reclamo atómico, y un CARGADO no tiene otro botón.
+        const cargados = await prisma.labOrderDraft.findMany({ where: { orderId, lab: LAB_OPTOVISION, status: 'CARGADO' }, select: { resumenPortal: true } }).catch(() => []);
+        const pendiente = cargados.some(c => !!((c.resumenPortal || {}) as RastroOves).mailPromoPendiente);
+        if (pendiente) void avisarMailDePromo(orderId, ROBOT_ACTOR_OPTOVISION).catch(err => console.error('[lab-modulos] reintento del mail de promo Optovisión:', err?.message || err));
         const porPar = cristalesPorPar(venta);
         // La carga asistida va hasta 2 pares (un 3º se carga a mano).
         const pares = [...porPar.keys()].filter(p => p <= 2).sort((a, b) => a - b);

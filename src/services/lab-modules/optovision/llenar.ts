@@ -84,6 +84,8 @@ export interface Llenado {
     /** Campos del plan que el portal tiene INHABILITADOS para este producto (no se mandan). */
     noAplican: string[];
     reglas: ReglasDelProducto;
+    /** El `uuidHidden` que el portal generó para este formulario. */
+    uuid: string;
 }
 
 /**
@@ -129,13 +131,17 @@ export async function llenarFormulario(page: Page, plan: PlanOves): Promise<Llen
     }
 
     // 4. Prescripción por ojo (solo lo que el portal no tiene inhabilitado).
-    const inhabilitados = new Set(reglas.inhabilitados);
+    // Las reglas pueden venir con sufijo de ojo ("adic_d") o sin él ("adic"): se miran las dos formas.
+    const sinOjo = (id: string) => id.replace(/_[di]$/, '');
+    const inhabilitados = new Set(reglas.inhabilitados.flatMap(r => [r, sinOjo(r)]));
     const noAplican: string[] = [];
     const escribir = async (id: string, valor: string | null) => {
         if (valor === null || valor === '') return;
-        if (inhabilitados.has(id)) { noAplican.push(id); return; }
+        if (inhabilitados.has(id) || inhabilitados.has(sinOjo(id))) { noAplican.push(id); return; }
         const el = page.locator(`#${id}`);
         if (await el.count() === 0) throw new Error(`${NOMBRE_OPTOVISION}: el formulario no tiene el campo ${id}`);
+        // Lo que el portal deshabilitó en vivo tampoco se escribe (un fill sobre un disabled esperaría el timeout entero).
+        if (await el.isDisabled().catch(() => false) || !(await el.isVisible().catch(() => false))) { noAplican.push(id); return; }
         const tag = await el.evaluate(e => e.tagName.toLowerCase());
         if (tag === 'select') {
             const opciones: string[] = await el.evaluate(e => [...(e as HTMLSelectElement).options].map(o => o.value));
@@ -190,7 +196,8 @@ export async function llenarFormulario(page: Page, plan: PlanOves): Promise<Llen
     const mensaje = (await page.locator('#mensajeRX').innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
     if (mensaje && mensaje !== '.') throw new Error(`${NOMBRE_OPTOVISION}: el formulario marca un problema: "${mensaje}". No se mandó nada.`);
     const vacios: string[] = [];
-    for (const id of reglas.obligatorios) {
+    const idsObligatorios = [...new Set(reglas.obligatorios.flatMap(r => (/_[di]$/.test(r) ? [r] : [r, `${r}_d`, `${r}_i`])))];
+    for (const id of idsObligatorios) {
         const el = page.locator(`#${id}`);
         if (await el.count() === 0) continue;
         const visible = await el.isVisible().catch(() => false);
@@ -200,7 +207,12 @@ export async function llenarFormulario(page: Page, plan: PlanOves): Promise<Llen
     }
     if (vacios.length) throw new Error(`${NOMBRE_OPTOVISION}: el portal exige ${vacios.join(', ')} para este producto y la venta no lo tiene. No se mandó nada.`);
 
-    return { pasos, formulario: await leerFormulario(page), noAplican, reglas };
+    return { pasos, formulario: await leerFormulario(page), noAplican, reglas, uuid: await page.inputValue('#uuidHidden').catch(() => '') };
+}
+
+/** Reinyecta el uuid del intento anterior (anti doble envío del lado del portal, si lo deduplica). */
+export async function usarUuid(page: Page, uuid: string | null | undefined): Promise<void> {
+    if (uuid && /^[0-9a-f-]{36}$/i.test(uuid)) await page.evaluate(u => { const e = document.getElementById('uuidHidden') as HTMLInputElement | null; if (e) e.value = u; }, uuid);
 }
 
 /** Lo que quedó en el formulario, campo por campo (name → valor; en los select, el texto de la opción). Es lo comparable. */
@@ -271,20 +283,22 @@ export function numeroDeLaRespuesta(html: string, excluir: Iterable<string> = []
  */
 export async function grabarPedido(page: Page, opts: { antesDeConfirmar?: () => Promise<void>; excluir?: Iterable<string> } = {}): Promise<{ numero: string; respuesta: string }> {
     const antes = (await page.locator('#bottomcontent').innerHTML().catch(() => '')) || '';
-    let alerta: string | null = null;
-    let confirmado = false;
+    // Lo que pasa en los dialogs vive en un objeto (el handler es un closure y
+    // TypeScript no ve sus asignaciones desde el loop).
     // La barrera corre ADENTRO del handler del dialog (el único momento entre el
     // clic y el confirm): si falla, el confirm se rechaza y la falla se guarda
     // acá para lanzarla desde el flujo principal — un throw dentro del handler
     // se perdería en el emitter y el robot esperaría 10 minutos en vano.
-    let fallaBarrera: unknown = null;
+    const estado: { alerta: string | null; alertaTrasConfirmar: string | null; confirmado: boolean; fallaBarrera: unknown } = { alerta: null, alertaTrasConfirmar: null, confirmado: false, fallaBarrera: null };
     const onDialog = async (d: any) => {
         if (d.type() === 'confirm') {
-            try { await opts.antesDeConfirmar?.(); } catch (err) { fallaBarrera = err; await d.dismiss().catch(() => null); return; }
-            confirmado = true;
+            try { await opts.antesDeConfirmar?.(); } catch (err) { estado.fallaBarrera = err; await d.dismiss().catch(() => null); return; }
+            estado.confirmado = true;
             await d.accept().catch(() => null);
         } else {
-            alerta = d.message();
+            // Un alert ANTES del confirm es el portal rechazando (faltan datos, validación).
+            // Uno DESPUÉS puede ser el "pedido grabado": nunca se toma como rechazo.
+            if (estado.confirmado) estado.alertaTrasConfirmar = d.message(); else estado.alerta = d.message();
             await d.accept().catch(() => null);
         }
     };
@@ -294,8 +308,13 @@ export async function grabarPedido(page: Page, opts: { antesDeConfirmar?: () => 
         const limite = Date.now() + 10 * 60_000;
         while (Date.now() < limite) {
             await page.waitForTimeout(1000);
-            if (fallaBarrera) throw fallaBarrera;
-            if (alerta) break;
+            if (estado.fallaBarrera) throw estado.fallaBarrera;
+            if (estado.alerta) break;
+            if (estado.alertaTrasConfirmar) {
+                const numero = numeroDeLaRespuesta(estado.alertaTrasConfirmar, opts.excluir ?? []);
+                if (numero) return { numero, respuesta: estado.alertaTrasConfirmar.slice(0, 2000) };
+                throw new PortalRespondioError(`${NOMBRE_OPTOVISION} mostró un cartel después de confirmar ("${estado.alertaTrasConfirmar.slice(0, 200)}"): no se sabe si grabó`);
+            }
             const ahora = (await page.locator('#bottomcontent').innerHTML().catch(() => '')) || '';
             if (ahora && ahora !== antes && !/<form/i.test(ahora.slice(0, 200))) {
                 const texto = ahora.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -305,22 +324,52 @@ export async function grabarPedido(page: Page, opts: { antesDeConfirmar?: () => 
                 return { numero, respuesta: texto.slice(0, 2000) };
             }
         }
-        if (alerta) throw new PedidoRechazadoError(`el portal no aceptó el pedido: ${alerta}`);
-        if (!confirmado) throw new PedidoRechazadoError('el portal no pidió confirmar el pedido (faltan datos obligatorios o hay un mensaje pendiente): no se grabó nada');
+        if (estado.alerta) throw new PedidoRechazadoError(`el portal no aceptó el pedido: ${estado.alerta}`);
+        if (!estado.confirmado) throw new PedidoRechazadoError('el portal no pidió confirmar el pedido (faltan datos obligatorios o hay un mensaje pendiente): no se grabó nada');
         throw new PortalRespondioError(`${NOMBRE_OPTOVISION} no respondió al grabar en 10 minutos: no se sabe si lo tomó`);
     } finally {
         page.off('dialog', onDialog);
     }
 }
 
+/** Las filas del listado dibujado (`#listapedidos`): nº web, estado y referencia. */
+async function filasDelListado(page: Page): Promise<{ numero: string; estado: string; referencia: string }[]> {
+    return page.evaluate(() => {
+        const out: { numero: string; estado: string; referencia: string }[] = [];
+        for (const tr of Array.from(document.querySelectorAll('#listapedidos tbody tr'))) {
+            const celdas = Array.from(tr.querySelectorAll('th, td')).map(c => (c as HTMLElement).innerText.trim());
+            const numero = (celdas[0] || '').match(/\d{6}/)?.[0];
+            if (celdas.length < 5 || !numero) continue;
+            out.push({ numero, estado: celdas[2], referencia: celdas[4] });
+        }
+        return out;
+    });
+}
+
+const normalizarReferencia = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+/** ¿La referencia del listado es la nuestra? Igual, o una recortada de la otra (el campo del portal puede cortar). Puro. */
+export function referenciaCoincide(enPortal: string, nuestra: string): boolean {
+    const a = normalizarReferencia(enPortal), b = normalizarReferencia(nuestra);
+    if (!a || !b) return false;
+    return a === b || a.startsWith(b) || b.startsWith(a);
+}
+
 /**
  * Busca en el listado del portal un pedido por su "Referencia Cliente" (el
  * `#XXXX Nombre N°par` del plan). Devuelve los nº web que la tienen, del más
- * nuevo al más viejo. Solo lee.
+ * nuevo al más viejo. Solo lee. ANTES de aceptar un "no está", comprueba que
+ * el listado sin filtro se lea con filas (un listado vacío o que no parsea NO
+ * es "no existe": es la sesión o el portal rotos, y crear sería duplicar;
+ * lección de Grupo Óptico).
  */
 export async function buscarPorReferencia(page: Page, referencia: string): Promise<{ numero: string; estado: string; referencia: string }[]> {
     await page.locator('#historialrx_a').first().click();
     await esperarQueTermineDeActualizar(page);
+    await page.waitForSelector('#listapedidos', { state: 'attached' });
+    await page.waitForTimeout(1500);
+    const canario = await filasDelListado(page);
+    if (canario.length === 0) throw new Error(`${NOMBRE_OPTOVISION}: el listado de pedidos del portal vino vacío o no se pudo leer; no se puede comprobar si el pedido ya existe, así que no se crea nada.`);
     await page.locator('#side-menu li#BU a').first().waitFor({ state: 'visible' });
     await page.locator('#side-menu li#BU a').first().click();
     await page.waitForSelector('#bus_refped_int', { state: 'visible' });
@@ -329,14 +378,28 @@ export async function buscarPorReferencia(page: Page, referencia: string): Promi
     await esperarQueTermineDeActualizar(page);
     await page.waitForSelector('#listapedidos', { state: 'attached' });
     await page.waitForTimeout(1500);
-    const filas: { numero: string; estado: string; referencia: string }[] = await page.evaluate(() => {
-        const out: { numero: string; estado: string; referencia: string }[] = [];
-        for (const tr of Array.from(document.querySelectorAll('#listapedidos tbody tr'))) {
-            const celdas = Array.from(tr.querySelectorAll('th, td')).map(c => (c as HTMLElement).innerText.trim());
-            if (celdas.length < 5 || !/^\d{6}$/.test(celdas[0])) continue;
-            out.push({ numero: celdas[0], estado: celdas[2], referencia: celdas[4] });
-        }
-        return out;
-    });
-    return filas.filter(f => f.referencia.replace(/\s+/g, ' ').toLowerCase() === referencia.replace(/\s+/g, ' ').toLowerCase());
+    const filas = await filasDelListado(page);
+    const propias = filas.filter(f => referenciaCoincide(f.referencia, referencia));
+    // Si el buscador no trajo nada pero el listado sin filtro sí tenía la referencia, vale lo del listado.
+    return propias.length ? propias : canario.filter(f => referenciaCoincide(f.referencia, referencia));
+}
+
+/** La consulta de un pedido (`opc=consulta&nroPed=`): el JSON crudo del portal, o null si no existe / no se pudo leer. Solo lee. */
+export async function consultarPedido(page: Page, numero: string): Promise<Record<string, unknown> | null> {
+    const r = await pedirJsonOves<unknown>(page, { opc: 'consulta', nroPed: numero }).catch(() => null);
+    const fila = Array.isArray(r) ? r[0] : r;
+    return fila && typeof fila === 'object' ? (fila as Record<string, unknown>) : null;
+}
+
+/** ¿La consulta de un pedido es de ESTA venta (nombra al paciente o la referencia) y está vivo (no anulado)? Puro. */
+export function pedidoConsultadoEsNuestro(consulta: Record<string, unknown> | null, o: { paciente: string; pedinterno: string }): { ok: boolean; motivo: string } {
+    if (!consulta) return { ok: false, motivo: 'el portal no devolvió el pedido' };
+    const estado = String(consulta.pel_cod_estado ?? '').toUpperCase();
+    if (estado === 'AN') return { ok: false, motivo: 'está ANULADO en el portal' };
+    const solicitud = String(consulta.pel_est_solanul ?? 'N').toUpperCase();
+    if (solicitud === 'S') return { ok: false, motivo: 'tiene una solicitud de anulación en proceso' };
+    const valores = Object.values(consulta).filter(v => typeof v === 'string').map(v => normalizarReferencia(v as string));
+    const paciente = normalizarReferencia(o.paciente), ref = normalizarReferencia(o.pedinterno);
+    const nombra = valores.some(v => (paciente && v.includes(paciente)) || (ref && (v.includes(ref) || ref.includes(v) && v.length > 6)));
+    return nombra ? { ok: true, motivo: '' } : { ok: false, motivo: 'no nombra a este paciente ni a esta referencia' };
 }

@@ -16,8 +16,8 @@ import assert from 'node:assert/strict';
 import { marcaDePromo, WEB_DE_PROMO, DESTINATARIOS_PROMO, cuponLimpio, observacionPrimerPar, observacionSegundoPar, asuntoDelMail, pasosPendientes } from '../../src/services/lab-modules/optovision/promo.ts';
 import { especificacionDe, colorOvesDe, materialDe, elegirProductoOves, eleccionQuePide, familiaDelNombre, tratamientoDe, varianteDe } from '../../src/services/lab-modules/optovision/catalogo.ts';
 import { PRODUCTOS_OVES, OVES_CATALOGO, valueDeOves } from '../../src/lib/laboratorios/oves-catalogo.ts';
-import { planDeCarga, referenciaDelPedido, observacionDelPedido, esPromoDobleDeOptovision, rolesDeLaPromo, huellaDelPlan, diferenciasDePlan, cristalesPorPar } from '../../src/services/lab-modules/optovision/carga.ts';
-import { elegirServicio, diferenciasDeFormulario, numeroDeLaRespuesta } from '../../src/services/lab-modules/optovision/llenar.ts';
+import { planDeCarga, referenciaDelPedido, observacionDelPedido, esPromoDobleDeOptovision, rolesDeLaPromo, huellaDelPlan, diferenciasDePlan, cristalesPorPar, promoQueNoCierra, nombraPromoDoble } from '../../src/services/lab-modules/optovision/carga.ts';
+import { elegirServicio, diferenciasDeFormulario, numeroDeLaRespuesta, referenciaCoincide, pedidoConsultadoEsNuestro } from '../../src/services/lab-modules/optovision/llenar.ts';
 import { textoDeFallaDeConfirmacion } from '../../src/services/lab-modules/carga/robot-comun.ts';
 import { decidirConAprobado } from '../../src/services/lab-modules/carga/decision.ts';
 import { mensajeExistente } from '../../src/services/lab-modules/optovision/existentes.ts';
@@ -283,6 +283,31 @@ t('con dos pares y cristales sin armazón asignado no se frena: se reparten por 
     assert.ok(r.ok, r.ok ? '' : r.faltantes.join(' · '));
     assert.ok(r.avisos.some(a => /armazón asignado.*dos primeros/.test(a)), JSON.stringify(r.avisos));
     assert.equal(r.plan.producto.label, 'Varilux Comfort Orma blue uv');
+});
+t('la referencia del listado coincide aunque el portal la recorte, y la consulta de un pedido se reconoce como nuestra', () => {
+    assert.equal(referenciaCoincide('#AB12 Juan San Martin 2° par', '#AB12 Juan San Martin 2° par'), true);
+    assert.equal(referenciaCoincide('#AB12 Juan San Mart', '#AB12 Juan San Martin 2° par'), true);
+    assert.equal(referenciaCoincide('#AB12 Juan San Martin 1° par', '#AB12 Juan San Martin 2° par'), false);
+    assert.equal(referenciaCoincide('', '#AB12'), false);
+    const consulta = { pel_cod_estado: 'PR', pel_est_solanul: 'N', cliente: 'ATEL01 - PISSANO ISHTAR', producto: 'Eyezen Start Orma Blue UV', paciente: 'Juan San Martin', pedinterno: '#AB12 Juan San Martin 2° par' };
+    assert.equal(pedidoConsultadoEsNuestro(consulta, { paciente: 'Juan San Martin', pedinterno: '#AB12 Juan San Martin 2° par' }).ok, true);
+    assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_cod_estado: 'AN' }, { paciente: 'Juan San Martin', pedinterno: '' }).motivo, 'está ANULADO en el portal');
+    assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_est_solanul: 'S' }, { paciente: 'Juan San Martin', pedinterno: '' }).ok, false);
+    assert.equal(pedidoConsultadoEsNuestro(consulta, { paciente: 'Otra Persona', pedinterno: '#ZZ99 Otra' }).ok, false);
+    assert.equal(pedidoConsultadoEsNuestro(null, { paciente: 'x', pedinterno: 'y' }).ok, false);
+});
+t('una promo que no cierra frena en vez de salir como pedido común sin cupón', () => {
+    assert.equal(nombraPromoDoble('Doble Disfrute Varilux'), true); assert.equal(nombraPromoDoble('VARILUX COMFORT - ORMA + CRIZAL 2x1'), true); assert.equal(nombraPromoDoble('Kodak Unique'), false);
+    const v = ventaDoble();
+    const otra = 'KODAK UNIQUE DRO - ORMA + CRIZAL 2x1';
+    v.items[2].product.name = otra; v.items[2].productNameSnapshot = otra; v.items[3].product.name = otra; v.items[3].productNameSnapshot = otra;
+    assert.equal(esPromoDobleDeOptovision(v), false);
+    assert.match(promoQueNoCierra(v), /familias distintas \(Varilux Comfort y Kodak Unique Dro\)/);
+    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    assert.equal(r.ok, false); assert.ok(r.faltantes.some(f => /familias distintas/.test(f)));
+    // Sin "2x1" en los nombres pero con la promo aplicada "Doble Disfrute", sigue siendo promo.
+    const d = ventaDoble(); for (const i of d.items) { i.product.name = i.product.name.replace(' 2x1', ''); i.productNameSnapshot = i.product.name; } d.appliedPromoName = 'Doble Disfrute Varilux';
+    assert.equal(esPromoDobleDeOptovision(d), true); assert.equal(promoQueNoCierra(d), null);
 });
 t('promo doble: el par de mayor valor de lista va 1º (con el cupón), el otro 2º (con el nº del 1º)', () => {
     const v = ventaDoble();
