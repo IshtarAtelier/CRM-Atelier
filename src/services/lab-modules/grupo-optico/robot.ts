@@ -3,7 +3,7 @@ import { API_BASE, clientIdSmartLab, NOMBRE_GRUPO_OPTICO, pedirJsonDesdeLaPagina
 import { elegirArticulo, TENIDO_TIPO, TIPO_ARO, type ArticuloPortal } from './catalogo';
 import type { OjoPlan, PlanDeCarga, ResueltoEnPortal } from './carga';
 import { numeroDeFila, parDeFila, type FilaApiSmartLab } from './pedidos';
-import { hostDeLaBase } from '../../../lib/cron-scheduler';
+import { puedeCrearPedidosReales as puedeCrearPedidosRealesEn } from '../carga/produccion';
 
 /**
  * EL ROBOT DE CARGA DE GRUPO ÓPTICO sobre la API del portal SmartLab.
@@ -215,22 +215,10 @@ export async function buscarPedidoYaCreado(page: Page, codigoVenta: string, par:
     return null;
 }
 
-/**
- * ¿Este server puede crear pedidos REALES en el laboratorio? Misma señal que
- * los crons (lib/cron-scheduler.ts): producción Y la base fuera de esta
- * máquina. Un `npm run dev` —o un `npm start` local, que corre con
- * NODE_ENV=production— con la credencial real tiene que poder preparar (que
- * solo lee) pero nunca mandar un pedido a fabricar. Para probar a propósito
- * fuera de producción: SMARTLAB_PERMITIR_CARGA=1. Puro.
- */
+/** ¿Este server puede crear pedidos REALES en Grupo Óptico? La señal común vive en carga/produccion.ts; la variable de permiso local es SMARTLAB_PERMITIR_CARGA. Puro. */
 export function puedeCrearPedidosReales(env: Record<string, string | undefined> = process.env): boolean {
-    if (env.SMARTLAB_PERMITIR_CARGA === '1') return true;
-    if (env.NODE_ENV !== 'production') return false;
-    const host = hostDeLaBase(env.DATABASE_URL);
-    return !!host && !HOSTS_LOCALES.has(host);
+    return puedeCrearPedidosRealesEn('SMARTLAB_PERMITIR_CARGA', env);
 }
-
-const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '[::1]', '::1', '0.0.0.0', 'host.docker.internal']);
 
 /** El portal CONTESTÓ que no crea el pedido (HTTP 400: datos que no acepta). No hay nada creado. */
 export class PedidoRechazadoError extends Error {

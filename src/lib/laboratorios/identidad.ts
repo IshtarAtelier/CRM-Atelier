@@ -42,7 +42,7 @@ export const NOMBRE_DE_LAB: Record<LabKey, string> = { OPTOVISION: 'Optovisión'
  * y `npm run check:lab-modulos` fija que las dos listas coincidan. Sumar un
  * laboratorio = su módulo + una entrada acá.
  */
-export const LABS_CON_CARGA_ASISTIDA: LabKey[] = ['GRUPO_OPTICO', 'VITOLEN'];
+export const LABS_CON_CARGA_ASISTIDA: LabKey[] = ['GRUPO_OPTICO', 'VITOLEN', 'OPTOVISION'];
 
 /**
  * ¿La venta lleva cristales de ese laboratorio? Lo mismo que decide la carga:

@@ -1,0 +1,92 @@
+import { prisma } from '../../../lib/db';
+import { sendEmail } from '../../../lib/email';
+import { logAudit } from '../../../lib/audit';
+import { PRIVATE_ADMIN_EMAILS } from '../../../lib/constants';
+import type { Actor } from '../../../lib/actor';
+import { Borradores } from '../carga/borrador';
+import { puedeCrearPedidosReales } from '../carga/produccion';
+import { asuntoDelMail, DESTINATARIOS_PROMO } from './promo';
+import { LAB_OPTOVISION, NOMBRE_OPTOVISION } from './portal';
+import type { PayloadBorradorOves, RastroOves } from './borrador-portal';
+import { VARIABLE_PERMISO_OVES } from './borrador-portal';
+
+/**
+ * PASO 2 DEL PROCEDIMIENTO DE LA PROMO (Optovisión Essilor, 23/9/2026): el
+ * mail a promociones@ y cordoba@ con asunto "<código del vendedor> <nº 1>-<nº 2>".
+ * Sin él, Optovisión cobra los dos pares. Sale solo cuando los DOS pares de la
+ * promo doble están cargados con su nº, una sola vez, y queda anotado en el
+ * borrador del 2º par, en la ficha del cliente y en el AuditLog. Si algo lo
+ * impide (falta el código del vendedor, no es producción), NO se inventa: se
+ * anota como pendiente y la ficha lo muestra.
+ *
+ * El código de vendedor es el que Optovisión le asignó a cada persona del
+ * equipo (ej. VERO02): vive en SystemSetting `optovision_codigos_vendedor`
+ * como JSON { "Nombre como figura en labSentBy": "CODIGO" }.
+ */
+export const CLAVE_CODIGOS_VENDEDOR = 'optovision_codigos_vendedor';
+
+export async function codigoDeVendedorOptovision(nombre: string | null | undefined): Promise<string | null> {
+    const fila = await prisma.systemSetting.findUnique({ where: { key: CLAVE_CODIGOS_VENDEDOR } }).catch(() => null);
+    if (!fila?.value || !nombre) return null;
+    try {
+        const mapa = JSON.parse(fila.value) as Record<string, string>;
+        const buscado = nombre.trim().toLowerCase();
+        const k = Object.keys(mapa).find(n => n.trim().toLowerCase() === buscado);
+        return k ? String(mapa[k]).trim() || null : null;
+    } catch { return null; }
+}
+
+/** El cuerpo del mail, en texto plano. Puro. */
+export function cuerpoDelMail(o: { cliente: string; primerPar: string; segundoPar: string; cupon: string | null; promo: string }): string {
+    return [
+        `Buen día,`,
+        ``,
+        `Les enviamos los dos trabajos de la promo ${o.promo} del paciente ${o.cliente}:`,
+        `· 1er par: pedido ${o.primerPar}${o.cupon ? ` (cupón ${o.cupon})` : ''}`,
+        `· 2º par: pedido ${o.segundoPar} (asociado al ${o.primerPar})`,
+        ``,
+        `Muchas gracias.`,
+        `Atelier Óptica`,
+    ].join('\n');
+}
+
+/**
+ * Si la venta tiene una promo doble con los dos pares CARGADOS y el mail no
+ * salió, lo manda. Idempotente: se puede llamar en cada CARGADO y en cada
+ * reintento. Devuelve qué hizo.
+ */
+export async function avisarMailDePromo(orderId: string, actor: Actor): Promise<{ enviado: boolean; motivo: string }> {
+    const borradores = await prisma.labOrderDraft.findMany({ where: { orderId, lab: LAB_OPTOVISION, status: 'CARGADO' }, select: { id: true, pair: true, payload: true, portalNumber: true, resumenPortal: true } });
+    const conPlan = borradores.map(b => ({ ...b, plan: (b.payload as unknown as PayloadBorradorOves)?.plan })).filter(b => b.plan);
+    const segundo = conPlan.find(b => b.plan.rolPromo === 'SEGUNDO_PAR');
+    const primero = conPlan.find(b => b.plan.rolPromo === 'PRIMER_PAR' && b.plan.promo?.tipo === 'DOBLE');
+    if (!segundo) return { enviado: false, motivo: 'no hay un 2º par de promo cargado' };
+    const rastro = (segundo.resumenPortal || {}) as RastroOves;
+    if (rastro.mailPromoEnviadoEl) return { enviado: false, motivo: `ya enviado el ${rastro.mailPromoEnviadoEl}` };
+    const numeroPrimero = primero?.portalNumber ?? segundo.plan.pedidoOrigen;
+    const numeroSegundo = segundo.portalNumber;
+    const pendiente = async (motivo: string) => { await Borradores.anotarRastro(segundo.id, { mailPromoPendiente: motivo } as any).catch(() => null); return { enviado: false, motivo }; };
+    if (!numeroPrimero || !numeroSegundo) return pendiente('faltan los nº de los dos pares para el mail a Optovisión');
+    const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, clientId: true, labSentBy: true, client: { select: { name: true } } } });
+    if (!venta) return pendiente('la venta no existe');
+    const codigo = await codigoDeVendedorOptovision(venta.labSentBy);
+    if (!codigo) return pendiente(`falta el código de vendedor de Optovisión de ${venta.labSentBy || 'quien envió la venta'}: cargarlo en Configuración (clave ${CLAVE_CODIGOS_VENDEDOR}) y reintentar desde la ficha. Sin el mail, Optovisión cobra los dos pares.`);
+    const asunto = asuntoDelMail(codigo, numeroPrimero, numeroSegundo);
+    if (!asunto) return pendiente('no se pudo armar el asunto del mail');
+    if (!puedeCrearPedidosReales(VARIABLE_PERMISO_OVES)) return pendiente(`fuera de producción no se manda el mail a Optovisión (asunto: ${asunto})`);
+    const promo = segundo.plan.promo?.marca === 'KODAK' ? '2x1 Kodak' : 'Doble Disfrute Varilux';
+    const cliente = venta.client?.name || 'cliente';
+    await sendEmail({
+        to: DESTINATARIOS_PROMO.join(','),
+        bcc: PRIVATE_ADMIN_EMAILS,
+        subject: asunto,
+        text: cuerpoDelMail({ cliente, primerPar: numeroPrimero, segundoPar: numeroSegundo, cupon: primero?.plan.cupon ?? null, promo }),
+    });
+    const cuando = new Date().toISOString();
+    await Borradores.anotarRastro(segundo.id, { mailPromoEnviadoEl: cuando, mailPromoPendiente: null } as any);
+    await prisma.interaction.create({
+        data: { clientId: venta.clientId, type: 'LAB_STATUS', content: `📧 ${actor.name}: mail de la promo ${promo} enviado a ${NOMBRE_OPTOVISION} (${DESTINATARIOS_PROMO.join(', ')}) con asunto "${asunto}".`, userId: actor.id ?? null, userName: actor.name },
+    }).catch(err => console.error('[lab-modulos] no se pudo registrar el mail de promo en la ficha:', err));
+    logAudit({ userId: actor.id ?? null, userName: actor.name, action: 'UPDATE', entityType: 'ORDER', entityId: orderId, details: { lab: LAB_OPTOVISION, mailPromo: asunto, destinatarios: DESTINATARIOS_PROMO } }).catch(() => null);
+    return { enviado: true, motivo: asunto };
+}

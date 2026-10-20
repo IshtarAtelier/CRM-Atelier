@@ -32,7 +32,8 @@ export interface CampoDePreparacion {
     /** La clave con la que viaja en el body de preparar. */
     clave: string;
     etiqueta: string;
-    tipo: 'select' | 'numero' | 'extra';
+    /** `texto`: un dato corto que tipea quien prepara (el cupón de la promo de Optovisión). */
+    tipo: 'select' | 'numero' | 'extra' | 'texto';
     /** Solo `extra`: lo que lee quien lo agrega antes de confirmar. */
     advertencia?: string;
     /** `imagen`: la ficha muestra la opción con su dibujo (las formas de armazón del portal de Vitolen) en vez de un desplegable. */
@@ -42,6 +43,9 @@ export interface CampoDePreparacion {
     ayuda?: string;
     min?: number;
     max?: number;
+    /** Solo `texto`: largo máximo y qué forma tiene que tener (se valida también en el server). */
+    maxLength?: number;
+    patron?: string;
 }
 
 /** Un par de la venta que se carga en este laboratorio, como lo ve la ficha. */

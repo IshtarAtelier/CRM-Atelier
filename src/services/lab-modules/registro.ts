@@ -1,6 +1,7 @@
 import type { LabModule } from './contrato';
 import { MODULO_VITOLEN } from './vitolen/modulo';
 import { MODULO_GRUPO_OPTICO } from './grupo-optico/modulo';
+import { MODULO_OPTOVISION } from './optovision/modulo';
 
 /**
  * Los módulos activos. Sumar un laboratorio = agregar su módulo acá; el cron,
@@ -11,7 +12,7 @@ import { MODULO_GRUPO_OPTICO } from './grupo-optico/modulo';
  * en el mismo tick y en ese orden). Está acá para el reporte semanal, el
  * retiro automático y todo lo que mira el registro.
  */
-export const REGISTRO_MODULOS: LabModule[] = [MODULO_VITOLEN, MODULO_GRUPO_OPTICO];
+export const REGISTRO_MODULOS: LabModule[] = [MODULO_VITOLEN, MODULO_GRUPO_OPTICO, MODULO_OPTOVISION];
 
 export function moduloPorClave(clave: string | null | undefined): LabModule | null {
     const k = String(clave || '').trim().toUpperCase();

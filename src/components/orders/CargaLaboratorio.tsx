@@ -20,7 +20,7 @@ import { formatDate } from '@/lib/format-date';
  * aprueba a ciegas.
  */
 
-interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
+interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra' | 'texto'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number; maxLength?: number; patron?: string }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; aMano?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
 interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null }
@@ -348,6 +348,8 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                                     {!c.porDefecto && <option value="">{c.obligatorio ? 'Elegir…' : '—'}</option>}
                                                     {(c.opciones || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                                 </select>
+                                            ) : c.tipo === 'texto' ? (
+                                                <input type="text" maxLength={c.maxLength} pattern={c.patron} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-36`} placeholder={c.ayuda ? '' : undefined} />
                                             ) : (
                                                 <input type="number" min={c.min} max={c.max} step={1} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-24`} />
                                             )}
