@@ -1,4 +1,4 @@
-const { isPhrase } = require('../tools');
+const { isPhrase } = require('./es-frase');
 
 /**
  * ¿Este string es el nombre de una persona, o basura que no sirve para una ficha?
