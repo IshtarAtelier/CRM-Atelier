@@ -356,6 +356,10 @@ export async function GET(request: Request) {
                             { client: { name: { contains: word, mode: 'insensitive' } } },
                             { labOrderNumber: { contains: word, mode: 'insensitive' } },
                             { id: { contains: word, mode: 'insensitive' } },
+                            // El nº de operación que el lab le dio a la POSTVENTA (reproceso):
+                            // distinto del de la venta. Sin esto, buscar "3591269" en
+                            // Post Venta no encontraba el caso de Cels (20/10/2026).
+                            { postSaleCases: { some: { newOrderNumber: { contains: word, mode: 'insensitive' } } } },
                         ]
                     }))
                 });

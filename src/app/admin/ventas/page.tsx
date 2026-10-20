@@ -476,6 +476,7 @@ export default function VentasPage() {
             return (o.client?.name || '').toLowerCase().includes(search.toLowerCase()) ||
                    o.id.toLowerCase().includes(search.toLowerCase()) ||
                    (o.labOrderNumber || '').toLowerCase().includes(search.toLowerCase()) ||
+                   (o.postSaleNewOrderNumber || '').toLowerCase().includes(search.toLowerCase()) ||
                    (o.postSaleNotes || '').toLowerCase().includes(search.toLowerCase());
         });
     }, [orders, search]);
