@@ -156,6 +156,41 @@ export function esDespedidaInequivoca(m: MensajeEntrante): boolean {
 export const PAUSA_POSPONER_DIAS = 30;
 
 /**
+ * La pausa se cuenta desde lo que DIJO el cliente, no desde el tick del motor.
+ *
+ * Hasta el 19/10/2026 el motor pausaba "30 días desde ahora" cada hora: el
+ * mensaje seguía siendo la respuesta al último toque (lastInboundAt >
+ * lastFollowUpAt no cambia al pausar), así que cada tick lo volvía a leer, a
+ * correr el `hasta` una hora y a dejar otra nota en la ficha. 69 contactos,
+ * 5.749 notas en 11 días, y una pausa que nunca vencía: el seguimiento no
+ * volvía jamás.
+ *
+ * Anclado al mensaje, el `hasta` es el mismo en cada tick y la decisión es
+ * idempotente: se pausa UNA vez por mensaje. Un mensaje nuevo del cliente da
+ * otro ancla y recién ahí se extiende.
+ */
+export function pausaPorRespuesta(respuestaAt: Date): Date {
+    return new Date(respuestaAt.getTime() + PAUSA_POSPONER_DIAS * 86_400_000);
+}
+
+export type DecisionPosponer =
+    | { aplicar: true; hasta: Date }
+    | { aplicar: false; hasta: Date; motivo: 'ya-pausado' | 'pausa-vencida' | 'ya-registrada' };
+
+/**
+ * ¿Hay que pausar por este "más adelante"? `yaRegistrada`: ya hay una pausa
+ * del embudo anotada para ESTE mensaje (cubre el caso de que alguien haya
+ * sacado la pausa a mano: no se la vuelve a poner cada hora).
+ */
+export function decidirPosponer(input: { respuestaAt: Date; followUpPausedUntil: Date | null; now: number; yaRegistrada: boolean }): DecisionPosponer {
+    const hasta = pausaPorRespuesta(input.respuestaAt);
+    if (input.yaRegistrada) return { aplicar: false, hasta, motivo: 'ya-registrada' };
+    if (hasta.getTime() <= input.now) return { aplicar: false, hasta, motivo: 'pausa-vencida' };
+    if (input.followUpPausedUntil && input.followUpPausedUntil.getTime() >= hasta.getTime()) return { aplicar: false, hasta, motivo: 'ya-pausado' };
+    return { aplicar: true, hasta };
+}
+
+/**
  * Qué cuenta como respuesta AL TOQUE: lo que el cliente escribió en las
  * primeras 48 h desde que empezó a contestar. Medido el 8/10/2026: hay chats
  * con meses de charla posterior al último toque (Ricardo, 50 mensajes), y
