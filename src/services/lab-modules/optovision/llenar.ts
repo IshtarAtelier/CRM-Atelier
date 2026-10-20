@@ -2,6 +2,7 @@ import type { Page } from 'playwright';
 import { NOMBRE_OPTOVISION, pedirJsonOves } from './portal';
 import type { PlanOves } from './carga';
 import { FORMAS_OVES } from './catalogo';
+import { parDelCodigoInterno } from '../../../lib/laboratorios/identidad';
 
 /**
  * EL ROBOT SOBRE EL FORMULARIO DE OVES (docs/oves-portal.md).
@@ -356,9 +357,12 @@ export function referenciaCoincide(enPortal: string, nuestra: string): boolean {
     if (!a || !b) return false;
     // Con dos pares, la del portal tiene que decir el MISMO par: "#AB12 Juan" a secas (carga a mano) serviría para los dos.
     // …salvo que la del portal sea la nuestra RECORTADA (un prefijo largo: código + nombre), donde el par quedó afuera del corte.
-    const parDe = (t: string) => t.match(/(\d)\s*°?\s*par\b/)?.[1] ?? null;
+    const parDe = (t: string) => parDelCodigoInterno(t);
     if (parDe(b) && parDe(a) !== parDe(b)) return b.startsWith(a) && a.length >= 15;
-    return a === b || a.startsWith(b) || b.startsWith(a);
+    // Mismo par escrito distinto ("2do par" / "2° par"): se compara lo que queda sin el par.
+    const sinPar = (t: string) => t.replace(/\s*(?:\d\s*(?:[°ºo]|do|er|ro)?\s*par|primer\s+par|segundo\s+par)\b.*$/, '').trim();
+    const [x, y] = parDe(a) && parDe(a) === parDe(b) ? [sinPar(a), sinPar(b)] : [a, b];
+    return x === y || x.startsWith(y) || y.startsWith(x);
 }
 
 /**

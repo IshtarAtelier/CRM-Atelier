@@ -241,12 +241,15 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                     const ajenos = await numerosDeOtrosPares(b.orderId, b.pair);
                     const propias = adoptadoDe === 'venta' ? (await buscarPorReferencia(page, referencia)).filter(f => !ajenos.has(f.numero) && !/anulad/i.test(f.estado)) : [];
                     if (propias.length > 1) throw new AdopcionNoVerificadaError(`hay ${propias.length} pedidos en OVES con la referencia "${referencia}" (nº ${propias.map(f => f.numero).join(', ')}): pedile a Optovisión la anulación del que sobra y dejá en la venta el que queda. No se crea otro`);
-                    if (propias.length === 1 && propias[0].numero !== numero) numero = propias[0].numero;
+                    // El nº tipeado en la venta y OTRO pedido vivo con nuestra referencia: son dos pedidos del mismo par, uno sobra. No se adopta ninguno callado.
+                    if (propias.length === 1 && propias[0].numero !== numero) throw new AdopcionNoVerificadaError(`en la venta está el nº ${numero} y en OVES hay otro pedido vivo con nuestra referencia "${referencia}" (nº ${propias[0].numero}): son dos pedidos del mismo par; pedile a Optovisión la anulación del que sobra y dejá en la venta el que queda. No se crea otro`);
                     const consulta = await consultarPedido(page, numero);
-                    const v = pedidoConsultadoEsNuestro(consulta, { paciente: guardado.plan.paciente, pedinterno: referencia, desde: ventaHoy.labSentAt ?? null });
+                    // La fecha solo se exige al nº que vino TIPEADO en la venta (puede ser otro pedido del cliente); uno que lleva nuestra referencia es nuestro aunque la venta se haya reenviado después.
+                    const v = pedidoConsultadoEsNuestro(consulta, { paciente: guardado.plan.paciente, pedinterno: referencia, desde: adoptadoDe === 'venta' ? ventaHoy.labSentAt ?? null : null });
                     const incierto = !!rastroActual.envioIniciadoEl;
                     // Un pedido VIVO que no nombra a este paciente se mira en el portal, nunca se "corrige" borrando el nº (borrarlo → crear → duplicado).
-                    const consejo = v.vivo ? 'confirmalo mirando el pedido en OVES; si es de esta venta, dejá el nº y cargá el par a mano; NO borres el nº' : 'corregí el nº en la venta';
+                    // Uno anterior a la venta es otro pedido del cliente: ese sí se saca de la venta.
+                    const consejo = /anterior a esta venta/.test(v.motivo) ? 'sacá ese nº de la venta y reintentá (el robot busca por la referencia antes de crear)' : v.vivo ? 'confirmalo mirando el pedido en OVES; si es de esta venta, dejá el nº y cargá el par a mano; NO borres el nº' : 'corregí el nº en la venta';
                     if (!v.ok) throw new AdopcionNoVerificadaError(`el nº ${numero} que tiene este par ${v.motivo}: ${consejo}.${incierto ? ' Hay además un envío de este borrador sin respuesta: el robot NO afirma que no se haya creado nada; buscalo en el listado antes de cargar a mano' : ' No se creó nada'}`);
                 }
             } else {
@@ -266,6 +269,8 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                     const primero = await consultarPedido(page, r.plan.pedidoOrigen);
                     const v = pedidoConsultadoEsNuestro(primero, { paciente: r.plan.paciente, pedinterno: '' });
                     if (!v.vivo) throw new AprobacionInvalidaError(`El 1er par de la promo (nº ${r.plan.pedidoOrigen}) ${v.motivo}: corregí en la venta el nº del 1er par vigente y volvé a preparar el 2º. No se mandó nada.`);
+                    // Vivo pero de otro paciente (un dígito mal en el nº tipeado): no se graba el 2º "asociado" a un pedido ajeno; queda APROBADO para que una persona lo mire.
+                    if (!v.ok) throw new Error(`El 1er par de la promo (nº ${r.plan.pedidoOrigen}) existe en OVES pero no nombra a este paciente: confirmá el nº del 1er par en el portal y en la venta antes de reintentar. No se mandó nada.`);
                 }
                 // Se vuelve a llenar el formulario (otra sesión, otro navegador) y tiene que quedar IGUAL que lo que la persona vio.
                 await mezclar(b.id, { etapa: `volviendo a llenar el formulario de OVES desde ${new Date().toISOString()}` }).catch(() => null);
@@ -293,6 +298,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 });
                 numero = grabado.numero;
                 respuesta = grabado.respuesta;
+                await mezclar(b.id, { respuestaDelPortal: respuesta || undefined }).catch(() => null);
                 // El nº leído de la respuesta se VERIFICA antes de anotarlo: la consulta
                 // de ese pedido tiene que ser de esta venta. Un nº equivocado anotado
                 // como creado dejaría el pedido real huérfano para siempre.
