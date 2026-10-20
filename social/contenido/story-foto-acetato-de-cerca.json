@@ -1,0 +1,24 @@
+{
+  "id": "story-foto-acetato-de-cerca",
+  "format": "9:16",
+  "theme": "light",
+  "pilar": "producto",
+  "fuente": "fotos-catalogo-oct2026",
+  "caption": "Acetato de verdad: grueso, pulido, con peso. Se nota en la mano y en la cara.",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "slides": [
+    {
+      "type": "puesta",
+      "soloProducto": true,
+      "role": "portada",
+      "image": "catalogo-social/fotos-oct2026/acetato-de-cerca.jpg",
+      "eyebrow": "Acetato",
+      "title": "Acetato de verdad",
+      "linea": "Grueso, pulido, con peso. Se nota en la mano y en la cara.",
+      "lineaGrande": true
+    }
+  ]
+}
