@@ -150,7 +150,7 @@ export async function POST(request: Request) {
                     items: {
                         select: {
                             id: true, price: true, quantity: true, eye: true,
-                            sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                            sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, lensUse: true,
                             crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                             laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
@@ -203,6 +203,8 @@ export async function POST(request: Request) {
                                 crystalColor: item.crystalColor || null,
                                 crystalColorType: item.crystalColorType || null,
                                 crystalColorNote: item.crystalColorNote || null,
+                                // Para qué se usa el cristal (lejos/cerca): la graduación la copia el servicio según esto.
+                                lensUse: (item as any).lensUse === 'CERCA' ? 'CERCA' : (item as any).lensUse === 'LEJOS' ? 'LEJOS' : null,
                                 // A qué armazón va el teñido. Faltaba: al CREAR un
                                 // presupuesto se perdía en silencio, y recién se
                                 // guardaba si después se editaba. El vendedor lo
@@ -240,7 +242,7 @@ export async function POST(request: Request) {
                     items: {
                         select: {
                             id: true, price: true, quantity: true, eye: true,
-                            sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                            sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, lensUse: true,
                             crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                             laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
@@ -480,7 +482,7 @@ export async function GET(request: Request) {
             items: {
                 select: {
                     id: true, price: true, quantity: true, eye: true,
-                    sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                    sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, lensUse: true,
                     pdVal: true, heightVal: true, prismVal: true,
                     crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                     productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,

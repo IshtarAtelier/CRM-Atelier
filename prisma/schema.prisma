@@ -626,6 +626,10 @@ model OrderItem {
   // Null = el pedido tiene un solo armazón, o es una línea que no depende del
   // armazón (un accesorio, un servicio).
   framePosition            Int?
+  // Para qué se usa el cristal: 'LEJOS' o 'CERCA' (monofocales). Null = el
+  // default de la receta (lib/receta/graduacion-del-item.ts). Hasta el 21/10/2026
+  // la graduación del ítem se copiaba siempre de la columna de lejos.
+  lensUse                  String?
   laboratorySnapshot       String?
   productCostSnapshot      Float?
   productTypeSnapshot      String?

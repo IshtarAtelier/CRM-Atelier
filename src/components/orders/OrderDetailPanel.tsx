@@ -837,6 +837,8 @@ export function OrderDetailPanel({
                                         </td>
                                         <td className="px-5 py-3 text-xs text-stone-500">
                                             {item.product?.type || item.product?.category || item.productCategorySnapshot || '—'}
+                                            {/* Un monofocal de CERCA se ve: su graduación no es la de "Lejos" de la receta. */}
+                                            {item.lensUse === 'CERCA' && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-black uppercase tracking-wider">Cerca</span>}
                                         </td>
                                         <td className="px-5 py-3 text-sm font-bold text-stone-600 dark:text-stone-300 text-center">
                                             {item.quantity}

@@ -111,6 +111,7 @@ jobs:
           npm run check:armado-go
           npm run check:carga-go
           npm run check:carga-optovision
+          npm run check:receta-item
           npm run check:seo-tienda
 
       # Los datos que el auto-respondedor de WhatsApp le manda a un cliente

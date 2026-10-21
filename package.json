@@ -98,6 +98,7 @@
     "check:lab-modulos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/lab-modulos.check.mjs",
     "check:armado-go": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/grupo-optico-armado.check.mjs",
     "check:carga-optovision": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/optovision-carga.check.mjs",
+    "check:receta-item": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/graduacion-del-item.check.mjs",
     "check:carga-go": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/grupo-optico-carga.check.mjs",
     "check:meta-anuncios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/meta-anuncios-identificados.mjs",
     "check:referral": "node scripts/checks/referral-anuncio.check.cjs",

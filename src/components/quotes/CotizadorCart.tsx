@@ -13,6 +13,7 @@ import {
 import { descuentoSegundoParHoya } from '@/lib/promo-segundo-par-hoya';
 import { asignarParAlArmazon, autoasignarArmazones } from '@/lib/armazon-por-par';
 import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
+import { recetaPermiteCerca, usoPorDefecto } from '@/lib/receta/graduacion-del-item';
 import { cantidadDeArmazones } from '@/lib/order-frames';
 import { aplicarCambioDeLinea } from '@/lib/tenido-sync';
 import { calculateQuoteTotals } from '@/services/PricingService';
@@ -266,6 +267,9 @@ export default function CotizadorCart({
         setFullSearch('');
     };
 
+    // La receta elegida, para ofrecer Lejos/Cerca por cristal monofocal (solo si tiene cerca o adición).
+    const rxElegida = prescriptionId ? prescriptions.find(r => r.id === prescriptionId) ?? null : null;
+
     return (
         <div className={isCard 
             ? "bg-white dark:bg-stone-800 border border-primary/20 rounded-[2rem] p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-300"
@@ -294,6 +298,9 @@ export default function CotizadorCart({
                 onUpdateItemColor={(idx, color, colorType) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColor: color, crystalColorType: colorType }))}
                 onUpdateItemStyle={(idx, style) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorType: style }))}
                 onUpdateItemNote={(idx, note) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorNote: note }))}
+                recetaPermiteCerca={recetaPermiteCerca(rxElegida)}
+                usoPorDefecto={usoPorDefecto(rxElegida)}
+                onUpdateItemUso={(idx, uso) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, lensUse: uso } : item))}
                 onUpdateItemFrame={(idx, framePosition) => setItems(prev => {
                     // La línea elegida pasa por aplicarCambioDeLinea (sincroniza
                     // el teñido partido en OD/OI); el resto de los cambios —otro
