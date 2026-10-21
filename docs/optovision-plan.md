@@ -59,7 +59,7 @@ medidas del armazón, color del Transitions).
    dos pares están cargados, con el código de vendedor de
    `optovision_codigos_vendedor` (JSON `{"Nombre como en labSentBy": "VERO02"}`).
    Hay que cargar ese JSON.
-3. **"Mi Primer Varilux / Kodak"**: ¿lleva mail además del cupón? Hoy no se manda.
+3. ~~"Mi Primer" ¿lleva mail?~~ **Resuelto 20/10** (recordatorio de Optovisión): misma modalidad; el robot manda el mail con el único nº de trabajo.
 4. **Credenciales**: `OVES_USER` / `OVES_PASSWORD` en Railway y en el `.env` local
    para la prueba (las carga Ishtar; Claude no tipea claves). La clave pegada en
    el chat del 15/10 conviene cambiarla.

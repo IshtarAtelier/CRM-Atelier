@@ -86,7 +86,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 ];
                 const existente = yaCargados.get(pair);
                 const avisos = [...r.avisos, ...(avisoRoles && roles ? [avisoRoles] : [])];
-                if (promo?.tipo === 'MI_PRIMER') avisos.push('Promo Mi Primer: el cupón va en la observación; si Optovisión pide además el mail, hoy se manda a mano.');
+                if (promo?.tipo === 'MI_PRIMER') avisos.push('Promo Mi Primer: misma modalidad que la doble (cupón, observación y mail a Optovisión con el nº de trabajo); el robot manda el mail al cargar.');
                 return {
                     pair,
                     titulo: nombreProducto || null,
@@ -109,7 +109,8 @@ export const CARGA_OPTOVISION: CargaAsistida = {
         // Qué le falta a la promo vista desde ESTE borrador: el 1º conoce su cupón y su nº; el 2º, el nº del 1º y el suyo.
         const pasos = plan?.promo ? pasosPendientes(plan.rolPromo === 'SEGUNDO_PAR'
             ? { tipo: plan.promo.tipo, cupon: 'del 1er par', numeroPrimerPar: plan.pedidoOrigen, numeroSegundoPar: b.portalNumber ?? null, mailEnviado: !!r.mailPromoEnviadoEl }
-            : { tipo: plan.promo.tipo, cupon: plan.cupon, numeroPrimerPar: b.portalNumber ?? null, numeroSegundoPar: null, mailEnviado: false }
+            : { tipo: plan.promo.tipo, cupon: plan.cupon, numeroPrimerPar: b.portalNumber ?? null, numeroSegundoPar: null, mailEnviado: !!r.mailPromoEnviadoEl }
+        // El 1er par de una promo doble no sabe del 2º ni del mail (son del 2º); Mi Primer sí los sabe todos.
         ).filter(p => plan.rolPromo === 'SEGUNDO_PAR' || plan.promo!.tipo === 'MI_PRIMER' || (p !== 'OBSERVACION_SEGUNDO_PAR' && p !== 'MAIL')) : [];
         const avisos = [
             ...(((b.payload || {}) as PayloadBorradorOves).avisos || []),
@@ -137,7 +138,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 texto: `Antes de aprobar, fijate en la pantalla del portal que la observación diga "Segundo par promo compañero/asociado al num ${plan.pedidoOrigen ?? '—'}" (el nº del 1er par). Sin eso Optovisión cobra los dos pares. Cuando quede cargado, el robot manda el mail a promociones@ y cordoba@ con los dos números.`,
             } : plan?.rolPromo === 'PRIMER_PAR' ? {
                 titulo: plan.promo?.tipo === 'MI_PRIMER' ? 'Es una promo Mi Primer' : 'Es el 1er par de la promo de Optovisión',
-                texto: `Fijate en la pantalla del portal que la observación diga "Primer par de Promo num cupón ${plan.cupon ?? '—'}". ${plan.promo?.tipo === 'MI_PRIMER' ? '' : 'Cuando quede cargado, su nº va en la observación del 2º par: el robot lo anota solo al terminar.'}`.trim(),
+                texto: `Fijate en la pantalla del portal que la observación diga "Primer par de Promo num cupón ${plan.cupon ?? '—'}". ${plan.promo?.tipo === 'MI_PRIMER' ? 'Cuando quede cargado, el robot manda el mail a Optovisión con el nº de trabajo.' : 'Cuando quede cargado, su nº va en la observación del 2º par: el robot lo anota solo al terminar.'}`,
             } : null,
             enlacePortal: null,
             documento: null,

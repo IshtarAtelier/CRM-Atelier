@@ -101,12 +101,16 @@ export async function llenarFormulario(page: Page, plan: PlanOves): Promise<Llen
         return new Function('$', 'a', c)((window as any).jQuery, a);
     }, { c: codigo, a: arg });
 
-    // 1. Lentes (AO / OD / OI).
+    // 1. Lentes (AO / OD / OI). ANTES del producto: al resolverlo la app deshabilita estos radios.
     await page.check(`#lentes${plan.lentes}`);
     paso('lentes', plan.lentes);
 
-    // 2. Producto: el label exacto; la app busca `exact=` al cambiar y, si da uno solo, llena el hidden y carga servicios.
-    await jq(`$('#lineaRX').val(a).trigger('change');`, plan.producto.label);
+    // 2. Producto: el label exacto. El `change` del autocompletar (jQuery UI) se
+    //    dispara en el blur SOLO si el valor cambió respecto del que había al
+    //    hacer foco: foco con el campo vacío → valor → blur (probado en vivo el
+    //    20/10/2026; un trigger('change') no hace nada). Ahí la app busca
+    //    `exact=` y, si da uno solo, llena el hidden y carga los servicios.
+    await jq(`$('#lineaRX').val('').trigger('focus'); $('#lineaRX').val(a); $('#lineaRX').trigger('blur');`, plan.producto.label);
     paso('producto', plan.producto.label);
     await page.waitForFunction((esperado) => {
         const h = (document.getElementById('hiddenLineaRX') as HTMLInputElement | null)?.value || '';
@@ -141,7 +145,7 @@ export async function llenarFormulario(page: Page, plan: PlanOves): Promise<Llen
         if (inhabilitados.has(id) || inhabilitados.has(sinOjo(id))) { noAplican.push(id); return; }
         const el = page.locator(`#${id}`);
         if (await el.count() === 0) throw new Error(`${NOMBRE_OPTOVISION}: el formulario no tiene el campo ${id}`);
-        // Lo que el portal deshabilitó en vivo tampoco se escribe (un fill sobre un disabled esperaría el timeout entero).
+        // Lo que el portal deshabilitó u OCULTÓ en vivo tampoco se escribe (los INHABDATO quedan ocultos, no disabled; un fill sobre uno de esos esperaría el timeout entero).
         if (await el.isDisabled().catch(() => false) || !(await el.isVisible().catch(() => false))) { noAplican.push(id); return; }
         const tag = await el.evaluate(e => e.tagName.toLowerCase());
         if (tag === 'select') {
@@ -194,6 +198,7 @@ export async function llenarFormulario(page: Page, plan: PlanOves): Promise<Llen
     await page.waitForTimeout(1500);
 
     // 7. ¿El portal tiene algo que objetar? (`#mensajeRX` con texto, obligatorios vacíos)
+    // Vacío es '' (tras elegir producto) o '.' (el formulario recién abierto).
     const mensaje = (await page.locator('#mensajeRX').innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
     if (mensaje && mensaje !== '.') throw new Error(`${NOMBRE_OPTOVISION}: el formulario marca un problema: "${mensaje}". No se mandó nada.`);
     const vacios: string[] = [];

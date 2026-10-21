@@ -55,7 +55,7 @@ Optovisión cobra los dos pares si falta un solo paso. El bloque te guía:
    cuando los dos pares están cargados, con tu código de vendedor de
    Optovisión. Si falta tu código, el bloque lo avisa: pedile a Ishtar que lo cargue.
 
-"Mi Primer Varilux / Kodak" es de un solo par: solo el cupón y la observación.
+"Mi Primer Varilux / Kodak" es de un solo par pero lleva la misma modalidad: cupón, observación y el mail (con un solo nº de trabajo), que también manda el robot.
 
 ## Qué va "a mano"
 

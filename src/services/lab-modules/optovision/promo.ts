@@ -12,9 +12,9 @@
  *   4. Cargar el 2º par con "Segundo par promo compañero/asociado al num <nº
  *      del 1º par>".
  *
- * "Mi Primer Varilux / Kodak" es de un solo par: cupón y observación del 1º;
- * si lleva mail además, Optovisión no lo dijo (decisión abierta, ver
- * docs/optovision-plan.md) y por eso no se le exige.
+ * "Mi Primer Varilux / Kodak" lleva LA MISMA modalidad (recordatorio de
+ * Optovisión del 20/10/2026): cupón, mail (con el único nº de trabajo en el
+ * asunto) y la observación del par. Lo que no tiene es 2º par.
  *
  * Acá vive lo PURO de eso (textos, destinatarios, qué pasos faltan). Nada de
  * red, base ni portal: lo fija `npm run check:carga-optovision`. El módulo de
@@ -69,7 +69,9 @@ export function asuntoDelMail(codigoVendedor: string | null | undefined, numeroP
     const v = String(codigoVendedor ?? '').trim();
     const a = soloDigitos(numeroPrimerPar);
     const b = soloDigitos(numeroSegundoPar);
-    return v && a && b ? `${v} ${a}-${b}` : null;
+    if (!v || !a) return null;
+    // Mi Primer (un solo par): el asunto lleva un solo nº de trabajo.
+    return b ? `${v} ${a}-${b}` : `${v} ${a}`;
 }
 
 export type PasoDePromo = 'CUPON' | 'OBSERVACION_PRIMER_PAR' | 'OBSERVACION_SEGUNDO_PAR' | 'MAIL';
@@ -84,7 +86,7 @@ export const ETIQUETA_DE_PASO: Record<PasoDePromo, string> = {
 export type TipoDePromo = 'DOBLE' | 'MI_PRIMER';
 
 export interface EstadoDePromo {
-    /** Doble (dos pares) o Mi Primer (un solo par: cupón y observación del 1º; el mail, hasta que Optovisión lo confirme, no se le exige). */
+    /** Doble (dos pares) o Mi Primer (un solo par: cupón, observación del 1º y el mail con un solo nº). */
     tipo?: TipoDePromo;
     cupon?: string | null;
     numeroPrimerPar?: string | null;
@@ -103,8 +105,7 @@ export function pasosPendientes(e: EstadoDePromo): PasoDePromo[] {
     const faltan: PasoDePromo[] = [];
     if (!cuponLimpio(e.cupon)) faltan.push('CUPON');
     if (!soloDigitos(e.numeroPrimerPar)) faltan.push('OBSERVACION_PRIMER_PAR');
-    if (e.tipo === 'MI_PRIMER') return faltan;
-    if (!soloDigitos(e.numeroSegundoPar)) faltan.push('OBSERVACION_SEGUNDO_PAR');
+    if (e.tipo !== 'MI_PRIMER' && !soloDigitos(e.numeroSegundoPar)) faltan.push('OBSERVACION_SEGUNDO_PAR');
     if (!e.mailEnviado) faltan.push('MAIL');
     return faltan;
 }

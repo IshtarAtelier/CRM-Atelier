@@ -55,9 +55,10 @@ t('pasos pendientes, en orden, y vacío solo con todo hecho', () => {
     assert.deepEqual(pasosPendientes({}), ['CUPON', 'OBSERVACION_PRIMER_PAR', 'OBSERVACION_SEGUNDO_PAR', 'MAIL']);
     assert.deepEqual(pasosPendientes({ cupon: 'X1', numeroPrimerPar: '623012' }), ['OBSERVACION_SEGUNDO_PAR', 'MAIL']);
     assert.deepEqual(pasosPendientes({ cupon: 'X1', numeroPrimerPar: '623012', numeroSegundoPar: '623013', mailEnviado: true }), []);
-    // Mi Primer es de un solo par: con cupón y 1er par cargado no falta nada (el mail no se le exige hasta que Optovisión lo confirme).
-    assert.deepEqual(pasosPendientes({ tipo: 'MI_PRIMER', cupon: 'X1', numeroPrimerPar: '623012' }), []);
-    assert.deepEqual(pasosPendientes({ tipo: 'MI_PRIMER' }), ['CUPON', 'OBSERVACION_PRIMER_PAR']);
+    // Mi Primer es de un solo par pero lleva la misma modalidad (Optovisión, 20/10/2026): cupón, observación del par y mail.
+    assert.deepEqual(pasosPendientes({ tipo: 'MI_PRIMER', cupon: 'X1', numeroPrimerPar: '623012' }), ['MAIL']);
+    assert.deepEqual(pasosPendientes({ tipo: 'MI_PRIMER', cupon: 'X1', numeroPrimerPar: '623012', mailEnviado: true }), []);
+    assert.deepEqual(pasosPendientes({ tipo: 'MI_PRIMER' }), ['CUPON', 'OBSERVACION_PRIMER_PAR', 'MAIL']);
 });
 
 // ── llenar.ts (lo puro del robot) ─────────────────────────────────────────
