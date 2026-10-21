@@ -42,17 +42,25 @@ se vendió:
 
 Optovisión cobra los dos pares si falta un solo paso. El bloque te guía:
 
-1. **El cupón**: generalo en la web de la promo
-   (`variluxdobledisfrute.com.ar` o `promos.lenteskodak.com.ar`) y tipealo en
-   el campo "Cupón" al preparar el **1er par**. El robot lo escribe en la
-   observación ("Primer par de Promo num cupón …").
+1. **El cupón**: lo genera el robot en la web de la promo
+   (`variluxdobledisfrute.com.ar` o `promos.lenteskodak.com.ar`) cuando
+   aprobás el **1er par**, con los datos de la ficha: necesita el **DNI**, la
+   **fecha de nacimiento** y el **género** del cliente (el género lo elegís al
+   preparar; los otros dos van en la ficha), y la receta completa de los dos
+   ojos con adición y DNP. Si el bloque dice que falta algo, cargalo en la
+   ficha o generá el cupón a mano en la web y tipealo en el campo "Cupón"
+   (un cupón tipeado manda). Si el cliente ya tenía cupón de esa promo, el
+   robot usa ese. El cupón va en la observación ("Primer par de Promo num
+   cupón …") y el voucher PDF queda enlazado en el borrador.
 2. **El 1er par es el de mayor valor de lista**, no el que cargaste primero
    en la venta: el bloque lo marca ("1er par · promo").
 3. **El 2º par se prepara recién cuando el 1º está cargado**: lleva el nº del
    1º en la observación ("Segundo par promo compañero/asociado al num …"). El
    bloque te lo dice y lo arma solo.
-4. **El mail** a promociones@ y cordoba@optovisionsa.com.ar lo manda el robot
-   cuando los dos pares están cargados, con el usuario de la óptica en OVES en el asunto. Si el bloque dice que el mail quedó pendiente, avisale a Ishtar.
+4. **El mail** a promociones@optovisionsa.com.ar (con copia a cordoba@ y a la
+   casilla del local, así se ve que salió) lo manda el robot cuando los dos
+   pares están cargados, con el usuario de la óptica en OVES en el asunto. Si
+   el bloque dice que el mail quedó pendiente, avisale a Ishtar.
 
 "Mi Primer Varilux / Kodak" es de un solo par pero lleva la misma modalidad: cupón, observación y el mail (con un solo nº de trabajo), que también manda el robot.
 

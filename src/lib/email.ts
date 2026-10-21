@@ -38,6 +38,8 @@ interface SendEmailOptions {
     from?: string;
     /** Dirección a la que llegan las respuestas (puede ser cualquier casilla, ej. Gmail). */
     replyTo?: string;
+    /** Copia visible (varias separadas por coma). */
+    cc?: string;
     /** Copia oculta (los destinatarios no la ven). */
     bcc?: string;
     attachments?: Array<{
@@ -52,7 +54,9 @@ interface SendEmailOptions {
 /**
  * Envía un email vía la API HTTPS de Resend.
  */
-async function sendViaResend({ to, subject, text, html, attachments, from, replyTo, bcc }: SendEmailOptions) {
+const lista = (s: string | undefined) => (s ? s.split(',').map(r => r.trim()).filter(Boolean) : []);
+
+async function sendViaResend({ to, subject, text, html, attachments, from, replyTo, cc, bcc }: SendEmailOptions) {
     const sender = from || process.env.EMAIL_FROM || 'Atelier Óptica <onboarding@resend.dev>';
     const recipients = to.split(',').map(r => r.trim()).filter(Boolean);
 
@@ -63,7 +67,8 @@ async function sendViaResend({ to, subject, text, html, attachments, from, reply
         ...(html ? { html } : {}),
         ...(text ? { text } : {}),
         ...(replyTo ? { reply_to: replyTo } : {}),
-        ...(bcc ? { bcc: bcc.split(',').map(r => r.trim()).filter(Boolean) } : {})
+        ...(lista(cc).length ? { cc: lista(cc) } : {}),
+        ...(lista(bcc).length ? { bcc: lista(bcc) } : {})
     };
 
     if (attachments && attachments.length > 0) {
@@ -98,10 +103,10 @@ async function sendViaResend({ to, subject, text, html, attachments, from, reply
  * Utility to send an email to a client.
  * Usa Resend (HTTPS) si hay RESEND_API_KEY; si no, SMTP de Gmail.
  */
-export async function sendEmail({ to, subject, text, html, attachments, from, replyTo, bcc }: SendEmailOptions) {
+export async function sendEmail({ to, subject, text, html, attachments, from, replyTo, cc, bcc }: SendEmailOptions) {
     try {
         if (process.env.RESEND_API_KEY) {
-            const id = await sendViaResend({ to, subject, text, html, attachments, from, replyTo, bcc });
+            const id = await sendViaResend({ to, subject, text, html, attachments, from, replyTo, cc, bcc });
             console.log(`[Email] Correo enviado vía Resend a ${to}. ID: ${id}`);
             return { success: true, messageId: id };
         }
@@ -114,6 +119,7 @@ export async function sendEmail({ to, subject, text, html, attachments, from, re
             html,
             attachments,
             ...(replyTo ? { replyTo } : {}),
+            ...(cc ? { cc } : {}),
             ...(bcc ? { bcc } : {})
         });
         console.log(`[Email] Correo enviado exitosamente a ${to}. ID: ${info.messageId}`);

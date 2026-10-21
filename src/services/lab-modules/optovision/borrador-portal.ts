@@ -9,12 +9,15 @@ import { numerosDeLaVenta, numerosDeOtrosPares as numerosAjenosAlPar } from '../
 import { decidirConAprobado } from '../carga/decision';
 import { AdopcionNoVerificadaError, AprobacionInvalidaError, enElPortal as enElPortalDe, guardarArchivoDelPortal, textoDeFallaDeConfirmacion, YaCargadoError } from '../carga/robot-comun';
 import { conSesionOves, LAB_OPTOVISION, NOMBRE_OPTOVISION, ROBOT_OPTOVISION, VARIABLE_PERMISO_OVES } from './portal';
-import { diferenciasDePlan, huellaDelPlan, planDeCarga, rolesDeLaPromo, type OpcionesCargaOves, type PlanOves } from './carga';
+import { cristalesPorPar, diferenciasDePlan, huellaDelPlan, planDeCarga, rolesDeLaPromo, type OpcionesCargaOves, type PlanOves } from './carga';
 import { leerVentaParaCargaOves } from './venta';
 import { abrirFormulario, buscarPorReferencia, capturarFormulario, consultarPedido, diferenciasDeFormulario, grabarPedido, llenarFormulario, pedidoConsultadoEsNuestro, PedidoRechazadoError, PortalRespondioError, usarUuid, type Llenado } from './llenar';
 import { esNumeroOves, numeroDelPrimerPar, pedidoExistenteDelPar } from './existentes';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { avisarMailDePromo } from './promo-mail';
+import { formularioConCupon, pedidoDeCupon, planConCupon, type CuponObtenido, type PedidoDeCupon } from './cupon-web';
+import { buscarCuponExistente, conSesionPromo, enSoloLecturaWeb, generarCupon, resolverEnWeb, type ResolucionCupon } from './cupon-robot';
+import type { VentaParaCargaOves } from './carga';
 import type { EstadoEnPortal } from '../contrato';
 
 /**
@@ -68,6 +71,11 @@ export interface RastroOves extends RastroPortal {
     /** El mail de la promo a Optovisión: cuándo salió (o por qué no). */
     mailPromoEnviadoEl?: string | null;
     mailPromoPendiente?: string | null;
+    /** El cupón de la web de la promo cuando lo maneja el robot: lo que se le va a pedir al sitio, lo que el sitio resolvió, los avisos del armado y el cupón obtenido. */
+    cuponPedido?: PedidoDeCupon;
+    cuponResuelto?: ResolucionCupon;
+    cuponAvisos?: string[];
+    cuponWeb?: CuponObtenido | null;
 }
 
 const enElPortal = <T,>(tarea: () => Promise<T>) => enElPortalDe(LAB_OPTOVISION, NOMBRE_OPTOVISION, tarea);
@@ -125,7 +133,39 @@ async function planActual(orderId: string, par: number, opciones: OpcionesCargaO
     // El nº del 1er par y el cupón se revalidan con lo de HOY: nunca un anulado ni un reproceso.
     const roles = rolesDeLaPromo(venta);
     const origen = roles && par === roles.sinCargo ? await numeroDelPrimerPar(orderId, roles.conCargo) : null;
-    return planDeCarga(venta, par, { ...opciones, pedidoOrigen: origen });
+    return { venta, ...planDeCarga(venta, par, { ...opciones, pedidoOrigen: origen }) };
+}
+
+/** Lo que se le pide a la web de la promo para ESTE plan (el cristal del 2º par sale de la venta). Lanza con lo que falta. */
+function pedidoDeCuponDe(venta: VentaParaCargaOves, plan: PlanOves): { pedido: PedidoDeCupon; avisos: string[] } {
+    const roles = rolesDeLaPromo(venta);
+    const porPar = cristalesPorPar(venta);
+    const segundo = roles ? porPar.get(roles.sinCargo)?.[0] ?? null : null;
+    const r = pedidoDeCupon({ venta, plan, productoCRMSegundo: segundo ? String(segundo.product?.name ?? segundo.productNameSnapshot ?? '') : null, genero: plan.opciones.genero });
+    if (!r.ok) throw new Error(`Para que el robot genere el cupón faltan: ${r.faltantes.join(' · ')}`);
+    return { pedido: r.pedido, avisos: r.avisos };
+}
+
+/**
+ * El cupón del 1er par cuando lo maneja el robot. Primero lo que YA hay (el
+ * borrador lo anotó, o el cliente ya tiene cupón de esa promo en el sitio);
+ * si no, lo genera y lo anota EN EL ACTO: un reintento nunca crea dos.
+ */
+async function obtenerCupon(borradorId: string, rastro: RastroOves, marca: 'VARILUX' | 'KODAK', pedido: PedidoDeCupon): Promise<CuponObtenido> {
+    if (rastro.cuponWeb?.codigo) return rastro.cuponWeb;
+    await mezclar(borradorId, { etapa: `generando el cupón en la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
+    const obtenido = await conSesionPromo(marca, async (page) => {
+        const existente = await buscarCuponExistente(page, marca, pedido);
+        if (existente) return { ...existente, reutilizado: true };
+        const resolucion = await resolverEnWeb(page, marca, pedido);
+        // Lo que se revisó tiene que seguir siendo lo que el sitio ofrece: si el catálogo cambió, no se confirma a ciegas.
+        const antes = rastro.cuponResuelto;
+        if (antes && (antes.primero.id !== resolucion.primero.id || (antes.segundo?.id ?? null) !== (resolucion.segundo?.id ?? null))) throw new AprobacionInvalidaError(`la web de la promo cambió el producto desde que se preparó (${antes.primero.name} → ${resolucion.primero.name}): volvé a prepararlo. No se mandó nada.`);
+        return { ...(await generarCupon(page, marca, pedido, resolucion)), reutilizado: false };
+    });
+    const cuponWeb: CuponObtenido = { codigo: obtenido.pedido.code, pedidoId: obtenido.pedido.id, provider: obtenido.pedido.provider, url: obtenido.url, pdfUrl: obtenido.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado: obtenido.reutilizado };
+    await mezclar(borradorId, { cuponWeb });
+    return cuponWeb;
 }
 
 /** PREPARADO → EN_REVISION. Solo lee el portal. */
@@ -136,14 +176,35 @@ export async function prepararEnPortal(borradorId: string) {
     const guardado = b.payload as unknown as PayloadBorradorOves;
     return Borradores.conRobot(b.id, `preparando desde ${new Date().toISOString()}`, async () => {
     try {
-        const r = await planActual(b.orderId, b.pair, guardado.opciones);
+        let r = await planActual(b.orderId, b.pair, guardado.opciones);
         if (!r.ok) throw new Error(`Faltan datos: ${r.faltantes.join(' · ')}`);
+        // Cupón a cargo del robot: SOLO LECTURA en la web de la promo. Si el cliente ya
+        // tiene cupón de esa promo (por DNI), se toma ese y el formulario de OVES ya
+        // lleva el real; si no, se resuelve línea y producto para que la revisión lo
+        // muestre, y se genera recién al aprobar.
+        let cupon: RastroOves = {};
+        if (r.plan.cuponAutomatico && r.plan.promo?.marca) {
+            const marca = r.plan.promo.marca;
+            const { pedido, avisos } = pedidoDeCuponDe(r.venta, r.plan);
+            await mezclar(b.id, { etapa: `mirando la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
+            const enWeb = await conSesionPromo(marca, (page) => enSoloLecturaWeb(page, async () => {
+                const existente = await buscarCuponExistente(page, marca, pedido);
+                const resolucion = existente ? null : await resolverEnWeb(page, marca, pedido);
+                return { existente, resolucion };
+            }));
+            cupon = { cuponPedido: pedido, cuponResuelto: enWeb.resolucion ?? undefined, cuponAvisos: avisos, cuponWeb: enWeb.existente ? { codigo: enWeb.existente.pedido.code, pedidoId: enWeb.existente.pedido.id, provider: enWeb.existente.pedido.provider, url: enWeb.existente.url, pdfUrl: enWeb.existente.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado: true } : null };
+            if (enWeb.existente) {
+                r = await planActual(b.orderId, b.pair, { ...guardado.opciones, cupon: enWeb.existente.pedido.code });
+                if (!r.ok) throw new Error(`Faltan datos: ${r.faltantes.join(' · ')}`);
+            }
+        }
         await mezclar(b.id, { etapa: `esperando turno y entrando a OVES desde ${new Date().toISOString()}` }).catch(() => null);
+        const plan = r.plan;
         const { llenado, captura } = await enElPortal(() => conSesionOves(async (page) => {
             await mezclar(b.id, { etapa: `llenando el formulario de OVES desde ${new Date().toISOString()}` }).catch(() => null);
             return enSoloLectura(page, async () => {
-                await abrirFormulario(page, r.plan.clase);
-                const llenado = await llenarFormulario(page, r.plan);
+                await abrirFormulario(page, plan.clase);
+                const llenado = await llenarFormulario(page, plan);
                 const captura = await capturarFormulario(page);
                 return { llenado, captura };
             });
@@ -151,7 +212,7 @@ export async function prepararEnPortal(borradorId: string) {
         const screenshotUrl = await guardarCaptura(b.id, 'revision', captura);
         return await Borradores.enRevision(b.id, ROBOT_ACTOR_OPTOVISION, {
             screenshotUrl,
-            resumenPortal: { formulario: llenado.formulario, pasos: llenado.pasos, noAplican: llenado.noAplican, reglas: llenado.reglas, huella: huellaDelPlan(r.plan), preparadoEl: new Date().toISOString() } as RastroOves,
+            resumenPortal: { formulario: llenado.formulario, pasos: llenado.pasos, noAplican: llenado.noAplican, reglas: llenado.reglas, huella: huellaDelPlan(plan), preparadoEl: new Date().toISOString(), ...cupon } as RastroOves,
         });
     } catch (err: any) {
         const motivo = err?.message || String(err);
@@ -253,13 +314,24 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                     if (!v.ok) throw new AdopcionNoVerificadaError(`el nº ${numero} que tiene este par ${v.motivo}: ${consejo}.${incierto ? ' Hay además un envío de este borrador sin respuesta: el robot NO afirma que no se haya creado nada; buscalo en el listado antes de cargar a mano' : ' No se creó nada'}`);
                 }
             } else {
-                // 3. ¿La venta de hoy sigue dando EXACTAMENTE lo aprobado?
-                const r = await planActual(b.orderId, b.pair, guardado.opciones);
-                if (!r.ok) throw new AprobacionInvalidaError(`La venta ya no arma el pedido (${r.faltantes.join(' · ')}): volvé a prepararlo. No se mandó nada.`);
-                const cambios = diferenciasDePlan(guardado.plan, r.plan);
-                if (huellaDelPlan(r.plan) !== rastro0.huella || cambios.length) {
-                    throw new AprobacionInvalidaError(`La venta cambió después de aprobar (${cambios.join(', ') || 'otro dato'}): volvé a prepararlo para revisar el pedido nuevo. No se mandó nada.`);
+                // 3. ¿La venta de hoy sigue dando EXACTAMENTE lo aprobado? (Todavía sin cupón: igual que en la revisión.)
+                const r0 = await planActual(b.orderId, b.pair, guardado.opciones);
+                if (!r0.ok) throw new AprobacionInvalidaError(`La venta ya no arma el pedido (${r0.faltantes.join(' · ')}): volvé a prepararlo. No se mandó nada.`);
+                const cambios0 = diferenciasDePlan(guardado.plan, r0.plan);
+                if (huellaDelPlan(r0.plan) !== rastro0.huella && huellaDelPlan(planConCupon(r0.plan, rastroActual.cuponWeb?.codigo ?? null)) !== rastro0.huella || cambios0.length) {
+                    throw new AprobacionInvalidaError(`La venta cambió después de aprobar (${cambios0.join(', ') || 'otro dato'}): volvé a prepararlo para revisar el pedido nuevo. No se mandó nada.`);
                 }
+                // 3b. El cupón a cargo del robot: recién ahora (la venta no cambió y hay que crear), y queda anotado antes de seguir.
+                let cupon: string | null = null;
+                if (r0.plan.cuponAutomatico && r0.plan.promo?.marca) {
+                    const { pedido } = pedidoDeCuponDe(r0.venta, r0.plan);
+                    cupon = (await obtenerCupon(b.id, rastroActual, r0.plan.promo.marca, pedido)).codigo;
+                }
+                const r = cupon ? await planActual(b.orderId, b.pair, { ...guardado.opciones, cupon }) : r0;
+                if (!r.ok) throw new AprobacionInvalidaError(`La venta ya no arma el pedido (${r.faltantes.join(' · ')}): volvé a prepararlo. No se mandó nada.`);
+                const esperado = planConCupon(guardado.plan, cupon);
+                const cambios = diferenciasDePlan(esperado, r.plan);
+                if (cambios.length) throw new AprobacionInvalidaError(`El pedido con el cupón no queda como se aprobó (${cambios.join(', ')}): volvé a prepararlo. No se mandó nada.`);
                 // 2º par de la promo: el 1º tiene que seguir VIVO en el portal (sin
                 // seguimiento, el CRM no se entera de una anulación; si Optovisión lo
                 // anuló y el equipo lo recargó a mano, el nº de la observación sería
@@ -279,7 +351,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 // Un reintento reutiliza el uuid del envío anterior (si el portal deduplica por uuid, un duplicado se vuelve imposible de su lado).
                 await usarUuid(page, rastroActual.uuidEnvio);
                 const uuidEnvio = rastroActual.uuidEnvio || llenado.uuid;
-                const dif = diferenciasDeFormulario(rastro0.formulario!, llenado.formulario);
+                const dif = diferenciasDeFormulario(formularioConCupon(rastro0.formulario!, cupon), llenado.formulario);
                 if (dif.length) throw new AprobacionInvalidaError(`El formulario de OVES ya no queda como se aprobó (${dif.slice(0, 4).join(' · ')}): volvé a prepararlo. No se mandó nada.`);
                 // 4. Grabar: la barrera (atómica en la base) justo antes de aceptar el confirm del portal.
                 // Los nº que la respuesta NO puede estar anunciando como el nuevo: el del 1er par (va en la observación) y los que la venta ya tiene.

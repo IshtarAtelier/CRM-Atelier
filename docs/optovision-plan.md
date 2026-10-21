@@ -40,7 +40,8 @@ Ventas y el mismo bloque `CargaLaboratorio` en la ficha.
 | 0 | Relevamiento de OVES | **Hecho** 19/10 |
 | 1–2 | Seguimiento y costos por portal | Fuera de alcance (siguen por la factura) |
 | 3 | Carga asistida (`lab-modules/optovision/`, ficha, botón, `check:carga-optovision`) | **Escrita** 19/10, sin probar contra el portal real |
-| 3b | Promo: cupón + observaciones + mail a promociones@/cordoba@ | **Escrita**; el mail exige el código de vendedor en SystemSetting `optovision_codigos_vendedor` |
+| 3b | Promo: cupón + observaciones + mail a promociones@ (cc cordoba@ y el local) | **Escrita**; el código del asunto es `OVES_USER` |
+| 3c | Cupón automático: el robot lo genera en la web de la promo al aprobar el 1er par (`cupon-web.ts`, `cupon-robot.ts`, `docs/promos-optovision-web.md`) | **Escrita** 20/10 (pedido de Ishtar: "sí, quiero que lo automatices"), sin probar contra el sitio real: faltan `PROMO_VARILUX_*` en el entorno |
 | 4 | Auditorías (arquitectura + robustez) hasta que quede solo low | **Hecho** 20/10: 4 vueltas, 3 de arreglos (commits d2df0b37, 57486b1b, 32ae0841, 2affdb0e); la 4ª dejó solo low |
 | 5 | Prueba real con credenciales en `.env` → deploy (push a `main` solo con OK explícito) | Pendiente |
 
@@ -57,9 +58,11 @@ medidas del armazón, color del Transitions).
    revisión. ¿Correcto?
 2. ~~Código de vendedor~~ **Resuelto 20/10**: el código del asunto es el usuario de OVES (`OVES_USER`, ATEL01). El robot manda el mail en producción cuando los pares están cargados.
 3. ~~"Mi Primer" ¿lleva mail?~~ **Resuelto 20/10** (recordatorio de Optovisión): misma modalidad; el robot manda el mail con el único nº de trabajo.
-4. **Credenciales**: `OVES_USER` / `OVES_PASSWORD` en Railway y en el `.env` local
-   para la prueba (las carga Ishtar; Claude no tipea claves). La clave pegada en
-   el chat del 15/10 conviene cambiarla.
+4. **Credenciales**: `OVES_USER` / `OVES_PASSWORD` y `PROMO_VARILUX_USER` /
+   `PROMO_VARILUX_PASSWORD` (la cuenta `atelier.optica.cerro@` de las webs de
+   promo; las de Kodak son opcionales, caen a las de Varilux) en Railway y en el
+   `.env` local para la prueba (las carga Ishtar; Claude no tipea claves). La
+   clave de OVES pegada en el chat del 15/10 conviene cambiarla.
 5. **Railway → OVES**: comprobar que llega, o pedirle a Optovisión que habilite la IP.
 6. Los 5 commits de `feat/grupo-optico-carga` siguen esperando OK de push.
 7. El corte de ventas de Optovisión en octubre.

@@ -5,13 +5,14 @@ import { PRIVATE_ADMIN_EMAILS } from '../../../lib/constants';
 import type { Actor } from '../../../lib/actor';
 import { Borradores } from '../carga/borrador';
 import { puedeCrearPedidosReales } from '../carga/produccion';
-import { asuntoDelMail, DESTINATARIOS_PROMO } from './promo';
+import { asuntoDelMail, DESTINATARIOS_PROMO, MAIL_PROMO_COPIA, MAIL_PROMO_PARA, nombreDePromo } from './promo';
 import { LAB_OPTOVISION, NOMBRE_OPTOVISION, VARIABLE_PERMISO_OVES } from './portal';
 import type { PayloadBorradorOves, RastroOves } from './borrador-portal';
 
 /**
  * PASO 2 DEL PROCEDIMIENTO DE LA PROMO (Optovisión Essilor, 23/9/2026): el
- * mail a promociones@ y cordoba@ con asunto "<código del vendedor> <nº 1>-<nº 2>".
+ * mail PARA promociones@ con COPIA a cordoba@ (y a la casilla del local, para
+ * que el equipo vea que salió) con asunto "<código> <nº 1>-<nº 2>".
  * Sin él, Optovisión cobra los dos pares. Sale solo cuando los DOS pares de la
  * promo doble están cargados con su nº, una sola vez, y queda anotado en el
  * borrador del 2º par, en la ficha del cliente y en el AuditLog. Si algo lo
@@ -83,8 +84,7 @@ export async function avisarMailDePromo(orderId: string, robot: Actor, aprobadoP
     const asunto = asuntoDelMail(codigo, numeroPrimero, numeroSegundo);
     if (!asunto) return pendiente('no se pudo armar el asunto del mail');
     if (!puedeCrearPedidosReales(VARIABLE_PERMISO_OVES)) return pendiente(`fuera de producción no se manda el mail a Optovisión (asunto: ${asunto})`);
-    const marca = (dueno.plan.promo?.marca ?? primero?.plan.promo?.marca) === 'KODAK' ? 'Kodak' : 'Varilux';
-    const promo = esMiPrimer ? `Mi Primer ${marca}` : marca === 'Kodak' ? '2x1 Kodak' : 'Doble Disfrute Varilux';
+    const promo = nombreDePromo(dueno.plan.promo?.marca ?? primero?.plan.promo?.marca, esMiPrimer ? 'MI_PRIMER' : 'DOBLE');
     const cliente = venta.client?.name || 'cliente';
     // Reclamo atómico ANTES de mandar: solo un llamador pasa (dos cargas a la vez
     // o un reintento encimado mandarían dos mails). Un reclamo de más de 10 min
@@ -94,12 +94,15 @@ export async function avisarMailDePromo(orderId: string, robot: Actor, aprobadoP
         WHERE id = ${dueno.id} AND ("resumenPortal"->>'mailPromoEnviadoEl') IS NULL AND (("resumenPortal"->>'mailPromoReclamadoEl') IS NULL OR ("resumenPortal"->>'mailPromoReclamadoEl') < ${limite})`;
     if (reclamado !== 1) return { enviado: false, motivo: 'otro proceso está mandando el mail (o ya salió)' };
     try {
-        await sendEmail({
-            to: DESTINATARIOS_PROMO.join(','),
+        const r = await sendEmail({
+            to: MAIL_PROMO_PARA,
+            cc: MAIL_PROMO_COPIA.join(','),
             bcc: PRIVATE_ADMIN_EMAILS,
             subject: asunto,
-            text: cuerpoDelMail({ cliente, primerPar: numeroPrimero, segundoPar: numeroSegundo, cupon: primero?.plan.cupon ?? null, promo }),
+            text: cuerpoDelMail({ cliente, primerPar: numeroPrimero, segundoPar: numeroSegundo, cupon: primero?.plan.cupon ?? ((primero?.resumenPortal || {}) as RastroOves).cuponWeb?.codigo ?? null, promo }),
         });
+        // sendEmail no lanza: devuelve { success: false }. Un "enviado" que no salió dejaría el mail sin mandar para siempre.
+        if (!r.success) throw new Error(String((r as any).error?.message || (r as any).error || 'el envío falló'));
     } catch (err: any) {
         // Se suelta el reclamo y queda PENDIENTE: la ficha lo muestra y lo reintenta al abrirse.
         await Borradores.anotarRastro(dueno.id, { mailPromoReclamadoEl: null } as any).catch(() => null);

@@ -22,7 +22,10 @@
  * lo genera una web externa), FRENA y lo dice en la ficha.
  */
 
+import { CASILLA_DEL_LOCAL } from '../../../lib/constants';
+
 export type MarcaDePromo = 'VARILUX' | 'KODAK';
+export type TipoDePromo = 'DOBLE' | 'MI_PRIMER';
 
 /** Dónde se genera el cupón de cada promo. */
 export const WEB_DE_PROMO: Record<MarcaDePromo, string> = {
@@ -30,8 +33,30 @@ export const WEB_DE_PROMO: Record<MarcaDePromo, string> = {
     KODAK: 'https://promos.lenteskodak.com.ar/',
 };
 
-/** A quién se le avisa la promo por mail (los dos, siempre). */
-export const DESTINATARIOS_PROMO = ['promociones@optovisionsa.com.ar', 'cordoba@optovisionsa.com.ar'] as const;
+/**
+ * A quién va el mail de la promo (instructivo de Optovisión, 20/10/2026):
+ * PARA promociones@, CON COPIA a cordoba@. Y copia a la casilla del local
+ * (Ishtar, 20/10/2026: "que llegue en copia al Atelier así nos quedamos
+ * tranquilos que salió"): es un aviso operativo, sin costos.
+ */
+export const MAIL_PROMO_PARA = 'promociones@optovisionsa.com.ar';
+export const MAIL_PROMO_COPIA = ['cordoba@optovisionsa.com.ar', CASILLA_DEL_LOCAL] as const;
+/** Todos los que reciben el mail (para los textos y la ficha). */
+export const DESTINATARIOS_PROMO = [MAIL_PROMO_PARA, ...MAIL_PROMO_COPIA] as const;
+
+/** Cada promo tiene su `provider` en la web de promo (docs/promos-optovision-web.md). */
+export function providerDePromo(marca: MarcaDePromo | null | undefined, tipo: TipoDePromo | null | undefined): 'varilux' | 'mi-primer-varilux' | 'kodak' | 'kodak-progresivos' | null {
+    if (marca === 'VARILUX') return tipo === 'MI_PRIMER' ? 'mi-primer-varilux' : 'varilux';
+    if (marca === 'KODAK') return tipo === 'MI_PRIMER' ? 'kodak-progresivos' : 'kodak';
+    return null;
+}
+
+/** Nombre de la promo como la escribe Optovisión, para mails y observaciones. Puro. */
+export function nombreDePromo(marca: MarcaDePromo | null | undefined, tipo: TipoDePromo | null | undefined): string {
+    const m = marca === 'KODAK' ? 'Kodak' : 'Varilux';
+    if (tipo === 'MI_PRIMER') return `Mi Primer ${m}`;
+    return marca === 'KODAK' ? '2x1 Kodak' : 'Doble Disfrute Varilux';
+}
 
 /** La marca de promo que nombra un texto ("Mi primer Varilux", "Kodak Precise"); null si ninguna. */
 export function marcaDePromo(texto: string | null | undefined): MarcaDePromo | null {
@@ -58,6 +83,22 @@ export function observacionPrimerPar(cupon: string | null | undefined): string |
     return c ? `Primer par de Promo num cupón ${c}` : null;
 }
 
+/**
+ * Cuando el cupón lo genera el ROBOT al aprobar (web de la promo), la
+ * observación que se muestra en la revisión lleva esta marca en vez del
+ * cupón; al confirmar se reemplaza por el real (`conCuponReal`). La marca no
+ * puede confundirse con un cupón: lleva espacios y paréntesis.
+ */
+export const MARCA_CUPON_PENDIENTE = '(lo genera el robot al aprobar)';
+export function observacionPrimerParPendiente(): string {
+    return `Primer par de Promo num cupón ${MARCA_CUPON_PENDIENTE}`;
+}
+/** El texto aprobado con la marca, ya con el cupón real. Si no tiene la marca, vuelve igual. Puro. */
+export function conCuponReal(texto: string, cupon: string): string {
+    const c = cuponLimpio(cupon);
+    return c ? texto.split(MARCA_CUPON_PENDIENTE).join(c) : texto;
+}
+
 /** Observación del 2º par: lleva el nº de pedido que OVES le dio al 1º. Sin ese nº no hay texto. */
 export function observacionSegundoPar(numeroPrimerPar: string | null | undefined): string | null {
     const n = soloDigitos(numeroPrimerPar);
@@ -80,10 +121,8 @@ export const ETIQUETA_DE_PASO: Record<PasoDePromo, string> = {
     CUPON: 'Generar el cupón en la web de la promo',
     OBSERVACION_PRIMER_PAR: 'Cargar el 1º par con el cupón en la observación',
     OBSERVACION_SEGUNDO_PAR: 'Cargar el 2º par con el nº del 1º en la observación',
-    MAIL: 'Mandar el mail a promociones@ y cordoba@',
+    MAIL: 'Mandar el mail a promociones@ (copia a cordoba@ y al local)',
 };
-
-export type TipoDePromo = 'DOBLE' | 'MI_PRIMER';
 
 export interface EstadoDePromo {
     /** Doble (dos pares) o Mi Primer (un solo par: cupón, observación del 1º y el mail con un solo nº). */

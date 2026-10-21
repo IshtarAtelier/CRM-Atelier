@@ -13,7 +13,9 @@
 // Sin base ni red. Corre en CI.   npm run check:carga-optovision
 // ────────────────────────────────────────────────────────────────────────────
 import assert from 'node:assert/strict';
-import { marcaDePromo, WEB_DE_PROMO, DESTINATARIOS_PROMO, cuponLimpio, observacionPrimerPar, observacionSegundoPar, asuntoDelMail, pasosPendientes } from '../../src/services/lab-modules/optovision/promo.ts';
+import { marcaDePromo, WEB_DE_PROMO, DESTINATARIOS_PROMO, MAIL_PROMO_PARA, MAIL_PROMO_COPIA, providerDePromo, nombreDePromo, PATRON_CUPON, MARCA_CUPON_PENDIENTE, observacionPrimerParPendiente, conCuponReal, cuponLimpio, observacionPrimerPar, observacionSegundoPar, asuntoDelMail, pasosPendientes } from '../../src/services/lab-modules/optovision/promo.ts';
+import { rasgosDeProductoWeb, rasgosDelCristalCRM, elegirLineaWeb, elegirProductoWeb, segundoAdmitido, recetaWebDe, repartirNombre, clienteWebDe, pedidoDeCupon, pedidoDeLaPagina, filasDelCliente, esCuponDelCliente, planConCupon, formularioConCupon } from '../../src/services/lab-modules/optovision/cupon-web.ts';
+import { credencialesPromo, CredencialPromoFaltanteError } from '../../src/services/lab-modules/optovision/cupon-robot.ts';
 import { especificacionDe, colorOvesDe, materialDe, elegirProductoOves, eleccionQuePide, familiaDelNombre, tratamientoDe, varianteDe } from '../../src/services/lab-modules/optovision/catalogo.ts';
 import { PRODUCTOS_OVES, OVES_CATALOGO, valueDeOves } from '../../src/lib/laboratorios/oves-catalogo.ts';
 import { planDeCarga, referenciaDelPedido, observacionDelPedido, esPromoDobleDeOptovision, rolesDeLaPromo, huellaDelPlan, diferenciasDePlan, cristalesPorPar, promoQueNoCierra, nombraPromoDoble } from '../../src/services/lab-modules/optovision/carga.ts';
@@ -32,10 +34,22 @@ t('marca de la promo por texto', () => {
     assert.equal(marcaDePromo('Hoya LifeStyle'), null);
     assert.equal(marcaDePromo(null), null);
 });
-t('webs y destinatarios', () => {
+t('webs y destinatarios: PARA promociones@, COPIA a cordoba@ y al local (instructivo + Ishtar, 20/10/2026)', () => {
     assert.match(WEB_DE_PROMO.VARILUX, /variluxdobledisfrute/);
     assert.match(WEB_DE_PROMO.KODAK, /lenteskodak/);
-    assert.deepEqual([...DESTINATARIOS_PROMO], ['promociones@optovisionsa.com.ar', 'cordoba@optovisionsa.com.ar']);
+    assert.equal(MAIL_PROMO_PARA, 'promociones@optovisionsa.com.ar');
+    assert.deepEqual([...MAIL_PROMO_COPIA], ['cordoba@optovisionsa.com.ar', 'atelier.optica.cerro@gmail.com']);
+    assert.deepEqual([...DESTINATARIOS_PROMO], [MAIL_PROMO_PARA, ...MAIL_PROMO_COPIA]);
+    assert.equal(providerDePromo('VARILUX', 'DOBLE'), 'varilux'); assert.equal(providerDePromo('VARILUX', 'MI_PRIMER'), 'mi-primer-varilux');
+    assert.equal(providerDePromo('KODAK', 'DOBLE'), 'kodak'); assert.equal(providerDePromo('KODAK', 'MI_PRIMER'), 'kodak-progresivos'); assert.equal(providerDePromo(null, 'DOBLE'), null);
+    assert.equal(nombreDePromo('KODAK', 'MI_PRIMER'), 'Mi Primer Kodak'); assert.equal(nombreDePromo('VARILUX', 'DOBLE'), 'Doble Disfrute Varilux'); assert.equal(nombreDePromo('KODAK', 'DOBLE'), '2x1 Kodak');
+});
+t('la marca del cupón pendiente no parece un cupón y se reemplaza entera por el real', () => {
+    assert.equal(PATRON_CUPON.test(MARCA_CUPON_PENDIENTE), false);
+    assert.equal(observacionPrimerParPendiente(), `Primer par de Promo num cupón ${MARCA_CUPON_PENDIENTE}`);
+    assert.equal(conCuponReal(`Promo X - ${observacionPrimerParPendiente()}. Nota`, 'VA7AGQWN'), 'Promo X - Primer par de Promo num cupón VA7AGQWN. Nota');
+    assert.equal(conCuponReal('sin marca', 'VA7AGQWN'), 'sin marca');
+    assert.equal(conCuponReal(observacionPrimerParPendiente(), ''), observacionPrimerParPendiente());
 });
 t('observación del 1º par exige cupón', () => {
     assert.equal(observacionPrimerPar('ABC123'), 'Primer par de Promo num cupón ABC123');
@@ -373,6 +387,140 @@ t('referencia, huella y diferencias', () => {
     assert.deepEqual(diferenciasDePlan(a, a), []);
     assert.equal(cristalesPorPar(ventaDoble()).size, 2);
     assert.equal(observacionDelPedido({ promo: null, rolPromo: null, cupon: null, pedidoOrigen: null, familia: 'x', tenido: null, notas: null }), '');
+});
+
+// ── cupon-web.ts: el cupón que genera el robot en la web de la promo ──────
+// Nombres REALES del catálogo del sitio (20/10/2026, docs/promos-optovision-web.md), dobles espacios incluidos.
+const LINEAS_VDD = [[3, 'Varilux Xr Pro'], [4, 'Varilux Xr Design'], [5, 'Varilux Physio 3.0'], [6, 'Varilux Physio'], [11, 'Varilux Comfort Max'], [8, 'Varilux Comfort'], [9, 'Varilux Liberty 3.0'], [10, 'Varilux Liberty']].map(([id, name]) => ({ id, name, enabled: 1 }));
+const LINEAS_MPV = [[12, 'Varilux Xr Pro'], [14, 'Varilux Physio 3.0'], [15, 'Varilux Physio']].map(([id, name]) => ({ id, name, enabled: 1 }));
+const LINEAS_KODAK = [[1, 'Kodak Unique Dro'], [2, 'Kodak Precise Next']].map(([id, name]) => ({ id, name, enabled: 1 }));
+const COMFORT = [
+    [1376, 15976, 'Varilux Comfort Orma Transitions Gens Gris / Café / Gris Verde /zafiro / Amatista / Esmeralda / Ambar / Rubi Con Crizal Prevencia'],
+    [1377, 15976, 'Varilux Comfort Orma Transitions Xtractive Gris Con Crizal Prevencia'],
+    [1378, 15976, 'Varilux Comfort Orma Xperio Gris / Café / Gris-verde Con Crizal Prevencia'],
+    [1384, 15774, 'Varilux Comfort Orma Xperio Gris / Café / Gris-verde Con Crizal Forte Uv'],
+    [1385, 13229, 'Varilux Comfort Stylis 1.67 Blueuv Con Crizal Prevencia'],
+    [1391, 11339, 'Varilux Comfort Orma Blue Uv Con Crizal Prevencia'],
+    [1392, 11238, 'Varilux Comfort Orma Blue Uv Con Crizal Sapphire'],
+    [1393, 11137, 'Varilux Comfort Orma Blue Uv Con Crizal Forte Uv'],
+].map(([id, order, name]) => ({ id, order, name, enabled: 1 }));
+t('los rasgos de un producto del sitio salen del nombre, con dobles espacios, "Blueuv" y "Gen S"', () => {
+    assert.deepEqual(rasgosDeProductoWeb(COMFORT[0].name), { material: 'ORMA', tecnologia: 'TRANSITIONS', tratamiento: 'PREVENCIA' });
+    assert.deepEqual(rasgosDeProductoWeb('Varilux Comfort Stylis 1.67 Blueuv Con Crizal Prevencia'), { material: 'STYLIS', tecnologia: 'BLUE_UV', tratamiento: 'PREVENCIA' });
+    assert.deepEqual(rasgosDeProductoWeb('Kodak Unique Dro Airwear 1.59  Crizal Sapphire'), { material: 'AIRWEAR', tecnologia: 'LISO', tratamiento: 'SAPPHIRE' });
+    assert.deepEqual(rasgosDeProductoWeb('Kodak Precise Next Orma Xperio Trio Easy Clean Uv'), { material: 'ORMA', tecnologia: 'XPERIO', tratamiento: 'TRIO' });
+    assert.deepEqual(rasgosDeProductoWeb('Orma Transitions Gens Crizal Prevencia'), { material: 'ORMA', tecnologia: 'TRANSITIONS', tratamiento: 'PREVENCIA' });
+    assert.deepEqual(rasgosDeProductoWeb('Varilux Liberty Orma Transitions Gen S Gris / Café Con Crizal Forte Uv'), { material: 'ORMA', tecnologia: 'TRANSITIONS', tratamiento: 'FORTE_UV' });
+    assert.deepEqual(rasgosDeProductoWeb('Varilux Xr Pro Airwear Xperio Gris / Marrón Con Crizal Prevencia'), { material: 'AIRWEAR', tecnologia: 'XPERIO', tratamiento: 'PREVENCIA' });
+});
+t('los rasgos del cristal vendido: liso de Varilux → Blue UV con aviso; Kodak liso existe; Acclimates y sin Crizal frenan', () => {
+    const liso = rasgosDelCristalCRM('VARILUX COMFORT - ORMA + CRIZAL 2x1', 'CRIZAL_FORTE_UV', 'VARILUX');
+    assert.ok(liso.ok); assert.deepEqual(liso.rasgos, { material: 'ORMA', tecnologia: 'BLUE_UV', tratamiento: 'FORTE_UV' }); assert.match(liso.avisos[0], /Blue UV/);
+    const kodak = rasgosDelCristalCRM('KODAK UNIQUE DRO - ORMA + CRIZAL 2x1', 'CRIZAL_PREVENCIA', 'KODAK');
+    assert.ok(kodak.ok); assert.equal(kodak.rasgos.tecnologia, 'LISO'); assert.deepEqual(kodak.avisos, []);
+    assert.deepEqual(rasgosDelCristalCRM('VARILUX COMFORT - STYLIS 1.67 TRANSITIONS GEN S + CRIZAL 2x1', 'CRIZAL_SAPPHIRE', 'VARILUX').rasgos, { material: 'STYLIS', tecnologia: 'TRANSITIONS', tratamiento: 'SAPPHIRE' });
+    assert.match(rasgosDelCristalCRM('KODAK UNIQUE DRO - ORMA ACCLIMATES + CRIZAL 2x1', 'CRIZAL_PREVENCIA', 'KODAK').motivo, /Acclimates/);
+    assert.match(rasgosDelCristalCRM('VARILUX COMFORT - ORMA + CRIZAL 2x1', null, 'VARILUX').motivo, /exige un Crizal/);
+    assert.match(rasgosDelCristalCRM('VARILUX COMFORT - ORMA + CRIZAL 2x1', 'NUMAX', 'VARILUX').motivo, /exige un Crizal/);
+});
+t('la línea del sitio se elige por nombre, exacta antes que por prefijo, y nunca entre varias', () => {
+    assert.equal(elegirLineaWeb(LINEAS_VDD, 'VARILUX COMFORT MAX - ORMA TRANSITIONS GEN S + CRIZAL 2x1').linea.id, 11);
+    assert.equal(elegirLineaWeb(LINEAS_VDD, 'VARILUX COMFORT - ORMA + CRIZAL 2x1').linea.id, 8);
+    assert.equal(elegirLineaWeb(LINEAS_VDD, 'VARILUX PHYSIO - ORMA + CRIZAL 2x1').linea.id, 6);
+    assert.equal(elegirLineaWeb(LINEAS_VDD, 'VARILUX PHYSIO 3.0 - ORMA + CRIZAL 2x1').linea.id, 5);
+    assert.equal(elegirLineaWeb(LINEAS_MPV, 'MI PRIMER VARILUX PHYSIO 3.0 - ORMA + CRIZAL').linea.id, 14);
+    assert.equal(elegirLineaWeb(LINEAS_KODAK, 'KODAK PRECISE - ORMA + CRIZAL 2x1').linea.id, 2);
+    assert.equal(elegirLineaWeb(LINEAS_KODAK, 'MI PRIMER KODAK UNIQUE DRO - STYLIS 1.67 + CRIZAL').linea.id, 1);
+    assert.match(elegirLineaWeb(LINEAS_VDD, 'VARILUX DIGITIME - ORMA + CRIZAL').motivo, /no tiene la línea/);
+    assert.match(elegirLineaWeb([...LINEAS_KODAK, { id: 9, name: 'Kodak Precise Short', enabled: 1 }], 'KODAK PRECISE - ORMA + CRIZAL 2x1').motivo, /2 líneas/);
+    assert.match(elegirLineaWeb(LINEAS_KODAK.map(l => ({ ...l, enabled: 0 })), 'KODAK PRECISE - ORMA + CRIZAL 2x1').motivo, /no tiene la línea/);
+});
+t('el producto del sitio se elige por rasgos exactos: uno solo', () => {
+    assert.equal(elegirProductoWeb(COMFORT, { material: 'ORMA', tecnologia: 'BLUE_UV', tratamiento: 'PREVENCIA' }).producto.id, 1391);
+    assert.equal(elegirProductoWeb(COMFORT, { material: 'ORMA', tecnologia: 'TRANSITIONS', tratamiento: 'PREVENCIA' }).producto.id, 1376);
+    assert.equal(elegirProductoWeb(COMFORT, { material: 'ORMA', tecnologia: 'XTRACTIVE', tratamiento: 'PREVENCIA' }).producto.id, 1377);
+    assert.equal(elegirProductoWeb(COMFORT, { material: 'STYLIS', tecnologia: 'BLUE_UV', tratamiento: 'PREVENCIA' }).producto.id, 1385);
+    assert.match(elegirProductoWeb(COMFORT, { material: 'AIRWEAR', tecnologia: 'BLUE_UV', tratamiento: 'PREVENCIA' }).motivo, /no tiene un producto AIRWEAR BLUE UV PREVENCIA/);
+    assert.match(elegirProductoWeb([...COMFORT, { ...COMFORT[5], id: 9999 }], { material: 'ORMA', tecnologia: 'BLUE_UV', tratamiento: 'PREVENCIA' }).motivo, /2 productos/);
+    // El 2º par tiene que valer igual o menos que el 1º según el orden del sitio.
+    assert.equal(segundoAdmitido(COMFORT[5], COMFORT[7]), true); assert.equal(segundoAdmitido(COMFORT[5], COMFORT[5]), true); assert.equal(segundoAdmitido(COMFORT[7], COMFORT[5]), false);
+});
+t('la receta del sitio: sin "+", cilindro 0.00 si no hay, eje vacío sin cilindro, DNP entera de 2 dígitos, adición obligatoria', () => {
+    assert.deepEqual(recetaWebDe({ esf: '+2.00', cil: '-0.75', eje: '90', adic: '2.25', dnp: '34.0', altura: '30.0' }, 'OD').receta, { esferico: '2.00', cilindrico: '-0.75', eje: '90', adicion: '2.25', dnp: '34' });
+    assert.deepEqual(recetaWebDe({ esf: '-1.00', cil: null, eje: null, adic: '1.00', dnp: '32.5', altura: null }, 'OI').receta, { esferico: '-1.00', cilindrico: '0.00', eje: '', adicion: '1.00', dnp: '33' });
+    assert.match(recetaWebDe({ esf: '-1.00', cil: null, eje: null, adic: null, dnp: '32.0', altura: null }, 'OI').faltantes[0], /adición OI/);
+    assert.match(recetaWebDe({ esf: '-1.00', cil: null, eje: null, adic: '2.00', dnp: '45.0', altura: null }, 'OD').faltantes[0], /DNP OD .*fuera/);
+    assert.match(recetaWebDe({ esf: '-1.00', cil: null, eje: null, adic: '4.00', dnp: '32.0', altura: null }, 'OD').faltantes[0], /adición OD .*fuera/);
+    assert.match(recetaWebDe(null, 'OI').faltantes[0], /receta del OI/);
+});
+t('el cliente del sitio sale de la ficha; el género lo pone quien prepara', () => {
+    assert.deepEqual(repartirNombre('Juan San Martin'), { nombre: 'Juan', apellido: 'San Martin' });
+    assert.deepEqual(repartirNombre('ana perez'), { nombre: 'Ana', apellido: 'Perez' });
+    assert.deepEqual(repartirNombre('Ana'), { nombre: 'Ana', apellido: 'Ana' });
+    const c = clienteWebDe({ name: 'Patricia Devereux', dni: '12.345.678', birthDate: '1963-05-11T00:00:00.000Z', phone: '351 762-2560', email: 'p@x.com' }, 'f');
+    assert.ok(c.ok, c.ok ? '' : c.faltantes.join(' · '));
+    assert.equal(c.cliente.dni, '12345678'); assert.equal(c.cliente.genero, 'F'); assert.equal(c.cliente.telefono, '3517622560'); assert.equal(c.cliente.email, 'p@x.com');
+    assert.deepEqual(c.cliente.nacimiento, { iso: '1963-05-11', dia: 11, mes0: 4, anio: 1963 });
+    const sin = clienteWebDe({ name: 'Patricia Devereux', dni: null, birthDate: null, phone: null, email: 'no-es-mail' }, null);
+    assert.equal(sin.ok, false);
+    assert.ok(sin.faltantes.some(f => /DNI/.test(f)) && sin.faltantes.some(f => /género/.test(f)) && sin.faltantes.some(f => /nacimiento/.test(f)), sin.faltantes.join(' · '));
+    const largo = clienteWebDe({ name: 'Elizabeth Del Valle Marquez', dni: '1234567', birthDate: new Date('1970-01-02T00:00:00.000Z'), phone: null, email: null }, 'F');
+    assert.ok(largo.ok); assert.equal(largo.cliente.apellido, 'Del Valle Marquez'); assert.match(largo.avisos[0], /se repartió/); assert.equal(largo.cliente.email, null);
+});
+t('sin cupón tipeado el plan sale con la marca y el robot lo genera; con el real da EXACTAMENTE el plan tipeado', () => {
+    const v = ventaDoble();
+    v.client = { name: 'Juan San Martin', dni: '30111222', birthDate: '1980-03-15T00:00:00.000Z', phone: '3511234567', email: 'juan@x.com' };
+    const auto = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cuponAutomatico: true, genero: 'M' });
+    assert.ok(auto.ok, auto.ok ? '' : auto.faltantes.join(' · '));
+    assert.equal(auto.plan.cupon, null); assert.equal(auto.plan.cuponAutomatico, true);
+    assert.equal(auto.plan.observacion, `Promo Doble Disfrute Varilux - Primer par de Promo num cupón ${MARCA_CUPON_PENDIENTE}. Solicito envien con paño`);
+    const real = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cuponAutomatico: true, genero: 'M', cupon: 'VA7AGQWN' });
+    assert.ok(real.ok); assert.equal(real.plan.cuponAutomatico, false); assert.equal(real.plan.cupon, 'VA7AGQWN');
+    const esperado = planConCupon(auto.plan, 'VA7AGQWN');
+    assert.deepEqual(diferenciasDePlan(esperado, real.plan), []); assert.equal(huellaDelPlan(esperado), huellaDelPlan(real.plan));
+    assert.deepEqual(diferenciasDePlan(auto.plan, real.plan), ['observación', 'promo']);
+    assert.equal(planConCupon(real.plan, 'OTRO').cupon, 'VA7AGQWN');
+    assert.deepEqual(formularioConCupon({ observacion: auto.plan.observacion, paciente: 'Juan' }, 'VA7AGQWN'), { observacion: real.plan.observacion, paciente: 'Juan' });
+    // El 2º par no pide cupón aunque se lo marque automático.
+    const segundo = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cuponAutomatico: true, pedidoOrigen: '628377' });
+    assert.ok(segundo.ok); assert.equal(segundo.plan.cuponAutomatico, false);
+    // Lo que se le pide al sitio: provider, cliente, receta del 1er par y los dos cristales.
+    const p = pedidoDeCupon({ venta: v, plan: auto.plan, productoCRMSegundo: 'VARILUX COMFORT - ORMA BLUE UV + CRIZAL 2x1', genero: 'M' });
+    assert.ok(p.ok, p.ok ? '' : p.faltantes.join(' · '));
+    assert.equal(p.pedido.provider, 'varilux'); assert.equal(p.pedido.cliente.dni, '30111222');
+    assert.deepEqual(p.pedido.receta.od, { esferico: '-0.50', cilindrico: '-1.50', eje: '90', adicion: '2.25', dnp: '34' });
+    assert.deepEqual(p.pedido.primero.rasgos, { material: 'ORMA', tecnologia: 'XPERIO', tratamiento: 'FORTE_UV' });
+    assert.deepEqual(p.pedido.segundo.rasgos, { material: 'ORMA', tecnologia: 'BLUE_UV', tratamiento: 'FORTE_UV' });
+    assert.ok(p.avisos.some(a => /mismo Crizal/.test(a)));
+    assert.match(pedidoDeCupon({ venta: v, plan: auto.plan, productoCRMSegundo: 'VARILUX PHYSIO - ORMA + CRIZAL 2x1', genero: 'M' }).faltantes.join(' '), /mismo diseño/);
+    assert.match(pedidoDeCupon({ venta: v, plan: auto.plan, productoCRMSegundo: null, genero: 'M' }).faltantes.join(' '), /2º par/);
+    assert.match(pedidoDeCupon({ venta: v, plan: auto.plan, productoCRMSegundo: 'VARILUX COMFORT - ORMA BLUE UV + CRIZAL 2x1', genero: null }).faltantes.join(' '), /género/);
+    // Mi Primer: un solo cristal, provider propio.
+    const mp = ventaBase(); mp.client = v.client; mp.prescription.addition = 1.5;
+    mp.items = [cristal('MI PRIMER KODAK PRECISE - ORMA + CRIZAL', 'OD', { productTypeSnapshot: 'Cristal Multifocal' }), cristal('MI PRIMER KODAK PRECISE - ORMA + CRIZAL', 'OI', { productTypeSnapshot: 'Cristal Multifocal' })];
+    const planMp = planDeCarga(mp, 1, { tratamiento: 'CRIZAL_PREVENCIA', calibrado: 'COMUN', tipoArmazon: '2', corredorPrecise: 'LARGE', cuponAutomatico: true }).plan;
+    const pm = pedidoDeCupon({ venta: mp, plan: planMp, productoCRMSegundo: null, genero: 'F' });
+    assert.ok(pm.ok, pm.ok ? '' : pm.faltantes.join(' · ')); assert.equal(pm.pedido.provider, 'kodak-progresivos'); assert.equal(pm.pedido.segundo, null);
+});
+t('el cupón se lee de la página de detalle del sitio y se reconoce por DNI y promo', () => {
+    const html = '<order-form :order="{&quot;id&quot;:253056,&quot;provider&quot;:&quot;varilux&quot;,&quot;code&quot;:&quot;VA7AGQWN&quot;,&quot;code_used_at&quot;:null,&quot;first_name&quot;:&quot;Patricia&quot;,&quot;document_number&quot;:&quot;12345678&quot;,&quot;created_at&quot;:&quot;2026-10-16T21:20:46.000000Z&quot;}" v-cloak>';
+    const p = pedidoDeLaPagina(html);
+    assert.equal(p.id, 253056); assert.equal(p.code, 'VA7AGQWN'); assert.equal(p.provider, 'varilux'); assert.equal(p.document_number, '12345678');
+    assert.equal(esCuponDelCliente(p, { provider: 'varilux', dni: '12.345.678' }), true);
+    assert.equal(esCuponDelCliente(p, { provider: 'mi-primer-varilux', dni: '12345678' }), false);
+    assert.equal(esCuponDelCliente(p, { provider: 'varilux', dni: '99999999' }), false);
+    assert.equal(pedidoDeLaPagina('<html>sin pedido</html>'), null);
+    assert.equal(pedidoDeLaPagina('<x :order="{&quot;id&quot;:1,&quot;code&quot;:&quot;no es cupon&quot;}">'), null);
+    const filas = [{ fecha: '16/10/2026', promocion: 'VDD', codigo: 'VA7AGQWN', cliente: 'Patricia Devereux', detalleUrl: 'u1', pdfUrl: null }, { fecha: '08/10/2026', promocion: 'VDD', codigo: 'VAUV2XMV', cliente: 'Samuel Alberto Vadora', detalleUrl: 'u2', pdfUrl: null }];
+    assert.deepEqual(filasDelCliente(filas, 'Devereux Patricia').map(f => f.codigo), ['VA7AGQWN']);
+    assert.deepEqual(filasDelCliente(filas, 'Samuel Vadora').map(f => f.codigo), ['VAUV2XMV']);
+    assert.deepEqual(filasDelCliente(filas, 'Otra Persona'), []);
+});
+t('las credenciales de la web de promo salen del entorno; Kodak cae a Varilux; sin nada se avisa', () => {
+    assert.deepEqual(credencialesPromo('KODAK', { PROMO_VARILUX_USER: 'u', PROMO_VARILUX_PASSWORD: 'p' }), { usuario: 'u', clave: 'p' });
+    assert.deepEqual(credencialesPromo('KODAK', { PROMO_VARILUX_USER: 'u', PROMO_VARILUX_PASSWORD: 'p', PROMO_KODAK_USER: 'k', PROMO_KODAK_PASSWORD: 'kp' }), { usuario: 'k', clave: 'kp' });
+    assert.throws(() => credencialesPromo('VARILUX', {}), CredencialPromoFaltanteError);
+    assert.throws(() => credencialesPromo('VARILUX', { PROMO_VARILUX_USER: 'u' }), /PROMO_VARILUX_USER\/PROMO_VARILUX_PASSWORD/);
 });
 
 console.log(`check:carga-optovision OK (${n} grupos)`);

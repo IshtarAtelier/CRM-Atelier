@@ -5,7 +5,7 @@ import { itemsDeTenido } from '../../../lib/crystal-color';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import { precioConSigno } from '../../../lib/format-precio';
 import { especificacionDe, familiaDelNombre, FORMAS_OVES, SERVICIO_CALIBRADO, SERVICIO_COLORACION, SERVICIO_OTROS_NINGUNO, SERVICIO_TRATAMIENTO, TIPO_ARMAZON_OVES, type Eleccion, type EspecificacionOves } from './catalogo';
-import { marcaDePromo, observacionPrimerPar, observacionSegundoPar, type MarcaDePromo } from './promo';
+import { marcaDePromo, nombreDePromo, observacionPrimerPar, observacionPrimerParPendiente, observacionSegundoPar, type MarcaDePromo } from './promo';
 
 /**
  * EL PEDIDO DE OPTOVISIÓN, ARMADO DESDE LA VENTA (puro, sin base ni navegador).
@@ -43,8 +43,9 @@ export interface PlanOves {
     rolPromo: RolPromo;
     /** El nº web del 1er par (va en la observación del 2º). */
     pedidoOrigen: string | null;
-    /** El cupón de la web de la promo (va en la observación del 1er par). */
+    /** El cupón de la web de la promo (va en la observación del 1er par). Null con `cuponAutomatico`: lo genera el robot al aprobar. */
     cupon: string | null;
+    cuponAutomatico: boolean;
     clase: EspecificacionOves['clase'];
     /** El producto del CRM tal como se vendió. */
     productoCRM: string;
@@ -75,6 +76,10 @@ export interface OpcionesCargaOves extends Eleccion {
     forma?: number | null;         // armazonLente
     enviaArmazon?: 'Si' | 'No' | null;
     cupon?: string | null;
+    /** Sin cupón tipeado: el robot lo genera en la web de la promo al aprobar (cupon-robot.ts). */
+    cuponAutomatico?: boolean | null;
+    /** Género del cliente para la web de la promo (el CRM no lo guarda). */
+    genero?: 'F' | 'M' | null;
     pedidoOrigen?: string | null;
 }
 
@@ -103,7 +108,7 @@ export interface VentaParaCargaOves {
     labFrameShape?: string | null; labFrameShape2?: string | null; labFrameDetails2?: string | null;
     labHeightOD2?: number | null; labHeightOI2?: number | null;
     frames?: { position: number; shape: string | null; a: string | null; b: string | null; dbl: string | null; edc: string | null; details: string | null; heightOD: number | null; heightOI: number | null }[];
-    client?: { name: string | null } | null;
+    client?: { name: string | null; dni?: string | null; birthDate?: Date | string | null; email?: string | null; phone?: string | null } | null;
     prescription?: {
         sphereOD: number | null; cylinderOD: number | null; axisOD: number | null;
         sphereOI: number | null; cylinderOI: number | null; axisOI: number | null;
@@ -207,12 +212,12 @@ export function rolDe(roles: RolesDePares | null, pair: number): RolPromo {
  * grado van acá, como los escribe el equipo: "Coloracion Sepia 3") y las notas
  * de la venta. Puro.
  */
-export function observacionDelPedido(o: { promo: PlanOves['promo']; rolPromo: RolPromo; cupon: string | null; pedidoOrigen: string | null; familia: string; tenido: { color: string; grado: string } | null; notas: string | null }): string {
+export function observacionDelPedido(o: { promo: PlanOves['promo']; rolPromo: RolPromo; cupon: string | null; cuponAutomatico?: boolean; pedidoOrigen: string | null; familia: string; tenido: { color: string; grado: string } | null; notas: string | null }): string {
     const partes: string[] = [];
     if (o.promo) {
-        const nombre = o.promo.tipo === 'MI_PRIMER' ? `Mi Primer ${o.promo.marca === 'KODAK' ? 'Kodak' : 'Varilux'}` : o.promo.marca === 'VARILUX' ? 'Doble Disfrute Varilux' : o.promo.marca === 'KODAK' ? '2x1 Kodak' : `2x1 ${o.familia}`;
+        const nombre = o.promo.marca ? nombreDePromo(o.promo.marca, o.promo.tipo) : `2x1 ${o.familia}`;
         if (o.rolPromo === 'SEGUNDO_PAR') partes.push(`Promo ${nombre} - ${observacionSegundoPar(o.pedidoOrigen) ?? 'Segundo par promo (FALTA el nº del 1er par)'}`);
-        else partes.push(`Promo ${nombre} - ${observacionPrimerPar(o.cupon) ?? 'Primer par de Promo (FALTA el cupón)'}`);
+        else partes.push(`Promo ${nombre} - ${observacionPrimerPar(o.cupon) ?? (o.cuponAutomatico ? observacionPrimerParPendiente() : 'Primer par de Promo (FALTA el cupón)')}`);
     }
     if (o.tenido) partes.push(`Coloracion ${o.tenido.color}${o.tenido.grado ? ` ${o.tenido.grado}` : ''}`);
     if (texto(o.notas)) partes.push(texto(o.notas).replace(/\s*\n\s*/g, ' '));
@@ -289,8 +294,10 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
     const avisoRoles = roles ? avisoDeRoles(roles, precioConSigno) : null;
     if (avisoRoles) avisos.push(avisoRoles);
     const cupon = texto(opciones.cupon) || null;
+    // Sin cupón tipeado, el robot lo genera en la web de la promo al aprobar (si la venta tiene lo que el sitio pide: cupon-web.ts lo controla al preparar).
+    const cuponAutomatico = rolPromo === 'PRIMER_PAR' && !cupon && !!opciones.cuponAutomatico;
     const pedidoOrigen = texto(opciones.pedidoOrigen) || null;
-    if (rolPromo === 'PRIMER_PAR' && !cupon) faltantes.push(`es el 1er par de la promo ${promo?.marca === 'KODAK' ? 'Kodak' : 'Varilux'}: hace falta el cupón de la web de la promo (sin él Optovisión cobra los dos pares)`);
+    if (rolPromo === 'PRIMER_PAR' && !cupon && !cuponAutomatico) faltantes.push(`es el 1er par de la promo ${promo?.marca === 'KODAK' ? 'Kodak' : 'Varilux'}: hace falta el cupón de la web de la promo (sin él Optovisión cobra los dos pares)`);
     if (rolPromo === 'SEGUNDO_PAR' && !esNumeroDeLab(pedidoOrigen || '', 'OPTOVISION')) faltantes.push(`es el 2º par de la promo: se carga con el 1er par (par ${roles!.conCargo}) ya cargado, porque lleva su nº en la observación`);
 
     // Tratamiento: lo que dice el producto; si es "+ CRIZAL", cuál lo dice la venta (labCrizal) o quien prepara.
@@ -354,7 +361,7 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
 
     const cliente = texto(venta.client?.name);
     const plan: PlanOves = {
-        par, pares, promo, rolPromo, pedidoOrigen: rolPromo === 'SEGUNDO_PAR' ? pedidoOrigen : null, cupon: rolPromo === 'PRIMER_PAR' ? cupon : null,
+        par, pares, promo, rolPromo, pedidoOrigen: rolPromo === 'SEGUNDO_PAR' ? pedidoOrigen : null, cupon: rolPromo === 'PRIMER_PAR' ? cupon : null, cuponAutomatico,
         clase: esp.clase, productoCRM,
         producto: { label: esp.producto.label, value: esp.producto.value, linea: esp.producto.linea, cod: esp.producto.cod },
         familia: esp.familia, tipo: esp.tipo,
@@ -365,8 +372,8 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
         diametro: medida(venta.labDiameter),
         pedinterno: referenciaDelPedido(venta.id, cliente, par, pares),
         paciente: cliente,
-        observacion: observacionDelPedido({ promo, rolPromo, cupon, pedidoOrigen, familia: esp.familia, tenido: tenido ? { color: tenido.color, grado: tenido.grado } : null, notas: venta.labNotes ?? null }),
-        opciones: { ...opciones, cupon, pedidoOrigen },
+        observacion: observacionDelPedido({ promo, rolPromo, cupon, cuponAutomatico, pedidoOrigen, familia: esp.familia, tenido: tenido ? { color: tenido.color, grado: tenido.grado } : null, notas: venta.labNotes ?? null }),
+        opciones: { ...opciones, cupon, cuponAutomatico, pedidoOrigen },
     };
     return { ok: true, plan, avisos };
 }
@@ -386,7 +393,7 @@ export function diferenciasDePlan(aprobado: PlanOves, hoy: PlanOves): string[] {
     const campos: [string, unknown, unknown][] = [
         ['producto', aprobado.producto.value, hoy.producto.value], ['OD', aprobado.od, hoy.od], ['OI', aprobado.oi, hoy.oi], ['servicios', aprobado.servicios, hoy.servicios],
         ['armazón', aprobado.armazon, hoy.armazon], ['observación', aprobado.observacion, hoy.observacion], ['referencia', aprobado.pedinterno, hoy.pedinterno],
-        ['paciente', aprobado.paciente, hoy.paciente], ['promo', [aprobado.rolPromo, aprobado.pedidoOrigen, aprobado.cupon], [hoy.rolPromo, hoy.pedidoOrigen, hoy.cupon]],
+        ['paciente', aprobado.paciente, hoy.paciente], ['promo', [aprobado.rolPromo, aprobado.pedidoOrigen, aprobado.cupon, aprobado.cuponAutomatico], [hoy.rolPromo, hoy.pedidoOrigen, hoy.cupon, hoy.cuponAutomatico]],
     ];
     return campos.filter(([, x, y]) => j(x) !== j(y)).map(([n]) => n);
 }

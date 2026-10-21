@@ -16,7 +16,8 @@ export async function leerVentaParaCargaOves(orderId: string): Promise<VentaPara
             labPdOd: true, labPdOi: true, labHeightOD: true, labHeightOI: true, labHeightOD2: true, labHeightOI2: true,
             frameA: true, frameB: true, frameDbl: true, frameEdc: true, frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
             frames: { select: { position: true, shape: true, a: true, b: true, dbl: true, edc: true, details: true, heightOD: true, heightOI: true } },
-            client: { select: { name: true } },
+            // DNI, nacimiento, teléfono y mail: lo que la web de la promo pide para el cupón (cupon-web.ts).
+            client: { select: { name: true, dni: true, birthDate: true, email: true, phone: true } },
             prescription: {
                 select: {
                     sphereOD: true, cylinderOD: true, axisOD: true, sphereOI: true, cylinderOI: true, axisOI: true,
