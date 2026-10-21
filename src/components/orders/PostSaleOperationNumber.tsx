@@ -25,6 +25,8 @@ interface Props {
     /** Venta del caso. Sin venta (caso huérfano) el número se muestra pero no se edita. */
     orderId: string | null | undefined;
     value: string | null | undefined;
+    /** Números anteriores del caso (separados por espacio): se muestran como "antes". */
+    history?: string | null;
     onSaved: () => void;
     /** Compacto para el tablero de ventas (chips más chicos, sin etiqueta). */
     compact?: boolean;
@@ -35,8 +37,9 @@ export function operationNumbersOf(value: string | null | undefined): string[] {
     return (value || '').match(/\d{4,}/g) || [];
 }
 
-export function PostSaleOperationNumber({ orderId, value, onSaved, compact = false }: Props) {
+export function PostSaleOperationNumber({ orderId, value, history, onSaved, compact = false }: Props) {
     const nums = operationNumbersOf(value);
+    const anteriores = operationNumbersOf(history).filter(n => !nums.includes(n));
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(value || '');
     const [saving, setSaving] = useState(false);
@@ -152,6 +155,14 @@ export function PostSaleOperationNumber({ orderId, value, onSaved, compact = fal
                         : <Copy className={`w-3 h-3 ${compact ? 'text-blue-400' : 'text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200'}`} />}
                 </button>
             ))}
+            {anteriores.length > 0 && (
+                <span
+                    title="Números anteriores del caso: siguen apareciendo en el buscador"
+                    className={`font-mono ${compact ? 'text-[9px]' : 'text-[10px]'} text-stone-400 line-through decoration-stone-300`}
+                >
+                    antes: {anteriores.join(' · ')}
+                </span>
+            )}
             {orderId && (nums.length === 0 ? (
                 // Sin número: el botón es el aviso. Ámbar, como el campo pendiente del formulario.
                 <button

@@ -418,6 +418,13 @@ model Order {
   // al procesarse el pedido. Distinta de labNotes (esa va al laboratorio).
   clientNote           String?
   labOrderNumber       String?
+  // Números de operación ANTERIORES de este pedido, separados por espacio. Un
+  // pedido cambia de número cuando el laboratorio lo anula y lo renumera, o
+  // cuando se corrige una carga; el número viejo sigue en facturas, tickets y
+  // chats, así que tiene que seguir encontrándose en el buscador (Ishtar,
+  // 20/10/2026). Lo mantiene order.service al cambiar `labOrderNumber`; nunca
+  // se escribe a mano.
+  labOrderNumberHistory String?
   // ── Confirmación del cliente (8/10/2026) ───────────────────────────────────
   // Qué contestó el cliente al repaso de su pedido: 'OK' (dijo que sí),
   // 'TACITA' (24 h sin respuesta: se da por confirmado, bajo su
@@ -1369,6 +1376,9 @@ model PostSaleCase {
   status         String  @default("SENT")
   cost           Float   @default(0.0)
   newOrderNumber String?
+  // Números de operación anteriores del caso (mismo criterio que
+  // Order.labOrderNumberHistory): el viejo sigue siendo buscable.
+  newOrderNumberHistory String?
   notes          String?
   orderOption    String?
   responsible    String?

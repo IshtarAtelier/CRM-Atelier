@@ -383,7 +383,7 @@ export function PostSaleCard({
                         {/* El nº de operación se carga y cambia acá mismo (es lo que más
                             se busca y lo que más tarde se completa). */}
                         {order.postSaleOrderOption !== 'SAME' && (
-                            <PostSaleOperationNumber compact orderId={order.id} value={order.postSaleNewOrderNumber} onSaved={onRefresh} />
+                            <PostSaleOperationNumber compact orderId={order.id} value={order.postSaleNewOrderNumber} history={(order as any).postSaleNewOrderNumberHistory} onSaved={onRefresh} />
                         )}
                         {order.postSaleCost != null && order.postSaleCost > 0 && (
                             <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${order.postSaleCashEntryId
@@ -427,7 +427,7 @@ export function PostSaleCard({
                             OP: Misma (#{order.labOrderNumber || 'Original'})
                         </span>
                     ) : (
-                        <PostSaleOperationNumber compact orderId={order.id} value={order.postSaleNewOrderNumber} onSaved={onRefresh} />
+                        <PostSaleOperationNumber compact orderId={order.id} value={order.postSaleNewOrderNumber} history={(order as any).postSaleNewOrderNumberHistory} onSaved={onRefresh} />
                     )}
                 </div>
 

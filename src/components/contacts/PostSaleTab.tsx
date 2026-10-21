@@ -29,6 +29,7 @@ interface PostSaleCase {
     status?: string | null;
     cost?: number | null;
     newOrderNumber?: string | null;
+    newOrderNumberHistory?: string | null;
     notes?: string | null;
     orderOption?: string | null;
     responsible?: string | null;
@@ -494,6 +495,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                     <PostSaleOperationNumber
                         orderId={c.order?.id ?? c.orderId}
                         value={c.newOrderNumber}
+                        history={c.newOrderNumberHistory}
                         onSaved={onRefresh}
                     />
                 </div>

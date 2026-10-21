@@ -476,6 +476,9 @@ export default function VentasPage() {
             return (o.client?.name || '').toLowerCase().includes(search.toLowerCase()) ||
                    o.id.toLowerCase().includes(search.toLowerCase()) ||
                    (o.labOrderNumber || '').toLowerCase().includes(search.toLowerCase()) ||
+                   (o.labOrderNumberHistory || '').toLowerCase().includes(search.toLowerCase()) ||
+                   (o.postSaleNewOrderNumber || '').toLowerCase().includes(search.toLowerCase()) ||
+                   (o.postSaleNewOrderNumberHistory || '').toLowerCase().includes(search.toLowerCase()) ||
                    (o.postSaleNotes || '').toLowerCase().includes(search.toLowerCase());
         });
     }, [orders, search]);
@@ -550,7 +553,11 @@ export default function VentasPage() {
         const matchSearch = searchWords.length === 0 || searchWords.every(word =>
             (o.client?.name || '').toLowerCase().includes(word) ||
             (o.id || '').toLowerCase().includes(word) ||
-            (o.labOrderNumber || '').toLowerCase().includes(word)
+            (o.labOrderNumber || '').toLowerCase().includes(word) ||
+            // Números anteriores y de post-venta: el viejo sigue encontrando su pedido.
+            (o.labOrderNumberHistory || '').toLowerCase().includes(word) ||
+            (o.postSaleNewOrderNumber || '').toLowerCase().includes(word) ||
+            (o.postSaleNewOrderNumberHistory || '').toLowerCase().includes(word)
         );
         const matchLab = filterLab === 'ALL' || (o.labStatus || 'NONE') === filterLab;
         const matchLaboratory = filterLaboratory === 'ALL' || (o.items || []).some(i => (i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal') && (i.product?.laboratory || i.laboratorySnapshot) === filterLaboratory);
