@@ -227,7 +227,8 @@ export function observacionDelPedido(o: { promo: PlanOves['promo']; rolPromo: Ro
         else partes.push(`Promo ${nombre} - ${observacionPrimerPar(o.cupon) ?? (o.cuponAutomatico ? observacionPrimerParPendiente() : 'Primer par de Promo (FALTA el cupón)')}`);
     }
     if (o.tenido) partes.push(`Coloracion ${o.tenido.color}${o.tenido.grado ? ` ${o.tenido.grado}` : ''}`);
-    if (texto(o.notas)) partes.push(texto(o.notas).replace(/\s*\n\s*/g, ' '));
+    // Una nota que es solo puntuación (en producción hay ventas con labNotes ".") no se escribe: dejaba "cupón X. ." (visto el 21/10/2026).
+    if (texto(o.notas).replace(/[.\s,;:-]/g, '')) partes.push(texto(o.notas).replace(/\s*\n\s*/g, ' '));
     return partes.join('. ');
 }
 
