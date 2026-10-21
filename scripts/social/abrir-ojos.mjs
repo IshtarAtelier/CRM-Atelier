@@ -62,7 +62,10 @@ const anchoCara = cara.caja[2] * W;
 // La franja: ancho de la cara con aire a los costados, y alto de ~45 % de eso.
 const cw = Math.round(Math.min(W, anchoCara * 1.5));
 const ch = Math.round(cw * 0.45);
-const cx = Math.max(0, Math.min(W - cw, Math.round(ox * W - cw / 2)));
+// De perfil, el punto "ojos" de Vision es el ojo cercano: la franja se centra en
+// la cara entera para que el ojo lejano (asomando tras la nariz) también entre.
+const centroX = Math.abs(cara.yaw) > 20 ? (cara.caja[0] + cara.caja[2] / 2) * W : ox * W;
+const cx = Math.max(0, Math.min(W - cw, Math.round(centroX - cw / 2)));
 const cy = Math.max(0, Math.min(H - ch, Math.round(oy * H - ch / 2)));
 const franja = await original.clone().extract({ left: cx, top: cy, width: cw, height: ch }).toBuffer();
 const paraIA = await sharp(franja).resize({ width: 1024 }).jpeg({ quality: 95 }).toBuffer();
@@ -108,7 +111,7 @@ async function igualarColor(buf, referencia) {
 }
 const mascara = await sharp(Buffer.from(
     `<svg width="${cw}" height="${ch}"><defs><filter id="b"><feGaussianBlur stdDeviation="${Math.round(cw * 0.04)}"/></filter></defs>` +
-    `<rect width="${cw}" height="${ch}" fill="black"/><ellipse cx="${cw / 2}" cy="${ch / 2}" rx="${cw * (Math.abs(cara.yaw) > 20 ? 0.2 : 0.3)}" ry="${ch * 0.26}" fill="white" filter="url(#b)"/></svg>`,
+    `<rect width="${cw}" height="${ch}" fill="black"/><ellipse cx="${cw / 2}" cy="${ch / 2}" rx="${cw * 0.34}" ry="${ch * 0.28}" fill="white" filter="url(#b)"/></svg>`,
 )).toColourspace('b-w').raw().toBuffer();
 // La mezcla se hace a mano (original × (1 − m) + parche × m): el composite de
 // sharp con canal alfa no recortaba y el 20/10 se pegó el rectángulo entero.

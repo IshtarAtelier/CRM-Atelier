@@ -19,6 +19,16 @@
       "type": "foto",
       "role": "frente",
       "image": "social/story-agos-andromeda-c7/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-agos-andromeda-c7/02.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "anteojo",
+      "image": "social/story-agos-andromeda-c7/03.jpg"
     }
   ]
 }

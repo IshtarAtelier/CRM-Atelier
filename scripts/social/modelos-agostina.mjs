@@ -48,7 +48,7 @@ export const MODELOS = [
     // Solo el frente: en la 161 (perfil) tiene los ojos cerrados y esa foto
     // "no puede seguir circulando" (Ishtar, 16/10/2026). Un modelo con UNA
     // foto sale en stories y en los carruseles de selección, no en el feed diario.
-    ['andromeda-c7', 'Andrómeda', 'C7', RECETA, ['160']],   // solo frente: en la 161 (perfil) tiene los ojos cerrados y la IA no lo resuelve bien (21/10/2026)
+    ['andromeda-c7', 'Andrómeda', 'C7', RECETA, ['160', '161', '162']],   // la 161 tenía los ojos cerrados: se abrieron con IA (abrir-ojos.mjs, 21/10/2026, 3er intento, franja centrada en la cara)
     ['gala-c2', 'Gala', 'C2', RECETA, ['165', '166', '167']],
     ['gala-c3', 'Gala', 'C3', RECETA, ['170', '171', '172']],
     ['helena-c2', 'Helena', 'C2', RECETA, ['175', '176', '177']],
