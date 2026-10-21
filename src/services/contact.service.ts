@@ -1493,7 +1493,17 @@ export const ContactService = {
         return task;
     },
 
+    /**
+     * Pedido de reseña automático. No se crea si el cliente ya comentó o si
+     * tuvo post-venta, abierta o cerrada (Ishtar, 21/10/2026: a quien tuvo un
+     * problema no se le pide reseña). Devuelve null si no corresponde.
+     */
     async addReviewRequest(clientId: string, description: string) {
+        const c = await prisma.client.findUnique({
+            where: { id: clientId },
+            select: { googleReviewAt: true, postSaleCases: { select: { id: true }, take: 1 } },
+        });
+        if (!c || c.googleReviewAt || c.postSaleCases.length > 0) return null;
         return await prisma.clientTask.create({
             data: {
                 clientId,
@@ -1503,6 +1513,37 @@ export const ContactService = {
                 createdBy: 'Sistema'
             }
         });
+    },
+
+    /**
+     * Al cargarse una post-venta, los pedidos de reseña abiertos del cliente
+     * se cancelan solos y queda la nota en la ficha.
+     */
+    async cancelarPedidosDeResenaPorPosventa(clientId: string, actor?: Actor) {
+        const { count } = await prisma.clientTask.updateMany({
+            where: { clientId, type: 'REVIEW_REQUEST', status: 'PENDING' },
+            data: { status: 'CANCELLED', completedBy: actor?.name || 'Sistema', completedAt: new Date() },
+        });
+        if (count > 0) {
+            await prisma.interaction.create({
+                data: {
+                    clientId,
+                    type: 'NOTE',
+                    content: `🚫 Se cancelaron ${count} pedido(s) de reseña en Google: el cliente tiene post-venta.`,
+                    userId: actor?.id || null,
+                    userName: actor?.name || 'Sistema',
+                },
+            }).catch(console.error);
+            logAudit({
+                userId: actor?.id || null,
+                userName: actor?.name || 'Sistema',
+                action: 'STATUS_CHANGE',
+                entityType: 'TASK',
+                entityId: clientId,
+                details: { evento: 'resena_cancelada_por_posventa', clientId, cantidad: count },
+            }).catch(console.error);
+        }
+        return count;
     },
 
     async updateTaskStatus(taskId: string, status: string, actor?: Actor, opciones?: { forzar?: boolean }) {

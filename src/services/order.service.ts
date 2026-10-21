@@ -1388,6 +1388,12 @@ export class OrderService {
                         }
                     });
 
+                    // Con post-venta no se pide reseña: se cancelan los pedidos abiertos.
+                    if (currentOrderForPostSale.clientId) {
+                        await ContactService.cancelarPedidosDeResenaPorPosventa(currentOrderForPostSale.clientId)
+                            .catch(err => console.error('[PostVenta] Error cancelando pedidos de reseña:', err));
+                    }
+
                     // Observación inicial. Preferir la entry única (append server-side);
                     // si no, extraer del string reconstruido (camino legacy del tablero).
                     if (noteEntryText) {

@@ -68,7 +68,6 @@ export const TIPOS_INTERACCION_SIN_RECLAMO = ['SISTEMA', 'ERROR', 'BUDGET_SENT',
 export const esTextoDeReclamo = (texto?: string | null) => PATRON_RECLAMO.test(String(texto || ''));
 
 /** Estados de PostSaleCase que ya están cerrados (no frenan el 2º pedido). */
-export const ESTADOS_POSVENTA_CERRADOS = ['DELIVERED', 'CANCELLED', 'CLOSED']; // hoy en prod: SENT · IN_PROGRESS · READY · DELIVERED
 
 export interface CandidatoSegundoPedido {
     /** El 1º pedido ya cerrado. */
@@ -79,7 +78,8 @@ export interface CandidatoSegundoPedido {
     /** Ya existe un 2º pedido para esta tarea (o cualquier pedido abierto del cliente). */
     yaTieneSegundoPedido: boolean;
     tienePedidoDeResenaAbierto: boolean;
-    tienePosventaAbierta: boolean;
+    /** Tuvo post-venta, abierta o cerrada: no se le pide reseña nunca (Ishtar, 21/10/2026). */
+    tienePosventa: boolean;
     tieneSaldo: boolean;
     /** Última venta del cliente: ENTREGADA y no borrada. */
     ultimaVentaEntregada: boolean;
@@ -114,7 +114,7 @@ export function decidirSegundoPedido(c: CandidatoSegundoPedido): DecisionSegundo
     if (c.yaTieneSegundoPedido) return { crear: false, motivo: 'ya tuvo su 2º pedido' };
     if (c.tienePedidoDeResenaAbierto) return { crear: false, motivo: 'ya tiene un pedido de reseña abierto' };
     if (!c.tieneTelefono) return { crear: false, motivo: 'sin teléfono' };
-    if (c.tienePosventaAbierta) return { crear: false, motivo: 'post-venta abierta' };
+    if (c.tienePosventa) return { crear: false, motivo: 'tuvo post-venta' };
     if (c.tieneSaldo) return { crear: false, motivo: 'tiene saldo pendiente' };
     if (!c.ultimaVentaEntregada) return { crear: false, motivo: 'su última venta no está entregada' };
     if (c.tieneVentaEnCurso) return { crear: false, motivo: 'tiene otra venta en curso' };

@@ -9,7 +9,6 @@ import {
     DIAS_MAXIMOS_SEGUNDO_PEDIDO,
     DIAS_SIN_RECLAMOS,
     MAX_SEGUNDOS_PEDIDOS_POR_DIA,
-    ESTADOS_POSVENTA_CERRADOS,
     TIPOS_INTERACCION_SIN_RECLAMO,
     decidirSegundoPedido,
     descripcionSegundoPedido,
@@ -162,7 +161,7 @@ export const ReviewRequestService = {
                         where: { type: TIPO_TAREA_RESENA },
                         select: { id: true, status: true, reminderOfTaskId: true, createdAt: true },
                     },
-                    postSaleCases: { select: { status: true } },
+                    postSaleCases: { select: { id: true }, take: 1 },
                     interactions: {
                         where: {
                             createdAt: { gte: new Date(ahora.getTime() - DIAS_SIN_RECLAMOS * DIA_MS) },
@@ -189,7 +188,7 @@ export const ReviewRequestService = {
                 // 1º: no se le pide dos veces aunque haya tenido otra venta.
                 yaTieneSegundoPedido: c.tasks.some(x => x.reminderOfTaskId && t.completedAt && x.createdAt >= t.completedAt),
                 tienePedidoDeResenaAbierto: c.tasks.some(x => x.status === 'PENDING'),
-                tienePosventaAbierta: c.postSaleCases.some(p => !ESTADOS_POSVENTA_CERRADOS.includes(p.status)),
+                tienePosventa: c.postSaleCases.length > 0,
                 // El saldo sale de PricingService, nunca de lista − cobrado.
                 tieneSaldo: ventas.some(o => {
                     try { return !!PricingService.calculateOrderFinancials(o).hasBalance; } catch { return true; }

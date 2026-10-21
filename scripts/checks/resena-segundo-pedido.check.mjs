@@ -7,7 +7,7 @@
 //      ('[RESENA]' fuera de los prefijos, 'Sistema' fuera de los creadores).
 //   2. Uno solo: nunca un 3º, nunca dos para el mismo 1º (índice único en la
 //      migración), solo entre 7 y 30 días después de cerrado el 1º.
-//   3. Exclusiones: ya comentó, post-venta abierta, saldo, última venta no
+//   3. Exclusiones: ya comentó, post-venta (abierta o cerrada), saldo, última venta no
 //      entregada, otra venta en curso, reclamo reciente, 1º cerrado por un
 //      proceso y no por una persona.
 //   4. El mensaje del 2º es otro (recordatorio suave) y usa el mismo link.
@@ -37,7 +37,7 @@ const base = (extra = {}) => ({
     tarea: { id: 't1', status: 'COMPLETED', completedAt: haceDias(10), completedBy: 'Milena Magallanes', description: 'Solicitar comentario a Ana Pérez', reminderOfTaskId: null },
     ahora: AHORA,
     yaComento: false, yaTieneSegundoPedido: false, tienePedidoDeResenaAbierto: false,
-    tienePosventaAbierta: false, tieneSaldo: false, ultimaVentaEntregada: true,
+    tienePosventa: false, tieneSaldo: false, ultimaVentaEntregada: true,
     tieneVentaEnCurso: false, tieneReclamoReciente: false, tieneTelefono: true,
     ...extra,
 });
@@ -100,7 +100,7 @@ ok('tope diario de 2º pedidos, más frescos primero', () => {
 
 console.log('\n3. Exclusiones');
 for (const [campo, valor] of [
-    ['yaComento', true], ['tienePosventaAbierta', true], ['tieneSaldo', true],
+    ['yaComento', true], ['tienePosventa', true], ['tieneSaldo', true],
     ['ultimaVentaEntregada', false], ['tieneVentaEnCurso', true], ['tieneReclamoReciente', true], ['tieneTelefono', false],
 ]) ok(`${campo}=${valor}: no crea`, () => noCrea(base({ [campo]: valor })));
 ok('el saldo sale de PricingService, no de una resta', () => {
