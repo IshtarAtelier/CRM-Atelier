@@ -228,6 +228,24 @@ con el cupón, observación del 2º con el nº del 1º. El equipo hoy hace lo
 segundo (ver tabla de ejemplos) y NO tilda `checkVXP`. El módulo hace lo
 mismo (`lab-modules/optovision/promo.ts`), y no toca la fila Promo del portal.
 
+## Comprobado el 20/10/2026 (segunda sesión logueada)
+
+- `opc=consulta&nroPed=` de un nº inexistente devuelve `[]` (el robot lo toma
+  como "no existe"). De uno real: 103 claves; el paciente va en
+  `pel_des_usuarionombre` y la "Referencia Cliente" en `pel_des_pedinterno`;
+  `pel_cod_estado` = `EM` para "Preparado" (`AN` = anulado, por el código);
+  `pel_est_solanul` = `N` sin solicitud de anulación.
+- El RPC viejo (sajax) manda `rs=x_…` por **POST a `/oves/lab/`** (no a
+  `suggest.php`); el bloqueo de solo lectura del robot mira url + body, así
+  que lo ataja igual. Grabar un pedido RX NO pasa por ahí: es
+  `POST include/suggest.php?opc=grabar`.
+- Ids del DOM que usa el robot, todos presentes: `lentesAO/OD/OI`,
+  `claseDePedido`, `uuidHidden`, `RXcontent`, `bloqueo`, `mensajeRX`, `grabar`,
+  `side-menu` con `li#RXTD/#RXTT/#RXSA`, `historialrx_a`, `compras_a`,
+  `topmenu`, `user`, `respuesta`, `formlogin`.
+- Las 13 formas del armazón están capturadas en
+  `public/laboratorios/optovision/formas/forma-NN.png`.
+
 ## Lo que falta ver (necesita una carga real o un pedido en curso)
 
 - El HTML exacto de `mensaje` tras grabar (dónde viene el nº de pedido).

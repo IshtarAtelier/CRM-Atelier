@@ -294,10 +294,10 @@ t('la referencia del listado coincide aunque el portal la recorte, y la consulta
     assert.equal(referenciaCoincide('#AB12 Juan', '#AB12 Juan San Martin'), true);
     assert.equal(referenciaCoincide('#AB12 Juan San Martin 1er par', '#AB12 Juan San Martin 2° par'), false);
     assert.equal(referenciaCoincide('#AB12 Juan San Martin 2do par', '#AB12 Juan San Martin 2° par'), true);
-    const consulta = { pel_cod_estado: 'PR', pel_est_solanul: 'N', pel_fec_pedido: '17/10/2026 16:26:31', cliente: 'ATEL01 - PISSANO ISHTAR', producto: 'Eyezen Start Orma Blue UV', paciente: 'San Martin Juan', pedinterno: '#AB12 Juan San Martin 2° par' };
+    const consulta = { pel_cod_estado: 'EM', pel_est_solanul: 'N', pel_fec_pedido: '17/10/2026 16:26:31', cliente: 'ATEL01 - PISSANO ISHTAR', producto: 'Eyezen Start Orma Blue UV', pel_des_usuarionombre: 'San Martin Juan', pel_des_pedinterno: '#AB12 Juan San Martin 2° par' };
     assert.equal(pedidoConsultadoEsNuestro(consulta, { paciente: 'Juan San Martin', pedinterno: '#AB12 Juan San Martin 2° par' }).ok, true);
     // El nombre en otro orden también es el mismo paciente.
-    assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pedinterno: 'x' }, { paciente: 'Juan San Martin', pedinterno: '' }).ok, true);
+    assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_des_pedinterno: 'x' }, { paciente: 'Juan San Martin', pedinterno: '' }).ok, true);
     assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_cod_estado: 'AN' }, { paciente: 'Juan San Martin', pedinterno: '' }).motivo, 'está ANULADO en el portal');
     assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_est_solanul: 'S' }, { paciente: 'Juan San Martin', pedinterno: '' }).ok, false);
     const ajeno = pedidoConsultadoEsNuestro(consulta, { paciente: 'Otra Persona', pedinterno: '#ZZ99 Otra' });

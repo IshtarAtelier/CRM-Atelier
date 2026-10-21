@@ -419,7 +419,11 @@ export function pedidoConsultadoEsNuestro(consulta: Record<string, unknown> | nu
     // Un pedido más viejo que la venta no es de esta venta (un nº de otra compra del mismo cliente tipeado en la venta).
     const fecha = fechaDelPortal(consulta.pel_fec_pedido);
     if (o.desde && fecha && fecha.getTime() < o.desde.getTime() - 86400000) return { ok: false, motivo: `es del ${fecha.toLocaleDateString('es-AR')}, anterior a esta venta: es otro pedido de este cliente`, vivo: true };
-    const valores = Object.values(consulta).filter(v => typeof v === 'string').map(v => normalizarReferencia(v as string));
+    // Los campos que lo dicen (relevados el 20/10/2026 sobre el pedido 628517):
+    // `pel_des_usuarionombre` es el paciente y `pel_des_pedinterno` la referencia.
+    // Si el portal los renombrara, se cae al barrido de todos los textos.
+    const directos = [consulta.pel_des_usuarionombre, consulta.pel_des_pedinterno].filter((v): v is string => typeof v === 'string').map(normalizarReferencia);
+    const valores = directos.length ? directos : Object.values(consulta).filter(v => typeof v === 'string').map(v => normalizarReferencia(v as string));
     // El nombre, por palabras y en cualquier orden: el equipo escribe "Devereux Patricia" o "Patricia Devereux".
     const palabras = normalizarReferencia(o.paciente).split(' ').filter(w => w.length >= 3);
     const nombraPaciente = palabras.length > 0 && valores.some(v => palabras.every(w => v.includes(w)));
