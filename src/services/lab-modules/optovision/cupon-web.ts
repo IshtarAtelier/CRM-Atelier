@@ -140,12 +140,13 @@ export function clienteWebDe(cliente: VentaParaCargaOves['client'], genero: stri
     const crudo = cliente?.birthDate;
     const nac = crudo instanceof Date ? crudo : typeof crudo === 'string' && /^\d{4}-\d{2}-\d{2}/.test(crudo) ? new Date(`${crudo.slice(0, 10)}T00:00:00.000Z`) : crudo ? new Date(crudo) : null;
     if (!nac || Number.isNaN(nac.getTime())) faltantes.push('fecha de nacimiento del cliente (en la ficha)');
-    const tel = String(cliente?.phone || '').replace(/\D/g, '');
+    const telefono = telefonoParaLaWeb(cliente?.phone);
+    if (cliente?.phone && !telefono) avisos.push(`el teléfono de la ficha (${cliente.phone}) no entra en el formato de la web de la promo: el cupón va sin teléfono (no es obligatorio)`);
     const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(cliente?.email || '').trim()) ? String(cliente!.email).trim() : null;
     if (faltantes.length) return { ok: false, faltantes };
     // Las fechas de la ficha se guardan a medianoche UTC: se leen en UTC para no correr un día.
     const iso = nac!.toISOString().slice(0, 10);
-    return { ok: true, avisos, cliente: { nombre, apellido, dni, genero: g as 'F' | 'M', telefono: tel.length >= 6 && tel.length <= 15 ? tel : null, email, nacimiento: { iso, dia: nac!.getUTCDate(), mes0: nac!.getUTCMonth(), anio: nac!.getUTCFullYear() } } };
+    return { ok: true, avisos, cliente: { nombre, apellido, dni, genero: g as 'F' | 'M', telefono, email, nacimiento: { iso, dia: nac!.getUTCDate(), mes0: nac!.getUTCMonth(), anio: nac!.getUTCFullYear() } } };
 }
 
 /** Todo lo que el robot escribe en la web de la promo. Se guarda en el borrador tal cual. */
@@ -192,7 +193,7 @@ export function pedidoDeCupon(o: { venta: VentaParaCargaOves; plan: PlanOves; pr
 }
 
 /** El cupón que el robot obtuvo (generado o reutilizado), como queda en el borrador. */
-export interface CuponObtenido { codigo: string; pedidoId: number; provider: string; url: string; pdfUrl: string | null; obtenidoEl: string; reutilizado: boolean }
+export interface CuponObtenido { codigo: string; pedidoId: number; provider: string; url: string; pdfUrl: string | null; obtenidoEl: string; reutilizado: boolean; /** Con qué productos del sitio se hizo (para compararlo si se reutiliza). */ productos?: ProductosDelCupon | null }
 
 /**
  * El plan aprobado, ya con el cupón real: la revisión se hizo con la marca
@@ -261,10 +262,64 @@ export const DIAS_CUPON_VIGENTE = 60;
  */
 export function cuponReutilizable(p: PedidoWeb, ahora: Date = new Date()): boolean {
     if (p.code_used_at) return false;
-    const creado = p.created_at ? new Date(p.created_at) : null;
+    // El sitio escribe microsegundos ("…46.000000Z"): se recorta a milisegundos para no depender de cómo lo tome el motor.
+    const creado = p.created_at ? new Date(String(p.created_at).replace(/(\.\d{3})\d+Z$/, '$1Z')) : null;
     if (!creado || Number.isNaN(creado.getTime())) return false;
     return ahora.getTime() - creado.getTime() <= DIAS_CUPON_VIGENTE * 86_400_000;
 }
 
 /** "Mi Primer" se otorga UNA vez por cliente: si el DNI ya tiene un pedido de esa promo que no se puede reutilizar, no se genera otro. Puro. */
-export const esProviderMiPrimer = (provider: string) => /^mi-primer-|-progresivos$/.test(provider);
+export const esProviderMiPrimer = (provider: string) => provider === providerDePromo('VARILUX', 'MI_PRIMER') || provider === providerDePromo('KODAK', 'MI_PRIMER');
+
+/** La fecha de una fila del historial (dd/MM/yyyy). Null si no se entiende. Puro. */
+export function fechaDelHistorial(s: string): Date | null {
+    const m = String(s || '').match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (!m) return null;
+    const d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Cuántos detalles del historial se abren como mucho (son GET baratos, pero son minutos). */
+export const MAX_DETALLES_HISTORIAL = 120;
+
+/**
+ * En qué orden abrir los detalles del historial buscando el DNI: de la fila
+ * más NUEVA a la más vieja (el sitio no documenta su orden, y los cupones que
+ * sirven son los recientes), las que se parecen al nombre primero. Con `dias`
+ * solo las de ese plazo (promo doble: 60 días); sin `dias`, todas (Mi Primer,
+ * que se otorga una vez en la vida). Las filas sin fecha legible van al final. Puro.
+ */
+export function ordenDeBusqueda(filas: FilaHistorial[], nombreCompleto: string, dias: number | null, ahora: Date = new Date()): FilaHistorial[] {
+    const conFecha = filas.map(f => ({ f, t: fechaDelHistorial(f.fecha)?.getTime() ?? null }));
+    const vigentes = dias === null ? conFecha : conFecha.filter(x => x.t === null || ahora.getTime() - x.t <= dias * 86_400_000);
+    const porFecha = (a: { t: number | null }, b: { t: number | null }) => (b.t ?? -Infinity) - (a.t ?? -Infinity);
+    const parecidas = new Set(filasDelCliente(vigentes.map(x => x.f), nombreCompleto));
+    const primero = vigentes.filter(x => parecidas.has(x.f)).sort(porFecha);
+    const resto = vigentes.filter(x => !parecidas.has(x.f)).sort(porFecha);
+    return [...primero, ...resto].map(x => x.f).slice(0, MAX_DETALLES_HISTORIAL);
+}
+
+/** Los productos con los que se hizo un cupón (ids del sitio), para compararlos con lo que se carga hoy. */
+export interface ProductosDelCupon { linea: number | null; primero: number | null; segundo: number | null }
+
+/** Si el cupón que se va a reutilizar se hizo con OTRO producto que el que el sitio resuelve hoy para esta venta, avisa (fuerte). Puro. */
+export function avisoDeCuponDistinto(cupon: string, productos: ProductosDelCupon | null | undefined, hoy: { linea: { id: number; name: string }; primero: { id: number; name: string }; segundo: { id: number; name: string } | null }): string | null {
+    if (!productos) return null;
+    const dif: string[] = [];
+    if (productos.linea !== null && productos.linea !== hoy.linea.id) dif.push(`línea (hoy ${hoy.linea.name})`);
+    if (productos.primero !== null && productos.primero !== hoy.primero.id) dif.push(`1er par (hoy ${hoy.primero.name})`);
+    if (hoy.segundo && productos.segundo !== null && productos.segundo !== hoy.segundo.id) dif.push(`2º par (hoy ${hoy.segundo.name})`);
+    return dif.length ? `OJO: el cupón ${cupon} ya existía y se hizo con otro producto que el de esta venta: ${dif.join(', ')}. Optovisión puede cobrar la diferencia; si corresponde, corregí el cupón a mano en la web de la promo antes de aprobar.` : null;
+}
+
+/**
+ * El teléfono como lo acepta el sitio (máscara `00U 0000-0000`, 10 u 11
+ * dígitos): se saca el 54 / 549 del formato de WhatsApp. Si no entra, va
+ * VACÍO (el sitio no lo exige) en vez de trabar el cupón. Puro.
+ */
+export function telefonoParaLaWeb(crudo: string | null | undefined): string | null {
+    let d = String(crudo || '').replace(/\D/g, '');
+    if (d.length > 11 && d.startsWith('549')) d = d.slice(3);
+    else if (d.length > 11 && d.startsWith('54')) d = d.slice(2);
+    return d.length === 10 || d.length === 11 ? d : null;
+}

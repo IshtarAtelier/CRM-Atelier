@@ -14,7 +14,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 import assert from 'node:assert/strict';
 import { marcaDePromo, WEB_DE_PROMO, DESTINATARIOS_PROMO, MAIL_PROMO_PARA, MAIL_PROMO_COPIA, providerDePromo, nombreDePromo, PATRON_CUPON, MARCA_CUPON_PENDIENTE, observacionPrimerParPendiente, conCuponReal, cuponLimpio, observacionPrimerPar, observacionSegundoPar, asuntoDelMail, pasosPendientes } from '../../src/services/lab-modules/optovision/promo.ts';
-import { rasgosDeProductoWeb, rasgosDelCristalCRM, elegirLineaWeb, elegirProductoWeb, segundoAdmitido, recetaWebDe, repartirNombre, clienteWebDe, pedidoDeCupon, pedidoDeLaPagina, filasDelCliente, esCuponDelCliente, cuponReutilizable, esProviderMiPrimer, DIAS_CUPON_VIGENTE, planConCupon, formularioConCupon } from '../../src/services/lab-modules/optovision/cupon-web.ts';
+import { rasgosDeProductoWeb, rasgosDelCristalCRM, elegirLineaWeb, elegirProductoWeb, segundoAdmitido, recetaWebDe, repartirNombre, clienteWebDe, pedidoDeCupon, pedidoDeLaPagina, filasDelCliente, esCuponDelCliente, cuponReutilizable, esProviderMiPrimer, DIAS_CUPON_VIGENTE, planConCupon, formularioConCupon, fechaDelHistorial, ordenDeBusqueda, MAX_DETALLES_HISTORIAL, avisoDeCuponDistinto, telefonoParaLaWeb } from '../../src/services/lab-modules/optovision/cupon-web.ts';
 import { credencialesPromo, CredencialPromoFaltanteError } from '../../src/services/lab-modules/optovision/cupon-robot.ts';
 import { especificacionDe, colorOvesDe, materialDe, elegirProductoOves, eleccionQuePide, familiaDelNombre, tratamientoDe, varianteDe } from '../../src/services/lab-modules/optovision/catalogo.ts';
 import { PRODUCTOS_OVES, OVES_CATALOGO, valueDeOves } from '../../src/lib/laboratorios/oves-catalogo.ts';
@@ -551,6 +551,33 @@ t('el cupón automático solo aplica a promos con web (Varilux / Kodak); un 2x1 
     assert.ok(med.ok); assert.match(med.avisos[0], /32\.5 va como 33/);
     // Fecha de nacimiento como string sin zona: se lee por su día.
     assert.equal(clienteWebDe({ name: 'Ana Perez', dni: '1234567', birthDate: '1970-01-02', phone: null, email: null }, 'F').cliente.nacimiento.iso, '1970-01-02');
+});
+t('el teléfono va solo si entra en la máscara del sitio (10–11 dígitos, sin el 54/549 de WhatsApp); si no, vacío con aviso', () => {
+    assert.equal(telefonoParaLaWeb('3517622560'), '3517622560');
+    assert.equal(telefonoParaLaWeb('5493517622560'), '3517622560');
+    assert.equal(telefonoParaLaWeb('+54 9 351 762-2560'), '3517622560');
+    assert.equal(telefonoParaLaWeb('543517622560'), '3517622560');
+    assert.equal(telefonoParaLaWeb('12345'), null); assert.equal(telefonoParaLaWeb(null), null);
+    const c = clienteWebDe({ name: 'Ana Perez', dni: '1234567', birthDate: '1970-01-02', phone: '12345', email: null }, 'F');
+    assert.ok(c.ok); assert.equal(c.cliente.telefono, null); assert.match(c.avisos[0], /sin teléfono/);
+});
+t('el historial se recorre de la fila más nueva a la más vieja, las parecidas primero, y en la promo doble solo los últimos 60 días', () => {
+    assert.equal(fechaDelHistorial('16/10/2026').toISOString().slice(0, 10), '2026-10-16'); assert.equal(fechaDelHistorial('nada'), null);
+    const fila = (fecha, cliente) => ({ fecha, promocion: 'VDD', codigo: cliente.slice(0, 2), cliente, detalleUrl: 'u', pdfUrl: null });
+    const filas = [fila('01/01/2026', 'Vieja Persona'), fila('08/10/2026', 'Samuel Vadora'), fila('16/10/2026', 'Patricia Devereux'), fila('20/10/2026', 'Otra Persona'), fila('??', 'Sin Fecha')];
+    const ahora = new Date('2026-10-20T12:00:00Z');
+    assert.deepEqual(ordenDeBusqueda(filas, 'Samuel Vadora', DIAS_CUPON_VIGENTE, ahora).map(f => f.cliente), ['Samuel Vadora', 'Otra Persona', 'Patricia Devereux', 'Sin Fecha']);
+    assert.deepEqual(ordenDeBusqueda(filas, 'Nadie', null, ahora).map(f => f.cliente), ['Otra Persona', 'Patricia Devereux', 'Samuel Vadora', 'Vieja Persona', 'Sin Fecha']);
+    const muchas = Array.from({ length: 200 }, (_, i) => fila(`01/10/2026`, `Cliente ${i}`));
+    assert.equal(ordenDeBusqueda(muchas, 'Nadie', null, ahora).length, MAX_DETALLES_HISTORIAL);
+});
+t('un cupón reutilizado hecho con otro producto avisa fuerte', () => {
+    const hoy = { linea: { id: 8, name: 'Varilux Comfort' }, primero: { id: 1391, name: 'Comfort Orma Blue Uv Prevencia' }, segundo: { id: 1393, name: 'Comfort Orma Blue Uv Forte' } };
+    assert.equal(avisoDeCuponDistinto('VA1', { linea: 8, primero: 1391, segundo: 1393 }, hoy), null);
+    assert.match(avisoDeCuponDistinto('VA1', { linea: 8, primero: 1376, segundo: 1393 }, hoy), /1er par \(hoy Comfort Orma Blue Uv Prevencia\)/);
+    assert.match(avisoDeCuponDistinto('VA1', { linea: 11, primero: 1391, segundo: null }, hoy), /línea/);
+    assert.equal(avisoDeCuponDistinto('VA1', null, hoy), null);
+    assert.equal(avisoDeCuponDistinto('VA1', { linea: 8, primero: 1391, segundo: 9 }, { ...hoy, segundo: null }), null);
 });
 
 console.log(`check:carga-optovision OK (${n} grupos)`);

@@ -15,7 +15,7 @@ import { abrirFormulario, buscarPorReferencia, capturarFormulario, consultarPedi
 import { esNumeroOves, numeroDelPrimerPar, pedidoExistenteDelPar } from './existentes';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { avisarMailDePromo } from './promo-mail';
-import { formularioConCupon, pedidoDeCupon, planConCupon, type CuponObtenido, type PedidoDeCupon } from './cupon-web';
+import { avisoDeCuponDistinto, formularioConCupon, pedidoDeCupon, planConCupon, type CuponObtenido, type PedidoDeCupon, type PedidoWeb } from './cupon-web';
 import { buscarCuponExistente, conSesionPromo, CredencialPromoFaltanteError, CuponRechazadoError, enSoloLecturaWeb, generarCupon, MiPrimerYaOtorgadoError, resolverEnWeb, SitioDePromoNoAceptaRobotError, type ResolucionCupon } from './cupon-robot';
 import type { VentaParaCargaOves } from './carga';
 import type { EstadoEnPortal } from '../contrato';
@@ -143,30 +143,35 @@ function pedidoDeCuponDe(venta: VentaParaCargaOves, plan: PlanOves): { pedido: P
     return { pedido: r.pedido, avisos: r.avisos };
 }
 
-const cuponObtenidoDe = (o: { pedido: { code: string; id: number; provider: string }; url: string; pdfUrl: string | null }, reutilizado: boolean): CuponObtenido =>
-    ({ codigo: o.pedido.code, pedidoId: o.pedido.id, provider: o.pedido.provider, url: o.url, pdfUrl: o.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado });
+/** El cupón como queda en el borrador. Del sitio (reutilizado) se guardan los productos con que se hizo; generado, los que se resolvieron. */
+const cuponObtenidoDe = (o: { pedido: PedidoWeb; url: string; pdfUrl: string | null }, reutilizado: boolean, resolucion?: ResolucionCupon | null): CuponObtenido => ({
+    codigo: o.pedido.code, pedidoId: o.pedido.id, provider: o.pedido.provider, url: o.url, pdfUrl: o.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado,
+    productos: resolucion ? { linea: resolucion.linea.id, primero: resolucion.primero.id, segundo: resolucion.segundo?.id ?? null } : { linea: o.pedido.promotions_product_line_id, primero: o.pedido.first_product_id, segundo: o.pedido.second_product_id },
+});
 
 /**
- * La red LOCAL contra el doble cupón: un borrador anterior de la misma venta y
- * el mismo par (cayó a ERROR, se anuló) pudo haberlo generado ya. Se adopta
- * ese antes de mirar el sitio, como `numeroCreado` con los pedidos.
+ * La red LOCAL contra el doble cupón: un borrador anterior de la misma venta,
+ * el mismo par y la misma promo (cayó a ERROR, se anuló) pudo haberlo generado
+ * ya. Se adopta ese antes de mirar el sitio, como `numeroCreado` con los pedidos.
  */
-async function cuponAnotadoEnLaVenta(orderId: string, pair: number, excluirBorrador: string): Promise<CuponObtenido | null> {
+async function cuponAnotadoEnLaVenta(orderId: string, pair: number, provider: string, excluirBorrador: string): Promise<CuponObtenido | null> {
     const otros = await prisma.labOrderDraft.findMany({ where: { orderId, lab: LAB_OPTOVISION, pair, id: { not: excluirBorrador } }, select: { resumenPortal: true } }).catch(() => []);
-    const cupones = otros.map(o => ((o.resumenPortal || {}) as RastroOves).cuponWeb).filter((c): c is CuponObtenido => !!c?.codigo);
+    const cupones = otros.map(o => ((o.resumenPortal || {}) as RastroOves).cuponWeb).filter((c): c is CuponObtenido => !!c?.codigo && c.provider === provider);
     cupones.sort((a, b) => String(b.obtenidoEl).localeCompare(String(a.obtenidoEl)));
-    return cupones[0] ?? null;
+    return cupones[0] ? { ...cupones[0], reutilizado: true } : null;
 }
 
-/** Firmado: generar un cupón en un sitio externo es una mutación de negocio y queda en la ficha y en el AuditLog. */
-async function anotarCuponEnLaVenta(orderId: string, borradorId: string, cupon: CuponObtenido, aprobadoPor: { id: string | null; name: string } | null) {
+/** Firmado: obtener un cupón en un sitio externo es una mutación de negocio y queda en la ficha y en el AuditLog (una vez por cupón y venta). */
+async function anotarCuponEnLaVenta(orderId: string, borradorId: string, cupon: CuponObtenido, origen: 'generado' | 'sitio' | 'borrador', aprobadoPor: { id: string | null; name: string } | null) {
     const firma = aprobadoPor ? `${ROBOT_OPTOVISION} (aprobó ${aprobadoPor.name})` : ROBOT_OPTOVISION;
+    // Heredado de otro borrador del CRM: ya quedó anotado cuando se obtuvo; no se repite en cada re-preparación.
+    if (origen === 'borrador') return;
     const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { clientId: true } }).catch(() => null);
     if (venta?.clientId) {
-        await prisma.interaction.create({ data: { clientId: venta.clientId, type: 'LAB_STATUS', content: `🎟 ${firma}: cupón ${cupon.codigo} de la promo ${cupon.reutilizado ? 'tomado del historial de' : 'generado en'} la web de la promo (${cupon.provider}) para el pedido de ${NOMBRE_OPTOVISION}.`, userId: null, userName: firma } })
+        await prisma.interaction.create({ data: { clientId: venta.clientId, type: 'LAB_STATUS', content: `🎟 ${firma}: cupón ${cupon.codigo} de la promo ${origen === 'sitio' ? 'tomado del historial de' : 'generado en'} la web de la promo (${cupon.provider}) para el pedido de ${NOMBRE_OPTOVISION}.`, userId: null, userName: firma } })
             .catch(err => console.error('[lab-modulos] no se pudo anotar el cupón en la ficha:', err));
     }
-    await logAudit({ userId: null, userName: firma, action: 'CREATE', entityType: 'ORDER', entityId: orderId, details: { lab: LAB_OPTOVISION, borradorId, cupon: cupon.codigo, provider: cupon.provider, pedidoWeb: cupon.pedidoId, reutilizado: cupon.reutilizado, url: cupon.url } }).catch(() => null);
+    await logAudit({ userId: null, userName: firma, action: 'UPDATE', entityType: 'ORDER', entityId: orderId, details: { lab: LAB_OPTOVISION, borradorId, cupon: cupon.codigo, provider: cupon.provider, pedidoWeb: cupon.pedidoId, origen, url: cupon.url } }).catch(() => null);
 }
 
 /**
@@ -179,23 +184,22 @@ async function anotarCuponEnLaVenta(orderId: string, borradorId: string, cupon: 
  */
 async function obtenerCupon(b: { id: string; orderId: string; pair: number }, rastro: RastroOves, marca: 'VARILUX' | 'KODAK', pedido: PedidoDeCupon, aprobadoPor: { id: string | null; name: string } | null): Promise<CuponObtenido> {
     if (rastro.cuponWeb?.codigo) return rastro.cuponWeb;
-    const heredado = await cuponAnotadoEnLaVenta(b.orderId, b.pair, b.id);
+    const heredado = await cuponAnotadoEnLaVenta(b.orderId, b.pair, pedido.provider, b.id);
     if (heredado) {
-        const cuponWeb = { ...heredado, reutilizado: true };
-        await mezclar(b.id, { cuponWeb });
-        return cuponWeb;
+        await mezclar(b.id, { cuponWeb: heredado });
+        return heredado;
     }
     await mezclar(b.id, { etapa: `generando el cupón en la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
-    let obtenido: { pedido: { code: string; id: number; provider: string }; url: string; pdfUrl: string | null; reutilizado: boolean };
+    let obtenido: { cuponWeb: CuponObtenido; origen: 'generado' | 'sitio' };
     try {
         obtenido = await conSesionPromo(marca, async (page) => {
             const existente = await buscarCuponExistente(page, marca, pedido);
-            if (existente) return { ...existente, reutilizado: true };
+            if (existente) return { cuponWeb: cuponObtenidoDe(existente, true), origen: 'sitio' as const };
             const resolucion = await resolverEnWeb(page, marca, pedido);
             // Lo que se revisó tiene que seguir siendo lo que el sitio ofrece: si el catálogo cambió, no se confirma a ciegas.
             const antes = rastro.cuponResuelto;
             if (antes && (antes.primero.id !== resolucion.primero.id || (antes.segundo?.id ?? null) !== (resolucion.segundo?.id ?? null))) throw new AprobacionInvalidaError(`la web de la promo cambió el producto desde que se preparó (${antes.primero.name} → ${resolucion.primero.name}): volvé a prepararlo. No se mandó nada.`);
-            return { ...(await generarCupon(page, marca, pedido, resolucion)), reutilizado: false };
+            return { cuponWeb: cuponObtenidoDe(await generarCupon(page, marca, pedido, resolucion), false, resolucion), origen: 'generado' as const };
         });
     } catch (err: any) {
         if (err instanceof CuponRechazadoError || err instanceof SitioDePromoNoAceptaRobotError || err instanceof CredencialPromoFaltanteError || err instanceof MiPrimerYaOtorgadoError) {
@@ -203,10 +207,9 @@ async function obtenerCupon(b: { id: string; orderId: string; pair: number }, ra
         }
         throw err;
     }
-    const cuponWeb = cuponObtenidoDe(obtenido, obtenido.reutilizado);
-    await mezclar(b.id, { cuponWeb });
-    await anotarCuponEnLaVenta(b.orderId, b.id, cuponWeb, aprobadoPor);
-    return cuponWeb;
+    await mezclar(b.id, { cuponWeb: obtenido.cuponWeb });
+    await anotarCuponEnLaVenta(b.orderId, b.id, obtenido.cuponWeb, obtenido.origen, aprobadoPor);
+    return obtenido.cuponWeb;
 }
 
 /** PREPARADO → EN_REVISION. Solo lee el portal. */
@@ -228,25 +231,24 @@ export async function prepararEnPortal(borradorId: string) {
             const marca = r.plan.promo.marca;
             const { pedido, avisos } = pedidoDeCuponDe(r.venta, r.plan);
             // Primero la red local (otro borrador de este par ya lo generó); después el sitio, en solo lectura.
-            let cuponWeb: CuponObtenido | null = await cuponAnotadoEnLaVenta(b.orderId, b.pair, b.id).then(c => c ? { ...c, reutilizado: true } : null);
-            let resolucion: ResolucionCupon | undefined;
-            if (!cuponWeb) {
-                await mezclar(b.id, { etapa: `mirando la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
-                const enWeb = await conSesionPromo(marca, (page) => enSoloLecturaWeb(page, async () => {
-                    const existente = await buscarCuponExistente(page, marca, pedido);
-                    return { existente, resolucion: existente ? null : await resolverEnWeb(page, marca, pedido) };
-                }));
-                cuponWeb = enWeb.existente ? cuponObtenidoDe(enWeb.existente, true) : null;
-                resolucion = enWeb.resolucion ?? undefined;
-            }
-            cupon = { cuponPedido: pedido, cuponResuelto: resolucion, cuponAvisos: avisos, cuponWeb };
+            // La resolución contra el catálogo se hace SIEMPRE: es lo que la revisión muestra y, con un
+            // cupón reutilizado, lo que permite ver si se hizo con otro producto que el de esta venta.
+            const heredado = await cuponAnotadoEnLaVenta(b.orderId, b.pair, pedido.provider, b.id);
+            await mezclar(b.id, { etapa: `mirando la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
+            const enWeb = await conSesionPromo(marca, (page) => enSoloLecturaWeb(page, async () => {
+                const existente = heredado ? null : await buscarCuponExistente(page, marca, pedido);
+                return { existente, resolucion: await resolverEnWeb(page, marca, pedido) };
+            }));
+            const cuponWeb: CuponObtenido | null = heredado ?? (enWeb.existente ? cuponObtenidoDe(enWeb.existente, true) : null);
+            const distinto = cuponWeb ? avisoDeCuponDistinto(cuponWeb.codigo, cuponWeb.productos, enWeb.resolucion) : null;
+            cupon = { cuponPedido: pedido, cuponResuelto: enWeb.resolucion, cuponAvisos: [...avisos, ...(distinto ? [distinto] : [])], cuponWeb };
             if (cuponWeb) {
                 // Con el cupón ya en mano, el plan que se revisa y se guarda es el REAL (observación con el cupón, no con la marca).
                 r = await planActual(b.orderId, b.pair, { ...guardado.opciones, cupon: cuponWeb.codigo });
                 if (!r.ok) throw new Error(`Faltan datos: ${r.faltantes.join(' · ')}`);
                 const payload: PayloadBorradorOves = { ...guardado, opciones: { ...guardado.opciones, cupon: cuponWeb.codigo }, plan: r.plan };
                 await prisma.labOrderDraft.update({ where: { id: b.id }, data: { payload: payload as any } });
-                await anotarCuponEnLaVenta(b.orderId, b.id, cuponWeb, null);
+                await anotarCuponEnLaVenta(b.orderId, b.id, cuponWeb, heredado ? 'borrador' : 'sitio', null);
             }
         }
         await mezclar(b.id, { etapa: `esperando turno y entrando a OVES desde ${new Date().toISOString()}` }).catch(() => null);

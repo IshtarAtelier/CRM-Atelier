@@ -55,6 +55,7 @@ async function avisoDeCuponDelSegundoPar(orderId: string, parConCargo: number, p
     const primero = await prisma.labOrderDraft.findFirst({ where: { orderId, lab: LAB_OPTOVISION, pair: parConCargo, status: 'CARGADO' }, orderBy: { updatedAt: 'desc' }, select: { resumenPortal: true } }).catch(() => null);
     const r = (primero?.resumenPortal || {}) as RastroOves;
     if (!r.cuponResuelto?.segundo || !r.cuponWeb?.codigo || !plan.promo?.marca) return null;
+    // Si el cupón se reutilizó y se hizo con otro 2º par, el que vale es el del cupón: se avisó al preparar el 1º y acá se compara contra lo resuelto hoy igual.
     const enCupon = rasgosDeProductoWeb(r.cuponResuelto.segundo.name);
     const este = rasgosDelCristalCRM(plan.productoCRM, plan.opciones.tratamiento, plan.promo.marca);
     if (!este.ok) return null;

@@ -1,7 +1,7 @@
 import type { Page } from 'playwright';
 import { conNavegador, CredencialRechazadaError } from '../portal/navegador';
 import { WEB_DE_PROMO, type MarcaDePromo } from './promo';
-import { cuponReutilizable, elegirLineaWeb, elegirProductoWeb, esCuponDelCliente, esProviderMiPrimer, filasDelCliente, pedidoDeLaPagina, segundoAdmitido, type FilaHistorial, type LineaWeb, type PedidoDeCupon, type PedidoWeb, type ProductoWeb } from './cupon-web';
+import { cuponReutilizable, DIAS_CUPON_VIGENTE, elegirLineaWeb, elegirProductoWeb, esCuponDelCliente, esProviderMiPrimer, ordenDeBusqueda, pedidoDeLaPagina, segundoAdmitido, type FilaHistorial, type LineaWeb, type PedidoDeCupon, type PedidoWeb, type ProductoWeb } from './cupon-web';
 
 /**
  * EL ROBOT DEL CUPÓN: entra a la web de la promo de Optovisión con la cuenta
@@ -159,21 +159,17 @@ export async function leerHistorial(page: Page, marca: MarcaDePromo): Promise<Fi
     }));
 }
 
-/** Cuántos detalles del historial se abren como mucho buscando el DNI (hoy el historial entero tiene 59 filas; son GET baratos). */
-const MAX_DETALLES_HISTORIAL = 120;
-
 /**
  * Un cupón YA generado para este cliente y esta promo, por DNI (el nombre del
- * historial solo ordena la búsqueda: primero las filas que se parecen, después
- * TODAS las demás, porque el sitio puede tener el nombre escrito distinto).
- * Devuelve el más nuevo que se pueda REUTILIZAR (sin usar y reciente). Si la
- * promo es "Mi Primer" y el DNI ya tiene un cupón que no se puede reutilizar,
- * lanza: esa promo es una vez por cliente y no se genera otro.
+ * historial solo ordena la búsqueda; se recorre de la fila más nueva a la más
+ * vieja, y en la promo doble solo las de los últimos 60 días: cupon-web.ts
+ * `ordenDeBusqueda`). Devuelve el más nuevo que se pueda REUTILIZAR (sin usar
+ * y reciente). Si la promo es "Mi Primer" y el DNI ya tiene un cupón que no se
+ * puede reutilizar, lanza: esa promo es una vez por cliente y no se genera otro.
  */
 export async function buscarCuponExistente(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon): Promise<{ pedido: PedidoWeb; url: string; pdfUrl: string | null } | null> {
     const filas = (await leerHistorial(page, marca)).filter(f => f.detalleUrl);
-    const parecidas = filasDelCliente(filas, `${pedido.cliente.nombre} ${pedido.cliente.apellido}`);
-    const orden = [...parecidas, ...filas.filter(f => !parecidas.includes(f))].slice(0, MAX_DETALLES_HISTORIAL);
+    const orden = ordenDeBusqueda(filas, `${pedido.cliente.nombre} ${pedido.cliente.apellido}`, esProviderMiPrimer(pedido.provider) ? null : DIAS_CUPON_VIGENTE);
     const delCliente: { pedido: PedidoWeb; url: string; pdfUrl: string | null }[] = [];
     for (const f of orden) {
         await page.goto(f.detalleUrl!, { waitUntil: 'domcontentloaded' });
