@@ -48,7 +48,7 @@ export const MODELOS = [
     // Solo el frente: en la 161 (perfil) tiene los ojos cerrados y esa foto
     // "no puede seguir circulando" (Ishtar, 16/10/2026). Un modelo con UNA
     // foto sale en stories y en los carruseles de selección, no en el feed diario.
-    ['andromeda-c7', 'Andrómeda', 'C7', RECETA, ['160']],
+    ['andromeda-c7', 'Andrómeda', 'C7', RECETA, ['160', '161', '162']],   // la 161 tenía los ojos cerrados: se abrieron con IA (abrir-ojos.mjs, 20/10/2026)
     ['gala-c2', 'Gala', 'C2', RECETA, ['165', '166', '167']],
     ['gala-c3', 'Gala', 'C3', RECETA, ['170', '171', '172']],
     ['helena-c2', 'Helena', 'C2', RECETA, ['175', '176', '177']],
@@ -72,7 +72,7 @@ export const MODELOS = [
     ['cronos-c3', 'Cronos', 'C3', RECETA, ['276', '277', '278']],
     ['orfeo-c1', 'Orfeo', 'C1', RECETA, ['281', '282', '283']],
     ['orfeo-c3', 'Orfeo', 'C3', RECETA, ['286', '287', '288']],
-    // ['hermes-c1', 'Hermes', 'C1', RECETA, ['291', '292', '293']],  // FUERA (Ishtar, 20/10/2026): en la 291 tiene los ojos cerrados y el video no da calidad. Volver cuando haya foto nueva.
+    ['hermes-c1', 'Hermes', 'C1', RECETA, ['291', '292', '293']],   // la 291 tenía los ojos cerrados: se abrieron con IA (abrir-ojos.mjs, 20/10/2026) y la foto editada reemplaza al original en la carpeta
     ['poseidon-c2', 'Poseidon', 'C2', RECETA, ['296', '297', '298']],
     ['pandora-c3', 'Pandora', 'C3', RECETA, ['306', '307', '308']],
     ['hermes-c2', 'Hermes', 'C2', RECETA, ['311', '312', '313']],

@@ -121,6 +121,10 @@
         "tipo": "receta"
       },
       {
+        "id": "feed-agos-andromeda-c7",
+        "tipo": "receta"
+      },
+      {
         "id": "feed-agos-olimpia",
         "tipo": "receta"
       },
@@ -275,6 +279,10 @@
       {
         "id": "feed-agos-deneb-c1",
         "tipo": "sol"
+      },
+      {
+        "id": "feed-agos-hermes-c1",
+        "tipo": "receta"
       },
       {
         "id": "feed-agos-poseidon-c2",
