@@ -136,6 +136,17 @@ export function etapaParaLaFicha(etapa: unknown): string | null {
     return t ? t[0].toUpperCase() + t.slice(1) : null;
 }
 
+/** Lo elegido al preparar como lo entiende el formulario de la ficha: solo valores simples, como texto; nada vacío. Puro. */
+export function elegidoDe(opciones: unknown): Record<string, string> {
+    const out: Record<string, string> = {};
+    if (!opciones || typeof opciones !== 'object') return out;
+    for (const [k, v] of Object.entries(opciones as Record<string, unknown>)) {
+        if (v === null || v === undefined || v === '' || typeof v === 'object' || typeof v === 'boolean') continue;
+        out[k] = String(v);
+    }
+    return out;
+}
+
 export function portalSinResolver(b: { status: string; resumenPortal: unknown }): boolean {
     const r = b.resumenPortal as RastroPortal | null;
     if (!r || typeof r.portalDraftId !== 'string' || !r.portalDraftId) return false;

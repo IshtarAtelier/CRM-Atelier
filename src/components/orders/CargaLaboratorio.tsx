@@ -23,7 +23,7 @@ import { formatDate } from '@/lib/format-date';
 interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra' | 'texto'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number; maxLength?: number; patron?: string; placeholder?: string }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; aMano?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
 interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
-interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null }
+interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null; elegido?: Record<string, string> | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
     preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista; acciones?: Acciones;
@@ -193,6 +193,13 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
 
     /** Aprobar / Rechazar: los mismos botones debajo de la captura y dentro de la vista ampliada. */
     // Función y no componente: un componente definido acá se remontaría en cada tecla del motivo.
+    /** Rechaza el borrador y deja el formulario del par con lo que se había elegido, para cambiar una cosa y preparar de nuevo. */
+    const corregir = async (b: Borrador) => {
+        const elegido = b.vista.elegido || {};
+        setValores(v => ({ ...v, ...Object.fromEntries(Object.entries(elegido).map(([k, val]) => [`${b.pair}:${k}`, val])) }));
+        await decidir(b.id, 'rechazar', { motivo: 'Corrección: se vuelve a preparar con cambios' });
+    };
+
     // `sinPantalla`: la captura del portal no está o no se pudo mostrar → solo se puede rechazar.
     const decision = (b: Borrador, claro = false, sinPantalla = false) => {
         const bloqueo = bloqueoDe(b);
@@ -208,6 +215,13 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                     <button type="button" disabled={ocupado !== null || !(motivo[b.id] || '').trim()} onClick={() => decidir(b.id, 'rechazar')} className={`${boton} bg-rose-600`}>
                         <X className="w-3.5 h-3.5" /> Rechazar
                     </button>
+                    {/* Corregir SIN empezar de cero (regla de Ishtar, 21/10/2026, para todos los laboratorios): se rechaza este
+                        borrador y el formulario de preparar reaparece con lo que ya se había elegido, para cambiar una sola cosa. */}
+                    {b.vista.elegido && Object.keys(b.vista.elegido).length > 0 && (
+                        <button type="button" disabled={ocupado !== null} title="Rechaza este borrador y vuelve al formulario con lo ya elegido" onClick={() => corregir(b)} className={`${boton} bg-amber-600`}>
+                            <Pencil className="w-3.5 h-3.5" /> Corregir y volver a preparar
+                        </button>
+                    )}
                 </div>
                 {/* Corregir a mano ANTES de aprobar (Vitolen): se abre el borrador real en el portal
                     ("Modificar"), y "Releer el portal" trae la pantalla como quedó. Botones, no un

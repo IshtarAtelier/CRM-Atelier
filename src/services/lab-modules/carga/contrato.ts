@@ -96,6 +96,13 @@ export interface VistaDeBorrador {
      * de operación del otro par, que es lo que hace el descuento).
      */
     confirmarAntesDeAprobar?: { titulo: string; texto: string } | null;
+    /**
+     * Lo que se eligió al preparar (clave del campo → valor), para "Corregir y
+     * volver a preparar" sin empezar de cero: la ficha rechaza este borrador y
+     * reabre el formulario con estos valores puestos (regla de Ishtar,
+     * 21/10/2026: en TODOS los laboratorios se puede corregir sin arrancar de cero).
+     */
+    elegido?: Record<string, string> | null;
 }
 
 export interface BorradorParaVista {

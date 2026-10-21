@@ -1,5 +1,5 @@
 import { cantidadDeArmazones } from '../../../lib/order-frames';
-import { Borradores } from '../carga/borrador';
+import { Borradores, elegidoDe } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { CRIZALES } from '../../../lib/constants/crizal';
 import { avisoDeRoles } from '../../../lib/laboratorios/roles-2x1';
@@ -199,6 +199,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 texto: `${cupon ? `Fijate en la pantalla del portal que la observación diga "Primer par de Promo num cupón ${cupon}".` : `El robot va a generar el cupón en la web de la promo (${r.cuponResuelto ? `${r.cuponResuelto.linea.name}: ${r.cuponResuelto.primero.name}${r.cuponResuelto.segundo ? ` + ${r.cuponResuelto.segundo.name}` : ''}` : 'con los datos de la ficha'}) y lo va a escribir en la observación antes de grabar.`} ${plan.promo?.tipo === 'MI_PRIMER' ? 'Cuando quede cargado, el robot manda el mail a Optovisión con el nº de trabajo.' : 'Cuando quede cargado, su nº va en la observación del 2º par: el robot lo anota solo al terminar.'}`,
             } : null,
             enlacePortal: null,
+            elegido: elegidoDe(((b.payload || {}) as PayloadBorradorOves).opciones),
             documento: r.cuponWeb?.voucherUrl || r.cuponWeb?.pdfUrl ? { url: (r.cuponWeb.voucherUrl || r.cuponWeb.pdfUrl)!, etiqueta: `Voucher del cupón ${r.cuponWeb.codigo} (PDF de la web de la promo)` } : null,
             pendienteEnPortal: null,
         };

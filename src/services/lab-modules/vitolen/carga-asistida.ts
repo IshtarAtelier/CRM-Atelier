@@ -1,4 +1,4 @@
-import { Borradores } from '../carga/borrador';
+import { Borradores, elegidoDe } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { armarFormulario, cristalesPorPar, esSegundoParDePromo, leerVentaParaCarga, TIPOS_ARMAZON } from './carga';
 import { lineasDeCambios } from './cambios-a-mano';
@@ -110,6 +110,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
                 texto: 'Cuando quede confirmado, su nº de trabajo es el "pedido origen" del 2º par. Asegurate de que ese nº quede en la venta (el robot lo anota solo al terminar) antes de preparar el otro par: sin él, el 2º par no entra en la promo.',
             } : null,
             enlacePortal: r.url ?? null,
+            elegido: elegidoDe({ forma: p.forma, ejeDiagonal: p.ejeDiagonal, tipoArmazon: p.tipoArmazon, variante: p.variante }),
             documento: null,
             pendienteEnPortal: r.portalDraftId && !r.canceladoEl && !r.confirmadoAManoEl && (b.status === 'RECHAZADO' || b.status === 'ERROR') ? { id: String(r.portalDraftId), url: r.url ?? null } : null,
         };
