@@ -113,3 +113,26 @@ export function duplicateMessage(conflictos: LabNumberConflict[]): string {
     });
     return `${partes.join('. ')}. Un número de operación no se puede repetir: la factura del laboratorio se cruza por ese número.`;
 }
+
+/**
+ * Historial de números de operación (Ishtar, 20/10/2026: "los pedidos que
+ * cambien de número, que el anterior siga siendo rastreable en el buscador").
+ *
+ * Devuelve el historial que corresponde guardar cuando el número pasa de
+ * `anterior` a `nuevo`: el anterior se suma al historial (sin repetir, y sin
+ * contar el que vuelve a ser el vigente). Si el número no cambió, devuelve el
+ * historial tal cual. Formato: números separados por espacio, para que un
+ * `contains` del buscador los encuentre igual que al vigente.
+ */
+export function historialAlCambiarNumero(
+    historial: string | null | undefined,
+    anterior: string | null | undefined,
+    nuevo: string | null | undefined,
+): string | null {
+    const prev = parseLabNumbers(anterior);
+    const next = new Set(parseLabNumbers(nuevo));
+    const acumulado = new Set(parseLabNumbers(historial));
+    for (const n of prev) if (!next.has(n)) acumulado.add(n);
+    for (const n of next) acumulado.delete(n);
+    return acumulado.size ? Array.from(acumulado).join(' ') : null;
+}

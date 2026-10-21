@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LifeBuoy, ImageIcon, Receipt, Plus, X, Paperclip, ShieldCheck, ChevronDown, Copy, Check, Wallet } from 'lucide-react';
+import { LifeBuoy, ImageIcon, Receipt, Plus, X, Paperclip, ShieldCheck, ChevronDown, Wallet } from 'lucide-react';
 import {
     caseTypeStyle, postSaleColumnLabel,
     POST_SALE_CASE_TYPES, POST_SALE_COVERAGE, POST_SALE_RESPONSIBLE_CAUSES,
     parseResponsibleOption, responsibleUserValue, type PostSaleUser
 } from '@/lib/constants/postSale';
 import { PostSaleServiceForm, postSaleValueFromCase } from '@/components/orders/PostSaleServiceForm';
+import { PostSaleOperationNumber, operationNumbersOf } from '@/components/orders/PostSaleOperationNumber';
 import { formatDate, formatDateTime } from '@/lib/format-date';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';
@@ -28,6 +29,7 @@ interface PostSaleCase {
     status?: string | null;
     cost?: number | null;
     newOrderNumber?: string | null;
+    newOrderNumberHistory?: string | null;
     notes?: string | null;
     orderOption?: string | null;
     responsible?: string | null;
@@ -53,10 +55,6 @@ interface PostSaleCase {
     notesList?: PostSaleNote[];
 }
 
-/** Los números de operación que tiene cargados el caso ("80530908 - 80530914" → dos). */
-function operationNumbers(c: PostSaleCase): string[] {
-    return (c.newOrderNumber || '').match(/\d{4,}/g) || [];
-}
 
 /**
  * En qué etapa está el costo del caso. Es lo que decide si se puede cobrar:
@@ -207,41 +205,6 @@ function CaseContext({ c }: { c: PostSaleCase }) {
 }
 
 /** Nº de operación en grande y copiable: es el dato que más se copia y pega. */
-function OperationNumbers({ c }: { c: PostSaleCase }) {
-    const nums = operationNumbers(c);
-    const [copied, setCopied] = useState<string | null>(null);
-    if (nums.length === 0) return null;
-
-    const copy = async (n: string) => {
-        try {
-            await navigator.clipboard.writeText(n);
-            setCopied(n);
-            setTimeout(() => setCopied(null), 1500);
-        } catch { /* sin portapapeles: el número igual se ve y se puede seleccionar */ }
-    };
-
-    return (
-        <div className="flex items-center flex-wrap gap-2">
-            <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">
-                {nums.length > 1 ? `Operaciones (${nums.length})` : 'Operación'}
-            </span>
-            {nums.map(n => (
-                <button
-                    key={n}
-                    onClick={() => copy(n)}
-                    title="Copiar número de operación"
-                    className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 font-mono text-xs font-bold text-stone-700 dark:text-stone-200 hover:border-stone-900 dark:hover:border-primary transition-colors"
-                >
-                    {n}
-                    {copied === n
-                        ? <Check className="w-3 h-3 text-emerald-600" />
-                        : <Copy className="w-3 h-3 text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200" />}
-                </button>
-            ))}
-        </div>
-    );
-}
-
 /**
  * Cierre económico del caso: muestra en qué etapa está el costo y, cuando el
  * laboratorio ya lo cerró, permite descontarlo de la caja del responsable.
@@ -281,7 +244,6 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
     useEffect(() => {
         const p = propuestaInicial();
         setCajaVendorId(p.cajaVendorId); setCaja(p.caja); setCliente(p.cliente);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [vigente.cajaMonto, vigente.clienteMonto, vigente.cajaVendorId, costo]);
 
     const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
@@ -349,7 +311,7 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
             {stage === 'ESTIMADO' && (
                 <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
                     Es la estimación cargada a mano. El costo real lo cierra el laboratorio cuando factura
-                    {operationNumbers(c).length > 1 ? ' las dos operaciones' : ' la operación'} del caso. Recién ahí se puede repartir.
+                    {operationNumbersOf(c.newOrderNumber).length > 1 ? ' las dos operaciones' : ' la operación'} del caso. Recién ahí se puede repartir.
                 </p>
             )}
 
@@ -529,8 +491,13 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                         )}
                     </button>
 
-                    {/* Los nº de operación quedan SIEMPRE afuera del desplegable */}
-                    <OperationNumbers c={c} />
+                    {/* El nº de operación queda SIEMPRE afuera del desplegable, y se carga acá mismo */}
+                    <PostSaleOperationNumber
+                        orderId={c.order?.id ?? c.orderId}
+                        value={c.newOrderNumber}
+                        history={c.newOrderNumberHistory}
+                        onSaved={onRefresh}
+                    />
                 </div>
 
                 {/* ── FICHA COMPLETA (desplegable) ────────────────────────────── */}

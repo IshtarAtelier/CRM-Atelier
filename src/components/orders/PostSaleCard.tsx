@@ -3,6 +3,7 @@ import { Eye, ChevronLeft, ChevronRight, ChevronDown, FlaskConical, Loader2, Rot
 import { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
+import { PostSaleOperationNumber } from './PostSaleOperationNumber';
 import { caseTypeStyle, POST_SALE_MOVABLE_STATUSES, postSaleCerrado } from '@/lib/constants/postSale';
 
 interface PostSaleCardProps {
@@ -379,10 +380,10 @@ export function PostSaleCard({
                     vistazo — la operación (que es lo que más se busca) y la plata. */}
                 {collapsed && (
                     <div className="flex flex-wrap gap-1.5 pl-4">
-                        {order.postSaleNewOrderNumber && (
-                            <span className="bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md font-mono">
-                                {order.postSaleNewOrderNumber}
-                            </span>
+                        {/* El nº de operación se carga y cambia acá mismo (es lo que más
+                            se busca y lo que más tarde se completa). */}
+                        {order.postSaleOrderOption !== 'SAME' && (
+                            <PostSaleOperationNumber compact orderId={order.id} value={order.postSaleNewOrderNumber} history={(order as any).postSaleNewOrderNumberHistory} onSaved={onRefresh} />
                         )}
                         {order.postSaleCost != null && order.postSaleCost > 0 && (
                             <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${order.postSaleCashEntryId
@@ -421,10 +422,12 @@ export function PostSaleCard({
                             $ {order.postSaleCost.toLocaleString('es-AR')}
                         </span>
                     )}
-                    {order.postSaleOrderOption && (
+                    {order.postSaleOrderOption === 'SAME' ? (
                         <span className="bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
-                            OP: {order.postSaleOrderOption === 'SAME' ? `Misma (#${order.labOrderNumber || 'Original'})` : `Nueva (#${order.postSaleNewOrderNumber || '—'})`}
+                            OP: Misma (#{order.labOrderNumber || 'Original'})
                         </span>
+                    ) : (
+                        <PostSaleOperationNumber compact orderId={order.id} value={order.postSaleNewOrderNumber} history={(order as any).postSaleNewOrderNumberHistory} onSaved={onRefresh} />
                     )}
                 </div>
 

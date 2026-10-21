@@ -232,9 +232,12 @@ export async function GET(request: Request) {
                     if (clase === 'cierre') {
                         if (f.clientId) await cerrarComoPerdido({ clientId: f.clientId, motivo: 'el cliente dijo que no', palabrasDelCliente: palabras });
                         lecturas.push({ nombre, motivo: `cerrado como perdido: el cliente dijo que no («${(palabras || '').slice(0, 80)}»)` });
-                    } else if (f.clientId) {
-                        const hasta = await posponerSeguimiento({ clientId: f.clientId, chatId: f.id, palabrasDelCliente: palabras, now });
-                        lecturas.push({ nombre, motivo: `pausado hasta ${hasta.toISOString().slice(0, 10)}: pidió más adelante («${(palabras || '').slice(0, 80)}»)` });
+                    } else if (f.clientId && suyos.length) {
+                        // Anclada al ÚLTIMO mensaje de su respuesta: el mismo en cada
+                        // tick, así que pausa una sola vez (ver decidirPosponer).
+                        const respuestaAt = suyos[suyos.length - 1].createdAt;
+                        const hasta = await posponerSeguimiento({ clientId: f.clientId, chatId: f.id, palabrasDelCliente: palabras, respuestaAt, now });
+                        if (hasta) lecturas.push({ nombre, motivo: `pausado hasta ${hasta.toISOString().slice(0, 10)}: pidió más adelante («${(palabras || '').slice(0, 80)}»)` });
                     }
                 } catch (e: any) {
                     console.error(`[Motor seguimientos] No se pudo aplicar la respuesta de ${nombre}:`, e?.message);

@@ -1404,6 +1404,7 @@ export const ContactService = {
                         status: true,
                         cost: true,
                         newOrderNumber: true,
+                        newOrderNumberHistory: true,
                         notes: true,
                         orderOption: true,
                         responsible: true,

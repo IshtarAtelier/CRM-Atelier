@@ -29,7 +29,11 @@ import type { Actor } from '@/lib/actor';
  */
 
 export class CargoError extends Error {
-    constructor(message: string, public status: number) { super(message); }
+    status: number;
+    // Sin "parameter property" (`public status`): los checks del CI corren con
+    // `--experimental-strip-types`, que no la soporta, y este archivo entra en
+    // la cadena de imports de check:carga-go y check:lab-modulos (19/10/2026).
+    constructor(message: string, status: number) { super(message); this.status = status; }
 }
 
 export interface Reparto {

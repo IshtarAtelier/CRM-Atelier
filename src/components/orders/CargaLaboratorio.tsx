@@ -29,7 +29,7 @@ interface Borrador {
     preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista; acciones?: Acciones;
 }
 interface PedidoEspejo { portalNumber: string; status: string; statusRaw: string | null; estimatedAt: string | null; lastSeenAt: string }
-interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean }
+interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean; portal?: { url: string; etiqueta: string } | null }
 
 const ESTADO: Record<string, { texto: string; clase: string }> = {
     PREPARADO: { texto: 'El robot está armando el pedido', clase: 'bg-stone-100 text-stone-600' },
@@ -229,9 +229,19 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                 <h4 className={`text-[10px] font-black ${tema.titulo} uppercase tracking-widest flex items-center gap-1.5`}>
                     <Bot className="w-3.5 h-3.5" /> {nombre} · carga del pedido
                 </h4>
-                <button type="button" onClick={cargar} className="text-stone-400 hover:text-stone-700" title="Actualizar">
-                    <RefreshCw className={`w-3.5 h-3.5 ${cargando ? 'animate-spin' : ''}`} />
-                </button>
+                <div className="flex items-center gap-2">
+                    {/* SIEMPRE, en cualquier estado del bloque: si el robot no puede o se traba,
+                        la persona abre el portal y termina el envío a mano (Ishtar, 19/10/2026). */}
+                    {datos.portal && (
+                        <a href={datos.portal.url} target="_blank" rel="noreferrer" title="Abre la pantalla de alta del portal en otra pestaña (hace falta tener la sesión del portal iniciada)"
+                            className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg text-white ${tema.boton}`}>
+                            <ExternalLink className="w-3 h-3" /> {datos.portal.etiqueta}
+                        </a>
+                    )}
+                    <button type="button" onClick={cargar} className="text-stone-400 hover:text-stone-700" title="Actualizar">
+                        <RefreshCw className={`w-3.5 h-3.5 ${cargando ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
             </div>
 
             {datos.espejo.length === 0 && <p className="text-[11px] text-stone-500 mb-3">El portal de {nombre} todavía no muestra ningún pedido de esta venta.</p>}
@@ -305,7 +315,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                 <div className="text-xs text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/40 rounded-lg px-3 py-2 space-y-1">
                                     <p className="font-bold flex items-center gap-1"><Bot className="w-3.5 h-3.5" /> Este pedido va a mano: el robot no lo puede cargar.</p>
                                     <p>{par.aMano}.</p>
-                                    <p>Cargalo a mano en el portal de {nombre} y anotá acá el nº de pedido (el seguimiento y el cruce de costos siguen igual).</p>
+                                    <p>Cargalo a mano con el botón "{datos.portal?.etiqueta || `Abrir el portal de ${nombre}`}" de arriba y anotá acá el nº de pedido (el seguimiento y el cruce de costos siguen igual).</p>
                                 </div>
                             )
                             : par.espera ? <p className="text-xs text-stone-500">{par.espera}</p>

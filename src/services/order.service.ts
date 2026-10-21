@@ -29,7 +29,7 @@ import { logAudit } from '@/lib/audit';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
 import { getOrderShippedHtml } from '@/lib/checkout/checkout-emails';
 import { alertDuplicateLabOrderNumber } from '@/lib/duplicate-lab-order-alert';
-import { findLabNumberConflicts, duplicateMessage } from '@/lib/lab-order-numbers';
+import { findLabNumberConflicts, duplicateMessage, historialAlCambiarNumero } from '@/lib/lab-order-numbers';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { OptovisionAuditService } from '@/services/optovision-audit.service';
@@ -1535,7 +1535,11 @@ export class OrderService {
                     }
                     if (postSaleCoverage !== undefined) caseData.coverage = postSaleCoverage;
                     if (postSaleRxData !== undefined) caseData.rxData = postSaleRxData;
-                    if (postSaleNewOrderNumber !== undefined) caseData.newOrderNumber = postSaleNewOrderNumber;
+                    if (postSaleNewOrderNumber !== undefined) {
+                        caseData.newOrderNumber = postSaleNewOrderNumber;
+                        // El nº anterior del caso sigue siendo buscable (ver Order.labOrderNumberHistory).
+                        caseData.newOrderNumberHistory = historialAlCambiarNumero((activeCase as any).newOrderNumberHistory, activeCase.newOrderNumber, postSaleNewOrderNumber);
+                    }
 
                     const oldStatus = activeCase.status;
                     const updatedCase = await prisma.postSaleCase.update({
@@ -2428,6 +2432,7 @@ export class OrderService {
             labStatus: string | null;
             status: string;
             labOrderNumber: string | null;
+            labOrderNumberHistory: string | null;
             trackingNumber: string | null;
             shippedAt: Date | null;
             dispatchNotifiedAt: Date | null;
@@ -2437,7 +2442,7 @@ export class OrderService {
             prevState = await prisma.order.findUnique({
                 where: { id },
                 select: {
-                    labStatus: true, status: true, labOrderNumber: true,
+                    labStatus: true, status: true, labOrderNumber: true, labOrderNumberHistory: true,
                     trackingNumber: true, shippedAt: true, dispatchNotifiedAt: true
                 }
             });
@@ -2472,6 +2477,11 @@ export class OrderService {
             && (data.labOrderNumber || '').trim() !== (prevState?.labOrderNumber || '').trim()) {
             const conflictos = await findLabNumberConflicts({ value: data.labOrderNumber, excludeOrderId: id });
             if (conflictos.length > 0) throw new Error(duplicateMessage(conflictos));
+        }
+        // El número que deja de ser el vigente queda en el historial: sigue en
+        // facturas, tickets y chats, y tiene que seguir encontrándose (buscador).
+        if (prevState && data.labOrderNumber !== undefined) {
+            data.labOrderNumberHistory = historialAlCambiarNumero(prevState.labOrderNumberHistory, prevState.labOrderNumber, data.labOrderNumber);
         }
 
         // Update final. Si hay ajuste de stock diferido (edición de ítems de una

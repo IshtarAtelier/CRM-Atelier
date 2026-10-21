@@ -12,6 +12,7 @@ import { formatearPrecio } from "@/lib/format-precio";
 import { descuentoTransferenciaDe } from "@/lib/catalog/rango-precio";
 
 import Image from "next/image";
+import { useFocoMovil } from "@/components/Storefront/useFocoMovil";
 
 interface CategoryGridProps {
   products: any[];
@@ -20,6 +21,7 @@ interface CategoryGridProps {
 }
 
 export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nuestro catálogo.", categoryName }: CategoryGridProps) {
+  useFocoMovil(); // en el celular, la tarjeta del centro muestra la foto con rostro
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
@@ -100,6 +102,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
           <div
             key={p.id}
             className="group cursor-pointer flex flex-col tienda-grid-fade"
+            data-foco-movil={hasSecondImage ? '' : undefined}
           >
             <Link href={`/producto/${p.slug}`} className="flex-1 flex flex-col">
               <div className="relative aspect-square mb-4 bg-white border border-stone-100 overflow-hidden rounded-xl isolate">
@@ -128,7 +131,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                      Con 33vw Next servía una foto un tercio más grande que el
                      hueco donde entra. */
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, (max-width: 1536px) 33vw, 25vw"
-                  className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'md:group-hover:opacity-0 ' : ''}`}
+                  className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'md:group-hover:opacity-0 group-data-[en-foco]:opacity-0 ' : ''}`}
                 />
 
                 {hasSecondImage && secondImageUrl && (
@@ -138,7 +141,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     fill
                     style={{ transform: "translateZ(0)" }}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, (max-width: 1536px) 33vw, 25vw"
-                    className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+                    className="object-cover opacity-0 md:group-hover:opacity-100 group-data-[en-foco]:opacity-100 transition-opacity duration-500 ease-in-out"
                   />
                 )}
                 

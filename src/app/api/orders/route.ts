@@ -355,6 +355,14 @@ export async function GET(request: Request) {
                         OR: [
                             { client: { name: { contains: word, mode: 'insensitive' } } },
                             { labOrderNumber: { contains: word, mode: 'insensitive' } },
+                            // Números anteriores (renumerados por el lab o corregidos) y
+                            // los de post-venta: un número viejo tiene que seguir encontrando
+                            // su pedido (Ishtar, 20/10/2026).
+                            { labOrderNumberHistory: { contains: word, mode: 'insensitive' } },
+                            { postSaleCases: { some: { OR: [
+                                { newOrderNumber: { contains: word, mode: 'insensitive' } },
+                                { newOrderNumberHistory: { contains: word, mode: 'insensitive' } },
+                            ] } } },
                             { id: { contains: word, mode: 'insensitive' } },
                             // El nº de operación que el lab le dio a la POSTVENTA (reproceso):
                             // distinto del de la venta. Sin esto, buscar "3591269" en
@@ -460,6 +468,7 @@ export async function GET(request: Request) {
                     status: true,
                     cost: true,
                     newOrderNumber: true,
+                    newOrderNumberHistory: true,
                     notes: true,
                     orderOption: true,
                     responsible: true,
@@ -508,6 +517,7 @@ export async function GET(request: Request) {
             prescription: { select: { id: true, sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true, axisOD: true, axisOI: true, additionOD: true, additionOI: true, distanceOD: true, distanceOI: true, heightOD: true, heightOI: true, pd: true, addition: true, prescriptionType: true, notes: true, imageUrl: true, prismOD: true, prismOI: true, nearSphereOD: true, nearSphereOI: true, nearCylinderOD: true, nearAxisOD: true, nearCylinderOI: true, nearAxisOI: true } },
             // Lab fields
             labOrderNumber: true,
+            labOrderNumberHistory: true,
             labNotes: true,
             clientNote: true,
             labSentAt: true,
