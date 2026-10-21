@@ -92,7 +92,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 const rol = promo?.tipo === 'MI_PRIMER' ? 'PRIMER_PAR' : rolDe(roles, pair);
                 const esSegundo = rol === 'SEGUNDO_PAR';
                 // Se analiza con opciones "por defecto" para mostrar lo que FALTA en la venta; lo que elige quien prepara no cuenta como faltante.
-                const r = planDeCarga(venta, pair, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cupon: rol === 'PRIMER_PAR' ? 'XXXXXX' : null, pedidoOrigen: esSegundo ? (origen ?? '000000') : null, potenciaBoost: '0.4', corredorPrecise: 'LARGE' });
+                const r = planDeCarga(venta, pair, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: FORMAS_OVES[0], cupon: rol === 'PRIMER_PAR' ? 'XXXXXX' : null, pedidoOrigen: esSegundo ? (origen ?? '000000') : null, potenciaBoost: '0.4', corredorPrecise: 'LARGE' });
                 const items = porPar.get(pair) || [];
                 const nombreProducto = texto(items[0]?.product?.name ?? items[0]?.productNameSnapshot);
                 const eleccion = eleccionQuePide(nombreProducto);
@@ -102,7 +102,8 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                     { clave: 'calibrado', etiqueta: 'Calibrado', tipo: 'select', obligatorio: true, porDefecto: venta.labEdgeInStore ? 'SIN' : 'COMUN', opciones: Object.entries(SERVICIO_CALIBRADO).map(([value, label]) => ({ value, label })) },
                     { clave: 'tipoArmazon', etiqueta: 'Tipo de armazón', tipo: 'select', obligatorio: true, opciones: TIPO_ARMAZON_OVES.map(t => ({ value: t.value, label: t.label })) },
                     // Con el dibujo de cada forma del portal (public/laboratorios/optovision/formas, capturadas el 20/10/2026): "Forma 11" a secas no dice nada (Ishtar).
-                    { clave: 'forma', etiqueta: 'Forma del armazón (dibujo del portal, opcional)', tipo: 'select', obligatorio: false, opciones: FORMAS_OVES.map(f => ({ value: String(f), label: `Forma ${String(f).padStart(2, '0')}`, imagen: `/laboratorios/optovision/formas/forma-${String(f).padStart(2, '0')}.png` })) },
+                    // OBLIGATORIA: el formulario de OVES frena con "Forma Armazon: debe elegir una de las imagenes" (probado en vivo el 21/10/2026).
+                    { clave: 'forma', etiqueta: 'Forma del armazón (dibujo del portal)', tipo: 'select', obligatorio: true, opciones: FORMAS_OVES.map(f => ({ value: String(f), label: `Forma ${String(f).padStart(2, '0')}`, imagen: `/laboratorios/optovision/formas/forma-${String(f).padStart(2, '0')}.png` })) },
                     { clave: 'enviaArmazon', etiqueta: '¿Se manda el armazón?', tipo: 'select', obligatorio: true, porDefecto: venta.userFrameBrand || venta.userFrameModel ? 'Si' : 'No', opciones: [{ value: 'Si', label: 'Sí (va al laboratorio)' }, { value: 'No', label: 'No' }] },
                     ...(rol === 'PRIMER_PAR' ? [
                         { clave: 'cupon', etiqueta: `Cupón de la promo (${promo?.marca === 'KODAK' ? WEB_DE_PROMO.KODAK : WEB_DE_PROMO.VARILUX})`, tipo: 'texto' as const, obligatorio: false, maxLength: 10, patron: PATRON_CUPON_HTML, ayuda: 'Dejalo VACÍO y el robot lo genera en la web de la promo al aprobar (con los datos de la ficha). Si ya lo generaste a mano, ponelo acá. Sin cupón, Optovisión cobra los dos pares.' },
@@ -121,7 +122,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 return {
                     pair,
                     titulo: nombreProducto || null,
-                    faltantes: r.ok || r.aMano ? [] : r.faltantes.filter(f => !/^(el cristal lleva Crizal|calibrado|tipo de armazón|es el 1er par de la promo)/.test(f)),
+                    faltantes: r.ok || r.aMano ? [] : r.faltantes.filter(f => !/^(el cristal lleva Crizal|calibrado|tipo de armazón|forma del armazón|es el 1er par de la promo)/.test(f)),
                     avisos,
                     aMano: r.ok ? null : (r.aMano ?? null),
                     campos,

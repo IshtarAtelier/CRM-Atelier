@@ -358,7 +358,9 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
     const tipoArmazon = (opciones.tipoArmazon ? TIPO_ARMAZON_OVES.find(t => t.value === String(opciones.tipoArmazon)) ?? null : null) ?? tipoArmazonDeVenta(venta.labFrameType);
     if (!tipoArmazon) faltantes.push('tipo de armazón (Zilo/Acetato, Metal, Montura al aire, Hilo Nylon o Hilo de Acero): se elige al preparar');
     const forma = opciones.forma ?? null;
-    if (forma !== null && !(FORMAS_OVES as readonly number[]).includes(Number(forma))) faltantes.push(`la forma del armazón tiene que ser una de las del portal (${FORMAS_OVES.join(', ')})`);
+    // El portal la exige ("Forma Armazon: debe elegir una de las imagenes de la forma", 21/10/2026).
+    if (forma === null) faltantes.push('forma del armazón (el dibujo del portal): se elige al preparar');
+    else if (!(FORMAS_OVES as readonly number[]).includes(Number(forma))) faltantes.push(`la forma del armazón tiene que ser una de las del portal (${FORMAS_OVES.join(', ')})`);
     const medida = (v: unknown): string | null => { const n = num(v); return n === null ? null : unDecimal(n); };
     const a = medida(frame?.a), b = medida(frame?.b), ed = medida(frame?.edc), puente = medida(frame?.dbl);
     for (const [nombre, valor] of [['A', a], ['B', b], ['puente', puente]] as const) if (valor === null) faltantes.push(`medida del armazón ${par}: ${nombre}`);

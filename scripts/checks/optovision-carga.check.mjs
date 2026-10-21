@@ -258,24 +258,24 @@ t('sin Crizal elegido, sin calibrado ni tipo de armazón, el plan dice qué falt
     assert.ok(r.faltantes.some(f => /^tipo de armazón/.test(f)));
     // Con labCrizal cargado en la venta, el Crizal ya no falta.
     const v = ventaBase(); v.labCrizal = 'CRIZAL_PREVENCIA';
-    const r2 = planDeCarga(v, 1, { calibrado: 'COMUN', tipoArmazon: '1' });
+    const r2 = planDeCarga(v, 1, { calibrado: 'COMUN', tipoArmazon: '1', forma: 11 });
     assert.ok(r2.ok); assert.equal(r2.plan.servicios.tratamiento, 'Crizal Prevencia');
 });
 t('un cristal que va a mano frena con aMano, y los prismas también frenan', () => {
     const v = ventaBase(); v.items = [cristal('Stellest - Control Miopia Airwear', 'OD'), cristal('Stellest - Control Miopia Airwear', 'OI')];
-    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
     assert.equal(r.ok, false); assert.match(r.aMano, /Stellest/);
     const p = ventaBase(); p.labPrismOD = '1.00';
-    const r2 = planDeCarga(p, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    const r2 = planDeCarga(p, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
     assert.equal(r2.ok, false); assert.ok(r2.faltantes.some(f => /prismas/.test(f)));
 });
 t('un multifocal exige adición y la escribe como el select del portal', () => {
     const v = ventaBase();
     v.items = [cristal('VARILUX COMFORT - ORMA BLUE UV + CRIZAL 2x1', 'OD', { productTypeSnapshot: 'Cristal Multifocal' }), cristal('VARILUX COMFORT - ORMA BLUE UV + CRIZAL 2x1', 'OI', { productTypeSnapshot: 'Cristal Multifocal' })];
-    const sinAdd = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    const sinAdd = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
     assert.equal(sinAdd.ok, false); assert.ok(sinAdd.faltantes.some(f => /adición/.test(f)));
     v.prescription.addition = 2;
-    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
     assert.ok(r.ok, r.ok ? '' : r.faltantes.join(' · ')); assert.equal(r.plan.od.adic, '2.00'); assert.equal(r.plan.tipo, 'MULTIFOCAL');
 });
 const ventaDoble = () => {
@@ -294,7 +294,7 @@ const ventaDoble = () => {
 t('con dos pares y cristales sin armazón asignado no se frena: se reparten por orden y se avisa', () => {
     const v = ventaDoble();
     for (const i of v.items) i.framePosition = null;
-    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', pedidoOrigen: '628377' });
+    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, pedidoOrigen: '628377' });
     assert.ok(r.ok, r.ok ? '' : r.faltantes.join(' · '));
     assert.ok(r.avisos.some(a => /armazón asignado.*dos primeros/.test(a)), JSON.stringify(r.avisos));
     assert.equal(r.plan.producto.label, 'Varilux Comfort Orma blue uv');
@@ -330,7 +330,7 @@ t('una promo que no cierra frena en vez de salir como pedido común sin cupón',
     v.items[2].product.name = otra; v.items[2].productNameSnapshot = otra; v.items[3].product.name = otra; v.items[3].productNameSnapshot = otra;
     assert.equal(esPromoDobleDeOptovision(v), false);
     assert.match(promoQueNoCierra(v), /familias distintas \(Varilux Comfort y Kodak Unique Dro\)/);
-    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
     assert.equal(r.ok, false); assert.ok(r.faltantes.some(f => /familias distintas/.test(f)));
     // Sin "2x1" en los nombres pero con la promo aplicada "Doble Disfrute", sigue siendo promo.
     const d = ventaDoble(); for (const i of d.items) { i.product.name = i.product.name.replace(' 2x1', ''); i.productNameSnapshot = i.product.name; } d.appliedPromoName = 'Doble Disfrute Varilux';
@@ -342,17 +342,17 @@ t('promo doble: el par de mayor valor de lista va 1º (con el cupón), el otro 2
     const roles = rolesDeLaPromo(v);
     // El Xperio (lista $1.924.415) vale más que el Blue UV ($1.404.103): aunque la venta lo deje en $0, es el 1º.
     assert.deepEqual([roles.conCargo, roles.sinCargo], [2, 1]);
-    const sinCupon = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    const sinCupon = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
     assert.equal(sinCupon.ok, false); assert.ok(sinCupon.faltantes.some(f => /cupón/.test(f)));
-    const primero = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cupon: 'VA7AGQWN' });
+    const primero = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, cupon: 'VA7AGQWN' });
     assert.ok(primero.ok, primero.ok ? '' : primero.faltantes.join(' · '));
     assert.equal(primero.plan.rolPromo, 'PRIMER_PAR'); assert.equal(primero.plan.producto.label, 'Varilux Comfort Orma Xperio Gris');
     assert.equal(primero.plan.pedinterno, '#AB12 Juan San Martin 2° par');
     assert.equal(primero.plan.observacion, 'Promo Doble Disfrute Varilux - Primer par de Promo num cupón VA7AGQWN. Solicito envien con paño');
     assert.deepEqual(primero.plan.od, { esf: '-0.50', cil: '-1.50', eje: '90', adic: '2.25', dnp: '34.0', altura: '28.0' });
-    const segundoSinOrigen = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    const segundoSinOrigen = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
     assert.equal(segundoSinOrigen.ok, false); assert.ok(segundoSinOrigen.faltantes.some(f => /2º par de la promo/.test(f)));
-    const segundo = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', pedidoOrigen: '628377' });
+    const segundo = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, pedidoOrigen: '628377' });
     assert.ok(segundo.ok, segundo.ok ? '' : segundo.faltantes.join(' · '));
     assert.equal(segundo.plan.rolPromo, 'SEGUNDO_PAR'); assert.equal(segundo.plan.pedidoOrigen, '628377');
     assert.match(segundo.plan.observacion, /^Promo Doble Disfrute Varilux - Segundo par promo compañero\/asociado al num 628377/);
@@ -362,7 +362,7 @@ t('"Mi Primer" es promo con cupón de un solo par', () => {
     const v = ventaBase();
     v.items = [cristal('MI PRIMER KODAK PRECISE - ORMA + CRIZAL', 'OD', { productTypeSnapshot: 'Cristal Multifocal' }), cristal('MI PRIMER KODAK PRECISE - ORMA + CRIZAL', 'OI', { productTypeSnapshot: 'Cristal Multifocal' })];
     v.prescription.addition = 1.5;
-    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', corredorPrecise: 'LARGE', cupon: 'KOEUXPQC' });
+    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, corredorPrecise: 'LARGE', cupon: 'KOEUXPQC' });
     assert.ok(r.ok, r.ok ? '' : r.faltantes.join(' · '));
     assert.deepEqual(r.plan.promo, { tipo: 'MI_PRIMER', marca: 'KODAK' }); assert.equal(r.plan.rolPromo, 'PRIMER_PAR');
     assert.match(r.plan.observacion, /^Promo Mi Primer Kodak - Primer par de Promo num cupón KOEUXPQC/);
@@ -371,7 +371,7 @@ t('"Mi Primer" es promo con cupón de un solo par', () => {
 t('el teñido va como coloración del formulario y el tono y grado en la observación', () => {
     const v = ventaBase();
     v.items.push({ eye: null, framePosition: null, price: 20000, productNameSnapshot: 'Teñido Compacto', productTypeSnapshot: 'Tratamiento Colores de Cristal', productCategorySnapshot: 'Tratamiento', laboratorySnapshot: 'OPTOVISION', product: { name: 'Teñido Compacto', category: 'Tratamiento', type: 'Tratamiento Colores de Cristal', price: 20000, laboratory: 'OPTOVISION' }, sphereVal: null, cylinderVal: null, axisVal: null, additionVal: null, pdVal: null, heightVal: null, crystalColor: 'Sepia', crystalColorType: 'COMPACTO', crystalColorNote: '3' });
-    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' });
+    const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
     assert.ok(r.ok, r.ok ? '' : r.faltantes.join(' · '));
     assert.equal(r.plan.servicios.coloracion, 'color pleno');
     assert.equal(r.plan.observacion, 'Coloracion Sepia 3. Solicito envien con paño');
@@ -380,9 +380,9 @@ t('referencia, huella y diferencias', () => {
     assert.equal(referenciaDelPedido('ckx0000000000000000ab12', 'Juan San Martin', 1, 1), '#AB12 Juan San Martin');
     assert.equal(referenciaDelPedido('ckx0000000000000000ab12', 'María de los Ángeles Fernández Gutiérrez', 2, 2).length <= 30, true);
     assert.match(referenciaDelPedido('ckx0000000000000000ab12', 'María de los Ángeles Fernández Gutiérrez', 2, 2), /^#AB12 .* 2° par$/);
-    const a = planDeCarga(ventaBase(), 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' }).plan;
+    const a = planDeCarga(ventaBase(), 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 }).plan;
     const v = ventaBase(); v.prescription.sphereOD = -0.75;
-    const b = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2' }).plan;
+    const b = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 }).plan;
     assert.notEqual(huellaDelPlan(a), huellaDelPlan(b)); assert.deepEqual(diferenciasDePlan(a, b), ['OD']);
     assert.deepEqual(diferenciasDePlan(a, a), []);
     assert.equal(cristalesPorPar(ventaDoble()).size, 2);
@@ -470,11 +470,11 @@ t('el cliente del sitio sale de la ficha; el género lo pone quien prepara', () 
 t('sin cupón tipeado el plan sale con la marca y el robot lo genera; con el real da EXACTAMENTE el plan tipeado', () => {
     const v = ventaDoble();
     v.client = { name: 'Juan San Martin', dni: '30111222', birthDate: '1980-03-15T00:00:00.000Z', phone: '3511234567', email: 'juan@x.com' };
-    const auto = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cuponAutomatico: true, genero: 'M' });
+    const auto = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, cuponAutomatico: true, genero: 'M' });
     assert.ok(auto.ok, auto.ok ? '' : auto.faltantes.join(' · '));
     assert.equal(auto.plan.cupon, null); assert.equal(auto.plan.cuponAutomatico, true);
     assert.equal(auto.plan.observacion, `Promo Doble Disfrute Varilux - Primer par de Promo num cupón ${MARCA_CUPON_PENDIENTE}. Solicito envien con paño`);
-    const real = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cuponAutomatico: true, genero: 'M', cupon: 'VA7AGQWN' });
+    const real = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, cuponAutomatico: true, genero: 'M', cupon: 'VA7AGQWN' });
     assert.ok(real.ok); assert.equal(real.plan.cuponAutomatico, false); assert.equal(real.plan.cupon, 'VA7AGQWN');
     const esperado = planConCupon(auto.plan, 'VA7AGQWN');
     assert.deepEqual(diferenciasDePlan(esperado, real.plan), []); assert.equal(huellaDelPlan(esperado), huellaDelPlan(real.plan));
@@ -482,7 +482,7 @@ t('sin cupón tipeado el plan sale con la marca y el robot lo genera; con el rea
     assert.equal(planConCupon(real.plan, 'OTRO').cupon, 'VA7AGQWN');
     assert.deepEqual(formularioConCupon({ observacion: auto.plan.observacion, paciente: 'Juan' }, 'VA7AGQWN'), { observacion: real.plan.observacion, paciente: 'Juan' });
     // El 2º par no pide cupón aunque se lo marque automático.
-    const segundo = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cuponAutomatico: true, pedidoOrigen: '628377' });
+    const segundo = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, cuponAutomatico: true, pedidoOrigen: '628377' });
     assert.ok(segundo.ok); assert.equal(segundo.plan.cuponAutomatico, false);
     // Lo que se le pide al sitio: provider, cliente, receta del 1er par y los dos cristales.
     const p = pedidoDeCupon({ venta: v, plan: auto.plan, productoCRMSegundo: 'VARILUX COMFORT - ORMA BLUE UV + CRIZAL 2x1', genero: 'M' });
@@ -498,7 +498,7 @@ t('sin cupón tipeado el plan sale con la marca y el robot lo genera; con el rea
     // Mi Primer: un solo cristal, provider propio.
     const mp = ventaBase(); mp.client = v.client; mp.prescription.addition = 1.5;
     mp.items = [cristal('MI PRIMER KODAK PRECISE - ORMA + CRIZAL', 'OD', { productTypeSnapshot: 'Cristal Multifocal' }), cristal('MI PRIMER KODAK PRECISE - ORMA + CRIZAL', 'OI', { productTypeSnapshot: 'Cristal Multifocal' })];
-    const planMp = planDeCarga(mp, 1, { tratamiento: 'CRIZAL_PREVENCIA', calibrado: 'COMUN', tipoArmazon: '2', corredorPrecise: 'LARGE', cuponAutomatico: true }).plan;
+    const planMp = planDeCarga(mp, 1, { tratamiento: 'CRIZAL_PREVENCIA', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, corredorPrecise: 'LARGE', cuponAutomatico: true }).plan;
     const pm = pedidoDeCupon({ venta: mp, plan: planMp, productoCRMSegundo: null, genero: 'F' });
     assert.ok(pm.ok, pm.ok ? '' : pm.faltantes.join(' · ')); assert.equal(pm.pedido.provider, 'kodak-progresivos'); assert.equal(pm.pedido.segundo, null);
 });
@@ -541,7 +541,7 @@ t('el cupón automático solo aplica a promos con web (Varilux / Kodak); un 2x1 
     v.items[0].price = 200000; v.items[1].price = 200000; v.items[2].product.price = 100000; v.items[3].product.price = 100000;
     assert.equal(esPromoDobleDeOptovision(v), true);
     const roles = rolesDeLaPromo(v);
-    const r = planDeCarga(v, roles.conCargo, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cuponAutomatico: true, genero: 'M' });
+    const r = planDeCarga(v, roles.conCargo, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, cuponAutomatico: true, genero: 'M' });
     if (r.ok) assert.fail('tendría que pedir el cupón tipeado');
     assert.ok(r.faltantes.some(f => /cupón/.test(f)) || r.aMano, r.faltantes.join(' · '));
     // El nombre repartido conserva acentos y mayúsculas de la ficha (va al voucher).

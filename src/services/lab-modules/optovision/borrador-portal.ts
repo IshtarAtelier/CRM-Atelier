@@ -245,6 +245,8 @@ export async function prepararEnPortal(borradorId: string) {
             const cuponWeb: CuponObtenido | null = heredado ?? (enWeb.existente ? cuponObtenidoDe(enWeb.existente, true) : null);
             const distinto = cuponWeb && enWeb.resolucion ? avisoDeCuponDistinto(cuponWeb.codigo, cuponWeb.productos, enWeb.resolucion) : cuponWeb && enWeb.sinResolver ? `no se pudo comparar el cupón ${cuponWeb.codigo} con el catálogo de hoy de la web de la promo (${enWeb.sinResolver}): revisá a mano que el cupón coincida con este pedido` : null;
             cupon = { cuponPedido: pedido, cuponResuelto: enWeb.resolucion, cuponAvisos: [...avisos, ...(distinto ? [distinto] : [])], cuponWeb };
+            // Anotado YA: si OVES falla después, lo que se resolvió en la web (y un cupón reutilizado) no se pierde.
+            await mezclar(b.id, cupon).catch(() => null);
             if (cuponWeb) {
                 // Con el cupón ya en mano, el plan que se revisa y se guarda es el REAL (observación con el cupón, no con la marca).
                 r = await planActual(b.orderId, b.pair, { ...guardado.opciones, cupon: cuponWeb.codigo });
