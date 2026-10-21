@@ -9,14 +9,14 @@ import { numerosDeLaVenta, numerosDeOtrosPares as numerosAjenosAlPar } from '../
 import { decidirConAprobado } from '../carga/decision';
 import { AdopcionNoVerificadaError, AprobacionInvalidaError, enElPortal as enElPortalDe, guardarArchivoDelPortal, textoDeFallaDeConfirmacion, YaCargadoError } from '../carga/robot-comun';
 import { conSesionOves, LAB_OPTOVISION, NOMBRE_OPTOVISION, ROBOT_OPTOVISION, VARIABLE_PERMISO_OVES } from './portal';
-import { cristalesPorPar, diferenciasDePlan, huellaDelPlan, planDeCarga, rolesDeLaPromo, type OpcionesCargaOves, type PlanOves } from './carga';
+import { cristalDelSegundoPar, diferenciasDePlan, huellaDelPlan, planDeCarga, rolesDeLaPromo, type OpcionesCargaOves, type PlanOves } from './carga';
 import { leerVentaParaCargaOves } from './venta';
 import { abrirFormulario, buscarPorReferencia, capturarFormulario, consultarPedido, diferenciasDeFormulario, grabarPedido, llenarFormulario, pedidoConsultadoEsNuestro, PedidoRechazadoError, PortalRespondioError, usarUuid, type Llenado } from './llenar';
 import { esNumeroOves, numeroDelPrimerPar, pedidoExistenteDelPar } from './existentes';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { avisarMailDePromo } from './promo-mail';
 import { formularioConCupon, pedidoDeCupon, planConCupon, type CuponObtenido, type PedidoDeCupon } from './cupon-web';
-import { buscarCuponExistente, conSesionPromo, enSoloLecturaWeb, generarCupon, resolverEnWeb, type ResolucionCupon } from './cupon-robot';
+import { buscarCuponExistente, conSesionPromo, CredencialPromoFaltanteError, CuponRechazadoError, enSoloLecturaWeb, generarCupon, MiPrimerYaOtorgadoError, resolverEnWeb, SitioDePromoNoAceptaRobotError, type ResolucionCupon } from './cupon-robot';
 import type { VentaParaCargaOves } from './carga';
 import type { EstadoEnPortal } from '../contrato';
 
@@ -138,33 +138,74 @@ async function planActual(orderId: string, par: number, opciones: OpcionesCargaO
 
 /** Lo que se le pide a la web de la promo para ESTE plan (el cristal del 2º par sale de la venta). Lanza con lo que falta. */
 function pedidoDeCuponDe(venta: VentaParaCargaOves, plan: PlanOves): { pedido: PedidoDeCupon; avisos: string[] } {
-    const roles = rolesDeLaPromo(venta);
-    const porPar = cristalesPorPar(venta);
-    const segundo = roles ? porPar.get(roles.sinCargo)?.[0] ?? null : null;
-    const r = pedidoDeCupon({ venta, plan, productoCRMSegundo: segundo ? String(segundo.product?.name ?? segundo.productNameSnapshot ?? '') : null, genero: plan.opciones.genero });
+    const r = pedidoDeCupon({ venta, plan, productoCRMSegundo: cristalDelSegundoPar(venta), genero: plan.opciones.genero });
     if (!r.ok) throw new Error(`Para que el robot genere el cupón faltan: ${r.faltantes.join(' · ')}`);
     return { pedido: r.pedido, avisos: r.avisos };
 }
 
+const cuponObtenidoDe = (o: { pedido: { code: string; id: number; provider: string }; url: string; pdfUrl: string | null }, reutilizado: boolean): CuponObtenido =>
+    ({ codigo: o.pedido.code, pedidoId: o.pedido.id, provider: o.pedido.provider, url: o.url, pdfUrl: o.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado });
+
 /**
- * El cupón del 1er par cuando lo maneja el robot. Primero lo que YA hay (el
- * borrador lo anotó, o el cliente ya tiene cupón de esa promo en el sitio);
- * si no, lo genera y lo anota EN EL ACTO: un reintento nunca crea dos.
+ * La red LOCAL contra el doble cupón: un borrador anterior de la misma venta y
+ * el mismo par (cayó a ERROR, se anuló) pudo haberlo generado ya. Se adopta
+ * ese antes de mirar el sitio, como `numeroCreado` con los pedidos.
  */
-async function obtenerCupon(borradorId: string, rastro: RastroOves, marca: 'VARILUX' | 'KODAK', pedido: PedidoDeCupon): Promise<CuponObtenido> {
+async function cuponAnotadoEnLaVenta(orderId: string, pair: number, excluirBorrador: string): Promise<CuponObtenido | null> {
+    const otros = await prisma.labOrderDraft.findMany({ where: { orderId, lab: LAB_OPTOVISION, pair, id: { not: excluirBorrador } }, select: { resumenPortal: true } }).catch(() => []);
+    const cupones = otros.map(o => ((o.resumenPortal || {}) as RastroOves).cuponWeb).filter((c): c is CuponObtenido => !!c?.codigo);
+    cupones.sort((a, b) => String(b.obtenidoEl).localeCompare(String(a.obtenidoEl)));
+    return cupones[0] ?? null;
+}
+
+/** Firmado: generar un cupón en un sitio externo es una mutación de negocio y queda en la ficha y en el AuditLog. */
+async function anotarCuponEnLaVenta(orderId: string, borradorId: string, cupon: CuponObtenido, aprobadoPor: { id: string | null; name: string } | null) {
+    const firma = aprobadoPor ? `${ROBOT_OPTOVISION} (aprobó ${aprobadoPor.name})` : ROBOT_OPTOVISION;
+    const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { clientId: true } }).catch(() => null);
+    if (venta?.clientId) {
+        await prisma.interaction.create({ data: { clientId: venta.clientId, type: 'LAB_STATUS', content: `🎟 ${firma}: cupón ${cupon.codigo} de la promo ${cupon.reutilizado ? 'tomado del historial de' : 'generado en'} la web de la promo (${cupon.provider}) para el pedido de ${NOMBRE_OPTOVISION}.`, userId: null, userName: firma } })
+            .catch(err => console.error('[lab-modulos] no se pudo anotar el cupón en la ficha:', err));
+    }
+    await logAudit({ userId: null, userName: firma, action: 'CREATE', entityType: 'ORDER', entityId: orderId, details: { lab: LAB_OPTOVISION, borradorId, cupon: cupon.codigo, provider: cupon.provider, pedidoWeb: cupon.pedidoId, reutilizado: cupon.reutilizado, url: cupon.url } }).catch(() => null);
+}
+
+/**
+ * El cupón del 1er par cuando lo maneja el robot. Primero lo que YA hay (este
+ * borrador lo anotó, otro borrador de la venta lo anotó, o el cliente ya
+ * tiene cupón vigente de esa promo en el sitio); si no, lo genera y lo anota
+ * EN EL ACTO: un reintento nunca crea dos. Lo que el sitio no acepta
+ * (validación, CAPTCHA, credencial que falta, Mi Primer ya otorgado) invalida
+ * la aprobación con el camino a mano: no tiene sentido reintentar.
+ */
+async function obtenerCupon(b: { id: string; orderId: string; pair: number }, rastro: RastroOves, marca: 'VARILUX' | 'KODAK', pedido: PedidoDeCupon, aprobadoPor: { id: string | null; name: string } | null): Promise<CuponObtenido> {
     if (rastro.cuponWeb?.codigo) return rastro.cuponWeb;
-    await mezclar(borradorId, { etapa: `generando el cupón en la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
-    const obtenido = await conSesionPromo(marca, async (page) => {
-        const existente = await buscarCuponExistente(page, marca, pedido);
-        if (existente) return { ...existente, reutilizado: true };
-        const resolucion = await resolverEnWeb(page, marca, pedido);
-        // Lo que se revisó tiene que seguir siendo lo que el sitio ofrece: si el catálogo cambió, no se confirma a ciegas.
-        const antes = rastro.cuponResuelto;
-        if (antes && (antes.primero.id !== resolucion.primero.id || (antes.segundo?.id ?? null) !== (resolucion.segundo?.id ?? null))) throw new AprobacionInvalidaError(`la web de la promo cambió el producto desde que se preparó (${antes.primero.name} → ${resolucion.primero.name}): volvé a prepararlo. No se mandó nada.`);
-        return { ...(await generarCupon(page, marca, pedido, resolucion)), reutilizado: false };
-    });
-    const cuponWeb: CuponObtenido = { codigo: obtenido.pedido.code, pedidoId: obtenido.pedido.id, provider: obtenido.pedido.provider, url: obtenido.url, pdfUrl: obtenido.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado: obtenido.reutilizado };
-    await mezclar(borradorId, { cuponWeb });
+    const heredado = await cuponAnotadoEnLaVenta(b.orderId, b.pair, b.id);
+    if (heredado) {
+        const cuponWeb = { ...heredado, reutilizado: true };
+        await mezclar(b.id, { cuponWeb });
+        return cuponWeb;
+    }
+    await mezclar(b.id, { etapa: `generando el cupón en la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
+    let obtenido: { pedido: { code: string; id: number; provider: string }; url: string; pdfUrl: string | null; reutilizado: boolean };
+    try {
+        obtenido = await conSesionPromo(marca, async (page) => {
+            const existente = await buscarCuponExistente(page, marca, pedido);
+            if (existente) return { ...existente, reutilizado: true };
+            const resolucion = await resolverEnWeb(page, marca, pedido);
+            // Lo que se revisó tiene que seguir siendo lo que el sitio ofrece: si el catálogo cambió, no se confirma a ciegas.
+            const antes = rastro.cuponResuelto;
+            if (antes && (antes.primero.id !== resolucion.primero.id || (antes.segundo?.id ?? null) !== (resolucion.segundo?.id ?? null))) throw new AprobacionInvalidaError(`la web de la promo cambió el producto desde que se preparó (${antes.primero.name} → ${resolucion.primero.name}): volvé a prepararlo. No se mandó nada.`);
+            return { ...(await generarCupon(page, marca, pedido, resolucion)), reutilizado: false };
+        });
+    } catch (err: any) {
+        if (err instanceof CuponRechazadoError || err instanceof SitioDePromoNoAceptaRobotError || err instanceof CredencialPromoFaltanteError || err instanceof MiPrimerYaOtorgadoError) {
+            throw new AprobacionInvalidaError(`${err.message}. Generá el cupón a mano en la web de la promo y prepará el par de nuevo con el cupón tipeado. No se mandó nada a OVES.`);
+        }
+        throw err;
+    }
+    const cuponWeb = cuponObtenidoDe(obtenido, obtenido.reutilizado);
+    await mezclar(b.id, { cuponWeb });
+    await anotarCuponEnLaVenta(b.orderId, b.id, cuponWeb, aprobadoPor);
     return cuponWeb;
 }
 
@@ -186,16 +227,26 @@ export async function prepararEnPortal(borradorId: string) {
         if (r.plan.cuponAutomatico && r.plan.promo?.marca) {
             const marca = r.plan.promo.marca;
             const { pedido, avisos } = pedidoDeCuponDe(r.venta, r.plan);
-            await mezclar(b.id, { etapa: `mirando la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
-            const enWeb = await conSesionPromo(marca, (page) => enSoloLecturaWeb(page, async () => {
-                const existente = await buscarCuponExistente(page, marca, pedido);
-                const resolucion = existente ? null : await resolverEnWeb(page, marca, pedido);
-                return { existente, resolucion };
-            }));
-            cupon = { cuponPedido: pedido, cuponResuelto: enWeb.resolucion ?? undefined, cuponAvisos: avisos, cuponWeb: enWeb.existente ? { codigo: enWeb.existente.pedido.code, pedidoId: enWeb.existente.pedido.id, provider: enWeb.existente.pedido.provider, url: enWeb.existente.url, pdfUrl: enWeb.existente.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado: true } : null };
-            if (enWeb.existente) {
-                r = await planActual(b.orderId, b.pair, { ...guardado.opciones, cupon: enWeb.existente.pedido.code });
+            // Primero la red local (otro borrador de este par ya lo generó); después el sitio, en solo lectura.
+            let cuponWeb: CuponObtenido | null = await cuponAnotadoEnLaVenta(b.orderId, b.pair, b.id).then(c => c ? { ...c, reutilizado: true } : null);
+            let resolucion: ResolucionCupon | undefined;
+            if (!cuponWeb) {
+                await mezclar(b.id, { etapa: `mirando la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
+                const enWeb = await conSesionPromo(marca, (page) => enSoloLecturaWeb(page, async () => {
+                    const existente = await buscarCuponExistente(page, marca, pedido);
+                    return { existente, resolucion: existente ? null : await resolverEnWeb(page, marca, pedido) };
+                }));
+                cuponWeb = enWeb.existente ? cuponObtenidoDe(enWeb.existente, true) : null;
+                resolucion = enWeb.resolucion ?? undefined;
+            }
+            cupon = { cuponPedido: pedido, cuponResuelto: resolucion, cuponAvisos: avisos, cuponWeb };
+            if (cuponWeb) {
+                // Con el cupón ya en mano, el plan que se revisa y se guarda es el REAL (observación con el cupón, no con la marca).
+                r = await planActual(b.orderId, b.pair, { ...guardado.opciones, cupon: cuponWeb.codigo });
                 if (!r.ok) throw new Error(`Faltan datos: ${r.faltantes.join(' · ')}`);
+                const payload: PayloadBorradorOves = { ...guardado, opciones: { ...guardado.opciones, cupon: cuponWeb.codigo }, plan: r.plan };
+                await prisma.labOrderDraft.update({ where: { id: b.id }, data: { payload: payload as any } });
+                await anotarCuponEnLaVenta(b.orderId, b.id, cuponWeb, null);
             }
         }
         await mezclar(b.id, { etapa: `esperando turno y entrando a OVES desde ${new Date().toISOString()}` }).catch(() => null);
@@ -325,7 +376,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 let cupon: string | null = null;
                 if (r0.plan.cuponAutomatico && r0.plan.promo?.marca) {
                     const { pedido } = pedidoDeCuponDe(r0.venta, r0.plan);
-                    cupon = (await obtenerCupon(b.id, rastroActual, r0.plan.promo.marca, pedido)).codigo;
+                    cupon = (await obtenerCupon({ id: b.id, orderId: b.orderId, pair: b.pair }, rastroActual, r0.plan.promo.marca, pedido, aprobadoPor)).codigo;
                 }
                 const r = cupon ? await planActual(b.orderId, b.pair, { ...guardado.opciones, cupon }) : r0;
                 if (!r.ok) throw new AprobacionInvalidaError(`La venta ya no arma el pedido (${r.faltantes.join(' · ')}): volvé a prepararlo. No se mandó nada.`);
@@ -414,7 +465,9 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
         const motivo = err?.message || String(err);
         const rastroAhora = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { resumenPortal: true } }).then(x => (x?.resumenPortal || {}) as RastroOves).catch(() => ({} as RastroOves));
         if (err instanceof AprobacionInvalidaError && !rastroAhora.envioIniciadoEl && !rastroAhora.numeroCreado) {
-            await Borradores.invalidarSinPedido(b.id, ROBOT_ACTOR_OPTOVISION, err.message).catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador Optovisión (queda APROBADO):', e));
+            // "No se mandó nada" vale para OVES; si el cupón ya quedó generado en la web de la promo, hay que decirlo: el borrador nuevo lo hereda.
+            const conCupon = rastroAhora.cuponWeb?.codigo ? `${err.message} (El cupón ${rastroAhora.cuponWeb.codigo} ya quedó ${rastroAhora.cuponWeb.reutilizado ? 'tomado' : 'generado'} en la web de la promo: el borrador nuevo de este par lo usa solo, no se genera otro.)` : err.message;
+            await Borradores.invalidarSinPedido(b.id, ROBOT_ACTOR_OPTOVISION, conCupon).catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador Optovisión (queda APROBADO):', e));
             throw err;
         }
         const texto = textoDeFallaDeConfirmacion({ motivo, numeroCreado: rastroAhora.numeroCreado, envioIncierto: !!rastroAhora.envioIniciadoEl || err instanceof PortalRespondioError, adopcionNoVerificada: err instanceof AdopcionNoVerificadaError, nombrePortal: 'OVES' });

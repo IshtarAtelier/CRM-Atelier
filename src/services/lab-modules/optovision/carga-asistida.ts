@@ -4,7 +4,7 @@ import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorra
 import { CRIZALES } from '../../../lib/constants/crizal';
 import { avisoDeRoles } from '../../../lib/laboratorios/roles-2x1';
 import { precioConSigno } from '../../../lib/format-precio';
-import { cristalesPorPar, planDeCarga, promoDeVenta, rolDe, rolesDeLaPromo, type OpcionesCargaOves, type PlanOves } from './carga';
+import { cristalDelSegundoPar, cristalesPorPar, planDeCarga, promoDeVenta, rolDe, rolesDeLaPromo, type OpcionesCargaOves, type PlanOves } from './carga';
 import { eleccionQuePide, FORMAS_OVES, SERVICIO_CALIBRADO, TIPO_ARMAZON_OVES } from './catalogo';
 import { leerVentaParaCargaOves } from './venta';
 import { mensajeExistente, numeroDelPrimerPar, pedidoExistenteDelPar, type PedidoExistente } from './existentes';
@@ -12,8 +12,8 @@ import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_OPTOVISION, ty
 import { avisarMailDePromo } from './promo-mail';
 import { prisma } from '../../../lib/db';
 import { LAB_OPTOVISION, NOMBRE_OPTOVISION } from './portal';
-import { cuponLimpio, pasosPendientes, ETIQUETA_DE_PASO, PATRON_CUPON, PATRON_CUPON_HTML, WEB_DE_PROMO } from './promo';
-import { pedidoDeCupon } from './cupon-web';
+import { conCuponReal, cuponLimpio, pasosPendientes, ETIQUETA_DE_PASO, PATRON_CUPON, PATRON_CUPON_HTML, WEB_DE_PROMO } from './promo';
+import { pedidoDeCupon, rasgosDelCristalCRM, rasgosDeProductoWeb } from './cupon-web';
 
 /**
  * La carga asistida de Optovisión detrás del contrato común (carga/contrato.ts).
@@ -45,11 +45,21 @@ function opcionesDelBody(body: Record<string, unknown>): OpcionesCargaOves {
     };
 }
 
-/** El cristal del 2º par de la promo doble (para el cupón, que lleva los dos). */
-function productoDelSegundoPar(venta: Parameters<typeof rolesDeLaPromo>[0]): string | null {
-    const roles = rolesDeLaPromo(venta);
-    const item = roles ? cristalesPorPar(venta).get(roles.sinCargo)?.[0] : null;
-    return item ? texto(item.product?.name ?? item.productNameSnapshot) || null : null;
+/**
+ * Al preparar el 2º par: el cupón del 1º se generó con un producto para el
+ * 2º (mismo Crizal que el 1º). Si este par va con otro Crizal o tecnología, el
+ * cupón no coincide y Optovisión puede cobrar la diferencia: se AVISA fuerte
+ * (es una decisión de negocio legítima, no se frena).
+ */
+async function avisoDeCuponDelSegundoPar(orderId: string, parConCargo: number, plan: PlanOves): Promise<string | null> {
+    const primero = await prisma.labOrderDraft.findFirst({ where: { orderId, lab: LAB_OPTOVISION, pair: parConCargo, status: 'CARGADO' }, orderBy: { updatedAt: 'desc' }, select: { resumenPortal: true } }).catch(() => null);
+    const r = (primero?.resumenPortal || {}) as RastroOves;
+    if (!r.cuponResuelto?.segundo || !r.cuponWeb?.codigo || !plan.promo?.marca) return null;
+    const enCupon = rasgosDeProductoWeb(r.cuponResuelto.segundo.name);
+    const este = rasgosDelCristalCRM(plan.productoCRM, plan.opciones.tratamiento, plan.promo.marca);
+    if (!este.ok) return null;
+    const igual = este.rasgos.material === enCupon.material && este.rasgos.tecnologia === enCupon.tecnologia && este.rasgos.tratamiento === enCupon.tratamiento;
+    return igual ? null : `OJO: el cupón ${r.cuponWeb.codigo} se generó con el 2º par "${r.cuponResuelto.segundo.name}" y este pedido va como ${plan.producto.label} con ${plan.servicios.tratamiento}: no coinciden, Optovisión puede cobrar la diferencia. Si corresponde, corregí el cupón a mano en la web de la promo antes de aprobar.`;
 }
 
 export const CARGA_OPTOVISION: CargaAsistida = {
@@ -101,9 +111,9 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 const existente = yaCargados.get(pair);
                 const avisos = [...r.avisos, ...(avisoRoles && roles ? [avisoRoles] : [])];
                 if (promo?.tipo === 'MI_PRIMER') avisos.push('Promo Mi Primer: misma modalidad que la doble (cupón, observación y mail a Optovisión con el nº de trabajo); el robot manda el mail al cargar.');
-                // Qué le falta a la ficha para que el robot genere el cupón solo (el género se elige acá, no cuenta).
+                // Qué le falta a la ficha para que el robot genere el cupón solo (el género se elige acá, así que se simula uno: no cuenta como faltante).
                 if (rol === 'PRIMER_PAR' && r.ok) {
-                    const c = pedidoDeCupon({ venta, plan: r.plan, productoCRMSegundo: productoDelSegundoPar(venta), genero: 'F' });
+                    const c = pedidoDeCupon({ venta, plan: r.plan, productoCRMSegundo: cristalDelSegundoPar(venta), genero: 'F' });
                     if (!c.ok) avisos.push(`Para que el robot genere el cupón solo falta: ${c.faltantes.join(' · ')}. Si no, generalo a mano y tipealo.`);
                     else avisos.push(...c.avisos);
                 }
@@ -154,7 +164,8 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 { titulo: 'Armazón', valor: `${plan.armazon.tipoEtiqueta ?? '—'}${plan.armazon.forma ? ` · forma ${plan.armazon.forma}` : ''} · A ${plan.armazon.a ?? '—'} B ${plan.armazon.b ?? '—'} ED ${plan.armazon.ed ?? '—'} Pte ${plan.armazon.puente ?? '—'} · ${plan.armazon.envia === 'Si' ? `se manda (${plan.armazon.marca || 'sin marca'})` : 'no se manda'}` },
                 { titulo: 'Referencia', valor: plan.pedinterno },
                 { titulo: 'Paciente', valor: plan.paciente },
-                { titulo: 'Observación', valor: plan.observacion || '—', fuerte: !!plan.promo },
+                // Con el cupón ya obtenido (reutilizado al preparar), la fila dice lo que la captura muestra: el real, no la marca.
+                { titulo: 'Observación', valor: (cupon ? conCuponReal(plan.observacion, cupon) : plan.observacion) || '—', fuerte: !!plan.promo },
                 ...(plan.rolPromo === 'PRIMER_PAR' ? [{ titulo: 'Cupón', valor: cupon ?? (plan.cuponAutomatico ? 'lo genera el robot en la web de la promo al aprobar' : '—'), fuerte: true }] : []),
                 ...(r.cuponResuelto ? [{ titulo: 'En la web de la promo', valor: `${r.cuponResuelto.linea.name} · ${r.cuponResuelto.primero.name}${r.cuponResuelto.segundo ? ` + 2º par ${r.cuponResuelto.segundo.name}` : ''}` }] : []),
             ] : [],
@@ -196,9 +207,13 @@ export const CARGA_OPTOVISION: CargaAsistida = {
         const avisos = [...r.avisos];
         // Cupón a cargo del robot: lo que la web de la promo exige tiene que estar ANTES de preparar (género, DNI, nacimiento, receta completa).
         if (r.plan.cuponAutomatico) {
-            const c = pedidoDeCupon({ venta, plan: r.plan, productoCRMSegundo: productoDelSegundoPar(venta), genero: opciones.genero });
+            const c = pedidoDeCupon({ venta, plan: r.plan, productoCRMSegundo: cristalDelSegundoPar(venta), genero: opciones.genero });
             if (!c.ok) return { ok: false, status: 422, error: 'Para que el robot genere el cupón en la web de la promo faltan datos (o generalo a mano y tipealo en "Cupón").', faltantes: c.faltantes, avisos };
             avisos.push(...c.avisos);
+        }
+        if (r.plan.rolPromo === 'SEGUNDO_PAR' && roles) {
+            const aviso = await avisoDeCuponDelSegundoPar(orderId, roles.conCargo, r.plan);
+            if (aviso) avisos.push(aviso);
         }
         const payload: PayloadBorradorOves = { opciones, plan: r.plan, avisos };
         const preparado = await Borradores.preparar({ lab: LAB_OPTOVISION, orderId, pair, payload, actor });

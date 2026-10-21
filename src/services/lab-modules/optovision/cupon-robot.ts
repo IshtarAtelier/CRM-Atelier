@@ -1,7 +1,7 @@
 import type { Page } from 'playwright';
 import { conNavegador, CredencialRechazadaError } from '../portal/navegador';
 import { WEB_DE_PROMO, type MarcaDePromo } from './promo';
-import { elegirLineaWeb, elegirProductoWeb, esCuponDelCliente, filasDelCliente, pedidoDeLaPagina, segundoAdmitido, type FilaHistorial, type LineaWeb, type PedidoDeCupon, type PedidoWeb, type ProductoWeb } from './cupon-web';
+import { cuponReutilizable, elegirLineaWeb, elegirProductoWeb, esCuponDelCliente, esProviderMiPrimer, filasDelCliente, pedidoDeLaPagina, segundoAdmitido, type FilaHistorial, type LineaWeb, type PedidoDeCupon, type PedidoWeb, type ProductoWeb } from './cupon-web';
 
 /**
  * EL ROBOT DEL CUPÓN: entra a la web de la promo de Optovisión con la cuenta
@@ -40,10 +40,12 @@ export class CredencialPromoFaltanteError extends CredencialRechazadaError {
 export class SitioDePromoNoAceptaRobotError extends Error { constructor(m: string) { super(m); this.name = 'SitioDePromoNoAceptaRobotError'; } }
 /** El sitio rechazó el pedido (validación): no se creó cupón. */
 export class CuponRechazadoError extends Error { constructor(m: string) { super(m); this.name = 'CuponRechazadoError'; } }
+/** "Mi Primer" ya fue otorgado a este cliente: no se genera otro. */
+export class MiPrimerYaOtorgadoError extends Error { constructor(m: string) { super(m); this.name = 'MiPrimerYaOtorgadoError'; } }
 
-/** Lee las credenciales del entorno. Las de Kodak caen a las de Varilux (misma aplicación, misma cuenta). */
-export function credencialesPromo(marca: MarcaDePromo, env: Record<string, string | undefined> = process.env): { usuario: string; clave: string } {
-    const leer = (m: MarcaDePromo) => ({ usuario: (env[VARIABLES[m].user] || '').trim(), clave: (env[VARIABLES[m].pass] || '').trim() });
+/** Lee las credenciales del entorno. Las de Kodak caen a las de Varilux (misma aplicación, misma cuenta); `variables` dice cuáles se usaron. */
+export function credencialesPromo(marca: MarcaDePromo, env: Record<string, string | undefined> = process.env): { usuario: string; clave: string; variables: string } {
+    const leer = (m: MarcaDePromo) => ({ usuario: (env[VARIABLES[m].user] || '').trim(), clave: (env[VARIABLES[m].pass] || '').trim(), variables: `${VARIABLES[m].user}/${VARIABLES[m].pass}` });
     let c = leer(marca);
     if ((!c.usuario || !c.clave) && marca === 'KODAK') c = leer('VARILUX');
     if (!c.usuario || !c.clave) throw new CredencialPromoFaltanteError(marca);
@@ -56,7 +58,7 @@ const base = (marca: MarcaDePromo) => WEB_DE_PROMO[marca].replace(/\/$/, '');
 const HAY_CAPTCHA = `(() => !!document.querySelector('.g-recaptcha, iframe[src*="recaptcha/api2/anchor"], iframe[src*="hcaptcha"], textarea[name="g-recaptcha-response"]'))()`;
 
 async function loginPromo(page: Page, marca: MarcaDePromo): Promise<void> {
-    const { usuario, clave } = credencialesPromo(marca);
+    const { usuario, clave, variables } = credencialesPromo(marca);
     await page.goto(`${base(marca)}/login`, { waitUntil: 'domcontentloaded' });
     if (!/\/login/.test(page.url())) return; // ya adentro
     if (await page.evaluate(HAY_CAPTCHA)) throw new SitioDePromoNoAceptaRobotError(`la ${NOMBRE_WEB_PROMO[marca]} pide un CAPTCHA para entrar: el cupón se genera a mano`);
@@ -70,7 +72,7 @@ async function loginPromo(page: Page, marca: MarcaDePromo): Promise<void> {
     while (Date.now() < limite) {
         if (!/\/login/.test(page.url())) return;
         const cuerpo = (await page.innerText('body').catch(() => '')) || '';
-        if (/credenciales|no coinciden|incorrect|inv[aá]lid/i.test(cuerpo)) throw new CredencialRechazadaError(NOMBRE_WEB_PROMO[marca], `${VARIABLES[marca].user}/${VARIABLES[marca].pass}`);
+        if (/credenciales|no coinciden|incorrect|inv[aá]lid/i.test(cuerpo)) throw new CredencialRechazadaError(NOMBRE_WEB_PROMO[marca], variables);
         await page.waitForTimeout(CADA_MS);
     }
     throw new Error(`la ${NOMBRE_WEB_PROMO[marca]} no salió del login en ${Math.round(ESPERA_WEB_PROMO_MS / 60_000)} minutos (${page.url()}).`);
@@ -140,7 +142,7 @@ export async function resolverEnWeb(page: Page, marca: MarcaDePromo, pedido: Ped
     if (pedido.segundo) {
         const p2 = elegirProductoWeb(productos, pedido.segundo.rasgos);
         if (!p2.ok) throw new Error(`2º par: ${p2.motivo}`);
-        if (!segundoAdmitido(p1.producto, p2.producto)) throw new Error(`la web de la promo no admite "${p2.producto.name}" como 2º par de "${p1.producto.name}" (para el sitio vale más): revisá qué par va 1º o generá el cupón a mano`);
+        if (!segundoAdmitido(p1.producto, p2.producto)) throw new Error(`la web de la promo no admite "${p2.producto.name}" como 2º par de "${p1.producto.name}" (para el sitio vale más que el 1º, que el CRM elige por precio de lista): generá el cupón a mano en el sitio y tipealo al preparar`);
         segundo = { id: p2.producto.id, name: p2.producto.name, order: p2.producto.order };
     }
     return { provider: pedido.provider, linea: { id: l.linea.id, name: l.linea.name }, primero: { id: p1.producto.id, name: p1.producto.name, order: p1.producto.order }, segundo };
@@ -157,14 +159,32 @@ export async function leerHistorial(page: Page, marca: MarcaDePromo): Promise<Fi
     }));
 }
 
-/** Un cupón YA generado para este cliente y esta promo (por DNI), el más nuevo. Null si no hay. */
+/** Cuántos detalles del historial se abren como mucho buscando el DNI (hoy el historial entero tiene 59 filas; son GET baratos). */
+const MAX_DETALLES_HISTORIAL = 120;
+
+/**
+ * Un cupón YA generado para este cliente y esta promo, por DNI (el nombre del
+ * historial solo ordena la búsqueda: primero las filas que se parecen, después
+ * TODAS las demás, porque el sitio puede tener el nombre escrito distinto).
+ * Devuelve el más nuevo que se pueda REUTILIZAR (sin usar y reciente). Si la
+ * promo es "Mi Primer" y el DNI ya tiene un cupón que no se puede reutilizar,
+ * lanza: esa promo es una vez por cliente y no se genera otro.
+ */
 export async function buscarCuponExistente(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon): Promise<{ pedido: PedidoWeb; url: string; pdfUrl: string | null } | null> {
-    const filas = await leerHistorial(page, marca);
-    const candidatas = filasDelCliente(filas, `${pedido.cliente.nombre} ${pedido.cliente.apellido}`).filter(f => f.detalleUrl);
-    for (const f of candidatas.slice(0, 6)) {
+    const filas = (await leerHistorial(page, marca)).filter(f => f.detalleUrl);
+    const parecidas = filasDelCliente(filas, `${pedido.cliente.nombre} ${pedido.cliente.apellido}`);
+    const orden = [...parecidas, ...filas.filter(f => !parecidas.includes(f))].slice(0, MAX_DETALLES_HISTORIAL);
+    const delCliente: { pedido: PedidoWeb; url: string; pdfUrl: string | null }[] = [];
+    for (const f of orden) {
         await page.goto(f.detalleUrl!, { waitUntil: 'domcontentloaded' });
         const p = pedidoDeLaPagina(await page.content());
-        if (p && esCuponDelCliente(p, { provider: pedido.provider, dni: pedido.cliente.dni })) return { pedido: p, url: f.detalleUrl!, pdfUrl: f.pdfUrl };
+        if (!p || !esCuponDelCliente(p, { provider: pedido.provider, dni: pedido.cliente.dni })) continue;
+        if (cuponReutilizable(p)) return { pedido: p, url: f.detalleUrl!, pdfUrl: f.pdfUrl };
+        delCliente.push({ pedido: p, url: f.detalleUrl!, pdfUrl: f.pdfUrl });
+    }
+    if (delCliente.length && esProviderMiPrimer(pedido.provider)) {
+        const c = delCliente[0].pedido;
+        throw new MiPrimerYaOtorgadoError(`este cliente (DNI ${pedido.cliente.dni}) ya tiene un cupón de Mi Primer en la ${NOMBRE_WEB_PROMO[marca]} (${c.code}, ${c.code_used_at ? 'usado' : `del ${String(c.created_at).slice(0, 10)}`}): la promo es una vez por cliente y no se genera otro. Confirmá con Optovisión qué corresponde y cargá el pedido con el cupón que te digan`);
     }
     return null;
 }
@@ -207,7 +227,7 @@ export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: Pedi
     await page.fill('form input[name="last_name"]', c.apellido); anotar('last_name', c.apellido);
     await llenarYLeer(page, 'document_number_input', c.dni); anotar('document_number', c.dni);
     await page.selectOption('form select[name="gender"]', c.genero); anotar('gender', c.genero);
-    if (c.telefono) await llenarYLeer(page, 'phone', c.telefono);
+    if (c.telefono) { await llenarYLeer(page, 'phone', c.telefono); anotar('phone', c.telefono); }
     if (c.email) { await page.fill('form input[name="email"]', c.email); anotar('email', c.email); }
     // Nacimiento: tres selects sin nombre (Día / Mes 0–11 / Año) que alimentan el oculto `birthdate`.
     for (const [texto, valor] of [['Día', String(c.nacimiento.dia)], ['Mes', String(c.nacimiento.mes0)], ['Año', String(c.nacimiento.anio)]] as const) {
@@ -240,7 +260,7 @@ export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: Pedi
     const dif = Object.entries(esperado).filter(([k, v]) => {
         const q = quedo[k] ?? '';
         if (/^(od|oi)_(esferico|cilindrico|adicion)$/.test(k)) return Number(q.replace(',', '.')) !== Number(v);
-        if (k === 'document_number' || /dnp|eje/.test(k)) return digitos(q) !== digitos(v);
+        if (k === 'document_number' || k === 'phone' || /dnp|eje/.test(k)) return digitos(q) !== digitos(v);
         return q.trim() !== v.trim();
     }).map(([k, v]) => `${k}: pedido "${v}", quedó "${quedo[k] ?? ''}"`);
     if (dif.length) throw new SitioDePromoNoAceptaRobotError(`el formulario de la ${NOMBRE_WEB_PROMO[marca]} no quedó como se pidió (${dif.slice(0, 4).join(' · ')}): el cupón se genera a mano`);
@@ -256,7 +276,7 @@ export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: Pedi
         if (/\/pedidos\/\d+(\?|$)/.test(url)) {
             const html = await page.content();
             const creado = pedidoDeLaPagina(html);
-            if (!creado) throw new Error(`la ${NOMBRE_WEB_PROMO[marca]} mostró ${url} pero no se pudo leer el cupón: revisá el historial del sitio antes de reintentar (puede estar creado)`);
+            if (!creado) throw new Error(`la ${NOMBRE_WEB_PROMO[marca]} mostró ${url} pero no se pudo leer el cupón (puede estar creado): Reintentar lo busca en el historial por DNI antes de generar otro`);
             if (!esCuponDelCliente(creado, { provider: pedido.provider, dni: c.dni })) throw new Error(`la ${NOMBRE_WEB_PROMO[marca]} mostró el pedido ${creado.id} (cupón ${creado.code}) pero no es de este cliente/promo: revisá el historial del sitio`);
             const pdf = html.match(/href="([^"]*\/pedidos\/\d+\/pdf[^"]*)"/);
             return { pedido: creado, url, pdfUrl: pdf ? pdf[1].replace(/&amp;/g, '&') : null };
@@ -266,5 +286,5 @@ export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: Pedi
         if (errores.length) throw new CuponRechazadoError(`la ${NOMBRE_WEB_PROMO[marca]} no aceptó el pedido (${[...new Set(errores)].slice(0, 5).join(' · ')}); no se creó cupón`);
         if (await page.evaluate(HAY_CAPTCHA)) throw new SitioDePromoNoAceptaRobotError(`la ${NOMBRE_WEB_PROMO[marca]} pidió un CAPTCHA al confirmar: el cupón se genera a mano`);
     }
-    throw new Error(`la ${NOMBRE_WEB_PROMO[marca]} no respondió al confirmar en ${Math.round(ESPERA_WEB_PROMO_MS / 60_000)} minutos: revisá el historial del sitio antes de reintentar (puede estar creado)`);
+    throw new Error(`la ${NOMBRE_WEB_PROMO[marca]} no respondió al confirmar en ${Math.round(ESPERA_WEB_PROMO_MS / 60_000)} minutos (el cupón puede estar creado): Reintentar lo busca en el historial por DNI antes de generar otro`);
 }

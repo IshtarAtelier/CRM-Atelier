@@ -107,19 +107,34 @@ cambia: Kodak renovó el suyo el 4/8/2026), no contra una copia.
 
 ## Cómo lo usa el robot (`optovision/cupon-web.ts` + `cupon-robot.ts`)
 
-1. **Al preparar el 1er par** sin cupón tipeado: entra en SOLO LECTURA (se
-   abortan los POST que no sean el login), resuelve línea y productos contra la
-   API y lo deja en el borrador para que la revisión lo muestre. Si el DNI ya
-   tiene un cupón de esa promo en el historial, lo toma y no genera otro.
-2. **Al aprobar**, antes de grabar en OVES: vuelve a buscar en el historial
-   (por si alguien lo generó a mano mientras tanto); si no hay, llena el
-   formulario, confirma, espera la redirección a `/pedidos/<id>` y lee el
-   `code`. Lo anota en el borrador EN EL ACTO (un reintento nunca genera dos) y
-   recién entonces escribe la observación "Primer par de Promo num cupón …" en
-   OVES.
+1. **Al preparar el 1er par** sin cupón tipeado: primero la red local (otro
+   borrador de la misma venta y par ya lo generó → se hereda); si no, entra en
+   SOLO LECTURA (se abortan los POST que no sean el login), busca en el
+   historial un cupón del cliente y resuelve línea y productos contra la API
+   para que la revisión lo muestre. Con cupón en mano, el plan guardado y la
+   captura ya llevan el real.
+   La búsqueda en el historial es **por DNI** (se abren los detalles; el
+   nombre solo ordena cuáles primero, porque el sitio puede tenerlo escrito
+   distinto) y solo cuenta un cupón **sin usar** (`code_used_at` vacío) y de
+   los últimos 60 días: uno consumido en una compra anterior ya no vale. En
+   "Mi Primer", si el DNI ya tiene un cupón que no se puede reutilizar, FRENA
+   (la promo es una vez por cliente) y pide confirmar con Optovisión.
+2. **Al aprobar**, con la venta sin cambios y antes de grabar en OVES: vuelve a
+   mirar la red local y el historial (por si alguien lo generó a mano mientras
+   tanto); si no hay, llena el formulario, confirma, espera la redirección a
+   `/pedidos/<id>` y lee el `code`. Lo anota en el borrador EN EL ACTO, en la
+   ficha del cliente y en el AuditLog (un reintento nunca genera dos) y recién
+   entonces escribe la observación "Primer par de Promo num cupón …" en OVES.
+   Si después de eso la aprobación se invalida, el mensaje dice que el cupón
+   ya existe y que el borrador nuevo lo hereda.
+   Al preparar el **2º par**, se compara su Crizal/tecnología con el producto
+   que lleva el cupón para el 2º par y, si no coinciden, se avisa fuerte.
 3. Si el sitio no acepta el robot (CAPTCHA, cambio de formulario, credencial
-   rechazada), FRENA y lo dice en la ficha: el cupón se genera a mano y se
-   tipea en el campo "Cupón". Nunca se intenta saltar un CAPTCHA.
+   que falta, rechazo de validación, Mi Primer ya otorgado), la aprobación se
+   INVALIDA con el camino a mano: el cupón se genera en la web y se tipea en
+   el campo "Cupón" al preparar de nuevo. Nunca se intenta saltar un CAPTCHA.
+   Un corte de red o un timeout, en cambio, deja el borrador APROBADO y
+   Reintentar busca el cupón por DNI antes de generar otro.
 
 Lo puro (parseo de nombres, armado del formulario, el cupón que lee de la
 respuesta) lo fija `npm run check:carga-optovision`.

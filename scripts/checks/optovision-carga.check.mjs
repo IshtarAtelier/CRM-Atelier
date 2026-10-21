@@ -14,7 +14,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 import assert from 'node:assert/strict';
 import { marcaDePromo, WEB_DE_PROMO, DESTINATARIOS_PROMO, MAIL_PROMO_PARA, MAIL_PROMO_COPIA, providerDePromo, nombreDePromo, PATRON_CUPON, MARCA_CUPON_PENDIENTE, observacionPrimerParPendiente, conCuponReal, cuponLimpio, observacionPrimerPar, observacionSegundoPar, asuntoDelMail, pasosPendientes } from '../../src/services/lab-modules/optovision/promo.ts';
-import { rasgosDeProductoWeb, rasgosDelCristalCRM, elegirLineaWeb, elegirProductoWeb, segundoAdmitido, recetaWebDe, repartirNombre, clienteWebDe, pedidoDeCupon, pedidoDeLaPagina, filasDelCliente, esCuponDelCliente, planConCupon, formularioConCupon } from '../../src/services/lab-modules/optovision/cupon-web.ts';
+import { rasgosDeProductoWeb, rasgosDelCristalCRM, elegirLineaWeb, elegirProductoWeb, segundoAdmitido, recetaWebDe, repartirNombre, clienteWebDe, pedidoDeCupon, pedidoDeLaPagina, filasDelCliente, esCuponDelCliente, cuponReutilizable, esProviderMiPrimer, DIAS_CUPON_VIGENTE, planConCupon, formularioConCupon } from '../../src/services/lab-modules/optovision/cupon-web.ts';
 import { credencialesPromo, CredencialPromoFaltanteError } from '../../src/services/lab-modules/optovision/cupon-robot.ts';
 import { especificacionDe, colorOvesDe, materialDe, elegirProductoOves, eleccionQuePide, familiaDelNombre, tratamientoDe, varianteDe } from '../../src/services/lab-modules/optovision/catalogo.ts';
 import { PRODUCTOS_OVES, OVES_CATALOGO, valueDeOves } from '../../src/lib/laboratorios/oves-catalogo.ts';
@@ -516,11 +516,41 @@ t('el cupón se lee de la página de detalle del sitio y se reconoce por DNI y p
     assert.deepEqual(filasDelCliente(filas, 'Samuel Vadora').map(f => f.codigo), ['VAUV2XMV']);
     assert.deepEqual(filasDelCliente(filas, 'Otra Persona'), []);
 });
-t('las credenciales de la web de promo salen del entorno; Kodak cae a Varilux; sin nada se avisa', () => {
-    assert.deepEqual(credencialesPromo('KODAK', { PROMO_VARILUX_USER: 'u', PROMO_VARILUX_PASSWORD: 'p' }), { usuario: 'u', clave: 'p' });
-    assert.deepEqual(credencialesPromo('KODAK', { PROMO_VARILUX_USER: 'u', PROMO_VARILUX_PASSWORD: 'p', PROMO_KODAK_USER: 'k', PROMO_KODAK_PASSWORD: 'kp' }), { usuario: 'k', clave: 'kp' });
+t('las credenciales de la web de promo salen del entorno; Kodak cae a Varilux (y el error nombra las que se usaron); sin nada se avisa', () => {
+    assert.deepEqual(credencialesPromo('KODAK', { PROMO_VARILUX_USER: 'u', PROMO_VARILUX_PASSWORD: 'p' }), { usuario: 'u', clave: 'p', variables: 'PROMO_VARILUX_USER/PROMO_VARILUX_PASSWORD' });
+    assert.deepEqual(credencialesPromo('KODAK', { PROMO_VARILUX_USER: 'u', PROMO_VARILUX_PASSWORD: 'p', PROMO_KODAK_USER: 'k', PROMO_KODAK_PASSWORD: 'kp' }), { usuario: 'k', clave: 'kp', variables: 'PROMO_KODAK_USER/PROMO_KODAK_PASSWORD' });
     assert.throws(() => credencialesPromo('VARILUX', {}), CredencialPromoFaltanteError);
     assert.throws(() => credencialesPromo('VARILUX', { PROMO_VARILUX_USER: 'u' }), /PROMO_VARILUX_USER\/PROMO_VARILUX_PASSWORD/);
+});
+t('un cupón del historial solo se reutiliza sin usar y reciente; Mi Primer se reconoce por provider', () => {
+    const ahora = new Date('2026-10-20T12:00:00Z');
+    const base = { id: 1, provider: 'varilux', code: 'VA7AGQWN', code_used_at: null, document_number: '1', first_name: null, last_name: null, created_at: '2026-10-16T21:20:46.000000Z', promotions_product_line_id: null, first_product_id: null, second_product_id: null };
+    assert.equal(cuponReutilizable(base, ahora), true);
+    assert.equal(cuponReutilizable({ ...base, code_used_at: '2026-10-17T10:00:00.000000Z' }, ahora), false);
+    assert.equal(cuponReutilizable({ ...base, created_at: '2026-06-01T00:00:00.000000Z' }, ahora), false);
+    assert.equal(cuponReutilizable({ ...base, created_at: null }, ahora), false);
+    assert.equal(cuponReutilizable({ ...base, created_at: `2026-${String(10).padStart(2, '0')}-20T00:00:00.000000Z` }, ahora), true);
+    assert.equal(esProviderMiPrimer('mi-primer-varilux'), true); assert.equal(esProviderMiPrimer('kodak-progresivos'), true);
+    assert.equal(esProviderMiPrimer('varilux'), false); assert.equal(esProviderMiPrimer('kodak'), false);
+    assert.equal(DIAS_CUPON_VIGENTE, 60);
+});
+t('el cupón automático solo aplica a promos con web (Varilux / Kodak); un 2x1 de otra familia sigue pidiendo el cupón tipeado', () => {
+    const v = ventaDoble();
+    const sygnus = 'SYGNUS CLASSIC - ORMA + CRIZAL 2x1';
+    for (const i of v.items) { i.product.name = sygnus; i.productNameSnapshot = sygnus; i.crystalColor = null; }
+    v.items[0].price = 200000; v.items[1].price = 200000; v.items[2].product.price = 100000; v.items[3].product.price = 100000;
+    assert.equal(esPromoDobleDeOptovision(v), true);
+    const roles = rolesDeLaPromo(v);
+    const r = planDeCarga(v, roles.conCargo, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', cuponAutomatico: true, genero: 'M' });
+    if (r.ok) assert.fail('tendría que pedir el cupón tipeado');
+    assert.ok(r.faltantes.some(f => /cupón/.test(f)) || r.aMano, r.faltantes.join(' · '));
+    // El nombre repartido conserva acentos y mayúsculas de la ficha (va al voucher).
+    assert.deepEqual(repartirNombre('María José Pérez'), { nombre: 'María', apellido: 'José Pérez' });
+    // Una DNP con medio punto avisa que va redondeada.
+    const med = recetaWebDe({ esf: '-1.00', cil: null, eje: null, adic: '1.00', dnp: '32.5', altura: null }, 'OI');
+    assert.ok(med.ok); assert.match(med.avisos[0], /32\.5 va como 33/);
+    // Fecha de nacimiento como string sin zona: se lee por su día.
+    assert.equal(clienteWebDe({ name: 'Ana Perez', dni: '1234567', birthDate: '1970-01-02', phone: null, email: null }, 'F').cliente.nacimiento.iso, '1970-01-02');
 });
 
 console.log(`check:carga-optovision OK (${n} grupos)`);

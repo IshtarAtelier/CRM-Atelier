@@ -96,7 +96,7 @@ export interface RecetaWeb { esferico: string; cilindrico: string; eje: string; 
 const sinMas = (s: string) => s.replace(/^\+/, '');
 
 /** La receta de un ojo del plan de OVES, en el formato del sitio; o qué le falta. Puro. */
-export function recetaWebDe(ojo: OjoOves | null, lado: 'OD' | 'OI'): { ok: true; receta: RecetaWeb } | { ok: false; faltantes: string[] } {
+export function recetaWebDe(ojo: OjoOves | null, lado: 'OD' | 'OI'): { ok: true; receta: RecetaWeb; avisos: string[] } | { ok: false; faltantes: string[] } {
     if (!ojo) return { ok: false, faltantes: [`receta del ${lado} (la web de la promo pide los dos ojos)`] };
     const faltantes: string[] = [];
     if (!ojo.adic) faltantes.push(`adición ${lado} (la web de la promo solo acepta progresivos)`);
@@ -106,7 +106,8 @@ export function recetaWebDe(ojo: OjoOves | null, lado: 'OD' | 'OI'): { ok: true;
     const adic = ojo.adic ? parseFloat(ojo.adic) : NaN;
     if (ojo.adic && (adic < 0.75 || adic > 3.75)) faltantes.push(`adición ${lado} (${ojo.adic}) fuera de lo que acepta la web de la promo (0.75 a 3.75)`);
     if (faltantes.length) return { ok: false, faltantes };
-    return { ok: true, receta: { esferico: sinMas(ojo.esf), cilindrico: ojo.cil ? sinMas(ojo.cil) : '0.00', eje: ojo.cil && ojo.eje ? ojo.eje : '', adicion: ojo.adic!, dnp: String(dnp) } };
+    const avisos = dnp !== null && Number(ojo.dnp) !== dnp ? [`DNP ${lado} ${ojo.dnp} va como ${dnp} en la web de la promo (solo acepta enteros)`] : [];
+    return { ok: true, avisos, receta: { esferico: sinMas(ojo.esf), cilindrico: ojo.cil ? sinMas(ojo.cil) : '0.00', eje: ojo.cil && ojo.eje ? ojo.eje : '', adicion: ojo.adic!, dnp: String(dnp) } };
 }
 
 export interface ClienteWeb {
@@ -115,9 +116,9 @@ export interface ClienteWeb {
     nacimiento: { iso: string; dia: number; mes0: number; anio: number };
 }
 
-/** Nombre y apellido repartidos como los pide el sitio: 1 palabra → las dos iguales; 2 → nombre / apellido; más → la primera / el resto. Puro. */
+/** Nombre y apellido repartidos como los pide el sitio (tal cual están en la ficha, acentos incluidos): 1 palabra → las dos iguales; 2 → nombre / apellido; más → la primera / el resto. Puro. */
 export function repartirNombre(nombreCompleto: string): { nombre: string; apellido: string } {
-    const t = limpio(nombreCompleto).split(' ').filter(Boolean).map(p => p[0].toUpperCase() + p.slice(1));
+    const t = String(nombreCompleto || '').trim().split(/\s+/).filter(Boolean).map(p => p[0].toUpperCase() + p.slice(1));
     if (!t.length) return { nombre: '', apellido: '' };
     if (t.length === 1) return { nombre: t[0], apellido: t[0] };
     if (t.length === 2) return { nombre: t[0], apellido: t[1] };
@@ -135,7 +136,9 @@ export function clienteWebDe(cliente: VentaParaCargaOves['client'], genero: stri
     if (!/^\d{7,8}$/.test(dni)) faltantes.push('DNI del cliente (7 u 8 dígitos, en la ficha)');
     const g = String(genero || '').trim().toUpperCase();
     if (g !== 'F' && g !== 'M') faltantes.push('género del cliente (F/M): se elige al preparar, la web de la promo lo exige');
-    const nac = cliente?.birthDate ? new Date(cliente.birthDate) : null;
+    // La ficha guarda la fecha a medianoche UTC (Date); un string "YYYY-MM-DD…" se lee por su día, sin pasar por la zona local.
+    const crudo = cliente?.birthDate;
+    const nac = crudo instanceof Date ? crudo : typeof crudo === 'string' && /^\d{4}-\d{2}-\d{2}/.test(crudo) ? new Date(`${crudo.slice(0, 10)}T00:00:00.000Z`) : crudo ? new Date(crudo) : null;
     if (!nac || Number.isNaN(nac.getTime())) faltantes.push('fecha de nacimiento del cliente (en la ficha)');
     const tel = String(cliente?.phone || '').replace(/\D/g, '');
     const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(cliente?.email || '').trim()) ? String(cliente!.email).trim() : null;
@@ -159,7 +162,7 @@ export interface PedidoDeCupon {
  * Arma el pedido del cupón desde la venta y los planes de OVES (el del 1er par
  * siempre; el del 2º en las promos dobles). Puro.
  */
-export function pedidoDeCupon(o: { venta: VentaParaCargaOves; plan: PlanOves; productoCRMSegundo: string | null; genero: string | null | undefined; tratamientoSegundo?: string | null }): { ok: true; pedido: PedidoDeCupon; avisos: string[] } | { ok: false; faltantes: string[] } {
+export function pedidoDeCupon(o: { venta: VentaParaCargaOves; plan: PlanOves; productoCRMSegundo: string | null; genero: string | null | undefined }): { ok: true; pedido: PedidoDeCupon; avisos: string[] } | { ok: false; faltantes: string[] } {
     const faltantes: string[] = [];
     const avisos: string[] = [];
     const provider = providerDePromo(o.plan.promo?.marca, o.plan.promo?.tipo as TipoDePromo | undefined);
@@ -168,19 +171,19 @@ export function pedidoDeCupon(o: { venta: VentaParaCargaOves; plan: PlanOves; pr
     if (!c.ok) faltantes.push(...c.faltantes); else avisos.push(...c.avisos);
     const od = recetaWebDe(o.plan.od, 'OD');
     const oi = recetaWebDe(o.plan.oi, 'OI');
-    if (!od.ok) faltantes.push(...od.faltantes);
-    if (!oi.ok) faltantes.push(...oi.faltantes);
+    if (!od.ok) faltantes.push(...od.faltantes); else avisos.push(...od.avisos);
+    if (!oi.ok) faltantes.push(...oi.faltantes); else avisos.push(...oi.avisos);
     const r1 = rasgosDelCristalCRM(o.plan.productoCRM, o.plan.opciones.tratamiento, o.plan.promo?.marca ?? null);
     if (!r1.ok) faltantes.push(r1.motivo); else avisos.push(...r1.avisos);
     let segundo: PedidoDeCupon['segundo'] = null;
     if (o.plan.promo?.tipo !== 'MI_PRIMER') {
         if (!o.productoCRMSegundo) faltantes.push('el 2º par de la promo: la web de la promo pide los dos cristales en el mismo cupón');
         else {
-            // El Crizal del 2º par se elige recién al preparar ESE par: para el cupón va el mismo que el 1º (o el de la venta) y se avisa.
-            const r2 = rasgosDelCristalCRM(o.productoCRMSegundo, o.tratamientoSegundo ?? o.plan.opciones.tratamiento, o.plan.promo?.marca ?? null);
+            // El Crizal del 2º par se elige recién al preparar ESE par: para el cupón va el mismo que el 1º y se avisa (al preparar el 2º se compara con lo que lleva el cupón).
+            const r2 = rasgosDelCristalCRM(o.productoCRMSegundo, o.plan.opciones.tratamiento, o.plan.promo?.marca ?? null);
             if (!r2.ok) faltantes.push(`2º par: ${r2.motivo}`);
             else { avisos.push(...r2.avisos.map(a => `2º par: ${a}`)); segundo = { productoCRM: o.productoCRMSegundo, rasgos: r2.rasgos }; }
-            if (!o.tratamientoSegundo) avisos.push('el cupón lleva para el 2º par el mismo Crizal que el 1º; si el 2º va con otro, generá el cupón a mano');
+            avisos.push('el cupón lleva para el 2º par el mismo Crizal que el 1º; si el 2º va con otro, el bloque lo avisa al preparar ese par');
             if (disenoDelCristalCRM(o.plan.productoCRM) !== disenoDelCristalCRM(o.productoCRMSegundo)) faltantes.push(`la web de la promo exige el mismo diseño en los dos pares (${familiaDelNombre(o.plan.productoCRM)} y ${familiaDelNombre(o.productoCRMSegundo)}): confirmá con Optovisión y generá el cupón a mano`);
         }
     }
@@ -242,7 +245,26 @@ export function filasDelCliente(filas: FilaHistorial[], nombreCompleto: string):
     return filas.filter(f => { const t = limpio(f.cliente).split(' '); return buscado.every(p => t.includes(p)) || t.filter(p => p.length > 1).every(p => buscado.includes(p)); });
 }
 
-/** ¿Un pedido del sitio es el cupón de ESTE cliente para ESTA promo? Mismo provider y mismo DNI. Puro. */
+/** ¿Un pedido del sitio es de ESTE cliente para ESTA promo? Mismo provider y mismo DNI (usado o no). Puro. */
 export function esCuponDelCliente(p: PedidoWeb, o: { provider: string; dni: string }): boolean {
     return p.provider === o.provider && String(p.document_number || '').replace(/\D/g, '') === o.dni.replace(/\D/g, '');
 }
+
+/** Un cupón del historial sirve para ESTA venta si no fue usado y es reciente (antes de ese plazo es de otra compra). */
+export const DIAS_CUPON_VIGENTE = 60;
+
+/**
+ * ¿Un cupón del cliente se puede reutilizar para esta venta? Sin usar
+ * (`code_used_at` vacío) y de los últimos `DIAS_CUPON_VIGENTE` días: uno
+ * consumido por Optovisión en una compra anterior ya no vale, y escribirlo en
+ * OVES haría que cobren los dos pares. Puro.
+ */
+export function cuponReutilizable(p: PedidoWeb, ahora: Date = new Date()): boolean {
+    if (p.code_used_at) return false;
+    const creado = p.created_at ? new Date(p.created_at) : null;
+    if (!creado || Number.isNaN(creado.getTime())) return false;
+    return ahora.getTime() - creado.getTime() <= DIAS_CUPON_VIGENTE * 86_400_000;
+}
+
+/** "Mi Primer" se otorga UNA vez por cliente: si el DNI ya tiene un pedido de esa promo que no se puede reutilizar, no se genera otro. Puro. */
+export const esProviderMiPrimer = (provider: string) => /^mi-primer-|-progresivos$/.test(provider);

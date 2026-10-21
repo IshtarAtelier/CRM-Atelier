@@ -5,7 +5,7 @@ import { itemsDeTenido } from '../../../lib/crystal-color';
 import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import { precioConSigno } from '../../../lib/format-precio';
 import { especificacionDe, familiaDelNombre, FORMAS_OVES, SERVICIO_CALIBRADO, SERVICIO_COLORACION, SERVICIO_OTROS_NINGUNO, SERVICIO_TRATAMIENTO, TIPO_ARMAZON_OVES, type Eleccion, type EspecificacionOves } from './catalogo';
-import { marcaDePromo, nombreDePromo, observacionPrimerPar, observacionPrimerParPendiente, observacionSegundoPar, type MarcaDePromo } from './promo';
+import { marcaDePromo, nombreDePromo, observacionPrimerPar, observacionPrimerParPendiente, observacionSegundoPar, providerDePromo, type MarcaDePromo } from './promo';
 
 /**
  * EL PEDIDO DE OPTOVISIÓN, ARMADO DESDE LA VENTA (puro, sin base ni navegador).
@@ -206,6 +206,13 @@ export function rolDe(roles: RolesDePares | null, pair: number): RolPromo {
     return pair === roles.sinCargo ? 'SEGUNDO_PAR' : pair === roles.conCargo ? 'PRIMER_PAR' : null;
 }
 
+/** El cristal del 2º par (sin cargo) de la promo doble, por nombre; null si no hay promo doble. Puro. */
+export function cristalDelSegundoPar(venta: VentaParaCargaOves): string | null {
+    const roles = rolesDeLaPromo(venta);
+    const item = roles ? cristalesPorPar(venta).get(roles.sinCargo)?.[0] : null;
+    return item ? nombreDe(item) || null : null;
+}
+
 /**
  * La observación del pedido: la promo como la pide Optovisión (promo.ts), la
  * coloración (el formulario solo dice pleno/degradé/muestra: el tono y el
@@ -294,8 +301,9 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
     const avisoRoles = roles ? avisoDeRoles(roles, precioConSigno) : null;
     if (avisoRoles) avisos.push(avisoRoles);
     const cupon = texto(opciones.cupon) || null;
-    // Sin cupón tipeado, el robot lo genera en la web de la promo al aprobar (si la venta tiene lo que el sitio pide: cupon-web.ts lo controla al preparar).
-    const cuponAutomatico = rolPromo === 'PRIMER_PAR' && !cupon && !!opciones.cuponAutomatico;
+    // Sin cupón tipeado, el robot lo genera en la web de la promo al aprobar: solo si la promo TIENE web
+    // (Varilux / Kodak; un "2x1 Sygnus" no) y si la venta tiene lo que el sitio pide (cupon-web.ts lo controla al preparar).
+    const cuponAutomatico = rolPromo === 'PRIMER_PAR' && !cupon && !!opciones.cuponAutomatico && !!providerDePromo(promo?.marca, promo?.tipo);
     const pedidoOrigen = texto(opciones.pedidoOrigen) || null;
     if (rolPromo === 'PRIMER_PAR' && !cupon && !cuponAutomatico) faltantes.push(`es el 1er par de la promo ${promo?.marca === 'KODAK' ? 'Kodak' : 'Varilux'}: hace falta el cupón de la web de la promo (sin él Optovisión cobra los dos pares)`);
     if (rolPromo === 'SEGUNDO_PAR' && !esNumeroDeLab(pedidoOrigen || '', 'OPTOVISION')) faltantes.push(`es el 2º par de la promo: se carga con el 1er par (par ${roles!.conCargo}) ya cargado, porque lleva su nº en la observación`);
