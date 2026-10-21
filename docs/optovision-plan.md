@@ -55,10 +55,7 @@ medidas del armazón, color del Transitions).
    Orma + Crizal" y OVES solo lista el Blue UV para esos diseños. Hoy el robot
    lo carga (es el único producto de ese diseño y material) y lo avisa en la
    revisión. ¿Correcto?
-2. **El mail de la promo**: hoy lo manda el robot (solo en producción) cuando los
-   dos pares están cargados, con el código de vendedor de
-   `optovision_codigos_vendedor` (JSON `{"Nombre como en labSentBy": "VERO02"}`).
-   Hay que cargar ese JSON.
+2. ~~Código de vendedor~~ **Resuelto 20/10**: el código del asunto es el usuario de OVES (`OVES_USER`, ATEL01). El robot manda el mail en producción cuando los pares están cargados.
 3. ~~"Mi Primer" ¿lleva mail?~~ **Resuelto 20/10** (recordatorio de Optovisión): misma modalidad; el robot manda el mail con el único nº de trabajo.
 4. **Credenciales**: `OVES_USER` / `OVES_PASSWORD` en Railway y en el `.env` local
    para la prueba (las carga Ishtar; Claude no tipea claves). La clave pegada en

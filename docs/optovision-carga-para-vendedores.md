@@ -52,8 +52,7 @@ Optovisión cobra los dos pares si falta un solo paso. El bloque te guía:
    1º en la observación ("Segundo par promo compañero/asociado al num …"). El
    bloque te lo dice y lo arma solo.
 4. **El mail** a promociones@ y cordoba@optovisionsa.com.ar lo manda el robot
-   cuando los dos pares están cargados, con tu código de vendedor de
-   Optovisión. Si falta tu código, el bloque lo avisa: pedile a Ishtar que lo cargue.
+   cuando los dos pares están cargados, con el usuario de la óptica en OVES en el asunto. Si el bloque dice que el mail quedó pendiente, avisale a Ishtar.
 
 "Mi Primer Varilux / Kodak" es de un solo par pero lleva la misma modalidad: cupón, observación y el mail (con un solo nº de trabajo), que también manda el robot.
 

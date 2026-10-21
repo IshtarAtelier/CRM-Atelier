@@ -18,21 +18,26 @@ import type { PayloadBorradorOves, RastroOves } from './borrador-portal';
  * impide (falta el código del vendedor, no es producción), NO se inventa: se
  * anota como pendiente y la ficha lo muestra.
  *
- * El código de vendedor es el que Optovisión le asignó a cada persona del
- * equipo (ej. VERO02): vive en SystemSetting `optovision_codigos_vendedor`
- * como JSON { "Nombre como figura en labSentBy": "CODIGO" }.
+ * El "código" del asunto es el USUARIO de la óptica en OVES (Ishtar,
+ * 20/10/2026: "nuestro nombre de usuario en Optovisión es ATEL01"): sale de
+ * `OVES_USER`, la misma variable con la que entra el robot. Si algún día
+ * Optovisión diera un código por persona, SystemSetting
+ * `optovision_codigos_vendedor` (JSON { "Nombre como en labSentBy": "CODIGO" })
+ * lo pisa para esa persona.
  */
 export const CLAVE_CODIGOS_VENDEDOR = 'optovision_codigos_vendedor';
 
-export async function codigoDeVendedorOptovision(nombre: string | null | undefined): Promise<string | null> {
+export async function codigoDeVendedorOptovision(nombre: string | null | undefined, env: Record<string, string | undefined> = process.env): Promise<string | null> {
     const fila = await prisma.systemSetting.findUnique({ where: { key: CLAVE_CODIGOS_VENDEDOR } }).catch(() => null);
-    if (!fila?.value || !nombre) return null;
-    try {
-        const mapa = JSON.parse(fila.value) as Record<string, string>;
-        const buscado = nombre.trim().toLowerCase();
-        const k = Object.keys(mapa).find(n => n.trim().toLowerCase() === buscado);
-        return k ? String(mapa[k]).trim() || null : null;
-    } catch { return null; }
+    if (fila?.value && nombre) {
+        try {
+            const mapa = JSON.parse(fila.value) as Record<string, string>;
+            const buscado = nombre.trim().toLowerCase();
+            const k = Object.keys(mapa).find(n => n.trim().toLowerCase() === buscado);
+            if (k && String(mapa[k]).trim()) return String(mapa[k]).trim();
+        } catch { /* mapa roto: se usa el usuario */ }
+    }
+    return (env.OVES_USER || '').trim().toUpperCase() || null;
 }
 
 /** El cuerpo del mail, en texto plano. Puro. */
@@ -74,7 +79,7 @@ export async function avisarMailDePromo(orderId: string, robot: Actor, aprobadoP
     const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, clientId: true, labSentBy: true, client: { select: { name: true } } } });
     if (!venta) return pendiente('la venta no existe');
     const codigo = await codigoDeVendedorOptovision(venta.labSentBy);
-    if (!codigo) return pendiente(`falta el código de vendedor de Optovisión de ${venta.labSentBy || 'quien envió la venta'}: cargarlo en el ajuste ${CLAVE_CODIGOS_VENDEDOR} (JSON nombre → código, por la API de ajustes o node scripts/maintenance/precios-optovision/codigos-vendedor.mjs) y reintentar desde la ficha. Sin el mail, Optovisión cobra los dos pares.`);
+    if (!codigo) return pendiente('falta el usuario de OVES (OVES_USER en el entorno), que es el código que va en el asunto del mail: cargarlo y reintentar desde la ficha. Sin el mail, Optovisión cobra los dos pares.');
     const asunto = asuntoDelMail(codigo, numeroPrimero, numeroSegundo);
     if (!asunto) return pendiente('no se pudo armar el asunto del mail');
     if (!puedeCrearPedidosReales(VARIABLE_PERMISO_OVES)) return pendiente(`fuera de producción no se manda el mail a Optovisión (asunto: ${asunto})`);

@@ -62,6 +62,6 @@ volver a relevar el portal (docs/oves-portal.md § Catálogo) y reemplazar el TS
 
 ## `codigos-vendedor.mjs`
 
-Carga los códigos de vendedor que Optovisión le dio a cada persona (ej. VERO02)
-en SystemSetting `optovision_codigos_vendedor`: los lleva el asunto del mail de
-la promo. `--prod` ESCRIBE en producción: solo con OK de Ishtar.
+Opcional. El asunto del mail de la promo lleva el usuario de OVES (`OVES_USER`);
+solo si Optovisión diera un código por persona se carga acá, en SystemSetting
+`optovision_codigos_vendedor`. `--prod` ESCRIBE en producción: solo con OK de Ishtar.
