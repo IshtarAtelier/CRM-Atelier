@@ -41,7 +41,7 @@ Ventas y el mismo bloque `CargaLaboratorio` en la ficha.
 | 1–2 | Seguimiento y costos por portal | Fuera de alcance (siguen por la factura) |
 | 3 | Carga asistida (`lab-modules/optovision/`, ficha, botón, `check:carga-optovision`) | **Escrita** 19/10, sin probar contra el portal real |
 | 3b | Promo: cupón + observaciones + mail a promociones@ (cc cordoba@ y el local) | **Escrita**; el código del asunto es `OVES_USER` |
-| 3c | Cupón automático: el robot lo genera en la web de la promo al aprobar el 1er par (`cupon-web.ts`, `cupon-robot.ts`, `docs/promos-optovision-web.md`) | **Escrita** 20/10 (pedido de Ishtar: "sí, quiero que lo automatices"), sin probar contra el sitio real: faltan `PROMO_VARILUX_*` en el entorno |
+| 3c | Cupón automático: el robot lo genera en la web de la promo al aprobar el 1er par (`cupon-web.ts`, `cupon-robot.ts`, `docs/promos-optovision-web.md`) | **Escrita y auditada** 20/10 (3 vueltas, la 3ª dejó solo low), sin probar contra el sitio real: faltan `PROMO_VARILUX_*` en el entorno |
 | 4 | Auditorías (arquitectura + robustez) hasta que quede solo low | **Hecho** 20/10: 4 vueltas, 3 de arreglos (commits d2df0b37, 57486b1b, 32ae0841, 2affdb0e); la 4ª dejó solo low |
 | 5 | Prueba real con credenciales en `.env` → deploy (push a `main` solo con OK explícito) | Pendiente |
 
