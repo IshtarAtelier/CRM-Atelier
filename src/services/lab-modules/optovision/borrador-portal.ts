@@ -198,7 +198,7 @@ async function obtenerCupon(b: { id: string; orderId: string; pair: number }, ra
             const resolucion = await resolverEnWeb(page, marca, pedido);
             // Lo que se revisó tiene que seguir siendo lo que el sitio ofrece: si el catálogo cambió, no se confirma a ciegas.
             const antes = rastro.cuponResuelto;
-            if (antes && (antes.primero.id !== resolucion.primero.id || (antes.segundo?.id ?? null) !== (resolucion.segundo?.id ?? null))) throw new AprobacionInvalidaError(`la web de la promo cambió el producto desde que se preparó (${antes.primero.name} → ${resolucion.primero.name}): volvé a prepararlo. No se mandó nada.`);
+            if (antes && (antes.linea.id !== resolucion.linea.id || antes.primero.id !== resolucion.primero.id || (antes.segundo?.id ?? null) !== (resolucion.segundo?.id ?? null))) throw new AprobacionInvalidaError(`la web de la promo cambió el producto desde que se preparó (${antes.primero.name} → ${resolucion.primero.name}): volvé a prepararlo. No se mandó nada.`);
             return { cuponWeb: cuponObtenidoDe(await generarCupon(page, marca, pedido, resolucion), false, resolucion), origen: 'generado' as const };
         });
     } catch (err: any) {
@@ -237,10 +237,13 @@ export async function prepararEnPortal(borradorId: string) {
             await mezclar(b.id, { etapa: `mirando la web de la promo desde ${new Date().toISOString()}` }).catch(() => null);
             const enWeb = await conSesionPromo(marca, (page) => enSoloLecturaWeb(page, async () => {
                 const existente = heredado ? null : await buscarCuponExistente(page, marca, pedido);
-                return { existente, resolucion: await resolverEnWeb(page, marca, pedido) };
+                // Con un cupón YA en mano, no resolver el catálogo de hoy no es motivo para frenar (el
+                // cupón pudo generarse a mano justamente porque el robot no lo resolvía): se avisa y se sigue.
+                try { return { existente, resolucion: await resolverEnWeb(page, marca, pedido), sinResolver: null as string | null }; }
+                catch (e: any) { if (heredado || existente) return { existente, resolucion: undefined, sinResolver: String(e?.message || e) }; throw e; }
             }));
             const cuponWeb: CuponObtenido | null = heredado ?? (enWeb.existente ? cuponObtenidoDe(enWeb.existente, true) : null);
-            const distinto = cuponWeb ? avisoDeCuponDistinto(cuponWeb.codigo, cuponWeb.productos, enWeb.resolucion) : null;
+            const distinto = cuponWeb && enWeb.resolucion ? avisoDeCuponDistinto(cuponWeb.codigo, cuponWeb.productos, enWeb.resolucion) : cuponWeb && enWeb.sinResolver ? `no se pudo comparar el cupón ${cuponWeb.codigo} con el catálogo de hoy de la web de la promo (${enWeb.sinResolver}): revisá a mano que el cupón coincida con este pedido` : null;
             cupon = { cuponPedido: pedido, cuponResuelto: enWeb.resolucion, cuponAvisos: [...avisos, ...(distinto ? [distinto] : [])], cuponWeb };
             if (cuponWeb) {
                 // Con el cupón ya en mano, el plan que se revisa y se guarda es el REAL (observación con el cupón, no con la marca).

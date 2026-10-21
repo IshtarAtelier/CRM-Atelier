@@ -569,7 +569,9 @@ t('el historial se recorre de la fila más nueva a la más vieja, las parecidas 
     assert.deepEqual(ordenDeBusqueda(filas, 'Samuel Vadora', DIAS_CUPON_VIGENTE, ahora).map(f => f.cliente), ['Samuel Vadora', 'Otra Persona', 'Patricia Devereux', 'Sin Fecha']);
     assert.deepEqual(ordenDeBusqueda(filas, 'Nadie', null, ahora).map(f => f.cliente), ['Otra Persona', 'Patricia Devereux', 'Samuel Vadora', 'Vieja Persona', 'Sin Fecha']);
     const muchas = Array.from({ length: 200 }, (_, i) => fila(`01/10/2026`, `Cliente ${i}`));
-    assert.equal(ordenDeBusqueda(muchas, 'Nadie', null, ahora).length, MAX_DETALLES_HISTORIAL);
+    // El tope solo corta en la promo doble; Mi Primer (una vez en la vida) mira todas.
+    assert.equal(ordenDeBusqueda(muchas, 'Nadie', DIAS_CUPON_VIGENTE, ahora).length, MAX_DETALLES_HISTORIAL);
+    assert.equal(ordenDeBusqueda(muchas, 'Nadie', null, ahora).length, 200);
 });
 t('un cupón reutilizado hecho con otro producto avisa fuerte', () => {
     const hoy = { linea: { id: 8, name: 'Varilux Comfort' }, primero: { id: 1391, name: 'Comfort Orma Blue Uv Prevencia' }, segundo: { id: 1393, name: 'Comfort Orma Blue Uv Forte' } };

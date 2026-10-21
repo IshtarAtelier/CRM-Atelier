@@ -279,7 +279,7 @@ export function fechaDelHistorial(s: string): Date | null {
     return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Cuántos detalles del historial se abren como mucho (son GET baratos, pero son minutos). */
+/** Cuántos detalles del historial se abren como mucho en la promo doble (son GET baratos, pero son minutos). En Mi Primer no hay tope: es una vez en la vida y hay que verlos todos. */
 export const MAX_DETALLES_HISTORIAL = 120;
 
 /**
@@ -296,7 +296,8 @@ export function ordenDeBusqueda(filas: FilaHistorial[], nombreCompleto: string, 
     const parecidas = new Set(filasDelCliente(vigentes.map(x => x.f), nombreCompleto));
     const primero = vigentes.filter(x => parecidas.has(x.f)).sort(porFecha);
     const resto = vigentes.filter(x => !parecidas.has(x.f)).sort(porFecha);
-    return [...primero, ...resto].map(x => x.f).slice(0, MAX_DETALLES_HISTORIAL);
+    const orden = [...primero, ...resto].map(x => x.f);
+    return dias === null ? orden : orden.slice(0, MAX_DETALLES_HISTORIAL);
 }
 
 /** Los productos con los que se hizo un cupón (ids del sitio), para compararlos con lo que se carga hoy. */

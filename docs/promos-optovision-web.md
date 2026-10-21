@@ -107,6 +107,14 @@ cambia: Kodak renovó el suyo el 4/8/2026), no contra una copia.
 
 ## Cómo lo usa el robot (`optovision/cupon-web.ts` + `cupon-robot.ts`)
 
+Orden real, en los dos momentos: **red local** (otro borrador de la misma
+venta, par y promo ya tiene cupón) → **historial por DNI** (de la fila más
+nueva a la más vieja, parecidas al nombre primero; en la promo doble solo los
+últimos 60 días y hasta 120 detalles, en Mi Primer todos) → **resolver** línea
+y productos contra el catálogo de hoy → **comparar** el cupón reutilizado con
+esa resolución (aviso fuerte si difiere; si no se puede resolver con cupón en
+mano, aviso y se sigue) → recién sin cupón, **generar**.
+
 1. **Al preparar el 1er par** sin cupón tipeado: primero la red local (otro
    borrador de la misma venta y par ya lo generó → se hereda); si no, entra en
    SOLO LECTURA (se abortan los POST que no sean el login), busca en el
