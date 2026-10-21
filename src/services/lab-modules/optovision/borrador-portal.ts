@@ -15,8 +15,8 @@ import { abrirFormulario, buscarPorReferencia, capturarFormulario, consultarPedi
 import { esNumeroOves, numeroDelPrimerPar, pedidoExistenteDelPar } from './existentes';
 import { cantidadDeArmazones } from '../../../lib/order-frames';
 import { avisarMailDePromo } from './promo-mail';
-import { avisoDeCuponDistinto, formularioConCupon, pedidoDeCupon, planConCupon, type CuponObtenido, type PedidoDeCupon, type PedidoWeb } from './cupon-web';
-import { buscarCuponExistente, conSesionPromo, CredencialPromoFaltanteError, CuponRechazadoError, enSoloLecturaWeb, generarCupon, MiPrimerYaOtorgadoError, resolverEnWeb, SitioDePromoNoAceptaRobotError, type ResolucionCupon } from './cupon-robot';
+import { avisoDeCuponDistinto, formularioConCupon, pedidoDeCupon, planConCupon, type CuponObtenido, type PedidoDeCupon } from './cupon-web';
+import { buscarCuponExistente, conSesionPromo, CredencialPromoFaltanteError, CuponRechazadoError, enSoloLecturaWeb, generarCupon, MiPrimerYaOtorgadoError, resolverEnWeb, SitioDePromoNoAceptaRobotError, type CuponDelSitio, type ResolucionCupon } from './cupon-robot';
 import type { VentaParaCargaOves } from './carga';
 import type { EstadoEnPortal } from '../contrato';
 
@@ -143,11 +143,24 @@ function pedidoDeCuponDe(venta: VentaParaCargaOves, plan: PlanOves): { pedido: P
     return { pedido: r.pedido, avisos: r.avisos };
 }
 
-/** El cupón como queda en el borrador. Del sitio (reutilizado) se guardan los productos con que se hizo; generado, los que se resolvieron. */
-const cuponObtenidoDe = (o: { pedido: PedidoWeb; url: string; pdfUrl: string | null }, reutilizado: boolean, resolucion?: ResolucionCupon | null): CuponObtenido => ({
-    codigo: o.pedido.code, pedidoId: o.pedido.id, provider: o.pedido.provider, url: o.url, pdfUrl: o.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado,
-    productos: resolucion ? { linea: resolucion.linea.id, primero: resolucion.primero.id, segundo: resolucion.segundo?.id ?? null } : { linea: o.pedido.promotions_product_line_id, primero: o.pedido.first_product_id, segundo: o.pedido.second_product_id },
-});
+/**
+ * El cupón como queda en el borrador. Del sitio (reutilizado) se guardan los
+ * productos con que se hizo; generado, los que se resolvieron. El voucher PDF
+ * se guarda en nuestro storage (la ficha lo enlaza, el mail lo adjunta); si no
+ * se pudo bajar o guardar, el cupón vale igual.
+ */
+async function cuponObtenidoDe(borradorId: string, o: CuponDelSitio, reutilizado: boolean, resolucion?: ResolucionCupon | null): Promise<CuponObtenido> {
+    let voucherUrl: string | null = null, voucherKey: string | null = null;
+    if (o.voucher) {
+        voucherUrl = await guardarArchivoDelPortal('optovision', borradorId, `voucher-${o.pedido.code}`, o.voucher, 'application/pdf').catch(err => { console.error('[lab-modulos] no se pudo guardar el voucher del cupón:', err); return null; });
+        voucherKey = voucherUrl ? decodeURIComponent(voucherUrl.split('key=')[1] || '') || null : null;
+    }
+    return {
+        codigo: o.pedido.code, pedidoId: o.pedido.id, provider: o.pedido.provider, url: o.url, pdfUrl: o.pdfUrl, obtenidoEl: new Date().toISOString(), reutilizado,
+        productos: resolucion ? { linea: resolucion.linea.id, primero: resolucion.primero.id, segundo: resolucion.segundo?.id ?? null } : { linea: o.pedido.promotions_product_line_id, primero: o.pedido.first_product_id, segundo: o.pedido.second_product_id },
+        voucherUrl, voucherKey,
+    };
+}
 
 /**
  * La red LOCAL contra el doble cupón: un borrador anterior de la misma venta,
@@ -194,12 +207,12 @@ async function obtenerCupon(b: { id: string; orderId: string; pair: number }, ra
     try {
         obtenido = await conSesionPromo(marca, async (page) => {
             const existente = await buscarCuponExistente(page, marca, pedido);
-            if (existente) return { cuponWeb: cuponObtenidoDe(existente, true), origen: 'sitio' as const };
+            if (existente) return { cuponWeb: await cuponObtenidoDe(b.id, existente, true), origen: 'sitio' as const };
             const resolucion = await resolverEnWeb(page, marca, pedido);
             // Lo que se revisó tiene que seguir siendo lo que el sitio ofrece: si el catálogo cambió, no se confirma a ciegas.
             const antes = rastro.cuponResuelto;
             if (antes && (antes.linea.id !== resolucion.linea.id || antes.primero.id !== resolucion.primero.id || (antes.segundo?.id ?? null) !== (resolucion.segundo?.id ?? null))) throw new AprobacionInvalidaError(`la web de la promo cambió el producto desde que se preparó (${antes.primero.name} → ${resolucion.primero.name}): volvé a prepararlo. No se mandó nada.`);
-            return { cuponWeb: cuponObtenidoDe(await generarCupon(page, marca, pedido, resolucion), false, resolucion), origen: 'generado' as const };
+            return { cuponWeb: await cuponObtenidoDe(b.id, await generarCupon(page, marca, pedido, resolucion), false, resolucion), origen: 'generado' as const };
         });
     } catch (err: any) {
         if (err instanceof CuponRechazadoError || err instanceof SitioDePromoNoAceptaRobotError || err instanceof CredencialPromoFaltanteError || err instanceof MiPrimerYaOtorgadoError) {
@@ -242,7 +255,7 @@ export async function prepararEnPortal(borradorId: string) {
                 try { return { existente, resolucion: await resolverEnWeb(page, marca, pedido), sinResolver: null as string | null }; }
                 catch (e: any) { if (heredado || existente) return { existente, resolucion: undefined, sinResolver: String(e?.message || e) }; throw e; }
             }));
-            const cuponWeb: CuponObtenido | null = heredado ?? (enWeb.existente ? cuponObtenidoDe(enWeb.existente, true) : null);
+            const cuponWeb: CuponObtenido | null = heredado ?? (enWeb.existente ? await cuponObtenidoDe(b.id, enWeb.existente, true) : null);
             const distinto = cuponWeb && enWeb.resolucion ? avisoDeCuponDistinto(cuponWeb.codigo, cuponWeb.productos, enWeb.resolucion) : cuponWeb && enWeb.sinResolver ? `no se pudo comparar el cupón ${cuponWeb.codigo} con el catálogo de hoy de la web de la promo (${enWeb.sinResolver}): revisá a mano que el cupón coincida con este pedido` : null;
             cupon = { cuponPedido: pedido, cuponResuelto: enWeb.resolucion, cuponAvisos: [...avisos, ...(distinto ? [distinto] : [])], cuponWeb };
             // Anotado YA: si OVES falla después, lo que se resolvió en la web (y un cupón reutilizado) no se pierde.
@@ -414,6 +427,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 // 4. Grabar: la barrera (atómica en la base) justo antes de aceptar el confirm del portal.
                 // Los nº que la respuesta NO puede estar anunciando como el nuevo: el del 1er par (va en la observación) y los que la venta ya tiene.
                 const yaConocidos = [...(await numerosDeOtrosPares(b.orderId, b.pair)), ...(r.plan.pedidoOrigen ? [r.plan.pedidoOrigen] : [])];
+                await mezclar(b.id, { etapa: `grabando el pedido en OVES desde ${new Date().toISOString()}` }).catch(() => null);
                 const grabado = await grabarPedido(page, {
                     excluir: yaConocidos,
                     antesDeConfirmar: async () => {
@@ -459,7 +473,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
         await aplicarEstadoEnVenta({ orderId: b.orderId, lab: LAB_OPTOVISION, nombreLab: NOMBRE_OPTOVISION, robot: ROBOT_OPTOVISION, pedidos: [...pedidos.values()], aprobadoPor });
         const cargado = await Borradores.cargado(b.id, ROBOT_ACTOR_OPTOVISION, { portalNumber: resultado.numero, screenshotFinalUrl: capturaFinalUrl });
         if (diferencias.length) await Borradores.anotarFalla(b.id, `Cargado con el nº ${resultado.numero}, pero: ${diferencias.join(' · ')}.`, { soloSi: 'CARGADO' });
-        // Paso 2 del procedimiento de la promo: el mail a Optovisión, cuando los dos pares están cargados.
+        // Paso 2 del procedimiento de la promo: el mail a Optovisión, cuando los dos pares están cargados (la ficha lo cuenta en los pasos del par).
         await avisarMailDePromo(b.orderId, ROBOT_ACTOR_OPTOVISION, aprobadoPor).catch(err => console.error('[lab-modulos] mail de promo Optovisión:', err?.message || err));
         return cargado;
     } catch (err: any) {

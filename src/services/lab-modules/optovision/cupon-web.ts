@@ -193,7 +193,14 @@ export function pedidoDeCupon(o: { venta: VentaParaCargaOves; plan: PlanOves; pr
 }
 
 /** El cupón que el robot obtuvo (generado o reutilizado), como queda en el borrador. */
-export interface CuponObtenido { codigo: string; pedidoId: number; provider: string; url: string; pdfUrl: string | null; obtenidoEl: string; reutilizado: boolean; /** Con qué productos del sitio se hizo (para compararlo si se reutiliza). */ productos?: ProductosDelCupon | null }
+export interface CuponObtenido {
+    codigo: string; pedidoId: number; provider: string; url: string; pdfUrl: string | null; obtenidoEl: string; reutilizado: boolean;
+    /** Con qué productos del sitio se hizo (para compararlo si se reutiliza). */
+    productos?: ProductosDelCupon | null;
+    /** El voucher PDF del sitio guardado en NUESTRO storage (la ficha lo enlaza y el mail lo adjunta); null si no se pudo bajar. */
+    voucherUrl?: string | null;
+    voucherKey?: string | null;
+}
 
 /**
  * El plan aprobado, ya con el cupón real: la revisión se hizo con la marca

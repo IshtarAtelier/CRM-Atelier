@@ -167,16 +167,28 @@ export async function leerHistorial(page: Page, marca: MarcaDePromo): Promise<Fi
  * y reciente). Si la promo es "Mi Primer" y el DNI ya tiene un cupón que no se
  * puede reutilizar, lanza: esa promo es una vez por cliente y no se genera otro.
  */
-export async function buscarCuponExistente(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon): Promise<{ pedido: PedidoWeb; url: string; pdfUrl: string | null } | null> {
+/** El voucher PDF del sitio, con la sesión del navegador. Null si no hay link o no se pudo bajar (no frena nada). */
+export async function bajarVoucher(page: Page, pdfUrl: string | null): Promise<Buffer | null> {
+    if (!pdfUrl) return null;
+    try {
+        const r = await page.context().request.get(pdfUrl, { timeout: ESPERA_WEB_PROMO_MS });
+        if (!r.ok() || !/pdf/i.test(r.headers()['content-type'] || '')) return null;
+        return Buffer.from(await r.body());
+    } catch { return null; }
+}
+
+export interface CuponDelSitio { pedido: PedidoWeb; url: string; pdfUrl: string | null; voucher: Buffer | null }
+
+export async function buscarCuponExistente(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon): Promise<CuponDelSitio | null> {
     const filas = (await leerHistorial(page, marca)).filter(f => f.detalleUrl);
     const orden = ordenDeBusqueda(filas, `${pedido.cliente.nombre} ${pedido.cliente.apellido}`, esProviderMiPrimer(pedido.provider) ? null : DIAS_CUPON_VIGENTE);
-    const delCliente: { pedido: PedidoWeb; url: string; pdfUrl: string | null }[] = [];
+    const delCliente: CuponDelSitio[] = [];
     for (const f of orden) {
         await page.goto(f.detalleUrl!, { waitUntil: 'domcontentloaded' });
         const p = pedidoDeLaPagina(await page.content());
         if (!p || !esCuponDelCliente(p, { provider: pedido.provider, dni: pedido.cliente.dni })) continue;
-        if (cuponReutilizable(p)) return { pedido: p, url: f.detalleUrl!, pdfUrl: f.pdfUrl };
-        delCliente.push({ pedido: p, url: f.detalleUrl!, pdfUrl: f.pdfUrl });
+        if (cuponReutilizable(p)) return { pedido: p, url: f.detalleUrl!, pdfUrl: f.pdfUrl, voucher: await bajarVoucher(page, f.pdfUrl) };
+        delCliente.push({ pedido: p, url: f.detalleUrl!, pdfUrl: f.pdfUrl, voucher: null });
     }
     if (delCliente.length && esProviderMiPrimer(pedido.provider)) {
         const c = delCliente[0].pedido;
@@ -211,7 +223,7 @@ const digitos = (s: string) => s.replace(/\D/g, '');
  * pedido creado (con el cupón) leído de la página de detalle. ESCRIBE en el
  * sitio: se llama solo al aprobar, y quien llama anota el cupón en el acto.
  */
-export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon, resolucion: ResolucionCupon): Promise<{ pedido: PedidoWeb; url: string; pdfUrl: string | null }> {
+export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon, resolucion: ResolucionCupon): Promise<CuponDelSitio> {
     const c = pedido.cliente;
     await page.goto(`${base(marca)}/pedidos/crear?provider=${pedido.provider}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('form input[name="first_name"]', { state: 'visible' });
@@ -275,7 +287,8 @@ export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: Pedi
             if (!creado) throw new Error(`la ${NOMBRE_WEB_PROMO[marca]} mostró ${url} pero no se pudo leer el cupón (puede estar creado): Reintentar lo busca en el historial por DNI antes de generar otro`);
             if (!esCuponDelCliente(creado, { provider: pedido.provider, dni: c.dni })) throw new Error(`la ${NOMBRE_WEB_PROMO[marca]} mostró el pedido ${creado.id} (cupón ${creado.code}) pero no es de este cliente/promo: revisá el historial del sitio`);
             const pdf = html.match(/href="([^"]*\/pedidos\/\d+\/pdf[^"]*)"/);
-            return { pedido: creado, url, pdfUrl: pdf ? pdf[1].replace(/&amp;/g, '&') : null };
+            const pdfUrl = pdf ? pdf[1].replace(/&amp;/g, '&') : null;
+            return { pedido: creado, url, pdfUrl, voucher: await bajarVoucher(page, pdfUrl) };
         }
         // Solo errores VISIBLES: un texto de error escondido en la plantilla no prueba un rechazo.
         const errores: string[] = await page.evaluate(() => [...document.querySelectorAll('.is-invalid, .invalid-feedback, .alert-danger')].filter(e => (e as HTMLElement).offsetParent !== null).map(e => ((e as HTMLElement).getAttribute('name') || (e as HTMLElement).innerText || '').trim()).filter(Boolean));

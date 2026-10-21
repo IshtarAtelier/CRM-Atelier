@@ -1,5 +1,6 @@
 import { prisma } from '../../../lib/db';
 import { sendEmail } from '../../../lib/email';
+import { getFileBuffer } from '../../../lib/storage';
 import { logAudit } from '../../../lib/audit';
 import { PRIVATE_ADMIN_EMAILS } from '../../../lib/constants';
 import type { Actor } from '../../../lib/actor';
@@ -42,13 +43,15 @@ export async function codigoDeVendedorOptovision(nombre: string | null | undefin
 }
 
 /** El cuerpo del mail, en texto plano. Puro. */
-export function cuerpoDelMail(o: { cliente: string; primerPar: string; segundoPar: string | null; cupon: string | null; promo: string }): string {
+export function cuerpoDelMail(o: { cliente: string; primerPar: string; segundoPar: string | null; cupon: string | null; promo: string; conVoucher?: boolean }): string {
     return [
         `Buen día,`,
         ``,
         o.segundoPar ? `Les enviamos los dos trabajos de la promo ${o.promo} del paciente ${o.cliente}:` : `Les enviamos el trabajo de la promo ${o.promo} del paciente ${o.cliente}:`,
         `· ${o.segundoPar ? '1er par' : 'Pedido'}: ${o.segundoPar ? 'pedido ' : ''}${o.primerPar}${o.cupon ? ` (cupón ${o.cupon})` : ''}`,
         ...(o.segundoPar ? [`· 2º par: pedido ${o.segundoPar} (asociado al ${o.primerPar})`] : []),
+        ``,
+        ...(o.conVoucher ? [`Adjuntamos el voucher de la web de la promo.`] : []),
         ``,
         `Muchas gracias.`,
         `Atelier Óptica`,
@@ -94,12 +97,16 @@ export async function avisarMailDePromo(orderId: string, robot: Actor, aprobadoP
         WHERE id = ${dueno.id} AND ("resumenPortal"->>'mailPromoEnviadoEl') IS NULL AND (("resumenPortal"->>'mailPromoReclamadoEl') IS NULL OR ("resumenPortal"->>'mailPromoReclamadoEl') < ${limite})`;
     if (reclamado !== 1) return { enviado: false, motivo: 'otro proceso está mandando el mail (o ya salió)' };
     try {
+        // El voucher PDF de la web de la promo ("enviá esta planilla al laboratorio"), si el robot lo guardó.
+        const cuponWeb = ((primero?.resumenPortal || {}) as RastroOves).cuponWeb;
+        const voucher = cuponWeb?.voucherKey ? await getFileBuffer(cuponWeb.voucherKey).catch(() => null) : null;
         const r = await sendEmail({
             to: MAIL_PROMO_PARA,
             cc: MAIL_PROMO_COPIA.join(','),
             bcc: PRIVATE_ADMIN_EMAILS,
             subject: asunto,
-            text: cuerpoDelMail({ cliente, primerPar: numeroPrimero, segundoPar: numeroSegundo, cupon: primero?.plan.cupon ?? ((primero?.resumenPortal || {}) as RastroOves).cuponWeb?.codigo ?? null, promo }),
+            text: cuerpoDelMail({ cliente, primerPar: numeroPrimero, segundoPar: numeroSegundo, cupon: primero?.plan.cupon ?? cuponWeb?.codigo ?? null, promo, conVoucher: !!voucher }),
+            ...(voucher && cuponWeb ? { attachments: [{ filename: `voucher-${cuponWeb.codigo}.pdf`, content: voucher, contentType: 'application/pdf' }] } : {}),
         });
         // sendEmail no lanza: devuelve { success: false }. Un "enviado" que no salió dejaría el mail sin mandar para siempre.
         if (!r.success) throw new Error(String((r as any).error?.message || (r as any).error || 'el envío falló'));

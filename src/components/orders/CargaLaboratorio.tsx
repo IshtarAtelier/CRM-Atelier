@@ -27,6 +27,8 @@ interface Vista { textoRevision: string; filas: { titulo: string; valor: string;
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
     preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista; acciones?: Acciones;
+    /** Lo que el robot está haciendo en este momento (mientras prepara o carga). */
+    ahora?: string | null;
 }
 interface PedidoEspejo { portalNumber: string; status: string; statusRaw: string | null; estimatedAt: string | null; lastSeenAt: string }
 interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean }
@@ -282,6 +284,12 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                     </a>
                                 )}
                                 {cargado.error && <p className="text-amber-800 dark:text-amber-400 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {cargado.error}</p>}
+                                {/* Lo que el laboratorio quiere que se sepa del pedido ya cargado (Optovisión: los pasos de la promo — cupón, pares, mail). */}
+                                {cargado.vista.avisos.length > 0 && (
+                                    <ul className="text-stone-700 dark:text-stone-300 bg-white/70 dark:bg-black/20 rounded-lg px-3 py-2 space-y-0.5">
+                                        {cargado.vista.avisos.map(a => <li key={a}>{a}</li>)}
+                                    </ul>
+                                )}
                             </div>
                         )}
 
@@ -365,6 +373,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                         {b?.status === 'PREPARADO' && (
                             <div className="text-xs text-stone-500 space-y-1">
                                 <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está armando el pedido en el portal; en unos segundos trae la pantalla para revisar. Preparado por {b.preparedBy}.</p>
+                                {b.ahora && <p className="pl-4 font-bold text-stone-600 dark:text-stone-300">Ahora: {b.ahora}…</p>}
                                 {b.acciones?.anular && (
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span className="text-amber-800">Lleva demasiado sin novedades (¿se reinició el servidor?). Si el robot llegó a dejar un borrador en el portal, al anular la ficha ofrece cancelarlo.</span>
@@ -377,6 +386,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                         {b?.status === 'APROBADO' && !b.error && (
                             <div className="text-xs text-stone-500 space-y-1">
                                 <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Aprobado por {b.approvedBy}. El robot está cargando el pedido en el laboratorio.</p>
+                                {b.ahora && <p className="pl-4 font-bold text-stone-600 dark:text-stone-300">Ahora: {b.ahora}…</p>}
                                 {/* Si el servidor se reinició a mitad de la carga, nadie anota el error: pasados unos minutos se ofrece reintentar (nunca duplica). */}
                                 {b.acciones?.reintentar && (
                                     <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')} className={`${boton} bg-emerald-600`}>

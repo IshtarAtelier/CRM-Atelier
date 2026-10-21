@@ -126,6 +126,16 @@ export interface RastroPortal {
  * CARGADO (confirmado por el robot), cancelado por el robot, o confirmado a
  * mano en el portal (el robot lo vio con nº al ir a cancelar). Puro.
  */
+/**
+ * Qué está haciendo el robot AHORA, para la ficha: la etapa que anota el robot
+ * ("llenando el formulario de OVES desde 2026-10-21T15:43:35Z") sin la marca de
+ * tiempo, con mayúscula. Null si no hay etapa. Puro.
+ */
+export function etapaParaLaFicha(etapa: unknown): string | null {
+    const t = String(etapa ?? '').replace(/\s+desde\s+\d{4}-\d{2}-\d{2}T[^\s)]+/g, '').trim();
+    return t ? t[0].toUpperCase() + t.slice(1) : null;
+}
+
 export function portalSinResolver(b: { status: string; resumenPortal: unknown }): boolean {
     const r = b.resumenPortal as RastroPortal | null;
     if (!r || typeof r.portalDraftId !== 'string' || !r.portalDraftId) return false;

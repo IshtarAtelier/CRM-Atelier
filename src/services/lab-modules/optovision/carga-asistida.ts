@@ -12,7 +12,8 @@ import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_OPTOVISION, ty
 import { avisarMailDePromo } from './promo-mail';
 import { prisma } from '../../../lib/db';
 import { LAB_OPTOVISION, NOMBRE_OPTOVISION } from './portal';
-import { conCuponReal, cuponLimpio, pasosPendientes, ETIQUETA_DE_PASO, PATRON_CUPON, PATRON_CUPON_HTML, WEB_DE_PROMO } from './promo';
+import { conCuponReal, cuponLimpio, PATRON_CUPON, PATRON_CUPON_HTML, WEB_DE_PROMO } from './promo';
+import { formatDate } from '../../../lib/format-date';
 import { pedidoDeCupon, rasgosDelCristalCRM, rasgosDeProductoWeb } from './cupon-web';
 
 /**
@@ -140,19 +141,32 @@ export const CARGA_OPTOVISION: CargaAsistida = {
         const grad = (o: PlanOves['od']) => o ? `${o.esf}${o.cil ? ` ${o.cil} × ${o.eje}°` : ''}${o.adic ? ` · add +${o.adic}` : ''} · DNP ${o.dnp ?? '—'} · altura ${o.altura ?? '—'}` : '—';
         // El cupón del 1er par: tipeado, o el que el robot obtuvo en la web de la promo.
         const cupon = plan?.cupon ?? r.cuponWeb?.codigo ?? null;
-        // Qué le falta a la promo vista desde ESTE borrador: el 1º conoce su cupón y su nº; el 2º, el nº del 1º y el suyo.
-        const pasos = plan?.promo ? pasosPendientes(plan.rolPromo === 'SEGUNDO_PAR'
-            ? { tipo: plan.promo.tipo, cupon: 'del 1er par', numeroPrimerPar: plan.pedidoOrigen, numeroSegundoPar: b.portalNumber ?? null, mailEnviado: !!r.mailPromoEnviadoEl }
-            : { tipo: plan.promo.tipo, cupon, numeroPrimerPar: b.portalNumber ?? null, numeroSegundoPar: null, mailEnviado: !!r.mailPromoEnviadoEl }
-        // El 1er par de una promo doble no sabe del 2º ni del mail (son del 2º); Mi Primer sí los sabe todos.
-        ).filter(p => plan.rolPromo === 'SEGUNDO_PAR' || plan.promo!.tipo === 'MI_PRIMER' || (p !== 'OBSERVACION_SEGUNDO_PAR' && p !== 'MAIL')) : [];
+        // La promo PASO A PASO, en palabras, para que se vea qué se hizo y qué sigue (Ishtar, 21/10/2026: "que le indique bien todo").
+        const pasosEnPalabras = (): string[] => {
+            if (!plan?.promo) return [];
+            const miPrimer = plan.promo.tipo === 'MI_PRIMER';
+            const l: string[] = [];
+            if (plan.rolPromo === 'SEGUNDO_PAR') {
+                l.push(`✓ Cupón y 1er par: pedido ${plan.pedidoOrigen ?? '—'} (ya cargado).`);
+                l.push(b.portalNumber ? `✓ 2º par cargado: pedido ${b.portalNumber}, asociado al ${plan.pedidoOrigen ?? '—'}.` : `⏳ 2º par: al aprobar se graba en OVES asociado al ${plan.pedidoOrigen ?? '—'}.`);
+            } else {
+                l.push(cupon ? `✓ Cupón de la promo: ${cupon}${r.cuponWeb ? (r.cuponWeb.reutilizado ? ' (ya existía en la web de la promo)' : ' (lo generó el robot en la web de la promo)') : ''}.` : '⏳ Cupón: al aprobar, el robot lo genera en la web de la promo.');
+                l.push(b.portalNumber ? `✓ ${miPrimer ? 'Pedido' : '1er par'} cargado en OVES: nº ${b.portalNumber}, con el cupón en la observación.` : `⏳ ${miPrimer ? 'Pedido' : '1er par'}: al aprobar se graba en OVES con el cupón en la observación.`);
+                if (!miPrimer) l.push(b.portalNumber ? '⏳ 2º par: ahora se prepara desde su propio par; lleva este nº en la observación.' : '⏳ 2º par: se prepara cuando este esté cargado.');
+            }
+            if (miPrimer || plan.rolPromo === 'SEGUNDO_PAR') {
+                l.push(r.mailPromoEnviadoEl ? `✓ Mail a Optovisión enviado el ${formatDate(r.mailPromoEnviadoEl)} (promociones@, copia a cordoba@ y al local).` : r.mailPromoPendiente ? `⚠️ Mail a Optovisión pendiente: ${r.mailPromoPendiente}` : `⏳ Mail a Optovisión: sale solo cuando ${miPrimer ? 'el pedido' : 'este 2º par'} esté cargado.`);
+            } else {
+                l.push('⏳ Mail a Optovisión: sale solo cuando el 2º par esté cargado (se ve en el par 2).');
+            }
+            return l;
+        };
         const avisos = [
+            ...pasosEnPalabras(),
             ...(((b.payload || {}) as PayloadBorradorOves).avisos || []),
             ...(r.noAplican?.length ? [`el portal no toma para este producto: ${r.noAplican.join(', ')} (quedan sin cargar)`] : []),
             ...(r.cuponAvisos ?? []),
             ...(r.cuponWeb?.reutilizado ? [`el cliente ya tenía el cupón ${r.cuponWeb.codigo} de esta promo en la web (por DNI): se usa ese, no se generó otro`] : []),
-            ...(r.mailPromoPendiente ? [`Mail a Optovisión pendiente: ${r.mailPromoPendiente}`] : []),
-            ...(pasos.length && b.status === 'CARGADO' ? [`Promo: falta ${pasos.map(p => ETIQUETA_DE_PASO[p].toLowerCase()).join(' y ')}`] : []),
         ];
         return {
             textoRevision: 'Así queda el pedido en OVES (es el formulario real del portal, todavía sin grabar). Aprobar lo graba en Optovisión, trae el nº y le avisa al cliente; después solo se puede PEDIR la anulación desde el portal. Rechazar no manda nada.',
@@ -180,7 +194,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 texto: `${cupon ? `Fijate en la pantalla del portal que la observación diga "Primer par de Promo num cupón ${cupon}".` : `El robot va a generar el cupón en la web de la promo (${r.cuponResuelto ? `${r.cuponResuelto.linea.name}: ${r.cuponResuelto.primero.name}${r.cuponResuelto.segundo ? ` + ${r.cuponResuelto.segundo.name}` : ''}` : 'con los datos de la ficha'}) y lo va a escribir en la observación antes de grabar.`} ${plan.promo?.tipo === 'MI_PRIMER' ? 'Cuando quede cargado, el robot manda el mail a Optovisión con el nº de trabajo.' : 'Cuando quede cargado, su nº va en la observación del 2º par: el robot lo anota solo al terminar.'}`,
             } : null,
             enlacePortal: null,
-            documento: r.cuponWeb?.pdfUrl ? { url: r.cuponWeb.pdfUrl, etiqueta: `Voucher del cupón ${r.cuponWeb.codigo} (PDF de la web de la promo)` } : null,
+            documento: r.cuponWeb?.voucherUrl || r.cuponWeb?.pdfUrl ? { url: (r.cuponWeb.voucherUrl || r.cuponWeb.pdfUrl)!, etiqueta: `Voucher del cupón ${r.cuponWeb.codigo} (PDF de la web de la promo)` } : null,
             pendienteEnPortal: null,
         };
     },
