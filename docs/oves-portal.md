@@ -233,7 +233,7 @@ mismo (`lab-modules/optovision/promo.ts`), y no toca la fila Promo del portal.
 - `opc=consulta&nroPed=` de un nº inexistente devuelve `[]` (el robot lo toma
   como "no existe"). De uno real: 103 claves; el paciente va en
   `pel_des_usuarionombre` y la "Referencia Cliente" en `pel_des_pedinterno`;
-  `pel_cod_estado` = `EM` para "Preparado" (`AN` = anulado, por el código);
+  `pel_cod_estado` = `EM` para "Preparado", `LI` para "Listo" (`AN` = anulado, por el código); la observación va en `pel_obs_pedido`;
   `pel_est_solanul` = `N` sin solicitud de anulación.
 - El RPC viejo (sajax) manda `rs=x_…` por **POST a `/oves/lab/`** (no a
   `suggest.php`); el bloqueo de solo lectura del robot mira url + body, así
