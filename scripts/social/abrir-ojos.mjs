@@ -28,6 +28,8 @@ const VISTA = args.includes('--vista') ? args[args.indexOf('--vista') + 1] : nul
 // Otra foto de la MISMA persona con los ojos abiertos: de ahí sale el color de
 // ojos (Ishtar, 20/10/2026: "tiene ojos claros, usá las demás de referencia").
 const REFERENCIA = args.includes('--referencia') ? args[args.indexOf('--referencia') + 1] : null;
+// Indicaciones extra para un caso puntual (p. ej. un perfil): se suman al prompt.
+const EXTRA = args.includes('--extra') ? args[args.indexOf('--extra') + 1] : '';
 if (!ENTRADA || !SALIDA) { console.error('Uso: abrir-ojos.mjs <foto> <salida.jpg> [--vista comparacion.jpg]'); process.exit(1); }
 
 function vertex() {
@@ -48,7 +50,7 @@ async function generar(peticion) {
     return v.models.generateContent(peticion);
 }
 
-const PROMPT = `Edit the FIRST photo. The person's eyes are closed or looking down. Open her eyes naturally so she looks directly at the camera with a calm, relaxed expression and natural-looking eyes (realistic eyelashes, no exaggerated size).${REFERENCIA ? ' The SECOND image is the same person with her eyes open: copy her real eye color and iris from it exactly (light grey-blue eyes), do not make them brown.' : ' Keep her real eye color.'} Keep EVERYTHING else exactly identical: the eyeglasses frame and lenses, eyebrows, skin texture, hair, lighting, colors, framing and background. Do not retouch, beautify, sharpen or crop. Output only the edited photo, same size and framing as the input.`;
+const PROMPT = `Edit the FIRST photo. The person's eyes are closed or looking down. Open her eyes naturally so she looks directly at the camera with a calm, relaxed expression and natural-looking eyes (realistic eyelashes, no exaggerated size).${REFERENCIA ? ' The SECOND image is the same person with her eyes open: copy her real eye color and iris from it exactly (light grey-blue eyes), do not make them brown.' : ' Keep her real eye color.'}${EXTRA ? ' ' + EXTRA : ''} Keep EVERYTHING else exactly identical: the eyeglasses frame and lenses, eyebrows, skin texture, hair, lighting, colors, framing and background. Do not retouch, beautify, sharpen or crop. Output only the edited photo, same size and framing as the input.`;
 
 // 1. Dónde están los ojos.
 const original = sharp(ENTRADA).rotate();
