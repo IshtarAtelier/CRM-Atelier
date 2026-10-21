@@ -431,7 +431,11 @@ export function pedidoConsultadoEsNuestro(consulta: Record<string, unknown> | nu
     const valores = directos.length ? directos : Object.values(consulta).filter(v => typeof v === 'string').map(v => normalizarReferencia(v as string));
     // El nombre, por palabras y en cualquier orden: el equipo escribe "Devereux Patricia" o "Patricia Devereux".
     const palabras = normalizarReferencia(o.paciente).split(' ').filter(w => w.length >= 3);
-    const nombraPaciente = palabras.length > 0 && valores.some(v => palabras.every(w => v.includes(w)));
+    // Un pedido cargado a mano puede llevar el nombre abreviado ("Gimenez Gab" por Gimenez Gabriela, visto el 21/10/2026):
+    // cada palabra del paciente tiene que estar entera, o como un token del portal de 3+ letras que sea su comienzo.
+    // Vale si el portal trae TODAS las palabras del paciente, o si lo que trae (2+ tokens) son comienzos de palabras del paciente.
+    const abreviado = (v: string) => { const t = v.split(' ').filter(x => x.length >= 3); return t.length >= 2 && t.every(x => palabras.some(w => w.startsWith(x))); };
+    const nombraPaciente = palabras.length > 0 && valores.some(v => palabras.every(w => v.includes(w)) || abreviado(v));
     const ref = normalizarReferencia(o.pedinterno);
     const nombraRef = !!ref && valores.some(v => v.includes(ref) || (v.length > 6 && ref.includes(v)));
     if (nombraPaciente || nombraRef) return { ok: true, motivo: '', vivo: true };

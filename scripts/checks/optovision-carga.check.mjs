@@ -14,7 +14,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 import assert from 'node:assert/strict';
 import { marcaDePromo, WEB_DE_PROMO, DESTINATARIOS_PROMO, MAIL_PROMO_PARA, MAIL_PROMO_COPIA, providerDePromo, nombreDePromo, PATRON_CUPON, MARCA_CUPON_PENDIENTE, observacionPrimerParPendiente, conCuponReal, cuponLimpio, observacionPrimerPar, observacionSegundoPar, asuntoDelMail, pasosPendientes } from '../../src/services/lab-modules/optovision/promo.ts';
-import { rasgosDeProductoWeb, rasgosDelCristalCRM, elegirLineaWeb, elegirProductoWeb, segundoAdmitido, recetaWebDe, repartirNombre, clienteWebDe, pedidoDeCupon, pedidoDeLaPagina, filasDelCliente, esCuponDelCliente, cuponReutilizable, esProviderMiPrimer, DIAS_CUPON_VIGENTE, planConCupon, formularioConCupon, fechaDelHistorial, ordenDeBusqueda, MAX_DETALLES_HISTORIAL, avisoDeCuponDistinto, telefonoParaLaWeb } from '../../src/services/lab-modules/optovision/cupon-web.ts';
+import { rasgosDeProductoWeb, rasgosDelCristalCRM, elegirLineaWeb, elegirProductoWeb, segundoAdmitido, recetaWebDe, repartirNombre, clienteWebDe, pedidoDeCupon, pedidoDeLaPagina, filasDelCliente, esCuponDelCliente, cuponReutilizable, esProviderMiPrimer, DIAS_CUPON_VIGENTE, planConCupon, formularioConCupon, fechaDelHistorial, ordenDeBusqueda, MAX_DETALLES_HISTORIAL, filasDeLaPromo, avisoDeCuponDistinto, telefonoParaLaWeb } from '../../src/services/lab-modules/optovision/cupon-web.ts';
 import { credencialesPromo, CredencialPromoFaltanteError } from '../../src/services/lab-modules/optovision/cupon-robot.ts';
 import { especificacionDe, colorOvesDe, materialDe, elegirProductoOves, eleccionQuePide, familiaDelNombre, tratamientoDe, varianteDe } from '../../src/services/lab-modules/optovision/catalogo.ts';
 import { PRODUCTOS_OVES, OVES_CATALOGO, valueDeOves } from '../../src/lib/laboratorios/oves-catalogo.ts';
@@ -313,6 +313,9 @@ t('la referencia del listado coincide aunque el portal la recorte, y la consulta
     assert.equal(pedidoConsultadoEsNuestro(consulta, { paciente: 'Juan San Martin', pedinterno: '#AB12 Juan San Martin 2° par' }).ok, true);
     // El nombre en otro orden también es el mismo paciente.
     assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_des_pedinterno: 'x' }, { paciente: 'Juan San Martin', pedinterno: '' }).ok, true);
+    // Cargado a mano con el nombre abreviado ("Gimenez Gab"): es la misma paciente; "Gimenez Rob" no.
+    assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_des_usuarionombre: 'Gimenez Gab', pel_des_pedinterno: 'x' }, { paciente: 'Gabriela Evelin Gimenez', pedinterno: '' }).ok, true);
+    assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_des_usuarionombre: 'Gimenez Rob', pel_des_pedinterno: 'x' }, { paciente: 'Gabriela Evelin Gimenez', pedinterno: '' }).ok, false);
     assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_cod_estado: 'AN' }, { paciente: 'Juan San Martin', pedinterno: '' }).motivo, 'está ANULADO en el portal');
     assert.equal(pedidoConsultadoEsNuestro({ ...consulta, pel_est_solanul: 'S' }, { paciente: 'Juan San Martin', pedinterno: '' }).ok, false);
     const ajeno = pedidoConsultadoEsNuestro(consulta, { paciente: 'Otra Persona', pedinterno: '#ZZ99 Otra' });
@@ -589,6 +592,14 @@ t('el historial se recorre de la fila más nueva a la más vieja, las parecidas 
     // El tope solo corta en la promo doble; Mi Primer (una vez en la vida) mira todas.
     assert.equal(ordenDeBusqueda(muchas, 'Nadie', DIAS_CUPON_VIGENTE, ahora).length, MAX_DETALLES_HISTORIAL);
     assert.equal(ordenDeBusqueda(muchas, 'Nadie', null, ahora).length, 200);
+});
+t('el historial se filtra por la etiqueta de la promo (VDD / MPV / K2x1); sin etiqueta conocida, todas', () => {
+    const fila = (promocion, cliente) => ({ fecha: '16/10/2026', promocion, codigo: 'X', cliente, detalleUrl: 'u', pdfUrl: null });
+    const filas = [fila('VDD', 'A'), fila('MPV', 'B'), fila('K2x1', 'C'), fila('VDD', 'D')];
+    assert.deepEqual(filasDeLaPromo(filas, 'varilux').map(f => f.cliente), ['A', 'D']);
+    assert.deepEqual(filasDeLaPromo(filas, 'mi-primer-varilux').map(f => f.cliente), ['B']);
+    assert.deepEqual(filasDeLaPromo(filas, 'kodak').map(f => f.cliente), ['C']);
+    assert.equal(filasDeLaPromo(filas, 'kodak-progresivos').length, 4);
 });
 t('un cupón reutilizado hecho con otro producto avisa fuerte', () => {
     const hoy = { linea: { id: 8, name: 'Varilux Comfort' }, primero: { id: 1391, name: 'Comfort Orma Blue Uv Prevencia' }, segundo: { id: 1393, name: 'Comfort Orma Blue Uv Forte' } };

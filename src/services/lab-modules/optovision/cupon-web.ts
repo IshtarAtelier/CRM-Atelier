@@ -95,8 +95,16 @@ export interface RecetaWeb { esferico: string; cilindrico: string; eje: string; 
 
 const sinMas = (s: string) => s.replace(/^\+/, '');
 
+/**
+ * Hasta qué adición acepta la web de cada promo: la doble hasta 3.75 (regla
+ * `lens:0.75,3.75,0.25` del formulario); "Mi Primer" hasta 1.50 (presbicia
+ * inicial: "El campo OD Adición debe ser un número entre 0.75 y 1.50", visto
+ * en vivo el 21/10/2026 con una venta real de add 1.75).
+ */
+export const ADICION_MAXIMA_WEB: Record<TipoDePromo, number> = { DOBLE: 3.75, MI_PRIMER: 1.5 };
+
 /** La receta de un ojo del plan de OVES, en el formato del sitio; o qué le falta. Puro. */
-export function recetaWebDe(ojo: OjoOves | null, lado: 'OD' | 'OI'): { ok: true; receta: RecetaWeb; avisos: string[] } | { ok: false; faltantes: string[] } {
+export function recetaWebDe(ojo: OjoOves | null, lado: 'OD' | 'OI', tipo: TipoDePromo = 'DOBLE'): { ok: true; receta: RecetaWeb; avisos: string[] } | { ok: false; faltantes: string[] } {
     if (!ojo) return { ok: false, faltantes: [`receta del ${lado} (la web de la promo pide los dos ojos)`] };
     const faltantes: string[] = [];
     if (!ojo.adic) faltantes.push(`adición ${lado} (la web de la promo solo acepta progresivos)`);
@@ -104,7 +112,8 @@ export function recetaWebDe(ojo: OjoOves | null, lado: 'OD' | 'OI'): { ok: true;
     if (dnp === null || !Number.isFinite(dnp)) faltantes.push(`DNP ${lado}`);
     else if (dnp < 10 || dnp > 40) faltantes.push(`DNP ${lado} (${ojo.dnp}) fuera de lo que acepta la web de la promo (10 a 40)`);
     const adic = ojo.adic ? parseFloat(ojo.adic) : NaN;
-    if (ojo.adic && (adic < 0.75 || adic > 3.75)) faltantes.push(`adición ${lado} (${ojo.adic}) fuera de lo que acepta la web de la promo (0.75 a 3.75)`);
+    const maxAdic = ADICION_MAXIMA_WEB[tipo];
+    if (ojo.adic && (adic < 0.75 || adic > maxAdic)) faltantes.push(`adición ${lado} (${ojo.adic}) fuera de lo que acepta la web de ${tipo === 'MI_PRIMER' ? 'Mi Primer' : 'la promo'} (0.75 a ${maxAdic.toFixed(2)}): generá el cupón a mano si Optovisión lo acepta igual`);
     if (faltantes.length) return { ok: false, faltantes };
     const avisos = dnp !== null && Number(ojo.dnp) !== dnp ? [`DNP ${lado} ${ojo.dnp} va como ${dnp} en la web de la promo (solo acepta enteros)`] : [];
     return { ok: true, avisos, receta: { esferico: sinMas(ojo.esf), cilindrico: ojo.cil ? sinMas(ojo.cil) : '0.00', eje: ojo.cil && ojo.eje ? ojo.eje : '', adicion: ojo.adic!, dnp: String(dnp) } };
@@ -170,8 +179,9 @@ export function pedidoDeCupon(o: { venta: VentaParaCargaOves; plan: PlanOves; pr
     if (!provider) return { ok: false, faltantes: ['la promo de la venta no es Varilux ni Kodak: la web de la promo no la tiene'] };
     const c = clienteWebDe(o.venta.client, o.genero);
     if (!c.ok) faltantes.push(...c.faltantes); else avisos.push(...c.avisos);
-    const od = recetaWebDe(o.plan.od, 'OD');
-    const oi = recetaWebDe(o.plan.oi, 'OI');
+    const tipo = (o.plan.promo?.tipo ?? 'DOBLE') as TipoDePromo;
+    const od = recetaWebDe(o.plan.od, 'OD', tipo);
+    const oi = recetaWebDe(o.plan.oi, 'OI', tipo);
     if (!od.ok) faltantes.push(...od.faltantes); else avisos.push(...od.avisos);
     if (!oi.ok) faltantes.push(...oi.faltantes); else avisos.push(...oi.avisos);
     const r1 = rasgosDelCristalCRM(o.plan.productoCRM, o.plan.opciones.tratamiento, o.plan.promo?.marca ?? null);
@@ -305,6 +315,19 @@ export function ordenDeBusqueda(filas: FilaHistorial[], nombreCompleto: string, 
     const resto = vigentes.filter(x => !parecidas.has(x.f)).sort(porFecha);
     const orden = [...primero, ...resto].map(x => x.f);
     return dias === null ? orden : orden.slice(0, MAX_DETALLES_HISTORIAL);
+}
+
+/**
+ * La columna "Promoción" del historial dice de qué promo es cada fila (visto el
+ * 20/10/2026: VDD = Doble Disfrute, MPV = Mi Primer Varilux, K2x1 = Kodak 2x1).
+ * Sirve para abrir SOLO los detalles de la promo buscada: abrir los 59 del
+ * historial seguidos hizo que el sitio contestara 429 (probado el 21/10). Si
+ * la promo no tiene etiqueta conocida (Mi Primer Kodak), se abren todas.
+ */
+export const ETIQUETA_HISTORIAL: Partial<Record<ProviderWeb, string>> = { varilux: 'VDD', 'mi-primer-varilux': 'MPV', kodak: 'K2x1' };
+export function filasDeLaPromo(filas: FilaHistorial[], provider: string): FilaHistorial[] {
+    const tag = ETIQUETA_HISTORIAL[provider as ProviderWeb];
+    return tag ? filas.filter(f => limpio(f.promocion) === limpio(tag)) : filas;
 }
 
 /** Los productos con los que se hizo un cupón (ids del sitio), para compararlos con lo que se carga hoy. */

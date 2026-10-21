@@ -1,7 +1,7 @@
 import type { Page } from 'playwright';
 import { conNavegador, CredencialRechazadaError } from '../portal/navegador';
 import { WEB_DE_PROMO, type MarcaDePromo } from './promo';
-import { cuponReutilizable, DIAS_CUPON_VIGENTE, elegirLineaWeb, elegirProductoWeb, esCuponDelCliente, esProviderMiPrimer, ordenDeBusqueda, pedidoDeLaPagina, segundoAdmitido, type FilaHistorial, type LineaWeb, type PedidoDeCupon, type PedidoWeb, type ProductoWeb } from './cupon-web';
+import { cuponReutilizable, DIAS_CUPON_VIGENTE, elegirLineaWeb, elegirProductoWeb, esCuponDelCliente, esProviderMiPrimer, filasDeLaPromo, ordenDeBusqueda, pedidoDeLaPagina, segundoAdmitido, type FilaHistorial, type LineaWeb, type PedidoDeCupon, type PedidoWeb, type ProductoWeb } from './cupon-web';
 
 /**
  * EL ROBOT DEL CUPÓN: entra a la web de la promo de Optovisión con la cuenta
@@ -28,6 +28,10 @@ export const NOMBRE_WEB_PROMO: Record<MarcaDePromo, string> = { VARILUX: 'web de
 /** El sitio es moderno, pero el criterio es el de toda la carga: tope ancho, nada aborta por apuro. */
 export const ESPERA_WEB_PROMO_MS = 10 * 60_000;
 const CADA_MS = 1000;
+/** El sitio limita peticiones por minuto (429 visto el 21/10/2026): entre páginas se respira, y ante un 429 se espera un minuto y se repite. */
+const PAUSA_ENTRE_PAGINAS_MS = 1200;
+const ESPERA_TRAS_429_MS = 65_000;
+const REINTENTOS_429 = 3;
 
 export class CredencialPromoFaltanteError extends CredencialRechazadaError {
     constructor(marca: MarcaDePromo) {
@@ -112,12 +116,18 @@ export async function enSoloLecturaWeb<T>(page: Page, tarea: () => Promise<T>): 
 }
 
 async function pedirJson<T>(page: Page, ruta: string): Promise<T> {
-    const r: any = await page.evaluate(async ({ u, t }) => {
-        const res = await fetch(u, { credentials: 'include', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(t) });
-        if (!res.ok) return { __error: res.status };
-        const texto = await res.text();
-        try { return JSON.parse(texto); } catch { return { __texto: texto.slice(0, 200) }; }
-    }, { u: ruta, t: ESPERA_WEB_PROMO_MS });
+    let r: any;
+    for (let intento = 0; ; intento++) {
+        r = await page.evaluate(async ({ u, t }) => {
+            const res = await fetch(u, { credentials: 'include', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(t) });
+            if (!res.ok) return { __error: res.status };
+            const texto = await res.text();
+            try { return JSON.parse(texto); } catch { return { __texto: texto.slice(0, 200) }; }
+        }, { u: ruta, t: ESPERA_WEB_PROMO_MS });
+        if (r?.__error !== 429 || intento >= REINTENTOS_429) break;
+        console.warn(`[Optovisión] la web de la promo contestó 429 a ${ruta}: se espera ${Math.round(ESPERA_TRAS_429_MS / 1000)} s y se repite (${intento + 1}/${REINTENTOS_429}).`);
+        await page.waitForTimeout(ESPERA_TRAS_429_MS);
+    }
     if (r?.__error) throw new Error(`la web de la promo respondió ${r.__error} a ${ruta}`);
     if (r?.__texto !== undefined) throw new Error(`la web de la promo no devolvió JSON en ${ruta}: ${r.__texto}`);
     return r as T;
@@ -180,11 +190,17 @@ export async function bajarVoucher(page: Page, pdfUrl: string | null): Promise<B
 export interface CuponDelSitio { pedido: PedidoWeb; url: string; pdfUrl: string | null; voucher: Buffer | null }
 
 export async function buscarCuponExistente(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon): Promise<CuponDelSitio | null> {
-    const filas = (await leerHistorial(page, marca)).filter(f => f.detalleUrl);
+    const filas = filasDeLaPromo((await leerHistorial(page, marca)).filter(f => f.detalleUrl), pedido.provider);
     const orden = ordenDeBusqueda(filas, `${pedido.cliente.nombre} ${pedido.cliente.apellido}`, esProviderMiPrimer(pedido.provider) ? null : DIAS_CUPON_VIGENTE);
     const delCliente: CuponDelSitio[] = [];
     for (const f of orden) {
+        // Despacio: el sitio limita las peticiones por minuto (429 el 21/10/2026 abriendo 59 detalles seguidos).
+        await page.waitForTimeout(PAUSA_ENTRE_PAGINAS_MS);
         await page.goto(f.detalleUrl!, { waitUntil: 'domcontentloaded' });
+        if (await page.evaluate(() => /429|too many requests|demasiadas/i.test(document.title + ' ' + document.body.innerText.slice(0, 300)))) {
+            await page.waitForTimeout(ESPERA_TRAS_429_MS);
+            await page.goto(f.detalleUrl!, { waitUntil: 'domcontentloaded' });
+        }
         const p = pedidoDeLaPagina(await page.content());
         if (!p || !esCuponDelCliente(p, { provider: pedido.provider, dni: pedido.cliente.dni })) continue;
         if (cuponReutilizable(p)) return { pedido: p, url: f.detalleUrl!, pdfUrl: f.pdfUrl, voucher: await bajarVoucher(page, f.pdfUrl) };
@@ -223,7 +239,7 @@ const digitos = (s: string) => s.replace(/\D/g, '');
  * pedido creado (con el cupón) leído de la página de detalle. ESCRIBE en el
  * sitio: se llama solo al aprobar, y quien llama anota el cupón en el acto.
  */
-export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon, resolucion: ResolucionCupon): Promise<CuponDelSitio> {
+export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: PedidoDeCupon, resolucion: ResolucionCupon, opts: { ensayo?: boolean } = {}): Promise<CuponDelSitio | { ensayo: true; captura: Buffer; quedo: Record<string, string> }> {
     const c = pedido.cliente;
     await page.goto(`${base(marca)}/pedidos/crear?provider=${pedido.provider}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('form input[name="first_name"]', { state: 'visible' });
@@ -273,8 +289,13 @@ export async function generarCupon(page: Page, marca: MarcaDePromo, pedido: Pedi
     }).map(([k, v]) => `${k}: pedido "${v}", quedó "${quedo[k] ?? ''}"`);
     if (dif.length) throw new SitioDePromoNoAceptaRobotError(`el formulario de la ${NOMBRE_WEB_PROMO[marca]} no quedó como se pidió (${dif.slice(0, 4).join(' · ')}): el cupón se genera a mano`);
 
+    // La validación del sitio marca los campos ANTES de confirmar (vee-validate): si ya hay un error visible, no se aprieta nada.
+    const invalidos: string[] = await page.evaluate(() => [...document.querySelectorAll('form .invalid-feedback, form .is-invalid')].filter(e => (e as HTMLElement).offsetParent !== null).map(e => ((e as HTMLElement).innerText || (e as HTMLElement).getAttribute('name') || '').trim()).filter(Boolean));
+    if (invalidos.length) throw new CuponRechazadoError(`la ${NOMBRE_WEB_PROMO[marca]} no acepta el pedido tal como está (${[...new Set(invalidos)].slice(0, 4).join(' · ')}); no se creó cupón`);
     const boton = page.locator('form button[type="submit"]', { hasText: /confirmar/i }).first();
     if (!(await boton.count())) throw new SitioDePromoNoAceptaRobotError(`la ${NOMBRE_WEB_PROMO[marca]} no tiene el botón "Confirmar pedido": el cupón se genera a mano`);
+    // ENSAYO: todo llenado y verificado, pero sin confirmar (prueba de punta a punta sin crear un cupón).
+    if (opts.ensayo) return { ensayo: true, captura: await page.screenshot({ fullPage: true, type: 'png' }), quedo };
     await boton.click();
     // El envío es un POST clásico: éxito = redirección a /pedidos/<id>; rechazo = sigue en /pedidos/crear con los errores.
     const limite = Date.now() + ESPERA_WEB_PROMO_MS;

@@ -90,7 +90,7 @@ const guardarCaptura = (borradorId: string, sufijo: string, png: Buffer) => guar
  * bloqueo esté puesto antes de tocar el formulario. Al final la página se mata
  * (about:blank) antes de levantar el bloqueo.
  */
-async function enSoloLectura<T>(page: Page, tarea: (atajadas: string[]) => Promise<T>): Promise<T> {
+export async function enSoloLectura<T>(page: Page, tarea: (atajadas: string[]) => Promise<T>): Promise<T> {
     const atajadas: string[] = [];
     // Lo que escribe en OVES, venga por POST o por GET (sajax manda los RPC por
     // GET salvo que la app lo cambie: no se asume): grabar, anular, marcar
@@ -212,7 +212,9 @@ async function obtenerCupon(b: { id: string; orderId: string; pair: number }, ra
             // Lo que se revisó tiene que seguir siendo lo que el sitio ofrece: si el catálogo cambió, no se confirma a ciegas.
             const antes = rastro.cuponResuelto;
             if (antes && (antes.linea.id !== resolucion.linea.id || antes.primero.id !== resolucion.primero.id || (antes.segundo?.id ?? null) !== (resolucion.segundo?.id ?? null))) throw new AprobacionInvalidaError(`la web de la promo cambió el producto desde que se preparó (${antes.primero.name} → ${resolucion.primero.name}): volvé a prepararlo. No se mandó nada.`);
-            return { cuponWeb: await cuponObtenidoDe(b.id, await generarCupon(page, marca, pedido, resolucion), false, resolucion), origen: 'generado' as const };
+            const generado = await generarCupon(page, marca, pedido, resolucion);
+            if ('ensayo' in generado) throw new Error('generarCupon devolvió un ensayo en la carga real (no debería pasar)');
+            return { cuponWeb: await cuponObtenidoDe(b.id, generado, false, resolucion), origen: 'generado' as const };
         });
     } catch (err: any) {
         if (err instanceof CuponRechazadoError || err instanceof SitioDePromoNoAceptaRobotError || err instanceof CredencialPromoFaltanteError || err instanceof MiPrimerYaOtorgadoError) {
