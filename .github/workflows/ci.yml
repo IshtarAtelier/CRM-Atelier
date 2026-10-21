@@ -148,7 +148,7 @@ jobs:
       - name: Embudo 100 % automático (cadencia, lectura de respuestas, cierre solo)
         run: npm run check:embudo
 
-      - name: "Más adelante" pausa una sola vez (no se corre cada hora)
+      - name: '"Más adelante" pausa una sola vez (no se corre cada hora)'
         run: npm run check:posponer
 
       - name: Confirmación del cliente (OK / 24 h / observación; app y bot leen igual)
