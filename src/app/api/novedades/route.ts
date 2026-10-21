@@ -47,6 +47,13 @@ const NOVEDADES: { id: string; desde?: string; audiencia: (nombre: string, rol: 
         desde: '2026-10-19',
         audiencia: (nombre: string) => normalizar(nombre).includes('matias'),
     },
+    {
+        // 2ª vuelta del desafío (Ishtar, 21/10/2026): el 19 y el 20 no entró
+        // ninguna reseña (741 vs 746). Id nuevo para que vuelva a aparecer.
+        id: 'desafio-resenas-lens-cerro-2026-10-b',
+        desde: '2026-10-21',
+        audiencia: (nombre: string) => normalizar(nombre).includes('matias'),
+    },
 ];
 
 /** Hoy en Córdoba, AAAA-MM-DD — para comparar con `desde`. */

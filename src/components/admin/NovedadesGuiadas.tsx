@@ -22,14 +22,31 @@ interface Paso {
 }
 
 /** Si el guiado trae opciones, el último paso cierra con ellas en vez de "Entendido". */
+const OPCIONES_DESAFIO = [
+    { texto: 'Me aseguro de no terminar el día sin lograrlo', principal: true, festejo: true },
+    { texto: 'Dejá, me gusta el segundo puesto' },
+];
 const OPCIONES: Record<string, { texto: string; principal?: boolean; festejo?: boolean }[]> = {
-    'desafio-resenas-lens-cerro-2026-10': [
-        { texto: 'Me aseguro de no terminar el día sin lograrlo', principal: true, festejo: true },
-        { texto: 'Dejá, me gusta el segundo puesto' },
-    ],
+    'desafio-resenas-lens-cerro-2026-10': OPCIONES_DESAFIO,
+    'desafio-resenas-lens-cerro-2026-10-b': OPCIONES_DESAFIO,
 };
 
 const GUIADOS: Record<string, Paso[]> = {
+    'desafio-resenas-lens-cerro-2026-10-b': [
+        {
+            titulo: 'Desafío: seguimos 5 abajo de Lens Cerro',
+            cuerpo: (
+                <>
+                    <p>El lunes te comprometiste a no terminar el día sin lograrlo, pero desde entonces <strong>no entró ninguna reseña</strong>: seguimos <strong>741 contra 746</strong> de Lens Cerro.</p>
+                    <p className="mt-2">La meta sigue en pie: quedar <strong>al menos 10 arriba</strong>. Son <strong>15 reseñas nuevas</strong>.</p>
+                    <p className="flex items-center gap-2 mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 font-bold">
+                        <Gift className="w-4 h-4 shrink-0" /> La lista está renovada: en tus Tareas → “Solicitar comentario” están los clientes de los últimos 2 meses que todavía no comentaron.
+                    </p>
+                    <p className="mt-3">Cuando cierres cada tarea, el sistema chequea solo en Google si la reseña ya figura.</p>
+                </>
+            ),
+        },
+    ],
     'solicitar-factura-2026-10': [
         {
             titulo: 'Cambió cómo se pide una factura',
