@@ -46,6 +46,8 @@ export interface CampoDePreparacion {
     /** Solo `texto`: largo máximo y qué forma tiene que tener (se valida también en el server). */
     maxLength?: number;
     patron?: string;
+    /** Solo `texto`: lo que se lee en el cajón vacío (la ayuda va en el tooltip; esto se ve siempre). */
+    placeholder?: string;
 }
 
 /** Un par de la venta que se carga en este laboratorio, como lo ve la ficha. */

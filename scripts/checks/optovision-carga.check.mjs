@@ -18,7 +18,7 @@ import { rasgosDeProductoWeb, rasgosDelCristalCRM, elegirLineaWeb, elegirProduct
 import { credencialesPromo, CredencialPromoFaltanteError } from '../../src/services/lab-modules/optovision/cupon-robot.ts';
 import { especificacionDe, colorOvesDe, materialDe, elegirProductoOves, eleccionQuePide, familiaDelNombre, tratamientoDe, varianteDe } from '../../src/services/lab-modules/optovision/catalogo.ts';
 import { PRODUCTOS_OVES, OVES_CATALOGO, valueDeOves } from '../../src/lib/laboratorios/oves-catalogo.ts';
-import { planDeCarga, referenciaDelPedido, observacionDelPedido, esPromoDobleDeOptovision, rolesDeLaPromo, huellaDelPlan, diferenciasDePlan, cristalesPorPar, promoQueNoCierra, nombraPromoDoble } from '../../src/services/lab-modules/optovision/carga.ts';
+import { planDeCarga, referenciaDelPedido, observacionDelPedido, esPromoDobleDeOptovision, promoDeVenta, rolesDeLaPromo, huellaDelPlan, diferenciasDePlan, cristalesPorPar, promoQueNoCierra, nombraPromoDoble } from '../../src/services/lab-modules/optovision/carga.ts';
 import { elegirServicio, diferenciasDeFormulario, numeroDeLaRespuesta, referenciaCoincide, pedidoConsultadoEsNuestro, fechaDelPortal } from '../../src/services/lab-modules/optovision/llenar.ts';
 import { textoDeFallaDeConfirmacion } from '../../src/services/lab-modules/carga/robot-comun.ts';
 import { decidirConAprobado } from '../../src/services/lab-modules/carga/decision.ts';
@@ -357,6 +357,23 @@ t('promo doble: el par de mayor valor de lista va 1º (con el cupón), el otro 2
     assert.equal(segundo.plan.rolPromo, 'SEGUNDO_PAR'); assert.equal(segundo.plan.pedidoOrigen, '628377');
     assert.match(segundo.plan.observacion, /^Promo Doble Disfrute Varilux - Segundo par promo compañero\/asociado al num 628377/);
     assert.equal(segundo.plan.pedinterno, '#AB12 Juan San Martin 1° par');
+});
+t('"Mi Primer" es del cristal de CADA par: un par de sol al lado no es promo, y un Mi Primer en el par 2 sí lo es', () => {
+    const v = ventaDoble();
+    const mp = 'MI PRIMER VARILUX COMFORT - ORMA + CRIZAL', sol = 'EYEZEN START - ORMA BLUE UV + CRIZAL';
+    for (const i of v.items.slice(0, 2)) { i.product.name = mp; i.productNameSnapshot = mp; i.product.price = 900000; i.price = 900000; }
+    for (const i of v.items.slice(2)) { i.product.name = sol; i.productNameSnapshot = sol; i.productTypeSnapshot = 'Cristal Monofocal'; i.product.type = 'Cristal Monofocal'; i.crystalColor = null; i.product.price = 100000; }
+    assert.equal(esPromoDobleDeOptovision(v), false);
+    assert.deepEqual(promoDeVenta(v, 1), { tipo: 'MI_PRIMER', marca: 'VARILUX' });
+    assert.equal(promoDeVenta(v, 2), null);
+    const par2 = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
+    assert.ok(par2.ok, par2.ok ? '' : par2.faltantes.join(' · ')); assert.equal(par2.plan.promo, null); assert.equal(par2.plan.rolPromo, null);
+    // Al revés: el Mi Primer en el par 2 lleva su cupón.
+    for (const i of v.items.slice(0, 2)) { i.product.name = sol; i.productNameSnapshot = sol; i.productTypeSnapshot = 'Cristal Monofocal'; i.product.type = 'Cristal Monofocal'; }
+    for (const i of v.items.slice(2)) { i.product.name = mp; i.productNameSnapshot = mp; i.productTypeSnapshot = 'Cristal Multifocal'; i.product.type = 'Cristal Multifocal'; }
+    assert.equal(promoDeVenta(v, 1), null); assert.deepEqual(promoDeVenta(v, 2), { tipo: 'MI_PRIMER', marca: 'VARILUX' });
+    const r2 = planDeCarga(v, 2, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11 });
+    assert.equal(r2.ok, false); assert.ok(r2.faltantes.some(f => /cupón/.test(f)));
 });
 t('"Mi Primer" es promo con cupón de un solo par', () => {
     const v = ventaBase();

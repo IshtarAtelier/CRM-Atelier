@@ -190,14 +190,19 @@ export function rolesDeLaPromo(venta: VentaParaCargaOves): RolesDePares | null {
     return rolesDeDosPares([{ pair: 1, items: porPar.get(1) ?? [] }, { pair: 2, items: porPar.get(2) ?? [] }]);
 }
 
-/** Qué promo de Optovisión aplica a la venta y de qué marca es. Puro. */
-export function promoDeVenta(venta: VentaParaCargaOves): PlanOves['promo'] {
+/**
+ * Qué promo de Optovisión aplica a ESTE par y de qué marca es. La doble es de
+ * la venta (dos pares); "Mi Primer" es del cristal del par (un Mi Primer en el
+ * par 1 no convierte en promo a un monofocal de sol en el par 2, y uno en el
+ * par 2 sí lleva su cupón; auditoría del 21/10/2026). Puro.
+ */
+export function promoDeVenta(venta: VentaParaCargaOves, par = 1): PlanOves['promo'] {
     const porPar = cristalesPorPar(venta);
-    const primero = porPar.get(1)?.[0] ?? [...porPar.values()][0]?.[0];
-    if (!primero) return null;
-    const marca = marcaDePromo(nombreDe(primero)) ?? marcaDePromo(familiaDelNombre(nombreDe(primero)));
+    const cristal = porPar.get(par)?.[0] ?? (porPar.size === 1 ? [...porPar.values()][0]?.[0] : undefined);
+    if (!cristal) return null;
+    const marca = marcaDePromo(nombreDe(cristal)) ?? marcaDePromo(familiaDelNombre(nombreDe(cristal)));
     if (esPromoDobleDeOptovision(venta)) return { tipo: 'DOBLE', marca };
-    if (/^mi primer /i.test(nombreDe(primero).normalize('NFD').replace(/[̀-ͯ]/g, ''))) return { tipo: 'MI_PRIMER', marca };
+    if (/^mi primer /i.test(nombreDe(cristal).normalize('NFD').replace(/[̀-ͯ]/g, ''))) return { tipo: 'MI_PRIMER', marca };
     return null;
 }
 
@@ -296,7 +301,7 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
     avisos.push(...esp.avisos);
 
     // Promo: roles (el caro es el 1º), cupón y nº del 1º.
-    const promo = promoDeVenta(venta);
+    const promo = promoDeVenta(venta, par);
     const roles = rolesDeLaPromo(venta);
     const rolPromo: RolPromo = promo?.tipo === 'MI_PRIMER' ? 'PRIMER_PAR' : rolDe(roles, par);
     const avisoRoles = roles ? avisoDeRoles(roles, precioConSigno) : null;

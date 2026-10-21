@@ -9,6 +9,7 @@ import { puedeCrearPedidosReales } from '../carga/produccion';
 import { asuntoDelMail, DESTINATARIOS_PROMO, MAIL_PROMO_COPIA, MAIL_PROMO_PARA, nombreDePromo } from './promo';
 import { LAB_OPTOVISION, NOMBRE_OPTOVISION, VARIABLE_PERMISO_OVES } from './portal';
 import type { PayloadBorradorOves, RastroOves } from './borrador-portal';
+import { pedidoExistenteDelPar } from './existentes';
 
 /**
  * PASO 2 DEL PROCEDIMIENTO DE LA PROMO (Optovisión Essilor, 23/9/2026): el
@@ -51,8 +52,7 @@ export function cuerpoDelMail(o: { cliente: string; primerPar: string; segundoPa
         `· ${o.segundoPar ? '1er par' : 'Pedido'}: ${o.segundoPar ? 'pedido ' : ''}${o.primerPar}${o.cupon ? ` (cupón ${o.cupon})` : ''}`,
         ...(o.segundoPar ? [`· 2º par: pedido ${o.segundoPar} (asociado al ${o.primerPar})`] : []),
         ``,
-        ...(o.conVoucher ? [`Adjuntamos el voucher de la web de la promo.`] : []),
-        ``,
+        ...(o.conVoucher ? [`Adjuntamos el voucher de la web de la promo.`, ``] : []),
         `Muchas gracias.`,
         `Atelier Óptica`,
     ].join('\n');
@@ -72,14 +72,23 @@ export async function avisarMailDePromo(orderId: string, robot: Actor, aprobadoP
     const segundo = conPlan.find(b => b.plan.rolPromo === 'SEGUNDO_PAR');
     // Mi Primer (un solo par): el mail sale con el 1er par cargado. Doble: con los dos.
     const esMiPrimer = primero?.plan.promo?.tipo === 'MI_PRIMER';
-    const dueno = esMiPrimer ? primero : segundo;
+    // El 2º par pudo cargarse A MANO (cristal que va a mano, portal caído): no hay borrador, pero la venta tiene su nº.
+    // Sin esto el mail no salía y nadie se enteraba (auditoría del 21/10/2026): el dueño pasa a ser el 1er par.
+    let numeroSegundoAMano: string | null = null;
+    if (!esMiPrimer && primero && !segundo && primero.plan.pares > 1) {
+        const otroPar = primero.pair === 1 ? 2 : 1;
+        const existente = await pedidoExistenteDelPar(orderId, otroPar, primero.plan.pares, primero.portalNumber);
+        // Dos nº posibles para el 2º par: no se elige uno al azar para un mail que define qué se cobra.
+        numeroSegundoAMano = existente && !existente.ambiguo ? existente.numero : null;
+    }
+    const dueno = esMiPrimer ? primero : (segundo ?? (numeroSegundoAMano || primero?.portalNumber ? primero : null));
     if (!dueno) return { enviado: false, motivo: esMiPrimer ? 'no hay un par de Mi Primer cargado' : 'no hay un 2º par de promo cargado' };
     const rastro = (dueno.resumenPortal || {}) as RastroOves;
     if (rastro.mailPromoEnviadoEl) return { enviado: false, motivo: `ya enviado el ${rastro.mailPromoEnviadoEl}` };
     const numeroPrimero = primero?.portalNumber ?? segundo?.plan.pedidoOrigen ?? null;
-    const numeroSegundo = esMiPrimer ? null : (segundo?.portalNumber ?? null);
+    const numeroSegundo = esMiPrimer ? null : (segundo?.portalNumber ?? numeroSegundoAMano);
     const pendiente = async (motivo: string) => { await Borradores.anotarRastro(dueno.id, { mailPromoPendiente: motivo } as any).catch(() => null); return { enviado: false, motivo }; };
-    if (!numeroPrimero || (!esMiPrimer && !numeroSegundo)) return pendiente(esMiPrimer ? 'falta el nº del par para el mail a Optovisión' : 'faltan los nº de los dos pares para el mail a Optovisión');
+    if (!numeroPrimero || (!esMiPrimer && !numeroSegundo)) return pendiente(esMiPrimer ? 'falta el nº del par para el mail a Optovisión' : 'falta el nº del 2º par para el mail a Optovisión: cargalo con el robot o anotá su nº en la venta (al abrir la ficha se reintenta). Sin el mail, Optovisión cobra los dos pares');
     const venta = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, clientId: true, labSentBy: true, client: { select: { name: true } } } });
     if (!venta) return pendiente('la venta no existe');
     const codigo = await codigoDeVendedorOptovision(venta.labSentBy);

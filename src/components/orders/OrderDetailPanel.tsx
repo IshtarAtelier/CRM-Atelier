@@ -149,6 +149,8 @@ export function OrderDetailPanel({
 
     // Qué laboratorios lleva la venta: la identidad única (lib/laboratorios/identidad).
     const isOptovision = order.items?.some((it: any) => labDeItem(it) === 'OPTOVISION') || false;
+    // La carga asistida de Optovisión solo con CRISTALES del lab (un teñido solo no arma ningún par), como Vitolen y el listado de Ventas.
+    const cargaOptovision = order.items?.some((it: any) => esCristalDeLab(it, 'OPTOVISION')) || false;
     const isVitolen = order.items?.some((it: any) => esCristalDeLab(it, 'VITOLEN')) || false;
     // Grupo Óptico: carga asistida en SmartLab (src/services/lab-modules/grupo-optico). Un
     // cristal sin laboratorio cargado (ventas viejas) se asume de GO, como hace la carga.
@@ -1264,7 +1266,7 @@ export function OrderDetailPanel({
 
                     {/* Optovisión: carga asistida en OVES con OK humano (lab-modules/optovision).
                         El seguimiento sigue por la factura (lab-recon); acá solo la carga. */}
-                    {isOptovision && (
+                    {cargaOptovision && (
                         <CargaLaboratorio lab="OPTOVISION" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'OPTOVISION' ? cargaPedida.n : 0} />
                     )}
 

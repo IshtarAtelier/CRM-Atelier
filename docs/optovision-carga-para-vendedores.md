@@ -27,14 +27,17 @@ anulación desde el portal, así que la revisión es el momento de mirar.
 La venta no guarda estas cosas; las elegís vos en el bloque, mirando lo que
 se vendió:
 
-- **Crizal**: Forte UV, Prevencia, Sapphire o sin antirreflejo. Si el
-  producto dice "+ AR NUMAX" o "SIN ANTIRREFLEJO", no se pregunta.
+- **Crizal**: Forte UV, Prevencia o Sapphire. Si el producto dice "+ AR
+  NUMAX" o "SIN ANTIRREFLEJO", no se pregunta.
 - **Calibrado**: común (por defecto), perforado, ranurado o sin calibrar (si
   se calibra en el local).
 - **Tipo de armazón** del portal: Zilo/Acetato, Metal, Montura al aire, Hilo
   Nylon o Hilo de Acero.
-- **Forma** del dibujo del portal (opcional) y **si se manda el armazón** (con
-  la marca y el modelo de la venta).
+- **Si se manda el armazón** (con la marca y el modelo de la venta).
+- En una promo, el **cupón** (vacío = lo genera el robot) y el **género** del
+  cliente (la web de la promo lo pide).
+- **Forma** del armazón: el dibujo del portal, **obligatorio** (OVES no graba
+  sin él). Es la fila de dibujos, al final.
 - Lo que el diseño exija: **potencia del Eyezen Boost** (0.4 / 0.6 / 0.85),
   **corredor del Kodak Precise** (Large / Short).
 

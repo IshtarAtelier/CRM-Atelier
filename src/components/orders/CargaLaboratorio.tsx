@@ -20,7 +20,7 @@ import { formatDate } from '@/lib/format-date';
  * aprueba a ciegas.
  */
 
-interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra' | 'texto'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number; maxLength?: number; patron?: string }
+interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra' | 'texto'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number; maxLength?: number; patron?: string; placeholder?: string }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; aMano?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
 interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
 interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null }
@@ -49,6 +49,8 @@ const esImagen = (url: string | null | undefined) => { if (!url) return false; t
 const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde: string; anillo: string; seleccion: string }> = {
     VITOLEN: { caja: 'from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-100 dark:border-red-900/40', titulo: 'text-red-600', boton: 'bg-red-600', borde: 'border-red-100 dark:border-red-900/30', anillo: 'hover:ring-red-400', seleccion: 'border-red-600 ring-red-300' },
     GRUPO_OPTICO: { caja: 'from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-indigo-100 dark:border-indigo-900/50', titulo: 'text-indigo-600 dark:text-indigo-400', boton: 'bg-indigo-600', borde: 'border-indigo-100 dark:border-indigo-900/40', anillo: 'hover:ring-indigo-400', seleccion: 'border-indigo-600 ring-indigo-300' },
+    // Optovisión con colores propios: con los de Grupo Óptico, Milena no distinguía de qué laboratorio era la caja (auditoría del 21/10/2026).
+    OPTOVISION: { caja: 'from-teal-50 to-emerald-50 dark:from-teal-950/30 dark:to-emerald-950/30 border-teal-100 dark:border-teal-900/50', titulo: 'text-teal-700 dark:text-teal-400', boton: 'bg-teal-700', borde: 'border-teal-100 dark:border-teal-900/40', anillo: 'hover:ring-teal-400', seleccion: 'border-teal-700 ring-teal-300' },
 };
 
 /**
@@ -323,6 +325,13 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                     <ul className="list-disc pl-4">{par.faltantes.map(f => <li key={f}>{f}</li>)}</ul>
                                 </div>
                             ) : (
+                              <div className="space-y-2">
+                                {/* Lo que el laboratorio quiere que se sepa ANTES de preparar (Optovisión: qué le falta a la ficha para el cupón, quién es el 1er par de la promo). */}
+                                {par.avisos.length > 0 && (
+                                    <ul className="text-[11px] text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2 space-y-0.5">
+                                        {[...new Set(par.avisos)].map(a => <li key={a}>{a}</li>)}
+                                    </ul>
+                                )}
                                 <div className="flex flex-wrap items-end gap-2">
                                     {par.campos.map(c => c.tipo === 'extra' ? (
                                         valorDe(par.pair, c) ? (
@@ -357,7 +366,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                                     {(c.opciones || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                                 </select>
                                             ) : c.tipo === 'texto' ? (
-                                                <input type="text" maxLength={c.maxLength} pattern={c.patron} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-36`} />
+                                                <input type="text" maxLength={c.maxLength} pattern={c.patron} placeholder={c.placeholder} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-44`} />
                                             ) : (
                                                 <input type="number" min={c.min} max={c.max} step={1} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-24`} />
                                             )}
@@ -367,12 +376,13 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                         {ocupado === `preparar-${par.pair}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bot className="w-3 h-3" />} Preparar en {nombre}
                                     </button>
                                 </div>
+                              </div>
                             )
                         )}
 
                         {b?.status === 'PREPARADO' && (
                             <div className="text-xs text-stone-500 space-y-1">
-                                <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está armando el pedido en el portal; en unos segundos trae la pantalla para revisar. Preparado por {b.preparedBy}.</p>
+                                <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está armando el pedido en el portal; en breve trae la pantalla para revisar. Preparado por {b.preparedBy}.</p>
                                 {b.ahora && <p className="pl-4 font-bold text-stone-600 dark:text-stone-300">Ahora: {b.ahora}…</p>}
                                 {b.acciones?.anular && (
                                     <div className="flex flex-wrap items-center gap-2">

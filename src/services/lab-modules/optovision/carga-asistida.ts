@@ -12,7 +12,7 @@ import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_OPTOVISION, ty
 import { avisarMailDePromo } from './promo-mail';
 import { prisma } from '../../../lib/db';
 import { LAB_OPTOVISION, NOMBRE_OPTOVISION } from './portal';
-import { conCuponReal, cuponLimpio, PATRON_CUPON, PATRON_CUPON_HTML, WEB_DE_PROMO } from './promo';
+import { conCuponReal, cuponLimpio, PATRON_CUPON, PATRON_CUPON_HTML, providerDePromo, WEB_DE_PROMO } from './promo';
 import { formatDate } from '../../../lib/format-date';
 import { pedidoDeCupon, rasgosDelCristalCRM, rasgosDeProductoWeb } from './cupon-web';
 
@@ -84,12 +84,13 @@ export const CARGA_OPTOVISION: CargaAsistida = {
         const totalPares = Math.max(cantidadDeArmazones(venta as any), pares.length);
         const yaCargados = new Map<number, PedidoExistente | null>();
         for (const p of pares) yaCargados.set(p, await pedidoExistenteDelPar(orderId, p, totalPares));
-        const promo = promoDeVenta(venta);
         const roles = rolesDeLaPromo(venta);
         const avisoRoles = roles ? avisoDeRoles(roles, precioConSigno) : null;
         const origen = roles ? await numeroDelPrimerPar(orderId, roles.conCargo) : null;
         return {
             pares: pares.map(pair => {
+                // La promo es de CADA par ("Mi Primer" es del cristal del par; la doble, de la venta).
+                const promo = promoDeVenta(venta, pair);
                 const rol = promo?.tipo === 'MI_PRIMER' ? 'PRIMER_PAR' : rolDe(roles, pair);
                 const esSegundo = rol === 'SEGUNDO_PAR';
                 // Se analiza con opciones "por defecto" para mostrar lo que FALTA en la venta; lo que elige quien prepara no cuenta como faltante.
@@ -102,14 +103,16 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                     ...(/\+ crizal/i.test(nombreProducto) ? [{ clave: 'tratamiento', etiqueta: 'Crizal', tipo: 'select' as const, obligatorio: true, porDefecto: venta.labCrizal && CRIZALES.some(c => c.code === venta.labCrizal) ? venta.labCrizal : undefined, opciones: CRIZALES.map(c => ({ value: c.code, label: c.nombre })), ayuda: 'El que lleva el par (la venta no lo guarda: elegilo mirando lo que se cobró)' }] : []),
                     { clave: 'calibrado', etiqueta: 'Calibrado', tipo: 'select', obligatorio: true, porDefecto: venta.labEdgeInStore ? 'SIN' : 'COMUN', opciones: Object.entries(SERVICIO_CALIBRADO).map(([value, label]) => ({ value, label })) },
                     { clave: 'tipoArmazon', etiqueta: 'Tipo de armazón', tipo: 'select', obligatorio: true, opciones: TIPO_ARMAZON_OVES.map(t => ({ value: t.value, label: t.label })) },
-                    // Con el dibujo de cada forma del portal (public/laboratorios/optovision/formas, capturadas el 20/10/2026): "Forma 11" a secas no dice nada (Ishtar).
-                    // OBLIGATORIA: el formulario de OVES frena con "Forma Armazon: debe elegir una de las imagenes" (probado en vivo el 21/10/2026).
-                    { clave: 'forma', etiqueta: 'Forma del armazón (dibujo del portal)', tipo: 'select', obligatorio: true, opciones: FORMAS_OVES.map(f => ({ value: String(f), label: `Forma ${String(f).padStart(2, '0')}`, imagen: `/laboratorios/optovision/formas/forma-${String(f).padStart(2, '0')}.png` })) },
                     { clave: 'enviaArmazon', etiqueta: '¿Se manda el armazón?', tipo: 'select', obligatorio: true, porDefecto: venta.userFrameBrand || venta.userFrameModel ? 'Si' : 'No', opciones: [{ value: 'Si', label: 'Sí (va al laboratorio)' }, { value: 'No', label: 'No' }] },
-                    ...(rol === 'PRIMER_PAR' ? [
-                        { clave: 'cupon', etiqueta: `Cupón de la promo (${promo?.marca === 'KODAK' ? WEB_DE_PROMO.KODAK : WEB_DE_PROMO.VARILUX})`, tipo: 'texto' as const, obligatorio: false, maxLength: 10, patron: PATRON_CUPON_HTML, ayuda: 'Dejalo VACÍO y el robot lo genera en la web de la promo al aprobar (con los datos de la ficha). Si ya lo generaste a mano, ponelo acá. Sin cupón, Optovisión cobra los dos pares.' },
-                        { clave: 'genero', etiqueta: 'Género del cliente (para la web de la promo)', tipo: 'select' as const, obligatorio: false, opciones: [{ value: 'F', label: 'Femenino' }, { value: 'M', label: 'Masculino' }], ayuda: 'Solo si el robot genera el cupón: la web lo exige y la ficha no lo guarda.' },
+                    // La promo: cupón (vacío = lo genera el robot) y género (la web lo exige y la ficha no lo guarda). Obligatorio para
+                    // que no falle recién al apretar Preparar (auditoría del 21/10/2026); si se tipea un cupón, el género no se usa.
+                    ...(rol === 'PRIMER_PAR' && providerDePromo(promo?.marca, promo?.tipo) ? [
+                        { clave: 'cupon', etiqueta: 'Cupón de la promo (vacío = lo genera el robot)', tipo: 'texto' as const, obligatorio: false, maxLength: 10, patron: PATRON_CUPON_HTML, placeholder: 'lo genera el robot', ayuda: `Dejalo VACÍO y el robot lo genera en ${promo?.marca === 'KODAK' ? WEB_DE_PROMO.KODAK : WEB_DE_PROMO.VARILUX} al aprobar, con los datos de la ficha. Si ya lo generaste a mano, ponelo acá. Sin cupón, Optovisión cobra los dos pares.` },
+                        { clave: 'genero', etiqueta: 'Género del cliente (lo pide la web de la promo)', tipo: 'select' as const, obligatorio: true, opciones: [{ value: 'F', label: 'Femenino' }, { value: 'M', label: 'Masculino' }], ayuda: 'La web de la promo lo exige para el cupón y la ficha no lo guarda.' },
                     ] : []),
+                    // Con el dibujo de cada forma del portal (public/laboratorios/optovision/formas, capturadas el 20/10/2026): "Forma 11" a secas no dice nada (Ishtar).
+                    // OBLIGATORIA: el formulario de OVES frena con "Forma Armazon: debe elegir una de las imagenes" (probado en vivo el 21/10/2026). Va última: es la fila de dibujos.
+                    { clave: 'forma', etiqueta: 'Forma del armazón (portal)', tipo: 'select', obligatorio: true, opciones: FORMAS_OVES.map(f => ({ value: String(f), label: `Forma ${String(f).padStart(2, '0')}`, imagen: `/laboratorios/optovision/formas/forma-${String(f).padStart(2, '0')}.png` })) },
                 ];
                 const existente = yaCargados.get(pair);
                 const avisos = [...r.avisos, ...(avisoRoles && roles ? [avisoRoles] : [])];
@@ -161,13 +164,15 @@ export const CARGA_OPTOVISION: CargaAsistida = {
             }
             return l;
         };
-        const avisos = [
+        // Ya cargado: solo los pasos de la promo (lo demás se revisó antes de aprobar). En revisión: todo, sin repetidos
+        // (los avisos del cupón viajan en el payload desde preparar y otra vez en el rastro).
+        const avisos = b.status === 'CARGADO' ? pasosEnPalabras() : [...new Set([
             ...pasosEnPalabras(),
             ...(((b.payload || {}) as PayloadBorradorOves).avisos || []),
             ...(r.noAplican?.length ? [`el portal no toma para este producto: ${r.noAplican.join(', ')} (quedan sin cargar)`] : []),
             ...(r.cuponAvisos ?? []),
             ...(r.cuponWeb?.reutilizado ? [`el cliente ya tenía el cupón ${r.cuponWeb.codigo} de esta promo en la web (por DNI): se usa ese, no se generó otro`] : []),
-        ];
+        ])];
         return {
             textoRevision: 'Así queda el pedido en OVES (es el formulario real del portal, todavía sin grabar). Aprobar lo graba en Optovisión, trae el nº y le avisa al cliente; después solo se puede PEDIR la anulación desde el portal. Rechazar no manda nada.',
             filas: plan ? [
