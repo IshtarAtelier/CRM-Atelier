@@ -52,10 +52,7 @@ medidas del armazón, color del Transitions).
 
 ## Decisiones abiertas (Ishtar)
 
-1. **Liso → Blue UV**: el CRM vende "Varilux Comfort / Physio 3.0 / Comfort Max –
-   Orma + Crizal" y OVES solo lista el Blue UV para esos diseños. Hoy el robot
-   lo carga (es el único producto de ese diseño y material) y lo avisa en la
-   revisión. ¿Correcto?
+1. ~~Liso → Blue UV~~ **Resuelto 22/10**: Comfort, Comfort Max, Physio y Physio 3.0 no tienen versión blanca (liso) en OVES ni en la web de la promo; el equipo siempre los cargó con Blue UV (11 pedidos reales consultados en OVES) y el robot hace lo mismo, con aviso. Donde el blanco existe (XR Design/Pro) carga el blanco. Fijado en `check:carga-optovision`.
 2. ~~Código de vendedor~~ **Resuelto 20/10**: el código del asunto es el usuario de OVES (`OVES_USER`, ATEL01). El robot manda el mail en producción cuando los pares están cargados.
 3. ~~"Mi Primer" ¿lleva mail?~~ **Resuelto 20/10** (recordatorio de Optovisión): misma modalidad; el robot manda el mail con el único nº de trabajo.
 4. **Credenciales**: `OVES_USER` / `OVES_PASSWORD` y `PROMO_VARILUX_USER` /
