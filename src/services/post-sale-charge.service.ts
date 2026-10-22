@@ -19,10 +19,11 @@ import type { Actor } from '@/lib/actor';
  * Cualquiera de los dos puede ser $0 (todo a caja, todo al cliente) o los dos
  * tener parte (mitad y mitad).
  *
- * Es EDITABLE: volver a repartir deshace lo anterior (borra el movimiento de
- * caja, igual que la corrección manual de /api/vendor-cash/[id]) y aplica lo
- * nuevo en la misma transacción, así nunca queda un movimiento huérfano ni un
- * caso a medio cambiar. Los pagos que el cliente ya hizo no se tocan: si el
+ * Es EDITABLE: volver a repartir deshace lo anterior y aplica lo nuevo en la
+ * misma transacción. De la caja NO se borra nada (Ishtar, 21/10/2026): el
+ * descuento anterior se revierte con un contraasiento CREDITO del mismo importe
+ * y los dos quedan en el libro; así nunca queda un movimiento huérfano, un caso
+ * a medio cambiar, ni un cierre de caja ya rendido que deje de cuadrar. Los pagos que el cliente ya hizo no se tocan: si el
  * cargo baja, quedan como pago de más en la venta, como cualquier cobro de más.
  *
  * NO toca `total` ni `subtotalWithMarkup` de la venta.
@@ -154,7 +155,26 @@ export class PostSaleChargeService {
                 data: { cashEntryId: null, clientCharge: null, clientChargedAt: null, clientChargedBy: null },
             });
             if (liberado.count === 0) throw new CargoError('El caso cambió mientras lo editabas. Volvé a abrirlo.', 409);
-            if (pvCase.cashEntryId) await tx.vendorCashEntry.deleteMany({ where: { id: pvCase.cashEntryId } });
+            // NADA SE BORRA de la caja (Ishtar, 21/10/2026): el descuento anterior se
+            // revierte con un contraasiento CREDITO por el mismo importe, en la misma
+            // caja. Los dos quedan en el libro y el saldo (CREDITO − DEBITO) vuelve a
+            // cero; si esa caja ya se rindió, el cierre sigue explicándose solo.
+            if (pvCase.cashEntryId) {
+                const viejo = await tx.vendorCashEntry.findUnique({
+                    where: { id: pvCase.cashEntryId },
+                    select: { id: true, vendorId: true, amount: true, reason: true, type: true },
+                });
+                if (viejo && viejo.type === 'DEBITO') {
+                    await tx.vendorCashEntry.create({
+                        data: {
+                            vendorId: viejo.vendorId, type: 'CREDITO', amount: viejo.amount,
+                            reason: `Reversión · ${viejo.reason}`,
+                            category: 'POST_VENTA', createdById: actor.id, createdByName: actor.name,
+                        },
+                        select: { id: true },
+                    });
+                }
+            }
 
             // 2. Aplicar lo nuevo.
             let cashEntryId: string | null = null;
@@ -191,7 +211,7 @@ export class PostSaleChargeService {
             if (clienteMonto > 0) partes.push(`${fmt(clienteMonto)} al cliente, como saldo de la venta`);
             const habiaAlgo = antes.cajaMonto > 0 || antes.clienteMonto > 0;
             const texto = quitar
-                ? `${actor.name} deshizo el reparto del costo (${fmt(costo)}): se borró el descuento de caja y se quitó el saldo del cliente.`
+                ? `${actor.name} deshizo el reparto del costo (${fmt(costo)}): el descuento de caja se revirtió con un contraasiento y se quitó el saldo del cliente.`
                 : `${actor.name} ${habiaAlgo ? 'cambió el reparto del costo' : 'repartió el costo'} (${fmt(costo)}): ${partes.join(' · ')}.`;
             await tx.postSaleNote.create({ data: { caseId, content: texto, createdBy: 'Sistema' } });
             await interaccion(tx, pvCase.clientId, pvCase.caseType, texto, actor);

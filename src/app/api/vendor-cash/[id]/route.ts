@@ -23,6 +23,16 @@ export async function DELETE(
             return NextResponse.json({ error: 'Movimiento no encontrado' }, { status: 404 });
         }
 
+        // Los movimientos de post-venta no se borran (Ishtar, 21/10/2026): son el
+        // rastro del costo de un caso y se revierten desde el caso con un
+        // contraasiento. Borrarlos dejaría el caso apuntando a nada.
+        if (entry.category === 'POST_VENTA') {
+            return NextResponse.json(
+                { error: 'Los movimientos de post-venta no se borran. Para deshacerlo, cambiá o deshacé el reparto desde el caso: queda un contraasiento.' },
+                { status: 409 }
+            );
+        }
+
         await prisma.vendorCashEntry.delete({ where: { id } });
 
         await logAudit({

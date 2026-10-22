@@ -35,7 +35,8 @@ const CATEGORIES = [
     { key: 'PAGO', label: 'Pago', icon: Banknote, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950', types: ['CREDITO', 'DEBITO'] },
     { key: 'COMISION', label: 'Comisión', icon: Percent, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950', types: ['CREDITO'] },
     { key: 'ADELANTO', label: 'Adelanto', icon: HandCoins, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950', types: ['DEBITO'] },
-    { key: 'POST_VENTA', label: 'Post Venta', icon: Wrench, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950', types: ['DEBITO'] },
+    // CREDITO también: las reversiones de un reparto cambiado o deshecho.
+    { key: 'POST_VENTA', label: 'Post Venta', icon: Wrench, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950', types: ['CREDITO', 'DEBITO'] },
     { key: 'OTRO', label: 'Otro', icon: MoreHorizontal, color: 'text-stone-500', bg: 'bg-stone-50 dark:bg-stone-800', types: ['CREDITO', 'DEBITO'] },
 ];
 

@@ -278,7 +278,7 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
     };
     const aplicar = () => llamar({ action: 'repartir', cajaVendorId: cajaVendorId || undefined, cajaMonto: caja, clienteMonto: cliente });
     const deshacer = () => {
-        if (window.confirm('¿Deshacer el reparto? Se borra el descuento de caja y se quita el saldo del cliente. Los pagos que el cliente ya hizo no se tocan.')) {
+        if (window.confirm('¿Deshacer el reparto? El descuento de caja se revierte con un contraasiento (nada se borra) y se quita el saldo del cliente. Los pagos que el cliente ya hizo no se tocan.')) {
             llamar({ action: 'anular_reparto' });
         }
     };
