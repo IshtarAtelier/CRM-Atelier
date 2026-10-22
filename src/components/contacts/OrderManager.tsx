@@ -138,6 +138,7 @@ export default function OrderManager({
                         crystalColorType: i.crystalColorType || null,
                         crystalColorNote: i.crystalColorNote || null,
                         framePosition: i.framePosition ?? null,
+                        lensUse: i.lensUse ?? null, // Lejos / Cerca del cristal monofocal (lib/receta/graduacion-del-item.ts)
                     })),
                     markup: quoteMarkup,
                     discountCash: quoteDiscountCash,
@@ -189,6 +190,7 @@ export default function OrderManager({
             crystalColorType: it.crystalColorType,
             crystalColorNote: it.crystalColorNote,
             framePosition: it.framePosition,
+            lensUse: it.lensUse ?? null, // Lejos / Cerca del cristal monofocal (lib/receta/graduacion-del-item.ts)
         })));
         setQuoteMarkup(order.markup || 0);
         setQuoteDiscountCash(order.discountCash ?? 20);

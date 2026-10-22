@@ -34,7 +34,7 @@ import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { OptovisionAuditService } from '@/services/optovision-audit.service';
 import { mapOrderPostSale } from '@/types/orders';
-import { graduacionDelItem, usoDelCristal } from '@/lib/receta/graduacion-del-item';
+import { esMonofocal, graduacionDelItem, usoEfectivo } from '@/lib/receta/graduacion-del-item';
 
 /**
  * A3 (auditoría 20/8): el precio de ítems no-cristal llega del cliente
@@ -1032,12 +1032,13 @@ export class OrderService {
                         price: item.price,
                         eye: item.eye || null,
                         // La graduación del cristal según su USO (lejos/cerca): una sola regla (lib/receta/graduacion-del-item.ts).
-                        ...(isCrystal && rxDetails && (isOD || item.eye === 'OI')
+                        ...(isCrystal && rxDetails
                             ? (() => {
-                                const uso = usoDelCristal(item.lensUse, rxDetails);
+                                // CERCA solo en un MONOFOCAL que lo eligió (o receta solo de cerca); todo lo demás, LEJOS como siempre.
+                                const uso = usoEfectivo(item.lensUse, rxDetails, esMonofocal(null, snap.productTypeSnapshot));
                                 const g = graduacionDelItem(rxDetails, isOD ? 'OD' : 'OI', uso);
-                                // La DNP solo se pisa en CERCA con DNP de cerca en la receta: en lejos manda la medida que se carga al enviar a fábrica.
-                                return { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal, ...(uso === 'CERCA' && g.pdVal !== null ? { pdVal: g.pdVal } : {}) };
+                                // La DNP medida solo se pisa con la DNP de cerca ESCRITA en la receta.
+                                return { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal, ...(uso === 'CERCA' && g.dnpCerca !== null ? { pdVal: g.dnpCerca } : {}) };
                             })()
                             : { sphereVal: item.sphereVal ?? null, cylinderVal: item.cylinderVal ?? null, axisVal: item.axisVal ?? null, additionVal: item.additionVal ?? null }),
                         lensUse: item.lensUse ?? null,
@@ -2288,11 +2289,12 @@ export class OrderService {
                             const isOI = item.eye === 'OI';
                             if (!isOD && !isOI) continue;
                             // Según el USO del cristal (lejos/cerca): la misma regla que al editar la venta.
-                            const uso = usoDelCristal((item as any).lensUse, rx);
+                            // CERCA solo en un MONOFOCAL que lo eligió (o receta solo de cerca); todo lo demás, LEJOS como siempre.
+                            const uso = usoEfectivo((item as any).lensUse, rx, esMonofocal(item.product, (item as any).productTypeSnapshot));
                             const g = graduacionDelItem(rx, isOD ? 'OD' : 'OI', uso);
                             await tx.orderItem.update({
                                 where: { id: item.id },
-                                data: { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal, ...(uso === 'CERCA' && g.pdVal !== null ? { pdVal: g.pdVal } : {}) },
+                                data: { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal, ...(uso === 'CERCA' && g.dnpCerca !== null ? { pdVal: g.dnpCerca } : {}) },
                             });
                         }
                     }

@@ -8,8 +8,9 @@
  * con la graduación de lejos (Ishtar: "siempre me toma la de lejos").
  *
  * Regla (Ishtar, 21/10/2026):
- *  · El uso lo elige quien vende, por cristal: LEJOS o CERCA. Por defecto
- *    LEJOS, salvo que la receta sea SOLO de cerca (tipo NEAR).
+ *  · El uso lo elige quien vende, por cristal MONOFOCAL: LEJOS o CERCA. Por
+ *    defecto LEJOS, salvo que la receta sea SOLO de cerca (por los números).
+ *    Un multifocal, bifocal u ocupacional es siempre LEJOS (receta completa).
  *  · CERCA = la graduación de cerca escrita en la receta; si no está escrita,
  *    lejos + adición (cilindro y eje de lejos). La DNP, la de cerca si está.
  *  · Sin cerca ni adición en la receta no hay CERCA que elegir.
@@ -18,7 +19,7 @@
  * Los tres robots de laboratorio y el PDF leen la graduación del ítem, así que
  * con esto salen bien solos. Puro: sin base ni red.
  */
-import { tipoDeRecetaConDefault, esAdicionPlausible } from './tipo-de-lente';
+import { esAdicionPlausible } from './tipo-de-lente';
 
 export type UsoDelCristal = 'LEJOS' | 'CERCA';
 export const USOS_DEL_CRISTAL: UsoDelCristal[] = ['LEJOS', 'CERCA'];
@@ -38,19 +39,19 @@ export interface RecetaParaItem {
 
 export interface GraduacionDelItem {
     sphereVal: number | null; cylinderVal: number | null; axisVal: number | null; additionVal: number | null;
-    /** DNP del ojo para este uso; null si la receta no la trae (se deja lo que tenga el ítem). */
-    pdVal: number | null;
+    /** DNP de cerca SOLO si la receta la trae; null = no se toca la DNP del ítem. */
+    dnpCerca: number | null;
 }
 
 const num = (v: unknown): number | null => { if (v === null || v === undefined || v === '') return null; const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-/** La adición del ojo: la suya, la general, o la diferencia cerca − lejos si la receta está escrita en dos secciones. Puro. */
+/** La adición del ojo: la suya, la general, o la diferencia cerca − lejos (positiva) si la receta está escrita en dos secciones. Puro. */
 export function adicionDelOjo(rx: RecetaParaItem, ojo: 'OD' | 'OI'): number | null {
     const propia = num(ojo === 'OD' ? rx.additionOD : rx.additionOI) ?? num(rx.addition);
-    if (propia !== null && esAdicionPlausible(propia)) return propia;
+    if (propia !== null && propia > 0 && esAdicionPlausible(propia)) return propia;
     const lejos = num(ojo === 'OD' ? rx.sphereOD : rx.sphereOI), cerca = num(ojo === 'OD' ? rx.nearSphereOD : rx.nearSphereOI);
-    if (lejos !== null && cerca !== null && esAdicionPlausible(cerca - lejos)) return redondear(cerca - lejos);
+    if (lejos !== null && cerca !== null && cerca - lejos > 0 && esAdicionPlausible(cerca - lejos)) return redondear(cerca - lejos);
     return null;
 }
 
@@ -61,38 +62,58 @@ export function recetaPermiteCerca(rx: RecetaParaItem | null | undefined): boole
     return adicionDelOjo(rx, 'OD') !== null || adicionDelOjo(rx, 'OI') !== null;
 }
 
-/** El uso por defecto de un cristal: CERCA solo si la receta es SOLO de cerca; si no, LEJOS. Puro. */
-export function usoPorDefecto(rx: RecetaParaItem | null | undefined): UsoDelCristal {
-    if (!rx) return 'LEJOS';
-    return tipoDeRecetaConDefault(rx, rx.prescriptionType) === 'NEAR' ? 'CERCA' : 'LEJOS';
+/**
+ * ¿La receta es SOLO de cerca? Por los NÚMEROS: sin esfera de lejos en ningún
+ * ojo y con la de cerca escrita. Nunca por `prescriptionType`: la ficha guarda
+ * 'NEAR' en cualquier receta que tenga la sección Cerca llena, también en las
+ * multifocales escritas en dos secciones (auditoría del 22/10/2026), y tomarlo
+ * al pie de la letra mandaba progresivos a fábrica con la graduación de cerca.
+ */
+export function recetaSoloDeCerca(rx: RecetaParaItem | null | undefined): boolean {
+    if (!rx) return false;
+    const sinLejos = num(rx.sphereOD) === null && num(rx.sphereOI) === null;
+    return sinLejos && (num(rx.nearSphereOD) !== null || num(rx.nearSphereOI) !== null);
 }
 
-/** Normaliza lo que venga guardado ('CERCA', 'cerca', null…) a un uso válido, con el default de la receta. Puro. */
-export function usoDelCristal(guardado: string | null | undefined, rx: RecetaParaItem | null | undefined): UsoDelCristal {
+/** Lo que el selector muestra marcado cuando la línea no eligió: CERCA solo si la receta es solo de cerca. Puro. */
+export function usoPorDefecto(rx: RecetaParaItem | null | undefined): UsoDelCristal {
+    return recetaSoloDeCerca(rx) ? 'CERCA' : 'LEJOS';
+}
+
+/**
+ * El uso que se APLICA al cristal. CERCA únicamente si: el cristal es
+ * MONOFOCAL, la receta permite cerca, y quien vende eligió CERCA (o no eligió
+ * y la receta es solo de cerca). Cualquier otro caso —multifocal, bifocal,
+ * receta sin cerca, sin elección— es LEJOS, es decir, lo de siempre. Puro.
+ */
+export function usoEfectivo(guardado: string | null | undefined, rx: RecetaParaItem | null | undefined, esMono: boolean): UsoDelCristal {
+    if (!esMono || !rx || !recetaPermiteCerca(rx)) return 'LEJOS';
     const u = String(guardado || '').toUpperCase();
-    if (u === 'CERCA' || u === 'LEJOS') return u;
+    if (u === 'CERCA') return 'CERCA';
+    if (u === 'LEJOS') return 'LEJOS';
     return usoPorDefecto(rx);
 }
 
 /**
- * La graduación que va al cristal de un ojo según su uso. Para CERCA, si la
- * receta no tiene ni cerca escrita ni adición, devuelve la de lejos (no hay
- * otra) — por eso `recetaPermiteCerca` se controla antes de ofrecer CERCA.
+ * La graduación que va al cristal de un ojo según su uso.
+ *  · LEJOS: EXACTAMENTE lo que se copiaba antes del 21/10/2026 (columna de lejos y la adición tal cual), para no cambiar ninguna venta de siempre.
+ *  · CERCA: la sección Cerca si está escrita; si no, lejos + adición (cilindro y eje de lejos). Sin adición en el ítem.
+ * `dnpCerca`: la DNP de cerca SOLO si la receta la trae (nearDistance / nearPd); null si no — la DNP medida no se pisa.
  */
 export function graduacionDelItem(rx: RecetaParaItem | null | undefined, ojo: 'OD' | 'OI', uso: UsoDelCristal): GraduacionDelItem {
-    if (!rx) return { sphereVal: null, cylinderVal: null, axisVal: null, additionVal: null, pdVal: null };
+    if (!rx) return { sphereVal: null, cylinderVal: null, axisVal: null, additionVal: null, dnpCerca: null };
     const od = ojo === 'OD';
-    const lejos = { sphereVal: num(od ? rx.sphereOD : rx.sphereOI), cylinderVal: num(od ? rx.cylinderOD : rx.cylinderOI), axisVal: num(od ? rx.axisOD : rx.axisOI) };
-    const pdLejos = num(od ? rx.distanceOD : rx.distanceOI) ?? (num(rx.pd) !== null ? redondear(num(rx.pd)! / 2) : null);
-    if (uso === 'LEJOS') return { ...lejos, additionVal: adicionDelOjo(rx, ojo), pdVal: pdLejos };
+    const lejos = { sphereVal: (od ? rx.sphereOD : rx.sphereOI) ?? null, cylinderVal: (od ? rx.cylinderOD : rx.cylinderOI) ?? null, axisVal: (od ? rx.axisOD : rx.axisOI) ?? null };
+    if (uso === 'LEJOS') return { ...lejos, additionVal: (od ? (rx.additionOD ?? rx.addition) : (rx.additionOI ?? rx.addition)) ?? null, dnpCerca: null };
     const cercaEscrita = num(od ? rx.nearSphereOD : rx.nearSphereOI);
     const adic = adicionDelOjo(rx, ojo);
-    const sphereVal = cercaEscrita !== null ? cercaEscrita : lejos.sphereVal !== null && adic !== null ? redondear(lejos.sphereVal + adic) : lejos.sphereVal;
-    const cylinderVal = cercaEscrita !== null && num(od ? rx.nearCylinderOD : rx.nearCylinderOI) !== null ? num(od ? rx.nearCylinderOD : rx.nearCylinderOI) : lejos.cylinderVal;
-    const axisVal = cercaEscrita !== null && num(od ? rx.nearAxisOD : rx.nearAxisOI) !== null ? num(od ? rx.nearAxisOD : rx.nearAxisOI) : lejos.axisVal;
-    const pdVal = num(od ? rx.nearDistanceOD : rx.nearDistanceOI) ?? (num(rx.nearPd) !== null ? redondear(num(rx.nearPd)! / 2) : null) ?? pdLejos;
-    // Un cristal de cerca es una sola graduación: no lleva adición.
-    return { sphereVal, cylinderVal, axisVal, additionVal: null, pdVal };
+    const esfLejos = num(lejos.sphereVal);
+    const sphereVal = cercaEscrita !== null ? cercaEscrita : esfLejos !== null && adic !== null ? redondear(esfLejos + adic) : esfLejos;
+    const cilCerca = num(od ? rx.nearCylinderOD : rx.nearCylinderOI), ejeCerca = num(od ? rx.nearAxisOD : rx.nearAxisOI);
+    const cylinderVal = cercaEscrita !== null && cilCerca !== null ? cilCerca : num(lejos.cylinderVal);
+    const axisVal = cercaEscrita !== null && ejeCerca !== null ? ejeCerca : num(lejos.axisVal);
+    const dnpCerca = num(od ? rx.nearDistanceOD : rx.nearDistanceOI) ?? (num(rx.nearPd) !== null ? redondear(num(rx.nearPd)! / 2) : null);
+    return { sphereVal, cylinderVal, axisVal, additionVal: null, dnpCerca };
 }
 
 /** ¿El producto es un monofocal (el único cristal al que le cabe elegir lejos/cerca)? Puro. */

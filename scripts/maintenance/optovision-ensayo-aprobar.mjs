@@ -11,7 +11,7 @@
 //      (con copia a la misma y el adjunto), nunca a Optovisión.
 //
 //   DATABASE_URL=<base LOCAL> node --experimental-strip-types --import ./scripts/checks/_alias.mjs --env-file=.env \
-//     scripts/checks/optovision-ensayo-aprobar.mjs <borradorId> [mailDePrueba] [nºPedidoRealParaConsultar]
+//     scripts/maintenance/optovision-ensayo-aprobar.mjs <borradorId> [mailDePrueba] [nºPedidoRealParaConsultar]
 // ────────────────────────────────────────────────────────────────────────────
 import { writeFile } from 'node:fs/promises';
 import { prisma } from '../../src/lib/db.ts';

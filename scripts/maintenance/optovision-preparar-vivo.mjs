@@ -6,7 +6,7 @@
 // genera cupón.
 //
 //   DATABASE_URL=<base LOCAL> node --experimental-strip-types --import ./scripts/checks/_alias.mjs --env-file=.env \
-//     scripts/checks/optovision-preparar-vivo.mjs <orderId> <par> [clave=valor ...]
+//     scripts/maintenance/optovision-preparar-vivo.mjs <orderId> <par> [clave=valor ...]
 //
 // Ej.: … cmtt6rafo000710s7dbe06ejq 1 tratamiento=CRIZAL_FORTE_UV calibrado=COMUN tipoArmazon=2 genero=M
 // Escribe en LabOrderDraft de la base que diga DATABASE_URL: apuntarla a una copia local, nunca a producción.
