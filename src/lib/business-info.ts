@@ -23,6 +23,7 @@ export const BUSINESS_INFO = {
   /** Dominio de la tienda tal como se escribe en mensajes al cliente. */
   websiteDisplay: "atelieroptica.com.ar",
   instagramUrl: "https://www.instagram.com/atelieroptica_",
+  facebookUrl: "https://www.facebook.com/Optica.Atelier.Cerro",
   youtubeUrl: "https://www.youtube.com/@AtelierOptica",
   mapsUrl: "https://www.google.com/maps?cid=14830223812501661125",
   entityId: "https://atelieroptica.com.ar/#optica",

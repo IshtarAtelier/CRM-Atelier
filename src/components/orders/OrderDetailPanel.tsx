@@ -17,8 +17,7 @@ import {
     Activity,
     Layers,
     Search,
-    AlertCircle
-} from 'lucide-react';
+    AlertCircle, ClipboardList } from 'lucide-react';
 import type { Order } from '@/types/orders';
 import type { OrderFinancials } from '@/services/PricingService';
 import { resolveStorageUrl } from '@/lib/utils/storage';
@@ -26,6 +25,7 @@ import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } fro
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import CargaLaboratorio from '@/components/orders/CargaLaboratorio';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
+import { PV } from '@/components/orders/postventa-ui';
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
@@ -283,21 +283,21 @@ export function OrderDetailPanel({
         };
 
         return (
-            <div className="space-y-4 bg-stone-50 dark:bg-stone-900/35 border border-stone-200/50 dark:border-stone-800 p-4 rounded-2xl">
-                <div className="flex items-center justify-between gap-2 border-b border-stone-250/20 dark:border-stone-800 pb-2 mb-2">
-                    <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex-shrink-0">
-                        Especificación del Par {pairNum}
+            <div className={`space-y-4 ${PV.panel} p-4`}>
+                <div className={`flex flex-wrap items-center justify-between gap-2 ${PV.divider} border-t-0 border-b pb-2 mb-2`}>
+                    <span className={`${PV.eyebrow} text-amber-700 dark:text-amber-400 flex-shrink-0`}>
+                        Especificación del par {pairNum}
                     </span>
 
                     <div className="flex items-center gap-2 min-w-0">
                         <button type="button" onClick={() => importFullOrder(pairNum)}
-                            className="text-[9px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors flex-shrink-0"
+                            className={`${PV.btn.secondary} ${PV.btn.sm} flex-shrink-0`}
                             title="Traer los datos completos del pedido original (graduación, material, tratamiento, color, diámetro, DNP, altura)">
-                            📋 Traer pedido completo
+                            <ClipboardList className="w-4 h-4" /> Traer pedido completo
                         </button>
                         {clientPrescriptions.length > 0 && (
                             <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-[9px] text-stone-600 dark:text-stone-400 font-bold uppercase tracking-wider flex-shrink-0">Cargar Receta:</span>
+                                <span className="text-[12px] font-medium text-stone-600 dark:text-stone-300 flex-shrink-0">Cargar receta:</span>
                                 <select
                                     onChange={(e) => {
                                         if (e.target.value) {
@@ -305,9 +305,9 @@ export function OrderDetailPanel({
                                             e.target.value = '';
                                         }
                                     }}
-                                    className="text-[10px] p-1.5 rounded-lg border border-stone-200 dark:border-stone-750 bg-white dark:bg-stone-800 outline-none min-w-0"
+                                    className={`min-w-0 ${PV.fieldSm}`}
                                 >
-                                    <option value="">Seleccionar...</option>
+                                    <option value="">Seleccionar…</option>
                                     {clientPrescriptions.map(p => (
                                         <option key={p.id} value={p.id}>
                                             {new Date(p.date).toLocaleDateString('es-AR')} - OD: {p.sphereOD != null ? (p.sphereOD > 0 ? '+' : '') + p.sphereOD : '0'}/{p.sphereOI != null ? (p.sphereOI > 0 ? '+' : '') + p.sphereOI : '0'}
@@ -321,9 +321,9 @@ export function OrderDetailPanel({
 
                 {/* Grid Table for Graduation */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-[10px]">
+                    <table className="w-full text-left border-collapse text-[12px]">
                         <thead>
-                            <tr className="border-b border-stone-200/50 dark:border-stone-800 text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest">
+                            <tr className="border-b border-stone-200 dark:border-stone-800 text-[11px] font-medium text-stone-500 dark:text-stone-400">
                                 <th className="pb-1.5">Ojo</th>
                                 <th className="pb-1.5 text-center">Esfera</th>
                                 <th className="pb-1.5 text-center">Cilindro</th>
@@ -455,43 +455,43 @@ export function OrderDetailPanel({
                 {/* Lab Details Fields */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-stone-200/50 dark:border-stone-800">
                     <div>
-                        <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Material</label>
+                        <label className={PV.label}>Material</label>
                         <input
                             type="text"
                             value={pairRx.material}
                             onChange={(e) => updateField('material', e.target.value)}
                             placeholder="ej. Orgánico"
-                            className="w-full text-[10px] p-2 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            className={PV.fieldSm + ' w-full'}
                         />
                     </div>
                     <div>
-                        <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Tratamiento</label>
+                        <label className={PV.label}>Tratamiento</label>
                         <input
                             type="text"
                             value={pairRx.treatment}
                             onChange={(e) => updateField('treatment', e.target.value)}
                             placeholder="ej. Antirreflejo"
-                            className="w-full text-[10px] p-2 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            className={PV.fieldSm + ' w-full'}
                         />
                     </div>
                     <div>
-                        <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Color / Tinte</label>
+                        <label className={PV.label}>Color / Tinte</label>
                         <input
                             type="text"
                             value={pairRx.color}
                             onChange={(e) => updateField('color', e.target.value)}
                             placeholder="ej. Gris"
-                            className="w-full text-[10px] p-2 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            className={PV.fieldSm + ' w-full'}
                         />
                     </div>
                     <div>
-                        <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Diámetro</label>
+                        <label className={PV.label}>Diámetro</label>
                         <input
                             type="text"
                             value={pairRx.diameter}
                             onChange={(e) => updateField('diameter', e.target.value)}
                             placeholder="ej. 65"
-                            className="w-full text-[10px] p-2 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            className={PV.fieldSm + ' w-full'}
                         />
                     </div>
                 </div>
@@ -507,24 +507,24 @@ export function OrderDetailPanel({
                     const frameComplete = hasFrameMeasures(pairRx);
                     return (
                         <div className={`pt-2 border-t ${frameComplete ? 'border-stone-200/50 dark:border-stone-800' : 'border-red-200 dark:border-red-900/40'}`}>
-                            <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                Medidas del Armazón <span className="text-red-500">* obligatorio</span>
+                            <label className={PV.label}>
+                                Medidas del armazón <span className="text-rose-600">· obligatorio</span>
                             </label>
                             <div className="grid grid-cols-4 gap-2">
                                 {frameFields.map(f => (
                                     <div key={f.key}>
-                                        <label className="text-[7px] font-bold text-stone-600 dark:text-stone-400 uppercase block mb-0.5 text-center">{f.label}</label>
+                                        <label className="text-[11px] font-medium text-stone-500 dark:text-stone-400 block mb-0.5 text-center">{f.label}</label>
                                         <input
                                             type="text"
                                             value={pairRx[f.key] || ''}
                                             onChange={(e) => updateField(f.key, e.target.value)}
-                                            className={`w-full text-center text-[10px] p-2 border bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 dark:text-stone-200 ${!pairRx[f.key] ? 'border-red-300 dark:border-red-900/50' : 'border-stone-200 dark:border-stone-700'}`}
+                                            className={`w-full text-center ${PV.fieldSm} ${!pairRx[f.key] ? 'border-rose-400 dark:border-rose-800' : ''}`}
                                         />
                                     </div>
                                 ))}
                             </div>
                             {!frameComplete && (
-                                <p className="text-[9px] font-bold text-red-500 mt-1">Completá A, B, ED y Puente: este lente (multifocal o monofocal de lab) requiere las medidas del armazón.</p>
+                                <p className="text-[12px] font-medium text-rose-700 dark:text-rose-400 mt-1">Completá A, B, ED y Puente: este lente (multifocal o monofocal de lab) requiere las medidas del armazón.</p>
                             )}
                         </div>
                     );
@@ -532,8 +532,8 @@ export function OrderDetailPanel({
 
                 {/* Recipe Image Attachment */}
                 <div className="pt-2 border-t border-stone-200/50 dark:border-stone-800">
-                    <label className="text-[8px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                        Adjuntar Foto de Nueva Receta{rxChange && <span className="text-red-500"> * obligatorio</span>}
+                    <label className={PV.label}>
+                        Adjuntar foto de la nueva receta{rxChange && <span className="text-rose-600"> · obligatorio</span>}
                     </label>
                     <div className="flex items-center gap-3">
                         <input
@@ -547,20 +547,20 @@ export function OrderDetailPanel({
                                     updateField('isUploadingRx', '');
                                 }
                             }}
-                            className="text-[10px] text-stone-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-indigo-50 dark:file:bg-indigo-950/20 file:text-indigo-600 dark:file:text-indigo-400 hover:file:bg-indigo-100 cursor-pointer"
+                            className="text-[12px] text-stone-600 dark:text-stone-300 file:mr-3 file:h-8 file:px-3 file:rounded-xl file:border file:border-stone-300 dark:file:border-stone-700 file:bg-white dark:file:bg-stone-900 file:text-[12px] file:font-semibold file:text-stone-800 dark:file:text-stone-100 hover:file:bg-stone-50 cursor-pointer"
                         />
                         {pairRx.imageUrl && (
                             <a
                                 href={pairRx.imageUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[9px] font-black text-indigo-500 hover:underline uppercase tracking-widest flex items-center gap-1"
+                                className="text-[12px] font-medium text-sky-700 dark:text-sky-400 hover:underline flex items-center gap-1"
                             >
-                                👁️ Ver Adjunto
+                                Ver adjunto
                             </a>
                         )}
                         {pairRx.isUploadingRx && (
-                            <span className="text-[9px] text-amber-500 font-bold animate-pulse">Subiendo...</span>
+                            <span className="text-[12px] text-amber-700 dark:text-amber-400 font-medium animate-pulse">Subiendo…</span>
                         )}
                     </div>
                 </div>
@@ -644,7 +644,7 @@ export function OrderDetailPanel({
                                 onChange={(e) => setRxChange(e.target.checked)}
                                 className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 mt-0.5 flex-shrink-0"
                             />
-                            <span>Es por <b>cambio de receta</b> <span className="text-amber-600 dark:text-amber-500 font-semibold">(obligatorio adjuntar la nueva receta de cada par a rehacer)</span></span>
+                            <span>Es por <b>cambio de receta</b> <span className="text-amber-700 dark:text-amber-400 font-medium">(obligatorio adjuntar la nueva receta de cada par a rehacer)</span></span>
                         </label>
 
                         {/* Prescription Forms */}
@@ -652,18 +652,18 @@ export function OrderDetailPanel({
                         {hasSecondPair && pair2Faulty && renderRxForm(rx2, setRx2, 2)}
 
                         {rxChange && ((pair1Faulty && !rxUploaded1) || (hasSecondPair && pair2Faulty && !rxUploaded2)) && (
-                            <div className={`space-y-2 border rounded-xl p-3 ${reprocessAuthNoRx ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40' : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40'}`}>
+                            <div className={`space-y-2 p-3 ${reprocessAuthNoRx ? 'rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/70 dark:bg-emerald-950/30' : PV.panelRose}`}>
                                 {reprocessAuthNoRx ? (
-                                    <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-snug">
-                                        ✓ Reproceso sin receta autorizado por administrador. Se puede cargar, pero sin la receta no corresponde envío sin cargo.
+                                    <p className="text-[12px] font-medium text-emerald-700 dark:text-emerald-400 leading-snug">
+                                        Reproceso sin receta autorizado por administrador. Se puede cargar, pero sin la receta no corresponde envío sin cargo.
                                     </p>
                                 ) : (
-                                    <p className="text-[10px] font-bold text-red-600 dark:text-red-400 leading-snug">
-                                        ⚠️ Sin la nueva receta no se puede enviar el reproceso sin cargo. Adjuntá la nueva receta (campo &ldquo;Adjuntar Foto de Nueva Receta&rdquo;) de cada par a rehacer, o pedile a un administrador que autorice el reproceso del pedido.
+                                    <p className="text-[12px] font-medium text-rose-700 dark:text-rose-400 leading-snug">
+                                        Sin la nueva receta no se puede enviar el reproceso sin cargo. Adjuntá la nueva receta (campo &ldquo;Adjuntar Foto de Nueva Receta&rdquo;) de cada par a rehacer, o pedile a un administrador que autorice el reproceso del pedido.
                                     </p>
                                 )}
                                 {isReprocessAdmin ? (
-                                    <label className="flex items-start gap-2 text-[10px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                    <label className="flex items-start gap-2 text-[12px] font-medium text-stone-700 dark:text-stone-200 cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={reprocessAuthNoRx}
@@ -673,7 +673,7 @@ export function OrderDetailPanel({
                                         <span>Autorizo el reproceso sin la nueva receta (como administrador).</span>
                                     </label>
                                 ) : !reprocessAuthNoRx && (
-                                    <p className="text-[10px] font-semibold text-red-500/80 italic">Solo un administrador puede autorizar el reproceso sin receta.</p>
+                                    <p className="text-[12px] text-rose-700/80 dark:text-rose-400/80 italic">Solo un administrador puede autorizar el reproceso sin receta.</p>
                                 )}
                             </div>
                         )}
@@ -684,22 +684,22 @@ export function OrderDetailPanel({
                                 <button
                                     onClick={() => onAutoSubmit(order, 1)}
                                     disabled={isAutoSubmitting || (rxChange && !rxUploaded1 && !reprocessAuthNoRx) || (needsFrameMeasures && !hasFrameMeasures(rx1))}
-                                    className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className={`${PV.btn.accent} flex-1`}
                                     title={needsFrameMeasures && !hasFrameMeasures(rx1) ? 'Faltan las medidas del armazón del Par 1 (A, B, ED, Puente)' : (rxChange && !rxUploaded1 && !reprocessAuthNoRx ? 'Falta la nueva receta del Par 1 o la autorización del administrador' : 'Cargar Par 1 en SmartLab con nuevos datos')}
                                 >
                                     {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                    <span>Cargar Par 1</span>
+                                    <span>Cargar par 1 en SmartLab</span>
                                 </button>
                             )}
                             {hasSecondPair && pair2Faulty && onAutoSubmit && (
                                 <button
                                     onClick={() => onAutoSubmit(order, 2)}
                                     disabled={isAutoSubmitting || (rxChange && !rxUploaded2 && !reprocessAuthNoRx) || (needsFrameMeasures && !hasFrameMeasures(rx2))}
-                                    className="flex-1 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className={`${PV.btn.accent} flex-1`}
                                     title={needsFrameMeasures && !hasFrameMeasures(rx2) ? 'Faltan las medidas del armazón del Par 2 (A, B, ED, Puente)' : (rxChange && !rxUploaded2 && !reprocessAuthNoRx ? 'Falta la nueva receta del Par 2 o la autorización del administrador' : 'Cargar Par 2 en SmartLab con nuevos datos')}
                                 >
                                     {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                    <span>Cargar Par 2</span>
+                                    <span>Cargar par 2 en SmartLab</span>
                                 </button>
                             )}
                         </div>

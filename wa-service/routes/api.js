@@ -8,6 +8,7 @@
  * with the parent module's mutable state.
  */
 
+const { CHAT_BASE, SOLO_ID } = require('../shared/columnas-chat');
 const { destinoDelChat, migrarChatLid } = require('../shared/destino-del-chat');
 const express = require('express');
 const path = require('path');
@@ -15,7 +16,9 @@ const fs = require('fs');
 const { getFileExtension, clasificarFalloDeEnvio } = require('../utils');
 const { resolveWaMessageId } = require('../shared/message-id');
 const { marcarTraspasoHumano } = require('../shared/traspaso-humano');
+const { MOTIVO_APAGADO, actualizarChat, datosDePrendido } = require('../shared/motivo-apagado');
 const { esRemitenteHumano } = require('../shared/remitentes');
+const { ORIGENES } = require('../shared/punto-de-salida');
 const { olvidarInterruptor } = require('../followups/politica');
 
 const configPath = path.join(__dirname, '..', 'agent_config.json');
@@ -131,7 +134,7 @@ function createApiRouter(deps) {
 
         const lidChats = await prisma.whatsAppChat.findMany({
             where: { waId: { contains: '@lid' }, realPhone: null },
-            include: { client: true }
+            select: { ...CHAT_BASE, client: true }
         });
 
         const results = [];
@@ -175,7 +178,7 @@ function createApiRouter(deps) {
             }
 
             if (resolved) {
-                await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { realPhone: resolved } });
+                await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { realPhone: resolved }, select: SOLO_ID });
             }
 
             results.push({
@@ -195,7 +198,7 @@ function createApiRouter(deps) {
             where: { chatId: req.params.id },
             orderBy: { createdAt: 'asc' },
         });
-        await prisma.whatsAppChat.update({ where: { id: req.params.id }, data: { unreadCount: 0 } });
+        await prisma.whatsAppChat.update({ where: { id: req.params.id }, data: { unreadCount: 0 }, select: SOLO_ID });
         res.json(messages);
     });
 
@@ -212,7 +215,7 @@ function createApiRouter(deps) {
                 // Sync SIN_SEGUIMIENTO with CRM client tags and pending tasks
                 if (Array.isArray(chatLabels) && chatLabels.includes('SIN_SEGUIMIENTO')) {
                     try {
-                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id } });
+                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id }, select: CHAT_BASE });
                         if (chatObj && chatObj.clientId) {
                             const tag = await prisma.tag.upsert({
                                 where: { name: 'Sin Seguimiento' },
@@ -251,7 +254,7 @@ function createApiRouter(deps) {
                 } else if (Array.isArray(chatLabels) && !chatLabels.includes('SIN_SEGUIMIENTO')) {
                     // Reactivated: disconnect "Sin Seguimiento" and "no interesado" tags from the client
                     try {
-                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id } });
+                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id }, select: CHAT_BASE });
                         if (chatObj && chatObj.clientId) {
                             const tagsToDisconnect = await prisma.tag.findMany({
                                 where: {
@@ -278,7 +281,7 @@ function createApiRouter(deps) {
             if (clientId !== undefined) data.clientId = clientId;
             if (chatSummary !== undefined) data.chatSummary = chatSummary;
             
-            let chat = await prisma.whatsAppChat.findUnique({ where: { id } });
+            let chat = await prisma.whatsAppChat.findUnique({ where: { id }, select: CHAT_BASE });
             if (!chat) return res.status(404).json({ error: 'Chat no encontrado' });
 
             if (archived === false && chat.archived === true) {
@@ -286,16 +289,21 @@ function createApiRouter(deps) {
             }
 
             if (botEnabled === false) {
-                await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
+                // APAGADO_MANUAL (15/10/2026): alguien lo silenció desde el
+                // panel. El barrido de vueltas nunca lo reactiva; antes la
+                // etiqueta de abajo lo hacía pasar por "lo tomó una persona".
+                await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)', MOTIVO_APAGADO.APAGADO_MANUAL);
                 // Agregar etiqueta para evitar auto-resume si no existe (array-safe)
                 let currentLabels = Array.isArray(data.chatLabels) ? data.chatLabels : (Array.isArray(chat.chatLabels) ? [...chat.chatLabels] : []);
                 if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
                     currentLabels.push('[SISTEMA - BOT APAGADO]');
                 }
                 data.chatLabels = currentLabels;
-                chat = await prisma.whatsAppChat.update({ where: { id }, data });
+                chat = await prisma.whatsAppChat.update({ where: { id }, data, select: CHAT_BASE });
             } else {
                 if (botEnabled === true) {
+                    // Prender limpia el motivo (shared/motivo-apagado.js).
+                    await actualizarChat(prisma, { id }, datosDePrendido());
                     data.botEnabled = true;
                     // Si el vendedor activa el bot manualmente, quitamos la etiqueta de apagado manual (array-safe)
                     let currentLabels = Array.isArray(data.chatLabels) ? data.chatLabels : (Array.isArray(chat.chatLabels) ? [...chat.chatLabels] : []);
@@ -303,7 +311,7 @@ function createApiRouter(deps) {
                 } else if (botEnabled !== undefined) {
                     data.botEnabled = botEnabled;
                 }
-                chat = await prisma.whatsAppChat.update({ where: { id }, data });
+                chat = await prisma.whatsAppChat.update({ where: { id }, data, select: CHAT_BASE });
             }
             res.json(chat);
         } catch (e) {
@@ -358,7 +366,7 @@ function createApiRouter(deps) {
             const esWaIdLegacy = chatId.includes('@c.us') || chatId.includes('@lid');
             const esTelefono = /^\+?\d{10,15}$/.test(chatId);
             if (!esWaIdLegacy && !esTelefono) {
-                const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+                const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId }, select: CHAT_BASE });
                 if (!chat) return res.status(404).json({ error: 'Chat not found' });
                 // Un chat @lid (WhatsApp Web) se manda a su número real (shared/destino-del-chat.js).
                 waId = destinoDelChat(chat) || chat.waId;
@@ -376,7 +384,7 @@ function createApiRouter(deps) {
                             { realPhone: cleanPhone }
                         ]
                     },
-                    orderBy: { lastMessageAt: 'desc' }
+                    orderBy: { lastMessageAt: 'desc' }, select: CHAT_BASE
                 });
                 if (chat) {
                     dbChatId = chat.id;
@@ -399,7 +407,7 @@ function createApiRouter(deps) {
                     waId = cleanPhone;
                     if (template) {
                         const nuevo = await prisma.whatsAppChat.create({
-                            data: { waId: cleanPhone, realPhone: cleanPhone, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() }
+                            data: { waId: cleanPhone, realPhone: cleanPhone, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() }, select: CHAT_BASE
                         });
                         dbChatId = nuevo.id;
                     }
@@ -430,8 +438,17 @@ function createApiRouter(deps) {
 
             const sendOpts = proactive ? { isProactive: true, isAutomated: true } : { isProactive: false, isAutomated: false };
             if (template) sendOpts.template = template;
+            // De quién es el texto (lo exige el transporte, ver
+            // shared/punto-de-salida.js). Una plantilla es 'plantilla'. Si no,
+            // el CRM puede decirlo (`origen` en el body: los seguimientos que
+            // redacta la IA mandan 'llm' y el transporte los sanea); si no lo
+            // dice, una persona del equipo es 'humano' y el resto, 'sistema'.
+            const origenPedido = typeof req.body.origen === 'string' && ORIGENES.includes(req.body.origen) ? req.body.origen : null;
+            const origen = template ? 'plantilla'
+                : (origenPedido && origenPedido !== 'plantilla' ? origenPedido
+                    : (esRemitenteHumano(senderName || 'CRM') ? 'humano' : 'sistema'));
             if (media?.base64) {
-                sent = await sendMessage(waId, message, media, sendOpts);
+                sent = await sendMessage(waId, message, media, { ...sendOpts, origen });
 
                 // Subir al CRM para tener el pre-render
                 try {
@@ -469,7 +486,7 @@ function createApiRouter(deps) {
                     console.error("Error subiendo media saliente a CRM:", err.message);
                 }
             } else {
-                sent = await sendMessage(waId, message, null, sendOpts);
+                sent = await sendMessage(waId, message, null, { ...sendOpts, origen });
             }
 
             // Si el mensaje SALIÓ y no sabemos dónde guardarlo, se crea el chat
@@ -485,7 +502,7 @@ function createApiRouter(deps) {
                         const nuevo = await prisma.whatsAppChat.upsert({
                             where: { waId: soloDigitos },
                             update: {},
-                            create: { waId: soloDigitos, realPhone: soloDigitos, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() },
+                            create: { waId: soloDigitos, realPhone: soloDigitos, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() }, select: CHAT_BASE
                         });
                         dbChatId = nuevo.id;
                     } catch (e) {
@@ -509,7 +526,7 @@ function createApiRouter(deps) {
                                     : 'DOCUMENT')))
                         : 'TEXT';
 
-                    const content = message || (template ? `[Plantilla ${template.name}]` : '[Media]');
+                    const content = (sent && sent.textoEnviado) || message || (template ? `[Plantilla ${template.name}]` : '[Media]');
                     const waMessageId = resolveWaMessageId(sent, { waId, direction: 'OUTBOUND', content });
 
                     await prisma.whatsAppMessage.upsert({
@@ -527,7 +544,7 @@ function createApiRouter(deps) {
                             templateName: template ? template.name : null,
                         }
                     });
-                    await prisma.whatsAppChat.update({ where: { id: dbChatId }, data: { lastMessageAt: new Date() } }).catch(() => {});
+                    await prisma.whatsAppChat.update({ where: { id: dbChatId }, data: { lastMessageAt: new Date() }, select: SOLO_ID }).catch(() => {});
                     guardado = true;
                 } catch (e) {
                     console.error('Error guardando el saliente del CRM:', e.message);
@@ -571,7 +588,7 @@ function createApiRouter(deps) {
                 botReplyingTo.delete(waId);
                 return res.status(409).json({ error: e.message, code, notSent: true, needsTemplate: true, lastInboundAt: e.lastInboundAt || null });
             }
-            if (code === 'INVALID_NUMBER' || code === 'RECIPIENT_NOT_ALLOWED' || code === 'TEMPLATE_ERROR') {
+            if (code === 'INVALID_NUMBER' || code === 'RECIPIENT_NOT_ALLOWED' || code === 'TEMPLATE_ERROR' || code === 'SALIDA_RECHAZADA' || code === 'ORIGEN_REQUERIDO') {
                 botReplyingTo.delete(waId);
                 return res.status(422).json({ error: e.message, code, notSent: true });
             }
@@ -583,7 +600,10 @@ function createApiRouter(deps) {
     router.get('/agent', (req, res) => {
         const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
         const displayPrompt = (!agentState.agentPrompt || agentState.agentPrompt.trim().length <= 300) ? DEFAULT_SALES_PROMPT : agentState.agentPrompt;
-        res.json({ enabled: agentState.agentEnabled, prompt: displayPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
+        // promptFuente (15/10/2026): con qué prompt contesta de verdad el bot
+        // de ventas ('repo' salvo bot_prompt_activo='true'). `prompt` es lo
+        // que se edita en el panel, no necesariamente lo que se usa.
+        res.json({ enabled: agentState.agentEnabled, prompt: displayPrompt, promptFuente: agentState.promptFuente || null, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
     });
 
     // ── POST /agent ────────────────────────────────
@@ -674,23 +694,21 @@ function createApiRouter(deps) {
         try {
             if (!botEnabled) {
                 // Usar disableBotForChatById para consistencia (genera handoff, cancela timers)
-                await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
-                const chat = await prisma.whatsAppChat.findUnique({ where: { id } });
+                await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)', MOTIVO_APAGADO.APAGADO_MANUAL);
+                const chat = await prisma.whatsAppChat.findUnique({ where: { id }, select: { id: true, waId: true, botEnabled: true } });
                 res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
             } else {
                 const chatCheck = await prisma.whatsAppChat.findUnique({ 
                     where: { id },
-                    include: { client: { include: { tags: true } } }
+                    select: { ...CHAT_BASE, client: { include: { tags: true } } }
                 });
                 const hasCancelBot = chatCheck.client?.tags?.some(t => t.name.toLowerCase() === 'cancelar bot');
                 if (hasCancelBot) {
                     return res.status(403).json({ error: 'No se puede activar el bot porque el cliente tiene la etiqueta Cancelar Bot. Quítela primero para habilitarlo.' });
                 }
 
-                const chat = await prisma.whatsAppChat.update({
-                    where: { id },
-                    data: { botEnabled: true }
-                });
+                await actualizarChat(prisma, { id }, datosDePrendido());
+                const chat = await prisma.whatsAppChat.findUnique({ where: { id }, select: { id: true, waId: true, botEnabled: true } });
                 console.log(`  🤖 Bot ▶️ Activado para chat ${chat.waId}`);
                 broadcastChatUpdate(chat.id);
                 res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
@@ -857,7 +875,11 @@ function createApiRouter(deps) {
             });
 
             // State idéntico al de processBotTurn
-            const config = { configurable: { thread_id: TEST_CHAT_ID } };
+            // Con turno, como el flujo real: las fotos de send_product_photos se
+            // encolan y se muestran acá como bloques (nunca se mandan a nadie).
+            const { crearTurno, leerSalidaDelGrafo, armarRespuesta } = require('../shared/respuesta-del-turno');
+            const turno = crearTurno();
+            const config = { configurable: { thread_id: TEST_CHAT_ID, turno } };
             const state = { 
                 messages: allMessages,
                 userPhone: testPhone || '1111111111',
@@ -865,6 +887,7 @@ function createApiRouter(deps) {
                 waId: TEST_WA_ID,
                 chatId: TEST_CHAT_ID,
                 customPrompt: agentState.agentPrompt,
+                customPromptExecutive: agentState.agentPromptExecutive || '',
                 dailyContext: agentState.dailyContext,
                 clientData: null,
                 chatSummary: null,
@@ -908,24 +931,23 @@ function createApiRouter(deps) {
                 return res.json({ response: null, blocks: [], apiError: true, reason: apiErrorMessage, toolCalls });
             }
 
-            const lastMessage = result.messages[result.messages.length - 1];
-            let responseText = lastMessage.content;
-
-            if (responseText) {
-                // Output Guardrail (igual que el flujo real)
-                const guardrail = runOutputGuardrail(responseText);
-                if (!guardrail.safe) {
-                    console.warn(`  ⚠️ [Test Chat Guardrail] Respuesta bloqueada: ${guardrail.reason}`);
-                    return res.json({ response: 'Dejame revisarlo bien y en un ratito te respondo con la info exacta.', blocks: ['Dejame revisarlo bien y en un ratito te respondo con la info exacta.'], guardrailBlocked: true, guardrailReason: guardrail.reason, toolCalls });
-                }
-                
-                // Limpieza de signos de apertura (igual que el flujo real)
-                responseText = responseText.replace(/¿/g, '');
+            // Misma lectura y mismo armado de burbujas que el turno real
+            // (shared/respuesta-del-turno.js): salida estructurada, saneado,
+            // fotos encoladas primero.
+            const lectura = leerSalidaDelGrafo(result, allMessages.length);
+            const { restriccionDeFase } = require('../shared/fase-de-la-charla');
+            const respuesta = armarRespuesta({ salida: lectura, encolados: turno.envios, restriccion: restriccionDeFase(result && result.fase, result && result.nombreSaludo) });
+            if (respuesta.accion === 'callar' || respuesta.accion === 'rechazar') {
+                return res.json({ response: null, blocks: [], silent: true, reason: respuesta.motivo, toolCalls });
             }
+            const guardrail = runOutputGuardrail(respuesta.textoLLM);
+            if (!guardrail.safe) {
+                console.warn(`  ⚠️ [Test Chat Guardrail] Respuesta bloqueada: ${guardrail.reason}`);
+                return res.json({ response: null, blocks: [], guardrailBlocked: true, guardrailReason: guardrail.reason, toolCalls });
+            }
+            const blocks = respuesta.burbujas.map(b => [b.texto, ...b.imagenes.map(u => `[IMAGE: ${u}]`)].filter(Boolean).join('\n'));
+            const responseText = blocks.join('\n\n');
 
-            // Splitear en bloques (igual que el flujo real en index.js:680)
-            const blocks = responseText ? responseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0) : [];
-            
             res.json({ response: responseText, blocks, toolCalls });
         } catch (e) {
             console.error("Error in Test Chat:", e);

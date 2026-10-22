@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-hermes-c3",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Hermes",
+    "color": "C3",
+    "familia": "receta"
+  },
+  "caption": "Hermes C3 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-hermes-c3/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-hermes-c3/02.jpg"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePulso } from '@/components/mensajes/PulsoProvider';
 import { BotonAvisos } from '@/components/mensajes/BotonAvisos';
+import { TextoConLinks } from '@/components/mensajes/TextoConLinks';
 import { Send, Users, Plus, X, Loader2, MessagesSquare, ArrowLeft, UserPlus, AlertTriangle, MessageCircle } from 'lucide-react';
 
 interface Participante { id: string; name: string; role: string }
@@ -477,7 +478,7 @@ export default function MensajesClient() {
                                                     </div>
                                                 )}
                                                 {!mio && <div className="text-[10px] font-bold text-primary mb-0.5">{m.senderName}</div>}
-                                                <div className="text-sm whitespace-pre-wrap break-words">{m.body}</div>
+                                                <div className="text-sm whitespace-pre-wrap break-words"><TextoConLinks texto={m.body} /></div>
                                                 <div className={`text-[10px] mt-1 ${mio ? 'text-stone-400' : 'text-stone-400'}`}>{cuando(m.createdAt)}</div>
                                             </div>
                                         </div>

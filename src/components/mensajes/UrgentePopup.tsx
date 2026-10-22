@@ -14,6 +14,7 @@
  * "cerré el pop-up" que pueda contradecir al de lectura.
  */
 
+import { TextoConLinks } from '@/components/mensajes/TextoConLinks';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ChevronDown, MessageSquareWarning, ArrowRight } from 'lucide-react';
@@ -115,7 +116,7 @@ export function UrgentePopup({ urgentes }: { urgentes: Urgente[] }) {
                                     className="absolute -left-1.5 top-2 h-3 w-3 rotate-45 bg-stone-100"
                                 />
                                 <p className="relative whitespace-pre-wrap break-words text-sm text-stone-800">
-                                    {u.body}
+                                    <TextoConLinks texto={u.body} />
                                 </p>
                             </div>
                         </div>

@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-polaris-c7",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Polaris",
+    "color": "C7",
+    "familia": "receta"
+  },
+  "caption": "Polaris C7 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-polaris-c7/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-polaris-c7/02.jpg"
+    }
+  ]
+}

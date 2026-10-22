@@ -1,4 +1,5 @@
 'use client';
+import { cerrarTarea } from '@/lib/tareas/cerrar-tarea';
 
 import { useState } from 'react';
 import { Bell, X, User, ChevronRight, Clock } from 'lucide-react';
@@ -7,6 +8,7 @@ import { es } from 'date-fns/locale';
 import Link from 'next/link';
 
 import { WhatsAppIcon } from '@/components/ui/icons';
+import { abrirChatPedidoResena, BotonYaComento, EtiquetaSegundoPedido } from '@/components/resenas/acciones-resena';
 
 interface TasksPanelProps {
     tasks: any[];
@@ -100,7 +102,15 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                     </p>
                                     <p className="text-xs font-bold text-stone-500 dark:text-stone-400 line-clamp-2 leading-tight lowercase">
                                         {task.description}
+                                        <EtiquetaSegundoPedido descripcion={task.description} />
                                     </p>
+                                    {task.type === 'REVIEW_REQUEST' && (
+                                        <BotonYaComento
+                                            clientId={task.clientId}
+                                            className="mt-2"
+                                            onDone={() => setCompletedTasks(prev => new Set(prev).add(task.id))}
+                                        />
+                                    )}
                                     {task.dueDate && (
                                         <div className={`flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-widest ${
                                             overdue ? 'text-red-600 dark:text-red-400' : 'text-primary'
@@ -130,21 +140,14 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                         let finalMessage = `Hola ${task.client.name.split(' ')[0]}! Te escribimos de Atelier Óptica.`;
                                         
                                         if (task.type === 'REVIEW_REQUEST') {
-                                            let productNames = 'anteojos o cristales (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)';
-                                            try {
-                                                const res = await fetch(`/api/contacts/${task.clientId}`);
-                                                if (res.ok) {
-                                                    const clientData = await res.json();
-                                                    const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
-                                                    if (lastSale && lastSale.items && lastSale.items.length > 0) {
-                                                        productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
-                                                    }
-                                                }
-                                            } catch (err) {
-                                                console.error('Error fetching orders for review task', err);
-                                            }
-                                            
-                                            finalMessage = `Hola ${task.client.name.split(' ')[0]}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶`;
+                                            await abrirChatPedidoResena({
+                                                clientId: task.clientId,
+                                                nombre: task.client.name,
+                                                telefono: task.client.phone,
+                                                descripcion: task.description,
+                                            });
+                                            onClose();
+                                            return;
                                         } else {
                                             try {
                                                 const res = await fetch('/api/sales-opportunities/generate-message', {
@@ -188,18 +191,9 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                     if (isCompleting === task.id) return;
                                     setIsCompleting(task.id);
                                     try {
-                                        const res = await fetch(`/api/contacts/${task.clientId}/tasks`, {
-                                            method: 'PATCH',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ taskId: task.id, status: 'COMPLETED' })
-                                        });
-                                        if (res.ok) {
+                                        // Las de reseña pasan por el robot de Google (ver cerrarTarea).
+                                        if (await cerrarTarea(task.clientId, task.id, 'COMPLETED')) {
                                             setCompletedTasks(prev => new Set(prev).add(task.id));
-                                            if (typeof window !== 'undefined') {
-                                                window.dispatchEvent(new Event('tasks-updated'));
-                                            }
-                                        } else {
-                                            alert('❌ Error al completar la tarea.');
                                         }
                                     } catch (err) {
                                         alert('❌ Error de red.');

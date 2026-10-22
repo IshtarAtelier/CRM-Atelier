@@ -21,8 +21,10 @@ import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
 import { calculateEstimatedDays } from '@/lib/business-days';
 import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
+import { PostSaleChargeService } from '@/services/post-sale-charge.service';
 import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
 import { etiquetasQueLeCorresponden, esEtiquetaDesconectable } from '@/lib/contact-tags';
+import { actualizarChatsBot, datosDePrendido } from '@/lib/whatsapp/motivo-apagado-bot';
 
 
 // Qué congela la receta ya NO se decide por estado de laboratorio: se decide por
@@ -343,6 +345,17 @@ export interface ContactCreateData {
      * escribieron otro día. Solo se acepta hacia atrás y hasta 90 días.
      */
     firstContactAt?: string | Date | null;
+}
+
+/** El cierre de una tarea de reseña frenado porque la reseña no figura en Google. */
+export class ResenaNoFiguraError extends Error {
+    // Sin "parameter property" (constructor(public x)): el strip-only de Node
+    // que corre check:lab-modulos no la acepta y el check caía.
+    detalle?: string;
+    constructor(detalle?: string) {
+        super('La reseña no figura en Google');
+        this.detalle = detalle;
+    }
 }
 
 export const ContactService = {
@@ -851,19 +864,18 @@ export const ContactService = {
             // 2. Update linked WhatsAppChat
             try {
                 const linkedChats = await prisma.whatsAppChat.findMany({
-                    where: { clientId: id }
+                    where: { clientId: id },
+                    select: { id: true, chatLabels: true },
                 });
                 for (const chat of linkedChats) {
                     const currentLabels = chat.chatLabels || [];
                     const nextLabels = currentLabels.filter((l: string) => 
                         l !== 'SIN_SEGUIMIENTO' && l !== '[SISTEMA - BOT APAGADO]'
                     );
-                    await prisma.whatsAppChat.update({
-                        where: { id: chat.id },
-                        data: {
-                            chatLabels: nextLabels,
-                            botEnabled: true
-                        }
+                    // Prender limpia el motivo del apagado (15/10/2026).
+                    await actualizarChatsBot(prisma, { id: chat.id }, {
+                        chatLabels: nextLabels,
+                        ...datosDePrendido(),
                     });
                 }
             } catch (chatErr: any) {
@@ -1254,10 +1266,21 @@ export const ContactService = {
     async getById(id: string) {
         const ficha = await this.fichaCompleta(id);
         if (!ficha) return null;
+        // Reparto vigente del costo de cada caso de post-venta (qué parte fue a
+        // qué caja y cuánto al cliente). El movimiento de caja no es una relación
+        // de Prisma, así que se busca aparte y se adjunta como `reparto`.
+        const cashIds = (ficha.postSaleCases || []).map((c: any) => c.cashEntryId).filter(Boolean) as string[];
+        const entries = cashIds.length
+            ? await prisma.vendorCashEntry.findMany({ where: { id: { in: cashIds } }, select: { id: true, amount: true, vendorId: true, vendor: { select: { name: true } } } })
+            : [];
+        const postSaleCases = (ficha.postSaleCases || []).map((c: any) => ({
+            ...c,
+            reparto: PostSaleChargeService.armarVigente(c, entries.find(e => e.id === c.cashEntryId) || null),
+        }));
         // Qué producto de la tienda miraba (plan 15/10/2026, 3.7): se lee de
         // su chat, no se guarda. Nunca rompe la ficha.
         const productoWeb = await productoMiradoDe(id).catch(() => null);
-        return { ...ficha, productoWeb };
+        return { ...ficha, postSaleCases, productoWeb };
     },
 
     async fichaCompleta(id: string) {
@@ -1348,7 +1371,7 @@ export const ContactService = {
                         discountCash: true,
                         discountTransfer: true,
                         discountCard: true,
-                        subtotalWithMarkup: true,
+                        subtotalWithMarkup: true, postSaleCharge: true,
                         // Facturas emitidas en ARCA: la ficha del cliente permite
                         // facturar (solo ADMIN) y abrir el PDF sin pasar por /admin/ventas.
                         // Select angosto: solo lo que la tarjeta muestra o necesita para
@@ -1381,6 +1404,7 @@ export const ContactService = {
                         status: true,
                         cost: true,
                         newOrderNumber: true,
+                        newOrderNumberHistory: true,
                         notes: true,
                         orderOption: true,
                         responsible: true,
@@ -1398,7 +1422,17 @@ export const ContactService = {
                         costConfirmedBy: true,
                         faultUserId: true,
                         cashEntryId: true,
-                        order: { select: { id: true, total: true, createdAt: true, labOrderNumber: true } },
+                        clientCharge: true,
+                        clientChargedAt: true,
+                        clientChargedBy: true,
+                        // El saldo de la venta (incluye el cargo al cliente) se calcula en pantalla
+                        // con PricingService: hacen falta los pagos y los descuentos.
+                        order: { select: {
+                            id: true, total: true, createdAt: true, labOrderNumber: true,
+                            subtotalWithMarkup: true, postSaleCharge: true, discountCash: true, discountTransfer: true,
+                            paid: true,
+                            payments: { select: { amount: true, method: true } },
+                        } },
                         notesList: {
                             orderBy: { createdAt: 'asc' },
                             select: {
@@ -1459,7 +1493,17 @@ export const ContactService = {
         return task;
     },
 
+    /**
+     * Pedido de reseña automático. No se crea si el cliente ya comentó o si
+     * tuvo post-venta, abierta o cerrada (Ishtar, 21/10/2026: a quien tuvo un
+     * problema no se le pide reseña). Devuelve null si no corresponde.
+     */
     async addReviewRequest(clientId: string, description: string) {
+        const c = await prisma.client.findUnique({
+            where: { id: clientId },
+            select: { googleReviewAt: true, postSaleCases: { select: { id: true }, take: 1 } },
+        });
+        if (!c || c.googleReviewAt || c.postSaleCases.length > 0) return null;
         return await prisma.clientTask.create({
             data: {
                 clientId,
@@ -1471,13 +1515,63 @@ export const ContactService = {
         });
     },
 
-    async updateTaskStatus(taskId: string, status: string, actor?: Actor) {
+    /**
+     * Al cargarse una post-venta, los pedidos de reseña abiertos del cliente
+     * se cancelan solos y queda la nota en la ficha.
+     */
+    async cancelarPedidosDeResenaPorPosventa(clientId: string, actor?: Actor) {
+        const { count } = await prisma.clientTask.updateMany({
+            where: { clientId, type: 'REVIEW_REQUEST', status: 'PENDING' },
+            data: { status: 'CANCELLED', completedBy: actor?.name || 'Sistema', completedAt: new Date() },
+        });
+        if (count > 0) {
+            await prisma.interaction.create({
+                data: {
+                    clientId,
+                    type: 'NOTE',
+                    content: `🚫 Se cancelaron ${count} pedido(s) de reseña en Google: el cliente tiene post-venta.`,
+                    userId: actor?.id || null,
+                    userName: actor?.name || 'Sistema',
+                },
+            }).catch(console.error);
+            logAudit({
+                userId: actor?.id || null,
+                userName: actor?.name || 'Sistema',
+                action: 'STATUS_CHANGE',
+                entityType: 'TASK',
+                entityId: clientId,
+                details: { evento: 'resena_cancelada_por_posventa', clientId, cantidad: count },
+            }).catch(console.error);
+        }
+        return count;
+    },
+
+    async updateTaskStatus(taskId: string, status: string, actor?: Actor, opciones?: { forzar?: boolean }) {
         // Obtener la tarea para saber qué se está finalizando
         const task = await prisma.clientTask.findUnique({
-            where: { id: taskId }
+            where: { id: taskId },
+            include: { client: { select: { name: true } } },
         });
 
         if (!task) throw new Error('Tarea no encontrada');
+
+        // "Solicitar comentario": un robot mira si la reseña FIGURA en Google
+        // antes de darla por hecha (Ishtar, 16/10/2026). Si no figura, no se
+        // cierra sola: el vendedor decide si la cancela igual, y entonces
+        // queda CANCELADA —no hecha— para que no cuente como reseña lograda.
+        let notaResena = '';
+        if (task.type === 'REVIEW_REQUEST' && status === 'COMPLETED') {
+            const { GoogleReviewsCheckService } = await import('@/services/google-reviews-check.service');
+            const v = await GoogleReviewsCheckService.verificar(task.client?.name || '');
+            if (v.figura) {
+                notaResena = ` — 🤖 reseña confirmada en Google (${v.autor})`;
+            } else if (!opciones?.forzar) {
+                throw new ResenaNoFiguraError(v.error);
+            } else {
+                status = 'CANCELLED';
+                notaResena = ' — 🤖 la reseña NO figura en Google; cancelada igual';
+            }
+        }
 
         const isClosing = status === 'COMPLETED' || status === 'CANCELLED';
         const updatedTask = await prisma.clientTask.update({
@@ -1489,12 +1583,12 @@ export const ContactService = {
         });
 
         // Si se marca como completada, registrar en el historial con quién la finalizó
-        if (status === 'COMPLETED') {
+        if (status === 'COMPLETED' || notaResena) {
             await prisma.interaction.create({
                 data: {
                     clientId: task.clientId,
                     type: 'TASK_COMPLETED',
-                    content: `✅ ${actor?.name || 'Sistema'} finalizó la tarea: ${task.description}`,
+                    content: `${status === 'COMPLETED' ? '✅' : '⚠️'} ${actor?.name || 'Sistema'} ${status === 'COMPLETED' ? 'finalizó' : 'canceló'} la tarea: ${task.description}${notaResena}`,
                     userId: actor?.id || null,
                     userName: actor?.name || null
                 }
@@ -1507,7 +1601,7 @@ export const ContactService = {
             action: 'STATUS_CHANGE',
             entityType: 'TASK',
             entityId: taskId,
-            details: { clientId: task.clientId, description: task.description, from: task.status, to: status }
+            details: { clientId: task.clientId, description: task.description, from: task.status, to: status, ...(notaResena ? { resena: notaResena } : {}) }
         }).catch(console.error);
 
         return updatedTask;
@@ -1882,7 +1976,7 @@ export const ContactService = {
                     clientId: true, 
                     paid: true, 
                     total: true, 
-                    subtotalWithMarkup: true,
+                    subtotalWithMarkup: true, postSaleCharge: true,
                     isDeleted: true,
                     client: {
                         select: {
@@ -2185,7 +2279,7 @@ export const ContactService = {
                     clientId: true,
                     total: true,
                     paid: true,
-                    subtotalWithMarkup: true,
+                    subtotalWithMarkup: true, postSaleCharge: true,
                     discountCash: true,
                     discountTransfer: true,
                     payments: {
@@ -2747,7 +2841,7 @@ export const ContactService = {
                             id: true,
                             clientId: true,
                             total: true,
-                            subtotalWithMarkup: true,
+                            subtotalWithMarkup: true, postSaleCharge: true,
                             client: { select: { name: true } },
                             invoices: {
                                 where: { status: 'COMPLETED' },

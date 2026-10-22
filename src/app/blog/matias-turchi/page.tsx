@@ -1,3 +1,4 @@
+import { BUSINESS_INFO } from '@/lib/business-info';
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
@@ -7,7 +8,7 @@ import Image from "next/image";
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/matias-turchi' },
-  title: "Matías Turchi | Especialista en Lentes Multifocales y Essilor Expert en Córdoba",
+  title: "Matías Turchi | Especialista en Multifocales, Essilor Expert",
   description: "Conocé a Matías Turchi, especialista en lentes multifocales y cristales Varilux certificado como Essilor Expert en Cerro de las Rosas, Córdoba. Tecnología digital y adaptación precisa sin mareos.",
   keywords: [
     "lentes multifocales Córdoba", 
@@ -29,13 +30,8 @@ export default function MatiasTurchiPage() {
     "jobTitle": "Especialista en Lentes Multifocales (Essilor Expert)",
     "worksFor": {
       "@type": "Optician",
-      "name": "Atelier Óptica",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Córdoba",
-        "addressRegion": "Córdoba",
-        "addressCountry": "AR"
-      }
+      "@id": BUSINESS_INFO.entityId,
+      "name": BUSINESS_INFO.name,
     },
     "description": "Profesional óptico especialista en adaptación de lentes de alta tecnología, multifocales y cristales Essilor Varilux en Córdoba.",
     "image": "https://atelieroptica.com.ar/images/blog/matias-turchi.png",

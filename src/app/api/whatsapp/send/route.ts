@@ -5,6 +5,7 @@ import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { WHATSAPP_TEMPLATES, templateSpec, type TemplateName } from '@/lib/whatsapp/templates';
 import { registrarSeguimientoEnviado } from '@/lib/embudo/registrar-seguimiento';
 import { getActor } from '@/lib/actor';
+import { MOTIVO_APAGADO, actualizarChatsBot, datosDeApagado } from '@/lib/whatsapp/motivo-apagado-bot';
 
 // POST /api/whatsapp/send — enviar mensaje desde el CRM (buzón, botones de
 // Ventas / Pedidos / Facturación / Cotizador).
@@ -70,11 +71,16 @@ export async function POST(request: Request) {
             // El disparador es `sessionUserName`, que sale del JWT vía
             // middleware: los flujos automáticos (crons, seguimientos, bot) no
             // llegan nunca con cookie de sesión, así que no se auto-apagan.
+            //
+            // Motivo TOMADO_POR_PERSONA (15/10/2026), y solo si el bot estaba
+            // prendido: si ya estaba apagado por otra cosa (derivado, panel,
+            // personal) ese motivo no se pisa — que una persona escriba en un
+            // chat silenciado a propósito no habilita al bot a volver solo.
             if (sessionUserName) {
-                await prisma.whatsAppChat.update({
-                    where: { id: String(body.chatId) },
-                    data: { botEnabled: false },
-                }).catch((e: any) => console.error('[WhatsApp Send] No se pudo apagar el bot del chat:', e.message));
+                await actualizarChatsBot(prisma,
+                    { id: String(body.chatId), botEnabled: true },
+                    datosDeApagado(MOTIVO_APAGADO.TOMADO_POR_PERSONA),
+                ).catch((e: any) => console.error('[WhatsApp Send] No se pudo apagar el bot del chat:', e.message));
             }
 
             // ── Rastro del embudo ───────────────────────────────────────────

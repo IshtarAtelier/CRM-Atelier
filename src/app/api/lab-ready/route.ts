@@ -39,7 +39,7 @@ export async function GET() {
                 // fantasma (lección de la confirmación de compra).
                 total: true,
                 paid: true,
-                subtotalWithMarkup: true,
+                subtotalWithMarkup: true, postSaleCharge: true,
                 specialDiscount: true,
                 markup: true,
                 discountCash: true,

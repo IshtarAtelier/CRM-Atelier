@@ -21,8 +21,8 @@
  *  - Nunca se le manda a quien escribió la nota.
  */
 
-import { sendWhatsApp } from './send';
-import { templateSpec } from './templates';
+import { sendWhatsApp, type WhatsAppMedia } from './send';
+import { templateSpec, type TemplateSpec } from './templates';
 // phone-utils y no contact.service: contact.service importa este módulo, y un
 // ciclo de imports acá es la clase de bug que aparece solo en producción.
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
@@ -63,6 +63,26 @@ export interface AvisoInternoInput {
     texto: string;
     /** Link para abrirla en el CRM (va solo en el texto libre; la plantilla no lo admite). */
     link?: string | null;
+    /**
+     * Archivos que van DESPUÉS del texto, uno por mensaje (comprobantes de pago,
+     * fotos). Solo salen en texto libre: si la ventana de 24 h del colaborador
+     * está cerrada, el texto va por plantilla y los adjuntos no entran; el
+     * resultado lo dice en `adjuntosEnviados` para que el llamador lo sepa.
+     */
+    adjuntos?: WhatsAppMedia[] | null;
+    /**
+     * Primera línea del texto libre, en lugar de "📝 Fulano te dejó un mensaje
+     * sobre …". Para avisos que tienen que empezar de una forma concreta
+     * ("Solicitud de factura — …").
+     */
+    titulo?: string | null;
+    /**
+     * Plantilla propia para cuando la ventana está cerrada, en lugar de
+     * `nota_interna` (p. ej. una con el comprobante como encabezado). El
+     * llamador garantiza que está APPROVED; `plantillaMedia` es su encabezado.
+     */
+    plantilla?: TemplateSpec | null;
+    plantillaMedia?: WhatsAppMedia | null;
 }
 
 export interface AvisoInternoResultado {
@@ -71,6 +91,8 @@ export interface AvisoInternoResultado {
     ok: boolean;
     via?: 'text' | 'template';
     error?: string;
+    /** Cuántos de los `adjuntos` llegaron a salir (0 si el texto fue por plantilla). */
+    adjuntosEnviados?: number;
 }
 
 /**
@@ -84,9 +106,11 @@ export async function avisarEquipoPorWhatsApp(input: AvisoInternoInput): Promise
 
     // Texto libre (solo sale si la ventana de 24 h está abierta): completo y
     // con link. La plantilla lleva la versión de un renglón.
+    const primeraLinea = input.titulo?.trim() || `📝 *${remitenteNombre}* te dejó un mensaje sobre ${contexto}:`;
     const textoLibre =
-        `📝 *${remitenteNombre}* te dejó un mensaje sobre ${contexto}:\n\n${input.texto.trim()}` +
+        `${primeraLinea}\n\n${input.texto.trim()}` +
         (input.link ? `\n\n${input.link}` : '');
+    const plantilla = input.plantilla ?? templateSpec('nota_interna', [remitenteNombre, contexto, resumen]);
 
     const vistos = new Set<string>();
     const resultados: AvisoInternoResultado[] = [];
@@ -101,9 +125,20 @@ export async function avisarEquipoPorWhatsApp(input: AvisoInternoInput): Promise
                 message: textoLibre,
                 senderName: 'Sistema Atelier',
                 isProactive: true,
-                template: templateSpec('nota_interna', [remitenteNombre, contexto, resumen]),
+                template: plantilla,
+                templateMedia: input.plantilla ? input.plantillaMedia ?? undefined : undefined,
             });
-            resultados.push({ userId: u.id ?? null, phone, ok: r.ok, via: r.via, error: r.ok ? undefined : (r.error || r.code) });
+            let adjuntosEnviados = 0;
+            if (r.ok && r.via === 'text' && input.adjuntos?.length) {
+                for (const media of input.adjuntos) {
+                    const ra = await sendWhatsApp({ chatId: phone, message: media.filename || '', media, senderName: 'Sistema Atelier', isProactive: true });
+                    if (ra.ok) adjuntosEnviados++;
+                    else console.error(`[aviso-interno] Adjunto ${media.filename || ''} a ${u.name || phone} no salió:`, ra.code, ra.error);
+                }
+            } else if (r.ok && input.adjuntos?.length) {
+                console.warn(`[aviso-interno] ${u.name || phone}: el texto fue por plantilla, los ${input.adjuntos.length} adjuntos no salen.`);
+            }
+            resultados.push({ userId: u.id ?? null, phone, ok: r.ok, via: r.via, error: r.ok ? undefined : (r.error || r.code), adjuntosEnviados });
             if (!r.ok) console.error(`[aviso-interno] Copia por WhatsApp a ${u.name || phone} no salió:`, r.code, r.error);
         } catch (e: any) {
             resultados.push({ userId: u.id ?? null, phone, ok: false, error: e?.message });

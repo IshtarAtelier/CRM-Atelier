@@ -1,13 +1,22 @@
 const { StateGraph, MessagesAnnotation, Annotation } = require("@langchain/langgraph");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ToolNode } = require("@langchain/langgraph/prebuilt");
-const { SystemMessage, AIMessage } = require("@langchain/core/messages");
+const { SystemMessage, AIMessage, HumanMessage } = require("@langchain/core/messages");
 const { salesToolsList, executiveToolsList } = require("./agent-tools");
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { prisma } = require('./db');
 const DEFAULT_SALES_PROMPT = require('./prompts/salesPrompt');
 const { interesSegunReceta } = require('./shared/tipo-de-lente');
+const { noEsCastellano } = require('./shared/idioma');
+const { nombreParaSaludar } = require('./shared/nombre-para-saludar');
+const {
+  FASE, HERRAMIENTAS_FUERA_DE_LA_APERTURA, CORRECCION_DE_APERTURA,
+  faseDeLaCharla, esApertura, instruccionDeFase, validarSalidaDeApertura,
+} = require('./shared/fase-de-la-charla');
+const {
+  HERRAMIENTAS_DE_SALIDA, HERRAMIENTA_RESPONDER, HERRAMIENTA_NO_RESPONDER, textoDe, mensajesDeResponder,
+} = require('./shared/respuesta-del-turno');
 
 /**
  * Las fechas que el modelo recibe como contexto del cliente, en argentino.
@@ -34,6 +43,8 @@ function fechaArgentina(valor) {
 const LIMITE_ADICION_MI_PRIMER = 1.50;
 const DEFAULT_EXECUTIVE_PROMPT = require('./prompts/executivePrompt');
 const { buildContextModules } = require('./prompts/context-modules');
+const { motivoParaDescartarPromptCustom } = require('./shared/prompt-custom');
+const { clasificarErrorIA, esFallaDeSaldo, ErrorDeIA } = require('./shared/errores-ia');
 
 
 
@@ -47,7 +58,7 @@ function getModel() {
       console.warn('WARNING: GOOGLE_GENAI_API_KEY is not set. Bot will crash si se invoca.');
     }
     // Nota: este paquete no soporta `timeout` por request; el corte real
-    // lo hace el Promise.race de 30s alrededor de graph.invoke en index.js.
+    // lo hace la señal de cancelación (AbortSignal) que bot-cloud.js pasa en el config de graph.invoke y que llega hasta acá.
     modelInstance = new ChatGoogleGenerativeAI({
       model: "gemini-2.5-flash",
       maxOutputTokens: 8192,
@@ -200,12 +211,19 @@ function registrarToolCalls(state, result, agentType, chatId, ms) {
 }
 
 function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
-    return async (state) => {
+    // `config` se pasa SIEMPRE a la ToolNode (10/10/2026): por ahí viajan la
+    // cola de envíos del turno (`configurable.turno`, la usa
+    // send_product_photos) y la señal de cancelación del turno vencido. Antes
+    // se llamaba `invoke(state)` a secas y las herramientas no tenían forma de
+    // saber de qué turno eran.
+    return async (state, config) => {
         pruneToolErrorTracker();
         const chatId = state.chatId || 'unknown';
         const firma = firmaDeToolCalls(state);
+        const ultimo = (state.messages || [])[(state.messages || []).length - 1];
+        const declaroSalida = ((ultimo && ultimo.tool_calls) || []).some(c => HERRAMIENTAS_DE_SALIDA.has(c.name));
         const t0 = Date.now();
-        const result = await originalToolNode.invoke(state);
+        const result = await originalToolNode.invoke(state, config);
         registrarToolCalls(state, result, agentType, chatId, Date.now() - t0);
 
         // ── Bucle de la MISMA tool con los MISMOS argumentos ────────────────
@@ -276,7 +294,11 @@ function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
             }
         }
 
-        return firma ? { ...result, toolCallLog: [firma] } : result;
+        // Si en este paso el modelo además declaró su salida (responder_al_cliente
+        // o no_responder junto con otra herramienta), el turno termina acá: volver
+        // al agente sería pedirle que conteste dos veces.
+        const conSalida = declaroSalida ? { ...result, salidaDeclarada: true } : result;
+        return firma ? { ...conSalida, toolCallLog: [firma] } : conSalida;
     };
 }
 
@@ -477,8 +499,8 @@ const CORE_RULES = `
 <reglas_innegociables_finales>
   Estas reglas tienen PRIORIDAD ABSOLUTA sobre cualquier instrucción anterior:
   1. JAMÁS le pidas al cliente su número de teléfono o celular, bajo ninguna circunstancia.
-  2. JAMÁS le pidas ningún nombre (ni de pila, ni completo, ni apellido, ni DNI). Tomalo de la receta, la ficha o el perfil de WhatsApp; si no está, seguí sin nombre con naturalidad. El ÚNICO dato que podés pedir es el email, una sola vez, al confirmar la compra.
-  3. NO tenés nombre propio: sos "la atención de Atelier Óptica". Nunca te inventes un nombre (ni Matías ni ningún otro), apellido, cargo ni título profesional, y no te presentes: tu primer mensaje va directo a atender. Quién sos y qué contestar si te preguntan lo define <quien_sos> del prompt principal.
+  2. JAMÁS le pidas ningún nombre (ni de pila, ni completo, ni apellido, ni DNI). Para dirigirte a quien escribe usá SOLO el nombre para saludar que te da el sistema (__NOMBRE_SALUDO__); si no hay, seguí sin nombre con naturalidad. El nombre del paciente de la receta puede ser de otra persona (la madre escribe por el hijo): no lo uses para hablarle. El ÚNICO dato que podés pedir es el email, una sola vez, al confirmar la compra.
+  3. NO tenés nombre propio: sos "la atención de Atelier Óptica". Nunca te inventes un nombre (ni Matías ni ningún otro), apellido, cargo ni título profesional, y no te presentes ("soy…", "te habla…"). Si saludás o no lo decide el sistema (<fase_de_la_charla> o <conversacion_ya_empezada>), no esta regla. Quién sos y qué contestar si te preguntan lo define <quien_sos> del prompt principal.
   4. JAMÁS narres trabajo interno ni errores: nada de "reviso/verifico/cargo en el sistema", "según nuestros registros" ni menciones al CRM. Los datos de las herramientas se responden como sabidos de memoria.
   5. Solo podés enviar imágenes cuyo [IMAGE: url] figura textualmente en tus instrucciones o en lo que te devolvió una herramienta (los armazones de 'get_price_list' vienen con su foto). Copiá esas URLs TAL CUAL, nunca inventes ni modifiques una: nunca prometas fotos que no tenés ni digas que "no encontraste" fotos.
   6. TODAS las recetas sirven, sin importar de cuándo sean. No existe antigüedad, vencimiento ni caducidad de recetas: JAMÁS le digas al cliente que su receta es vieja, antigua, está vencida o desactualizada, JAMÁS le pidas una más nueva y JAMÁS comentes su fecha. Si la recibiste, cotizás con esos valores y listo.
@@ -486,38 +508,57 @@ const CORE_RULES = `
   7-bis. SIN RECETA NO HAY PRECIO DE CRISTALES. Nunca. No existe "para que tengas una idea", "aproximado", "más o menos" ni cotizar monofocales Y multifocales para que compare: el tipo de lente lo dice la receta, no el cliente ni vos. Por eso JAMÁS le preguntes "¿buscás monofocales o multifocales?" ni "¿qué tipo de lente querés?": es pedirle que te diga lo que dice la receta. Y JAMÁS digas "ya tengo tu receta" / "ya la recibí" si no la pudiste leer: fingir que la leíste y después preguntarle el tipo es exactamente cómo se terminó cotizando multifocales a gente con receta monofocal. Si no tenés la receta cargada, pedila; si no la tiene a mano, ofrecele traer los anteojos que usa para medirlos en el local, o un turno para medirle la graduación sin cargo con su compra. Y JAMÁS le digas que su receta "está pendiente de lectura" ni nada que suene a trámite interno.
   8. FLUIDEZ: una sola burbuja por respuesta salvo que estés enviando un presupuesto con opciones. Prohibido encadenar afirmación + pregunta como mensajes sueltos, mandar burbujas de puro relleno ("dale", "entiendo", "perfecto") o corregirte a vos mismo en un mensaje aparte. Respondé completo y de una: contexto y pregunta juntos, en un solo mensaje que se lea natural.
   9. JAMÁS le digas al cliente que lo derivás, que lo pasás con alguien, ni que lo va a atender "alguien del equipo", "un asesor" u "otra persona", y no menciones "el equipo". Si tenés que apartarte, escribí SOLO: "Lo confirmo y te escribo en un ratito 😊" — y nada más. Quien siga la charla la sigue como si fueras vos.
+__REGLA_EMBUDO__  11. EL HISTORIAL TRAE NOTAS ENTRE CORCHETES (la hora, "[Lo escribió Mile, del equipo]", "[Imagen adjunta…]"). Son para vos: JAMÁS copies un corchete ni su contenido en tu respuesta. Lo marcado "Lo escribió X, del equipo" lo dijo una compañera, no vos: respetalo y NUNCA lo repitas ni lo reenvíes. Tu respuesta es solo lo NUEVO que le decís al cliente, en castellano, hablándole a él/ella, nunca sobre él/ella.
+  12. CÓMO TERMINÁS CADA TURNO: con una herramienta, nunca con texto suelto. Para hablarle al cliente usá 'responder_al_cliente' con 'mensajes' (una entrada por burbuja, en castellano, dirigidas al cliente). Si no corresponde decir nada (te agradeció y ya estaba todo dicho, mandó un "ok", un emoji), usá 'no_responder' con el 'motivo'. Lo que pensás, lo que decidís y por qué NUNCA va en 'mensajes': va en 'motivo' o en ningún lado.
 </reglas_innegociables_finales>`;
 
-// Ningún prompt custom puede presentar al bot con apellido o títulos profesionales:
-// hay prompts legacy en la DB que usan "Óptico Contactólogo" / "Ejecutivo de Cuentas".
-const FORBIDDEN_IN_CUSTOM_PROMPT = [/turchi/i, /contact[oó]log/i, /ejecutiv[oa]\s+de\s+cuentas/i];
+/**
+ * Regla 10, SOLO para el agente de ventas (prospectos). El agente de clientes
+ * existentes (ejecutivo) la recibía igual —una regla de embudo de prospecto
+ * aplicada a alguien que viene a preguntar por su pedido—. El PRIMER mensaje
+ * (saludo) ya no está acá: lo decide el código en shared/fase-de-la-charla.js
+ * y llega como UN bloque aparte, solo en el turno que corresponde.
+ */
+const REGLA_EMBUDO_VENTAS = `  10. CÓMO SE ATIENDE (Ishtar, 10/10/2026: "que asesore, no que solo escupa precios"):
+     - El orden de la charla: (a) entender qué necesita y para qué (uso, si ya usa anteojos, qué le molesta); (b) si tiene receta; (c) si lo hace por alguna obra social. De a UNA pregunta por mensaje, y cada pregunta va después de aportar algo útil sobre lo que contó. Es una charla amena, no una encuesta: si el cliente ya lo dijo, no lo preguntes.
+     - El precio llega cuando ya sabés qué necesita, y va con asesoramiento: por qué esa opción le sirve a esa persona, no la lista pelada.
+`;
 
-// Solo el primer nombre, capitalizado; descarta frases, comercios, emojis o nombres inválidos.
-function sanitizeFirstName(rawName) {
-  if (!rawName) return "";
-  const first = String(rawName).trim().split(/\s+/)[0] || "";
-  if (!/^[a-záéíóúüñ]{2,20}$/i.test(first) || first.toLowerCase() === "cliente") return "";
-  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+/**
+ * Las reglas innegociables para un rol. El nombre con el que se saluda lo
+ * decide el código (shared/nombre-para-saludar.js), no el modelo.
+ * @param {{ agentType: 'sales'|'executive', nombre: string }} p
+ */
+function coreRules({ agentType, nombre }) {
+  return CORE_RULES
+    .replace('__NOMBRE_SALUDO__', nombre ? `"${nombre}"` : 'NINGUNO')
+    .replace('__REGLA_EMBUDO__', agentType === 'sales' ? REGLA_EMBUDO_VENTAS : '');
 }
+
+// Ningún prompt custom puede presentar al bot con apellido o títulos
+// profesionales (hay prompts legacy con "Óptico Contactólogo" / "Ejecutivo de
+// Cuentas"). La regla vive en shared/prompt-custom.js desde el 15/10/2026: antes
+// era la PALABRA y el prompt vivo se descartaba entero, en silencio, por la
+// frase que justamente lo prohíbe ("ni un título (óptica, contactóloga…)").
 
 // ── NODOS 2 y 3: AGENTE DE VENTAS (Prospectos) y EJECUTIVO DE CUENTAS (Clientes) ──
 // Misma mecánica de invocación/reintentos; solo cambian el prompt por defecto,
 // las herramientas y la regla para descartar un prompt custom que no corresponde al rol.
-function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, rejectCustomPrompt }) {
-  return async function agentNode(state) {
+function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, promptCustomDe }) {
+  return async function agentNode(state, config) {
     const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
-    const custom = state.customPrompt || "";
+    // Cada rol lee SU prompt custom (ver promptCustomDe más abajo).
+    const custom = promptCustomDe(state) || "";
     const clientInfoText = await formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
     const tiemposModule = await getTiemposModule();
     const tagsModule = await getTagsModule();
 
     let basePrompt = custom;
-    if (
-      !basePrompt ||
-      basePrompt.trim().length <= 300 ||
-      FORBIDDEN_IN_CUSTOM_PROMPT.some(p => p.test(custom)) ||
-      (rejectCustomPrompt && rejectCustomPrompt(custom))
-    ) {
+    const motivoDescarte = motivoParaDescartarPromptCustom(custom);
+    if (motivoDescarte) {
+      // Que se vea: un prompt del panel que no surte efecto no puede ser mudo.
+      // Sin prompt cargado no se avisa (es el caso normal del ejecutivo).
+      if (String(custom).trim()) console.warn(`  ⚠️ [Graph] Prompt custom de ${nodeName} DESCARTADO (${motivoDescarte}): se usa el del repo.`);
       basePrompt = defaultPrompt;
     }
 
@@ -525,11 +566,24 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
     // El resumen persistente del chat también dispara módulos (temas ya tratados
     // siguen cargados en charlas largas o retomadas). Si el prompt (custom) no
     // tiene el placeholder, el replace no altera nada.
+    // ── Fase de la charla: la decide el CÓDIGO (shared/fase-de-la-charla.js) ──
+    // Solo el agente de ventas tiene apertura: el ejecutivo atiende a clientes
+    // existentes con su propio prompt. Si quien llama ya calculó la fase
+    // (bot-cloud.js, con las filas crudas para ver la marca del anuncio), se
+    // usa esa; si no, se calcula acá con el historial.
+    const fase = agentType === 'sales'
+      ? (state.fase || faseDeLaCharla(state.messages, { entroPorAnuncio: state.entroPorAnuncio, yaHablamos: state.historiaNuestra ? state.historiaNuestra.yaHablamos : undefined }))
+      : FASE.EN_CURSO;
+    const apertura = esApertura(fase);
+    const nombre = nombreParaSaludar({ perfil: state.userName, ficha: state.clientData });
+
     const contextModules = buildContextModules({
       agentType,
       messages: state.messages,
       clientData: state.clientData,
       chatSummary: state.chatSummary,
+      fase,
+      historia: state.historiaNuestra,
     });
 
     const systemPrompt = basePrompt
@@ -540,16 +594,41 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
       .replace(/\[TIEMPOS_CONFECCION\]/g, tiemposModule)
       .replace(/\[INSTRUCCIONES_CUSTOM\]/g, state.dailyContext || "")
       .replace(/\[telefono\]/g, state.userPhone || "")
-      .replace(/\[nombre\]/g, sanitizeFirstName(state.clientData?.name || state.userName)) + CORE_RULES;
+      .replace(/\[nombre\]/g, nombre)
+      + coreRules({ agentType, nombre })
+      // UN solo bloque de saludo, al final (después de las innegociables): en
+      // la apertura manda sobre el saludo literal que traiga el prompt vivo.
+      + (apertura ? instruccionDeFase(fase, nombre, { porAnuncio: Boolean(state.entroPorAnuncio) }) : '');
 
-    const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
+    let messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
     const MAX_RETRIES = 3;
+    // Salida estricta (opt-in): el modelo TIENE que llamar una herramienta en
+    // cada paso, así que el turno siempre termina en responder_al_cliente o
+    // no_responder y el texto suelto deja de existir. Queda detrás de una
+    // variable porque cambia cómo contesta Gemini y no se probó contra la API
+    // real todavía (10/10/2026); sin ella, el texto suelto se sigue aceptando
+    // y pasa por el mismo validador.
+    // En la apertura el modelo NO TIENE las herramientas de precio y fotos: no
+    // es una prohibición que pueda desobedecer, es que no existen en el turno.
+    const herramientas = apertura
+      ? toolsList.filter(t => !HERRAMIENTAS_FUERA_DE_LA_APERTURA.has(t.name))
+      : toolsList;
+    const modelo = process.env.BOT_SALIDA_ESTRICTA === '1'
+      ? getModel().bindTools(herramientas, { tool_choice: 'any' })
+      : getModel().bindTools(herramientas);
+    let reintentoPorIdioma = false;
+    let reintentoPorApertura = false;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       let response;
       try {
-        response = await getModel().bindTools(toolsList).invoke(messagesWithSystem);
+        response = await modelo.invoke(messagesWithSystem, config);
       } catch (llmError) {
         console.error(`❌ ${nodeName}: Error en invocación LLM (intento ${attempt}/${MAX_RETRIES}):`, llmError.message);
+        // Sin crédito o sin cuota (16/10/2026): reintentar no sirve y el turno
+        // tiene que saber POR QUÉ no hubo respuesta. Sale clasificado (ver
+        // shared/errores-ia.js) y bot-cloud.js no lo cuenta como falla del chat.
+        const claseIA = clasificarErrorIA(llmError);
+        if (esFallaDeSaldo(claseIA)) throw new ErrorDeIA(claseIA, llmError);
         if (attempt < MAX_RETRIES) {
           await new Promise(r => setTimeout(r, 1000));
           continue;
@@ -575,16 +654,56 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
           throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
         }
       }
-      return { messages: [response] };
+      // ── Idioma: si la respuesta FINAL no está en castellano, se le pide
+      // que la rehaga, una vez. El 4/10/2026 un cliente recibió el
+      // razonamiento del modelo en inglés ("I should not respond further…").
+      // El validador de salida igual la rechaza; esto es para que el cliente
+      // reciba la respuesta buena en vez de silencio.
+      const candidata = textoFinalCandidato(response);
+      if (candidata && noEsCastellano(candidata) && !reintentoPorIdioma) {
+        reintentoPorIdioma = true;
+        console.warn(`⚠️ ${nodeName}: la respuesta no está en castellano, se pide de nuevo: "${candidata.slice(0, 80)}"`);
+        messagesWithSystem = [...messagesWithSystem, new HumanMessage(CORRECCION_DE_IDIOMA)];
+        attempt--;
+        continue;
+      }
+      // ── Apertura: ni precios, ni fotos, ni links. Se pide una vez que la
+      // rehaga; si insiste, el turno la reemplaza por el saludo del código
+      // (respuesta-del-turno.js → restriccion).
+      if (apertura && candidata && !reintentoPorApertura && !validarSalidaDeApertura(candidata).ok) {
+        reintentoPorApertura = true;
+        console.warn(`⚠️ ${nodeName}: el saludo de apertura traía ${validarSalidaDeApertura(candidata).motivo}, se pide de nuevo: "${candidata.slice(0, 80)}"`);
+        messagesWithSystem = [...messagesWithSystem, new HumanMessage(CORRECCION_DE_APERTURA)];
+        attempt--;
+        continue;
+      }
+      return { messages: [response], fase, nombreSaludo: nombre };
     }
   };
 }
+
+/**
+ * Lo que el cliente leería si este paso fuera el último: el texto suelto o los
+ * `mensajes` de responder_al_cliente. Vacío si el paso pide otras herramientas
+ * (todavía no es la respuesta).
+ */
+function textoFinalCandidato(response) {
+  const calls = (response && response.tool_calls) || [];
+  const responder = calls.find(c => c.name === HERRAMIENTA_RESPONDER);
+  if (responder) return mensajesDeResponder(responder.args).join('\n\n');
+  if (calls.length) return '';
+  return textoDe(response && response.content);
+}
+
+const CORRECCION_DE_IDIOMA = 'AVISO DEL SISTEMA (no lo escribió el cliente): tu respuesta anterior NO se envió porque no estaba en castellano. Escribí de nuevo tu respuesta en castellano rioplatense, hablándole directamente al cliente, con responder_al_cliente. Si no corresponde decirle nada, usá no_responder. Nunca escribas lo que pensás.';
 
 const salesNode = createAgentNode({
   nodeName: 'salesNode',
   agentType: 'sales',
   toolsList: salesToolsList,
   defaultPrompt: DEFAULT_SALES_PROMPT,
+  // SystemSetting.bot_prompt (el que se edita desde el panel) es de VENTAS.
+  promptCustomDe: (state) => state.customPrompt,
 });
 
 const executiveNode = createAgentNode({
@@ -592,27 +711,48 @@ const executiveNode = createAgentNode({
   agentType: 'executive',
   toolsList: executiveToolsList,
   defaultPrompt: DEFAULT_EXECUTIVE_PROMPT,
-  // Un prompt custom escrito para el rol de ventas no debe usarse con clientes existentes
-  rejectCustomPrompt: (custom) =>
-    custom.includes("prospectos nuevos") || custom.includes("AGENTE DE VENTAS") || custom.includes("Óptico Contactólogo"),
+  // Clave PROPIA: SystemSetting.bot_prompt_executive. Antes el ejecutivo
+  // recibía `bot_prompt` (que es de ventas) y solo lo descartaba si tenía
+  // ciertas frases; el prompt vivo no las tiene, así que a los clientes
+  // existentes los atendía el prompt de prospectos. Sin la clave, va el
+  // prompt por defecto del ejecutivo — nunca el de ventas.
+  promptCustomDe: (state) => state.customPromptExecutive,
 });
 
 // ── NODO 4: AUDITORIA ──
+/**
+ * Resuelve QUÉ quiere decir el turno y lo deja en `salidaFinal`:
+ *   { tipo: 'responder', mensajes } — llamó responder_al_cliente
+ *   { tipo: 'callar', motivo }      — llamó no_responder
+ *   { tipo: 'texto', mensajes }     — contestó con texto suelto (compatibilidad)
+ *
+ * 10/10/2026: antes concatenaba el `.text` de TODAS las partes del contenido
+ * sin mirar el tipo. Gemini 2.5 devuelve su razonamiento como partes aparte
+ * ('thinking'): se toman solo las partes de texto (`textoDe`). Y "callarse"
+ * dejó de ser algo que el modelo narra en prosa ("I should not respond
+ * further…"): es una herramienta.
+ */
 async function auditorNode(state) {
-  const lastMessage = state.messages[state.messages.length - 1];
-  if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) return state;
-
-  const rawContent = lastMessage.content;
-  let safeContent;
-    if (typeof rawContent === 'string') {
-        safeContent = rawContent.trim();
-    } else if (Array.isArray(rawContent)) {
-        safeContent = rawContent.map(p => typeof p === 'string' ? p : (p.text || '')).join('').trim();
-    } else {
-        safeContent = rawContent ? String(rawContent).trim() : '';
-    }
-  if (!safeContent) return state;
-  return { messages: [new AIMessage(safeContent)] };
+  const msgs = state.messages || [];
+  // Las herramientas de salida de ESTE turno: desde el final hasta el último
+  // mensaje del cliente (lo anterior es historial).
+  let declarada = null;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i];
+    const tipo = typeof m.getType === 'function' ? m.getType() : m._getType?.();
+    if (tipo === 'human') break;
+    const c = (m.tool_calls || []).find(x => HERRAMIENTAS_DE_SALIDA.has(x.name));
+    if (c) { declarada = c; break; }
+  }
+  if (declarada && declarada.name === HERRAMIENTA_NO_RESPONDER) {
+    return { salidaFinal: { tipo: 'callar', motivo: String((declarada.args || {}).motivo || '') } };
+  }
+  if (declarada) {
+    return { salidaFinal: { tipo: 'responder', mensajes: mensajesDeResponder(declarada.args) } };
+  }
+  const ultimo = msgs[msgs.length - 1];
+  const texto = ultimo && !(ultimo.tool_calls && ultimo.tool_calls.length) ? textoDe(ultimo.content).trim() : '';
+  return { salidaFinal: { tipo: texto ? 'texto' : 'vacio', mensajes: texto ? [texto] : [] } };
 }
 
 // ── FUNCIONES CONDICIONALES DE RUTEO ──
@@ -622,7 +762,10 @@ function routeAfterRouter(state) {
 
 function processAgentReturn(state) {
   const lastMessage = state.messages[state.messages.length - 1];
-  if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
+  const calls = lastMessage.tool_calls || [];
+  // Solo herramientas de salida (responder_al_cliente / no_responder): no hay
+  // nada que ejecutar, el turno termina en el auditor.
+  if (calls.length > 0 && !calls.every(c => HERRAMIENTAS_DE_SALIDA.has(c.name))) {
     return state.agentType === 'EXECUTIVE' ? 'executiveTools' : 'salesTools';
   }
   return 'auditor';
@@ -630,10 +773,10 @@ function processAgentReturn(state) {
 
 /** Tras las tools: si se cortó un bucle, el turno termina; si no, vuelve al agente. */
 function routeAfterTools(state) {
-  return state.loopBroken ? 'auditor' : 'salesAgent';
+  return state.loopBroken || state.salidaDeclarada ? 'auditor' : 'salesAgent';
 }
 function routeAfterExecutiveTools(state) {
-  return state.loopBroken ? 'auditor' : 'executiveAgent';
+  return state.loopBroken || state.salidaDeclarada ? 'auditor' : 'executiveAgent';
 }
 
 // ── GRAFO DE AGENTES (LANGGRAPH) ──
@@ -645,6 +788,16 @@ const GraphAnnotation = Annotation.Root({
   clientData: Annotation({ reducer: (_, v) => v, default: () => null }),
   chatSummary: Annotation({ reducer: (_, v) => v, default: () => null }),
   customPrompt: Annotation({ reducer: (_, v) => v, default: () => "" }),
+  customPromptExecutive: Annotation({ reducer: (_, v) => v, default: () => "" }),
+  // Fase de la charla (shared/fase-de-la-charla.js). La puede traer quien
+  // invoca; el agente la devuelve resuelta junto con el nombre del saludo,
+  // para que el turno valide la salida con la misma fase.
+  entroPorAnuncio: Annotation({ reducer: (_, v) => v, default: () => false }),
+  fase: Annotation({ reducer: (prev, v) => v ?? prev ?? null, default: () => null }),
+  // "Ya hablamos" decidido por la firma de las filas (shared/fase-de-la-charla.js
+  // → historiaNuestra). Sin declararlo acá LangGraph lo descarta en silencio.
+  historiaNuestra: Annotation({ reducer: (prev, v) => v ?? prev ?? null, default: () => null }),
+  nombreSaludo: Annotation({ reducer: (prev, v) => v ?? prev ?? '', default: () => '' }),
   dailyContext: Annotation({ reducer: (_, v) => v, default: () => "" }),
   chatId: Annotation({ reducer: (_, v) => v, default: () => "" }),
   waId: Annotation({ reducer: (_, v) => v, default: () => "" }),
@@ -657,6 +810,10 @@ const GraphAnnotation = Annotation.Root({
   // el estado es por invocación, así que repetir una consulta en otro turno es legítimo.
   toolCallLog: Annotation({ reducer: (prev, v) => [...(prev || []), ...(Array.isArray(v) ? v : [v])], default: () => [] }),
   loopBroken: Annotation({ reducer: (prev, v) => v ?? prev ?? false, default: () => false }),
+  // Salida estructurada del turno (ver auditorNode). Sin declararlos acá,
+  // LangGraph los descartaría en silencio, igual que pasó con toolCallLog.
+  salidaDeclarada: Annotation({ reducer: (prev, v) => v ?? prev ?? false, default: () => false }),
+  salidaFinal: Annotation({ reducer: (_, v) => v, default: () => null }),
 });
 
 const workflow = new StateGraph(GraphAnnotation)

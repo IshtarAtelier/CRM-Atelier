@@ -1,0 +1,72 @@
+{
+  "id": "carrusel-lunes-2026-11-02",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Sol, Cratos, Calisto C5",
+    "color": "",
+    "familia": "receta"
+  },
+  "caption": "Sol · Cratos · Calisto C5 · Atelier Óptica\n6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-lunes-2026-11-02/01.jpg",
+      "alt": "Sol, lentes de sol, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-lunes-2026-11-02/02.jpg",
+      "alt": "Sol, lentes de sol, de perfil · Atelier Óptica"
+    },
+    {
+      "type": "producto",
+      "role": "producto",
+      "image": "social/carrusel-lunes-2026-11-02/03.jpg",
+      "alt": "Sol, lentes de sol, foto de producto · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-lunes-2026-11-02/04.jpg",
+      "alt": "Cratos, armazón de receta, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-lunes-2026-11-02/05.jpg",
+      "alt": "Cratos, armazón de receta, de perfil · Atelier Óptica"
+    },
+    {
+      "type": "producto",
+      "role": "producto",
+      "image": "social/carrusel-lunes-2026-11-02/06.jpg",
+      "alt": "Cratos, armazón de receta, foto de producto · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-lunes-2026-11-02/07.jpg",
+      "alt": "Calisto C5, lentes de sol, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-lunes-2026-11-02/08.jpg",
+      "alt": "Calisto C5, lentes de sol, de perfil · Atelier Óptica"
+    },
+    {
+      "type": "producto",
+      "role": "producto",
+      "image": "social/carrusel-lunes-2026-11-02/09.jpg",
+      "alt": "Calisto C5, lentes de sol, foto de producto · Atelier Óptica"
+    }
+  ]
+}

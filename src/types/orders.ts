@@ -132,6 +132,8 @@ export interface Order {
     /** Observación del vendedor que sale en el PDF del cliente. */
     clientNote?: string;
     labOrderNumber?: string;
+    /** Números de operación anteriores (separados por espacio); buscables. */
+    labOrderNumberHistory?: string | null;
     /** Lo que el laboratorio facturó por cada pedido de esta venta (cruce de costos). */
     labCostEntries?: LabCostEntryResumen[];
     frameSource?: string | null;
@@ -167,6 +169,7 @@ export interface Order {
     postSaleResponsible?: string | null;
     postSaleOrderOption?: string | null;
     postSaleNewOrderNumber?: string | null;
+    postSaleNewOrderNumberHistory?: string | null;
     postSaleStatus?: string | null;
     postSaleRxData?: string | null;
     postSaleCaseType?: string | null;
@@ -281,6 +284,7 @@ export function mapOrderPostSale(order: any): any {
         postSaleResponsible: activeCase?.responsible || order.postSaleResponsible || null,
         postSaleOrderOption: activeCase?.orderOption || order.postSaleOrderOption || null,
         postSaleNewOrderNumber: activeCase?.newOrderNumber || order.postSaleNewOrderNumber || null,
+        postSaleNewOrderNumberHistory: activeCase?.newOrderNumberHistory || null,
         postSaleRxData: activeCase?.rxData || order.postSaleRxData || null,
         postSaleCaseType: activeCase?.caseType || order.postSaleCaseType || null,
         postSaleFault: activeCase?.fault || order.postSaleFault || null,
@@ -293,5 +297,6 @@ export function mapOrderPostSale(order: any): any {
         postSaleCostSource: activeCase?.costSource || null,
         postSaleCashEntryId: activeCase?.cashEntryId || null,
         postSaleCaseId: activeCase?.id || null,
+        postSaleClientChargedAt: activeCase?.clientChargedAt || null,
     };
 }

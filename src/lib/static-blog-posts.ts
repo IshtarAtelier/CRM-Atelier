@@ -1,4 +1,5 @@
 import { NOTAS_STELLEST, CATEGORIA_STELLEST } from '@/lib/constants/stellest-notas';
+import { NOTAS_MARCAS_CRISTALES, CATEGORIA_MARCAS_CRISTALES } from '@/lib/constants/notas-marcas-cristales';
 
 export interface StaticBlogPost {
   slug: string;
@@ -35,6 +36,15 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: n.excerpt,
     date: n.date,
     category: CATEGORIA_STELLEST,
+    imageUrl: n.imageUrl,
+  })),
+  // Una nota por marca de cristal del sistema (notas-marcas-cristales.ts).
+  ...NOTAS_MARCAS_CRISTALES.map((n) => ({
+    slug: n.slug,
+    title: n.title,
+    excerpt: n.excerpt,
+    date: n.date,
+    category: CATEGORIA_MARCAS_CRISTALES,
     imageUrl: n.imageUrl,
   })),
   {

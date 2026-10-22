@@ -1,9 +1,13 @@
 {
   "_comentario": [
-    "Dos carriles. El cron publica SEIS piezas por día en dos tandas, INTERCALADAS",
-    "(contenido, Agostina, contenido, Agostina):",
-    "  mañana (8:00 ART)  → 2 de contenido + 2 modelos de Agostina",
-    "  tarde  (18:05 ART) → 2 de contenido",
+    "Cuatro carriles. El cron publica en dos tandas, INTERCALADAS (contenido,",
+    "Agostina, Massaru, contenido, Agostina, Massaru):",
+    "  mañana (8:00 ART)  → 2 de contenido + 2 modelos de Agostina + 2 de Massaru SOL",
+    "  tarde  (18:05 ART) → 2 de contenido + 2 modelos de Massaru RECETA",
+    "Los dos carriles de Massaru (Ishtar, 19/10/2026: 'sumá dos de Massaru de",
+    "sol un día y dos de receta en otro horario, como la tarde') los escribe",
+    "node scripts/social/generar-stories-massaru.mjs --solo-carril. Sin precio:",
+    "no vencen. Cada carril avanza de a 2 por día (solo sale en una tanda).",
     "Cada modelo de Agostina son 2 a 4 stories seguidas (frente, perfil, anteojo en",
     "los clip-on suman la foto sin clip): DOS MODELOS POR DÍA (Ishtar, 3/10/2026),",
     "así que un día son ~8 stories. SIN la foto del anteojo en manos (Ishtar,",
@@ -351,7 +355,7 @@
       {
         "id": "story-agos-atenea-c3",
         "tipo": "receta",
-        "slides": 2
+        "slides": 1
       },
       {
         "id": "story-agos-victoria-c5",
@@ -795,6 +799,285 @@
       },
       {
         "id": "story-agos-minerva-c3",
+        "tipo": "receta",
+        "slides": 2
+      }
+    ],
+    "massaru-sol": [
+      {
+        "id": "story-massaru-zeus-c33-p01",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-zeus-c33-p86",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-zeus-c33-p18-2",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-zeus-c33-p18-1",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-kalishta",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-odiseo",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-eva-c3",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-pluton-c7",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-vega-c2",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-eva-c2",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-fenix-c2",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-vega-c1",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-olimpo-sepia",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-olimpo-pink",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-olimpo-blue",
+        "tipo": "sol",
+        "slides": 1
+      },
+      {
+        "id": "story-massaru-olimpo-grey",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-edipo",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-persefone",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-olimpo-black",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-demeter",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-pluton-c4",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-triton-c3",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-triton-c5",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-sol",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-calisto-c5",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-perseo-c4",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-perseo-c5",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-calisto-c4",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-urano",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-meteoro-c4",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-meteoro-c275",
+        "tipo": "sol",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-meteoro-c26",
+        "tipo": "sol",
+        "slides": 2
+      }
+    ],
+    "massaru-receta": [
+      {
+        "id": "story-massaru-orfeo-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-poseidon-c6",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-poseidon-c2",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-poseidon-c3",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-pegaso-c2",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-cronos-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-ulises-c4",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-orfeo-c3",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-hermes-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-osiris-c4",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-teseo-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-aquiles-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-hermes-c3",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-helios-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-hestia-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-hestia-c2",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-aquiles-c4",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-andromeda-c6",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-polaris-c7",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-cronos-c3",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-olimpia-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-lumen-c1",
+        "tipo": "receta",
+        "slides": 2
+      },
+      {
+        "id": "story-massaru-cratos",
         "tipo": "receta",
         "slides": 2
       }

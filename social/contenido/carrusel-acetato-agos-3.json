@@ -1,0 +1,93 @@
+{
+  "id": "carrusel-acetato-agos-3",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "generadoDesde": "produccion",
+  "criterio": "ficha activa cuyo alt dice \"en acetato\"",
+  "temas": [
+    "armazones",
+    "receta",
+    "sol"
+  ],
+  "seleccion": {
+    "nombre": null,
+    "acetato": true,
+    "modelos": [
+      "Andrómeda C7",
+      "Gala C2",
+      "Gala C3",
+      "Helena C2",
+      "Andrómeda C4",
+      "Adhara C4",
+      "Mizar C2",
+      "Fénix C1",
+      "Cánopo C2",
+      "Nashira C3"
+    ]
+  },
+  "caption": "Armazones de acetato (3/3) · Cápsula Escarlata\nAndrómeda C7 · Gala C2 · Gala C3 · Helena C2 · Andrómeda C4 · Adhara C4 · Mizar C2 · Fénix C1 · Cánopo C2 · Nashira C3\n6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/01.jpg",
+      "alt": "Andrómeda C7, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/02.jpg",
+      "alt": "Gala C2, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/03.jpg",
+      "alt": "Gala C3, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/04.jpg",
+      "alt": "Helena C2, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/05.jpg",
+      "alt": "Andrómeda C4, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/06.jpg",
+      "alt": "Adhara C4, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/07.jpg",
+      "alt": "Mizar C2, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/08.jpg",
+      "alt": "Fénix C1, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/09.jpg",
+      "alt": "Cánopo C2, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-acetato-agos-3/10.jpg",
+      "alt": "Nashira C3, lentes de sol, de frente · Cápsula Escarlata"
+    }
+  ]
+}

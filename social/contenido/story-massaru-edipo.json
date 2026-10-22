@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-edipo",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Edipo",
+    "color": "",
+    "familia": "sol"
+  },
+  "caption": "Edipo · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-edipo/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-edipo/02.jpg"
+    }
+  ]
+}

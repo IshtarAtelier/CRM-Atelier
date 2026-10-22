@@ -214,7 +214,7 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
   multifocales: {
     slug: "multifocales",
     seo: {
-      title: "Anteojos Multifocales Varilux | Atelier Óptica — Ver de Lejos y de Cerca",
+      title: "Anteojos Multifocales Varilux — Ver de Lejos y de Cerca",
       description:
         "Multifocales premium con tallado digital y garantía de adaptación. Ver de lejos, intermedio y cerca sin cambiar de anteojos. Cuotas sin interés, envíos a todo el país y asesoramiento por WhatsApp.",
     },

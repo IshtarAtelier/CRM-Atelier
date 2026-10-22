@@ -1,0 +1,72 @@
+{
+  "id": "carrusel-victoria",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "seleccion": {
+    "nombre": "Victoria",
+    "acetato": false,
+    "modelos": [
+      "Victoria C5",
+      "Victoria C1",
+      "Victoria C6",
+      "Victoria C7"
+    ]
+  },
+  "caption": "Todos los Victoria · Cápsula Escarlata\nVictoria C5 · Victoria C1 · Victoria C6 · Victoria C7\n6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-victoria/01.jpg",
+      "alt": "Victoria C5, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-victoria/02.jpg",
+      "alt": "Victoria C5, armazón de receta, de perfil · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-victoria/03.jpg",
+      "alt": "Victoria C1, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-victoria/04.jpg",
+      "alt": "Victoria C1, armazón de receta, de perfil · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-victoria/05.jpg",
+      "alt": "Victoria C6, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-victoria/06.jpg",
+      "alt": "Victoria C6, armazón de receta, de perfil · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/carrusel-victoria/07.jpg",
+      "alt": "Victoria C7, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/carrusel-victoria/08.jpg",
+      "alt": "Victoria C7, armazón de receta, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

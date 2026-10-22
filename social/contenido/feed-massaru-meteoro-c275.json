@@ -1,0 +1,31 @@
+{
+  "id": "feed-massaru-meteoro-c275",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Meteoro",
+    "color": "C275",
+    "familia": "sol"
+  },
+  "caption": "Meteoro C275 · Atelier Óptica\nLentes de sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-massaru-meteoro-c275/01.jpg",
+      "alt": "Meteoro C275, lentes de sol, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-massaru-meteoro-c275/02.jpg",
+      "alt": "Meteoro C275, lentes de sol, de perfil · Atelier Óptica"
+    }
+  ]
+}

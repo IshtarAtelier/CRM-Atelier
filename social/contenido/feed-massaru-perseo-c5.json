@@ -1,0 +1,31 @@
+{
+  "id": "feed-massaru-perseo-c5",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Perseo",
+    "color": "C5",
+    "familia": "sol"
+  },
+  "caption": "Perseo C5 · Atelier Óptica\nLentes de sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-massaru-perseo-c5/01.jpg",
+      "alt": "Perseo C5, lentes de sol, de frente · Atelier Óptica"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-massaru-perseo-c5/02.jpg",
+      "alt": "Perseo C5, lentes de sol, de perfil · Atelier Óptica"
+    }
+  ]
+}

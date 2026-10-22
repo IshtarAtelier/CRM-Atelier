@@ -100,6 +100,7 @@ de "Preparar" hay un link **"+ Agregar Essential (NO está en la venta)"**:
 | Qué ves | Qué significa | Qué hacer |
 |---|---|---|
 | "Para prepararlo falta, en la venta: …" | Falta un dato | Completalo en la venta |
+| "Stock virtual de …: quedan N pares" / "⚠️ SIN stock virtual de …" | Cuánto stock virtual (comprado por adelantado, más barato) queda de ese cristal según lo último que leyó el robot en el portal | Nada: es informativo. Si dice SIN stock, Ishtar ya recibió el aviso para pedir que carguen; el pedido se carga igual |
 | "Este pedido va a mano: el robot no lo puede cargar" | Ese cristal está bien vendido pero el portal no lo deja elegir con el robot (hoy: stock fotocromático 1.56, foto espejado, Super Blue 1.74 y los de sol neutro) | Cargalo a mano en SmartLab y anotá el nº de pedido en la venta; el seguimiento y los costos siguen igual |
 | "No se pudo preparar: el portal no ofrece un artículo que corresponda" | Ese producto no existe así en SmartLab (o la tabla no lo tiene) | Avisá a Ishtar; mientras, se carga a mano |
 | "Ya tiene pedido en el laboratorio: nº …" | Ese par ya se cargó (por el robot o a mano) | Nada: no se carga dos veces |

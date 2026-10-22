@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-nashira-c3",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Nashira",
+    "color": "C3",
+    "familia": "sol"
+  },
+  "caption": "Nashira C3 · Cápsula Escarlata\nLentes de sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-nashira-c3/01.jpg",
+      "alt": "Nashira C3, lentes de sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-nashira-c3/02.jpg",
+      "alt": "Nashira C3, lentes de sol, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

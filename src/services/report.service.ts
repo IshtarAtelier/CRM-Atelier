@@ -49,7 +49,7 @@ export class ReportService {
                 userId: true,
                 total: true,
                 paid: true,
-                subtotalWithMarkup: true,
+                subtotalWithMarkup: true, postSaleCharge: true,
                 specialDiscount: true,
                 appliedPromoName: true,
                 discountCash: true,

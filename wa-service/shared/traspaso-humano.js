@@ -20,8 +20,12 @@
 /**
  * Marca permanente de "acá se metió un humano". Distinta de apagar `botEnabled`:
  * ese se puede volver a prender solo, esta etiqueta no se borra sola.
+ * OJO (15/10/2026): la etiqueta NO dice por qué está apagado el bot (la ponen
+ * también el panel y otros caminos). Para eso está `botOffReason`
+ * (shared/motivo-apagado.js); ninguna decisión debe leer esta etiqueta.
  */
 const ETIQUETA_BOT_APAGADO = '[SISTEMA - BOT APAGADO]';
+const { MOTIVO_APAGADO } = require('./motivo-apagado');
 
 /**
  * @param {object}   deps
@@ -36,8 +40,13 @@ const ETIQUETA_BOT_APAGADO = '[SISTEMA - BOT APAGADO]';
 async function marcarTraspasoHumano({ prisma, chatId, motivo, disableBotForChatById }) {
     if (!chatId) return;
 
+    // El motivo explícito (15/10/2026) es lo que decide si el bot puede volver
+    // solo; la etiqueta queda solo para el buzón. Si el bot ya estaba apagado
+    // por otra cosa (derivado, manual, personal), su motivo NO se pisa: que una
+    // persona escriba en un chat silenciado a propósito no lo vuelve "suyo"
+    // para el barrido.
     if (disableBotForChatById) {
-        await disableBotForChatById(chatId, motivo)
+        await disableBotForChatById(chatId, motivo, MOTIVO_APAGADO.TOMADO_POR_PERSONA)
             .catch(e => console.error('[Traspaso] No se pudo apagar el bot:', e && e.message));
     }
 
@@ -49,7 +58,7 @@ async function marcarTraspasoHumano({ prisma, chatId, motivo, disableBotForChatB
         const labels = [...(chat?.chatLabels || [])];
         if (!labels.includes(ETIQUETA_BOT_APAGADO)) {
             labels.push(ETIQUETA_BOT_APAGADO);
-            await prisma.whatsAppChat.update({ where: { id: chatId }, data: { chatLabels: labels } });
+            await prisma.whatsAppChat.updateMany({ where: { id: chatId }, data: { chatLabels: labels } });
         }
     } catch (e) {
         console.error('[Traspaso] No se pudo marcar el chat como tomado por un humano:', e && e.message);

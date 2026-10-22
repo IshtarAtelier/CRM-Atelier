@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const title = withClaim
     ? `La Óptica Mejor Puntuada de Córdoba (★ ${rating.toFixed(1).replace(".", ",")} en Google)`
-    : "Óptica en Córdoba | Atelier Óptica · Cerro de las Rosas";
+    : "Óptica en Córdoba · Cerro de las Rosas";
   const description = withClaim
     ? `Atelier Óptica: ★ ${rating.toFixed(1).replace(".", ",")} en Google con +${userRatingCount} reseñas. Cristales Varilux, laboratorio propio, cuotas sin interés y envíos a todo el país. Cerro de las Rosas, Córdoba.`
     : "Atelier Óptica, en el Cerro de las Rosas: cristales Varilux, laboratorio propio, cuotas sin interés y envíos a todo el país.";
@@ -214,9 +214,8 @@ export default async function OpticaCordobaPage() {
               <div className="text-3xl mb-3">💳</div>
               <h3 className="text-lg font-bold mb-2">Cuotas y descuentos</h3>
               <p className="text-sm text-black/70">
-                {BUSINESS_INFO.installmentsPromo}, {BUSINESS_INFO.discountCashPercent}%
-                de descuento en efectivo o {BUSINESS_INFO.discountTransferPercent}%
-                por transferencia.
+                {BUSINESS_INFO.installmentsPromo} y {BUSINESS_INFO.discountTransferPercent}%
+                de descuento por transferencia.
               </p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#e8e2db]">

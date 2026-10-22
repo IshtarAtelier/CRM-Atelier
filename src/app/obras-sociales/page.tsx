@@ -83,7 +83,7 @@ export default function ObrasSocialesPage() {
 
             <AccordionItem title="¿Los descuentos son acumulables con las promociones de la óptica?">
               <p>
-                ¡Sí! Podés aprovechar nuestras <strong>promociones (como cuotas sin interés o descuentos en efectivo)</strong> al momento de pagar en la óptica, y luego recibir el dinero adicional del reintegro por parte de tu obra social, haciendo que tus anteojos nuevos sean sumamente accesibles.
+                ¡Sí! Podés aprovechar nuestras <strong>promociones (como cuotas sin interés o descuento por transferencia)</strong> al momento de pagar en la óptica, y luego recibir el dinero adicional del reintegro por parte de tu obra social, haciendo que tus anteojos nuevos sean sumamente accesibles.
               </p>
             </AccordionItem>
           </div>

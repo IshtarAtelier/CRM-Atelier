@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
 import { auditarPreciosBajoLista } from '@/services/order.service';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
-import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
+import { recalculateCrystalPrices, applyTeñidoPromoDiscount, errorTenidoCruzado } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { descuentoNegativo, excedeTopeVendedor, FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
@@ -69,6 +69,12 @@ export async function POST(request: Request) {
             it.product = dbProducts.find(p => p.id === it.productId);
         });
         recalculateCrystalPrices(items);
+        // El teñido tiene que ser del laboratorio de los cristales (la UI lo
+        // frena, pero por la API entraba igual).
+        const tenidoCruzado = errorTenidoCruzado(items);
+        if (tenidoCruzado) {
+            return NextResponse.json({ error: tenidoCruzado }, { status: 400 });
+        }
         const tintStylePrices = Object.fromEntries(
             (await prisma.tintStylePrice.findMany()).map(t => [t.category, t.price])
         );
@@ -140,7 +146,7 @@ export async function POST(request: Request) {
                     discountTransfer: true,
                     discountCard: true,
                     specialDiscount: true,
-                    subtotalWithMarkup: true,
+                    subtotalWithMarkup: true, postSaleCharge: true,
                     // Sin estos dos, la cotización guardada no puede mostrar el
                     // armazón bonificado ni el chip del descuento de la promo.
                     appliedPromoName: true,
@@ -232,7 +238,7 @@ export async function POST(request: Request) {
                     discountTransfer: true,
                     discountCard: true,
                     specialDiscount: true,
-                    subtotalWithMarkup: true,
+                    subtotalWithMarkup: true, postSaleCharge: true,
                     // Sin estos dos, la cotización guardada no puede mostrar el
                     // armazón bonificado ni el chip del descuento de la promo.
                     appliedPromoName: true,
@@ -351,7 +357,19 @@ export async function GET(request: Request) {
                         OR: [
                             { client: { name: { contains: word, mode: 'insensitive' } } },
                             { labOrderNumber: { contains: word, mode: 'insensitive' } },
+                            // Números anteriores (renumerados por el lab o corregidos) y
+                            // los de post-venta: un número viejo tiene que seguir encontrando
+                            // su pedido (Ishtar, 20/10/2026).
+                            { labOrderNumberHistory: { contains: word, mode: 'insensitive' } },
+                            { postSaleCases: { some: { OR: [
+                                { newOrderNumber: { contains: word, mode: 'insensitive' } },
+                                { newOrderNumberHistory: { contains: word, mode: 'insensitive' } },
+                            ] } } },
                             { id: { contains: word, mode: 'insensitive' } },
+                            // El nº de operación que el lab le dio a la POSTVENTA (reproceso):
+                            // distinto del de la venta. Sin esto, buscar "3591269" en
+                            // Post Venta no encontraba el caso de Cels (20/10/2026).
+                            { postSaleCases: { some: { newOrderNumber: { contains: word, mode: 'insensitive' } } } },
                         ]
                     }))
                 });
@@ -419,7 +437,7 @@ export async function GET(request: Request) {
             discountTransfer: true,
             discountCard: true,
             specialDiscount: true,
-            subtotalWithMarkup: true,
+            subtotalWithMarkup: true, postSaleCharge: true,
             appliedPromoName: true,
             appliedPromoDiscount: true,
             frameSource: true,
@@ -452,6 +470,7 @@ export async function GET(request: Request) {
                     status: true,
                     cost: true,
                     newOrderNumber: true,
+                    newOrderNumberHistory: true,
                     notes: true,
                     orderOption: true,
                     responsible: true,
@@ -465,6 +484,8 @@ export async function GET(request: Request) {
                     // postSaleCostSource / postSaleCashEntryId / postSaleCaseId.
                     costSource: true,
                     cashEntryId: true,
+                    clientCharge: true,
+                    clientChargedAt: true,
                     notesList: {
                         select: {
                             id: true,
@@ -498,6 +519,7 @@ export async function GET(request: Request) {
             prescription: { select: { id: true, sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true, axisOD: true, axisOI: true, additionOD: true, additionOI: true, distanceOD: true, distanceOI: true, heightOD: true, heightOI: true, pd: true, addition: true, prescriptionType: true, notes: true, imageUrl: true, prismOD: true, prismOI: true, nearSphereOD: true, nearSphereOI: true, nearCylinderOD: true, nearAxisOD: true, nearCylinderOI: true, nearAxisOI: true } },
             // Lab fields
             labOrderNumber: true,
+            labOrderNumberHistory: true,
             labNotes: true,
             clientNote: true,
             labSentAt: true,
@@ -565,6 +587,7 @@ export async function GET(request: Request) {
                 ) pay ON TRUE
                 WHERE o."isDeleted" = false
                   AND COALESCE(NULLIF(o."subtotalWithMarkup", 0), o."total", 0)
+                      + COALESCE(o."postSaleCharge", 0)
                       - (CASE WHEN pay.eq = 0 AND COALESCE(o."paid", 0) > 0 THEN COALESCE(o."paid", 0) ELSE pay.eq END)
                       > 1000
             `;

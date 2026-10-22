@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-olimpo-black",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Olimpo",
+    "color": "Black",
+    "familia": "sol"
+  },
+  "caption": "Olimpo Black · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-olimpo-black/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-olimpo-black/02.jpg"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-pluton-c7",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Plutón",
+    "color": "C7",
+    "familia": "sol"
+  },
+  "caption": "Plutón C7 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-pluton-c7/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-pluton-c7/02.jpg"
+    }
+  ]
+}

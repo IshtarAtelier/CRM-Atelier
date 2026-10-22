@@ -1,3 +1,4 @@
+import { whereSalienteHumano } from '@/lib/whatsapp/remitentes';
 import { prisma } from '@/lib/db';
 import { PIPELINE_COLUMNS, type PipelineStageKey, type PipelineLead, type PipelineColumn, type PipelineStats } from '@/types/leads';
 import { classifyLead } from '@/lib/leads-pipeline';
@@ -100,7 +101,8 @@ export const EmbudoService = {
         // Para qué: dentro de la ventana de 24 h el equipo contesta con texto
         // libre, y eso no deja etiqueta. Sin este dato el tablero marcaba "Sin
         // contactar" a 194 de 339 leads a los que sí les habían escrito.
-        // 'Bot' y 'Sistema Atelier' no cuentan: la pregunta es si una PERSONA
+        // Bot, sistema y campañas no cuentan (`whereSalienteHumano`, fuente
+        // única desde el 10/10/2026): la pregunta es si una PERSONA
         // se ocupó.
         const chatIds = leads.map(l => l.whatsappChats[0]?.id).filter((x): x is string => !!x);
         const ultimoHumanoPorChat = new Map<string, Date>();
@@ -110,7 +112,7 @@ export const EmbudoService = {
                 where: {
                     chatId: { in: chatIds },
                     direction: 'OUTBOUND',
-                    senderName: { notIn: ['Bot', 'Sistema Atelier'] },
+                    ...whereSalienteHumano(),
                 },
                 _max: { createdAt: true },
             });

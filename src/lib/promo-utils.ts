@@ -1,4 +1,5 @@
 // Centralized promotion logic for CRM-Atelier Cotizador
+import { estiloDeTenidoDelProducto } from './constants/tenido';
 
 /**
  * Detects if a product is a multifocal/progresivo eligible for the 2x1 promotion.
@@ -112,9 +113,71 @@ export const isTeñidoAddon = (p: any): boolean => {
     // Se pide que el nombre EMPIECE con teñido: alcanza para las variantes y
     // deja afuera a los cristales que solo lo mencionan (un multifocal
     // fotocromático no es un add-on de teñido y se cobra).
+    //
+    // Optovisión no dice "teñido": sus productos son "Coloración plena",
+    // "Coloración degradé", "Coloración según muestra"… (Ishtar, 16/10/2026:
+    // "los teñidos de Opto tienen que ser los de Opto, y en el 2x1 también va
+    // uno sin cargo"). Sin esto, la coloración de Optovisión se cobraba entera
+    // en un 2x1 y ni siquiera contaba como teñido.
     const nombre = normalizeText(p.name || '');
-    return nombre === 'tenido' || nombre.startsWith('tenido ');
+    return nombre === 'tenido' || nombre.startsWith('tenido ') || nombre.startsWith('coloracion ');
 };
+
+/** Nombre de laboratorio comparable ("Grupo Óptico" ≡ "GRUPO OPTICO"). */
+const labKey = (lab: unknown): string => normalizeText(String(lab || '')).replace(/\s+/g, ' ').trim();
+
+/**
+ * El laboratorio de los CRISTALES del carrito/pedido, o null si no hay
+ * cristales o vienen de más de un laboratorio. Mira el producto vivo o el
+ * snapshot (pedidos guardados).
+ */
+export function laboratorioDeLosCristales(items: any[]): string | null {
+    if (!Array.isArray(items)) return null;
+    const labs = new Map<string, string>();
+    for (const it of items) {
+        const prod = it?.product || { name: it?.productNameSnapshot, category: it?.productCategorySnapshot, type: it?.productTypeSnapshot };
+        if (!isCrystal(prod)) continue;
+        const lab = it?.product?.laboratory ?? it?.laboratorySnapshot ?? it?.product?.laboratorySnapshot;
+        if (!lab) continue;
+        labs.set(labKey(lab), String(lab));
+    }
+    return labs.size === 1 ? [...labs.values()][0] : null;
+}
+
+/**
+ * Si `producto` es un teñido de OTRO laboratorio que los cristales del
+ * carrito, devuelve el laboratorio de los cristales (para decirle al vendedor
+ * cuál elegir). Null si es compatible, si no es teñido, o si todavía no hay
+ * cristales que lo fijen.
+ *
+ * Regla de Ishtar (16/10/2026): los teñidos de Grupo Óptico son para los
+ * cristales de Grupo Óptico y los de Optovisión para los de Optovisión. Cada
+ * laboratorio tiñe lo que fabrica; un teñido cruzado le llega a un
+ * laboratorio que no tiene esos cristales en la mano.
+ */
+export function tenidoDeOtroLaboratorio(producto: any, items: any[]): string | null {
+    if (!isTeñidoAddon(producto) || !producto?.laboratory) return null;
+    const labCristales = laboratorioDeLosCristales(items);
+    if (!labCristales) return null;
+    return labKey(labCristales) === labKey(producto.laboratory) ? null : labCristales;
+}
+
+/**
+ * Para validar un pedido entero (servidor): el primer teñido cuyo laboratorio
+ * no es el de los cristales, con el mensaje listo para mostrar. Null si está
+ * todo en orden.
+ */
+export function errorTenidoCruzado(items: any[]): string | null {
+    if (!Array.isArray(items)) return null;
+    for (const it of items) {
+        const prod = it?.product;
+        const labCristales = tenidoDeOtroLaboratorio(prod, items);
+        if (labCristales) {
+            return `El teñido "${prod.name}" es de ${prod.laboratory}, pero los cristales son de ${labCristales}. Elegí el teñido de ${labCristales}.`;
+        }
+    }
+    return null;
+}
 
 /**
  * ¿Esta LÍNEA de pedido/carrito es un teñido? Mira el producto vivo o los
@@ -272,7 +335,7 @@ export const armarParesDeCristal = (product: any, prevItems: any[] = []): any[] 
  * El aviso del teñido de la promo, para el cartel del 2x1 en los cotizadores.
  * Un solo texto para todas las pantallas: si la regla cambia, cambia acá.
  */
-export const AVISO_TENIDO_2X1 = 'Incluye UN teñido sin cargo, compacto o degradé — agregalo al pedido (el teñido según muestra NO entra: se cobra siempre)';
+export const AVISO_TENIDO_2X1 = 'Incluye UN teñido sin cargo para el 2º par, compacto/plena o degradé, del mismo laboratorio que los cristales — agregalo al pedido (según muestra, Aquarelle y doble color NO entran: se cobran siempre)';
 
 /**
  * Etiqueta de la bonificación para TODAS las pantallas (carrito, venta, PDF).
@@ -614,8 +677,31 @@ export function applyTeñidoPromoDiscount(items: any[], tintStylePrices?: Record
     // igualar un color a mano es trabajo de laboratorio que no entra en la
     // promo (Ishtar, 24/8/26). La bonificación va al primer teñido que no sea
     // según muestra.
-    const esSegunMuestra = (grupo: number[]) => items[grupo[0]]?.crystalColorType === 'MUESTRA';
-    const idxBonificable = grupos.findIndex(g => !esSegunMuestra(g));
+    //
+    // Qué estilo es lo dice el PRODUCTO (Teñido Degradé / Coloración plena…);
+    // el crystalColorType del ítem es el respaldo para pedidos viejos. Las
+    // coloraciones especiales de Optovisión (Aquarelle, doble color) no son
+    // ningún estilo y tampoco entran.
+    const estiloDe = (grupo: number[]): string | null => {
+        const it = items[grupo[0]];
+        return estiloDeTenidoDelProducto(it?.product || { name: it?.productNameSnapshot }) || it?.crystalColorType || null;
+    };
+    const esBonificable = (grupo: number[]) => {
+        const estilo = estiloDe(grupo);
+        return estilo === 'COMPACTO' || estilo === 'DEGRADE';
+    };
+    // El teñido sin cargo es el del SEGUNDO par (Ishtar, 16/10/2026: "van al
+    // segundo par un teñido sin cargo"). Si el vendedor asignó los teñidos a
+    // sus armazones (chip "¿de cuál par?"), es el que está sobre el armazón
+    // bonificado del 2x1; si no, el último bonificable cargado, que es el del
+    // 2º anteojo. Con un solo teñido, es ese.
+    const armazonBonificado = promoActiva ? pick2x1FrameDiscount(items).item : null;
+    const posBonificado = armazonBonificado?.framePosition ?? null;
+    const bonificables = grupos.map((g, i) => (esBonificable(g) ? i : -1)).filter(i => i >= 0);
+    const sobreElSegundoPar = posBonificado != null
+        ? bonificables.find(gi => items[grupos[gi][0]]?.framePosition === posBonificado)
+        : undefined;
+    const idxBonificable = sobreElSegundoPar ?? (bonificables.length > 0 ? bonificables[bonificables.length - 1] : -1);
 
     grupos.forEach((grupo, gi) => {
         // Con la promo 2x1 se bonifica UN SOLO teñido (el primero cargado, que

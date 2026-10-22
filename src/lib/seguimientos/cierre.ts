@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
 import { SYSTEM_ACTOR } from '@/lib/actor';
-import { PAUSA_POSPONER_DIAS } from '@/lib/embudo/respuesta';
+import { PAUSA_POSPONER_DIAS, decidirPosponer } from '@/lib/embudo/respuesta';
 import { ETIQUETA_POR_PLANTILLA } from '@/lib/embudo/playbook';
 
 /**
@@ -29,7 +29,6 @@ export const TAG_PERDIDO_EMBUDO = 'Perdido (embudo)';
 export const TAG_RETOME_10 = 'Retome 10%';
 export const PLANTILLA_RETOME = 'retomar_con_cupon';
 
-const D = 24 * 3_600_000;
 
 async function etiquetar(clientId: string, nombre: string): Promise<void> {
     const tag = await prisma.tag.upsert({ where: { name: nombre }, update: {}, create: { name: nombre, color: '#78716c' }, select: { id: true } });
@@ -80,10 +79,29 @@ export async function reservarDescuentoRetome(input: { clientId: string; palabra
  * El cliente pidió "más adelante": se pausa el seguimiento y queda anotado. Si
  * lo que contestó fue el retome, se le saca esa etiqueta: cuando vuelva de la
  * pausa se le ofrece el 10 % otra vez (hasta los 120 días del playbook).
+ *
+ * IDEMPOTENTE (19/10/2026): el motor relee la misma respuesta cada hora. La
+ * pausa se cuenta desde el mensaje (`respuestaAt`), y si ya está aplicada
+ * —o ya se anotó para ese mensaje— no se toca nada: ni la pausa, ni la ficha,
+ * ni el AuditLog. Devuelve `null` cuando no hizo nada.
  */
-export async function posponerSeguimiento(input: { clientId: string; chatId: string; palabrasDelCliente: string | null; now?: number }): Promise<Date> {
-    const hasta = new Date((input.now ?? Date.now()) + PAUSA_POSPONER_DIAS * D);
-    const chat = await prisma.whatsAppChat.findUnique({ where: { id: input.chatId }, select: { chatLabels: true } });
+export async function posponerSeguimiento(input: { clientId: string; chatId: string; palabrasDelCliente: string | null; respuestaAt: Date; now?: number }): Promise<Date | null> {
+    const now = input.now ?? Date.now();
+    const chat = await prisma.whatsAppChat.findUnique({ where: { id: input.chatId }, select: { chatLabels: true, followUpPausedUntil: true } });
+    const respuestaIso = input.respuestaAt.toISOString();
+    const yaRegistrada = (await prisma.auditLog.count({
+        where: {
+            entityType: 'CONTACT', entityId: input.clientId,
+            AND: [
+                { details: { path: ['origen'], equals: 'embudo' } },
+                { details: { path: ['accion'], equals: 'posponer' } },
+                { details: { path: ['respuestaAt'], equals: respuestaIso } },
+            ],
+        },
+    })) > 0;
+    const decision = decidirPosponer({ respuestaAt: input.respuestaAt, followUpPausedUntil: chat?.followUpPausedUntil ?? null, now, yaRegistrada });
+    if (!decision.aplicar) return null;
+    const { hasta } = decision;
     const etiquetaRetome = ETIQUETA_POR_PLANTILLA[PLANTILLA_RETOME]!;
     await prisma.whatsAppChat.update({
         where: { id: input.chatId },
@@ -99,7 +117,7 @@ export async function posponerSeguimiento(input: { clientId: string; chatId: str
     });
     logAudit({
         userId: SYSTEM_ACTOR.id, userName: SYSTEM_ACTOR.name, action: 'UPDATE', entityType: 'CONTACT', entityId: input.clientId,
-        details: { origen: 'embudo', accion: 'posponer', hasta: hasta.toISOString(), palabrasDelCliente: input.palabrasDelCliente?.slice(0, 160) ?? null },
+        details: { origen: 'embudo', accion: 'posponer', hasta: hasta.toISOString(), respuestaAt: respuestaIso, palabrasDelCliente: input.palabrasDelCliente?.slice(0, 160) ?? null },
     }).catch(console.error);
     return hasta;
 }

@@ -68,7 +68,12 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
           localStorage.setItem('user', JSON.stringify(data));
         } else {
           setCurrentUser(null);
-          localStorage.removeItem('user');
+          // Solo se limpia un usuario OPTICA viejo. El del equipo (ADMIN/STAFF)
+          // lo usa el CRM para decidir qué muestra: borrarlo dejaba a la dueña
+          // sin las tarjetas de facturación al volver de la tienda.
+          try {
+            if (stored && JSON.parse(stored)?.role === 'OPTICA') localStorage.removeItem('user');
+          } catch { localStorage.removeItem('user'); }
         }
       })
       .catch(() => {

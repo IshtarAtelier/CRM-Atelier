@@ -173,6 +173,25 @@ function verificarResenas(datos, hoy) {
     return { errores, avisos };
 }
 
+/**
+ * El carril de modelos del feed (social/feed-modelos.json): cada id tiene que
+ * tener su JSON y sus dos JPEG, o el cron de las 17:00 falla ese día.
+ */
+function carrilDeModelosRoto() {
+    const ruta = path.join(RAIZ, 'social', 'feed-modelos.json');
+    if (!existsSync(ruta)) return [{ id: 'social/feed-modelos.json', que: 'no existe — correr node scripts/social/generar-feed-modelos.mjs' }];
+    const { carriles = {} } = JSON.parse(readFileSync(ruta, 'utf-8'));
+    const rotos = [];
+    for (const [carril, lista] of Object.entries(carriles)) {
+        if (!lista.length) rotos.push({ id: carril, que: 'carril vacío' });
+        for (const { id } of lista) {
+            if (!existsSync(path.join(RAIZ, 'social', 'contenido', `${id}.json`))) rotos.push({ id, que: 'no existe la pieza en social/contenido' });
+            else if (!existsSync(path.join(RAIZ, 'public', 'social', id, '02.jpg'))) rotos.push({ id, que: 'faltan los JPEG (frente y perfil)' });
+        }
+    }
+    return rotos;
+}
+
 const salud = await evaluarSaludProgramacion();
 const { programacion } = JSON.parse(
     await readFile(path.join(RAIZ, 'social', 'feed-programacion.json'), 'utf-8'),
@@ -239,7 +258,16 @@ if (feriadosSinPlaca.length) {
     console.log(gris('      npx tsx scripts/social/generar-stories-feriados.ts    ← las arma y renderiza'));
 }
 
-const roto = faltantes.length > 0 || feriadosSinPlaca.length > 0 || salud.enRiesgo.length > 0 || salud.regeneracionCaida
+const modelosRotos = carrilDeModelosRoto();
+if (modelosRotos.length) {
+    console.log(rojo(`\n  ✗ ${modelosRotos.length} problema(s) en el carril de modelos del feed (17:00):`));
+    for (const m of modelosRotos) console.log(`      ${m.id} — ${m.que}`);
+} else {
+    const { carriles } = JSON.parse(readFileSync(path.join(RAIZ, 'social', 'feed-modelos.json'), 'utf-8'));
+    console.log(`  Modelos: ${Object.entries(carriles).map(([c, l]) => `${l.length} de ${c}`).join(', ')} en el feed, alternados día por medio`);
+}
+
+const roto = modelosRotos.length > 0 || faltantes.length > 0 || feriadosSinPlaca.length > 0 || salud.enRiesgo.length > 0 || salud.regeneracionCaida
     || resenas.errores.length > 0;
 console.log(roto ? rojo('\n  Hay huecos que corregir.\n') : verde('\n  ✓ Todo lo programado puede salir.\n'));
 process.exit(roto ? 1 : 0);

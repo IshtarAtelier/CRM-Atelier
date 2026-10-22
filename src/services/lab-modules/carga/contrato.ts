@@ -114,6 +114,14 @@ export interface CargaAsistida {
     lab: string;
     nombre: string;
     robot: Actor;
+    /**
+     * Dónde se carga un pedido A MANO en este laboratorio (la pantalla de alta
+     * del portal). La ficha SIEMPRE muestra un botón para abrirlo, en cualquier
+     * estado del bloque: si el robot no puede o se traba, la persona termina
+     * el envío sola (Ishtar, 19/10/2026: "asegurate que siempre te deje con
+     * un botón simple acceder al portal para terminar de enviar manualmente").
+     */
+    portal: { url: string; etiqueta: string };
     /** Qué pares de la venta se cargan en este lab, qué le falta a cada uno y qué hay que elegir al preparar. */
     analizar(orderId: string): Promise<{ pares: ParParaCargar[] } | null>;
     /** Cómo se muestra un borrador de este lab en la ficha. Puro. */

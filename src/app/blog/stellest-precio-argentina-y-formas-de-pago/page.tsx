@@ -72,10 +72,10 @@ export default function Page() {
 
       <H2>Formas de pago</H2>
       <P>
-        Podés pagar en efectivo, por transferencia, con tarjeta de débito o de crédito. Con
+        Podés pagar por transferencia, con tarjeta de débito o de crédito. Con
         tarjeta de crédito tenés <strong>3 y 6 cuotas sin interés, y hasta 12 cuotas fijas</strong>.
         Pagando por transferencia hay un descuento sobre el precio de lista, que te indicamos en el
-        presupuesto (en el local, también en efectivo). Cuando lo pidas por WhatsApp, decinos cómo pensás pagarlo y
+        presupuesto. Cuando lo pidas por WhatsApp, decinos cómo pensás pagarlo y
         te mandamos el total de cada opción.
       </P>
 

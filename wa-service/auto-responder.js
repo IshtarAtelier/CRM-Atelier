@@ -38,10 +38,11 @@
  * pruebas puede correrla entera con mocks, sin base ni red.
  */
 
+const { SOLO_ID } = require('./shared/columnas-chat');
 const { isBusinessHours: isBusinessHoursReal } = require('./shared/business-hours');
-const { TIPOS_CON_CONSULTA } = require('./shared/tipos-entrantes');
-const { REMITENTES_NO_HUMANOS, SENDER_NAME_AUTORESPONDEDOR } = require('./shared/remitentes');
-const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
+const { whereSalienteHumano, SENDER_NAME_AUTORESPONDEDOR } = require('./shared/remitentes');
+const { clasificarEntrante, contextoDeEntrante, disparaTurno } = require('./shared/clasificar-entrante');
+const { ORDEN_DE_LLEGADA_DESC } = require('./shared/orden-de-llegada');
 const { resolveWaMessageId } = require('./shared/message-id');
 const {
     ADDRESS,
@@ -124,16 +125,24 @@ function buildAutoReplyText() {
 }
 
 /** ¿El entrante es una consulta de verdad, o ruido que no hay que contestar? */
-function esConsultaDeCliente(m) {
-    if (!m) return false;
-    if (m.reaction) return false;
-    const tipo = String(m.type || 'text').toLowerCase();
-    if (!TIPOS_CON_CONSULTA.has(tipo)) return false;
-    // Sin texto se responde igual si es un medio (una foto de la receta es una
-    // consulta); un "text" vacío, en cambio, no existe: es ruido.
-    if (tipo === 'text' && !String(m.text || '').trim()) return false;
-    if (isMetaAutoReplyText(m.text)) return false;
-    return true;
+// La definición es la de shared/clasificar-entrante.js, la misma del bot:
+// una reacción, un "gracias" de cierre, un eco nuestro (fromMe) o el
+// contestador del negocio del cliente no reciben el aviso de fuera de horario.
+// (Un medio sin texto sí: una foto de la receta es una consulta.)
+// Con el MISMO contexto que el bot (contextoDeEntrante: nuestro último
+// saliente): sin él, un "gracias" o un "sí" a una pregunta nuestra se
+// clasificaba distinto acá que en bot-cloud.js.
+function esConsultaDeCliente(m, contexto = {}) {
+    return disparaTurno(clasificarEntrante(m, contexto));
+}
+
+async function contextoDelChat(prisma, chatId) {
+    const nuestroAnterior = await prisma.whatsAppMessage.findFirst({
+        where: { chatId, direction: 'OUTBOUND' },
+        orderBy: ORDEN_DE_LLEGADA_DESC,
+        select: { content: true, templateName: true, createdAt: true, receivedAt: true },
+    }).catch(() => null);
+    return contextoDeEntrante({ entrante: null, nuestroAnterior });
 }
 
 /**
@@ -171,7 +180,7 @@ async function yaAvisado(prisma, chatId, ahora) {
             chatId,
             direction: 'OUTBOUND',
             createdAt: { gt: ultimoAviso.createdAt },
-            senderName: { notIn: [...REMITENTES_NO_HUMANOS] },
+            ...whereSalienteHumano(),
         },
         select: { id: true },
     });
@@ -204,7 +213,7 @@ function createAutoResponder(deps = {}) {
         if (!chat || !chat.id) return { responder: false, motivo: 'sin chat' };
         if (!(await leerBandera(prisma, log))) return { responder: false, motivo: 'bandera apagada o ilegible' };
         if (isBusinessHours(ahora)) return { responder: false, motivo: 'el local está abierto' };
-        if (!esConsultaDeCliente(m)) return { responder: false, motivo: 'no es una consulta (ruido o automático de Meta)' };
+        if (!esConsultaDeCliente(m, await contextoDelChat(prisma, chat.id))) return { responder: false, motivo: 'no es una consulta (ruido o automático de Meta)' };
         if (await yaAvisado(prisma, chat.id, ahora)) return { responder: false, motivo: 'ya avisado en este período cerrado' };
         return { responder: true, motivo: 'fuera de horario, primer aviso' };
     }
@@ -227,6 +236,8 @@ function createAutoResponder(deps = {}) {
             const texto = buildAutoReplyText();
             const destino = chat.waId;
             const sent = await sendMessage(destino, texto, null, {
+                // Texto fijo armado por el código (buildAutoReplyText).
+                origen: 'sistema',
                 chat: { id: chat.id, lastInboundAt: chat.lastInboundAt || ahora },
             });
 
@@ -246,7 +257,7 @@ function createAutoResponder(deps = {}) {
                         status: 'SENT',
                     },
                 });
-                await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { lastMessageAt: ahora } }).catch(() => {});
+                await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { lastMessageAt: ahora }, select: SOLO_ID }).catch(() => {});
             } catch (e) {
                 // El mensaje YA salió: que no se vea en el buzón es feo, pero no
                 // se reintenta nada (sería un segundo mensaje al cliente).

@@ -23,7 +23,7 @@ const normalizar = (t: string) =>
     (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /** Las novedades activas y a quién le aparecen. */
-const NOVEDADES: { id: string; audiencia: (nombre: string, rol: string | null) => boolean }[] = [
+const NOVEDADES: { id: string; desde?: string; audiencia: (nombre: string, rol: string | null) => boolean }[] = [
     {
         // Solicitud de factura del vendedor (15/10/2026): a todo el equipo de
         // vendedores. Va primero para que se vea antes que cualquier otra.
@@ -40,7 +40,25 @@ const NOVEDADES: { id: string; audiencia: (nombre: string, rol: string | null) =
             return n.includes('milena') || n.includes('matias') || n.includes('ishtar');
         },
     },
+    {
+        // Desafío del día de reseñas contra Lens Cerro (Ishtar, 16/10/2026):
+        // a Matías, desde el 19/10. Meta: 10 arriba (741 vs 746 → 15 nuevas).
+        id: 'desafio-resenas-lens-cerro-2026-10',
+        desde: '2026-10-19',
+        audiencia: (nombre: string) => normalizar(nombre).includes('matias'),
+    },
+    {
+        // 2ª vuelta del desafío (Ishtar, 21/10/2026): el 19 y el 20 no entró
+        // ninguna reseña (741 vs 746). Id nuevo para que vuelva a aparecer.
+        id: 'desafio-resenas-lens-cerro-2026-10-b',
+        desde: '2026-10-21',
+        audiencia: (nombre: string) => normalizar(nombre).includes('matias'),
+    },
 ];
+
+/** Hoy en Córdoba, AAAA-MM-DD — para comparar con `desde`. */
+const hoyCordoba = () =>
+    new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Cordoba' });
 
 async function vistasPorNovedad(): Promise<Record<string, string[]>> {
     const fila = await prisma.systemSetting.findUnique({ where: { key: CLAVE_VISTAS } });
@@ -59,7 +77,9 @@ export async function GET(request: NextRequest) {
         if (!actor.id) return NextResponse.json({ pendiente: null });
 
         const vistas = await vistasPorNovedad();
+        const hoy = hoyCordoba();
         const pendiente = NOVEDADES.find(n =>
+            (!n.desde || n.desde <= hoy) &&
             n.audiencia(actor.name || '', actor.role) && !(vistas[n.id] || []).includes(actor.id!)
         );
         return NextResponse.json({ pendiente: pendiente?.id || null });
@@ -76,7 +96,7 @@ export async function POST(request: NextRequest) {
         const actor = getActor(request);
         if (!actor.id) return NextResponse.json({ error: 'Sin usuario' }, { status: 401 });
 
-        const { id } = await request.json();
+        const { id, respuesta } = await request.json();
         if (!NOVEDADES.some(n => n.id === id)) {
             return NextResponse.json({ error: 'Novedad desconocida' }, { status: 400 });
         }
@@ -100,7 +120,7 @@ export async function POST(request: NextRequest) {
             action: 'UPDATE',
             entityType: 'SETTING',
             entityId: id,
-            details: { evento: 'novedad_guiada_vista', novedad: id },
+            details: { evento: 'novedad_guiada_vista', novedad: id, ...(typeof respuesta === 'string' ? { respuesta: respuesta.slice(0, 80) } : {}) },
         }).catch(console.error);
 
         return NextResponse.json({ ok: true });

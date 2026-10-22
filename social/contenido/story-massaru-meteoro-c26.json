@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-meteoro-c26",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Meteoro",
+    "color": "C26",
+    "familia": "sol"
+  },
+  "caption": "Meteoro C26 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-meteoro-c26/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-meteoro-c26/02.jpg"
+    }
+  ]
+}

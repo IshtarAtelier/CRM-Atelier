@@ -1,3 +1,4 @@
+const { CHAT_BASE } = require('../shared/columnas-chat');
 const { prisma } = require('../db');
 const { isValidRecipient, isLidFormat } = require('../utils');
 
@@ -431,7 +432,7 @@ class AntiBanQueue {
         try {
             chatDb = await prisma.whatsAppChat.findUnique({
                 where: { waId: targetWaId },
-                include: {
+                select: { ...CHAT_BASE,
                     messages: {
                         orderBy: { createdAt: 'desc' }
                     }

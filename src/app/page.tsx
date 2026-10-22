@@ -91,7 +91,7 @@ export default async function Home() {
     "name": BUSINESS_INFO.name,
     "url": "https://atelieroptica.com.ar",
     "logo": "https://atelieroptica.com.ar/assets/logo-pwa-512.png",
-    "sameAs": [BUSINESS_INFO.instagramUrl, BUSINESS_INFO.youtubeUrl],
+    "sameAs": [BUSINESS_INFO.instagramUrl, BUSINESS_INFO.facebookUrl, BUSINESS_INFO.youtubeUrl],
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": BUSINESS_INFO.phoneE164,

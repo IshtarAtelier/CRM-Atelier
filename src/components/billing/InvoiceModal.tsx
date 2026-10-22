@@ -5,6 +5,8 @@ import { X, FileText, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, Split, S
 import { PricingService } from '@/services/PricingService';
 import { Modal } from '@/components/ui/Modal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
+import { enviarFacturaPorWhatsApp } from '@/lib/billing/enviar-factura-whatsapp';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { MONOTRIBUTO_UNIT_PRICE_LIMIT } from '@/lib/constants/billing';
 import { CONDICIONES_IVA_RECEPTOR } from '@/lib/constants/condicion-iva-receptor';
 import { METHOD_LABELS } from '@/lib/constants';
@@ -100,6 +102,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, ini
     const [emittingStep, setEmittingStep] = useState<string | null>(null);
     const [error, setError] = useState('');
     const [downloadingPDF, setDownloadingPDF] = useState(false);
+    const [enviandoWsp, setEnviandoWsp] = useState<'no' | 'enviando' | 'enviada'>('no');
     const [success, setSuccess] = useState<{
         id: string;
         cae: string;
@@ -278,6 +281,18 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, ini
         }
     };
 
+    const handleEnviarWhatsApp = async () => {
+        if (!success?.id) return;
+        setEnviandoWsp('enviando');
+        try {
+            await enviarFacturaPorWhatsApp(order.client, success.id);
+            setEnviandoWsp('enviada');
+        } catch (error: any) {
+            setEnviandoWsp('no');
+            alert('❌ No se pudo mandar la factura por WhatsApp: ' + error.message);
+        }
+    };
+
     return (
         <Modal isOpen={true} onClose={onClose} maxWidth="2xl">
             {/* Header */}
@@ -308,22 +323,31 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, ini
                             <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">CAE</span><span className="text-base font-mono font-bold text-blue-600">{success.cae}</span></div>
                             <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Monto</span><span className="text-base font-black text-emerald-600">${targetAmount.toLocaleString('es-AR')}</span></div>
                         </div>
-                        <div className="flex gap-4 mt-10">
-                            <button 
-                                onClick={handleDownloadPDF} 
+                        <div className="flex flex-col sm:flex-row gap-3 mt-10">
+                            <button
+                                onClick={handleDownloadPDF}
                                 disabled={downloadingPDF}
-                                className="flex-1 py-4 bg-white border-2 border-stone-200 text-stone-700 rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                                className="flex-1 py-4 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
                             >
                                 {downloadingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
                                 DESCARGAR PDF
                             </button>
-                            <button 
-                                onClick={onClose} 
-                                className="flex-1 py-4 bg-stone-900 text-white rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-stone-900/10"
+                            <button
+                                onClick={handleEnviarWhatsApp}
+                                disabled={enviandoWsp !== 'no'}
+                                title={order.client.phone ? `Mandar el PDF a ${order.client.phone}` : 'El cliente no tiene teléfono cargado'}
+                                className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 disabled:hover:scale-100"
                             >
-                                FINALIZAR Y CERRAR
+                                {enviandoWsp === 'enviando' ? <Loader2 className="w-5 h-5 animate-spin" /> : <WhatsAppIcon className="w-5 h-5" />}
+                                {enviandoWsp === 'enviada' ? 'ENVIADA AL CLIENTE' : 'ENVIAR POR WHATSAPP'}
                             </button>
                         </div>
+                        <button
+                            onClick={onClose}
+                            className="w-full mt-3 py-4 bg-stone-900 text-white rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-stone-900/10"
+                        >
+                            FINALIZAR Y CERRAR
+                        </button>
                     </div>
                 ) : (
                     <div className="space-y-8">

@@ -79,6 +79,12 @@ model Client {
   createdBy              String?           @default("Sistema")
   isDeleted              Boolean           @default(false)
   opportunityDismissedAt DateTime?
+  // Ya dejó la reseña en Google (Ishtar, 16/10/2026). Lo marca el vendedor con
+  // "Ya comentó" o el cruce con Places (googleReviewSource = MANUAL | GOOGLE).
+  // Con esto puesto, el robot del 2º pedido de reseña no lo vuelve a sugerir.
+  googleReviewAt         DateTime?
+  googleReviewSource     String?
+  googleReviewBy         String?
   tasks                  ClientTask[]
   interactions           Interaction[]
   orders                 Order[]
@@ -264,6 +270,10 @@ model ClientTask {
   completedBy String?
   completedAt DateTime?
   type        String    @default("TASK")
+  // 2º pedido de reseña: apunta al 1º (ClientTask REVIEW_REQUEST cerrado).
+  // UNIQUE: la base garantiza un solo 2º pedido por cada 1º, aunque dos
+  // instancias corran el robot a la vez.
+  reminderOfTaskId String?   @unique
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
@@ -408,6 +418,13 @@ model Order {
   // al procesarse el pedido. Distinta de labNotes (esa va al laboratorio).
   clientNote           String?
   labOrderNumber       String?
+  // Números de operación ANTERIORES de este pedido, separados por espacio. Un
+  // pedido cambia de número cuando el laboratorio lo anula y lo renumera, o
+  // cuando se corrige una carga; el número viejo sigue en facturas, tickets y
+  // chats, así que tiene que seguir encontrándose en el buscador (Ishtar,
+  // 20/10/2026). Lo mantiene order.service al cambiar `labOrderNumber`; nunca
+  // se escribe a mano.
+  labOrderNumberHistory String?
   // ── Confirmación del cliente (8/10/2026) ───────────────────────────────────
   // Qué contestó el cliente al repaso de su pedido: 'OK' (dijo que sí),
   // 'TACITA' (24 h sin respuesta: se da por confirmado, bajo su
@@ -453,6 +470,10 @@ model Order {
   appliedPromoName     String?
   prescriptionSnapshot String?
   specialDiscount      Float?             @default(0)
+  // Lo que el post-venta le cobra al CLIENTE (suma de PostSaleCase.clientCharge
+  // de esta venta). Se SUMA al saldo en PricingService.calculateOrderFinancials;
+  // NUNCA toca total ni subtotalWithMarkup. Lo mantiene PostSaleChargeService.
+  postSaleCharge       Float              @default(0)
   smartLabSector       String?
   smartLabProgress     Int?
   smartLabLastSync     DateTime?
@@ -773,6 +794,15 @@ model WhatsAppChat {
   // ventana de servicio de 24 h: dentro se puede escribir texto libre; fuera,
   // solo plantillas aprobadas. Lo escribe el webhook; lo lee /api/send.
   lastInboundAt       DateTime?
+  // Por qué está apagado el bot en este chat (15/10/2026). Valores en
+  // wa-service/shared/motivo-apagado.js. NULL = desconocido: el barrido de
+  // vueltas solo reactiva TOMADO_POR_PERSONA, así que NULL nunca vuelve solo.
+  botOffReason        String?
+  botOffAt            DateTime?
+  // Lease del turno del bot (15/10/2026): con dos instancias del wa-service,
+  // solo la que lo toma corre el turno. Vence solo si el proceso muere.
+  botTurnoHasta       DateTime?
+  botTurnoPor         String?
   client              Client?           @relation(fields: [clientId], references: [id])
   messages            WhatsAppMessage[]
 
@@ -791,7 +821,15 @@ model WhatsAppMessage {
   mediaUrl    String?
   waMessageId String?      @unique
   status      String       @default("SENT")
+  // Para un ENTRANTE (y un eco del celular) createdAt es la hora del teléfono
+  // del remitente (timestamp de Meta); para lo que mandamos, la nuestra. Por
+  // eso no sirve para ORDENAR "qué llegó antes": una foto que tardó en subirse
+  // quedaba "antes" de nuestra burbuja y el bot no la contestaba (13 casos en
+  // 30 días al 15/10/2026). receivedAt = cuándo lo guardó el servidor, el mismo
+  // reloj para todos. Null en filas anteriores a la migración: se usa
+  // createdAt (wa-service/shared/orden-de-llegada.js).
   createdAt   DateTime     @default(now())
+  receivedAt  DateTime?    @default(now())
   senderName  String?
   // API oficial: nombre de la plantilla si el saliente fue una plantilla
   // (null = texto libre dentro de la ventana de 24 h, o mensaje legacy).
@@ -1342,6 +1380,9 @@ model PostSaleCase {
   status         String  @default("SENT")
   cost           Float   @default(0.0)
   newOrderNumber String?
+  // Números de operación anteriores del caso (mismo criterio que
+  // Order.labOrderNumberHistory): el viejo sigue siendo buscable.
+  newOrderNumberHistory String?
   notes          String?
   orderOption    String?
   responsible    String?
@@ -1372,6 +1413,12 @@ model PostSaleCase {
   // Movimiento de caja generado por este caso. Su presencia es el candado que
   // impide imputar dos veces el mismo costo.
   cashEntryId     String?   @unique
+  // El costo lo paga el CLIENTE en vez de salir de una caja. Se carga acá, en el
+  // caso, y SUMA al saldo de la venta (Order.postSaleCharge); los pagos son los
+  // pagos normales de la venta. Es la alternativa a cashEntryId.
+  clientCharge    Float?
+  clientChargedAt DateTime?
+  clientChargedBy String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

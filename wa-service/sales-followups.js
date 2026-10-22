@@ -3,6 +3,7 @@
  * Lee las ClientTasks programadas y despacha el mensaje de WhatsApp.
  */
 
+const { SOLO_ID } = require('./shared/columnas-chat');
 const { prisma } = require('./db');
 const { isBusinessHours } = require('./shared/business-hours');
 const { checkEligibility } = require('./followups/eligibility');
@@ -181,7 +182,7 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
                 // esta tarea: "hablamos a fin de mes" también frena inactividad.
                 await prisma.whatsAppChat.update({
                     where: { id: chat.id },
-                    data: { followUpPausedUntil: new Date(now.getTime() + days * 24 * 3600 * 1000) }
+                    data: { followUpPausedUntil: new Date(now.getTime() + days * 24 * 3600 * 1000) }, select: SOLO_ID
                 }).catch(() => {});
                 continue;
             }

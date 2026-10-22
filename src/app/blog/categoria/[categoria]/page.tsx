@@ -25,7 +25,7 @@ export async function generateMetadata(
     const grupo = await postsDeCategoria(categoria);
     if (!grupo) return { title: 'Categoría no encontrada' };
 
-    const titulo = `${grupo.nombre} — Blog de Atelier Óptica`;
+    const titulo = `${grupo.nombre} — Blog de óptica`;
     const descripcion = `${grupo.posts.length} ${grupo.posts.length === 1 ? 'nota' : 'notas'} sobre ${grupo.nombre.toLowerCase()}: guías y consejos de nuestros ópticos en Córdoba.`;
 
     return {

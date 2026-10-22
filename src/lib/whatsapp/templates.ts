@@ -365,6 +365,52 @@ export const WHATSAPP_TEMPLATES = {
     },
     // Marketing, no utilidad: menciona un descuento. Meta la cobra más caro y
     // el cliente puede bloquearla — es el texto del tercer toque, tal cual.
+    // ── LOS TRES MENSAJES DEL EMBUDO, versión corta (Ishtar, 16/10/2026) ──
+    // "Los mensajes son demasiado largos, engorrosos y se nota que son de
+    // robot. Más breves, más humanos, que respeten lo mismo que les sugerimos
+    // a los vendedores": quién escribe, UNA pregunta, nada que ya sepa
+    // (dirección, horarios, links, reseñas) y una salida digna. Datos del
+    // 8/10: el 1º toque vendió 6 veces en un mes; el de día 4 y el de día 15
+    // (los largos) 0 en 386 envíos. Hasta que Meta apruebe estas tres, el
+    // motor manda las viejas (ejecutor.ts, PLANTILLA_LEGADA). SIN botones
+    // (Ishtar, 16/10: "hacen muy robótico el mensaje"); el "ya lo resolví"
+    // escrito a mano lo lee lib/embudo/respuesta.ts igual.
+    seguimiento_presupuesto_v3: {
+        name: 'seguimiento_presupuesto_v3',
+        inventario: 'E2 (primer seguimiento) · texto de Ishtar 16/10/2026',
+        category: 'UTILITY',
+        body: 'Hola {{1}}! Soy {{2}}, de Atelier. Qué te pareció el presu, es lo que estabas buscando o querés que veamos una opción más económica? Contame, te quedaría cómodo venir al local esta semana?',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'vendedor', example: 'Mati' }],
+    },
+    seguimiento_segundo_v2: {
+        name: 'seguimiento_segundo_v2',
+        inventario: 'E3 (segundo seguimiento, día 7) · reemplaza invitacion_local_v4',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, seguís pensándolo? Si hay algo que te frena, decímelo y lo vemos.',
+        params: [{ label: 'nombre', example: 'Julio' }],
+    },
+    // v3 (Ishtar, 19/10/2026, texto suyo tal cual): le da al cliente tres
+    // salidas concretas (dudas, fotos, venir) en vez de "¿seguís pensándolo?".
+    // La v2 queda como respaldo hasta que Meta apruebe ésta.
+    seguimiento_segundo_v3: {
+        name: 'seguimiento_segundo_v3',
+        inventario: 'E3 (segundo seguimiento, día 7) · reemplaza seguimiento_segundo_v2',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, ¿cómo estás?\nContame qué dudas tenés respecto a lo que vimos, ¿querés que te mande fotitos de modelos disponibles?\n¿O te gustaría venir al local?',
+        params: [{ label: 'nombre', example: 'Julio' }],
+    },
+    ultimo_seguimiento_v5: {
+        name: 'ultimo_seguimiento_v5',
+        inventario: 'E4 (cierre, día 15) · reemplaza ultimo_seguimiento y el retome del día 30',
+        category: 'MARKETING',
+        body: 'Hola {{1}}, te dejo un {{2}} con el código {{3}} hasta el {{4}}, por si te sirve. Si ya lo resolviste, no hay drama, avisame y listo. Y si querés ver lo que va entrando, acá está nuestro Instagram: https://www.instagram.com/atelieroptica_',
+        params: [
+            { label: 'nombre', example: 'Julio' },
+            { label: 'descuento', example: '10% OFF' },
+            { label: 'código', example: 'VOLVE10' },
+            { label: 'vence el', example: '31/10/2026' },
+        ],
+    },
     ultimo_seguimiento: {
         name: 'ultimo_seguimiento',
         inventario: 'E4 (tercer seguimiento)',
@@ -704,6 +750,35 @@ export const WHATSAPP_TEMPLATES = {
             { type: 'QUICK_REPLY', text: 'Ya no me interesa' },
         ],
         borrador: true,
+    },
+    // ── Solicitud de factura (aviso interno a la administración) ──────────
+    // Pedido de Ishtar del 16/10/2026: que el aviso EMPIECE con "Solicitud de
+    // factura" y traiga la FOTO del comprobante de pago. Con la ventana de 24 h
+    // cerrada el aviso sale por plantilla, y `nota_interna` ni arranca así ni
+    // admite imagen; ésta lleva el comprobante como encabezado. Con la ventana
+    // abierta el aviso va en texto libre y las fotos en mensajes aparte
+    // (invoice-request.service.ts). La última variable no puede cerrar el
+    // cuerpo, por eso termina en "— Atelier Óptica".
+    solicitud_factura: {
+        name: 'solicitud_factura',
+        inventario: 'B4 (solicitud de factura del vendedor a la administración)',
+        category: 'UTILITY',
+        header: 'IMAGE',
+        imagenMuestra: 'public/social/ad-2x1-armazones-cuadrado/01.jpg',
+        // Meta rechazó la 1ª versión (subcode 2388293: demasiadas variables para
+        // el largo del texto). Por eso cliente y documento van en UNA variable y
+        // el cuerpo es más largo de lo que haría falta para leerlo.
+        body: 'Solicitud de factura — {{1}} pide emitir una factura de {{2}} a nombre de {{3}}, por la venta {{4}}. Observación del vendedor para quien factura: {{5}}. Pagos registrados en el sistema: {{6}}. El comprobante de pago va adjunto en la imagen de arriba. Para emitir la factura con los datos ya cargados, abrí este link del sistema: {{7}} — Atelier Óptica',
+        params: [
+            { label: 'vendedor', example: 'Milena Magallanes' },
+            { label: 'monto', example: '$ 964.410' },
+            { label: 'cliente y documento', example: 'Juan San Martin (DNI 31667082)' },
+            { label: 'nº de venta', example: '#3VL6' },
+            { label: 'observación', example: 'Obra social Swiss Medical, plan SMG30' },
+            { label: 'pagos', example: '16/10/2026 MP 12c Yani $ 964.410' },
+            { label: 'link para facturar', example: 'https://atelieroptica.com.ar/admin/facturacion?solicitud=abc123' },
+        ],
+        // Alta en Meta pedida por Ishtar el 19/10/2026 ("dale de alta").
     },
 } as const satisfies Record<string, TemplateDef>;
 

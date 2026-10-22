@@ -1,7 +1,15 @@
-import { sendEmail } from '@/lib/email';
+import { reportarFallaDeIA } from '@/services/ia-credito.service';
+import { esFallaDeSaldo } from '@/lib/ia/errores-ia';
 
 /**
- * Global handler for AI processes to gracefully catch and alert on Quota/429 errors.
+ * Qué hacer cuando una llamada a la IA (Gemini/Vertex) falla en el CRM.
+ *
+ * Desde el 16/10/2026 la clasificación y el aviso son los MISMOS que usa el
+ * bot: `src/lib/ia/errores-ia.ts` (espejo de `wa-service/shared/errores-ia.js`)
+ * y `ia-credito.service.ts`, que avisa por WhatsApp a la dueña UNA vez por
+ * episodio (candado en la base). Antes esto mandaba un mail por proceso y no
+ * reconocía el 402 del prepago agotado de AI Studio.
+ *
  * Usage:
  * try {
  *    // AI Code
@@ -9,36 +17,23 @@ import { sendEmail } from '@/lib/email';
  *    await handleAIError(error, 'OCR de Recetas');
  * }
  */
-export async function handleAIError(error: any, context: string) {
+export async function handleAIError(error: any, context: string): Promise<never> {
     console.error(`[AI Error - ${context}]:`, error);
-
-    const errorString = error?.message || error?.toString() || '';
-    
-    // Detect 429, RESOURCE_EXHAUSTED or Quota errors
-    if (
-        error?.status === 429 || 
-        errorString.includes('429') || 
-        errorString.includes('RESOURCE_EXHAUSTED') || 
-        errorString.includes('quota')
-    ) {
-        // Send email alert
-        const emailMessage = `El sistema ha intentado ejecutar un proceso de IA (${context}) pero la solicitud fue rechazada por falta de créditos (Error 429: RESOURCE_EXHAUSTED).\n\nPor favor, recargá saldo en tu cuenta de Google Cloud / AI Studio para que los procesos automatizados vuelvan a funcionar.\n\nLink: https://aistudio.google.com/app/billing`;
-        
-        try {
-            await sendEmail({
-                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                subject: `🚨 ALERTA: Crédito Agotado en Google AI Studio (${context})`,
-                text: emailMessage
-            });
-        } catch (emailErr) {
-            console.error('Error enviando alerta por correo:', emailErr);
-        }
-
-        // (18/8/2026) El aviso por WhatsApp al admin se apagó: alcanza el email.
-
-        throw new Error(`Se agotaron los créditos de la IA al ejecutar ${context}. Se ha enviado una alerta al administrador.`);
+    const clase = await reportarFallaDeIA(error, context);
+    if (clase === 'sin_credito') {
+        throw new Error(`La IA se quedó sin crédito al ejecutar ${context}. Ya se le avisó a la administración para cargar saldo.`);
     }
-
-    // If it's not a quota error, rethrow it so the application handles it normally
+    if (clase === 'cuota') {
+        throw new Error(`La IA está saturada (cuota agotada) al ejecutar ${context}. Probá de nuevo en unos minutos.`);
+    }
     throw error;
+}
+
+/** Para los `catch` que ya tienen su salida: avisa si es de saldo y dice si lo era. Nunca lanza. */
+export async function avisarSiSinCredito(error: unknown, context: string): Promise<boolean> {
+    try {
+        return esFallaDeSaldo(await reportarFallaDeIA(error, context));
+    } catch {
+        return false;
+    }
 }

@@ -151,7 +151,7 @@ export const POST_SALE_PIPELINE = [
         key: 'SENT',
         label: 'Reportado',
         hint: 'El caso se abrió. Todavía no hay nº de operación.',
-        borde: 'border-amber-400 dark:border-amber-700',
+        borde: 'border-t-4 border-t-amber-500 dark:border-t-amber-500',
         fondo: 'bg-amber-500/10',
         texto: 'text-amber-800 dark:text-amber-400',
     },
@@ -159,15 +159,15 @@ export const POST_SALE_PIPELINE = [
         key: 'IN_PROGRESS',
         label: 'En laboratorio',
         hint: 'Tiene nº de operación: el laboratorio lo tomó. Entra solo al cargar el número.',
-        borde: 'border-blue-400 dark:border-blue-700',
-        fondo: 'bg-blue-500/10',
-        texto: 'text-blue-800 dark:text-blue-400',
+        borde: 'border-t-4 border-t-sky-500 dark:border-t-sky-500',
+        fondo: 'bg-sky-500/10',
+        texto: 'text-sky-800 dark:text-sky-300',
     },
     {
         key: 'READY',
         label: 'Listo para retirar',
         hint: 'El laboratorio terminó. Antes esto eran dos columnas ("Finalizado" y "Listo") que en la práctica se usaban igual.',
-        borde: 'border-emerald-400 dark:border-emerald-700',
+        borde: 'border-t-4 border-t-emerald-500 dark:border-t-emerald-500',
         fondo: 'bg-emerald-500/10',
         texto: 'text-emerald-800 dark:text-emerald-400',
     },
@@ -175,7 +175,7 @@ export const POST_SALE_PIPELINE = [
         key: 'DELIVERED',
         label: 'Entregado · a cobrar',
         hint: 'El cliente ya lo tiene y queda plata por descontar de una caja.',
-        borde: 'border-orange-400 dark:border-orange-700',
+        borde: 'border-t-4 border-t-orange-500 dark:border-t-orange-500',
         fondo: 'bg-orange-500/10',
         texto: 'text-orange-800 dark:text-orange-400',
     },
@@ -183,7 +183,7 @@ export const POST_SALE_PIPELINE = [
         key: 'CLOSED',
         label: 'Cerrado',
         hint: 'Se descontó de caja, o no había nada que cobrar. Entra solo.',
-        borde: 'border-stone-400 dark:border-stone-600',
+        borde: 'border-t-4 border-t-stone-400 dark:border-t-stone-500',
         fondo: 'bg-stone-500/10',
         texto: 'text-stone-700 dark:text-stone-300',
     },
@@ -196,6 +196,8 @@ export interface PostSaleColumnInput {
     status?: string | null;
     cost?: number | null;
     cashEntryId?: string | null;
+    /** Lo paga el cliente: el saldo vive en el caso (PostSaleChargeService). */
+    clientChargedAt?: string | Date | null;
 }
 
 /**
@@ -207,6 +209,8 @@ export interface PostSaleColumnInput {
  */
 export function postSaleColumn(c: PostSaleColumnInput): PostSaleColumnKey {
     if (c.cashEntryId) return 'CLOSED';
+    // Cargado al cliente: el caso no vuelve a "a cobrar" de caja; su plata es el saldo.
+    if (c.clientChargedAt) return 'CLOSED';
     const status = c.status || 'SENT';
     if (status === 'DELIVERED') return (c.cost ?? 0) > 0 ? 'DELIVERED' : 'CLOSED';
     if (status === 'READY' || status === 'FINISHED') return 'READY';

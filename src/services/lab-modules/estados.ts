@@ -5,6 +5,7 @@ import { codigoCortoDeVenta, esCristal, esDeLab, labKeyDe } from '../../lib/labo
 import { parseLabNumbers, findLabNumberConflicts, duplicateMessage } from '../../lib/lab-order-numbers';
 import { alertDuplicateLabOrderNumber } from '../../lib/duplicate-lab-order-alert';
 import { cantidadDeArmazones } from '../../lib/order-frames';
+import { historialAlCambiarNumero } from '@/lib/lab-order-numbers';
 import type { EstadoEnPortal } from './contrato';
 
 /**
@@ -97,7 +98,7 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
     const order = await prisma.order.findUnique({
         where: { id: a.orderId },
         select: {
-            id: true, labStatus: true, labOrderNumber: true, clientId: true, appliedPromoName: true,
+            id: true, labStatus: true, labOrderNumber: true, labOrderNumberHistory: true, clientId: true, appliedPromoName: true,
             client: { select: { name: true } },
             // Lo que `cantidadDeArmazones` necesita para contar los pares.
             items: {
@@ -181,7 +182,14 @@ export async function aplicarEstadoEnVenta(a: AplicacionDeEstado): Promise<{ lab
 
     const data: Record<string, unknown> = {};
     if (nuevo) data.labStatus = nuevo;
-    if (asignarNumero) data.labOrderNumber = numeroNuevo;
+    if (asignarNumero) {
+        data.labOrderNumber = numeroNuevo;
+        // Si el robot reemplaza un número real (no un borrador SML-…), el viejo
+        // queda en el historial para que el buscador lo siga encontrando.
+        if (!numeroProvisorio(order.labOrderNumber)) {
+            data.labOrderNumberHistory = historialAlCambiarNumero(order.labOrderNumberHistory, order.labOrderNumber, numeroNuevo);
+        }
+    }
     await prisma.order.update({ where: { id: order.id }, data, select: { id: true } });
 
     let notificado = false;

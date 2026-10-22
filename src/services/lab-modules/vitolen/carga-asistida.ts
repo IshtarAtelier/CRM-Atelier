@@ -7,6 +7,7 @@ import { ErrorDeCarga } from '../carga/errores';
 import { cristalVitolenPorNombre } from '../../../lib/laboratorios/vitolen-catalogo';
 import { cancelarEnPortal, confirmarBorradorAprobado, llenarBorradorEnPortal, releerBorradorEnPortal, ROBOT_ACTOR_VITOLEN } from './borrador-portal';
 import { LAB_VITOLEN, NOMBRE_VITOLEN } from './portal';
+import { BASE_VITOLEN } from './pedidos';
 import { mensajeExistente, pedidoExistenteDelPar } from './existentes';
 import { pedidoOrigenDeVitolen } from './origen';
 import { avisoDeRoles, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
@@ -34,6 +35,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
     lab: LAB_VITOLEN,
     nombre: NOMBRE_VITOLEN,
     robot: ROBOT_ACTOR_VITOLEN,
+    portal: { url: `${BASE_VITOLEN}/ventas/pedidos_laboratorio/new`, etiqueta: 'Abrir el portal de Vitolen para cargarlo a mano' },
 
     async analizar(orderId) {
         const venta = await leerVentaParaCarga(orderId);

@@ -1,15 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LifeBuoy, ImageIcon, Receipt, Plus, X, Paperclip, ShieldCheck, ChevronDown, Copy, Check, Wallet } from 'lucide-react';
+import { LifeBuoy, ImageIcon, Receipt, Plus, X, Paperclip, ShieldCheck, ChevronDown, Wallet } from 'lucide-react';
 import {
-    caseTypeStyle, postSaleColumnLabel,
+    postSaleColumnLabel,
     POST_SALE_CASE_TYPES, POST_SALE_COVERAGE, POST_SALE_RESPONSIBLE_CAUSES,
     parseResponsibleOption, responsibleUserValue, type PostSaleUser
 } from '@/lib/constants/postSale';
+import { PV, caseTypeTone } from '@/components/orders/postventa-ui';
 import { PostSaleServiceForm, postSaleValueFromCase } from '@/components/orders/PostSaleServiceForm';
+import { PostSaleOperationNumber, operationNumbersOf } from '@/components/orders/PostSaleOperationNumber';
 import { formatDate, formatDateTime } from '@/lib/format-date';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { PricingService } from '@/services/PricingService';
+import AddPaymentModal from '@/components/quotes/AddPaymentModal';
 
 interface PostSaleNote {
     id: string;
@@ -26,6 +30,7 @@ interface PostSaleCase {
     status?: string | null;
     cost?: number | null;
     newOrderNumber?: string | null;
+    newOrderNumberHistory?: string | null;
     notes?: string | null;
     orderOption?: string | null;
     responsible?: string | null;
@@ -41,33 +46,44 @@ interface PostSaleCase {
     costConfirmedBy?: string | null;
     faultUserId?: string | null;
     cashEntryId?: string | null;
-    order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null } | null;
+    // Alternativa a la caja: lo paga el cliente; se carga acá y suma al saldo de la venta.
+    clientCharge?: number | null;
+    clientChargedAt?: string | Date | null;
+    clientChargedBy?: string | null;
+    /** Reparto vigente del costo (lo arma contact.service.getById). */
+    reparto?: { cajaMonto: number; cajaVendorId: string | null; cajaVendorName: string | null; clienteMonto: number } | null;
+    order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null; [k: string]: any } | null;
     notesList?: PostSaleNote[];
 }
 
-/** Los números de operación que tiene cargados el caso ("80530908 - 80530914" → dos). */
-function operationNumbers(c: PostSaleCase): string[] {
-    return (c.newOrderNumber || '').match(/\d{4,}/g) || [];
-}
 
 /**
  * En qué etapa está el costo del caso. Es lo que decide si se puede cobrar:
  * el costo real lo cierra el laboratorio al facturar TODAS las operaciones, y
  * hasta entonces lo que hay es la estimación que cargó el vendedor.
  */
-type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'IMPUTADO';
+type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'REPARTIDO';
+/** Texto corto del chip del caso: a dónde fue el costo. */
+function repartoCorto(c: PostSaleCase): string {
+    const r = c.reparto;
+    if (!r) return 'Repartido';
+    if (r.cajaMonto > 0 && r.clienteMonto > 0) return 'Caja + cliente';
+    if (r.clienteMonto > 0) return 'Lo paga el cliente';
+    return `Cobrado a caja${r.cajaVendorName ? ` · ${r.cajaVendorName}` : ''}`;
+}
+
 function costStage(c: PostSaleCase): CostStage {
-    if (c.cashEntryId) return 'IMPUTADO';
+    if (c.cashEntryId || c.clientChargedAt) return 'REPARTIDO';
     if (c.costSource === 'LAB') return 'CERRADO';
     if ((c.cost ?? 0) > 0) return 'ESTIMADO';
     return 'SIN_COSTO';
 }
 
 const COST_STAGE_UI: Record<CostStage, { label: string; cls: string }> = {
-    SIN_COSTO: { label: 'Sin costo', cls: 'bg-stone-100 text-stone-500 border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700' },
-    ESTIMADO: { label: 'Estimado · esperando laboratorio', cls: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/40' },
-    CERRADO: { label: 'Costo cerrado · listo para cobrar', cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40' },
-    IMPUTADO: { label: 'Cobrado a caja', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40' },
+    SIN_COSTO: { label: 'Sin costo', cls: PV.tone.neutral },
+    ESTIMADO: { label: 'Estimado · esperando laboratorio', cls: PV.tone.sky },
+    CERRADO: { label: 'Costo cerrado · listo para repartir', cls: PV.tone.amber },
+    REPARTIDO: { label: 'Costo repartido', cls: PV.tone.emerald },
 };
 
 /** Sube una imagen y devuelve su URL/clave de storage (reusa /api/upload). */
@@ -112,14 +128,14 @@ export default function PostSaleTab({ contact, onRefresh, userRole }: { contact:
         <div className="space-y-6 animate-in fade-in duration-300">
             {/* Barra: blindaje + nuevo caso */}
             <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                    <ShieldCheck className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-400">
+                    <ShieldCheck className="w-4 h-4" />
                     Registro permanente · no se elimina
                 </div>
                 {salesWithoutCase.length > 0 && !creating && (
                     <button
                         onClick={() => setCreating(true)}
-                        className="ml-auto flex items-center gap-2 px-4 py-2 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:opacity-90 transition-opacity"
+                        className={`${PV.btn.primary} ml-auto`}
                     >
                         <Plus className="w-4 h-4" /> Nuevo caso
                     </button>
@@ -138,12 +154,12 @@ export default function PostSaleTab({ contact, onRefresh, userRole }: { contact:
             {cases.length === 0 && !creating ? (
                 <div className="text-center py-16 border-2 border-dashed border-stone-200 dark:border-stone-800 rounded-[3rem]">
                     <LifeBuoy className="w-12 h-12 text-stone-200 dark:text-stone-700 mx-auto mb-4" />
-                    <p className="text-xs font-black text-stone-300 dark:text-stone-600 uppercase tracking-widest">
+                    <p className="text-[13px] font-medium text-stone-500 dark:text-stone-400">
                         Sin casos de post venta
                     </p>
                     {salesWithoutCase.length > 0 && (
-                        <button onClick={() => setCreating(true)} className="mt-4 text-[10px] font-black uppercase tracking-widest text-stone-500 hover:text-stone-800 dark:hover:text-stone-200">
-                            + Abrir el primer caso
+                        <button onClick={() => setCreating(true)} className={`${PV.btn.secondary} mt-4`}>
+                            <Plus className="w-4 h-4" /> Abrir el primer caso
                         </button>
                     )}
                 </div>
@@ -174,8 +190,8 @@ function CaseContext({ c }: { c: PostSaleCase }) {
     const date = c.order?.createdAt;
     const op = c.order?.labOrderNumber;
     return (
-        <div className="flex items-center flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400">
-            <Receipt className="w-3.5 h-3.5" />
+        <div className="flex items-center flex-wrap gap-2 text-[12px] font-medium text-stone-500 dark:text-stone-400">
+            <Receipt className="w-4 h-4" />
             {c.order ? (
                 <>
                     <span>Venta{date ? ` · ${formatDate(date)}` : ''}</span>
@@ -190,41 +206,6 @@ function CaseContext({ c }: { c: PostSaleCase }) {
 }
 
 /** Nº de operación en grande y copiable: es el dato que más se copia y pega. */
-function OperationNumbers({ c }: { c: PostSaleCase }) {
-    const nums = operationNumbers(c);
-    const [copied, setCopied] = useState<string | null>(null);
-    if (nums.length === 0) return null;
-
-    const copy = async (n: string) => {
-        try {
-            await navigator.clipboard.writeText(n);
-            setCopied(n);
-            setTimeout(() => setCopied(null), 1500);
-        } catch { /* sin portapapeles: el número igual se ve y se puede seleccionar */ }
-    };
-
-    return (
-        <div className="flex items-center flex-wrap gap-2">
-            <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">
-                {nums.length > 1 ? `Operaciones (${nums.length})` : 'Operación'}
-            </span>
-            {nums.map(n => (
-                <button
-                    key={n}
-                    onClick={() => copy(n)}
-                    title="Copiar número de operación"
-                    className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 font-mono text-xs font-bold text-stone-700 dark:text-stone-200 hover:border-stone-900 dark:hover:border-primary transition-colors"
-                >
-                    {n}
-                    {copied === n
-                        ? <Check className="w-3 h-3 text-emerald-600" />
-                        : <Copy className="w-3 h-3 text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200" />}
-                </button>
-            ))}
-        </div>
-    );
-}
-
 /**
  * Cierre económico del caso: muestra en qué etapa está el costo y, cuando el
  * laboratorio ya lo cerró, permite descontarlo de la caja del responsable.
@@ -232,103 +213,211 @@ function OperationNumbers({ c }: { c: PostSaleCase }) {
  */
 function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolean; onRefresh: () => void }) {
     const stage = costStage(c);
+    const costo = Math.round(c.cost ?? 0);
+    const vigente = c.reparto || { cajaMonto: 0, cajaVendorId: null, cajaVendorName: null, clienteMonto: 0 };
+    const hayReparto = vigente.cajaMonto > 0 || vigente.clienteMonto > 0;
     const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
-    const [vendorId, setVendorId] = useState<string>(c.faultUserId || '');
+
+    // El reparto que se está editando. Arranca en lo vigente; si no hay nada
+    // todavía, propone según el caso: "Con cargo" o culpa del cliente ⇒ todo al
+    // cliente; culpa de una persona de la óptica ⇒ todo a su caja; si no, Ishtar.
+    const propuestaInicial = () => {
+        if (hayReparto) return { cajaVendorId: vigente.cajaVendorId || '', caja: vigente.cajaMonto, cliente: vigente.clienteMonto };
+        if (c.fault === 'Cliente' || c.coverage === 'Con cargo') return { cajaVendorId: '', caja: 0, cliente: costo };
+        return { cajaVendorId: c.faultUserId || '', caja: costo, cliente: 0 };
+    };
+    const [cajaVendorId, setCajaVendorId] = useState<string>(propuestaInicial().cajaVendorId);
+    const [caja, setCaja] = useState<number>(propuestaInicial().caja);
+    const [cliente, setCliente] = useState<number>(propuestaInicial().cliente);
     const [working, setWorking] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [pagando, setPagando] = useState(false);
 
     useEffect(() => {
-        if (!isAdmin || stage !== 'CERRADO') return;
+        if (!isAdmin || stage === 'SIN_COSTO' || stage === 'ESTIMADO') return;
         fetch('/api/users')
             .then(r => (r.ok ? r.json() : []))
             .then((d: any[]) => Array.isArray(d) && setVendors(d.filter(u => u.role !== 'OPTICA').map(u => ({ id: u.id, name: u.name }))))
             .catch(() => setVendors([]));
     }, [isAdmin, stage]);
 
-    if (stage === 'SIN_COSTO') return null;
+    // Si el caso se refresca (se aplicó un reparto), la edición vuelve a lo vigente.
+    useEffect(() => {
+        const p = propuestaInicial();
+        setCajaVendorId(p.cajaVendorId); setCaja(p.caja); setCliente(p.cliente);
+    }, [vigente.cajaMonto, vigente.clienteMonto, vigente.cajaVendorId, costo]);
 
-    const monto = c.cost ?? 0;
     const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
-    const loCubreAtelier = !vendorId;
+    const clamp = (n: number) => Math.max(0, Math.min(costo, Math.round(Number(n) || 0)));
+    // Los dos renglones siempre suman el costo: tocar uno acomoda al otro.
+    const ponerCaja = (n: number) => { const v = clamp(n); setCaja(v); setCliente(costo - v); };
+    const ponerCliente = (n: number) => { const v = clamp(n); setCliente(v); setCaja(costo - v); };
 
-    const imputar = async () => {
-        if (working) return;
+    const nombreCaja = (id: string) => (id ? (vendors.find(v => v.id === id)?.name || 'esa caja') : 'caja Ishtar');
+    const sinCambios = hayReparto
+        && caja === vigente.cajaMonto && cliente === vigente.clienteMonto
+        && (cajaVendorId || '') === (vigente.cajaVendorId || '');
+
+    const llamar = async (body: Record<string, unknown>): Promise<boolean> => {
+        if (working) return false;
         setWorking(true);
         setError(null);
         try {
             const res = await fetch(`/api/post-sale/${c.id}/cost`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'impute', vendorId: vendorId || undefined }),
+                body: JSON.stringify(body),
             });
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || 'No se pudo imputar'); return; }
+            if (!res.ok) { setError(d.error || 'No se pudo completar la operación'); return false; }
             onRefresh();
+            return true;
         } catch {
             setError('No se pudo conectar con el servidor.');
+            return false;
         } finally { setWorking(false); }
     };
+    const aplicar = () => llamar({ action: 'repartir', cajaVendorId: cajaVendorId || undefined, cajaMonto: caja, clienteMonto: cliente });
+    const deshacer = () => {
+        if (window.confirm('¿Deshacer el reparto? El descuento de caja se revierte con un contraasiento (nada se borra) y se quita el saldo del cliente. Los pagos que el cliente ya hizo no se tocan.')) {
+            llamar({ action: 'anular_reparto' });
+        }
+    };
+
+    // Saldo de la VENTA (incluye el cargo al cliente): el pago es el pago normal
+    // de la venta, con comprobante, y por eso entra a caja y a la lista de saldos.
+    const finVenta = c.order ? PricingService.calculateOrderFinancials(c.order) : null;
+    const saldoVenta = finVenta?.remainingCard ?? 0;
+
+    // Después de TODOS los hooks: un return antes cambiaría su orden entre renders.
+    if (stage === 'SIN_COSTO') return null;
+
+    const CAMPO_MONTO = `w-28 text-right tabular-nums ${PV.fieldSm}`;
+    const ATAJO = `${PV.btn.pillOff} h-7 px-2.5 text-[11px]`;
 
     return (
-        <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-800/30 p-3 space-y-2">
+        <div className={`${PV.panel} p-3 space-y-3`}>
             <div className="flex items-center flex-wrap gap-2">
-                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
+                <span className={`${PV.chip} ${COST_STAGE_UI[stage].cls}`}>
                     {COST_STAGE_UI[stage].label}
                 </span>
-                <span className="text-sm font-black text-stone-800 dark:text-stone-100">{fmt(monto)}</span>
-                {stage === 'CERRADO' && c.costEstimated != null && Math.abs(c.costEstimated - monto) >= 1 && (
-                    <span className="text-[9px] font-bold text-stone-400">
-                        estimado: {fmt(c.costEstimated)} · {monto > c.costEstimated ? '+' : '−'}{fmt(Math.abs(monto - c.costEstimated))}
+                <span className={`text-[15px] ${PV.money}`}>{fmt(costo)}</span>
+                {stage !== 'ESTIMADO' && c.costEstimated != null && Math.abs(c.costEstimated - costo) >= 1 && (
+                    <span className="text-[12px] text-stone-500 dark:text-stone-400">
+                        estimado: {fmt(c.costEstimated)} · {costo > c.costEstimated ? '+' : '−'}{fmt(Math.abs(costo - c.costEstimated))}
                     </span>
                 )}
             </div>
 
             {stage === 'ESTIMADO' && (
-                <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                <p className={PV.muted}>
                     Es la estimación cargada a mano. El costo real lo cierra el laboratorio cuando factura
-                    {operationNumbers(c).length > 1 ? ' las dos operaciones' : ' la operación'} del caso. Recién ahí se puede cobrar.
+                    {operationNumbersOf(c.newOrderNumber).length > 1 ? ' las dos operaciones' : ' la operación'} del caso. Recién ahí se puede repartir.
                 </p>
             )}
 
-            {stage === 'IMPUTADO' && (
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-relaxed">
-                    Ya descontado de caja{c.costConfirmedBy ? ` por ${c.costConfirmedBy}` : ''}
-                    {c.costConfirmedAt ? ` · ${formatDateTime(c.costConfirmedAt)}` : ''}.
+            {/* ── Reparto vigente ──────────────────────────────────────────── */}
+            {hayReparto && (
+                <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5 px-2">
+                        <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400">De caja{vigente.cajaVendorName ? ` · ${vigente.cajaVendorName}` : ''}</p>
+                        <p className={`text-[15px] ${PV.money}`}>{fmt(vigente.cajaMonto)}</p>
+                    </div>
+                    <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5 px-2">
+                        <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400">Al cliente · saldo de la venta</p>
+                        <p className={`text-[15px] font-semibold tabular-nums ${vigente.clienteMonto > 0 && saldoVenta > 1000 ? 'text-violet-700 dark:text-violet-300' : 'text-stone-900 dark:text-stone-50'}`}>
+                            {fmt(vigente.clienteMonto)}
+                            {vigente.clienteMonto > 0 && <span className="block text-[11px] font-medium text-stone-500">saldo hoy: {fmt(saldoVenta)}</span>}
+                        </p>
+                    </div>
+                </div>
+            )}
+            {hayReparto && (
+                <p className={PV.muted}>
+                    Repartido{c.costConfirmedBy ? ` por ${c.costConfirmedBy}` : ''}{c.costConfirmedAt ? ` · ${formatDateTime(c.costConfirmedAt)}` : ''}.
+                    {vigente.clienteMonto > 0 && ' La parte del cliente figura en la lista de saldos y se cobra con comprobante desde acá.'}
                 </p>
             )}
 
-            {stage === 'CERRADO' && (isAdmin ? (
-                <div className="space-y-2">
-                    <div>
-                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Descontar de la caja de</p>
+            {/* ── Cobro al cliente ─────────────────────────────────────────── */}
+            {vigente.clienteMonto > 0 && c.order?.id && (
+                <>
+                    {saldoVenta > 1000 ? (
+                        <button
+                            onClick={() => setPagando(true)}
+                            className={`${PV.btn.violet} w-full`}
+                        >
+                            Registrar pago del cliente (efectivo o transferencia)
+                        </button>
+                    ) : (
+                        <p className="text-[12px] font-medium text-emerald-700 dark:text-emerald-400">La venta no tiene saldo: el cliente ya pagó su parte.</p>
+                    )}
+                    {pagando && (
+                        <AddPaymentModal
+                            orderId={c.order.id}
+                            totalAmount={finVenta?.listPrice ?? 0}
+                            paidAmount={finVenta?.paidReal ?? 0}
+                            soloEfectivoYTransferencia
+                            onClose={() => setPagando(false)}
+                            onSuccess={() => { setPagando(false); onRefresh(); }}
+                        />
+                    )}
+                </>
+            )}
+
+            {/* ── Editor del reparto (solo admin, con el costo cerrado) ─────── */}
+            {stage !== 'ESTIMADO' && (isAdmin ? (
+                <div className="space-y-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-3">
+                    <p className={PV.eyebrow}>{hayReparto ? 'Cambiar el reparto' : 'Quién paga el costo'}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                        <button type="button" className={ATAJO} onClick={() => ponerCaja(costo)}>Todo a caja</button>
+                        <button type="button" className={ATAJO} onClick={() => ponerCliente(costo)}>Todo al cliente</button>
+                        <button type="button" className={ATAJO} onClick={() => ponerCaja(Math.round(costo / 2))}>Mitad y mitad</button>
+                    </div>
+                    <div className="flex items-center gap-2">
                         <select
-                            value={vendorId}
-                            onChange={(e) => setVendorId(e.target.value)}
-                            className="w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300"
+                            value={cajaVendorId}
+                            onChange={(e) => setCajaVendorId(e.target.value)}
+                            className={`flex-1 min-w-0 ${PV.fieldSm}`}
                         >
                             <option value="">Caja Ishtar — lo cubre Atelier</option>
-                            {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                            {vendors.map(v => <option key={v.id} value={v.id}>Caja de {v.name}</option>)}
                         </select>
-                        {c.fault && c.fault !== 'Óptica' && (
-                            <p className="mt-1 text-[9px] text-stone-400">
-                                La atribución es <b>{c.fault}</b>: por defecto lo absorbe Atelier.
-                            </p>
-                        )}
+                        <input type="number" inputMode="numeric" min={0} max={costo} value={caja} onChange={(e) => ponerCaja(Number(e.target.value))} className={CAMPO_MONTO} aria-label="Monto a caja" />
                     </div>
+                    <div className="flex items-center gap-2">
+                        <span className="flex-1 text-[12px] font-medium text-stone-700 dark:text-stone-200 px-2.5">El cliente — se suma al saldo de la venta</span>
+                        <input type="number" inputMode="numeric" min={0} max={costo} value={cliente} onChange={(e) => ponerCliente(Number(e.target.value))} className={CAMPO_MONTO} aria-label="Monto al cliente" />
+                    </div>
+                    {cliente > 0 && (
+                        <p className="text-[12px] text-violet-700 dark:text-violet-300 leading-relaxed">
+                            La parte del cliente aparece en la lista de saldos y se cobra con comprobante (efectivo o transferencia). No se descuenta de ninguna caja.
+                        </p>
+                    )}
                     <button
-                        onClick={imputar}
-                        disabled={working}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
+                        onClick={aplicar}
+                        disabled={working || sinCambios}
+                        className={`${PV.btn.primary} w-full`}
                     >
-                        <Wallet className="w-3.5 h-3.5" />
-                        {working ? 'Imputando…' : `Descontar ${fmt(monto)} de ${loCubreAtelier ? 'caja Ishtar' : (vendors.find(v => v.id === vendorId)?.name || 'la caja')}`}
+                        <Wallet className="w-4 h-4" />
+                        {working ? 'Aplicando…'
+                            : caja > 0 && cliente > 0 ? `${fmt(caja)} de ${nombreCaja(cajaVendorId)} · ${fmt(cliente)} al cliente`
+                            : cliente > 0 ? `Cobrarle ${fmt(cliente)} al cliente`
+                            : `Descontar ${fmt(caja)} de ${nombreCaja(cajaVendorId)}`}
                     </button>
-                    {error && <p className="text-[10px] font-bold text-rose-600">{error}</p>}
+                    {hayReparto && (
+                        <button onClick={deshacer} disabled={working} className={`${PV.btn.danger} h-7 px-2 text-[11px]`}>
+                            Deshacer el reparto
+                        </button>
+                    )}
+                    {error && <p className="text-[12px] font-medium text-rose-700 dark:text-rose-400">{error}</p>}
                 </div>
             ) : (
-                <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
-                    El costo ya está cerrado por el laboratorio. Lo revisa y lo imputa el administrador.
-                </p>
+                !hayReparto && (
+                    <p className={PV.muted}>
+                        El costo ya está cerrado por el laboratorio. Lo revisa y lo reparte el administrador.
+                    </p>
+                )
             ))}
         </div>
     );
@@ -348,7 +437,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
         <div className={`space-y-3 ${highlighted ? 'rounded-[1.75rem] ring-2 ring-amber-400/70 dark:ring-amber-500/50 p-3 -m-1' : ''}`}>
             <CaseContext c={c} />
 
-            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/60 overflow-hidden">
+            <div className={`${PV.card} overflow-hidden`}>
                 {/* ── RESUMEN (siempre visible) ───────────────────────────────────
                     El toggle es un <button> propio y NO envuelve a los números de
                     operación: esos son botones de copiar, y un botón dentro de otro
@@ -360,27 +449,27 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                         aria-expanded={open}
                     >
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border ${caseTypeStyle(c.caseType)}`}>
+                            <span className={`${PV.chip} ${caseTypeTone(c.caseType)}`}>
                                 {c.caseType || 'Sin tipificar'}
                             </span>
-                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300">
+                            <span className={`${PV.chip} ${PV.tone.outline}`}>
                                 {postSaleColumnLabel(c)}
                             </span>
                             {stage !== 'SIN_COSTO' && (
-                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
-                                    {stage === 'IMPUTADO' ? 'Cobrado' : stage === 'CERRADO' ? 'Listo para cobrar' : 'Estimado'}
+                                <span className={`${PV.chip} tabular-nums ${COST_STAGE_UI[stage].cls}`}>
+                                    {stage === 'REPARTIDO' ? repartoCorto(c) : stage === 'CERRADO' ? 'Listo para repartir' : 'Estimado'}
                                     {(c.cost ?? 0) > 0 ? ` · $${Math.round(c.cost!).toLocaleString('es-AR')}` : ''}
                                 </span>
                             )}
                             {c.responsible && (
-                                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300">
-                                    👤 {c.responsible}
+                                <span className={`${PV.chip} ${PV.tone.neutral}`}>
+                                    Resp. {c.responsible}
                                 </span>
                             )}
                             {c.createdAt && (
-                                <span className="ml-auto text-[10px] font-bold text-stone-600 dark:text-stone-400">{formatDateTime(c.createdAt)}</span>
+                                <span className="ml-auto text-[12px] text-stone-500 dark:text-stone-400">{formatDateTime(c.createdAt)}</span>
                             )}
-                            <ChevronDown className={`w-4 h-4 text-stone-600 dark:text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-4 h-4 text-stone-500 transition-transform ${open ? 'rotate-180' : ''}`} />
                         </div>
 
                         {/* Cerrada, la tarjeta tiene que decir en qué anda el caso. Antes
@@ -395,7 +484,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                                 ) : (
                                     <p className="text-[13px] text-stone-600 dark:text-stone-400 italic">Sin observaciones registradas.</p>
                                 )}
-                                <p className="mt-1 text-[11px] font-bold text-stone-600 dark:text-stone-400 group-hover:text-stone-900 dark:group-hover:text-stone-200 transition-colors">
+                                <p className="mt-1 text-[12px] font-medium text-amber-700 dark:text-amber-400 group-hover:text-amber-800 dark:group-hover:text-amber-300 transition-colors">
                                     {notesCount > 0 && `${notesCount} observación${notesCount === 1 ? '' : 'es'} · `}
                                     Abrir la ficha del caso
                                 </p>
@@ -403,8 +492,13 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                         )}
                     </button>
 
-                    {/* Los nº de operación quedan SIEMPRE afuera del desplegable */}
-                    <OperationNumbers c={c} />
+                    {/* El nº de operación queda SIEMPRE afuera del desplegable, y se carga acá mismo */}
+                    <PostSaleOperationNumber
+                        orderId={c.order?.id ?? c.orderId}
+                        value={c.newOrderNumber}
+                        history={c.newOrderNumberHistory}
+                        onSaved={onRefresh}
+                    />
                 </div>
 
                 {/* ── FICHA COMPLETA (desplegable) ────────────────────────────── */}
@@ -434,18 +528,18 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                                     <Field label="Costo" value={c.cost != null && c.cost > 0 ? `$${c.cost.toLocaleString('es-AR')}` : null} />
                                 </div>
                                 <div className="space-y-2 pt-1">
-                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones</p>
+                                    <p className={PV.eyebrow}>Observaciones</p>
                                     {(c.notesList && c.notesList.length > 0) ? (
                                         c.notesList.map((n) => (
                                             <div key={n.id} className="rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/60 dark:border-stone-800 p-3">
                                                 <p className="text-xs text-stone-700 dark:text-stone-300 whitespace-pre-wrap leading-relaxed">{n.content}</p>
                                                 {n.imageUrl && (
                                                     <a href={resolveStorageUrl(n.imageUrl)} target="_blank" rel="noopener noreferrer"
-                                                        className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:underline">
+                                                        className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-amber-700 dark:text-amber-400 hover:underline">
                                                         <ImageIcon className="w-3.5 h-3.5" /> Ver foto
                                                     </a>
                                                 )}
-                                                <div className="mt-1.5 flex items-center gap-2 text-[9px] font-bold text-stone-400">
+                                                <div className="mt-1.5 flex items-center gap-2 text-[11px] text-stone-500">
                                                     {n.createdBy && <span>{n.createdBy}</span>}
                                                     {n.createdBy && n.createdAt && <span>·</span>}
                                                     {n.createdAt && <span>{formatDateTime(n.createdAt)}</span>}
@@ -453,10 +547,10 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-[10px] text-stone-400 italic">Sin observaciones registradas.</p>
+                                        <p className="text-[12px] text-stone-500 italic">Sin observaciones registradas.</p>
                                     )}
                                 </div>
-                                <p className="text-[9px] font-bold text-stone-400 italic pt-1">
+                                <p className="text-[12px] text-stone-500 italic pt-1">
                                     La venta original fue eliminada: el caso queda como registro histórico (solo lectura).
                                 </p>
                             </>
@@ -531,13 +625,13 @@ function NewCaseForm({ sales, isAdmin, onCancel, onSaved }: { sales: any[]; isAd
         } finally { setSaving(false); }
     };
 
-    const selectCls = "w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300";
+    const selectCls = PV.field;
 
     return (
-        <div className="rounded-2xl border-2 border-stone-900/10 dark:border-primary/30 bg-stone-50 dark:bg-stone-900/50 p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className={`${PV.card} p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300`}>
             <div className="flex items-center justify-between">
-                <h4 className="text-[11px] font-black uppercase tracking-widest text-stone-700 dark:text-stone-200">Nuevo caso de post venta</h4>
-                <button onClick={onCancel} className="p-1 text-stone-400 hover:text-stone-700"><X className="w-4 h-4" /></button>
+                <h4 className={PV.title}>Nuevo caso de post venta</h4>
+                <button onClick={onCancel} className={PV.btn.icon} title="Cancelar"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-3">
@@ -588,14 +682,14 @@ function NewCaseForm({ sales, isAdmin, onCancel, onSaved }: { sales: any[]; isAd
             </div>
 
             <div className="flex items-center justify-between gap-2">
-                <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-colors ${file ? 'border-amber-300 bg-amber-50 text-amber-600' : 'border-stone-200 dark:border-stone-700 text-stone-400 hover:text-stone-600'}`}>
-                    <Paperclip className="w-3.5 h-3.5" /> {file ? file.name.slice(0, 18) : 'Adjuntar foto'}
+                <label className={`${PV.btn.secondary} cursor-pointer ${file ? 'border-amber-400 text-amber-800 dark:text-amber-300' : ''}`}>
+                    <Paperclip className="w-4 h-4" /> {file ? file.name.slice(0, 18) : 'Adjuntar foto'}
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
                 </label>
                 <button
                     onClick={submit}
                     disabled={!orderId || !caseType || saving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-40"
+                    className={PV.btn.primary}
                 >
                     {saving ? 'Guardando…' : 'Abrir caso'}
                 </button>
@@ -605,15 +699,15 @@ function NewCaseForm({ sales, isAdmin, onCancel, onSaved }: { sales: any[]; isAd
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-    return <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">{children}</p>;
+    return <p className={PV.label}>{children}</p>;
 }
 
 function Field({ label, value }: { label: string; value?: string | null }) {
     if (!value) return null;
     return (
         <div>
-            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-0.5">{label}</p>
-            <p className="text-xs font-bold text-stone-700 dark:text-stone-300 break-words">{value}</p>
+            <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400 mb-0.5">{label}</p>
+            <p className="text-[13px] font-medium text-stone-800 dark:text-stone-200 break-words">{value}</p>
         </div>
     );
 }
@@ -624,10 +718,8 @@ function CoverageField({ coverage }: { coverage?: string | null }) {
     const isCharged = coverage === 'Con cargo';
     return (
         <div>
-            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-0.5">Cobertura</p>
-            <span className={`inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${isCharged
-                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40'}`}>
+            <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400 mb-0.5">Cobertura</p>
+            <span className={`${PV.chip} ${isCharged ? PV.tone.amber : PV.tone.emerald}`}>
                 {coverage}
             </span>
         </div>

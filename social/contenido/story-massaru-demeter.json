@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-demeter",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "producto": {
+    "nombre": "Deméter",
+    "color": "",
+    "familia": "sol"
+  },
+  "caption": "Deméter · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-demeter/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-demeter/02.jpg"
+    }
+  ]
+}

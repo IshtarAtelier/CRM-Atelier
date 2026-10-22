@@ -35,9 +35,11 @@ function safeParse(input, toolName) {
 // Wrapper para que las fallas disparen el guardrail de silencio absoluto
 // SOLO para errores de red/infraestructura. Errores de lógica de negocio se devuelven al LLM.
 function safeToolRun(fn) {
-    return async (input) => {
+    // `runManager` y `config` se pasan de largo (10/10/2026): por `config`
+    // llega la cola de envíos del turno (send_product_photos).
+    return async (input, runManager, config) => {
         try {
-            const result = await fn(input);
+            const result = await fn(input, config);
             return typeof result === 'string' ? result : JSON.stringify(result);
         } catch (e) {
             const msg = e.message || '';
@@ -355,12 +357,13 @@ const sendProductPhotosTool = new DynamicStructuredTool({
     }).catchall(z.any()),
     name: "send_product_photos",
     description: "Le manda al cliente por WhatsApp las FOTOS de armazones, lentes de sol o clip-ons, cada una con el nombre del modelo y su precio de contado al pie. Usala cuando el cliente pide ver modelos ('mandame fotos', 'qué modelos tenés', 'querés que te muestre?' y te dice que sí) o cuando responde a la campaña contando qué modelito le gustó. Usa JSON con 'chatId' (MANDATORIO, el que ya tenés en tu contexto — JAMÁS le pidas el teléfono al cliente), 'category' ('ARMAZON' por defecto, o 'SOL' / 'CLIPON'), 'search' (opcional, para buscar por nombre/marca/modelo: usalo cuando el cliente nombra algo concreto) y 'products' (opcional, array con los nombres exactos de los modelos que querés mostrar). Manda como MÁXIMO 3 fotos por llamada y las elige el sistema. NO la llames más de una vez por turno y NO la uses si el cliente no pidió ver modelos. Después de usarla, escribí una sola línea corta preguntando cuál le gustó: las fotos ya llegaron con su precio, no los repitas. GÉNERO: pasá 'genero' ('HOMBRE' o 'MUJER') cuando el nombre de pila de la persona lo diga sin lugar a dudas (Juan, Carlos → HOMBRE; María, Lucía → MUJER), para no mandarle monturas del género contrario. Si el nombre es ambiguo, unisex, extranjero o no lo tenés (Alex, Guadalupe, Cris, o directamente no sabés), NO INVENTES: no pases 'genero' y NO uses esta herramienta — mandale el link de la tienda (https://atelieroptica.com.ar/tienda) para que elija a gusto.",
-    func: safeToolRun(async (input) => {
+    func: safeToolRun(async (input, config) => {
         const parsed = safeParse(input, "send_product_photos");
         if (!parsed.chatId) {
             return "[INSTRUCCIÓN INTERNA] Falta 'chatId' — es el que ya tenés en tu contexto de esta charla. Reintentá pasándolo. NO le menciones esto al cliente.";
         }
-        return await sendProductPhotos(parsed);
+        // La herramienta NO manda: encola en el turno (ver tools.js#sendProductPhotos).
+        return await sendProductPhotos(parsed, { turno: config?.configurable?.turno || null });
     }),
 });
 
@@ -476,7 +479,35 @@ const updateChatSummaryTool = new DynamicStructuredTool({
     })
 });
 
+// ── Salida estructurada del turno (10/10/2026) ──────────────────────────────
+// El modelo terminaba el turno escribiendo texto, y para "no contestar" no
+// tenía otra que NARRARLO: el 4/10 un cliente dijo "Bueno gracias" y recibió
+// "I have already confirmed… I should not respond further". Ahora callarse es
+// un campo, y lo que se le dice al cliente es una lista de mensajes: el
+// razonamiento no tiene dónde ir. Normalmente el grafo no las EJECUTA (el
+// auditor lee los argumentos); solo corren si el modelo las pide junto con
+// otra herramienta en el mismo paso, y ahí el turno termina igual.
+const responderAlClienteTool = new DynamicStructuredTool({
+    schema: z.object({
+        mensajes: z.array(z.string()).describe("Lo que le escribís al cliente, una entrada por burbuja de WhatsApp. En castellano, hablándole a él/ella. Nunca lo que pensás ni por qué."),
+    }),
+    name: "responder_al_cliente",
+    description: "Termina tu turno mandándole al cliente estos mensajes. Es la ÚNICA forma de hablarle al cliente. 'mensajes' es una lista: cada entrada es una burbuja de WhatsApp. Si querés mandar una foto que figura en tus instrucciones, poné su [IMAGE: url] dentro del mensaje.",
+    func: async () => "[INSTRUCCIÓN INTERNA] Registrado: se le envía al cliente al terminar el turno. No escribas nada más.",
+});
+
+const noResponderTool = new DynamicStructuredTool({
+    schema: z.object({
+        motivo: z.string().describe("Por qué no corresponde responder (queda en el log, el cliente nunca lo ve)."),
+    }),
+    name: "no_responder",
+    description: "Termina tu turno SIN escribirle nada al cliente. Usala cuando no hay nada nuevo que decir: te agradeció y ya estaba todo dicho, mandó un 'ok' o un emoji, o la charla quedó cerrada. El 'motivo' es para el equipo, el cliente no lo ve.",
+    func: async () => "[INSTRUCCIÓN INTERNA] Registrado: no se le responde nada al cliente. No escribas nada más.",
+});
+
 const salesToolsList = [
+    responderAlClienteTool,
+    noResponderTool,
     pedirAyudaTool,
     checkExistingClientTool,
     getPriceListTool,
@@ -502,6 +533,8 @@ const salesToolsList = [
 ];
 
 const executiveToolsList = [
+    responderAlClienteTool,
+    noResponderTool,
     pedirAyudaTool,
     checkExistingClientTool,
     getPriceListTool,

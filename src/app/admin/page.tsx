@@ -214,6 +214,11 @@ export default function Home() {
   const now = new Date();
 
   useEffect(() => {
+    // El rol sale de la sesión del servidor (la misma que usa la barra lateral).
+    // Antes se leía solo del `user` guardado en el navegador, y la tienda lo
+    // borra para cualquier cuenta que no sea OPTICA: la dueña abría la web y al
+    // volver el dashboard la trataba como vendedora (sin facturación del día).
+    let cancelado = false;
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
@@ -222,6 +227,16 @@ export default function Home() {
         setUserId(u.id || undefined);
       }
     } catch { }
+    fetch('/api/auth/me')
+      .then(r => (r.ok ? r.json() : null))
+      .then(u => {
+        if (cancelado || !u?.role) return;
+        setUserRole(u.role);
+        setUserId(u.id || undefined);
+        try { localStorage.setItem('user', JSON.stringify(u)); } catch { }
+      })
+      .catch(() => {});
+    return () => { cancelado = true; };
   }, []);
 
   const isAdmin = userRole === 'OPTICA' || userRole === 'ADMIN';

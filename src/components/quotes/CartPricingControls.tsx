@@ -20,6 +20,9 @@ interface CartPricingControlsProps {
     setDiscountCard: (val: number) => void;
     specialDiscount?: number;
     setSpecialDiscount?: (val: number) => void;
+    /** Valor de la operación antes del descuento especial: lo que hay que
+     *  descontar para dejarla en $0. Sin él no se ofrece "Dejar en $0". */
+    precioAntesDelEspecial?: number;
     currentUserRole?: string;
     isCard?: boolean;
 }
@@ -35,10 +38,16 @@ export default function CartPricingControls({
     setDiscountCard,
     specialDiscount = 0,
     setSpecialDiscount,
+    precioAntesDelEspecial,
     currentUserRole,
     isCard = true
 }: CartPricingControlsProps) {
     const isAdmin = currentUserRole === 'ADMIN';
+    // Una operación bonificada entera tiene que quedar en $0 EXACTO, no en
+    // $241 o $1.013: tipeando el monto a mano quedaban restos que sumaban a la
+    // facturación (Ishtar, 16/10/2026). El botón pone el descuento justo.
+    const puedeDejarEnCero = isAdmin && !!setSpecialDiscount && (precioAntesDelEspecial ?? 0) > 0;
+    const yaEnCero = puedeDejarEnCero && specialDiscount >= (precioAntesDelEspecial ?? 0);
 
     // El vendedor solo ve hasta su tope. Si la orden ya trae un descuento mayor
     // —el admin lo autorizó—, esa opción se mantiene a la vista: si no, el select
@@ -140,6 +149,16 @@ export default function CartPricingControls({
                          <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-stone-700 dark:text-stone-300">
                              Lo aplica el admin
                          </p>
+                     )}
+                     {puedeDejarEnCero && (
+                         <button
+                            type="button"
+                            onClick={() => setSpecialDiscount!(yaEnCero ? 0 : (precioAntesDelEspecial as number))}
+                            className="mt-1.5 w-full rounded-lg border border-rose-300 dark:border-rose-700 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30"
+                            title={yaEnCero ? 'Quitar el descuento especial' : 'Descontar toda la operación: queda en $0 y no suma a la facturación'}
+                         >
+                            {yaEnCero ? 'Quitar descuento' : 'Dejar en $0'}
+                         </button>
                      )}
                 </div>
             )}

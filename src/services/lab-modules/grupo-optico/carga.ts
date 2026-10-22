@@ -1,5 +1,5 @@
 import { armarPedidoSmartLab, codigoInternoSmartLab, type VentaParaSmartLab } from '../../../lib/grupo-optico/armar-pedido';
-import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones } from '../../../lib/order-frames';
+import { cristalesPorArmazon, framesDeLaOrden, cantidadDeArmazones, mensajeDeArmazonSinAsignar } from '../../../lib/order-frames';
 import { itemsDeTenido } from '../../../lib/crystal-color';
 import { precioConSigno } from '../../../lib/format-precio';
 import { avisoDeRoles, rolesDeDosPares, type RolesDePares } from '../../../lib/laboratorios/roles-2x1';
@@ -157,10 +157,11 @@ export function planDeCarga(venta: VentaParaSmartLab, par: number, opciones: Opc
     // "por orden" depende del orden físico de las filas, que cambia con cualquier
     // edición de la venta (auditoría 5, 8/10/2026) — y de eso dependen el rol
     // (con cargo / sin cargo), la graduación y hasta qué ojo va en cada pedido.
+    // Es obligatorio en la venta (Ishtar, 19/10/2026): la misma regla que frena
+    // el envío a fábrica (lib/order-frames: cristalesSinArmazonAsignado).
     const esCristalDelLab = (i: any) => esCristalDeLab(i, 'GRUPO_OPTICO', { sinLaboratorio: 'GRUPO_OPTICO' });
-    if (pares > 1 && (venta.items as any[]).some(i => esCristalDelLab(i) && i.framePosition == null)) {
-        faltantes.push('hay cristales sin armazón asignado: indicá en la venta a qué par (armazón 1 o 2) va cada cristal');
-    }
+    const sinArmazon = mensajeDeArmazonSinAsignar({ ...venta, items: (venta.items as any[]).filter(esCristalDelLab) });
+    if (pares > 1 && sinArmazon) faltantes.push(sinArmazon);
     const fueraDeRango = (venta.items as any[]).find(i => esCristalDelLab(i) && i.framePosition != null && (i.framePosition < 1 || i.framePosition > pares));
     if (fueraDeRango) faltantes.push(`hay un cristal asignado al armazón ${fueraDeRango.framePosition}, que la venta no tiene: reasignalo`);
     const cristales = (cristalesPorArmazon(venta).get(par) || []) as any[];

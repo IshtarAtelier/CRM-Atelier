@@ -153,6 +153,7 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error('[AI Generate Message Error]', error);
+        await (await import('@/lib/ai-error-handler')).avisarSiSinCredito(error, 'Mensaje de oportunidad de cierre');
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

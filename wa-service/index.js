@@ -7,7 +7,7 @@
 
 const express = require('express');
 const { contenidoATexto } = require('./shared/ai-content');
-const { limpiarSalidaBot } = require('./shared/limpiar-salida-bot');
+const { leerSalidaDelGrafo, armarRespuesta, crearTurno } = require('./shared/respuesta-del-turno');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -30,6 +30,8 @@ const { recuperarExtraccionesPendientes } = require('./cron/extraccion-pendiente
 const { TAGS_SIN_BOT, getFileExtension } = require('./utils');
 const { downloadMediaWithRetry, uploadMediaToCrm } = require('./shared/media');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
+const { clasificarEntrante, disparaTurno } = require('./shared/clasificar-entrante');
+const { entroPorAnuncio, restriccionDeFase } = require('./shared/fase-de-la-charla');
 const { parseAdTag, prefillAdTag, fallbackAdTag, stripAdTags } = require('./shared/ad-tag');
 const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 const { BotReplyingSet } = require('./shared/bot-replying');
@@ -77,6 +79,8 @@ function broadcastChatUpdate(chatId) {
 // ── Estado global ──────────────────────────────
 let agentEnabled = false;
 let agentPrompt = '';
+// Prompt propio del agente de clientes existentes (`bot_prompt_executive`); vacío = el del repo.
+let agentPromptExecutive = '';
 let dailyContext = '';
 // Interruptor propio de los seguimientos salientes (presupuestos, inactividad y
 // tareas). Va separado de agentEnabled a propósito: ése decide si el bot CONTESTA
@@ -156,6 +160,8 @@ async function loadConfig() {
         const promptSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_prompt' } });
         const contextSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_daily_context' } });
         const followupsSetting = await prisma.systemSetting.findUnique({ where: { key: 'followups_enabled' } });
+        const promptEjecutivoSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_prompt_executive' } });
+        agentPromptExecutive = promptEjecutivoSetting ? (promptEjecutivoSetting.value || '') : '';
 
         if (followupsSetting) {
             followupsEnabled = followupsSetting.value === 'true';
@@ -690,7 +696,9 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         // recursionLimit acá (no en compile(), donde LangGraph lo ignora):
         // corta loops de tools a las 10 iteraciones lanzando GraphRecursionError,
         // que cae en el catch de abajo → turno abortado en silencio.
-        const config = { configurable: { thread_id: waId }, recursionLimit: 10 };
+        // `turno`: la cola de envíos de las herramientas (shared/respuesta-del-turno.js).
+        const turno = crearTurno();
+        const config = { configurable: { thread_id: waId, turno }, recursionLimit: 10 };
         const state = {
             messages: allMessages,
             userPhone: realPhone || '',
@@ -698,6 +706,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             waId: waId,
             chatId: chat.id,
             customPrompt: agentPrompt,
+            customPromptExecutive: agentPromptExecutive,
+            // `recentMessages` ya quedó en orden cronológico (el .reverse() de
+            // arriba lo muta): entroPorAnuncio lo quiere de la más nueva a la más vieja.
+            entroPorAnuncio: entroPorAnuncio([...recentMessages].reverse()),
             dailyContext: dailyContext,
             clientData: freshChat?.client || chat.client || null,
             chatSummary: freshChat.chatSummary || null,
@@ -713,6 +725,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             result = await Promise.race([graphInvokePromise, timeoutPromise]);
         } catch (graphErr) {
             console.error(`  ❌ Graph invoke error: ${graphErr.message}`);
+            turno.cancelar(); // lo que hayan encolado las herramientas no sale
             // Fallback: retornar resultado vacío para evitar crash
             result = { messages: [], agentType: 'UNKNOWN' };
         }
@@ -781,26 +794,37 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             return;
         }
 
-        const lastMessage = result.messages[result.messages.length - 1];
-        const responseText = lastMessage.content;
+        // ── Qué quiere decir el turno → burbujas ──
+        // La MISMA función que el bot de la API oficial (shared/respuesta-del-turno.js):
+        // salida estructurada, saneado, anti-repetición, fotos encoladas por las
+        // herramientas. Este archivo ya no arma la respuesta por su cuenta.
+        const dichoAntes = recentMessages
+            .filter(m => m.direction === 'OUTBOUND' && m.senderName === 'Bot')
+            .slice(-3)
+            .map(m => m.content || '');
+        const respuesta = armarRespuesta({
+            salida: leerSalidaDelGrafo(result, allMessages.length),
+            encolados: turno.envios,
+            dichoAntes,
+            // Turno de apertura (primer contacto / anuncio): sin precio, foto ni link.
+            restriccion: restriccionDeFase(result && result.fase, result && result.nombreSaludo),
+        });
+        if (respuesta.quitado.length) console.log(`  🧹 [Bot] Saneado de salida: ${respuesta.quitado.join(' · ')}`);
+        if (respuesta.accion === 'callar') console.log(`  🤐 [Bot] El modelo decidió no responder: ${String(respuesta.motivo || '').slice(0, 120)}`);
+        if (respuesta.accion === 'rechazar') {
+            await handleTransientBotFailure(chat, waId, profileName, realPhone, `Salida rechazada: ${respuesta.motivo}`);
+            return;
+        }
+        // Derivó o prometió sin dejar tarea: la deja el código (ver bot-cloud.js).
+        if (respuesta.accion === 'enviar' && respuesta.escalar) {
+            const { escalarAHumano } = require('./shared/escalar');
+            await escalarAHumano({ notifyAdminDown, disableBotForChatById }, { chatId: chat.id, motivo: respuesta.escalar.motivo })
+                .catch(e => console.error('Error escalando:', e.message));
+        }
 
-        if (responseText) {
-            // ── Saneado ANTES del guardrail ──
-            // Mismo orden que en `bot-cloud.js`, y por el mismo motivo: ocho
-            // frases están en las DOS listas (guardrail y anti-relleno). Con el
-            // guardrail primero, esas frases descartaban el mensaje ENTERO en
-            // vez de perder solo su oración, y el cliente quedaba sin respuesta.
-            // Además el guardrail se podía disparar con un marcador interno que
-            // el modelo repitió y que igual íbamos a borrar.
-            const { texto: textoSaneado, quitado: quitadoDeSalida } = limpiarSalidaBot(responseText);
-            if (quitadoDeSalida.length) console.log(`  🧹 [Bot] Saneado de salida: ${quitadoDeSalida.join(' · ')}`);
-            if (!textoSaneado.trim()) {
-                console.log('  ⏹️ Respuesta vacía tras el saneado. No se envía nada.');
-                return;
-            }
-
+        if (respuesta.accion === 'enviar') {
             // ── Capa de Seguridad (Output Guardrail) ──
-            const guardrail = runOutputGuardrail(textoSaneado);
+            const guardrail = runOutputGuardrail(respuesta.textoLLM);
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
 
@@ -809,7 +833,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 // pero NO se apaga el bot. Es una falla transitoria — silencio este turno
                 // y reintento en el próximo mensaje.
                 if (guardrail.reason === 'Narración de Error Interno' || guardrail.reason === 'Solicitud de Dato Prohibido o Presentación Indebida') {
-                    await handleTransientBotFailure(chat, waId, profileName, realPhone, `Guardrail bloqueó respuesta (${guardrail.reason}): "${textoSaneado.substring(0, 100)}"`);
+                    await handleTransientBotFailure(chat, waId, profileName, realPhone, `Guardrail bloqueó respuesta (${guardrail.reason}): "${respuesta.textoLLM.substring(0, 100)}"`);
                     return;
                 }
 
@@ -824,7 +848,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                         data: {
                             clientId: chat.clientId,
                             type: 'NOTE',
-                            content: `⚠️ [Output Guardrail] Bot desactivado. ${isIdentityReveal ? 'Cliente sospecha que habla con un bot. Se desactivó en silencio absoluto.' : 'Se bloqueó respuesta con datos internos.'} Respuesta original: "${responseText.substring(0, 150)}..."`
+                            content: `⚠️ [Output Guardrail] Bot desactivado. ${isIdentityReveal ? 'Cliente sospecha que habla con un bot. Se desactivó en silencio absoluto.' : 'Se bloqueó respuesta con datos internos.'} Respuesta bloqueada: "${respuesta.textoLLM.substring(0, 150)}..."`
                         }
                     }).catch(e => console.error('Error guardando nota:', e.message));
                     
@@ -871,62 +895,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
             // Seteamos DESPUÉS del check de mensajes nuevos para evitar leak en early return
             botReplyingTo.add(waId);
-            let cleanResponseText = textoSaneado;
 
-            // Detectar si la respuesta repite literalmente frases de los últimos mensajes del bot
-            const recentBotMessages = recentMessages
-                .filter(m => m.direction === 'OUTBOUND' && m.senderName === 'Bot')
-                .slice(-3)
-                .map(m => (m.content || '').toLowerCase());
-            
-            const responseSentences = cleanResponseText.split(/[.!?\n]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 15);
-            for (const sentence of responseSentences) {
-                for (const prevMsg of recentBotMessages) {
-                    if (prevMsg.includes(sentence)) {
-                        // La frase ya fue dicha antes → eliminarla
-                        const escSentence = sentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        cleanResponseText = cleanResponseText.replace(new RegExp(escSentence, 'gi'), '').trim();
-                        console.log(`  🔄 [Anti-Repetición] Frase repetida eliminada: "${sentence.substring(0, 50)}..."`);
-                    }
-                }
-            }
-
-            // Si después de limpiar quedó vacío, no enviar
-            if (!cleanResponseText.trim()) {
-                console.log(`  ⏹️ Respuesta vacía tras filtrado. No se envía nada.`);
-                botReplyingTo.delete(waId);
-                return;
-            }
-
-            // Imágenes ENCENDIDAS: el bot muestra las fotos de la tienda al
-            // cotizar armazones y clip-ons (las pone get_price_list, que solo
-            // adjunta foto en lo que el cliente elige mirándolo).
-            const BOT_IMAGES_ENABLED = true;
-
-            const messageBlocks = cleanResponseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0);
-            
+            const messageBlocks = respuesta.burbujas;
             for (let i = 0; i < messageBlocks.length; i++) {
-                let block = messageBlocks[i];
-                let mediaObj = null;
-
-                // Extraer todas las URLs de imágenes si el bot incluyó múltiples [IMAGE: url]
-                const imgRegex = /\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi;
-                let match;
-                const mediaUrls = [];
-                while ((match = imgRegex.exec(block)) !== null) {
-                    mediaUrls.push(match[1]);
-                }
-                
-                // Limpiar todos los tags de imagen del texto
-                block = block.replace(/\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi, '').trim();
-
-                // Con las imágenes apagadas, descartar las URLs y mandar solo el texto
-                if (!BOT_IMAGES_ENABLED && mediaUrls.length > 0) {
-                    console.log(`  🚫 [Imágenes OFF] ${mediaUrls.length} imagen(es) descartada(s); se envía solo texto.`);
-                    mediaUrls.length = 0;
-                }
-
-                // Si no hay texto ni imágenes, saltar
+                const { texto: block, imagenes: mediaUrls, origen } = messageBlocks[i];
                 if (block.length === 0 && mediaUrls.length === 0) continue;
 
                 // Simular que el bot está escribiendo (demora dinámica basada en la longitud)
@@ -935,55 +907,58 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 await new Promise(r => setTimeout(r, typingTimeMs));
 
                 let sent;
-                // Si hay imágenes, mandamos la primera con el caption (el texto del bloque)
-                // y las siguientes solas sin caption
-                if (mediaUrls.length > 0) {
-                    for (let j = 0; j < mediaUrls.length; j++) {
-                        const mediaObj = { url: mediaUrls[j] };
-                        const captionText = j === 0 ? block : '';
-                        let result = null;
-                        try {
-                            result = await sendMessage(waId, captionText, mediaObj, { isProactive: false });
-                        } catch (mediaErr) {
-                            // Una imagen caída (404, timeout) NO debe abortar el turno completo:
-                            // el cliente ya vio burbujas anteriores y quedaría colgado. Fallback:
-                            // enviar solo el texto (si esta era la burbuja con caption).
-                            console.error(`  ⚠️ Falló envío de imagen ${mediaUrls[j].substring(0, 80)}: ${mediaErr.message}. Enviando sin imagen.`);
-                            if (captionText) {
-                                result = await sendMessage(waId, captionText, null, { isProactive: false }).catch(() => null);
+                let conFoto = false;
+                try {
+                    // Si hay imágenes, la primera lleva el texto como caption y las
+                    // siguientes van solas.
+                    if (mediaUrls.length > 0) {
+                        for (let j = 0; j < mediaUrls.length; j++) {
+                            const captionText = j === 0 ? block : '';
+                            let r = null;
+                            try {
+                                r = await sendMessage(waId, captionText, { url: mediaUrls[j] }, { isProactive: false, origen });
+                                if (j === 0) conFoto = true;
+                            } catch (mediaErr) {
+                                if (mediaErr.code === 'SALIDA_RECHAZADA') throw mediaErr;
+                                // Una imagen caída (404, timeout) NO debe abortar el turno completo.
+                                console.error(`  ⚠️ Falló envío de imagen ${mediaUrls[j].substring(0, 80)}: ${mediaErr.message}. Enviando sin imagen.`);
+                                if (captionText) r = await sendMessage(waId, captionText, null, { isProactive: false, origen }).catch(() => null);
                             }
+                            if (j === 0) sent = r;
                         }
-                        if (j === 0) sent = result;
+                    } else {
+                        sent = await sendMessage(waId, block, null, { isProactive: false, origen });
                     }
-                } else {
-                    // Si no hay imágenes, mandamos solo el texto
-                    sent = await sendMessage(waId, block, null, { isProactive: false });
+                } catch (e) {
+                    if (e.code !== 'SALIDA_RECHAZADA') throw e;
+                    console.warn(`  🛑 Burbuja rechazada por el punto de salida: ${e.motivo || e.message}`);
+                    continue;
                 }
-                    
-                    if (sent) {
-                        const contentSent = block || '[Media]';
-                        rememberBotMessage(sent, contentSent);
-                        const sentWaMessageId = resolveWaMessageId(sent, { waId, direction: 'OUTBOUND', content: contentSent });
 
-                        try {
-                            await prisma.whatsAppMessage.upsert({
-                                where: { waMessageId: sentWaMessageId },
-                                update: { senderName: 'Bot' },
-                                create: {
-                                    chatId: chat.id,
-                                    direction: 'OUTBOUND',
-                                    type: mediaObj ? 'IMAGE' : 'TEXT',
-                                    content: contentSent,
-                                    waMessageId: sentWaMessageId,
-                                    senderName: 'Bot',
-                                    status: 'SENT'
-                                }
-                            });
-                        } catch (e) {
-                            console.error('Error guardando senderName del Bot:', e.message);
-                        }
+                if (sent) {
+                    const contentSent = sent.textoEnviado || block || '[Media]';
+                    rememberBotMessage(sent, contentSent);
+                    const sentWaMessageId = resolveWaMessageId(sent, { waId, direction: 'OUTBOUND', content: contentSent });
+                    try {
+                        await prisma.whatsAppMessage.upsert({
+                            where: { waMessageId: sentWaMessageId },
+                            update: { senderName: 'Bot' },
+                            create: {
+                                chatId: chat.id,
+                                direction: 'OUTBOUND',
+                                type: conFoto ? 'IMAGE' : 'TEXT',
+                                content: contentSent,
+                                ...(conFoto ? { mediaUrl: mediaUrls[0] } : {}),
+                                waMessageId: sentWaMessageId,
+                                senderName: 'Bot',
+                                status: 'SENT'
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Error guardando senderName del Bot:', e.message);
                     }
-                
+                }
+
                 // Pausa extra entre mensajes si manda más de uno seguido
                 if (i < messageBlocks.length - 1) {
                     await new Promise(r => setTimeout(r, 800));
@@ -991,7 +966,6 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             }
 
             // Mantener botReplyingTo activo con grace period DESPUÉS de enviar todos los bloques
-            // (antes se borraba con setTimeout(2000) que podía expirar mientras aún se enviaban bloques)
             setTimeout(() => botReplyingTo.delete(waId), 3000);
             // Resetear contador de errores consecutivos tras envío exitoso
             chatErrorCounts.delete(chat.id);
@@ -1827,7 +1801,7 @@ const handleMessage = async (msg) => {
 
                 const receiptConfirmation = "Buenísimo, ya me llegó el comprobante! Gracias 🙌";
                 botReplyingTo.add(waId);
-                const sentReceipt = await sendMessage(waId, receiptConfirmation, null, { isProactive: false });
+                const sentReceipt = await sendMessage(waId, receiptConfirmation, null, { isProactive: false, origen: 'sistema' });
                 setTimeout(() => botReplyingTo.delete(waId), 3000);
 
                 // Este confirmación quedaba fuera del arreglo del renombre `$1`: leía
@@ -1877,7 +1851,15 @@ const handleMessage = async (msg) => {
         }
 
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio) con DEBOUNCE
-        if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsMessage)) {
+        // Solo las CONSULTAS disparan turno: una reacción, un "gracias" de
+        // cierre o el contestador del negocio del cliente se guardan y nada más
+        // (definición única: shared/clasificar-entrante.js).
+        // Tipos de whatsapp-web.js → los del clasificador ('ptt' es la nota de voz).
+        const TIPO_WEBJS = { chat: 'text', ptt: 'audio', vcard: 'contacts', multi_vcard: 'contacts', image: 'image', video: 'video', audio: 'audio', document: 'document', location: 'location', sticker: 'sticker' };
+        const claseDelEntrante = clasificarEntrante({ type: TIPO_WEBJS[String(msg.type || 'chat')] || 'text', text: body });
+        if (!disparaTurno(claseDelEntrante)) {
+            console.log(`  🤏 Entrante "${claseDelEntrante}" de ${profileName}: se guarda, no se responde.`);
+        } else if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsMessage)) {
             console.log(`  🕒 Programando respuesta del bot para ${profileName} en 25s...`);
             
             if (botDebounceTimers.has(chat.id)) {

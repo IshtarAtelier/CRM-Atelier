@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useFocoMovil } from "@/components/Storefront/useFocoMovil";
 import { PricingService } from "@/services/PricingService";
 import { promoVisible } from "@/lib/promo-visible";
 import { precioConOferta } from "@/lib/precio-oferta";
@@ -72,6 +73,7 @@ function salidaDeLaSolapa(
 }
 
 export function HomeProductCarousel({ collections, totalCount, conteos, descuentoTransferenciaPct, cuotasSinInteres }: Props) {
+  useFocoMovil(); // en el celular, la tarjeta del centro muestra la foto con rostro
   const [activeTab, setActiveTab] = useState<TabKey>('destacados');
   const carouselRef = useRef<HTMLDivElement>(null);
   
@@ -177,6 +179,7 @@ export function HomeProductCarousel({ collections, totalCount, conteos, descuent
               tabIndex={esClon ? -1 : undefined}
               
               className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
+              data-foco-movil={item.secondImg ? '' : undefined}
             >
               {/* Contenedor de imagen — fondo blanco. Sin mix-blend ni isolate: en el
                   carrusel auto-scrolleado esa capa de composición NO se pintaba en prod
@@ -224,7 +227,7 @@ export function HomeProductCarousel({ collections, totalCount, conteos, descuent
                     // de banda al primer pintado.
                     loading="lazy"
                     sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
-                    className={`object-contain p-6 transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}
+                    className={`object-contain p-6 transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0 group-data-[en-foco]:opacity-0' : ''}`}
                   />
                 ) : (
                   <div className="absolute inset-0 w-full h-full flex items-center justify-center text-stone-400 text-[10px] font-black uppercase tracking-widest text-center">
@@ -237,12 +240,11 @@ export function HomeProductCarousel({ collections, totalCount, conteos, descuent
                     src={item.secondImg}
                     alt={`${item.name} Try-On`}
                     fill
-                    // Ídem, y acá pesa más: esta segunda imagen solo se ve al pasar
-                    // el mouse por encima (opacity-0 hasta el hover), así que en
-                    // celular no se muestra NUNCA — y aun así se precargaba.
+                    // Ídem: esta segunda imagen se ve al pasar el mouse y, en el celular,
+                    // cuando la tarjeta cruza el centro de la pantalla (useFocoMovil).
                     loading="lazy"
                     sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
-                    className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+                    className="object-cover opacity-0 md:group-hover:opacity-100 group-data-[en-foco]:opacity-100 transition-opacity duration-500 ease-in-out"
                   />
                 )}
               </div>

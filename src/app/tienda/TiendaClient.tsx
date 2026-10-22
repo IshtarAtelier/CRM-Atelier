@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useTransition, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useFocoMovil } from "@/components/Storefront/useFocoMovil";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
@@ -183,6 +184,7 @@ export function TiendaClient({
   availableColors?: string[];
   footer?: React.ReactNode;
 }) {
+  useFocoMovil(); // en el celular, la tarjeta del centro muestra la foto con rostro
   const router = useRouter();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
@@ -1050,6 +1052,7 @@ export function TiendaClient({
                     key={p.id}
                     href={`/producto/${p.slug || p.id}`}
                     className="group block"
+                    data-foco-movil={hasSecondImage ? '' : undefined}
                     onClick={guardarMemoriaLista}
                   >
                     {/* Imagen */}
@@ -1070,7 +1073,7 @@ export function TiendaClient({
                                   : (p.model || '').toLowerCase().includes('diana')
                                     ? "scale-110"
                                     : "scale-100"
-                              } ${hasSecondImage ? 'md:group-hover:opacity-0' : ''}`}
+                              } ${hasSecondImage ? 'md:group-hover:opacity-0 group-data-[en-foco]:opacity-0' : ''}`}
                             />
                           </div>
                         ) : (
@@ -1088,7 +1091,7 @@ export function TiendaClient({
                             alt={`${altGrilla(p)} — puestos`}
                             fill
                             sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                            className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+                            className="object-cover opacity-0 md:group-hover:opacity-100 group-data-[en-foco]:opacity-100 transition-opacity duration-500 ease-in-out"
                           />
                         )}
                       </div>

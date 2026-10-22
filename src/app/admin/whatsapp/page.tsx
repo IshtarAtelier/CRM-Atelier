@@ -89,8 +89,28 @@ function WhatsAppPageContent() {
     const conversacionRef = useRef<ConversationHandle>(null);
 
     const searchParams = useSearchParams();
-    const urlPhone = searchParams.get('phone');
+    // ?contacto=<id> viene de los avisos del equipo (/admin/mensajes), que solo
+    // conocen la ficha: acá se traduce al teléfono y sigue el camino de ?phone=.
+    const urlContacto = searchParams.get('contacto');
+    const [telefonoDeContacto, setTelefonoDeContacto] = useState<string | null>(null);
+    const urlPhone = searchParams.get('phone') || telefonoDeContacto;
     const handledUrlPhoneRef = useRef(false);
+
+    useEffect(() => {
+        if (!urlContacto || !chatsCargados || telefonoDeContacto) return;
+        const delListado = chats.find(c => c.client?.id === urlContacto);
+        if (delListado) {
+            setTelefonoDeContacto(delListado.realPhone || delListado.client?.phone || delListado.waId);
+            return;
+        }
+        fetch(`/api/contacts/${urlContacto}`)
+            .then(r => (r.ok ? r.json() : null))
+            .then(c => {
+                if (c?.phone) setTelefonoDeContacto(c.phone);
+                else alert('Este contacto no tiene teléfono cargado: no hay conversación para abrir.');
+            })
+            .catch(() => {});
+    }, [urlContacto, chatsCargados, chats, telefonoDeContacto]);
 
     const messages = useMemo(
         () => (selectedChatId ? messagesByChat[selectedChatId] || [] : []),

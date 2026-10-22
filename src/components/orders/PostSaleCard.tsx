@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Eye, ChevronLeft, ChevronRight, ChevronDown, FlaskConical, Loader2, RotateCcw, X, Upload, FileText } from 'lucide-react';
+import { Eye, ChevronLeft, ChevronRight, ChevronDown, FlaskConical, Loader2, RotateCcw, X, Upload, FileText, Plus, ClipboardList } from 'lucide-react';
 import { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
-import { caseTypeStyle, POST_SALE_MOVABLE_STATUSES, postSaleCerrado } from '@/lib/constants/postSale';
+import { PostSaleOperationNumber } from './PostSaleOperationNumber';
+import { POST_SALE_MOVABLE_STATUSES, postSaleCerrado } from '@/lib/constants/postSale';
+import { PV, caseTypeTone } from './postventa-ui';
 
 interface PostSaleCardProps {
     order: Order;
@@ -267,6 +269,7 @@ export function PostSaleCard({
         status: order.postSaleStatus,
         cost: order.postSaleCost,
         cashEntryId: (order as any).postSaleCashEntryId,
+        clientChargedAt: (order as any).postSaleClientChargedAt,
     });
     const statusKeys: string[] = [...POST_SALE_MOVABLE_STATUSES];
     const currentStatus = order.postSaleStatus === 'FINISHED' ? 'READY' : (order.postSaleStatus || 'SENT');
@@ -288,21 +291,21 @@ export function PostSaleCard({
         ];
 
         return (
-            <div className="space-y-2 bg-stone-50 dark:bg-stone-900/40 border border-stone-200/50 dark:border-stone-800 p-3 rounded-xl">
-                <div className="flex items-center justify-between gap-1.5 mb-1">
-                    <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest flex-shrink-0">
-                        Receta Par {pairNum}
+            <div className={`space-y-2 ${PV.panel} p-3`}>
+                <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                    <span className={`${PV.eyebrow} text-amber-700 dark:text-amber-400 flex-shrink-0`}>
+                        Receta par {pairNum}
                     </span>
                     <div className="flex items-center gap-1 min-w-0">
                         <button type="button" onClick={() => importFullOrder(pairNum)}
-                            className="text-[8px] font-black uppercase tracking-wider px-2 py-1 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors flex-shrink-0"
+                            className={`${PV.btn.ghost} h-7 px-2 text-[11px] flex-shrink-0`}
                             title="Traer los datos completos del pedido original">
-                            📋 Traer pedido
+                            <ClipboardList className="w-3.5 h-3.5" /> Traer pedido
                         </button>
                         {clientPrescriptions.length > 0 && (
                             <select
                                 onChange={(e) => { if (e.target.value) { handleImportPrescription(e.target.value, pairNum); e.target.value = ''; } }}
-                                className="text-[9px] p-1 rounded-md border border-stone-200 dark:border-stone-750 bg-white dark:bg-stone-800 outline-none min-w-0"
+                                className="text-[11px] px-2 py-1 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 outline-none min-w-0"
                             >
                                 <option value="">Importar Receta...</option>
                                 {clientPrescriptions.map((p: any) => (
@@ -316,22 +319,23 @@ export function PostSaleCard({
                 </div>
                 {/* OD Row */}
                 <div className="flex items-center gap-1">
-                    <span className="text-[8px] font-black text-stone-500 w-5 flex-shrink-0">OD</span>
+                    <span className="text-[11px] font-semibold text-stone-500 w-6 flex-shrink-0">OD</span>
                     {odFields.map(f => (
                         <div key={f.key} className="flex-1 min-w-0">
-                            <label className="text-[6px] font-bold text-stone-600 dark:text-stone-400 uppercase block text-center">{f.label}</label>
                             <input type="text" value={pairRx[f.key] || ''} onChange={(e) => updateRxField(pairNum, f.key, e.target.value)}
-                                className="w-full text-center text-[10px] p-1 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 dark:text-stone-200" />
+                                placeholder={f.label} title={f.label} aria-label={`${f.label} OD`}
+                                className="w-full text-center text-[11px] px-0.5 py-1 border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 rounded-md placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:text-stone-100" />
                         </div>
                     ))}
                 </div>
                 {/* OI Row */}
                 <div className="flex items-center gap-1">
-                    <span className="text-[8px] font-black text-stone-500 w-5 flex-shrink-0">OI</span>
+                    <span className="text-[11px] font-semibold text-stone-500 w-6 flex-shrink-0">OI</span>
                     {oiFields.map(f => (
                         <div key={f.key} className="flex-1 min-w-0">
                             <input type="text" value={pairRx[f.key] || ''} onChange={(e) => updateRxField(pairNum, f.key, e.target.value)}
-                                className="w-full text-center text-[10px] p-1 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 dark:text-stone-200" />
+                                placeholder={f.label} title={f.label} aria-label={`${f.label} OI`}
+                                className="w-full text-center text-[11px] px-0.5 py-1 border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 rounded-md placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:text-stone-100" />
                         </div>
                     ))}
                 </div>
@@ -340,7 +344,7 @@ export function PostSaleCard({
                     <div className="flex items-center gap-1.5 pt-1">
                         <FileText className="w-3 h-3 text-stone-600 dark:text-stone-400" />
                         <a href={resolveStorageUrl(pairRx.imageUrl)} target="_blank" rel="noopener noreferrer"
-                            className="text-[8px] text-blue-500 hover:underline font-bold">Ver receta actual</a>
+                            className="text-[12px] text-sky-700 dark:text-sky-400 hover:underline font-medium">Ver receta actual</a>
                     </div>
                 )}
             </div>
@@ -348,7 +352,7 @@ export function PostSaleCard({
     };
 
     return (
-        <div className="bg-white dark:bg-stone-850 rounded-2xl border border-stone-200/70 dark:border-stone-750 p-4 shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
+        <div className={`${PV.card} p-4 hover:shadow-md transition-shadow space-y-3 flex flex-col justify-between`}>
             <div className="space-y-2">
                 {/* Header: el nombre abre y cierra la tarjeta. Colapsada entra el triple
                     de casos por columna, que es lo que hace usable el tablero. */}
@@ -359,18 +363,18 @@ export function PostSaleCard({
                         aria-expanded={!collapsed}
                         title={collapsed ? 'Abrir la tarjeta completa' : 'Colapsar'}
                     >
-                        <h4 className="text-xs font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight truncate flex items-center gap-1">
+                        <h4 className="text-[13px] font-semibold text-stone-900 dark:text-stone-50 leading-tight truncate flex items-center gap-1">
                             <ChevronDown className={`w-3 h-3 flex-shrink-0 text-stone-600 dark:text-stone-400 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
                             <span className="truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                                 {order.client?.name || 'Cliente'}
                             </span>
                         </h4>
-                        <span className="text-[9px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest block mt-0.5 pl-4">
+                        <span className="text-[11px] font-medium text-stone-500 dark:text-stone-400 block mt-0.5 pl-4">
                             Venta #{order.id.slice(-4).toUpperCase()}
                         </span>
                     </button>
-                    <button onClick={onExpand} className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-755 text-stone-600 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg transition-colors flex-shrink-0" title="Ver Ficha y Medidas">
-                        <Eye className="w-3.5 h-3.5" />
+                    <button onClick={onExpand} className={`${PV.btn.icon} flex-shrink-0`} title="Ver ficha y medidas">
+                        <Eye className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -378,17 +382,13 @@ export function PostSaleCard({
                     vistazo — la operación (que es lo que más se busca) y la plata. */}
                 {collapsed && (
                     <div className="flex flex-wrap gap-1.5 pl-4">
-                        {order.postSaleNewOrderNumber && (
-                            <span className="bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md font-mono">
-                                {order.postSaleNewOrderNumber}
-                            </span>
+                        {/* El nº de operación se carga y cambia acá mismo (es lo que más
+                            se busca y lo que más tarde se completa). */}
+                        {order.postSaleOrderOption !== 'SAME' && (
+                            <PostSaleOperationNumber compact orderId={order.id} value={order.postSaleNewOrderNumber} history={(order as any).postSaleNewOrderNumberHistory} onSaved={onRefresh} />
                         )}
                         {order.postSaleCost != null && order.postSaleCost > 0 && (
-                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${order.postSaleCashEntryId
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40'
-                                : order.postSaleCostSource === 'LAB'
-                                    ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40'
-                                    : 'bg-red-50 text-red-600 border-red-100 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/30'}`}>
+                            <span className={`${PV.chipSm} tabular-nums ${order.postSaleCashEntryId ? PV.tone.emerald : order.postSaleCostSource === 'LAB' ? PV.tone.amber : PV.tone.rose}`}>
                                 $ {order.postSaleCost.toLocaleString('es-AR')}
                                 {order.postSaleCashEntryId ? ' · cobrado' : order.postSaleCostSource === 'LAB' ? ' · a cobrar' : ''}
                             </span>
@@ -399,46 +399,48 @@ export function PostSaleCard({
                 {/* Info badges */}
                 <div className={`flex-wrap gap-1.5 pt-0.5 ${collapsed ? 'hidden' : 'flex'}`}>
                     {order.postSaleCaseType && (
-                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${caseTypeStyle(order.postSaleCaseType)}`}>
+                        <span className={`${PV.chipSm} ${caseTypeTone(order.postSaleCaseType)}`}>
                             {order.postSaleCaseType}
                         </span>
                     )}
                     {order.postSaleCoverage && (
-                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${order.postSaleCoverage === 'Con cargo' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40' : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40'}`}>
+                        <span className={`${PV.chipSm} ${order.postSaleCoverage === 'Con cargo' ? PV.tone.amber : PV.tone.emerald}`}>
                             {order.postSaleCoverage}
                         </span>
                     )}
                     {/* Un solo badge: responsable y culpa son la misma respuesta
                         desde que el caso se carga con un campo único. */}
                     {(order.postSaleResponsible || order.postSaleFault) && (
-                        <span className="bg-stone-100 dark:bg-stone-750 text-stone-600 dark:text-stone-300 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md flex items-center gap-1">
-                            👤 {order.postSaleResponsible || order.postSaleFault}
+                        <span className={`${PV.chipSm} ${PV.tone.neutral}`}>
+                            Resp. {order.postSaleResponsible || order.postSaleFault}
                         </span>
                     )}
                     {order.postSaleCost != null && order.postSaleCost > 0 && (
-                        <span className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+                        <span className={`${PV.chipSm} tabular-nums ${PV.tone.rose}`}>
                             $ {order.postSaleCost.toLocaleString('es-AR')}
                         </span>
                     )}
-                    {order.postSaleOrderOption && (
-                        <span className="bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
-                            OP: {order.postSaleOrderOption === 'SAME' ? `Misma (#${order.labOrderNumber || 'Original'})` : `Nueva (#${order.postSaleNewOrderNumber || '—'})`}
+                    {order.postSaleOrderOption === 'SAME' ? (
+                        <span className={`${PV.chipSm} font-mono ${PV.tone.sky}`}>
+                            Misma OP #{order.labOrderNumber || 'original'}
                         </span>
+                    ) : (
+                        <PostSaleOperationNumber compact orderId={order.id} value={order.postSaleNewOrderNumber} history={(order as any).postSaleNewOrderNumberHistory} onSaved={onRefresh} />
                     )}
                 </div>
 
                 {/* SmartLab Progress */}
                 {!collapsed && order.smartLabProgress != null && order.smartLabProgress > 0 && requiresLab && (
-                    <div className="bg-blue-50/55 dark:bg-blue-950/20 rounded-xl px-2.5 py-2 border border-blue-100/50 dark:border-blue-800/30">
+                    <div className="rounded-xl px-2.5 py-2 border border-sky-200/70 dark:border-sky-900/50 bg-sky-50/60 dark:bg-sky-950/20">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
-                            <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>{order.smartLabProgress}%</span>
+                            <span className={`${PV.eyebrow} text-sky-700 dark:text-sky-300`}>SmartLab</span>
+                            <span className={`text-[12px] font-semibold tabular-nums ${order.smartLabProgress >= 100 ? 'text-emerald-600' : 'text-sky-700 dark:text-sky-300'}`}>{order.smartLabProgress}%</span>
                         </div>
                         <div className="h-1 bg-blue-100/70 dark:bg-blue-900/30 rounded-full overflow-hidden mb-1">
                             <div className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
                                 style={{ width: `${Math.min(100, order.smartLabProgress)}%` }} />
                         </div>
-                        <div className="flex items-center justify-between text-[7.5px] font-semibold text-stone-500 dark:text-stone-400">
+                        <div className="flex items-center justify-between text-[11px] font-medium text-stone-500 dark:text-stone-400">
                             <span className="truncate max-w-[120px]">{order.smartLabSector || '—'}</span>
                             {order.smartLabDays != null && <span className="font-bold text-amber-500">{order.smartLabDays}d</span>}
                         </div>
@@ -446,21 +448,21 @@ export function PostSaleCard({
                 )}
 
                 {/* Notes History */}
-                <div className={`bg-stone-50 dark:bg-stone-900/40 rounded-xl p-2.5 border border-stone-100 dark:border-stone-800 space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar ${collapsed ? 'hidden' : ''}`}>
-                    <p className="text-[7px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">Historial de Incidencia</p>
+                <div className={`${PV.panel} p-2.5 space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar ${collapsed ? 'hidden' : ''}`}>
+                    <p className={`${PV.eyebrow} border-b border-stone-200 dark:border-stone-800 pb-1`}>Historial</p>
                     {notesHistory.length === 0 ? (
-                        <p className="text-[9px] text-stone-600 dark:text-stone-400 italic">Sin observaciones registradas.</p>
+                        <p className="text-[12px] text-stone-500 dark:text-stone-400 italic">Sin observaciones registradas.</p>
                     ) : (
-                        <div className="space-y-1.5 text-[9px] leading-relaxed font-semibold">
+                        <div className="space-y-1.5 text-[12px] leading-relaxed">
                             {notesHistory.map((line: string, i: number) => {
                                 const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
                                 if (match) return (
                                     <div key={i} className="flex flex-col text-stone-600 dark:text-stone-300">
-                                        <span className="text-[7px] font-black text-amber-600 dark:text-amber-500">{match[1]}</span>
-                                        <span className="font-semibold">{match[2]}</span>
+                                        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">{match[1]}</span>
+                                        <span className="text-stone-700 dark:text-stone-200">{match[2]}</span>
                                     </div>
                                 );
-                                return <div key={i} className="text-stone-500 dark:text-stone-400 font-semibold">{line}</div>;
+                                return <div key={i} className="text-stone-600 dark:text-stone-300">{line}</div>;
                             })}
                         </div>
                     )}
@@ -471,25 +473,25 @@ export function PostSaleCard({
             {showReprocess && (
                 <div className="space-y-3 pt-3 border-t-2 border-amber-200 dark:border-amber-900/50">
                     <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1">
-                            <RotateCcw className="w-3 h-3" /> Reproceso
+                        <span className={`${PV.eyebrow} text-amber-700 dark:text-amber-400 flex items-center gap-1.5`}>
+                            <RotateCcw className="w-3.5 h-3.5" /> Reproceso
                         </span>
-                        <button onClick={() => setShowReprocess(false)} className="p-1 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-md transition-colors">
-                            <X className="w-3 h-3 text-stone-600 dark:text-stone-400" />
+                        <button onClick={() => setShowReprocess(false)} className={PV.btn.icon} title="Cerrar reproceso">
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
 
                     {order.postSaleOrderOption === 'DIFFERENT' ? (
                         <div className="space-y-3">
                             {/* Pair selectors */}
-                            <div className="flex gap-3 p-2 bg-stone-50/50 dark:bg-stone-900/30 rounded-lg border border-stone-200/50 dark:border-stone-850">
-                                <label className="flex items-center gap-1.5 text-[9px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                            <div className={`flex gap-4 p-2.5 ${PV.panel}`}>
+                                <label className="flex items-center gap-2 text-[12px] font-medium text-stone-700 dark:text-stone-200 cursor-pointer">
                                     <input type="checkbox" checked={pair1Faulty} onChange={(e) => setPair1Faulty(e.target.checked)}
                                         className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 w-3.5 h-3.5" />
                                     Re-hacer Par 1
                                 </label>
                                 {hasSecondPair && (
-                                    <label className="flex items-center gap-1.5 text-[9px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                    <label className="flex items-center gap-2 text-[12px] font-medium text-stone-700 dark:text-stone-200 cursor-pointer">
                                         <input type="checkbox" checked={pair2Faulty} onChange={(e) => setPair2Faulty(e.target.checked)}
                                             className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 w-3.5 h-3.5" />
                                         Re-hacer Par 2
@@ -498,10 +500,10 @@ export function PostSaleCard({
                             </div>
 
                             {/* Motivo: cambio de receta → obliga a subir la nueva receta */}
-                            <label className="flex items-start gap-1.5 text-[9px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer px-1">
+                            <label className="flex items-start gap-2 text-[12px] font-medium text-stone-700 dark:text-stone-200 cursor-pointer px-1">
                                 <input type="checkbox" checked={rxChange} onChange={(e) => setRxChange(e.target.checked)}
                                     className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                                <span>Es por <b>cambio de receta</b> <span className="text-amber-600 dark:text-amber-500">(obligatorio adjuntar la nueva receta)</span></span>
+                                <span>Es por <b>cambio de receta</b> <span className="text-amber-700 dark:text-amber-400">(obligatorio adjuntar la nueva receta)</span></span>
                             </label>
 
                             {pair1Faulty && renderRxFormInline(rx1, 1)}
@@ -509,14 +511,14 @@ export function PostSaleCard({
 
                             {/* New Recipe Image Upload */}
                             <div className="space-y-1.5">
-                                <label className="text-[7px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest block">
-                                    Adjuntar Nueva Receta{rxChange && <span className="text-red-500"> * obligatorio</span>}
+                                <label className={PV.label}>
+                                    Adjuntar nueva receta{rxChange && <span className="text-rose-600"> · obligatorio</span>}
                                 </label>
                                 <div className="flex items-center gap-2">
                                     <label className={`flex-1 flex items-center gap-2 px-3 py-2 bg-stone-50 dark:bg-stone-900 border border-dashed rounded-xl cursor-pointer transition-colors ${rxChangeMissingImage ? 'border-red-400 hover:border-red-500' : 'border-stone-300 dark:border-stone-700 hover:border-amber-400'}`}>
                                         <Upload className={`w-3.5 h-3.5 ${rxChangeMissingImage ? 'text-red-400' : 'text-stone-600 dark:text-stone-400'}`} />
-                                        <span className="text-[9px] text-stone-500 font-semibold truncate">
-                                            {newRxImageFile ? newRxImageFile.name : 'Seleccionar imagen...'}
+                                        <span className="text-[12px] text-stone-600 dark:text-stone-300 truncate">
+                                            {newRxImageFile ? newRxImageFile.name : 'Seleccionar imagen…'}
                                         </span>
                                         <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                                     </label>
@@ -527,22 +529,22 @@ export function PostSaleCard({
                                 {rxChangeMissingImage && (
                                     <div className={`mt-1 space-y-1.5 border rounded-xl p-2.5 ${reprocessAuthNoRx ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40' : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40'}`}>
                                         {reprocessAuthNoRx ? (
-                                            <p className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 leading-snug">
+                                            <p className="text-[12px] font-medium text-emerald-700 dark:text-emerald-400 leading-snug">
                                                 ✓ Reproceso sin receta autorizado por administrador. Podés cargarlo, pero recordá que sin receta no corresponde envío sin cargo.
                                             </p>
                                         ) : (
-                                            <p className="text-[8px] font-bold text-red-600 dark:text-red-400 leading-snug">
-                                                ⚠️ Sin la nueva receta no se puede enviar el reproceso sin cargo. Pedile a un administrador que autorice el reproceso del pedido.
+                                            <p className="text-[12px] font-medium text-rose-700 dark:text-rose-400 leading-snug">
+                                                Sin la nueva receta no se puede enviar el reproceso sin cargo. Pedile a un administrador que autorice el reproceso del pedido.
                                             </p>
                                         )}
                                         {isAdmin ? (
-                                            <label className="flex items-start gap-1.5 text-[8px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                            <label className="flex items-start gap-2 text-[12px] font-medium text-stone-700 dark:text-stone-200 cursor-pointer">
                                                 <input type="checkbox" checked={reprocessAuthNoRx} onChange={(e) => setReprocessAuthNoRx(e.target.checked)}
                                                     className="rounded border-stone-300 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                                                 <span>Autorizo el reproceso sin la nueva receta (como administrador).</span>
                                             </label>
                                         ) : !reprocessAuthNoRx && (
-                                            <p className="text-[8px] font-semibold text-red-500/80 italic">Solo un administrador puede autorizar el reproceso sin receta.</p>
+                                            <p className="text-[12px] text-rose-700/80 dark:text-rose-400/80 italic">Solo un administrador puede autorizar el reproceso sin receta.</p>
                                         )}
                                     </div>
                                 )}
@@ -551,9 +553,9 @@ export function PostSaleCard({
                             {/* Aviso: faltan medidas del armazón (se cargan en la ficha ampliada) */}
                             {needsFrameMeasures && ((pair1Faulty && !hasFrameMeasures(rx1)) || (hasSecondPair && pair2Faulty && !hasFrameMeasures(rx2))) && (
                                 <button type="button" onClick={onExpand}
-                                    className="w-full text-left bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-xl p-2.5 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors">
-                                    <p className="text-[8px] font-bold text-red-600 dark:text-red-400 leading-snug">
-                                        📐 Este lente (multifocal o monofocal de lab) requiere las <b>medidas del armazón</b> (A, B, ED, Puente). Tocá para <b>ampliar la ficha</b> y cargarlas.
+                                    className={`w-full text-left ${PV.panelRose} p-2.5 hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-colors`}>
+                                    <p className="text-[12px] font-medium text-rose-700 dark:text-rose-300 leading-snug">
+                                        Este lente (multifocal o monofocal de lab) requiere las <b>medidas del armazón</b> (A, B, ED, Puente). Tocá para <b>ampliar la ficha</b> y cargarlas.
                                     </p>
                                 </button>
                             )}
@@ -562,27 +564,27 @@ export function PostSaleCard({
                             <div className="flex gap-2">
                                 {pair1Faulty && (
                                     <button onClick={() => handleSaveAndLaunch(1)} disabled={isAutoSubmitting || isSavingRx || isUploadingImage || reprocessBlocked || (needsFrameMeasures && !hasFrameMeasures(rx1))}
-                                        className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className={`${PV.btn.accent} flex-1`}
                                         title={needsFrameMeasures && !hasFrameMeasures(rx1) ? 'Faltan las medidas del armazón del Par 1 — ampliá la ficha' : (reprocessBlocked ? 'Falta la nueva receta o la autorización del administrador' : 'Guardar datos y cargar Par 1 en SmartLab')}>
                                         {(isAutoSubmitting || isSavingRx) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                        🤖 Cargar Par 1
+                                        Cargar par 1 en SmartLab
                                     </button>
                                 )}
                                 {hasSecondPair && pair2Faulty && (
                                     <button onClick={() => handleSaveAndLaunch(2)} disabled={isAutoSubmitting || isSavingRx || isUploadingImage || reprocessBlocked || (needsFrameMeasures && !hasFrameMeasures(rx2))}
-                                        className="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className={`${PV.btn.accent} flex-1`}
                                         title={needsFrameMeasures && !hasFrameMeasures(rx2) ? 'Faltan las medidas del armazón del Par 2 — ampliá la ficha' : (reprocessBlocked ? 'Falta la nueva receta o la autorización del administrador' : 'Guardar datos y cargar Par 2 en SmartLab')}>
                                         {(isAutoSubmitting || isSavingRx) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                        🤖 Cargar Par 2
+                                        Cargar par 2 en SmartLab
                                     </button>
                                 )}
                             </div>
                         </div>
                     ) : order.postSaleOrderOption === 'SAME' ? (
                         <div className="space-y-3">
-                            <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-3 border border-stone-200/50 dark:border-stone-800">
-                                <p className="text-[8px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest mb-2">Datos del Pedido Original</p>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px]">
+                            <div className={`${PV.panel} p-3`}>
+                                <p className={`${PV.eyebrow} mb-2`}>Datos del pedido original</p>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
                                     <div className="flex justify-between"><span className="text-stone-600 dark:text-stone-400 font-bold">OP:</span><span className="font-black text-stone-700 dark:text-stone-200">#{order.labOrderNumber || '—'}</span></div>
                                     {order.prescription && (<>
                                         <div className="flex justify-between"><span className="text-stone-600 dark:text-stone-400 font-bold">Esf OD:</span><span className="font-black text-stone-700 dark:text-stone-200">{order.prescription.sphereOD ?? '—'}</span></div>
@@ -593,9 +595,9 @@ export function PostSaleCard({
                                 </div>
                             </div>
                             <button onClick={() => handleDirectLaunch(1)} disabled={isAutoSubmitting}
-                                className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50">
+                                className={`${PV.btn.accent} w-full`}>
                                 {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                🤖 Cargar en SmartLab (Misma OP)
+                                Cargar en SmartLab (misma OP)
                             </button>
                         </div>
                     ) : null}
@@ -606,33 +608,33 @@ export function PostSaleCard({
             <div className={`space-y-2 pt-2 border-t border-stone-100 dark:border-stone-800 ${collapsed ? 'hidden' : ''}`}>
                 <form onSubmit={handleAddNote} className="flex gap-1.5 items-center">
                     <input type="text" placeholder="Comentar..." value={newNote} onChange={e => setNewNote(e.target.value)} disabled={isSavingNote}
-                        className="flex-1 bg-stone-55 dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 text-[10px] p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 disabled:opacity-50 dark:text-stone-200" />
+                        className={`flex-1 ${PV.fieldSm} disabled:opacity-50`} />
                     <button type="submit" disabled={isSavingNote || !newNote.trim()}
-                        className="px-2.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-30 text-white rounded-xl text-[10px] font-black transition-all flex-shrink-0">
-                        {isSavingNote ? '...' : '+'}
+                        className={`${PV.btn.secondary} ${PV.btn.sm} px-2.5 flex-shrink-0`} title="Agregar comentario" aria-label="Agregar comentario">
+                        {isSavingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                     </button>
                 </form>
 
                 <div className="flex items-center justify-between pt-1">
                     <button onClick={() => onMove('left')} disabled={!canMoveLeft}
-                        className="p-1 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-450 hover:text-stone-700 dark:hover:text-stone-200 disabled:opacity-20 rounded-lg transition-colors flex items-center justify-center"
-                        title="Mover a etapa anterior"><ChevronLeft className="w-4 h-4" /></button>
+                        className={PV.btn.icon}
+                        title="Mover a la etapa anterior"><ChevronLeft className="w-4 h-4" /></button>
 
                     {requiresLab && onAutoSubmit && !showReprocess ? (
                         <button onClick={() => setShowReprocess(true)}
-                            className="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-sm hover:shadow-md hover:scale-105 active:scale-95"
-                            title="Abrir panel de reproceso SmartLab">
-                            <RotateCcw className="w-3 h-3" />Reprocesar
+                            className={`${PV.btn.accent} ${PV.btn.sm}`}
+                            title="Abrir el panel de reproceso SmartLab">
+                            <RotateCcw className="w-3.5 h-3.5" /> Reprocesar
                         </button>
                     ) : (
-                        <span className={`text-[7px] font-black ${showReprocess ? 'text-amber-500' : 'text-stone-450 dark:text-stone-500'} uppercase tracking-widest italic select-none`}>
+                        <span className={`text-[11px] font-medium ${showReprocess ? 'text-amber-700 dark:text-amber-400' : 'text-stone-400'} select-none`}>
                             {showReprocess ? 'Reproceso' : 'Mover'}
                         </span>
                     )}
 
                     <button onClick={() => onMove('right')} disabled={!canMoveRight}
-                        className="p-1 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-450 hover:text-stone-700 dark:hover:text-stone-200 disabled:opacity-20 rounded-lg transition-colors flex items-center justify-center"
-                        title="Mover a siguiente etapa"><ChevronRight className="w-4 h-4" /></button>
+                        className={PV.btn.icon}
+                        title="Mover a la etapa siguiente"><ChevronRight className="w-4 h-4" /></button>
                 </div>
             </div>
         </div>

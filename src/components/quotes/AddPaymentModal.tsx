@@ -8,7 +8,7 @@ import {
 import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/ui/FileDropZone';
 import { isCardMethod, esMercadoPago, METODO_ESPECIAL, type CardMode } from '@/lib/payment-card';
-import { GRUPOS_FORMAS_DE_PAGO, type IconoFormaDePago } from '@/lib/constants/formas-de-pago';
+import { gruposFormasDePagoActivos, avisosFormasPausadas, type IconoFormaDePago } from '@/lib/constants/formas-de-pago';
 
 interface AddPaymentModalProps {
     orderId: string;
@@ -16,6 +16,8 @@ interface AddPaymentModalProps {
     paidAmount: number;
     onClose: () => void;
     onSuccess: (payment: any) => void;
+    /** Post-venta: el cliente solo paga en efectivo o por transferencia (sin tarjetas ni cuotas). */
+    soloEfectivoYTransferencia?: boolean;
 }
 
 const COLOR_STYLES: Record<string, { active: string; inactive: string; iconActive: string; iconInactive: string }> = {
@@ -68,7 +70,7 @@ const COLOR_STYLES: Record<string, { active: string; inactive: string; iconActiv
 const ICONO_FORMA: Record<IconoFormaDePago, React.ComponentType<{ className?: string }>> = {
     efectivo: Banknote, transferencia: ArrowRightLeft, tarjeta: CreditCard, especial: Sparkles,
 };
-const PAYMENT_GROUPS = GRUPOS_FORMAS_DE_PAGO.map(g => ({
+const paymentGroups = () => gruposFormasDePagoActivos().map(g => ({
     ...g,
     items: g.items.map(i => ({ ...i, icon: ICONO_FORMA[i.icono] })),
 }));
@@ -78,7 +80,8 @@ export default function AddPaymentModal({
     totalAmount,
     paidAmount,
     onClose,
-    onSuccess
+    onSuccess,
+    soloEfectivoYTransferencia = false,
 }: AddPaymentModalProps) {
     const [amount, setAmount] = useState('');
     const [method, setMethod] = useState('EFECTIVO');
@@ -347,8 +350,11 @@ export default function AddPaymentModal({
                         <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
                             Método de Pago
                         </label>
+                        {!soloEfectivoYTransferencia && avisosFormasPausadas().map(aviso => (
+                            <p key={aviso} role="alert" className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">{aviso}</p>
+                        ))}
                         <div className="space-y-4">
-                            {PAYMENT_GROUPS.map((group) => (
+                            {paymentGroups().filter(g => !soloEfectivoYTransferencia || g.id === 'principales').map((group) => (
                                 <fieldset key={group.id} className="space-y-2">
                                 <legend className="text-xs font-bold text-stone-600 dark:text-stone-300 pl-1 mb-2">{group.titulo}</legend>
                                 <div className={`grid gap-2 ${group.items.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : group.items.length === 1 ? 'grid-cols-1' : 'grid-cols-3'}`}>

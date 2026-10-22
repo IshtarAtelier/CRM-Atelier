@@ -7,10 +7,11 @@ import {
 } from 'lucide-react';
 import {
     POST_SALE_CASE_TYPES, POST_SALE_COVERAGE, POST_SALE_RESPONSIBLE_CAUSES,
-    caseTypeStyle, postSaleColumnLabel,
+    postSaleColumnLabel,
     parseResponsibleOption, responsibleOptionOf, responsibleUserValue, cajaDestino,
     type PostSaleUser,
 } from '@/lib/constants/postSale';
+import { PV, caseTypeTone } from './postventa-ui';
 import { formatDateTime } from '@/lib/format-date';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 
@@ -35,6 +36,7 @@ export interface PostSaleFormValue {
     newOrderNumber?: string | null;
     /** Si el caso ya se descontó de una caja, el costo y el responsable quedan cerrados. */
     cashEntryId?: string | null;
+    clientChargedAt?: string | Date | null;
 }
 
 /** Adapta una venta (campos `postSale*`) a lo que espera el formulario. */
@@ -54,6 +56,7 @@ export function postSaleValueFromOrder(order: any): PostSaleFormValue {
         orderOption: order.postSaleOrderOption,
         newOrderNumber: order.postSaleNewOrderNumber,
         cashEntryId: order.postSaleCashEntryId,
+        clientChargedAt: (order as any).postSaleClientChargedAt,
     };
 }
 
@@ -74,6 +77,7 @@ export function postSaleValueFromCase(c: any): PostSaleFormValue {
         orderOption: c.orderOption,
         newOrderNumber: c.newOrderNumber,
         cashEntryId: c.cashEntryId,
+        clientChargedAt: c.clientChargedAt,
     };
 }
 
@@ -96,11 +100,11 @@ interface PostSaleServiceFormProps {
 // Etiquetas a 10px y texto a 13-14px. Las de 8px con tracking ancho que había
 // antes fallan por tamaño el mismo piso de legibilidad que fijamos por contraste
 // (hay una compañera del equipo con baja visión).
-const SECCION = 'text-[11px] font-black uppercase tracking-wider text-stone-500 dark:text-stone-400';
-const LABEL = 'block text-[10px] font-bold uppercase tracking-wide text-stone-600 dark:text-stone-300 mb-1.5';
-const CAMPO = 'w-full text-sm px-3 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 placeholder-stone-500 dark:placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-600 transition-all';
-const AYUDA = 'mt-1.5 text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed';
-const CHIP = 'text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border';
+const SECCION = PV.eyebrow;
+const LABEL = PV.label;
+const CAMPO = PV.field;
+const AYUDA = PV.help;
+const CHIP = PV.chip;
 
 /** Bloque con título: da la estructura que antes era una lista plana de 7 controles. */
 function Seccion({ titulo, icono, children }: { titulo: string; icono?: React.ReactNode; children: React.ReactNode }) {
@@ -147,7 +151,7 @@ export function PostSaleServiceForm({
     const isAdmin = userRole === 'ADMIN';
     // Caso ya descontado de una caja: el costo y el responsable son historia y
     // corregirlos exige revertir el movimiento (la API los rechaza igual).
-    const yaImputado = !!value.cashEntryId;
+    const yaImputado = !!(value.cashEntryId || value.clientChargedAt);
 
     const [open, setOpen] = useState(defaultOpen);
     const [users, setUsers] = useState<PostSaleUser[]>([]);
@@ -350,27 +354,23 @@ export function PostSaleServiceForm({
     // ── Cabecera de estado: qué caso es, de un vistazo ───────────────────────
     const chips = (
         <div className="flex flex-wrap items-center gap-1.5">
-            <span className={`${CHIP} ${caseTypeStyle(value.caseType)}`}>{value.caseType || 'Sin tipificar'}</span>
-            <span className={`${CHIP} border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300`}>
-                {postSaleColumnLabel({ status: value.status, cost: value.cost, cashEntryId: value.cashEntryId })}
+            <span className={`${CHIP} ${caseTypeTone(value.caseType)}`}>{value.caseType || 'Sin tipificar'}</span>
+            <span className={`${CHIP} ${PV.tone.outline}`}>
+                {postSaleColumnLabel({ status: value.status, cost: value.cost, cashEntryId: value.cashEntryId, clientChargedAt: value.clientChargedAt })}
             </span>
             {value.coverage && (
-                <span className={`${CHIP} ${value.coverage === 'Con cargo'
-                    ? 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40'
-                    : 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40'}`}>
+                <span className={`${CHIP} ${value.coverage === 'Con cargo' ? PV.tone.amber : PV.tone.emerald}`}>
                     {value.coverage}
                 </span>
             )}
             {(value.cost ?? 0) > 0 && (
-                <span className={`${CHIP} ${yaImputado
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40'
-                    : 'bg-stone-100 text-stone-700 border-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-600'}`}>
+                <span className={`${CHIP} tabular-nums ${yaImputado ? PV.tone.emerald : PV.tone.neutral}`}>
                     {fmt(value.cost!)}{yaImputado ? ' · cobrado' : ''}
                 </span>
             )}
             {value.responsible && (
-                <span className={`${CHIP} border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300`}>
-                    👤 {value.responsible}
+                <span className={`${CHIP} ${PV.tone.neutral}`}>
+                    Resp. {value.responsible}
                 </span>
             )}
         </div>
@@ -382,7 +382,7 @@ export function PostSaleServiceForm({
 
             {/* ── Qué pasó: el historial es el contenido principal del caso ──── */}
             <Seccion titulo="Qué pasó" icono={<MessageSquarePlus className="w-3.5 h-3.5" />}>
-                <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/40 divide-y divide-stone-200/70 dark:divide-stone-800 max-h-[320px] overflow-y-auto custom-scrollbar">
+                <div className={`${PV.panel} divide-y divide-stone-200/70 dark:divide-stone-800 max-h-[320px] overflow-y-auto custom-scrollbar`}>
                     {historial.length === 0 ? (
                         <p className="text-[13px] text-stone-600 dark:text-stone-400 italic p-3">Todavía no hay observaciones. La primera contá qué reportó el cliente.</p>
                     ) : (
@@ -413,9 +413,9 @@ export function PostSaleServiceForm({
                         className={`${CAMPO} resize-none`}
                     />
                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <label className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-stone-900 border border-dashed border-stone-400 dark:border-stone-600 rounded-xl cursor-pointer hover:border-amber-500 transition-colors">
-                            <ImageIcon className="w-4 h-4 text-stone-600 dark:text-stone-400" />
-                            <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300">
+                        <label className={`${PV.btn.secondary} cursor-pointer`}>
+                            <ImageIcon className="w-4 h-4" />
+                            <span>
                                 {noteImageFile ? 'Cambiar foto' : 'Adjuntar foto'}
                             </span>
                             <input type="file" accept="image/*" onChange={handleNoteImageSelect} className="hidden" />
@@ -423,7 +423,7 @@ export function PostSaleServiceForm({
                         {noteImagePreview && (
                             <span className="flex items-center gap-1">
                                 <img src={noteImagePreview} alt="Vista previa" className="w-9 h-9 rounded-lg object-cover border border-stone-300 dark:border-stone-700" />
-                                <button onClick={clearNoteImage} className="p-1 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 transition-colors" title="Quitar foto">
+                                <button onClick={clearNoteImage} className={PV.btn.icon} title="Quitar foto">
                                     <X className="w-4 h-4" />
                                 </button>
                             </span>
@@ -431,9 +431,9 @@ export function PostSaleServiceForm({
                         <button
                             onClick={agregarObservacion}
                             disabled={!puedePublicar || publicando}
-                            className="ml-auto px-4 py-2 rounded-xl bg-stone-900 text-white dark:bg-white dark:text-stone-900 text-[11px] font-black uppercase tracking-wider shadow-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center gap-1.5"
+                            className={`${PV.btn.primary} ml-auto`}
                         >
-                            {publicando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageSquarePlus className="w-3.5 h-3.5" />}
+                            {publicando ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquarePlus className="w-4 h-4" />}
                             Agregar observación
                         </button>
                     </div>
@@ -493,9 +493,9 @@ export function PostSaleServiceForm({
                     : 'border-amber-300 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20'}`}>
                     <Wallet className={`w-4 h-4 mt-0.5 flex-shrink-0 ${caja.loCubreLaOptica ? 'text-stone-600 dark:text-stone-400' : 'text-amber-700 dark:text-amber-500'}`} />
                     <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-stone-600 dark:text-stone-400">El costo impacta en</p>
-                        <p className="text-sm font-black text-stone-900 dark:text-stone-100">{caja.label}</p>
-                        <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed mt-0.5">
+                        <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400">El costo impacta en</p>
+                        <p className="text-[14px] font-semibold text-stone-900 dark:text-stone-50">{caja.label}</p>
+                        <p className={`${PV.muted} mt-0.5`}>
                             {caja.loCubreLaOptica
                                 ? 'No es de nadie del equipo: lo absorbe la óptica. El descuento se hace cuando el laboratorio cierra el costo real.'
                                 : 'El descuento se hace cuando el laboratorio cierra el costo real, y lo confirma la administración.'}
@@ -532,7 +532,7 @@ export function PostSaleServiceForm({
                                 : 'border-dashed border-amber-400 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/10'}`}
                         />
                         {!newOrderNumber.trim() && (
-                            <p className="mt-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-500 leading-relaxed">
+                            <p className="mt-1.5 text-[12px] font-medium text-amber-800 dark:text-amber-400 leading-relaxed">
                                 Pendiente. Se guarda así y se completa cuando el lab lo procese.
                             </p>
                         )}
@@ -567,7 +567,7 @@ export function PostSaleServiceForm({
                         </p>
                     )}
                     {yaImputado && (
-                        <p className="mt-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                        <p className="mt-1.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-400 leading-relaxed">
                             Ya se descontó de caja: el monto y el responsable quedan cerrados. Para corregirlos hay que revertir el movimiento.
                         </p>
                     )}
@@ -577,19 +577,19 @@ export function PostSaleServiceForm({
             {/* ── Guardar: aparece solo si hay algo que guardar ───────────────── */}
             {cambios.length > 0 && (
                 <div className="sticky bottom-0 -mx-1 px-1 pt-3 pb-1 bg-gradient-to-t from-white via-white dark:from-stone-850 dark:via-stone-850">
-                    <div className="rounded-xl border-2 border-amber-400 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 flex flex-wrap items-center gap-3">
+                    <div className={`${PV.panelAmber} p-3 flex flex-wrap items-center gap-3`}>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-black uppercase tracking-wide text-amber-900 dark:text-amber-400">
+                            <p className="text-[12px] font-semibold text-amber-900 dark:text-amber-300">
                                 {cambios.length === 1 ? '1 cambio sin guardar' : `${cambios.length} cambios sin guardar`}
                             </p>
-                            <p className="text-[11px] text-stone-700 dark:text-stone-300 leading-relaxed truncate" title={cambios.join(' · ')}>
+                            <p className={`${PV.muted} truncate`} title={cambios.join(' · ')}>
                                 {cambios.join(' · ')}
                             </p>
                         </div>
                         <button
                             onClick={guardarCambios}
                             disabled={guardando}
-                            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-wider shadow-sm transition-colors flex items-center gap-2"
+                            className={PV.btn.accent}
                         >
                             {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                             Guardar cambios
@@ -599,7 +599,7 @@ export function PostSaleServiceForm({
             )}
 
             {aviso && (
-                <p className={`flex items-center gap-1.5 text-[12px] font-bold ${aviso.tipo === 'ok' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                <p className={`flex items-center gap-1.5 text-[12px] font-medium ${aviso.tipo === 'ok' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                     {aviso.tipo === 'ok' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                     {aviso.texto}
                 </p>
@@ -610,19 +610,19 @@ export function PostSaleServiceForm({
     if (variant === 'plain') return cuerpo;
 
     return (
-        <div className={open ? 'bg-white dark:bg-stone-850 rounded-2xl border-2 border-amber-300 dark:border-amber-900/50 p-5 shadow-sm space-y-4' : ''}>
+        <div className={open ? `${PV.card} p-5 space-y-4` : ''}>
             <button
                 onClick={() => setOpen(!open)}
                 className={open
-                    ? 'w-full flex items-center justify-between gap-2 pb-3 border-b border-stone-200 dark:border-stone-700'
-                    : 'w-full flex items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-stone-850 rounded-2xl border-2 border-amber-300 dark:border-amber-900/50 shadow-sm hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors'}
+                    ? `w-full flex items-center justify-between gap-2 pb-3 ${PV.divider} border-t-0 border-b`
+                    : `${PV.card} w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors`}
             >
-                <span className="text-[11px] font-black text-amber-700 dark:text-amber-500 uppercase tracking-wider">
-                    Servicio de Post Venta
+                <span className={`${PV.eyebrow} text-amber-700 dark:text-amber-400`}>
+                    Servicio de post venta
                 </span>
                 {/* Colapsada, la tarjeta igual dice de qué caso se trata. */}
                 {!open && <span className="hidden sm:flex min-w-0">{chips}</span>}
-                {open ? <ChevronUp className="w-4 h-4 text-amber-700 dark:text-amber-500 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-amber-700 dark:text-amber-500 flex-shrink-0" />}
+                {open ? <ChevronUp className="w-4 h-4 text-stone-500 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-stone-500 flex-shrink-0" />}
             </button>
             {open && cuerpo}
         </div>

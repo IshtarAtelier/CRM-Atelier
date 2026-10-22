@@ -37,6 +37,8 @@ import {
     safePrice,
     recalculateCrystalPrices,
     applyTeñidoPromoDiscount,
+    isTeñidoAddon,
+    tenidoDeOtroLaboratorio,
     armarParesDeCristal
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals, PricingService } from '@/services/PricingService';
@@ -51,6 +53,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import TablaCotizador from './TablaCotizador';
 import FiltrosDeCategoria, { CATEGORIA_TODAS, coincideCategoria, etiquetaCategoria } from '@/components/inventory/FiltrosDeCategoria';
 import { PRODUCT_CATEGORIES } from '@/lib/constants';
+import { esArchivado } from '@/lib/cristales-web/claves';
 
 // Chips de la barra de filtros. Estaban con la clase copiada cuatro veces, y con
 // `border-sidebar-border` — un tono que NO existe: sin color declarado el borde cae a
@@ -245,7 +248,7 @@ function CotizadorPageContent() {
                     // para las ventas ya hechas, los reportes de costo de
                     // laboratorio siguen cuadrando, pero el vendedor no lo ve.
                     // Borrarlo dejaría huérfanas esas ventas.
-                    setProducts(data.filter((p: Product) => !/^\s*\[archivado\]/i.test(p.name || '')));
+                    setProducts(data.filter((p: Product) => !esArchivado(p.name)));
                 } else {
                     console.error('Error loading products:', data);
                     setProducts([]);
@@ -603,9 +606,14 @@ function CotizadorPageContent() {
         // a precio de lista un armazón que la web mostraba rebajado.
         const sprice = safePrice(precioConOferta(p).final);
         
+        // Un teñido es del laboratorio de los cristales, o no entra.
+        const labCristales = tenidoDeOtroLaboratorio(p, quoteItems);
+        if (labCristales) {
+            alert(`Los cristales de este presupuesto son de ${labCristales}: elegí el teñido de ${labCristales}, no el de ${p.laboratory}.`);
+            return;
+        }
         // Teñido addon validation: warn if no orgánico blanco in cart
-        const isTeñidoAddon = (p.name || '').toLowerCase() === 'teñido' && p.type === 'ADDON';
-        if (isTeñidoAddon) {
+        if (isTeñidoAddon(p)) {
             const hasOrganicoBlanco = quoteItems.some(item => {
                 const name = (item.product?.name || '').toLowerCase();
                 return !!item.product && isCrystal(item.product) && (name.includes('orgánico blanco') || name.includes('organico blanco'));

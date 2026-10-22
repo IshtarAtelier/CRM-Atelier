@@ -4,7 +4,7 @@ import { InvoiceRequestService, SolicitudFacturaError } from '@/services/invoice
 
 /**
  * POST /api/billing/invoice-request — el vendedor pide una factura.
- * Body: { orderId, monto, datosConfirmados, observaciones? }
+ * Body: { orderId, monto, cliente?: { nombre, dni }, datosConfirmados, observaciones? }
  */
 export async function POST(request: Request) {
     try {
@@ -13,6 +13,9 @@ export async function POST(request: Request) {
             {
                 orderId: String(body.orderId || ''),
                 monto: Number(body.monto),
+                cliente: body.cliente && typeof body.cliente.nombre === 'string'
+                    ? { nombre: body.cliente.nombre, dni: typeof body.cliente.dni === 'string' ? body.cliente.dni : null }
+                    : null,
                 datosConfirmados: body.datosConfirmados === true,
                 observaciones: typeof body.observaciones === 'string' ? body.observaciones : null,
             },

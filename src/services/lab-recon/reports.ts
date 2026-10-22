@@ -479,6 +479,7 @@ export async function searchReport(query?: string, day?: string) {
             OR: [
                 { client: { name: { contains: q, mode: 'insensitive' } } },
                 { labOrderNumber: { contains: q, mode: 'insensitive' } },
+                { labOrderNumberHistory: { contains: q, mode: 'insensitive' } },
             ],
         });
     }

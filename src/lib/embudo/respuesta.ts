@@ -34,6 +34,7 @@ export interface MensajeEntrante {
 /** "Más adelante": se mira ANTES que el cierre, porque "por ahora no" también tiene un "no". */
 const POSPONER: RegExp[] = [
     /^ahora no\.?$/, // el botón de `retomar_conversacion`
+    /^lo estoy pensando\.?$/, // botón del 1º toque corto (16/10/2026)
     /m[aá]s adelante/,
     /por ahora no/,
     /por el momento/,
@@ -54,10 +55,16 @@ const POSPONER: RegExp[] = [
  * marcos, pasame presupuesto". Solo cuenta lo que no admite otra lectura.
  */
 const CIERRE: RegExp[] = [
+    /^ya lo resolv[ií]\.?$/,
     /\bno,? (muchas )?gracias\b/,
     /\bno (me )?interesa|no estoy interesad|no me sirve|no lo necesito|no quiero|no voy a (querer|comprar|hacer)/,
     /\bno (te|les) agradezco\b/,
-    /\bya (los? |las? |lo |la |me )?(compr[eé]|resolv[ií]|hice|consegu[ií]|encargu[eé]|realic[eé])/,
+    // Singular, plural y tiempos compuestos. El 11/10/2026 Rubén escribió "ya
+    // hemos encargado los lentes" DOS veces y el motor, que solo conocía "ya
+    // encargué", le siguió mandando toques (15/10, revisión de Ishtar).
+    /\bya (los? |las? |lo |la |me |nos )?(compr[eé]|resolv[ií]|hice|consegu[ií]|encargu[eé]|realic[eé]|ped[ií]|compramos|resolvimos|hicimos|conseguimos|encargamos|realizamos|pedimos)/,
+    /\bya (los? |las? |lo |la |me |nos |se )?(he|hemos|hab[ií]a|hab[ií]amos|ten[ií]a|ten[ií]amos) ?(los? |las? |lo |la )?(comprado|resuelto|hecho|conseguido|encargado|realizado|pedido)/,
+    /\b(los |las |lo |la |me |se )?(compramos|encargamos|hicimos|conseguimos|pedimos) (en|por|con) (otra|otro|la|el|un|una)\b/,
     /(en |por |de )otra [oó]ptica|en otro lado|en otro lugar/,
     /\b(ya|consegu[ií]).{0,20}\b(por|x|con) (el )?(pami|(la |mi )?obra social)/,
     /no (me )?(escriban|escribas|manden|mandes|molesten|molestes|insistan)/,
@@ -79,7 +86,13 @@ const NO_PELADO = /^no\b[\s.,!]*(gracias|muchas gracias|te agradezco)?[\s.!]*$/;
  * obra social?"). Solo le gana lo que no admite otra lectura.
  */
 const CIERRE_FUERTE: RegExp[] = [
-    /\bya (los? |las? |lo |la |me )?(compr[eé]|resolv[ií]|hice|consegu[ií]|encargu[eé]|realic[eé])/,
+    /^ya lo resolv[ií]\.?$/, // botón de los tres toques cortos (16/10/2026)
+    // Singular, plural y tiempos compuestos. El 11/10/2026 Rubén escribió "ya
+    // hemos encargado los lentes" DOS veces y el motor, que solo conocía "ya
+    // encargué", le siguió mandando toques (15/10, revisión de Ishtar).
+    /\bya (los? |las? |lo |la |me |nos )?(compr[eé]|resolv[ií]|hice|consegu[ií]|encargu[eé]|realic[eé]|ped[ií]|compramos|resolvimos|hicimos|conseguimos|encargamos|realizamos|pedimos)/,
+    /\bya (los? |las? |lo |la |me |nos |se )?(he|hemos|hab[ií]a|hab[ií]amos|ten[ií]a|ten[ií]amos) ?(los? |las? |lo |la )?(comprado|resuelto|hecho|conseguido|encargado|realizado|pedido)/,
+    /\b(los |las |lo |la |me |se )?(compramos|encargamos|hicimos|conseguimos|pedimos) (en|por|con) (otra|otro|la|el|un|una)\b/,
     /(en |por |de )otra [oó]ptica|en otro lado|en otro lugar/,
     /no (me )?(escriban|escribas|manden|mandes|molesten|molestes|insistan)|no (sigas|sigan|sigu[aá]s) (insistiendo|escribiendo|mandando)/,
 ];
@@ -124,8 +137,58 @@ export function clasificarRespuesta(mensajes: MensajeEntrante[]): Clasificacion 
     return 'seguir';
 }
 
+/**
+ * ¿Este mensaje es una despedida INEQUÍVOCA ("ya compré en otra óptica", "no
+ * me escriban más")? Se usa para mirar hacia atrás, no solo la respuesta al
+ * último toque: Rubén dijo "ya hemos encargado los lentes" el 6/10 y el 8/10,
+ * el motor no lo entendió, le mandó otro toque el 11/10 y, como después de ESE
+ * toque no volvió a escribir, la ventana normal ya no lo veía. Solo los
+ * patrones fuertes: un "no" suelto de hace diez días puede ser otra cosa.
+ */
+export const DIAS_DESPEDIDA_RECIENTE = 14;
+export function esDespedidaInequivoca(m: MensajeEntrante): boolean {
+    if (m.type && m.type !== 'TEXT' && m.type !== 'CHAT') return false;
+    const t = normalizar(m.content || '');
+    return !!t && CIERRE_FUERTE_N.some(r => r.test(t));
+}
+
 /** Cuánto se pausa a quien pidió "más adelante". */
 export const PAUSA_POSPONER_DIAS = 30;
+
+/**
+ * La pausa se cuenta desde lo que DIJO el cliente, no desde el tick del motor.
+ *
+ * Hasta el 19/10/2026 el motor pausaba "30 días desde ahora" cada hora: el
+ * mensaje seguía siendo la respuesta al último toque (lastInboundAt >
+ * lastFollowUpAt no cambia al pausar), así que cada tick lo volvía a leer, a
+ * correr el `hasta` una hora y a dejar otra nota en la ficha. 69 contactos,
+ * 5.749 notas en 11 días, y una pausa que nunca vencía: el seguimiento no
+ * volvía jamás.
+ *
+ * Anclado al mensaje, el `hasta` es el mismo en cada tick y la decisión es
+ * idempotente: se pausa UNA vez por mensaje. Un mensaje nuevo del cliente da
+ * otro ancla y recién ahí se extiende.
+ */
+export function pausaPorRespuesta(respuestaAt: Date): Date {
+    return new Date(respuestaAt.getTime() + PAUSA_POSPONER_DIAS * 86_400_000);
+}
+
+export type DecisionPosponer =
+    | { aplicar: true; hasta: Date }
+    | { aplicar: false; hasta: Date; motivo: 'ya-pausado' | 'pausa-vencida' | 'ya-registrada' };
+
+/**
+ * ¿Hay que pausar por este "más adelante"? `yaRegistrada`: ya hay una pausa
+ * del embudo anotada para ESTE mensaje (cubre el caso de que alguien haya
+ * sacado la pausa a mano: no se la vuelve a poner cada hora).
+ */
+export function decidirPosponer(input: { respuestaAt: Date; followUpPausedUntil: Date | null; now: number; yaRegistrada: boolean }): DecisionPosponer {
+    const hasta = pausaPorRespuesta(input.respuestaAt);
+    if (input.yaRegistrada) return { aplicar: false, hasta, motivo: 'ya-registrada' };
+    if (hasta.getTime() <= input.now) return { aplicar: false, hasta, motivo: 'pausa-vencida' };
+    if (input.followUpPausedUntil && input.followUpPausedUntil.getTime() >= hasta.getTime()) return { aplicar: false, hasta, motivo: 'ya-pausado' };
+    return { aplicar: true, hasta };
+}
 
 /**
  * Qué cuenta como respuesta AL TOQUE: lo que el cliente escribió en las

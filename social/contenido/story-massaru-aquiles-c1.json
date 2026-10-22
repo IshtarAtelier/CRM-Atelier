@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-aquiles-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Aquiles",
+    "color": "C1",
+    "familia": "receta"
+  },
+  "caption": "Aquiles C1 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-aquiles-c1/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-aquiles-c1/02.jpg"
+    }
+  ]
+}

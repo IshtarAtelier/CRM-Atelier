@@ -1,37 +1,38 @@
 // ────────────────────────────────────────────────────────────────────────────
-// Nombre visible del modelo (pedido del 20/8): el sufijo de color ("C1", "C3",
-// "C4-1") solo tiene sentido cuando el mismo estelar existe en MÁS de un color
-// dentro del catálogo visible. "Gaia C1" siendo la única Gaia se muestra
-// "Gaia"; si mañana entra "Gaia C2", las dos vuelven a mostrar su sufijo solas.
+// Nombre visible del modelo: SIN el código de color del proveedor, siempre.
 //
-// Es una regla de PRESENTACIÓN: no toca WebProduct.name (curado, regla
-// "estelar + color") ni slugs ni SEO técnico — solo lo que la persona lee.
-// Módulo puro y sin imports: lo usan tienda-map, la ficha y scripts.
+// Ishtar, 19/10/2026, mirando "ZEUS C33-P86" en la ficha: "eso que está así con
+// el código no debe estar así, sacalo; el código es interno". Reemplaza la
+// regla del 20/8 (recortar el sufijo solo si el estelar tenía un único color):
+// con Zeus en cuatro colores la ficha mostraba el código, y el código no le
+// dice nada al cliente. Cada color sigue siendo su propia ficha (decisión del
+// 3/9, no se reabre): se distinguen por la foto y por los círculos del
+// selector, no por un "C33-P18-1" en el título.
+//
+// Es una regla de PRESENTACIÓN: no toca WebProduct.name (ahí el sufijo sigue
+// siendo lo que identifica la ficha en el CRM) ni slugs ni URLs — solo lo que
+// la persona lee. Módulo puro y sin imports: lo usan tienda-map, la ficha y
+// scripts.
 // ────────────────────────────────────────────────────────────────────────────
 
-/** Sufijo de color al final del nombre: "C1", "c3", "C4-1", "C2-1". */
-const COLOR_SUFFIX = /\s+C\d+(?:-\d+)?$/i;
+/**
+ * Código de color al final del nombre, en todas las formas que hay en el
+ * catálogo: "C1", "c3", "C4-1", "C275", "C33-P86", "C33-P18-1", y el modelo
+ * del proveedor delante ("Monaco A12183 C2"). No toca nombres de color en
+ * palabras ("Olimpo Black", "Calipso Oval Carey").
+ */
+const COLOR_SUFFIX = /\s+(?:[A-Z]{1,3}\d{3,}[A-Z]*\s+)?C\d+(?:-[A-Z]?\d+)*$/i;
 
-/** "Gaia C1" → "Gaia". Sin sufijo, devuelve el nombre tal cual. */
+/** "Gaia C1" → "Gaia"; "Zeus C33-P86" → "Zeus". Sin código, el nombre tal cual. */
 export function baseDelNombre(nombre: string): string {
   return (nombre || "").replace(COLOR_SUFFIX, "").trim();
 }
 
 /**
- * Dado el universo de nombres visibles del catálogo, devuelve una función que
- * calcula el nombre a mostrar: recorta el sufijo de color solo si ese estelar
- * aparece una única vez.
+ * Devuelve la función que calcula el nombre a mostrar. Hoy es siempre
+ * `baseDelNombre`; conserva la firma (recibía el universo de nombres para
+ * contar variantes) para no tocar a quienes la llaman.
  */
-export function armarNombreVisible(nombresVisibles: string[]): (nombre: string) => string {
-  const conteoPorBase = new Map<string, number>();
-  for (const n of nombresVisibles) {
-    const base = baseDelNombre(n).toLowerCase();
-    if (!base) continue;
-    conteoPorBase.set(base, (conteoPorBase.get(base) || 0) + 1);
-  }
-  return (nombre: string) => {
-    if (!nombre || !COLOR_SUFFIX.test(nombre)) return nombre;
-    const base = baseDelNombre(nombre);
-    return (conteoPorBase.get(base.toLowerCase()) || 0) === 1 ? base : nombre;
-  };
+export function armarNombreVisible(_nombresVisibles: string[]): (nombre: string) => string {
+  return (nombre: string) => baseDelNombre(nombre) || nombre;
 }

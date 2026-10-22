@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-teseo-c1",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Teseo",
+    "color": "C1",
+    "familia": "receta"
+  },
+  "caption": "Teseo C1 · Cápsula Escarlata\nArmazón de receta. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-teseo-c1/01.jpg",
+      "alt": "Teseo C1, armazón de receta, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-teseo-c1/02.jpg",
+      "alt": "Teseo C1, armazón de receta, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

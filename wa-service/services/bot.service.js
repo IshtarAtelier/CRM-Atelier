@@ -5,6 +5,7 @@
 const { HumanMessage } = require("@langchain/core/messages");
 const { getNextWeekdayDate } = require('./helper.service');
 const { getFileExtension } = require('../utils');
+const { actualizarChat, datosDeApagado } = require('../shared/motivo-apagado');
 
 class BotService {
     constructor(deps) {
@@ -28,15 +29,23 @@ class BotService {
         this.processPassiveExtraction = deps.processPassiveExtraction;
     }
 
-    async disableBotForChatById(chatId, reason) {
+    /**
+     * @param {string} chatId
+     * @param {string} reason  texto libre para el log
+     * @param {string} [motivo] MOTIVO_APAGADO (shared/motivo-apagado.js). Sin
+     *   motivo queda NULL = desconocido, y el barrido de vueltas NO lo reactiva
+     *   (15/10/2026: antes todo apagado se confundía con "lo tomó una persona").
+     */
+    async disableBotForChatById(chatId, reason, motivo) {
         try {
-            const chat = await this.prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+            // select explícito: con el schema adelantado a la base (rollout),
+            // traer la fila entera revienta.
+            const chat = await this.prisma.whatsAppChat.findUnique({ where: { id: chatId }, select: { id: true, botEnabled: true } });
             if (chat && chat.botEnabled) {
-                await this.prisma.whatsAppChat.update({
-                    where: { id: chatId },
-                    data: { botEnabled: false }
-                });
-                console.log(`  ⏹️ Bot desactivado para chat ${chatId}. Razón: ${reason}`);
+                // Condicionado a botEnabled:true: si otro camino lo apagó en el
+                // medio, su motivo no se pisa.
+                await actualizarChat(this.prisma, { id: chatId, botEnabled: true }, datosDeApagado(motivo));
+                console.log(`  ⏹️ Bot desactivado para chat ${chatId}. Razón: ${reason} (motivo: ${motivo || 'desconocido'})`);
                 this.broadcastChatUpdate(chatId);
                 
                 // Generar resumen de handoff
@@ -56,11 +65,11 @@ class BotService {
         }
     }
 
-    async disableBotForWaId(waId, reason) {
+    async disableBotForWaId(waId, reason, motivo) {
         try {
-            const chat = await this.prisma.whatsAppChat.findUnique({ where: { waId } });
+            const chat = await this.prisma.whatsAppChat.findUnique({ where: { waId }, select: { id: true, botEnabled: true } });
             if (chat && chat.botEnabled) {
-                await this.disableBotForChatById(chat.id, reason);
+                await this.disableBotForChatById(chat.id, reason, motivo);
             }
         } catch (e) {
             console.error('Error disabling bot for waId:', e.message);

@@ -97,7 +97,7 @@ const DESTINOS: Array<[RegExp, string]> = [
   // Elección de armazón por rostro
   [/(^|-)cara(-|$)|rostro|quedan-bien/, '/blog/guia-armazones-segun-rostro'],
   // Receta / síntomas / cuándo cambiar
-  [/receta|necesito-anteojos|cambiar-los-anteojos|lectura/, '/cristales-opticos'],
+  [/receta|necesito-anteojos|cambiar-los-anteojos|lectura/, '/cristales-opticos/varilux'],
   // Sol
   [/(^|-)sol(-|$)/, '/lentes-de-sol'],
   // Local / marca / geo

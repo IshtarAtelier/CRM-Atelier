@@ -1,0 +1,31 @@
+{
+  "id": "feed-agos-riviera-c1",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "agostina",
+  "fuente": "fotos-agostina",
+  "temas": [
+    "armazones",
+    "clip"
+  ],
+  "producto": {
+    "nombre": "Riviera",
+    "color": "C1",
+    "familia": "clip"
+  },
+  "caption": "Riviera C1 · Cápsula Escarlata\nClip-on · receta + sol. 6 cuotas sin interés o hasta 12 cuotas fijas. Envío sin cargo.",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/feed-agos-riviera-c1/01.jpg",
+      "alt": "Riviera C1, clip-on · receta + sol, de frente · Cápsula Escarlata"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/feed-agos-riviera-c1/02.jpg",
+      "alt": "Riviera C1, clip-on · receta + sol, de perfil · Cápsula Escarlata"
+    }
+  ]
+}

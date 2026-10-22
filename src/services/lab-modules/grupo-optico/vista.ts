@@ -84,6 +84,23 @@ export const ADOPTAR_DEL_PORTAL = ['blockBase'] as const;
 const DE_TRANSPORTE = new Set(['action', 'orderId', 'isEdit', 'userId', 'isClient', 'clientId', 'patientId', 'sellerId']);
 
 /**
+ * Claves que el formulario de EDICIÓN del portal (el que se usa para la vista
+ * previa) no vuelve a armar —las manda vacías— aunque el de alta sí las lleva.
+ * Si el robot las manda con valor y el portal "armaría null", NO es una
+ * diferencia: el robot manda más, nunca menos. Visto en producción el
+ * 17/10/2026 (Milena, 5 intentos sobre un stock Blue 1.56 de Casado Mora):
+ *  · `warrantyPatientName`: el nombre del paciente para la garantía;
+ *  · `brandId`, solo en un pedido de STOCK: el artículo de stock se elige por
+ *    graduación y la marca es única; el formulario de edición no la repite.
+ * Una diferencia al revés (el portal con valor, el robot vacío) sigue frenando.
+ */
+export const TOLERADAS_SI_EL_PORTAL_NO_LAS_ARMA: { clave: string; soloStock?: boolean }[] = [
+    { clave: 'warrantyPatientName' },
+    { clave: 'brandId', soloStock: true },
+];
+const esPedidoDeStock = (robot: Record<string, any>) => String(robot.rightEyeStockArticle ?? robot.leftEyeStockArticle ?? '') === '1';
+
+/**
  * Diferencias entre el pedido del robot y el que armó el formulario del
  * portal, en TODAS las claves salvo las de transporte. Los números se comparan
  * como números ("25.000" = "25", "+0.75" = ".750"); solo en ejes y adiciones
@@ -99,8 +116,11 @@ export function diferenciasDeVista(robot: Record<string, any>, portal: Record<st
         if (t !== '' && Number.isFinite(n)) return n === 0 && /Axis$|Addition$|frameShape$|frame_shape$/.test(k) ? '' : String(n);
         return t.replace(/\s+/g, ' ');
     };
+    const stock = esPedidoDeStock(robot);
+    const tolerada = (k: string) => norm(k, portal[k]) === '' && norm(k, robot[k]) !== ''
+        && TOLERADAS_SI_EL_PORTAL_NO_LAS_ARMA.some(t => t.clave === k && (!t.soloStock || stock));
     const claves = [...new Set([...Object.keys(robot), ...Object.keys(portal)])].filter(k => !DE_TRANSPORTE.has(k));
-    return claves.filter(k => norm(k, robot[k]) !== norm(k, portal[k])).map(k => `${k}: el robot manda ${JSON.stringify(robot[k] ?? null)} y el portal armaría ${JSON.stringify(portal[k] ?? null)}`);
+    return claves.filter(k => norm(k, robot[k]) !== norm(k, portal[k]) && !tolerada(k)).map(k => `${k}: el robot manda ${JSON.stringify(robot[k] ?? null)} y el portal armaría ${JSON.stringify(portal[k] ?? null)}`);
 }
 
 const SOLO_LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);

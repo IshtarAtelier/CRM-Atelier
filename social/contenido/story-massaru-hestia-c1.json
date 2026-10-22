@@ -1,0 +1,29 @@
+{
+  "id": "story-massaru-hestia-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "massaru",
+  "fuente": "fotos-massaru",
+  "temas": [
+    "armazones",
+    "receta"
+  ],
+  "producto": {
+    "nombre": "Hestia",
+    "color": "C1",
+    "familia": "receta"
+  },
+  "caption": "Hestia C1 · Atelier Óptica",
+  "slides": [
+    {
+      "type": "foto",
+      "role": "frente",
+      "image": "social/story-massaru-hestia-c1/01.jpg"
+    },
+    {
+      "type": "foto",
+      "role": "perfil",
+      "image": "social/story-massaru-hestia-c1/02.jpg"
+    }
+  ]
+}

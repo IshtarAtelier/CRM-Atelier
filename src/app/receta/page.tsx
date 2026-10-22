@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { armarNombreVisible } from '@/lib/catalog/display-name';
 import { OG_IMAGEN_SITIO } from '@/lib/constants/og';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
@@ -124,7 +125,7 @@ export default async function RecetaPage() {
       // La marca que se muestra es siempre ATELIER; ésta es la del catálogo y
       // sólo la usa el filtro ?marca= del cliente.
       marcaReal: wp.product.brand ?? null,
-      model: wp.name || modelCode,
+      model: armarNombreVisible([])(wp.name || modelCode), // sin el código de color (display-name.ts)
       modelCode: modelCode,
       price: wp.product.price,
       // Sin esto la página mostraba el precio de LISTA para un producto

@@ -28,9 +28,10 @@
   "slug": "meteoro-c4",
   "_familia": "tr-polarizado",
   "_fuentePrecio": "Olimpo (decisión Ishtar)",
-  "_fotoDelPedido": true,
+  "_fotoDelPedido": false,
   "_verificador": {
     "ok": false,
     "motivo": "La foto muestra frente negro brillante con lentes gris oscuro (compatible con gris polarizada) y forma cuadrada de esquinas suavemente redondeadas (tipo wayfarer cuadrado); forma y material TR90 coinciden con el catálogo TR SOLAR. Pero las patillas son claramente transparentes/cristal (se ve el alma negra a través), no negras: decir solo \"negro\" describe el frente y omite un rasgo visible del modelo. Se corrige el color para reflejar el bicolor."
-  }
+  },
+  "_fotoReemplazada": "2026-10-03 foto oficial del proveedor"
 }

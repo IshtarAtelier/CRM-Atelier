@@ -13,6 +13,7 @@ import { RECARGO_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO } from '@/lib/receta/graduacion';
 import { cubreLaReceta, tieneGraduacion, motivoDeDescarte } from '@/lib/receta/rango-de-cristal';
 import { tipoDeRecetaSegunNumeros } from '@/lib/receta/tipo-de-lente';
+import { resolverPedidoDelBot, esCategoriaDeArmazon, filtrosDeArmazonDelBot } from '@/lib/catalogo-del-bot';
 
 /** Cuántos cristales se le mandan al bot cuando la receta acotó el universo. */
 const MAX_OPCIONES_CRUZADAS = 8;
@@ -52,9 +53,14 @@ function fotoParaWhatsApp(url: string | null | undefined): string | null {
 // Query params: ?category=MULTIFOCAL|MONOFOCAL|etc &botRecommended=true &search=...
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const category = searchParams.get('category')?.toUpperCase();
+    // Categoría y búsqueda pasan por el resolvedor ÚNICO del catálogo del bot
+    // (src/lib/catalogo-del-bot.ts): "clip" en el texto = categoría CLIPON,
+    // igual para cotizar y para fotos.
+    const pedido = resolverPedidoDelBot(searchParams.get('category'), searchParams.get('search'));
+    const category = pedido.categoria ?? undefined;
+    const search = pedido.search ?? undefined;
+    const esArmazon = esCategoriaDeArmazon(category);
     const onlyBotRecommended = searchParams.get('botRecommended') === 'true';
-    const search = searchParams.get('search')?.trim();
     // Género de la PERSONA que consulta (lo deduce el bot del nombre de pila).
     // 'HOMBRE' | 'MUJER'. Si no viene, no se filtra nada.
     let genero = searchParams.get('genero')?.toUpperCase();
@@ -162,7 +168,9 @@ export async function GET(req: NextRequest) {
 
     // ── Fuente 1: Productos del inventario ──────────────────────────────────
     const productWhere: any = {};
-    if (!paraFotos && (onlyBotRecommended || !search)) {
+    // Los armazones no usan "recomendados": su universo es lo publicado en la
+    // tienda (filtrosDeArmazonDelBot), para cotizar y para fotos.
+    if (!paraFotos && !esArmazon && (onlyBotRecommended || !search)) {
         productWhere.botRecommended = true;
     }
     // Para fotos: solo lo publicado en la tienda y CON STOCK. Lo no publicado
@@ -206,46 +214,24 @@ export async function GET(req: NextRequest) {
     // positivos y el bot lo habría seguido ofreciendo a un hipermétrope.
     filtros.push({ NOT: { name: { startsWith: '[ARCHIVADO]' } } });
 
-    // ── Categoría, para FOTOS: la que usa la tienda ─────────────────────────
+    // ── Categoría ───────────────────────────────────────────────────────────
     //
-    // La de abajo mira `type` (y, para clip-on, que el nombre diga "clip"), y
-    // con eso el bot NO PODÍA MOSTRAR NI UN LENTE DE SOL NI UN CLIP-ON:
-    // medido el 16/9/2026 contra producción, `category=SOL` devolvía 2 y
-    // `CLIPON` devolvía 1 —y ese 1 era una fila de catálogo que no es un
-    // producto—, porque casi todo el catálogo tiene `type` "Armazón de Receta"
-    // y ningún clip-on se llama "clip": se llaman Torino, Riviera, Milano,
-    // Palermo, Génova. La tienda no tiene ese problema porque separa por
-    // `WebProduct.category` ('Receta' | 'Sol' | 'Clip-On'), que es lo que la
-    // dueña ve y carga. Para fotos se usa ESA, la misma que el cliente ve.
-    const CATEGORIA_DE_TIENDA: Record<string, string> = {
-        ARMAZON: 'Receta',
-        SOL: 'Sol',
-        CLIPON: 'Clip-On',
-    };
-    if (paraFotos && category && CATEGORIA_DE_TIENDA[category]) {
-        filtros.push({ webProducts: { some: { category: CATEGORIA_DE_TIENDA[category], isActive: true } } });
-        // Una fila sin precio no es un producto que se pueda mostrar.
-        filtros.push({ price: { gt: 1 } });
+    // ARMAZONES (receta, sol, clip-on): el universo es lo PUBLICADO en la
+    // tienda, en la categoría que ve el cliente (`WebProduct.category`), y es
+    // el MISMO para cotizar y para mandar fotos — src/lib/catalogo-del-bot.ts.
+    //
+    // Hasta el 10/10/2026 había dos: las fotos usaban la categoría de la tienda
+    // (16/9/2026: por `type` no aparecía ni un lente de sol ni un clip-on, porque
+    // casi todo el catálogo es "Armazón de Receta" y ningún clip-on se llama
+    // "clip"), pero cotizar seguía buscando "clip" en nombre o marca y
+    // encontraba "Classic" (no publicado, $200.000), mientras las fotos
+    // mostraban Cápsula Escarlata ($175.000). Dos precios para el mismo pedido.
+    if (category && esArmazon) {
+        filtros.push(...filtrosDeArmazonDelBot(category));
     } else if (category) {
-        if (category === 'CLIPON') {
-            filtros.push({
-                OR: [
-                    { name: { contains: 'clip', mode: 'insensitive' } },
-                    { brand: { contains: 'clip', mode: 'insensitive' } },
-                    { model: { contains: 'clip', mode: 'insensitive' } }
-                ]
-            });
-        } else {
-            // Los `type` del catálogo llevan tilde ("Armazón", "Armazón de
-            // Receta") y la categoría llega sin ella: un ILIKE '%ARMAZON%' no
-            // matchea nada. Se busca por un fragmento que no dependa del acento.
-            const FRAGMENTO_POR_CATEGORIA: Record<string, string> = {
-                ARMAZON: 'rmaz',
-                SOL: 'sol',
-            };
-            const fragmento = FRAGMENTO_POR_CATEGORIA[category] || category;
-            filtros.push({ type: { contains: fragmento, mode: 'insensitive' } });
-        }
+        // Cristales y lo demás: por `type`. Los `type` del catálogo llevan tilde
+        // y la categoría llega sin ella, así que se busca un fragmento.
+        filtros.push({ type: { contains: category, mode: 'insensitive' } });
     }
 
     if (altaGraduacion) {
@@ -259,11 +245,8 @@ export async function GET(req: NextRequest) {
     let indiceDelSearch = -1;
 
     if (search) {
-        let sanitizedSearch = search;
-        const clean = search.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (clean.includes('clipon') || clean.includes('clip')) {
-            sanitizedSearch = 'clip';
-        }
+        // "clip" ya no llega acá: resolverPedidoDelBot lo convirtió en categoría.
+        const sanitizedSearch = search;
         indiceDelSearch = filtros.length;
         filtros.push({
             OR: [

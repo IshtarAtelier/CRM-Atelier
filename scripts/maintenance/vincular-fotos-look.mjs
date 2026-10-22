@@ -23,17 +23,34 @@
  *
  * Idempotente: una foto que ya está en la galería no se agrega dos veces.
  *
+ * Otra sesión de fotos (16/10/2026, Massaru): `--sesion massaru` toma
+ * `<clave>-massaru-<n>.webp` en vez de `-look-`. Con `--hover`, en las fichas
+ * que todavía no tienen NINGUNA foto con persona la primera foto nueva va en
+ * la posición 1 (la que la grilla muestra al pasar el mouse, como se decidió
+ * con Deneb C2) y el resto al final; donde ya hay fotos con persona (las de
+ * Agos), las nuevas van al final y el hover no cambia.
+ *
  * Uso (base LOCAL):
  *   node --env-file=.env scripts/maintenance/vincular-fotos-look.mjs            (simula)
  *   node --env-file=.env scripts/maintenance/vincular-fotos-look.mjs --aplicar
  * Contra PRODUCCIÓN (solo con OK explícito del dueño):
  *   node --env-file=.env scripts/maintenance/vincular-fotos-look.mjs --produccion
  *   node --env-file=.env scripts/maintenance/vincular-fotos-look.mjs --produccion --aplicar
+ *   ... --solo hermes-c1,andromeda-c7   solo esos modelos
  */
 import { PrismaClient } from '@prisma/client';
 import { readdirSync } from 'node:fs';
 
 const APLICAR = process.argv.includes('--aplicar');
+const iSesion = process.argv.indexOf('--sesion');
+const SUFIJO = iSesion > 0 ? process.argv[iSesion + 1] : 'look';
+const HOVER = process.argv.includes('--hover');
+// `--solo clave1,clave2`: vincula solo esos modelos (21/10/2026: al corregir
+// Hermes C1 y Andrómeda C7 no había que arrastrar lo demás que estuviera suelto).
+const iSolo = process.argv.indexOf('--solo');
+const SOLO = iSolo > 0 ? new Set(process.argv[iSolo + 1].split(',').map(s => s.trim()).filter(Boolean)) : null;
+const PATRON = new RegExp(`-${SUFIJO}-(\\d+)\\.webp$`);
+const CON_PERSONA = /-(look|massaru)-\d+\.webp/;
 const PRODUCCION = process.argv.includes('--produccion');
 if (PRODUCCION && !process.env.PROD_DATABASE_URL) {
   console.error('Falta PROD_DATABASE_URL. Correr con --env-file=.env desde la raíz.');
@@ -46,12 +63,15 @@ const base = (k) => k.replace(/-c\d+(-\d+)?$/, '');
 
 async function main() {
   console.log(`Base:   ${PRODUCCION ? '⚠️  PRODUCCIÓN' : 'local'}`);
+  console.log(`Sesión: -${SUFIJO}-  ·  hover: ${HOVER ? 'sí (fichas sin fotos con persona)' : 'no (todo al final)'}`);
   console.log(`Modo:   ${APLICAR ? '⚠️  APLICAR (escribe)' : 'simulación'}\n`);
 
-  const archivos = readdirSync('public/images/products').filter((f) => /-look-\d+\.webp$/.test(f)).sort();
+  const archivos = readdirSync('public/images/products').filter((f) => PATRON.test(f))
+    .sort((a, b) => a.replace(PATRON, '').localeCompare(b.replace(PATRON, '')) || Number(a.match(PATRON)[1]) - Number(b.match(PATRON)[1]));
   const porClave = new Map();
   for (const f of archivos) {
-    const clave = f.replace(/-look-\d+\.webp$/, '');
+    const clave = f.replace(PATRON, '');
+    if (SOLO && !SOLO.has(clave)) continue;
     if (!porClave.has(clave)) porClave.set(clave, []);
     porClave.get(clave).push(`/images/products/${f}`);
   }
@@ -76,26 +96,29 @@ async function main() {
     const p = m[0];
     const nuevas = fotos.filter((f) => !p.images.includes(f));
     if (!nuevas.length) continue;
-    cambios.push({ p, nuevas });
+    const alHover = HOVER && !p.images.some((i) => CON_PERSONA.test(i)) && p.images.length >= 1;
+    cambios.push({ p, nuevas, alHover });
   }
 
-  for (const { p, nuevas } of cambios) {
-    console.log(`  ${p.name.padEnd(22)} ${p.slug.padEnd(28)} +${nuevas.length}  (galería: ${p.images.length} → ${p.images.length + nuevas.length})`);
+  for (const { p, nuevas, alHover } of cambios) {
+    console.log(`  ${p.name.padEnd(22)} ${p.slug.padEnd(28)} +${nuevas.length}  (galería: ${p.images.length} → ${p.images.length + nuevas.length})${alHover ? '  · la 1ª va al hover' : ''}`);
   }
   console.log(`\nProductos a actualizar: ${cambios.length} · fotos a vincular: ${cambios.reduce((a, c) => a + c.nuevas.length, 0)}`);
   if (sinProducto.length) console.log(`Sin producto en la tienda (se ignoran): ${sinProducto.join(', ')}`);
   if (ambiguos.length) console.log(`Ambiguos (NO se tocan): ${ambiguos.join(' | ')}`);
-  const yaHechos = productos.filter((p) => p.images.some((i) => i.includes('-look-'))).length;
-  console.log(`Productos que ya tenían fotos look: ${yaHechos}`);
+  const yaHechos = productos.filter((p) => p.images.some((i) => i.includes(`-${SUFIJO}-`))).length;
+  console.log(`Productos que ya tenían fotos -${SUFIJO}-: ${yaHechos}`);
 
   if (!APLICAR) { console.log('\nSIMULACIÓN — no se escribió nada. Para aplicar: --aplicar'); return; }
 
   let ok = 0;
-  for (const { p, nuevas } of cambios) {
-    const imageAlts = p.imageAlts.length ? [...p.imageAlts, ...nuevas.map(() => '')] : [];
+  for (const { p, nuevas, alHover } of cambios) {
+    const images = alHover ? [p.images[0], nuevas[0], ...p.images.slice(1), ...nuevas.slice(1)] : [...p.images, ...nuevas];
+    const alts = p.imageAlts.length ? [...p.imageAlts, ...Array(Math.max(0, p.images.length - p.imageAlts.length)).fill('')] : [];
+    const imageAlts = alts.length ? (alHover ? [alts[0], '', ...alts.slice(1), ...nuevas.slice(1).map(() => '')] : [...alts, ...nuevas.map(() => '')]) : [];
     await prisma.webProduct.update({
       where: { id: p.id },
-      data: { images: [...p.images, ...nuevas], imageAlts },
+      data: { images, imageAlts },
       select: { id: true },
     });
     ok++;

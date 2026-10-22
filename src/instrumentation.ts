@@ -315,6 +315,20 @@ export async function register() {
             finally { presupuestosTiendaRunning = false; }
         };
 
+        // ---- 2º PEDIDO DE RESEÑA, diario a las 10 ----
+        // Vuelve a poner UNA vez la tarea de reseña delante del vendedor a los
+        // 7 días de que cerró la primera (Ishtar, 16/10/2026). NO le escribe al
+        // cliente: solo crea la tarea. Ver services/review-request.service.ts.
+        const RESENA_SEGUNDO_KEY = 'resena_segundo_pedido_last_run';
+        let resenaSegundoRunning = false;
+        const maybeRunResenaSegundo = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < 10 || resenaSegundoRunning) return;
+            resenaSegundoRunning = true;
+            try { await dispararSimple('resena-segundo-pedido', RESENA_SEGUNDO_KEY, dateKey, 'resena-segundo-pedido'); }
+            finally { resenaSegundoRunning = false; }
+        };
+
         // QUINCENAL, no diario: los días 1 y 16 a partir de las 10 (pedido de
         // Ishtar del 14/9/26). Diario mandaba 30 mails por mes que informaban
         // siempre lo mismo —y con la ventana de 7 días, siempre cero cierres—,
@@ -888,6 +902,7 @@ export async function register() {
             maybeRunSeguimientos().catch(err => console.error('[CRON seguimientos] maybeRunSeguimientos:', err));
             maybeRunEmbudoSalud().catch(err => console.error('[CRON embudo-salud] maybeRunEmbudoSalud:', err));
             maybeRunPresupuestosTienda().catch(err => console.error('[CRON presupuestos-tienda] maybeRunPresupuestosTienda:', err));
+            maybeRunResenaSegundo().catch(err => console.error('[CRON resena-segundo-pedido] maybeRunResenaSegundo:', err));
             maybeRunSaldo().catch(err => console.error('[CRON recordatorio-saldo] maybeRunSaldo:', err));
             maybeRunCierreBot().catch(err => console.error('[Vigilante bot] maybeRunCierreBot:', err));
             maybeRunMetaConversiones().catch(err => console.error('[CRON meta-conversiones] maybeRunMetaConversiones:', err));
@@ -957,6 +972,34 @@ export async function register() {
                 console.error('[CRON lab-modulos] Error de conexión:', err);
             }
         };
+
+        // ---- SONDA DE CRÉDITO DE LA IA, cada 30 min (16/10/2026) ----
+        // Una llamada de 5 tokens con la clave del bot: si da 402 avisa por
+        // WhatsApp a la dueña aunque nadie le esté escribiendo al bot, y si
+        // vuelve a andar cierra el episodio ("volvió"). Con dos instancias
+        // corre dos veces; el aviso igual sale uno (candado en SystemSetting).
+        // Costo: menos de USD 0,10 por mes (ver constants/ia-credito.ts).
+        {
+            const { MINUTOS_ENTRE_SONDAS_DE_CREDITO } = await import('@/lib/constants/ia-credito');
+            let sondando = false;
+            const sondarCredito = async () => {
+                if (sondando) return;
+                sondando = true;
+                try {
+                    const { sondearCreditoIA } = await import('@/services/ia-credito.service');
+                    const r = await sondearCreditoIA();
+                    if (r !== 'ok') console.warn(`[CRON crédito IA] La sonda dio: ${r}`);
+                } catch (err) {
+                    console.error('[CRON crédito IA] La sonda falló:', err);
+                } finally {
+                    sondando = false;
+                }
+            };
+            setTimeout(() => {
+                sondarCredito();
+                setInterval(sondarCredito, MINUTOS_ENTRE_SONDAS_DE_CREDITO * 60 * 1000);
+            }, 90_000);
+        }
 
         // Esperar 30 segundos después del inicio para el primer sync
         setTimeout(() => {
