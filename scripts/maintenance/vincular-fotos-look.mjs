@@ -36,6 +36,7 @@
  * Contra PRODUCCIÓN (solo con OK explícito del dueño):
  *   node --env-file=.env scripts/maintenance/vincular-fotos-look.mjs --produccion
  *   node --env-file=.env scripts/maintenance/vincular-fotos-look.mjs --produccion --aplicar
+ *   ... --solo hermes-c1,andromeda-c7   solo esos modelos
  */
 import { PrismaClient } from '@prisma/client';
 import { readdirSync } from 'node:fs';
@@ -44,6 +45,10 @@ const APLICAR = process.argv.includes('--aplicar');
 const iSesion = process.argv.indexOf('--sesion');
 const SUFIJO = iSesion > 0 ? process.argv[iSesion + 1] : 'look';
 const HOVER = process.argv.includes('--hover');
+// `--solo clave1,clave2`: vincula solo esos modelos (21/10/2026: al corregir
+// Hermes C1 y Andrómeda C7 no había que arrastrar lo demás que estuviera suelto).
+const iSolo = process.argv.indexOf('--solo');
+const SOLO = iSolo > 0 ? new Set(process.argv[iSolo + 1].split(',').map(s => s.trim()).filter(Boolean)) : null;
 const PATRON = new RegExp(`-${SUFIJO}-(\\d+)\\.webp$`);
 const CON_PERSONA = /-(look|massaru)-\d+\.webp/;
 const PRODUCCION = process.argv.includes('--produccion');
@@ -66,6 +71,7 @@ async function main() {
   const porClave = new Map();
   for (const f of archivos) {
     const clave = f.replace(PATRON, '');
+    if (SOLO && !SOLO.has(clave)) continue;
     if (!porClave.has(clave)) porClave.set(clave, []);
     porClave.get(clave).push(`/images/products/${f}`);
   }
