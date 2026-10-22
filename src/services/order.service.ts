@@ -1033,7 +1033,12 @@ export class OrderService {
                         eye: item.eye || null,
                         // La graduación del cristal según su USO (lejos/cerca): una sola regla (lib/receta/graduacion-del-item.ts).
                         ...(isCrystal && rxDetails && (isOD || item.eye === 'OI')
-                            ? (() => { const g = graduacionDelItem(rxDetails, isOD ? 'OD' : 'OI', usoDelCristal(item.lensUse, rxDetails)); return { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal }; })()
+                            ? (() => {
+                                const uso = usoDelCristal(item.lensUse, rxDetails);
+                                const g = graduacionDelItem(rxDetails, isOD ? 'OD' : 'OI', uso);
+                                // La DNP solo se pisa en CERCA con DNP de cerca en la receta: en lejos manda la medida que se carga al enviar a fábrica.
+                                return { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal, ...(uso === 'CERCA' && g.pdVal !== null ? { pdVal: g.pdVal } : {}) };
+                            })()
                             : { sphereVal: item.sphereVal ?? null, cylinderVal: item.cylinderVal ?? null, axisVal: item.axisVal ?? null, additionVal: item.additionVal ?? null }),
                         lensUse: item.lensUse ?? null,
                         ...snap,
@@ -2256,10 +2261,11 @@ export class OrderService {
                             const isOI = item.eye === 'OI';
                             if (!isOD && !isOI) continue;
                             // Según el USO del cristal (lejos/cerca): la misma regla que al editar la venta.
-                            const g = graduacionDelItem(rx, isOD ? 'OD' : 'OI', usoDelCristal((item as any).lensUse, rx));
+                            const uso = usoDelCristal((item as any).lensUse, rx);
+                            const g = graduacionDelItem(rx, isOD ? 'OD' : 'OI', uso);
                             await tx.orderItem.update({
                                 where: { id: item.id },
-                                data: { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal },
+                                data: { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal, ...(uso === 'CERCA' && g.pdVal !== null ? { pdVal: g.pdVal } : {}) },
                             });
                         }
                     }

@@ -186,6 +186,12 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   operativos (venta web, stock, cobros, comprobantes, pedidos). Nunca
   `ADMIN_EMAIL || ADMIN_ALERT_EMAILS`: ADMIN_EMAIL no existe en producción y el
   reporte semanal de laboratorio le llegaba al local por ese default.
+- **Un monofocal puede ser de LEJOS o de CERCA, y lo dice el ítem** (`OrderItem.lensUse`,
+  Ishtar 21/10/2026: "siempre me toma la de lejos"). La graduación del cristal sale
+  SOLO de `graduacionDelItem()` (`src/lib/receta/graduacion-del-item.ts`): cerca =
+  la sección Cerca de la receta o lejos + adición, sin adición en el ítem. El
+  selector se ofrece únicamente en monofocales con receta que tenga cerca o
+  adición; un multifocal no pregunta. Nunca copiar `rx.sphereOD` a mano.
 - **Fechas visibles en dd/MM/yyyy** vía `src/lib/format-date.ts`. No tocar el ISO interno.
 - **Links en mails y notificaciones**: `/admin/ventas?id=` (nunca `?orderId=`).
   Lo que ve el cliente sale de `STORE_ORIGIN`.
