@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users, Bot } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { PostSaleCard } from '@/components/orders/PostSaleCard';
-import { caseTypeStyle, POST_SALE_PIPELINE, POST_SALE_MOVABLE_STATUSES, postSaleColumn } from '@/lib/constants/postSale';
+import { POST_SALE_PIPELINE, POST_SALE_MOVABLE_STATUSES, postSaleColumn } from '@/lib/constants/postSale';
+import { PV, caseTypeTone } from '@/components/orders/postventa-ui';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
@@ -1750,10 +1751,10 @@ export default function VentasPage() {
                         if (entries.length === 0) return null;
                         return (
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-[9px] font-black text-stone-600 dark:text-stone-500 uppercase tracking-widest mr-1">Por tipo:</span>
+                                <span className={`${PV.eyebrow} mr-1`}>Por tipo</span>
                                 <button
                                     onClick={() => setCaseTypeFilter('')}
-                                    className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border transition-all ${caseTypeFilter === '' ? 'bg-stone-800 text-white border-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750 hover:border-stone-400'}`}
+                                    className={caseTypeFilter === '' ? PV.btn.pillOn : PV.btn.pillOff}
                                 >
                                     Todos ({postSaleOrders.length})
                                 </button>
@@ -1763,7 +1764,7 @@ export default function VentasPage() {
                                         <button
                                             key={type}
                                             onClick={() => setCaseTypeFilter(active ? '' : type)}
-                                            className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border transition-all ${active ? 'ring-2 ring-amber-400 ' : ''}${caseTypeStyle(type === 'Sin clasificar' ? null : type)}`}
+                                            className={`${PV.chip} h-8 px-3 cursor-pointer transition-all ${caseTypeTone(type === 'Sin clasificar' ? null : type)} ${active ? 'ring-2 ring-amber-500 ring-offset-1 dark:ring-offset-stone-900' : 'hover:ring-1 hover:ring-stone-300'}`}
                                         >
                                             {type} ({count})
                                         </button>
@@ -1797,21 +1798,21 @@ export default function VentasPage() {
                                 return (
                                     <div 
                                         key={column.key}
-                                        className={`bg-stone-50/50 dark:bg-stone-900/30 rounded-3xl border-2 ${column.borde} p-4 flex flex-col min-h-[500px]`}
+                                        className={`${PV.card} ${column.borde} p-3.5 flex flex-col min-h-[500px]`}
                                     >
                                         {/* Encabezado: la columna dice qué significa. Con
                                             dos columnas que entran solas, sin esa línea
                                             no hay forma de saber por qué cayó un caso ahí. */}
-                                        <div className="mb-4 border-b border-stone-300/60 dark:border-stone-800 pb-2 flex-shrink-0">
+                                        <div className={`mb-3 ${PV.divider} border-t-0 border-b pb-2.5 flex-shrink-0`}>
                                             <div className="flex items-center justify-between gap-2">
-                                                <h3 className={`text-xs font-black uppercase tracking-wider ${column.texto}`}>
+                                                <h3 className={`text-[12px] font-semibold uppercase tracking-wide ${column.texto}`}>
                                                     {column.label}
                                                 </h3>
-                                                <span className={`px-2 py-0.5 rounded-lg text-[11px] font-black ${column.fondo} ${column.texto}`}>
+                                                <span className={`px-2 py-0.5 rounded-full text-[12px] font-semibold tabular-nums ${column.fondo} ${column.texto}`}>
                                                     {columnOrders.length}
                                                 </span>
                                             </div>
-                                            <p className="mt-1 text-[11px] leading-snug text-stone-600 dark:text-stone-400">
+                                            <p className={`mt-1 ${PV.muted}`}>
                                                 {column.hint}
                                             </p>
                                         </div>
@@ -1819,7 +1820,7 @@ export default function VentasPage() {
                                         {/* Cards Stack */}
                                         <div className="space-y-3 flex-1 overflow-y-auto max-h-[70vh] pr-1 scrollbar-thin">
                                             {columnOrders.length === 0 ? (
-                                                <div className="text-center py-12 text-stone-300 dark:text-stone-700 italic text-[10px] font-bold uppercase tracking-wider">
+                                                <div className="text-center py-12 text-stone-400 dark:text-stone-600 italic text-[12px]">
                                                     Sin casos
                                                 </div>
                                             ) : (
