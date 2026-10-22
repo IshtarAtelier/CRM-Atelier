@@ -42,6 +42,7 @@ function opcionesDelBody(body: Record<string, unknown>): OpcionesCargaOves {
         cuponAutomatico: !cuponLimpio(texto(body.cupon)),
         genero: (texto(body.genero).toUpperCase() === 'F' ? 'F' : texto(body.genero).toUpperCase() === 'M' ? 'M' : null) as OpcionesCargaOves['genero'],
         potenciaBoost: texto(body.potenciaBoost) || null,
+        distanciaDigitime: texto(body.distanciaDigitime) || null,
         corredorPrecise: texto(body.corredorPrecise) || null,
     };
 }
@@ -96,7 +97,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
                 const rol = promo?.tipo === 'MI_PRIMER' ? 'PRIMER_PAR' : rolDe(roles, pair);
                 const esSegundo = rol === 'SEGUNDO_PAR';
                 // Se analiza con opciones "por defecto" para mostrar lo que FALTA en la venta; lo que elige quien prepara no cuenta como faltante.
-                const r = planDeCarga(venta, pair, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: FORMAS_OVES[0], cupon: rol === 'PRIMER_PAR' ? 'XXXXXX' : null, pedidoOrigen: esSegundo ? (origen ?? '000000') : null, potenciaBoost: '0.4', corredorPrecise: 'LARGE' });
+                const r = planDeCarga(venta, pair, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: FORMAS_OVES[0], cupon: rol === 'PRIMER_PAR' ? 'XXXXXX' : null, pedidoOrigen: esSegundo ? (origen ?? '000000') : null, potenciaBoost: '0.4', corredorPrecise: 'LARGE', distanciaDigitime: 'MID' });
                 const items = porPar.get(pair) || [];
                 const nombreProducto = texto(items[0]?.product?.name ?? items[0]?.productNameSnapshot);
                 const eleccion = eleccionQuePide(nombreProducto);

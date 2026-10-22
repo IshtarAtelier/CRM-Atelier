@@ -165,7 +165,7 @@ t('diseños de tallado digital: nombres reales de producción → producto de OV
 t('un diseño liso que OVES solo vende Blue UV se carga como Blue UV, el único que ofrece, y se avisa', () => {
     const r = especificacionDe('VARILUX COMFORT - ORMA + CRIZAL 2x1');
     assert.ok(r.ok); assert.equal(r.especificacion.producto.label, 'Varilux Comfort Orma blue uv'); assert.equal(r.especificacion.variante, 'BLUE_UV');
-    assert.match(r.especificacion.avisos[0], /no tiene Varilux Comfort Orma liso: se carga "Varilux Comfort Orma blue uv"/);
+    assert.match(r.especificacion.avisos[0], /sin Blue UV, pero OVES solo tiene Varilux Comfort Orma con Blue UV: se carga "Varilux Comfort Orma blue uv"/);
     assert.equal(label('MI PRIMER VARILUX PHYSIO 3.0 - ORMA + CRIZAL'), 'Varilux Physio 3.0 Orma Blue UV');
     assert.equal(label('VARILUX COMFORT MAX - AIRWEAR 1.59 + CRIZAL 2x1'), 'Varilux Comfort Max 3.0 Airwear 1.59 Blue UV');
     // Un liso que SÍ existe no se toca: Kodak SV Digital Orma (cod 21).
@@ -174,6 +174,24 @@ t('un diseño liso que OVES solo vende Blue UV se carga como Blue UV, el único 
     assert.equal(especificacionDe('SYGNUS DRIVER - Orma + AR NUMAX').especificacion.producto.label, 'Sygnus Driver Orma');
     const k = especificacionDe('KODAK PRECISE - ORMA + CRIZAL 2x1', { eleccion: { corredorPrecise: 'LARGE' } });
     assert.ok(k.ok); assert.equal(k.especificacion.producto.label, 'Kodak Precise Next Large Orma');
+});
+t('Varilux Digitime pide la distancia (Mid / Near) y carga la línea de OVES que corresponde', () => {
+    assert.equal(eleccionQuePide('VARILUX DIGITIME - ORMA + CRIZAL').clave, 'distanciaDigitime');
+    const sinElegir = especificacionDe('VARILUX DIGITIME - ORMA + CRIZAL', { color: null, eleccion: {} });
+    assert.equal(sinElegir.ok, false);
+    assert.equal(especificacionDe('VARILUX DIGITIME - ORMA + CRIZAL', { color: null, eleccion: { distanciaDigitime: 'MID' } }).especificacion.producto.label, 'Varilux Digitime Mid Orma Blue UV');
+    assert.equal(especificacionDe('VARILUX DIGITIME - ORMA + CRIZAL', { color: null, eleccion: { distanciaDigitime: 'near' } }).especificacion.producto.label, 'Varilux Digitime Near Orma Blue UV');
+});
+t('lo que el equipo cargó de verdad en OVES (consultado el 22/10/2026) es lo que carga el robot', () => {
+    const real = [
+        ['VARILUX COMFORT - ORMA + CRIZAL 2x1', 'Varilux Comfort Orma blue uv'],           // 620294, 619867
+        ['VARILUX COMFORT - AIRWEAR 1.59 + CRIZAL 2x1', 'Varilux Comfort Airwear 1.59 blue uv'], // 620682
+        ['VARILUX COMFORT MAX - ORMA + CRIZAL 2x1', 'Varilux Comfort Max 3.0 Orma Blue UV'],   // 612382, 613283, 606136
+        ['VARILUX PHYSIO - ORMA + CRIZAL 2x1', 'Varilux Physio Orma'],                     // 615327
+        ['VARILUX PHYSIO 3.0 - ORMA + CRIZAL 2x1', 'Varilux Physio 3.0 Orma Blue UV'],       // 612345, 610111
+        ['VARILUX XR DESIGN - ORMA + CRIZAL 2x1', 'Varilux XR Design Orma Blanco'],          // 611015
+    ];
+    for (const [crm, oves] of real) assert.equal(especificacionDe(crm, { color: null, eleccion: {} }).especificacion.producto.label.replace(/\s+/g, ' ').toLowerCase(), oves.toLowerCase(), crm);
 });
 t('las familias que exigen una elección la piden (potencia del Boost, corredor del Precise)', () => {
     const r = especificacionDe('EYEZEN BOOST - ORMA BLUE UV + CRIZAL 2x1');

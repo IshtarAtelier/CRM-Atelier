@@ -163,7 +163,7 @@ const ESPECIALES_RXTD: { crm: RegExp; linea: string; cod: string; familia: strin
 
 /** Diseños de tallado digital: familia del CRM → línea del portal. `eleccion` dice qué tiene que elegir quien prepara. */
 interface FamiliaRXTD { crm: RegExp; linea: string | ((eleccion: Eleccion) => string | null); nombre: string; tipo: TipoDeLente; eleccion?: { clave: string; etiqueta: string; opciones: { value: string; label: string }[] } }
-export interface Eleccion { potenciaBoost?: string | null; corredorPrecise?: string | null }
+export interface Eleccion { potenciaBoost?: string | null; corredorPrecise?: string | null; distanciaDigitime?: string | null }
 
 export const FAMILIAS_RXTD: FamiliaRXTD[] = [
     { nombre: 'Varilux Comfort Max', crm: /^varilux comfort max\b/, linea: 'VXCM', tipo: 'MULTIFOCAL' },
@@ -180,6 +180,12 @@ export const FAMILIAS_RXTD: FamiliaRXTD[] = [
         eleccion: { clave: 'potenciaBoost', etiqueta: 'Potencia del Eyezen Boost', opciones: [{ value: '0.4', label: '0.4' }, { value: '0.6', label: '0.6' }, { value: '0.85', label: '0.85' }] },
     },
     { nombre: 'Espace Plus Digital', crm: /^espace plus digital\b/, linea: 'ESPL', tipo: 'OCUPACIONAL' },
+    {
+        // OVES lo vende en dos versiones (Mid: computadora a 1 m; Near: lectura a 40 cm) y el CRM no dice cuál (22/10/2026).
+        nombre: 'Varilux Digitime', crm: /^varilux digitime\b/, tipo: 'OCUPACIONAL',
+        linea: e => ({ MID: 'VXDM', NEAR: 'VXDN' } as Record<string, string>)[String(e.distanciaDigitime ?? '').toUpperCase()] ?? null,
+        eleccion: { clave: 'distanciaDigitime', etiqueta: 'Distancia del Varilux Digitime', opciones: [{ value: 'MID', label: 'Mid (computadora, hasta 1 m)' }, { value: 'NEAR', label: 'Near (lectura, hasta 40 cm)' }] },
+    },
     { nombre: 'Myopilux Lite', crm: /^myopilux kids lite\b/, linea: 'MYLI', tipo: 'MONOFOCAL' },
     { nombre: 'Myopilux Plus', crm: /^myopilux kids plus\b/, linea: 'MYPL', tipo: 'MONOFOCAL' },
     { nombre: 'Kodak SV Digital', crm: /^kodak sv digital\b/, linea: 'KOSI', tipo: 'MONOFOCAL' },
@@ -366,7 +372,7 @@ export function especificacionDe(nombreCRM: string | null | undefined, opts: { c
         // docs/optovision-plan.md): si dice que no, esto pasa a A_MANO.
         const blue = COD_RXTD.BLUE_UV[material];
         const rb = typeof blue === 'string' ? elegirProductoOves({ clase: 'RXTD', linea, cod: blue, material }) : null;
-        if (rb?.ok) { r = rb; avisos.push(`OVES no tiene ${familia.nombre} ${r.producto.material} liso: se carga "${r.producto.label}", el único que ofrece para ese diseño y material`); }
+        if (rb?.ok) { r = rb; avisos.push(`Vendido sin Blue UV, pero OVES solo tiene ${familia.nombre} ${r.producto.material} con Blue UV: se carga "${r.producto.label}", el único que OVES ofrece para ese diseño y material`); }
     }
     if (!r.ok) return { ok: false, motivo: r.motivo, aMano: true };
     return { ok: true, especificacion: { clase: 'RXTD', producto: r.producto, familia: familia.nombre, tipo: familia.tipo, material, variante: avisos.length ? 'BLUE_UV' : variante, color, tratamiento, esPromo2x1, esMiPrimer, avisos } };
