@@ -5,7 +5,7 @@ import { X, Plus, Trash2, Copy, Check, Calculator } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { PricingService } from '@/services/PricingService';
 import { formatearPrecio } from '@/lib/format-precio';
-import { GRUPOS_FORMAS_DE_PAGO, etiquetaFormaDePago } from '@/lib/constants/formas-de-pago';
+import { gruposFormasDePagoActivos, etiquetaFormaDePago } from '@/lib/constants/formas-de-pago';
 import { esMpCuotasLargas } from '@/lib/payment-card';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ export default function CalculadorPagos({ isOpen, onClose, orders = [], initialO
                             {lineas.map(l => (
                                 <div key={l.id} className="grid grid-cols-[1fr_140px_36px] gap-2 items-center">
                                     <select className={selectClase} value={l.method} onChange={e => actualizar(l.id, { method: e.target.value })}>
-                                        {GRUPOS_FORMAS_DE_PAGO.map(g => (
+                                        {gruposFormasDePagoActivos().map(g => (
                                             <optgroup key={g.id} label={g.titulo}>
                                                 {g.items.map(i => <option key={i.id} value={i.id}>{etiquetaFormaDePago(i.id)}</option>)}
                                             </optgroup>
@@ -230,7 +230,7 @@ export default function CalculadorPagos({ isOpen, onClose, orders = [], initialO
                                 <div className="mt-3 flex flex-wrap items-center gap-2">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Completar el resto con</span>
                                     <select className="px-3 py-1.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-bold" value={completarCon} onChange={e => setCompletarCon(e.target.value)}>
-                                        {GRUPOS_FORMAS_DE_PAGO.map(g => (
+                                        {gruposFormasDePagoActivos().map(g => (
                                             <optgroup key={g.id} label={g.titulo}>
                                                 {g.items.map(i => <option key={i.id} value={i.id}>{etiquetaFormaDePago(i.id)}</option>)}
                                             </optgroup>

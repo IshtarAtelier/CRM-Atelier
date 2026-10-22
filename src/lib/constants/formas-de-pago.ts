@@ -24,6 +24,10 @@ export interface GrupoFormasDePago {
     id: string;
     titulo: string;
     items: FormaDePago[];
+    /** Cuenta frenada hasta esta fecha (YYYY-MM-DD, hora de Córdoba, exclusive). */
+    pausadaHasta?: string;
+    /** Qué usar mientras está frenada — se le muestra al vendedor. */
+    motivoPausa?: string;
 }
 
 export const GRUPOS_FORMAS_DE_PAGO: GrupoFormasDePago[] = [
@@ -49,6 +53,10 @@ export const GRUPOS_FORMAS_DE_PAGO: GrupoFormasDePago[] = [
     {
         id: 'mercadopago-yani',
         titulo: 'Mercado Pago · Yani',
+        // Ishtar, 21/10/2026: la cuenta pasó el tope de $5.000.000 del mes
+        // (llevaba $7,75 M). Hasta noviembre, todo Mercado Pago va a Ishtar.
+        pausadaHasta: '2026-11-01',
+        motivoPausa: 'Mercado Pago de Yani llegó al tope del mes: cobrá con Mercado Pago · Ishtar hasta el 1/11.',
         items: [
             { id: 'MERCADO_PAGO_3_YANI', label: '3 cuotas', icono: 'tarjeta', color: 'sky' },
             { id: 'MERCADO_PAGO_6_YANI', label: '6 cuotas', icono: 'tarjeta', color: 'sky' },
@@ -96,4 +104,30 @@ export function etiquetaFormaDePago(id: string): string {
         if (item) return grupo.id === 'principales' || grupo.id === 'especial' ? item.label : `${grupo.titulo} · ${item.label}`;
     }
     return id;
+}
+
+/** Fecha de hoy en Córdoba como YYYY-MM-DD (en-CA da ese formato). */
+function hoyCordoba(ahora: Date): string {
+    return ahora.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Cordoba' });
+}
+
+/** El grupo está frenado hoy: no se ofrece y la API rechaza cobros nuevos. */
+export function grupoPausado(grupo: GrupoFormasDePago, ahora = new Date()): boolean {
+    return !!grupo.pausadaHasta && hoyCordoba(ahora) < grupo.pausadaHasta;
+}
+
+/** Si la forma de pago está frenada hoy, el motivo; si no, null. */
+export function motivoFormaPausada(id: string, ahora = new Date()): string | null {
+    const grupo = GRUPOS_FORMAS_DE_PAGO.find(g => g.items.some(i => i.id === id));
+    return grupo && grupoPausado(grupo, ahora) ? (grupo.motivoPausa ?? `${grupo.titulo}: cuenta pausada.`) : null;
+}
+
+/** Los grupos que se pueden usar hoy. */
+export function gruposFormasDePagoActivos(ahora = new Date()): GrupoFormasDePago[] {
+    return GRUPOS_FORMAS_DE_PAGO.filter(g => !grupoPausado(g, ahora));
+}
+
+/** Avisos de cuentas frenadas hoy, para mostrar arriba del selector. */
+export function avisosFormasPausadas(ahora = new Date()): string[] {
+    return GRUPOS_FORMAS_DE_PAGO.filter(g => grupoPausado(g, ahora)).map(g => g.motivoPausa ?? `${g.titulo}: cuenta pausada.`);
 }

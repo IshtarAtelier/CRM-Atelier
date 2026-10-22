@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
 import { getActor } from '@/lib/actor';
+import { motivoFormaPausada } from '@/lib/constants/formas-de-pago';
 import { isCardMethod, esPointPresencial, METODO_ESPECIAL } from '@/lib/payment-card';
 import { z } from 'zod';
 
@@ -37,6 +38,12 @@ export async function POST(
         }
 
         const { amount, method, notes, receiptUrl, date, cardMode, batchNumber, couponNumber, authNumber } = validation.data;
+
+        // Cuenta frenada (tope del mes): no entra ningún cobro nuevo por ahí.
+        const pausa = motivoFormaPausada(method);
+        if (pausa) {
+            return NextResponse.json({ error: pausa }, { status: 400 });
+        }
 
         // Validation: Non-cash payments MUST include a receipt photo
         const isCash = method === 'EFECTIVO' || method === 'CASH';
