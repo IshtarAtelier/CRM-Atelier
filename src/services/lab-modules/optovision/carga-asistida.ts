@@ -11,7 +11,7 @@ import { mensajeExistente, numeroDelPrimerPar, pedidoExistenteDelPar, type Pedid
 import { confirmarBorradorAprobado, prepararEnPortal, ROBOT_ACTOR_OPTOVISION, type PayloadBorradorOves, type RastroOves } from './borrador-portal';
 import { avisarMailDePromo } from './promo-mail';
 import { prisma } from '../../../lib/db';
-import { LAB_OPTOVISION, NOMBRE_OPTOVISION } from './portal';
+import { LAB_OPTOVISION, NOMBRE_OPTOVISION, PORTAL_BASE } from './portal';
 import { conCuponReal, cuponLimpio, PATRON_CUPON, PATRON_CUPON_HTML, providerDePromo, WEB_DE_PROMO } from './promo';
 import { formatDate } from '../../../lib/format-date';
 import { pedidoDeCupon, rasgosDelCristalCRM, rasgosDeProductoWeb } from './cupon-web';
@@ -68,6 +68,8 @@ export const CARGA_OPTOVISION: CargaAsistida = {
     lab: LAB_OPTOVISION,
     nombre: NOMBRE_OPTOVISION,
     robot: ROBOT_ACTOR_OPTOVISION,
+    // OVES es una app de una sola pantalla, solo http y sin URL de alta: se abre la portada (entrar → "Nuevo Pedido").
+    portal: { url: PORTAL_BASE, etiqueta: 'Abrir OVES para cargarlo a mano (entrar → Nuevo Pedido)' },
 
     async analizar(orderId) {
         const venta = await leerVentaParaCargaOves(orderId);

@@ -1,6 +1,6 @@
 import { familiaDelNombre, materialDe, normalizar, varianteDe, type Material } from './catalogo';
 import type { OjoOves, PlanOves, VentaParaCargaOves } from './carga';
-import { conCuponReal, cuponLimpio, PATRON_CUPON, providerDePromo, type MarcaDePromo, type TipoDePromo } from './promo';
+import { conCuponReal, PATRON_CUPON, providerDePromo, type MarcaDePromo, type TipoDePromo } from './promo';
 
 /**
  * EL CUPÓN DE LA PROMO, LO PURO (sin red ni navegador): cómo se arma el pedido
