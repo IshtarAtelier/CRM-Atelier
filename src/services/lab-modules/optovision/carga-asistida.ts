@@ -70,7 +70,7 @@ export const CARGA_OPTOVISION: CargaAsistida = {
     nombre: NOMBRE_OPTOVISION,
     robot: ROBOT_ACTOR_OPTOVISION,
     // OVES es una app de una sola pantalla, solo http y sin URL de alta: se abre la portada (entrar → "Nuevo Pedido").
-    portal: { url: PORTAL_BASE, etiqueta: 'Abrir OVES para cargarlo a mano' },
+    portal: { url: PORTAL_BASE, etiqueta: 'Abrir portal' },
 
     async analizar(orderId) {
         const venta = await leerVentaParaCargaOves(orderId);

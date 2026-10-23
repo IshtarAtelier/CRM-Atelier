@@ -57,7 +57,7 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
     lab: LAB_GRUPO_OPTICO,
     nombre: NOMBRE_GRUPO_OPTICO,
     robot: ROBOT_ACTOR_GRUPO_OPTICO,
-    portal: { url: `${PORTAL_BASE}/smartlab/laboratory/new`, etiqueta: 'Abrir SmartLab para cargarlo a mano' },
+    portal: { url: `${PORTAL_BASE}/smartlab/laboratory/new`, etiqueta: 'Abrir portal' },
 
     async analizar(orderId) {
         const venta = await leerVentaParaCargaGO(orderId);

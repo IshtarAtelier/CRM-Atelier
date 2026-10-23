@@ -35,7 +35,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
     lab: LAB_VITOLEN,
     nombre: NOMBRE_VITOLEN,
     robot: ROBOT_ACTOR_VITOLEN,
-    portal: { url: `${BASE_VITOLEN}/ventas/pedidos_laboratorio/new`, etiqueta: 'Abrir el portal de Vitolen para cargarlo a mano' },
+    portal: { url: `${BASE_VITOLEN}/ventas/pedidos_laboratorio/new`, etiqueta: 'Abrir portal' },
 
     async analizar(orderId) {
         const venta = await leerVentaParaCarga(orderId);
