@@ -4,6 +4,7 @@ import { accionesDe, Borradores, etapaParaLaFicha } from '@/services/lab-modules
 import { httpDeError } from '@/services/lab-modules/carga/errores';
 import { pedidosEnEspejo } from '@/services/lab-modules/espejo';
 import { cargaDe } from '@/services/lab-modules/carga/registro';
+import { moduloPorClave } from '@/services/lab-modules/registro';
 import { puedeCargarEnLaboratorio } from '@/lib/lab-carga-acceso';
 
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,8 @@ export async function GET(request: Request) {
             }
         }),
         espejo, pares: analisis.pares,
+        // Sin seguimiento (Optovisión) el espejo siempre está vacío: "el portal no muestra ningún pedido" sería falso.
+        conSeguimiento: moduloPorClave(carga.lab)?.capacidades.seguimiento ?? true,
         puedeCancelarEnPortal: !!carga.cancelarEnPortal,
         // El botón "abrir el portal para cargarlo a mano": siempre, en cualquier estado.
         portal: carga.portal,

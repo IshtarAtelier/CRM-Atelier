@@ -162,7 +162,7 @@ const ESPECIALES_RXTD: { crm: RegExp; linea: string; cod: string; familia: strin
 ];
 
 /** Diseños de tallado digital: familia del CRM → línea del portal. `eleccion` dice qué tiene que elegir quien prepara. */
-interface FamiliaRXTD { crm: RegExp; linea: string | ((eleccion: Eleccion) => string | null); nombre: string; tipo: TipoDeLente; eleccion?: { clave: string; etiqueta: string; opciones: { value: string; label: string }[] } }
+interface FamiliaRXTD { crm: RegExp; linea: string | ((eleccion: Eleccion) => string | null); nombre: string; tipo: TipoDeLente; eleccion?: { clave: string; etiqueta: string; porDefecto?: string; opciones: { value: string; label: string }[] } }
 export interface Eleccion { potenciaBoost?: string | null; corredorPrecise?: string | null; distanciaDigitime?: string | null }
 
 export const FAMILIAS_RXTD: FamiliaRXTD[] = [
@@ -192,7 +192,7 @@ export const FAMILIAS_RXTD: FamiliaRXTD[] = [
     {
         nombre: 'Kodak Precise Next', crm: /^kodak precise\b/, tipo: 'MULTIFOCAL',
         linea: e => ({ LARGE: 'KPNL', SHORT: 'KPNS' } as Record<string, string>)[String(e.corredorPrecise ?? '').toUpperCase()] ?? null,
-        eleccion: { clave: 'corredorPrecise', etiqueta: 'Corredor del Kodak Precise Next', opciones: [{ value: 'LARGE', label: 'Large (estándar)' }, { value: 'SHORT', label: 'Short (armazón bajo)' }] },
+        eleccion: { clave: 'corredorPrecise', etiqueta: 'Corredor del Kodak Precise Next', porDefecto: 'LARGE', opciones: [{ value: 'LARGE', label: 'Large (estándar)' }, { value: 'SHORT', label: 'Short (armazón bajo)' }] },
     },
     { nombre: 'Kodak Unique Dro', crm: /^kodak unique dro\b/, linea: 'KOUN', tipo: 'MULTIFOCAL' },
     { nombre: 'Kodak Softwear', crm: /^kodak softwear\b/, linea: 'KOSO', tipo: 'OCUPACIONAL' },
@@ -284,9 +284,9 @@ export function elegirProductoOves(clave: { clase: ClaseDePedidoOves; linea: str
     if (candidatos.length === 1) return { ok: true, producto: candidatos[0] };
     if (candidatos.length === 0) {
         const vecinos = PRODUCTOS_OVES.filter(p => p.clase === clave.clase && p.linea === clave.linea && (!clave.material || materialDe(p.material) === clave.material)).map(p => p.label);
-        return { ok: false, motivo: `OVES no tiene ${clave.clase} ${clave.linea} ${clave.material ?? ''} con variante ${clave.cod}${vecinos.length ? ` (ofrece: ${vecinos.slice(0, 8).join(' / ')}${vecinos.length > 8 ? '…' : ''})` : ''}`.replace(/\s+/g, ' ') };
+        return { ok: false, motivo: `OVES no tiene ese cristal en ${clave.material ?? 'ese material'} con esa versión${vecinos.length ? ` (tiene: ${vecinos.slice(0, 4).join(' / ')}${vecinos.length > 4 ? '…' : ''})` : ''}`.replace(/\s+/g, ' ') };
     }
-    return { ok: false, motivo: `OVES tiene ${candidatos.length} productos para ${clave.linea} ${clave.material ?? ''} ${clave.cod} (${candidatos.map(c => c.label).join(' / ')}): no se elige "el primero"` };
+    return { ok: false, motivo: `OVES tiene ${candidatos.length} productos que podrían ser este (${candidatos.map(c => c.label).join(' / ')}): el robot no elige a ciegas` };
 }
 
 /**
@@ -344,7 +344,7 @@ export function especificacionDe(nombreCRM: string | null | undefined, opts: { c
         const clave = conColor ? (variante === 'XTRACTIVE' ? `XTRACTIVE:${material}:Gris` : `${tradicional}:${material}:${color ?? ''}`) : `${tradicional}:${material}`;
         if (conColor && !color) return { ok: false, motivo: `falta el color del ${tradicional === 'XPERIO' ? 'Xperio' : 'Transitions'} (elegilo en la venta: Gris, Café…)`, aMano: false };
         const cod = COD_TRADICIONAL[clave];
-        if (!cod) return { ok: false, motivo: `OVES no lista "${nombreCRM}" (${clave}) en laboratorio tradicional`, aMano: true };
+        if (!cod) return { ok: false, motivo: `OVES no lista "${nombreCRM}"`, aMano: true };
         const r = elegirProductoOves({ clase: 'RXTT', linea: 'S/T', cod });
         if (!r.ok) return { ok: false, motivo: r.motivo, aMano: true };
         return { ok: true, especificacion: { clase: 'RXTT', producto: r.producto, familia: r.producto.marca, tipo: tradicional === 'INTERVIEW' ? 'OCUPACIONAL' : 'MONOFOCAL', material, variante, color, tratamiento, esPromo2x1, esMiPrimer, avisos: [] } };
@@ -352,7 +352,7 @@ export function especificacionDe(nombreCRM: string | null | undefined, opts: { c
 
     // 3. Diseños de tallado digital.
     const familia = FAMILIAS_RXTD.find(f => f.crm.test(base));
-    if (!familia) return { ok: false, motivo: `no se reconoce la familia de "${nombreCRM}" en el catálogo de OVES (revisar catalogo.ts)`, aMano: true };
+    if (!familia) return { ok: false, motivo: `el robot no reconoce "${nombreCRM}" en el catálogo de OVES`, aMano: true };
     if (!material) return { ok: false, motivo: `no se reconoce el material en "${nombreCRM}"`, aMano: false };
     const linea = lineaDe(familia, opts.eleccion ?? {});
     if (!linea) return { ok: false, motivo: `${familia.nombre}: hay que elegir ${familia.eleccion?.etiqueta.toLowerCase()}`, aMano: false, eleccion: familia.eleccion };
@@ -372,7 +372,7 @@ export function especificacionDe(nombreCRM: string | null | undefined, opts: { c
         // docs/optovision-plan.md): si dice que no, esto pasa a A_MANO.
         const blue = COD_RXTD.BLUE_UV[material];
         const rb = typeof blue === 'string' ? elegirProductoOves({ clase: 'RXTD', linea, cod: blue, material }) : null;
-        if (rb?.ok) { r = rb; avisos.push(`Vendido sin Blue UV, pero OVES solo tiene ${familia.nombre} ${r.producto.material} con Blue UV: se carga "${r.producto.label}", el único que OVES ofrece para ese diseño y material`); }
+        if (rb?.ok) { r = rb; avisos.push(`Vendido sin Blue UV: el laboratorio solo lo tiene con Blue UV. Va "${r.producto.label}".`); }
     }
     if (!r.ok) return { ok: false, motivo: r.motivo, aMano: true };
     return { ok: true, especificacion: { clase: 'RXTD', producto: r.producto, familia: familia.nombre, tipo: familia.tipo, material, variante: avisos.length ? 'BLUE_UV' : variante, color, tratamiento, esPromo2x1, esMiPrimer, avisos } };
@@ -409,6 +409,14 @@ export const SERVICIO_CALIBRADO: Record<string, string> = {
     PERFORADO: 'Calibrado perforado',
     RANURADO: 'Calibrado ranurado',
     SIN: 'sin calibrado',
+};
+
+/** Cómo se lee cada calibrado en el bloque (el valor de SERVICIO_CALIBRADO es el texto del portal). */
+export const ETIQUETA_CALIBRADO: Record<string, string> = {
+    COMUN: 'Común',
+    PERFORADO: 'Perforado',
+    RANURADO: 'Ranurado',
+    SIN: 'Sin calibrar (se calibra en el local)',
 };
 
 /** Coloración del formulario según el estilo del teñido del CRM (constants/tenido.ts). */

@@ -24,6 +24,8 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import CargaLaboratorio from '@/components/orders/CargaLaboratorio';
+import LineaParCristal from '@/components/quotes/LineaParCristal';
+import { framesDeLaOrden } from '@/lib/order-frames';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 import { PV } from '@/components/orders/postventa-ui';
 
@@ -834,6 +836,8 @@ export function OrderDetailPanel({
                                     <tr key={item.id} className="border-b border-stone-50 dark:border-stone-700/50 last:border-0">
                                         <td className="px-5 py-3 text-sm font-bold text-stone-800 dark:text-white">
                                             {item.product?.brand || item.productBrandSnapshot || '—'} · {item.product?.name || item.productNameSnapshot || '—'}
+                                            {/* Solo si al cristal le falta el par (venta de dos armazones): sin él no se carga en el laboratorio. */}
+                                            <LineaParCristal orderId={order.id} item={item} items={order.items} totalArmazones={framesDeLaOrden(order).length} editable onSaved={() => onRefresh?.()} />
                                         </td>
                                         <td className="px-5 py-3 text-xs text-stone-500">
                                             {item.product?.type || item.product?.category || item.productCategorySnapshot || '—'}
@@ -1192,7 +1196,7 @@ export function OrderDetailPanel({
                         real del portal y ahí mismo se aprueba. El favorito de SmartLab queda
                         arriba como plan B ("a mano"). */}
                     {isGrupoOptico && (
-                        <CargaLaboratorio lab="GRUPO_OPTICO" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'GRUPO_OPTICO' ? cargaPedida.n : 0} />
+                        <CargaLaboratorio key={`go-${order.items.map((i: any) => i.framePosition ?? 0).join('')}`} lab="GRUPO_OPTICO" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'GRUPO_OPTICO' ? cargaPedida.n : 0} />
                     )}
 
                     {/* SmartLab Live Status (Grupo Óptico). Vitolen tiene su propio bloque. */}
@@ -1263,13 +1267,13 @@ export function OrderDetailPanel({
                     {/* Vitolen: espejo del portal y carga asistida con OK humano
                         (src/services/lab-modules). Solo si la venta lleva sus cristales. */}
                     {isVitolen && (
-                        <CargaLaboratorio lab="VITOLEN" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'VITOLEN' ? cargaPedida.n : 0} />
+                        <CargaLaboratorio key={`vit-${order.items.map((i: any) => i.framePosition ?? 0).join('')}`} lab="VITOLEN" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'VITOLEN' ? cargaPedida.n : 0} />
                     )}
 
                     {/* Optovisión: carga asistida en OVES con OK humano (lab-modules/optovision).
                         El seguimiento sigue por la factura (lab-recon); acá solo la carga. */}
                     {cargaOptovision && (
-                        <CargaLaboratorio lab="OPTOVISION" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'OPTOVISION' ? cargaPedida.n : 0} />
+                        <CargaLaboratorio key={`opto-${order.items.map((i: any) => i.framePosition ?? 0).join('')}`} lab="OPTOVISION" orderId={order.id} onChanged={() => onRefresh?.()} arrancar={cargaPedida?.lab === 'OPTOVISION' ? cargaPedida.n : 0} />
                     )}
 
 

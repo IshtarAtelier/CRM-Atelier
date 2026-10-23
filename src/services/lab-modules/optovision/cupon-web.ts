@@ -54,7 +54,6 @@ export function rasgosDelCristalCRM(nombreCRM: string, tratamientoCode: string |
     let tecnologia: TecnologiaWeb = variante === 'LISO' ? 'LISO' : variante;
     if (tecnologia === 'LISO' && marca === 'VARILUX') {
         tecnologia = 'BLUE_UV';
-        avisos.push(`la web de la promo no tiene "${nombreCRM}" sin Blue UV: el cupón va con Blue UV (como en OVES)`);
     }
     return { ok: true, rasgos: { material, tecnologia, tratamiento }, avisos };
 }
@@ -115,7 +114,8 @@ export function recetaWebDe(ojo: OjoOves | null, lado: 'OD' | 'OI', tipo: TipoDe
     const maxAdic = ADICION_MAXIMA_WEB[tipo];
     if (ojo.adic && (adic < 0.75 || adic > maxAdic)) faltantes.push(`adición ${lado} (${ojo.adic}) fuera de lo que acepta la web de ${tipo === 'MI_PRIMER' ? 'Mi Primer' : 'la promo'} (0.75 a ${maxAdic.toFixed(2)}): generá el cupón a mano si Optovisión lo acepta igual`);
     if (faltantes.length) return { ok: false, faltantes };
-    const avisos = dnp !== null && Number(ojo.dnp) !== dnp ? [`DNP ${lado} ${ojo.dnp} va como ${dnp} en la web de la promo (solo acepta enteros)`] : [];
+    // La web solo acepta DNP entera: el redondeo no cambia el cupón, no se avisa.
+    const avisos: string[] = [];
     return { ok: true, avisos, receta: { esferico: sinMas(ojo.esf), cilindrico: ojo.cil ? sinMas(ojo.cil) : '0.00', eje: ojo.cil && ojo.eje ? ojo.eje : '', adicion: ojo.adic!, dnp: String(dnp) } };
 }
 
@@ -140,7 +140,6 @@ export function clienteWebDe(cliente: VentaParaCargaOves['client'], genero: stri
     const avisos: string[] = [];
     const { nombre, apellido } = repartirNombre(cliente?.name || '');
     if (!nombre) faltantes.push('nombre del cliente');
-    if (limpio(cliente?.name).split(' ').length > 2) avisos.push(`el nombre del cliente se repartió como nombre "${nombre}" y apellido "${apellido}" para la web de la promo`);
     const dni = String(cliente?.dni || '').replace(/\D/g, '');
     if (!/^\d{7,8}$/.test(dni)) faltantes.push('DNI del cliente (7 u 8 dígitos, en la ficha)');
     const g = String(genero || '').trim().toUpperCase();
@@ -150,7 +149,6 @@ export function clienteWebDe(cliente: VentaParaCargaOves['client'], genero: stri
     const nac = crudo instanceof Date ? crudo : typeof crudo === 'string' && /^\d{4}-\d{2}-\d{2}/.test(crudo) ? new Date(`${crudo.slice(0, 10)}T00:00:00.000Z`) : crudo ? new Date(crudo) : null;
     if (!nac || Number.isNaN(nac.getTime())) faltantes.push('fecha de nacimiento del cliente (en la ficha)');
     const telefono = telefonoParaLaWeb(cliente?.phone);
-    if (cliente?.phone && !telefono) avisos.push(`el teléfono de la ficha (${cliente.phone}) no entra en el formato de la web de la promo: el cupón va sin teléfono (no es obligatorio)`);
     const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(cliente?.email || '').trim()) ? String(cliente!.email).trim() : null;
     if (faltantes.length) return { ok: false, faltantes };
     // Las fechas de la ficha se guardan a medianoche UTC: se leen en UTC para no correr un día.
@@ -194,7 +192,6 @@ export function pedidoDeCupon(o: { venta: VentaParaCargaOves; plan: PlanOves; pr
             const r2 = rasgosDelCristalCRM(o.productoCRMSegundo, o.plan.opciones.tratamiento, o.plan.promo?.marca ?? null);
             if (!r2.ok) faltantes.push(`2º par: ${r2.motivo}`);
             else { avisos.push(...r2.avisos.map(a => `2º par: ${a}`)); segundo = { productoCRM: o.productoCRMSegundo, rasgos: r2.rasgos }; }
-            avisos.push('el cupón lleva para el 2º par el mismo Crizal que el 1º; si el 2º va con otro, el bloque lo avisa al preparar ese par');
             if (disenoDelCristalCRM(o.plan.productoCRM) !== disenoDelCristalCRM(o.productoCRMSegundo)) faltantes.push(`la web de la promo exige el mismo diseño en los dos pares (${familiaDelNombre(o.plan.productoCRM)} y ${familiaDelNombre(o.productoCRMSegundo)}): confirmá con Optovisión y generá el cupón a mano`);
         }
     }

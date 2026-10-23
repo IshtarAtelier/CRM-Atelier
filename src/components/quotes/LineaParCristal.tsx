@@ -87,7 +87,7 @@ export default function LineaParCristal({ orderId, item, items, totalArmazones, 
                     </button>
                 );
             })}
-            {!item.framePosition && editable && <span className="text-[10px] font-bold text-rose-600">← elegí uno (sin esto no se puede convertir en venta)</span>}
+            {!item.framePosition && editable && <span className="text-[10px] font-bold text-rose-600">← elegí uno</span>}
             {error && <span className="text-[10px] font-bold text-rose-600">{error}</span>}
         </div>
     );

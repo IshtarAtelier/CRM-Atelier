@@ -237,7 +237,7 @@ export default function CartLineItems({
                                                     {pos}º par
                                                 </button>
                                             ))}
-                                            {!item.framePosition && <span className="text-[9px] font-bold text-rose-600">← par</span>}
+                                            {!item.framePosition && <span className="text-[9px] font-bold text-rose-600">← elegí uno</span>}
                                         </span>
                                     )}
                                     {item.uid !== undefined && promoLensUids?.has(item.uid) && (

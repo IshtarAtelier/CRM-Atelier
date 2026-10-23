@@ -31,7 +31,7 @@ interface Borrador {
     ahora?: string | null;
 }
 interface PedidoEspejo { portalNumber: string; status: string; statusRaw: string | null; estimatedAt: string | null; lastSeenAt: string }
-interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean; portal?: { url: string; etiqueta: string } | null }
+interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean; conSeguimiento?: boolean; portal?: { url: string; etiqueta: string } | null }
 
 const ESTADO: Record<string, { texto: string; clase: string }> = {
     PREPARADO: { texto: 'El robot está armando el pedido', clase: 'bg-stone-100 text-stone-600' },
@@ -50,7 +50,7 @@ const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde:
     VITOLEN: { caja: 'from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-100 dark:border-red-900/40', titulo: 'text-red-600', boton: 'bg-red-600', borde: 'border-red-100 dark:border-red-900/30', anillo: 'hover:ring-red-400', seleccion: 'border-red-600 ring-red-300' },
     GRUPO_OPTICO: { caja: 'from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-indigo-100 dark:border-indigo-900/50', titulo: 'text-indigo-600 dark:text-indigo-400', boton: 'bg-indigo-600', borde: 'border-indigo-100 dark:border-indigo-900/40', anillo: 'hover:ring-indigo-400', seleccion: 'border-indigo-600 ring-indigo-300' },
     // Optovisión con colores propios: con los de Grupo Óptico, Milena no distinguía de qué laboratorio era la caja (auditoría del 21/10/2026).
-    OPTOVISION: { caja: 'from-teal-50 to-emerald-50 dark:from-teal-950/30 dark:to-emerald-950/30 border-teal-100 dark:border-teal-900/50', titulo: 'text-teal-700 dark:text-teal-400', boton: 'bg-teal-700', borde: 'border-teal-100 dark:border-teal-900/40', anillo: 'hover:ring-teal-400', seleccion: 'border-teal-700 ring-teal-300' },
+    OPTOVISION: { caja: 'from-teal-50 to-cyan-50 dark:from-teal-950/30 dark:to-cyan-950/30 border-teal-100 dark:border-teal-900/50', titulo: 'text-teal-700 dark:text-teal-400', boton: 'bg-teal-700', borde: 'border-teal-100 dark:border-teal-900/40', anillo: 'hover:ring-teal-400', seleccion: 'border-teal-700 ring-teal-300' },
 };
 
 /**
@@ -262,7 +262,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                 </div>
             </div>
 
-            {datos.espejo.length === 0 && <p className="text-[11px] text-stone-500 mb-3">El portal de {nombre} todavía no muestra ningún pedido de esta venta.</p>}
+            {datos.espejo.length === 0 && datos.conSeguimiento !== false && <p className="text-[11px] text-stone-500 mb-3">El portal de {nombre} todavía no muestra ningún pedido de esta venta.</p>}
             {datos.espejo.length > 0 && (
                 <ul className="space-y-1 mb-4">
                     {datos.espejo.map(p => (
@@ -280,7 +280,10 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                 const cerrados = datos.borradores.filter(x => x.pair === par.pair && !VIVOS.includes(x.status));
                 const cargado = cerrados.find(x => x.status === 'CARGADO');
                 const ultimo = cerrados[0];
-                const mostrado = b || cargado || ultimo;
+                // Un rechazo limpio (sin error ni pedido colgado en el portal) ya terminó: el par vuelve a "para preparar"
+                // sin un cartel rojo de "Rechazado" arriba del formulario.
+                const rechazoLimpio = ultimo?.status === 'RECHAZADO' && !ultimo.error && !ultimo.vista?.pendienteEnPortal;
+                const mostrado = b || cargado || (rechazoLimpio ? null : ultimo);
                 const faltaElegir = par.campos.some(c => c.obligatorio && !valorDe(par.pair, c));
                 return (
                     <div key={par.pair} className={`border-t ${tema.borde} pt-3 mt-3 space-y-2`}>

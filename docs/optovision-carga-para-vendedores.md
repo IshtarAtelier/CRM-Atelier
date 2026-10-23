@@ -26,19 +26,20 @@ anulación desde el portal, así que la revisión es el momento de mirar.
 La venta no guarda estas cosas; las elegís vos en el bloque, mirando lo que
 se vendió:
 
-- **Crizal**: Forte UV, Prevencia o Sapphire. Si el producto dice "+ AR
-  NUMAX" o "SIN ANTIRREFLEJO", no se pregunta.
+- **Crizal**: sale del "Crizal del par" que se eligió al enviar a fábrica. Se
+  pregunta solo si la venta no lo tiene.
 - **Calibrado**: común (por defecto), perforado, ranurado o sin calibrar (si
   se calibra en el local).
 - **Tipo de armazón** del portal: Zilo/Acetato, Metal, Montura al aire, Hilo
   Nylon o Hilo de Acero.
 - **Si se manda el armazón** (con la marca y el modelo de la venta).
-- En una promo, el **cupón** (vacío = lo genera el robot) y el **género** del
-  cliente (la web de la promo lo pide).
+- En una promo, el **cupón** (opcional: vacío lo genera el robot) y el
+  **género** del cliente (la web de la promo lo pide).
 - **Forma** del armazón: el dibujo del portal, **obligatorio** (OVES no graba
   sin él). Es la fila de dibujos, al final.
 - Lo que el diseño exija: **potencia del Eyezen Boost** (0.4 / 0.6 / 0.85),
-  **corredor del Kodak Precise** (Large / Short).
+  **corredor del Kodak Precise** (viene en Large; Short para armazón bajo),
+  **distancia del Varilux Digitime** (Mid / Near).
 
 ## Las promos (Doble Disfrute Varilux, 2x1 Kodak, Mi Primer)
 
@@ -55,7 +56,7 @@ Optovisión cobra los dos pares si falta un solo paso. El bloque te guía:
    robot usa ese. El cupón va en la observación ("Primer par de Promo num
    cupón …") y el voucher PDF queda enlazado en el borrador.
 2. **El 1er par es el de mayor valor de lista**, no el que cargaste primero
-   en la venta: el bloque lo marca ("1er par · promo").
+   en la venta: el bloque lo marca ("1er par · con cargo"; el otro, "2º par · sin cargo").
 3. **El 2º par se prepara recién cuando el 1º está cargado**: lleva el nº del
    1º en la observación ("Segundo par promo compañero/asociado al num …"). El
    bloque te lo dice y lo arma solo.

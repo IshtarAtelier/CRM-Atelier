@@ -144,7 +144,7 @@ t('diseños de tallado digital: nombres reales de producción → producto de OV
     assert.equal(label('KODAK SV DIGITAL - AIRWEAR 1.59 XPERIO + CRIZAL', { color: 'Gris' }), 'Kodak SV Digital  Airwear 1.59 Xperio Gris');
     // El CRM vende Kodak SV Digital Orma Xperio y OVES no lo lista: va a mano, diciendo qué ofrece.
     const sinXperio = especificacionDe('KODAK SV DIGITAL - ORMA XPERIO + CRIZAL', { color: 'Gris' });
-    assert.equal(sinXperio.ok, false); assert.equal(sinXperio.aMano, true); assert.match(sinXperio.motivo, /no tiene RXTD KOSI ORMA con variante DS \(ofrece:/);
+    assert.equal(sinXperio.ok, false); assert.equal(sinXperio.aMano, true); assert.match(sinXperio.motivo, /no tiene ese cristal en ORMA con esa versión \(tiene:/);
     assert.equal(label('KODAK UNIQUE DRO - ORMA ACCLIMATES + CRIZAL 2x1'), 'Kodak Unique Dro Acclimates');
     assert.equal(label('KODAK SOFTWEAR - STYLIS 1.67 + CRIZAL'), 'Kodak Softwear Stylis 1.67');
     assert.equal(label('MI PRIMER VARILUX PHYSIO 3.0 - ORMA BLUE UV + CRIZAL'), 'Varilux Physio 3.0 Orma Blue UV');
@@ -165,7 +165,7 @@ t('diseños de tallado digital: nombres reales de producción → producto de OV
 t('un diseño liso que OVES solo vende Blue UV se carga como Blue UV, el único que ofrece, y se avisa', () => {
     const r = especificacionDe('VARILUX COMFORT - ORMA + CRIZAL 2x1');
     assert.ok(r.ok); assert.equal(r.especificacion.producto.label, 'Varilux Comfort Orma blue uv'); assert.equal(r.especificacion.variante, 'BLUE_UV');
-    assert.match(r.especificacion.avisos[0], /sin Blue UV, pero OVES solo tiene Varilux Comfort Orma con Blue UV: se carga "Varilux Comfort Orma blue uv"/);
+    assert.match(r.especificacion.avisos[0], /Vendido sin Blue UV: el laboratorio solo lo tiene con Blue UV\. Va "Varilux Comfort Orma blue uv"/);
     assert.equal(label('MI PRIMER VARILUX PHYSIO 3.0 - ORMA + CRIZAL'), 'Varilux Physio 3.0 Orma Blue UV');
     assert.equal(label('VARILUX COMFORT MAX - AIRWEAR 1.59 + CRIZAL 2x1'), 'Varilux Comfort Max 3.0 Airwear 1.59 Blue UV');
     // Un liso que SÍ existe no se toca: Kodak SV Digital Orma (cod 21).
@@ -236,7 +236,7 @@ t('lo que OVES no tiene se declara "a mano", con el motivo', () => {
 });
 t('elegir un producto nunca da "el primero": cero o varios candidatos se dicen', () => {
     const r = elegirProductoOves({ clase: 'RXTD', linea: 'VXCO', cod: 'ZZ', material: 'ORMA' });
-    assert.equal(r.ok, false); assert.match(r.motivo, /ofrece:/);
+    assert.equal(r.ok, false); assert.match(r.motivo, /tiene:/);
     const ok = elegirProductoOves({ clase: 'RXTT', linea: 'S/T', cod: '16' });
     assert.ok(ok.ok); assert.equal(ok.producto.label, 'CR 39 Blanco');
     assert.equal(familiaDelNombre('MI PRIMER KODAK UNIQUE DRO - ORMA + CRIZAL'), 'Kodak Unique Dro');
@@ -450,9 +450,9 @@ t('los rasgos de un producto del sitio salen del nombre, con dobles espacios, "B
     assert.deepEqual(rasgosDeProductoWeb('Varilux Liberty Orma Transitions Gen S Gris / Café Con Crizal Forte Uv'), { material: 'ORMA', tecnologia: 'TRANSITIONS', tratamiento: 'FORTE_UV' });
     assert.deepEqual(rasgosDeProductoWeb('Varilux Xr Pro Airwear Xperio Gris / Marrón Con Crizal Prevencia'), { material: 'AIRWEAR', tecnologia: 'XPERIO', tratamiento: 'PREVENCIA' });
 });
-t('los rasgos del cristal vendido: liso de Varilux → Blue UV con aviso; Kodak liso existe; Acclimates y sin Crizal frenan', () => {
+t('los rasgos del cristal vendido: liso de Varilux → Blue UV (sin aviso: el de OVES ya lo dice); Kodak liso existe; Acclimates y sin Crizal frenan', () => {
     const liso = rasgosDelCristalCRM('VARILUX COMFORT - ORMA + CRIZAL 2x1', 'CRIZAL_FORTE_UV', 'VARILUX');
-    assert.ok(liso.ok); assert.deepEqual(liso.rasgos, { material: 'ORMA', tecnologia: 'BLUE_UV', tratamiento: 'FORTE_UV' }); assert.match(liso.avisos[0], /Blue UV/);
+    assert.ok(liso.ok); assert.deepEqual(liso.rasgos, { material: 'ORMA', tecnologia: 'BLUE_UV', tratamiento: 'FORTE_UV' }); assert.deepEqual(liso.avisos, []);
     const kodak = rasgosDelCristalCRM('KODAK UNIQUE DRO - ORMA + CRIZAL 2x1', 'CRIZAL_PREVENCIA', 'KODAK');
     assert.ok(kodak.ok); assert.equal(kodak.rasgos.tecnologia, 'LISO'); assert.deepEqual(kodak.avisos, []);
     assert.deepEqual(rasgosDelCristalCRM('VARILUX COMFORT - STYLIS 1.67 TRANSITIONS GEN S + CRIZAL 2x1', 'CRIZAL_SAPPHIRE', 'VARILUX').rasgos, { material: 'STYLIS', tecnologia: 'TRANSITIONS', tratamiento: 'SAPPHIRE' });
@@ -502,7 +502,7 @@ t('el cliente del sitio sale de la ficha; el género lo pone quien prepara', () 
     assert.equal(sin.ok, false);
     assert.ok(sin.faltantes.some(f => /DNI/.test(f)) && sin.faltantes.some(f => /género/.test(f)) && sin.faltantes.some(f => /nacimiento/.test(f)), sin.faltantes.join(' · '));
     const largo = clienteWebDe({ name: 'Elizabeth Del Valle Marquez', dni: '1234567', birthDate: new Date('1970-01-02T00:00:00.000Z'), phone: null, email: null }, 'F');
-    assert.ok(largo.ok); assert.equal(largo.cliente.apellido, 'Del Valle Marquez'); assert.match(largo.avisos[0], /se repartió/); assert.equal(largo.cliente.email, null);
+    assert.ok(largo.ok); assert.equal(largo.cliente.apellido, 'Del Valle Marquez'); assert.equal(largo.cliente.email, null);
 });
 t('sin cupón tipeado el plan sale con la marca y el robot lo genera; con el real da EXACTAMENTE el plan tipeado', () => {
     const v = ventaDoble();
@@ -528,7 +528,7 @@ t('sin cupón tipeado el plan sale con la marca y el robot lo genera; con el rea
     assert.deepEqual(p.pedido.receta.od, { esferico: '-0.50', cilindrico: '-1.50', eje: '90', adicion: '2.25', dnp: '34' });
     assert.deepEqual(p.pedido.primero.rasgos, { material: 'ORMA', tecnologia: 'XPERIO', tratamiento: 'FORTE_UV' });
     assert.deepEqual(p.pedido.segundo.rasgos, { material: 'ORMA', tecnologia: 'BLUE_UV', tratamiento: 'FORTE_UV' });
-    assert.ok(p.avisos.some(a => /mismo Crizal/.test(a)));
+    assert.ok(!p.avisos.some(a => /mismo Crizal/.test(a)));
     assert.match(pedidoDeCupon({ venta: v, plan: auto.plan, productoCRMSegundo: 'VARILUX PHYSIO - ORMA + CRIZAL 2x1', genero: 'M' }).faltantes.join(' '), /mismo diseño/);
     assert.match(pedidoDeCupon({ venta: v, plan: auto.plan, productoCRMSegundo: null, genero: 'M' }).faltantes.join(' '), /2º par/);
     assert.match(pedidoDeCupon({ venta: v, plan: auto.plan, productoCRMSegundo: 'VARILUX COMFORT - ORMA BLUE UV + CRIZAL 2x1', genero: null }).faltantes.join(' '), /género/);
@@ -583,9 +583,9 @@ t('el cupón automático solo aplica a promos con web (Varilux / Kodak); un 2x1 
     assert.ok(r.faltantes.some(f => /cupón/.test(f)) || r.aMano, r.faltantes.join(' · '));
     // El nombre repartido conserva acentos y mayúsculas de la ficha (va al voucher).
     assert.deepEqual(repartirNombre('María José Pérez'), { nombre: 'María', apellido: 'José Pérez' });
-    // Una DNP con medio punto avisa que va redondeada.
+    // Una DNP con medio punto va redondeada, en silencio (no cambia el cupón).
     const med = recetaWebDe({ esf: '-1.00', cil: null, eje: null, adic: '1.00', dnp: '32.5', altura: null }, 'OI');
-    assert.ok(med.ok); assert.match(med.avisos[0], /32\.5 va como 33/);
+    assert.ok(med.ok); assert.equal(med.receta.dnp, '33'); assert.deepEqual(med.avisos, []);
     // Fecha de nacimiento como string sin zona: se lee por su día.
     assert.equal(clienteWebDe({ name: 'Ana Perez', dni: '1234567', birthDate: '1970-01-02', phone: null, email: null }, 'F').cliente.nacimiento.iso, '1970-01-02');
 });
@@ -596,7 +596,7 @@ t('el teléfono va solo si entra en la máscara del sitio (10–11 dígitos, sin
     assert.equal(telefonoParaLaWeb('543517622560'), '3517622560');
     assert.equal(telefonoParaLaWeb('12345'), null); assert.equal(telefonoParaLaWeb(null), null);
     const c = clienteWebDe({ name: 'Ana Perez', dni: '1234567', birthDate: '1970-01-02', phone: '12345', email: null }, 'F');
-    assert.ok(c.ok); assert.equal(c.cliente.telefono, null); assert.match(c.avisos[0], /sin teléfono/);
+    assert.ok(c.ok); assert.equal(c.cliente.telefono, null); assert.deepEqual(c.avisos, []);
 });
 t('el historial se recorre de la fila más nueva a la más vieja, las parecidas primero, y en la promo doble solo los últimos 60 días', () => {
     assert.equal(fechaDelHistorial('16/10/2026').toISOString().slice(0, 10), '2026-10-16'); assert.equal(fechaDelHistorial('nada'), null);

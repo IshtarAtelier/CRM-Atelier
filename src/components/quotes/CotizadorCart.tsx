@@ -311,7 +311,13 @@ export default function CotizadorCart({
                 onUpdateItemNote={(idx, note) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorNote: note }))}
                 recetaPermiteCerca={recetaPermiteCerca(rxElegida)}
                 usoPorDefecto={usoPorDefecto(rxElegida)}
-                onUpdateItemUso={(idx, uso) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, lensUse: uso } : item))}
+                onUpdateItemUso={(idx, uso) => setItems(prev => {
+                    // Lejos/Cerca es del PAR: el otro ojo del mismo cristal (y del mismo armazón) toma la misma elección.
+                    const base = prev[idx];
+                    const companero = (it: any, i: number) => i !== idx && !!base?.eye && !!it.eye && it.eye !== base.eye
+                        && (it.productId ?? it.product?.id) === (base.productId ?? base.product?.id) && (it.framePosition ?? null) === (base.framePosition ?? null);
+                    return prev.map((item, i) => i === idx || companero(item, i) ? { ...item, lensUse: uso } : item);
+                })}
                 onUpdateItemFrame={(idx, framePosition) => setItems(prev => {
                     // La línea elegida pasa por aplicarCambioDeLinea (sincroniza
                     // el teñido partido en OD/OI); el resto de los cambios —otro
