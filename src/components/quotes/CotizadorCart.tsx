@@ -11,7 +11,8 @@ import {
     AVISO_TENIDO_2X1
 } from '@/lib/promo-utils';
 import { descuentoSegundoParHoya } from '@/lib/promo-segundo-par-hoya';
-import { asignarParAlArmazon, autoasignarArmazones } from '@/lib/armazon-por-par';
+import { asignarParAlArmazon, asignarParAlCristal, autoasignarArmazones } from '@/lib/armazon-por-par';
+import { esCristalDePar } from '@/lib/laboratorios/identidad';
 import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { recetaPermiteCerca, usoPorDefecto } from '@/lib/receta/graduacion-del-item';
 import { cantidadDeArmazones } from '@/lib/order-frames';
@@ -317,7 +318,10 @@ export default function CotizadorCart({
                     // armazón que suelta el par, el último que se autocompleta—
                     // los decide asignarParAlArmazon.
                     let next = aplicarCambioDeLinea(prev, idx, { framePosition });
-                    for (const c of asignarParAlArmazon(prev, idx, framePosition, cantidadDeArmazones({ items: prev }))) {
+                    // Un cristal arrastra a su compañero del otro ojo (y autocompleta el par que queda): asignarParAlCristal.
+                    const total = cantidadDeArmazones({ items: prev });
+                    const cambios = esCristalDePar(prev[idx]) ? asignarParAlCristal(prev, idx, framePosition, total) : asignarParAlArmazon(prev, idx, framePosition, total);
+                    for (const c of cambios) {
                         if (c.idx !== idx) next = next.map((it, i) => i === c.idx ? { ...it, framePosition: c.framePosition } : it);
                     }
                     return next;

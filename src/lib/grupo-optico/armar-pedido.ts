@@ -29,6 +29,7 @@
 import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden } from '../order-frames';
 import { codigoCortoDeVenta } from '../laboratorios/identidad';
 import { itemsDeTenido, tintItemLabel } from '../crystal-color';
+import { avisoCilindroPuro, esfericoDeLaReceta } from '@/lib/receta/cilindro-puro';
 
 /** Lo que el favorito lee del hash. Las claves son las que espera el bookmarklet: no se renombran. */
 export interface PayloadSmartLab {
@@ -277,9 +278,12 @@ export function armarPedidoSmartLab(order: VentaParaSmartLab, pairNum: number = 
         const vacio = { esfera: '', cilindro: '', eje: '', adicion: '', esferaCerca: '', cilindroCerca: '', ejeCerca: '', dp: '', dpCerca: '', altura: '' };
         if (!item) return vacio;
         const sufijo = lado === 'OD' ? 'OD' : 'OI';
-        const esfera = valor(`sphere${sufijo}`, item, 'sphereVal', [`sphere${sufijo}`]);
-        if (esfera === null) faltantes.push(`esférico ${lado}${etiquetaPar}`);
         const cilindro = valor(`cylinder${sufijo}`, item, 'cylinderVal', [`cylinder${sufijo}`]);
+        // Cilindro puro: esférico vacío con cilindro = plano (lib/receta/cilindro-puro.ts).
+        const esf = esfericoDeLaReceta(valor(`sphere${sufijo}`, item, 'sphereVal', [`sphere${sufijo}`]), cilindro);
+        const esfera = esf.esferico;
+        if (esf.plano) avisos.push(avisoCilindroPuro(`${lado}${etiquetaPar}`));
+        if (esfera === null) faltantes.push(`esférico ${lado}${etiquetaPar}`);
         const ejeNum = valor(`axis${sufijo}`, item, 'axisVal', [`axis${sufijo}`]);
         const eje = entero(ejeNum);
         if (cilindro && eje === null) faltantes.push(`eje ${lado}${etiquetaPar} (hay cilindro sin eje)`);

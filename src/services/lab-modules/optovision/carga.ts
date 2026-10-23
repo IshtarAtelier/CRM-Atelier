@@ -6,6 +6,7 @@ import { estiloDeTenidoDelProducto } from '../../../lib/constants/tenido';
 import { precioConSigno } from '../../../lib/format-precio';
 import { especificacionDe, familiaDelNombre, FORMAS_OVES, SERVICIO_CALIBRADO, SERVICIO_COLORACION, SERVICIO_OTROS_NINGUNO, SERVICIO_TRATAMIENTO, TIPO_ARMAZON_OVES, type Eleccion, type EspecificacionOves } from './catalogo';
 import { marcaDePromo, nombreDePromo, observacionPrimerPar, observacionPrimerParPendiente, observacionSegundoPar, providerDePromo, type MarcaDePromo } from './promo';
+import { avisoCilindroPuro, esfericoDeLaReceta } from '../../../lib/receta/cilindro-puro';
 
 /**
  * EL PEDIDO DE OPTOVISIÓN, ARMADO DESDE LA VENTA (puro, sin base ni navegador).
@@ -339,9 +340,12 @@ export function planDeCarga(venta: VentaParaCargaOves, par: number, opciones: Op
     const ojo = (lado: 'OD' | 'OI'): OjoOves | null => {
         const item = cristales.find(c => texto(c.eye).toUpperCase() === lado) ?? (cristales.length === 1 && !cristales[0].eye ? cristales[0] : null);
         if (!item) return null;
-        const esf = num(item.sphereVal) ?? num(lado === 'OD' ? rx?.sphereOD : rx?.sphereOI);
-        if (esf === null) faltantes.push(`esférico ${lado}`);
         const cil = num(item.cylinderVal) ?? num(lado === 'OD' ? rx?.cylinderOD : rx?.cylinderOI);
+        // Cilindro puro: esférico vacío con cilindro = plano (lib/receta/cilindro-puro.ts).
+        const esfRx = esfericoDeLaReceta(num(item.sphereVal) ?? num(lado === 'OD' ? rx?.sphereOD : rx?.sphereOI), cil);
+        const esf = esfRx.esferico;
+        if (esfRx.plano) avisos.push(avisoCilindroPuro(lado));
+        if (esf === null) faltantes.push(`esférico ${lado}`);
         const eje = num(item.axisVal) ?? num(lado === 'OD' ? rx?.axisOD : rx?.axisOI);
         if (cil && eje === null) faltantes.push(`eje ${lado} (hay cilindro sin eje)`);
         const add = num(item.additionVal) ?? num(lado === 'OD' ? rx?.additionOD : rx?.additionOI) ?? num(rx?.addition);

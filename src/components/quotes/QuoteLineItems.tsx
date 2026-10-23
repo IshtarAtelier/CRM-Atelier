@@ -6,6 +6,7 @@ import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import LineaColorEditor from './LineaColorEditor';
 import LineaArmazonEditor from './LineaArmazonEditor';
+import LineaParCristal from './LineaParCristal';
 import { esArmazonItem } from '@/lib/armazon-por-par';
 import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
@@ -117,6 +118,17 @@ export default function QuoteLineItems({
                                     <LineaColorEditor
                                         orderId={orderId}
                                         item={item}
+                                        totalArmazones={totalArmazones}
+                                        editable={editable}
+                                        onSaved={onSaved}
+                                    />
+                                )}
+                                {/* A qué par va este cristal (obligatorio con dos pares): se elige acá mismo. */}
+                                {orderId && (
+                                    <LineaParCristal
+                                        orderId={orderId}
+                                        item={item}
+                                        items={items}
                                         totalArmazones={totalArmazones}
                                         editable={editable}
                                         onSaved={onSaved}

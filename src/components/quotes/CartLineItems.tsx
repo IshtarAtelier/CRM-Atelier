@@ -9,6 +9,7 @@ import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 import { needsColorSelection } from '@/lib/crystal-color-utils';
 import { INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
 import { esMonofocal, ETIQUETA_USO, USOS_DEL_CRISTAL, type UsoDelCristal } from '@/lib/receta/graduacion-del-item';
+import { esCristalDePar } from '@/lib/laboratorios/identidad';
 import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
 import { cantidadDeArmazones, framesDeLaOrden, etiquetaArmazon } from '@/lib/order-frames';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
@@ -221,10 +222,22 @@ export default function CartLineItems({
                                     {/* A qué armazón va, en la línea plegada. El dato se
                                         guardaba bien, pero solo se veía con el selector
                                         abierto: cerrarlo parecía haberlo perdido. */}
-                                    {item.framePosition && totalArmazones > 1 && (
+                                    {item.framePosition && totalArmazones > 1 && !esCristalDePar(item) && (
                                         <span className="inline-flex items-center gap-1 bg-violet-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                                             <Glasses className="w-3 h-3" />
                                             {item.framePosition}º armazón
+                                        </span>
+                                    )}
+                                    {/* Cristal con dos pares: a qué par va, elegido acá (obligatorio para convertir y enviar a fábrica). */}
+                                    {totalArmazones > 1 && esCristalDePar(item) && (
+                                        <span className="inline-flex items-center gap-1">
+                                            {Array.from({ length: totalArmazones }, (_, i) => i + 1).map(pos => (
+                                                <button key={pos} type="button" onClick={() => onUpdateItemFrame?.(idx, pos)}
+                                                    className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${item.framePosition === pos ? 'bg-amber-500 text-white border-amber-600' : 'bg-white dark:bg-stone-800 text-stone-500 border-stone-200 dark:border-stone-700 hover:border-amber-300'}`}>
+                                                    {pos}º par
+                                                </button>
+                                            ))}
+                                            {!item.framePosition && <span className="text-[9px] font-bold text-rose-600">← par</span>}
                                         </span>
                                     )}
                                     {item.uid !== undefined && promoLensUids?.has(item.uid) && (

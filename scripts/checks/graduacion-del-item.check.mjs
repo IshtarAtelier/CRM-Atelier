@@ -8,6 +8,7 @@
 // Sin base ni red. Corre en CI.   npm run check:receta-item
 // ────────────────────────────────────────────────────────────────────────────
 import assert from 'node:assert/strict';
+import { esfericoDeLaReceta } from '../../src/lib/receta/cilindro-puro.ts';
 import { graduacionDelItem, adicionDelOjo, recetaPermiteCerca, recetaSoloDeCerca, usoPorDefecto, usoEfectivo, esMonofocal } from '../../src/lib/receta/graduacion-del-item.ts';
 
 let n = 0;
@@ -71,6 +72,15 @@ t('cerca se ofrece solo si la receta tiene cerca o adición', () => {
 t('solo los monofocales eligen uso', () => {
     assert.equal(esMonofocal({ type: 'Cristal Monofocal' }), true); assert.equal(esMonofocal(null, 'Cristal Monofocal'), true);
     assert.equal(esMonofocal({ type: 'Cristal Multifocal' }), false); assert.equal(esMonofocal({ type: 'Armazón de Receta' }), false); assert.equal(esMonofocal(null, null), false);
+});
+
+t('cilindro puro: esférico vacío con cilindro es plano (0,00); sin cilindro sigue faltando (Faustino Garzón, 22/10/2026)', () => {
+    assert.deepEqual(esfericoDeLaReceta(null, -3.5), { esferico: 0, plano: true });
+    assert.deepEqual(esfericoDeLaReceta(null, 1.25), { esferico: 0, plano: true });
+    assert.deepEqual(esfericoDeLaReceta(-1, -3.5), { esferico: -1, plano: false });
+    assert.deepEqual(esfericoDeLaReceta(0, null), { esferico: 0, plano: false });
+    assert.deepEqual(esfericoDeLaReceta(null, null), { esferico: null, plano: false });
+    assert.deepEqual(esfericoDeLaReceta(null, 0), { esferico: null, plano: false });
 });
 
 console.log(`check:receta-item OK (${n} grupos)`);

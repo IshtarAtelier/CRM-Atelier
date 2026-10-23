@@ -22,6 +22,8 @@
  * Vive acá y no copiado en el mail y el PDF: regla de CLAUDE.md — un dato que
  * se muestra en más de un lugar se arma en UN helper.
  */
+import { esCristalDePar } from './laboratorios/identidad';
+
 
 /** Minúsculas, sin acentos, solo letras y números. "Clip-on" → "clipon". */
 const norm = (s: string): string =>
@@ -257,6 +259,53 @@ export function asignarParAlArmazon(
         if (libres.length === 1 && sueltos.length === 1) {
             cambios.push({ idx: sueltos[0].i, framePosition: libres[0] });
         }
+    }
+    return cambios;
+}
+
+/**
+ * Qué cambios dispara elegirle el par a un CRISTAL. Pura, para testearla.
+ *
+ * Desde el 19/10/2026, en una venta de dos pares cada cristal TIENE que decir
+ * a qué armazón va (si no, no se convierte en venta ni se envía a fábrica).
+ * Hasta el 22/10 el selector existía solo en armazones y teñidos: con cuatro
+ * cristales no había dónde elegirlo (presupuesto de Mariel Miguel). Para no
+ * clickear cuatro veces, la misma lógica que los armazones:
+ *   · COMPAÑERO: el cristal del otro ojo, del mismo producto y sin par, toma
+ *     el mismo par (OD y OI de un anteojo van juntos).
+ *   · AUTOCOMPLETAR: si después de eso queda UN solo par libre y los cristales
+ *     sin par son exactamente un OD y un OI, van a ese par — decir "estos son
+ *     del 1º" ya define que los otros son del 2º.
+ * Un par ya elegido en otra línea NUNCA se pisa.
+ */
+export function asignarParAlCristal(
+    items: any[],
+    idx: number,
+    pos: number,
+    totalArmazones: number,
+): { idx: number; framePosition: number }[] {
+    const cambios: { idx: number; framePosition: number }[] = [{ idx, framePosition: pos }];
+    const esCristal = (it: any) => !!it && esCristalDePar(it);
+    const nombre = (it: any) => String(it?.product?.name ?? it?.productNameSnapshot ?? '').trim().toLowerCase();
+    const ojo = (it: any) => String(it?.eye ?? '').toUpperCase();
+    const elegido = items[idx];
+    if (!esCristal(elegido) || totalArmazones < 2) return cambios;
+    const posDe = (i: number) => cambios.find(c => c.idx === i)?.framePosition ?? (items[i]?.framePosition || null);
+
+    // Compañero: mismo producto, el otro ojo, todavía sin par.
+    const otroOjo = ojo(elegido) === 'OD' ? 'OI' : ojo(elegido) === 'OI' ? 'OD' : null;
+    if (otroOjo) {
+        const companero = items.findIndex((it, i) => i !== idx && esCristal(it) && ojo(it) === otroOjo && nombre(it) === nombre(elegido) && posDe(i) == null);
+        if (companero !== -1) cambios.push({ idx: companero, framePosition: pos });
+    }
+
+    // Autocompletar: un solo par libre y, sin par, exactamente un OD y un OI.
+    const cristales = items.map((it, i) => ({ it, i })).filter(x => esCristal(x.it));
+    const ocupados = new Set(cristales.map(x => posDe(x.i)).filter((p): p is number => p != null));
+    const libres = Array.from({ length: totalArmazones }, (_, k) => k + 1).filter(par => !ocupados.has(par));
+    const sueltos = cristales.filter(x => posDe(x.i) == null);
+    if (libres.length === 1 && sueltos.length === 2 && new Set(sueltos.map(x => ojo(x.it))).size === 2 && sueltos.every(x => ['OD', 'OI'].includes(ojo(x.it)))) {
+        for (const x of sueltos) cambios.push({ idx: x.i, framePosition: libres[0] });
     }
     return cambios;
 }
