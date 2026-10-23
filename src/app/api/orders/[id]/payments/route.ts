@@ -13,7 +13,7 @@ const PaymentSchema = z.object({
     date: z.string().nullable().optional(),
     // Voucher de tarjeta: presencial trae lote/cupón/autorización, el link de
     // pago trae el nº de operación en `notes`.
-    cardMode: z.enum(['PRESENCIAL', 'LINK']).nullable().optional(),
+    cardMode: z.enum(['PRESENCIAL', 'LINK', 'QR']).nullable().optional(),
     batchNumber: z.string().nullable().optional(),
     couponNumber: z.string().nullable().optional(),
     authNumber: z.string().nullable().optional(),
@@ -63,9 +63,10 @@ export async function POST(
         // lo que identifica el cobro es el nº de operación (va en `notes`) más el
         // código de autorización. Se pide eso, no el cupón que no existe — el
         // criterio vive en esPointPresencial() y lo comparte el formulario.
-        if (esPointPresencial(method, cardMode) && (!notes?.trim() || !authNumber?.trim())) {
+        // Point, QR o link: con el nº de operación alcanza (Ishtar, 23/10/2026).
+        if (esPointPresencial(method, cardMode) && !notes?.trim()) {
             return NextResponse.json({
-                error: 'En un cobro con Mercado Pago Point hay que cargar el Nro. de operación y el código de autorización que figuran en el ticket.'
+                error: 'En un cobro con Mercado Pago Point hay que cargar el Nro. de operación del ticket.'
             }, { status: 400 });
         }
 

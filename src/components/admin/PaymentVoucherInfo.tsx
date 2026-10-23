@@ -1,7 +1,7 @@
 'use client';
 
 import { CreditCard, Link2 } from 'lucide-react';
-import { describeCardVoucher, isCardMethod, type VoucherNumbers } from '@/lib/payment-card';
+import { describeCardVoucher, isCardMethod, esMercadoPago, type VoucherNumbers } from '@/lib/payment-card';
 import { stripTxTags } from '@/lib/receipt-references';
 
 export interface PaymentVoucherData extends VoucherNumbers {
@@ -34,6 +34,7 @@ export default function PaymentVoucherInfo({ payment, className = '' }: { paymen
 
     const esPresencial = payment.cardMode === 'PRESENCIAL';
     const esLink = payment.cardMode === 'LINK';
+    const esQr = payment.cardMode === 'QR';
 
     return (
         <span className={`flex flex-col items-start gap-0.5 ${className}`}>
@@ -41,13 +42,13 @@ export default function PaymentVoucherInfo({ payment, className = '' }: { paymen
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${
                     esPresencial
                         ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400'
-                        : esLink
+                        : esLink || esQr
                             ? 'bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400'
                             : 'bg-stone-100 text-stone-400 dark:bg-stone-800 dark:text-stone-500'
                 }`}
             >
                 {esLink ? <Link2 size={9} /> : <CreditCard size={9} />}
-                {esPresencial ? 'Presencial' : esLink ? 'Link de pago' : 'Modo sin especificar'}
+                {esPresencial ? (esMercadoPago(payment.method) ? 'Point' : 'Presencial') : esQr ? 'QR' : esLink ? 'Link de pago' : 'Modo sin especificar'}
             </span>
             {voucher && (
                 <span className="text-[9px] font-bold text-stone-500 truncate" title={voucher}>

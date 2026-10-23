@@ -88,7 +88,9 @@ export default function AddPaymentModal({
     const [reference, setReference] = useState('');
     // Voucher de tarjeta: el ticket del posnet y el comprobante del link de pago
     // traen datos distintos, así que primero se elige cuál de los dos es.
-    const [cardMode, setCardMode] = useState<CardMode>('PRESENCIAL');
+    // En Mercado Pago arranca SIN elegir: venía puesto "Link de pago" y los cobros
+    // del Point quedaban cargados como link (22/10/2026).
+    const [cardMode, setCardMode] = useState<CardMode | null>('PRESENCIAL');
     const [batchNumber, setBatchNumber] = useState('');
     const [couponNumber, setCouponNumber] = useState('');
     const [authNumber, setAuthNumber] = useState('');
@@ -168,9 +170,15 @@ export default function AddPaymentModal({
         // En un ticket de posnet no hay "nº de comprobante": lo que identifica el
         // cobro es el cupón + la autorización. En uno de Point es al revés: el
         // nº de operación y la autorización, y no existen ni el lote ni el cupón.
+        if (isCard && !cardMode) {
+            setError('Elegí cómo se cobró: Point, QR o link de pago');
+            return;
+        }
+        // Point: alcanza con el nº de operación (lo identifica en Mercado Pago);
+        // la autorización es opcional.
         if (esPoint) {
-            if (!reference.trim() || !authNumber.trim()) {
-                setError('Del ticket de Point cargá el Nro. de operación y el código de autorización (los 6 dígitos antes de NFC o Chip)');
+            if (!reference.trim()) {
+                setError('Cargá el Nro. de operación del ticket de Point (arriba: "Operación #…")');
                 return;
             }
         } else if (isPresencial) {
@@ -245,7 +253,8 @@ export default function AddPaymentModal({
                         // para que nadie los complete con otra cosa.
                         batchNumber: esPosnetClasico ? batchNumber.trim() || undefined : undefined,
                         couponNumber: esPosnetClasico ? couponNumber.trim() || undefined : undefined,
-                        authNumber: isPresencial ? authNumber.trim() || undefined : undefined
+                        // Mercado Pago (Point, QR o link): solo el nº de operación.
+                        authNumber: esPosnetClasico ? authNumber.trim() || undefined : undefined
                     } : {})
                 })
             });
@@ -371,7 +380,7 @@ export default function AddPaymentModal({
                                                     // MP se cobra SOLO por QR o link de pago (el Point todavía
                                                     // no tiene las promos cargadas): el comprobante es digital,
                                                     // con nº de operación — nunca ticket de posnet.
-                                                    if (m.id.includes('MERCADO_PAGO')) setCardMode('LINK');
+                                                    setCardMode(esMercadoPago(m.id) ? null : 'PRESENCIAL');
                                                 }}
                                                 aria-pressed={isSelected}
                                                 aria-label={`${group.titulo}: ${m.label}`}
@@ -407,15 +416,13 @@ export default function AddPaymentModal({
                             <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
                                 ¿Cómo se cobró?
                             </label>
-                            <div className="grid grid-cols-2 gap-3">
-                                {([
-                                    {
-                                        id: 'PRESENCIAL' as CardMode,
-                                        label: 'Presencial (posnet)',
-                                        // El ticket de Point tampoco tiene lote ni cupón: la pista cambia
-                                        // según el método para no pedir algo que el papel no trae.
-                                        hint: esMercadoPago(method) ? 'Ticket de Point' : 'Ticket con lote y cupón'
-                                    },
+                            <div className={`grid gap-3 ${esMercadoPago(method) ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                                {(esMercadoPago(method) ? [
+                                    { id: 'PRESENCIAL' as CardMode, label: 'Point', hint: 'Tarjeta en el posnet' },
+                                    { id: 'QR' as CardMode, label: 'QR', hint: 'Escaneó el QR' },
+                                    { id: 'LINK' as CardMode, label: 'Link de pago', hint: 'Le mandamos un link' }
+                                ] : [
+                                    { id: 'PRESENCIAL' as CardMode, label: 'Presencial (posnet)', hint: 'Ticket con lote y cupón' },
                                     { id: 'LINK' as CardMode, label: 'Link de pago', hint: 'Comprobante con nº de operación' }
                                 ]).map((opt) => {
                                     const isSelected = cardMode === opt.id;
@@ -436,28 +443,6 @@ export default function AddPaymentModal({
                                     );
                                 })}
                             </div>
-                        </div>
-                    )}
-
-                    {/* Point: solo autorización — la operación va en Referencia */}
-                    {esPoint && (
-                        <div className="space-y-2">
-                            <label htmlFor="payment-auth-point" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
-                                Código de autorización <span className="text-red-400">*</span>
-                            </label>
-                            <input
-                                id="payment-auth-point"
-                                type="text"
-                                inputMode="numeric"
-                                value={authNumber}
-                                onChange={(e) => setAuthNumber(e.target.value)}
-                                placeholder="008174"
-                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                            />
-                            <p className="text-[11px] text-stone-500 dark:text-stone-400 pl-1">
-                                Son los 6 dígitos que están arriba a la izquierda, antes de &quot;NFC&quot; o &quot;Chip&quot;. El
-                                Nro. de operación va en Referencia. El ticket de Point no tiene lote ni cupón.
-                            </p>
                         </div>
                     )}
 
@@ -516,14 +501,14 @@ export default function AddPaymentModal({
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
-                                {esFormaEspecial ? '¿Qué forma de pago fue?' : esPoint ? 'Nro. de operación' : 'Referencia'}{' '}
+                                {esFormaEspecial ? '¿Qué forma de pago fue?' : esMercadoPago(method) ? 'Nro. de operación' : 'Referencia'}{' '}
                                 {((!isCashMethod && (!isPresencial || esPoint)) || esFormaEspecial) && <span className="text-red-400">*</span>}
                             </label>
                             <input
                                 type="text"
                                 value={reference}
                                 onChange={(e) => setReference(e.target.value)}
-                                placeholder={esFormaEspecial ? 'Obligatorio: canje, cheque, descuento a empleado…' : esPoint ? 'Obligatorio: Operación #…' : esPosnetClasico ? 'Opcional' : !isCashMethod ? 'Obligatorio: N° Comprobante' : 'N° Comprobante, etc'}
+                                placeholder={esFormaEspecial ? 'Obligatorio: canje, cheque, descuento a empleado…' : esMercadoPago(method) ? 'Obligatorio: Operación #…' : esPosnetClasico ? 'Opcional' : !isCashMethod ? 'Obligatorio: N° Comprobante' : 'N° Comprobante, etc'}
                                 className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             />
                         </div>
@@ -552,7 +537,7 @@ export default function AddPaymentModal({
                                         if (data.reference != null) setReference(data.reference);
                                         if (data.date != null) setDate(data.date);
                                         // Datos del cupón: si el ticket trae lote/cupón, es un cobro presencial
-                                        if (data.card_mode === 'PRESENCIAL' || data.card_mode === 'LINK') setCardMode(data.card_mode);
+                                        if (data.card_mode === 'PRESENCIAL' || data.card_mode === 'LINK' || data.card_mode === 'QR') setCardMode(data.card_mode);
                                         else if (data.coupon_number || data.batch_number) setCardMode('PRESENCIAL');
                                         if (data.batch_number != null) setBatchNumber(String(data.batch_number));
                                         if (data.coupon_number != null) setCouponNumber(String(data.coupon_number));

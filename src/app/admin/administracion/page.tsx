@@ -13,7 +13,7 @@ import FileDropZone from '@/components/ui/FileDropZone';
 import type { CashMovement } from '@/types/orders';
 import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
 import { MERCADO_PAGO_ISH_METHODS, MERCADO_PAGO_YANI_METHODS } from '@/lib/constants';
-import { isCardMethod, type CardMode } from '@/lib/payment-card';
+import { isCardMethod, esMercadoPago, type CardMode } from '@/lib/payment-card';
 
 // ── Types ─────────────────────────────────────
 
@@ -344,9 +344,9 @@ export default function AdministracionPage() {
                     receiptUrl: finalReceiptUrl,
                     ...(isCardMethod(editMethod) ? {
                         cardMode: editCardMode || null,
-                        batchNumber: editCardMode === 'PRESENCIAL' ? editBatch.trim() || null : null,
-                        couponNumber: editCardMode === 'PRESENCIAL' ? editCoupon.trim() || null : null,
-                        authNumber: editCardMode === 'PRESENCIAL' ? editAuth.trim() || null : null
+                        batchNumber: editCardMode === 'PRESENCIAL' && !esMercadoPago(editMethod) ? editBatch.trim() || null : null,
+                        couponNumber: editCardMode === 'PRESENCIAL' && !esMercadoPago(editMethod) ? editCoupon.trim() || null : null,
+                        authNumber: editCardMode === 'PRESENCIAL' && !esMercadoPago(editMethod) ? editAuth.trim() || null : null
                     } : {})
                 })
             });
@@ -1053,8 +1053,12 @@ export default function AdministracionPage() {
                                 {isCardMethod(editMethod) && (
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block px-1">¿Cómo se cobró?</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {([
+                                        <div className={`grid gap-2 ${esMercadoPago(editMethod) ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                                            {(esMercadoPago(editMethod) ? [
+                                                { id: 'PRESENCIAL' as CardMode, label: 'Point' },
+                                                { id: 'QR' as CardMode, label: 'QR' },
+                                                { id: 'LINK' as CardMode, label: 'Link de pago' }
+                                            ] : [
                                                 { id: 'PRESENCIAL' as CardMode, label: 'Presencial (posnet)' },
                                                 { id: 'LINK' as CardMode, label: 'Link de pago' }
                                             ]).map(opt => (
@@ -1072,7 +1076,7 @@ export default function AdministracionPage() {
                                                 </button>
                                             ))}
                                         </div>
-                                        {editCardMode === 'PRESENCIAL' && (
+                                        {editCardMode === 'PRESENCIAL' && !esMercadoPago(editMethod) && (
                                             <div className="grid grid-cols-3 gap-2">
                                                 <input
                                                     type="text"

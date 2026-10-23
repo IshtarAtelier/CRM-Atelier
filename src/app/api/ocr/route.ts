@@ -104,7 +104,7 @@ Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni forma
 - is_mypime_6: booleano (true o false). Será true si en cualquier parte del comprobante dice "mypime 6", "mypyme 6", "mi pyme 6" o hace referencia a un plan pyme de 6 cuotas. En caso contrario, false.
 - is_naranja_z: booleano (true o false). Será true si en cualquier parte del comprobante dice "cuota 11", "plan z" o "naranja z". En caso contrario, false.
 - transfer_recipient: si el comprobante es de una transferencia bancaria, identifica el destinatario si está visible. Busca nombres o alias asociados a "LUCIA" o "ISHTAR". Devuelve "LUCIA" o "ISHTAR" si logras identificarlo, de lo contrario devuelve null.
-- card_mode: si es un cobro con tarjeta, cómo se cobró. Devuelve "PRESENCIAL" si es un ticket impreso de posnet (tiene Nro. de lote, Nro. de cupón y/o Nro. de autorización), "LINK" si es un comprobante digital de link de pago (tiene número de operación / ID de pago y NO tiene lote ni cupón). Si no es un cobro con tarjeta, null.
+- card_mode: si es un cobro con tarjeta, cómo se cobró. Devuelve "PRESENCIAL" si es un ticket impreso de posnet: de Pay Way o Naranja (Nro. de lote, cupón, autorización) o de Mercado Pago Point (logo de Mercado Pago, "Operación #…", "Cobraste con Point" y "Número de serie", sin lote ni cupón). "QR" si es un pago de Mercado Pago con código QR. "LINK" si es un comprobante digital de link de pago. Ante la duda entre Point y link, un ticket IMPRESO es "PRESENCIAL". Si no es un cobro con tarjeta, null.
 - batch_number: el "Nro. de lote" / "Lote" del ticket, transcripto TAL CUAL, conservando los ceros a la izquierda (ej. "011"). Si no aparece, null.
 - coupon_number: el "Nro. de cupón" / "Cupón" del ticket, transcripto TAL CUAL, conservando los ceros a la izquierda (ej. "0172"). Si no aparece, null.
 - auth_number: el "Nro. de autorización" / "Cód. de autorización" del ticket, transcripto TAL CUAL, conservando los ceros a la izquierda (ej. "007956"). Si no aparece, null.
@@ -118,7 +118,7 @@ Devuelve los resultados usando esta estructura JSON exacta. Usa null si un valor
   "is_mypime_6": true_o_false,
   "is_naranja_z": true_o_false,
   "transfer_recipient": "LUCIA_o_ISHTAR_o_null",
-  "card_mode": "PRESENCIAL_o_LINK_o_null",
+  "card_mode": "PRESENCIAL_o_QR_o_LINK_o_null",
   "batch_number": "texto_o_null",
   "coupon_number": "texto_o_null",
   "auth_number": "texto_o_null"

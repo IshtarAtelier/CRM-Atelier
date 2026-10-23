@@ -13,7 +13,11 @@
  * liquidación de Pay Way.
  */
 
-export type CardMode = 'PRESENCIAL' | 'LINK';
+/**
+ * Mercado Pago cobra por tres canales: Point (PRESENCIAL), QR y link de pago.
+ * QR solo existe en Mercado Pago.
+ */
+export type CardMode = 'PRESENCIAL' | 'LINK' | 'QR';
 
 /** Los tres números del cupón, tal como salen de la DB o del formulario. */
 export interface VoucherNumbers {
