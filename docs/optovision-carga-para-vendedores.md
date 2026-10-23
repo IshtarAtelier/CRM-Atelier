@@ -1,7 +1,7 @@
 # Optovisión: cómo cargar un pedido desde la ficha (guía para vendedores)
 
 Los pedidos de Optovisión (Varilux, Essilor, Kodak, Sygnus, Crizal) se cargan
-en OVES **desde la ficha de la venta** o con el botón "🤖 Hacé lo tuyo" del
+en OVES **desde la ficha de la venta** o con el botón "🤖 Cargar pedido" del
 listado de Ventas, sin tipear nada en el portal. El robot llena el formulario
 real de OVES, te muestra la pantalla y una persona aprueba. Nada se graba en
 el laboratorio sin esa aprobación. Después de grabar, solo se puede PEDIR la

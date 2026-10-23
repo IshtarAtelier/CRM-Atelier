@@ -9,7 +9,7 @@ relevamiento del portal en `docs/oves-portal.md`.
 **Solo la carga asistida.** El seguimiento y los costos siguen por la factura
 (`lab-recon`): costos por IMAP, aviso de "corroborar" a los 5 días hábiles.
 Operatoria idéntica a GO y Vitolen: el robot arma el pedido, muestra la
-pantalla real del portal y una persona aprueba; botón "🤖 Hacé lo tuyo" en
+pantalla real del portal y una persona aprueba; botón "🤖 Cargar pedido" en
 Ventas y el mismo bloque `CargaLaboratorio` en la ficha.
 
 ## Lo que se sabe
