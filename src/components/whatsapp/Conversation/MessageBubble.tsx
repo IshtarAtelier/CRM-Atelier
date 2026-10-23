@@ -84,10 +84,10 @@ export function formatearMarkupWhatsApp(texto: string, hoja: (t: string) => Reac
     return partes.length ? partes : hoja(texto);
 }
 
-const ESTADOS: Record<string, { marca: string; palabra: string; clase: string }> = {
-    FAILED: { marca: '✕', palabra: 'No se entregó', clase: 'text-red-100 font-black' },
-    READ: { marca: '✓✓', palabra: 'Leído', clase: 'text-sky-100 font-black' },
-    DELIVERED: { marca: '✓✓', palabra: 'Entregado', clase: 'font-black' },
+const ESTADOS: Record<string, { marca: string; palabra: string; clase: string; claseMovil: string }> = {
+    FAILED: { marca: '✕', palabra: 'No se entregó', clase: 'text-red-100 font-black', claseMovil: 'max-lg:text-red-700 max-lg:dark:text-red-400' },
+    READ: { marca: '✓✓', palabra: 'Leído', clase: 'text-sky-100 font-black', claseMovil: 'max-lg:text-[#027eb5] max-lg:dark:text-[#53bdeb]' },
+    DELIVERED: { marca: '✓✓', palabra: 'Entregado', clase: 'font-black', claseMovil: '' },
 };
 
 export interface MessageBubbleProps {
@@ -110,25 +110,29 @@ export function MessageBubble({
 }: MessageBubbleProps) {
     const isOut = msg.direction === 'OUTBOUND';
     const estado = ESTADOS[msg.status];
+    // En el celular el buzón completo se ve como WhatsApp: burbuja verde clara
+    // con letra oscura, entrante blanca, hora y tildes adentro de la burbuja.
+    // Son todas clases `max-lg:` — la compu y la ventana flotante no cambian.
+    const movil = !compacto;
 
     return (
         <div className={`flex w-full ${isOut ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex gap-2 ${compacto ? 'max-w-[88%]' : 'max-w-[80%]'} items-end`}>
+            <div className={`flex gap-2 ${compacto ? 'max-w-[88%]' : 'max-w-[80%] max-lg:max-w-[85%]'} items-end`}>
                 {!isOut && !compacto && (
-                    <div aria-hidden className="w-6 h-6 rounded-full bg-stone-300 dark:bg-stone-700 flex-shrink-0 flex items-center justify-center text-[10px] font-black text-stone-700 dark:text-stone-200 self-end mb-1">
+                    <div aria-hidden className="max-lg:hidden w-6 h-6 rounded-full bg-stone-300 dark:bg-stone-700 flex-shrink-0 flex items-center justify-center text-[10px] font-black text-stone-700 dark:text-stone-200 self-end mb-1">
                         {inicialContacto}
                     </div>
                 )}
 
-                <div className={`${compacto ? 'px-3.5 py-2.5' : 'px-5 py-3.5'} shadow-sm relative overflow-hidden ${
+                <div className={`${compacto ? 'px-3.5 py-2.5' : 'px-5 py-3.5 max-lg:px-2.5 max-lg:pt-1.5 max-lg:pb-1'} shadow-sm relative overflow-hidden ${
                     isOut
-                        ? 'bg-emerald-700 text-white rounded-[22px] rounded-br-sm'
-                        : 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-[22px] rounded-bl-sm border border-stone-200 dark:border-white/10'
+                        ? `bg-emerald-700 text-white rounded-[22px] rounded-br-sm ${movil ? 'max-lg:bg-[#d9fdd3] max-lg:text-[#111b21] max-lg:dark:bg-[#005c4b] max-lg:dark:text-[#e9edef] max-lg:rounded-lg max-lg:rounded-tr-none' : ''}`
+                        : `bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-[22px] rounded-bl-sm border border-stone-200 dark:border-white/10 ${movil ? 'max-lg:text-[#111b21] max-lg:dark:bg-[#202c33] max-lg:dark:text-[#e9edef] max-lg:border-0 max-lg:rounded-lg max-lg:rounded-tl-none' : ''}`
                 }`}>
                     <MessageMedia msg={msg} />
 
                     {msg.content ? (
-                        <p className={`${compacto ? 'text-[13px]' : 'text-[15px]'} font-medium leading-relaxed whitespace-pre-wrap break-words`}>
+                        <p className={`${compacto ? 'text-[13px]' : 'text-[15px] max-lg:leading-snug max-lg:font-normal'} font-medium leading-relaxed whitespace-pre-wrap break-words`}>
                             {formatearMarkupWhatsApp(
                                 msg.content,
                                 t => busqueda.trim() ? resaltarCoincidencias(t, busqueda, esResultadoActivo) : t,
@@ -136,9 +140,13 @@ export function MessageBubble({
                         </p>
                     ) : null}
 
-                    <div className={`mt-2 flex items-center gap-1.5 text-[11px] font-bold ${isOut ? 'text-emerald-50 justify-end' : 'text-stone-600 dark:text-stone-400'}`}>
+                    <div className={`mt-2 ${movil ? 'max-lg:mt-0.5 max-lg:text-[11px] max-lg:font-medium max-lg:justify-end' : ''} flex items-center gap-1.5 text-[11px] font-bold ${
+                        isOut
+                            ? `text-emerald-50 justify-end ${movil ? 'max-lg:text-[#667781] max-lg:dark:text-[#aebac1]' : ''}`
+                            : `text-stone-600 dark:text-stone-400 ${movil ? 'max-lg:text-[#667781] max-lg:dark:text-[#aebac1]' : ''}`
+                    }`}>
                         {isOut && (
-                            <span className="mr-1 uppercase tracking-wide">{msg.senderName || 'Teléfono'}</span>
+                            <span className="mr-1 uppercase tracking-wide max-lg:normal-case max-lg:tracking-normal max-lg:mr-0">{msg.senderName || 'Teléfono'}</span>
                         )}
                         <time dateTime={msg.createdAt} className="tabular-nums">{format(new Date(msg.createdAt), 'HH:mm')}</time>
                         {isOut && msg.templateName && (
@@ -146,8 +154,17 @@ export function MessageBubble({
                         )}
                         {isOut && (
                             estado
-                                ? <span className={estado.clase} title={estado.palabra}>{estado.marca} {estado.palabra}</span>
-                                : <span className="inline-flex items-center gap-1" title="Enviado"><CheckCircle2 className="w-3 h-3" aria-hidden /> Enviado</span>
+                                ? <span className={`${estado.clase} ${movil ? estado.claseMovil : ''}`} title={estado.palabra}>
+                                    {estado.marca}{' '}
+                                    {/* En el celular la palabra queda para el lector de pantalla,
+                                        salvo "No se entregó", que tiene que verse sí o sí. */}
+                                    <span className={movil && msg.status !== 'FAILED' ? 'max-lg:sr-only' : ''}>{estado.palabra}</span>
+                                  </span>
+                                : <span className="inline-flex items-center gap-1" title="Enviado">
+                                    <CheckCircle2 className={`w-3 h-3 ${movil ? 'max-lg:hidden' : ''}`} aria-hidden />
+                                    {movil && <span aria-hidden className="lg:hidden font-black">✓</span>}
+                                    <span className={movil ? 'max-lg:sr-only' : ''}>Enviado</span>
+                                  </span>
                         )}
                     </div>
                 </div>

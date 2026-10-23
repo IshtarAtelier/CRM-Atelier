@@ -96,7 +96,7 @@ export const ConversationView = forwardRef<ConversationHandle, ConversationViewP
                 // Sin el anclaje nativo del navegador: al prepender la página
                 // anterior ya recolocamos el scroll a mano, y con los dos
                 // activos la vista saltaba el doble.
-                className={`flex-1 overflow-y-auto [overflow-anchor:none] ${compacto ? 'px-3 py-4 space-y-3' : 'px-6 py-8 space-y-6'} custom-scrollbar-smooth`}
+                className={`flex-1 overflow-y-auto [overflow-anchor:none] ${compacto ? 'px-3 py-4 space-y-3' : 'px-6 py-8 space-y-6 max-lg:px-3 max-lg:py-3 max-lg:space-y-1.5 max-lg:bg-[#efeae2] max-lg:dark:bg-[#0b141a]'} custom-scrollbar-smooth`}
             >
                 {hayAnteriores && (
                     <div className="flex justify-center py-1" aria-live="polite">
@@ -113,10 +113,10 @@ export const ConversationView = forwardRef<ConversationHandle, ConversationViewP
                     }
 
                     return (
-                        <div key={msg.id || `msg-${idx}`} id={`msg-${msg.id}`} className="flex flex-col w-full gap-4">
+                        <div key={msg.id || `msg-${idx}`} id={`msg-${msg.id}`} className={`flex flex-col w-full ${compacto ? 'gap-4' : 'gap-4 max-lg:gap-1.5'}`}>
                             {mostrarDivisor && (
-                                <div className="flex justify-center w-full my-1">
-                                    <span className="bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
+                                <div className={`flex justify-center w-full my-1 ${compacto ? '' : 'max-lg:my-2'}`}>
+                                    <span className={`bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm ${compacto ? '' : 'max-lg:bg-white max-lg:dark:bg-[#182229] max-lg:text-[#54656f] max-lg:dark:text-[#8696a0] max-lg:rounded-lg max-lg:text-xs max-lg:font-medium max-lg:normal-case max-lg:tracking-normal'}`}>
                                         {formatDateDivider(msg.createdAt)}
                                     </span>
                                 </div>

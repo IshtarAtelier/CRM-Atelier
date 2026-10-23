@@ -43,8 +43,8 @@ export function ChatFilters({
     const todos = !filtroEtiqueta && filtroLectura === 'ALL';
 
     return (
-        <div className="p-5 border-b border-stone-200/60 dark:border-white/10">
-            <div className="flex items-center justify-between mb-4 gap-2">
+        <div className="p-5 max-lg:p-3 border-b border-stone-200/60 dark:border-white/10">
+            <div className="flex items-center justify-between mb-4 max-lg:mb-2 gap-2">
                 <h2 className="text-sm font-black text-stone-900 dark:text-white tracking-tight">
                     {verArchivados ? 'Buzón archivado' : 'Buzón activo'}
                     <span className="ml-2 text-stone-600 dark:text-stone-400 font-medium">({cantidad})</span>
@@ -65,7 +65,7 @@ export function ChatFilters({
                 </button>
             </div>
 
-            <div className="mb-4 relative">
+            <div className="mb-4 max-lg:mb-3 relative">
                 <Search className="w-4 h-4 text-stone-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden />
                 <input
                     type="search"
@@ -73,7 +73,7 @@ export function ChatFilters({
                     placeholder="Buscar cliente o número..."
                     value={busqueda}
                     onChange={e => onBusqueda(e.target.value)}
-                    className="w-full min-h-10 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 transition-all text-stone-900 dark:text-white placeholder:text-stone-500"
+                    className="w-full min-h-10 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl max-lg:rounded-full max-lg:bg-stone-100 max-lg:dark:bg-stone-800 max-lg:border-transparent py-2 pl-9 pr-3 text-sm max-lg:text-base outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 transition-all text-stone-900 dark:text-white placeholder:text-stone-500"
                 />
             </div>
 

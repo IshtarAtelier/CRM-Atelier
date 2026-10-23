@@ -10,9 +10,9 @@
  * `role="switch"` con su estado escrito al lado ("Activa" / "Inactiva").
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-    Archive, ArchiveRestore, Calendar, ChevronLeft, Loader2, Maximize2, Phone, Search, Sparkles, Tag, X,
+    Archive, ArchiveRestore, ArrowLeft, Bot, Calendar, ChevronLeft, FileText, Loader2, Maximize2, MoreVertical, Phone, Search, Sparkles, Tag, User, X,
 } from 'lucide-react';
 import { ChatLabelPicker } from '../ChatLabelPicker';
 import { getDisplayName, inicialDe, rotuloSeguimiento, telefonoVisible } from '../format';
@@ -69,6 +69,18 @@ export function ChatHeader({
     compacto = false,
 }: ChatHeaderProps) {
     const [menuSeguimientos, setMenuSeguimientos] = useState(false);
+    // El ⋮ del celular: lo que en la compu son botones sueltos, acá entra en
+    // un menú como en WhatsApp. En la cabecera de 375 px no caben ocho botones.
+    const [menuMovil, setMenuMovil] = useState(false);
+    const menuMovilRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!menuMovil) return;
+        const fuera = (e: PointerEvent) => {
+            if (menuMovilRef.current && !menuMovilRef.current.contains(e.target as Node)) setMenuMovil(false);
+        };
+        document.addEventListener('pointerdown', fuera);
+        return () => document.removeEventListener('pointerdown', fuera);
+    }, [menuMovil]);
     const etiquetas = chat.chatLabels || [];
     const seguimientos = etiquetas.filter(l => l.startsWith('SEGUIMIENTO_'));
     const sinSeguimiento = etiquetas.includes('SIN_SEGUIMIENTO');
@@ -90,18 +102,22 @@ export function ChatHeader({
     };
 
     return (
-        <div className="px-4 py-3 bg-white/90 dark:bg-black/30 backdrop-blur-md border-b border-stone-200 dark:border-white/10 flex items-center justify-between gap-2 shrink-0 z-10 shadow-sm">
-            <div className="flex items-center gap-3 min-w-0">
+        <div className={`${compacto ? 'px-4 py-3' : 'px-1.5 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] lg:px-4 lg:py-3'} bg-white/90 dark:bg-black/30 backdrop-blur-md border-b border-stone-200 dark:border-white/10 flex items-center justify-between gap-1.5 lg:gap-2 shrink-0 z-10 shadow-sm`}>
+            <div className="flex items-center gap-2 lg:gap-3 min-w-0">
                 <button
                     type="button"
                     onClick={onVolver}
                     aria-label="Volver al listado"
-                    className={`${compacto ? '' : 'lg:hidden'} ${botonIcono} ${botonNeutro}`}
+                    className={compacto
+                        ? `${botonIcono} ${botonNeutro}`
+                        : 'lg:hidden min-w-10 min-h-10 inline-flex items-center justify-center rounded-full active:bg-stone-200 dark:active:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600'}
                 >
-                    <ChevronLeft className="w-4 h-4 text-stone-700 dark:text-stone-300" />
+                    {compacto
+                        ? <ChevronLeft className="w-4 h-4 text-stone-700 dark:text-stone-300" />
+                        : <ArrowLeft className="w-6 h-6 text-stone-800 dark:text-stone-200" />}
                 </button>
 
-                <div aria-hidden className="w-10 h-10 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center text-sm font-black shrink-0 shadow-md">
+                <div aria-hidden className="w-10 h-10 max-lg:rounded-full rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center text-sm font-black shrink-0 shadow-md">
                     {inicialDe(chat)}
                 </div>
 
@@ -110,21 +126,21 @@ export function ChatHeader({
                         type="button"
                         onClick={onAbrirResumen}
                         title="Ver y editar el resumen del chat"
-                        className="text-sm font-black text-stone-900 dark:text-white truncate flex items-center gap-1.5 hover:text-violet-800 dark:hover:text-violet-300 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                        className="max-w-full text-sm max-lg:text-base max-lg:font-bold font-black text-stone-900 dark:text-white truncate flex items-center gap-1.5 hover:text-violet-800 dark:hover:text-violet-300 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                     >
                         {nombre}
                         {chat.client && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-stone-200 dark:bg-stone-800 text-[10px] font-black tracking-widest uppercase text-stone-700 dark:text-stone-300 shrink-0">
+                            <span className={`${compacto ? '' : 'max-lg:hidden'} px-1.5 py-0.5 rounded-md bg-stone-200 dark:bg-stone-800 text-[10px] font-black tracking-widest uppercase text-stone-700 dark:text-stone-300 shrink-0`}>
                                 CRM
                             </span>
                         )}
                     </button>
-                    <div className="text-[11px] font-bold text-stone-700 dark:text-stone-400 flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <div className="text-[11px] font-bold text-stone-700 dark:text-stone-400 flex items-center gap-1.5 mt-0.5 max-lg:flex-nowrap flex-wrap">
                         <Phone className="w-3 h-3" aria-hidden /> {telefonoVisible(chat)}
                         {chat.client ? (
                             <a
                                 href={`/admin/contactos?id=${chat.client.id}`}
-                                className="px-2 py-1 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 rounded-md text-[10px] uppercase tracking-wider font-black transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                                className={`${compacto ? '' : 'max-lg:hidden'} px-2 py-1 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 rounded-md text-[10px] uppercase tracking-wider font-black transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600`}
                             >
                                 Ver ficha
                             </a>
@@ -133,7 +149,7 @@ export function ChatHeader({
                                 type="button"
                                 onClick={onCrearFicha}
                                 disabled={extrayendoFicha}
-                                className="px-2.5 py-1 bg-violet-700 hover:bg-violet-800 text-white rounded-lg text-[10px] uppercase tracking-wider font-black transition-all shadow-md disabled:opacity-60 inline-flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                                className={`${compacto ? '' : 'max-lg:hidden'} px-2.5 py-1 bg-violet-700 hover:bg-violet-800 text-white rounded-lg text-[10px] uppercase tracking-wider font-black transition-all shadow-md disabled:opacity-60 inline-flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600`}
                             >
                                 {extrayendoFicha
                                     ? <><Loader2 className="w-3 h-3 animate-spin" /> Analizando...</>
@@ -170,6 +186,7 @@ export function ChatHeader({
                 )}
 
                 {!compacto && (
+                    <div className="max-lg:hidden contents">
                     <LabelChips
                         etiquetas={etiquetas}
                         tags={tags}
@@ -177,6 +194,7 @@ export function ChatHeader({
                         onReactivarSeguimientos={reactivarSeguimientos}
                         onVerTodas={() => onSelectorEtiquetas(true)}
                     />
+                    </div>
                 )}
 
                 <button
@@ -185,7 +203,7 @@ export function ChatHeader({
                     aria-label="Buscar en esta conversación"
                     aria-pressed={buscadorAbierto}
                     title="Buscar en esta conversación"
-                    className={`${botonIcono} ${buscadorAbierto ? 'bg-emerald-700 border-emerald-700' : botonNeutro}`}
+                    className={`${compacto ? '' : 'max-lg:hidden'} ${botonIcono} ${buscadorAbierto ? 'bg-emerald-700 border-emerald-700' : botonNeutro}`}
                 >
                     <Search className={`w-4 h-4 ${buscadorAbierto ? 'text-white' : 'text-stone-700 dark:text-stone-300'}`} />
                 </button>
@@ -206,7 +224,7 @@ export function ChatHeader({
                             onClick={onArchivar}
                             aria-label={chat.archived ? 'Desarchivar la conversación' : 'Archivar la conversación'}
                             title={chat.archived ? 'Desarchivar' : 'Archivar'}
-                            className={`${botonIcono} ${botonNeutro}`}
+                            className={`max-lg:hidden ${botonIcono} ${botonNeutro}`}
                         >
                             {chat.archived
                                 ? <ArchiveRestore className="w-4 h-4 text-stone-700 dark:text-stone-300" />
@@ -226,7 +244,7 @@ export function ChatHeader({
                                             : 'Sin seguimientos. Gestionar seguimientos'
                                 }
                                 title="Gestionar seguimientos"
-                                className={`${botonIcono} relative ${
+                                className={`max-lg:hidden ${botonIcono} relative ${
                                     sinSeguimiento
                                         ? 'bg-red-50 dark:bg-red-950/50 border-red-300 dark:border-red-900'
                                         : seguimientos.length > 0
@@ -246,7 +264,7 @@ export function ChatHeader({
                             </button>
 
                             {menuSeguimientos && (
-                                <div className="absolute right-0 top-12 bg-white dark:bg-stone-900 border border-stone-300 dark:border-white/10 rounded-2xl shadow-2xl z-50 w-60 p-3">
+                                <div className="absolute right-0 top-12 max-lg:fixed max-lg:right-2 max-lg:top-16 bg-white dark:bg-stone-900 border border-stone-300 dark:border-white/10 rounded-2xl shadow-2xl z-50 w-60 p-3">
                                     <div className="flex items-center justify-between mb-2">
                                         <p className="text-[11px] font-black text-stone-700 dark:text-stone-300 uppercase tracking-widest px-1">Seguimientos</p>
                                         <button
@@ -306,13 +324,18 @@ export function ChatHeader({
                             )}
                         </div>
 
-                        <div className="w-px h-6 bg-stone-300 dark:bg-stone-700 mx-0.5" />
+                        <div className="max-lg:hidden w-px h-6 bg-stone-300 dark:bg-stone-700 mx-0.5" />
                     </>
                 )}
 
-                <div className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-1.5 rounded-full border border-stone-300 dark:border-stone-700 shadow-sm">
-                    <div className="flex flex-col items-end leading-tight">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400">Asistente</span>
+                <div
+                    title={`Asistente en este chat: ${chat.botEnabled ? 'activa' : 'inactiva'}`}
+                    className={`flex items-center gap-2 bg-white dark:bg-stone-800 ${compacto ? 'px-3' : 'max-lg:gap-1 max-lg:px-1.5 max-lg:border-0 max-lg:shadow-none max-lg:bg-transparent max-lg:dark:bg-transparent lg:px-3'} py-1.5 rounded-full border border-stone-300 dark:border-stone-700 shadow-sm`}>
+                    {!compacto && <Bot aria-hidden className={`lg:hidden w-5 h-5 ${chat.botEnabled ? 'text-violet-700 dark:text-violet-300' : 'text-stone-500'}`} />}
+                    {/* En el celular no entra la palabra: queda el robot y la
+                        perilla (con su estado en aria-label y title). */}
+                    <div className={`flex flex-col items-end leading-tight ${compacto ? '' : 'max-lg:hidden'}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400`}>Asistente</span>
                         <span className={`text-[11px] font-bold ${chat.botEnabled ? 'text-violet-800 dark:text-violet-300' : 'text-stone-600 dark:text-stone-400'}`}>
                             {chat.botEnabled ? 'Activa' : 'Inactiva'}
                         </span>
@@ -328,6 +351,64 @@ export function ChatHeader({
                         <span className={`block w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${chat.botEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
                     </button>
                 </div>
+
+                {!compacto && (
+                    <div className="relative lg:hidden" ref={menuMovilRef}>
+                        <button
+                            type="button"
+                            onClick={() => setMenuMovil(v => !v)}
+                            aria-haspopup="menu"
+                            aria-expanded={menuMovil}
+                            aria-label="Más acciones del chat"
+                            className="min-w-10 min-h-10 inline-flex items-center justify-center rounded-full active:bg-stone-200 dark:active:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                        >
+                            <MoreVertical className="w-5 h-5 text-stone-800 dark:text-stone-200" />
+                        </button>
+                        {menuMovil && (
+                            <div role="menu" className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden py-1.5 z-50">
+                                {chat.client ? (
+                                    <a role="menuitem" href={`/admin/contactos?id=${chat.client.id}`} className="flex items-center gap-3 w-full px-4 min-h-12 text-[15px] font-semibold text-stone-800 dark:text-stone-100 active:bg-stone-100 dark:active:bg-stone-800 text-left">
+                                        <User className="w-5 h-5 text-stone-500" aria-hidden /> Ver ficha
+                                    </a>
+                                ) : (
+                                    <button type="button" role="menuitem" disabled={extrayendoFicha} className="flex items-center gap-3 w-full px-4 min-h-12 text-[15px] font-semibold text-stone-800 dark:text-stone-100 active:bg-stone-100 dark:active:bg-stone-800 text-left disabled:opacity-60" onClick={() => { setMenuMovil(false); onCrearFicha(); }}>
+                                        {extrayendoFicha
+                                            ? <Loader2 className="w-5 h-5 text-violet-700 animate-spin" aria-hidden />
+                                            : <Sparkles className="w-5 h-5 text-violet-700" aria-hidden />}
+                                        {extrayendoFicha ? 'Analizando…' : 'Crear ficha'}
+                                    </button>
+                                )}
+                                <button type="button" role="menuitem" className="flex items-center gap-3 w-full px-4 min-h-12 text-[15px] font-semibold text-stone-800 dark:text-stone-100 active:bg-stone-100 dark:active:bg-stone-800 text-left" onClick={() => { setMenuMovil(false); onAbrirResumen(); }}>
+                                    <FileText className="w-5 h-5 text-stone-500" aria-hidden /> Resumen del chat
+                                </button>
+                                <button type="button" role="menuitem" className="flex items-center gap-3 w-full px-4 min-h-12 text-[15px] font-semibold text-stone-800 dark:text-stone-100 active:bg-stone-100 dark:active:bg-stone-800 text-left" onClick={() => { setMenuMovil(false); onAlternarBuscador(); }}>
+                                    <Search className="w-5 h-5 text-stone-500" aria-hidden /> {buscadorAbierto ? 'Cerrar búsqueda' : 'Buscar en el chat'}
+                                </button>
+                                {chat.client && (
+                                    <button type="button" role="menuitem" className="flex items-center gap-3 w-full px-4 min-h-12 text-[15px] font-semibold text-stone-800 dark:text-stone-100 active:bg-stone-100 dark:active:bg-stone-800 text-left" onClick={() => { setMenuMovil(false); onCrearTarea(); }}>
+                                        <Calendar className="w-5 h-5 text-violet-700" aria-hidden /> Crear tarea
+                                    </button>
+                                )}
+                                <button type="button" role="menuitem" className="flex items-center gap-3 w-full px-4 min-h-12 text-[15px] font-semibold text-stone-800 dark:text-stone-100 active:bg-stone-100 dark:active:bg-stone-800 text-left" onClick={() => { setMenuMovil(false); setMenuSeguimientos(true); }}>
+                                    <Calendar className="w-5 h-5 text-amber-700" aria-hidden />
+                                    Seguimientos
+                                    {sinSeguimiento
+                                        ? <span className="ml-auto text-xs font-bold text-red-700 dark:text-red-300">Bloqueados</span>
+                                        : seguimientos.length > 0
+                                            ? <span className="ml-auto text-xs font-bold text-amber-800 dark:text-amber-300">{seguimientos.length} enviados</span>
+                                            : null}
+                                </button>
+                                <span aria-hidden className="block h-px my-1.5 bg-stone-200 dark:bg-stone-800" />
+                                <button type="button" role="menuitem" className="flex items-center gap-3 w-full px-4 min-h-12 text-[15px] font-semibold text-stone-800 dark:text-stone-100 active:bg-stone-100 dark:active:bg-stone-800 text-left" onClick={() => { setMenuMovil(false); onArchivar(); }}>
+                                    {chat.archived
+                                        ? <ArchiveRestore className="w-5 h-5 text-stone-500" aria-hidden />
+                                        : <Archive className="w-5 h-5 text-stone-500" aria-hidden />}
+                                    {chat.archived ? 'Desarchivar' : 'Archivar'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

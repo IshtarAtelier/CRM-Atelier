@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import type { Viewport } from "next";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { FloatingDock } from "@/components/ui/FloatingDock";
 import CommandPalette from "@/components/ui/CommandPalette";
@@ -13,6 +14,15 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PulsoProvider } from "@/components/mensajes/PulsoProvider";
 import { WhatsAppProvider } from "@/components/whatsapp/WhatsAppProvider";
 import { FloatingWhatsApp } from "@/components/whatsapp/FloatingWhatsApp";
+
+// En el celular el teclado ACHICA la pantalla en vez de taparla: así el
+// redactor de WhatsApp (pegado abajo con 100dvh) queda arriba del teclado.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+};
 
 export default async function AdminLayout({
   children,

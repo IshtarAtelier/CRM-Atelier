@@ -488,8 +488,12 @@ function WhatsAppPageContent() {
             {!status.connected && !cargandoStatus ? (
                 <ConnectionState esApiOficial={esApiOficial} qr={status.qr} error={status.error} onReintentar={acciones.refrescarStatus} />
             ) : (
-                <div className="flex flex-1 min-h-0 overflow-hidden m-4 lg:m-6 gap-6">
-                    <div className={`w-[360px] bg-white/70 dark:bg-stone-900/70 backdrop-blur-2xl rounded-[2rem] border border-stone-200 dark:border-white/10 flex flex-col shadow-xl ${chatSeleccionado ? 'hidden lg:flex' : 'flex'}`}>
+                // En el celular es WhatsApp: o la lista o la conversación, de
+                // borde a borde. La conversación abierta tapa todo (barra del
+                // menú incluida) para que el teclado y el redactor tengan la
+                // pantalla entera, y la flecha de la cabecera vuelve a la lista.
+                <div className="flex flex-1 min-h-0 overflow-hidden lg:m-6 lg:gap-6">
+                    <div className={`w-full lg:w-[360px] bg-white dark:bg-stone-950 lg:bg-white/70 lg:dark:bg-stone-900/70 lg:backdrop-blur-2xl lg:rounded-[2rem] lg:border border-stone-200 dark:border-white/10 flex-col lg:shadow-xl ${chatSeleccionado ? 'hidden lg:flex' : 'flex'}`}>
                         <ChatFilters
                             cantidad={filteredChats.length}
                             verArchivados={showArchived}
@@ -515,7 +519,7 @@ function WhatsAppPageContent() {
                         />
                     </div>
 
-                    <div className="flex-1 bg-white/70 dark:bg-stone-900/70 backdrop-blur-2xl rounded-[2rem] border border-stone-200 dark:border-white/10 shadow-xl overflow-hidden flex flex-col">
+                    <div className={`${chatSeleccionado ? 'max-lg:fixed max-lg:inset-0 max-lg:z-[55] max-lg:h-[100dvh] flex' : 'hidden lg:flex'} flex-1 bg-white dark:bg-stone-950 lg:bg-white/70 lg:dark:bg-stone-900/70 lg:backdrop-blur-2xl lg:rounded-[2rem] lg:border border-stone-200 dark:border-white/10 lg:shadow-xl overflow-hidden flex-col`}>
                         {chatSeleccionado ? (
                             <>
                                 <ChatHeader
