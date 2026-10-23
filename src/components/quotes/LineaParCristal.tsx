@@ -27,7 +27,9 @@ interface Props {
 export default function LineaParCristal({ orderId, item, items, totalArmazones, editable, onSaved }: Props) {
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    if (totalArmazones < 2 || !esCristalDePar(item)) return null;
+    // Solo cuando FALTA el par (lo que frena convertir y enviar a fábrica): elegido, el renglón queda como siempre
+    // y se cambia desde "Editar detalles" (Ishtar, 22/10/2026: "no agregues cosas de más").
+    if (totalArmazones < 2 || !esCristalDePar(item) || item.framePosition || !editable) return null;
 
     const asignar = async (par: number) => {
         setGuardando(true);
