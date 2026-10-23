@@ -309,13 +309,12 @@ const ventaDoble = () => {
     v.prescription.addition = 2.25;
     return v;
 };
-t('con dos pares y cristales sin armazón asignado no se frena: se reparten por orden y se avisa', () => {
+t('con dos pares, un cristal sin armazón asignado frena (regla del 19/10/2026, igual que Grupo Óptico y Vitolen)', () => {
     const v = ventaDoble();
     for (const i of v.items) i.framePosition = null;
     const r = planDeCarga(v, 1, { tratamiento: 'CRIZAL_FORTE_UV', calibrado: 'COMUN', tipoArmazon: '2', forma: 11, pedidoOrigen: '628377' });
-    assert.ok(r.ok, r.ok ? '' : r.faltantes.join(' · '));
-    assert.ok(r.avisos.some(a => /armazón asignado.*dos primeros/.test(a)), JSON.stringify(r.avisos));
-    assert.equal(r.plan.producto.label, 'Varilux Comfort Orma blue uv');
+    assert.equal(r.ok, false);
+    assert.ok(r.faltantes.some(f => /4 cristales sin armazón asignado/.test(f)), r.faltantes.join(' | '));
 });
 t('la referencia del listado coincide aunque el portal la recorte, y la consulta de un pedido se reconoce como nuestra', () => {
     assert.equal(referenciaCoincide('#AB12 Juan San Martin 2° par', '#AB12 Juan San Martin 2° par'), true);

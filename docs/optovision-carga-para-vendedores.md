@@ -18,9 +18,8 @@ anulación desde el portal, así que la revisión es el momento de mirar.
 3. Si el cristal es **Transitions o Xperio**, el ítem tiene que tener el
    **color** elegido (gris, café, verde…): OVES vende cada color como un
    producto distinto.
-4. Con dos pares, asigná cada cristal a su armazón (1º / 2º). Si no lo hacés,
-   el robot los reparte por el orden del carrito y te lo avisa: fijate en la
-   pantalla del portal que cada pedido lleve la graduación y el armazón que corresponde.
+4. Con dos pares, cada cristal tiene que decir a qué armazón va (1º / 2º). Si
+   falta, el bloque lo dice y el cristal muestra dónde elegirlo.
 
 ## Lo que elegís al preparar
 
