@@ -11,7 +11,7 @@
  */
 
 import dynamic from 'next/dynamic';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bot, Mic, Paperclip, Send, Smile, X } from 'lucide-react';
 import { BarraGrabacion, useGrabadorAudio } from './AudioRecorder';
 import { QuickRepliesPanel } from './QuickRepliesPanel';
@@ -49,6 +49,10 @@ export function Composer({
     const [verRapidas, setVerRapidas] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { grabando, segundos, empezar, detener, cancelar } = useGrabadorAudio(onEnviarAudio);
+    // Pantalla táctil: Enter no envía (se escriben párrafos con el teclado del
+    // celular y un Enter por error mandaba el mensaje a medio escribir).
+    const [esTactil, setEsTactil] = useState(false);
+    useEffect(() => { setEsTactil(window.matchMedia('(pointer: coarse)').matches); }, []);
 
     const elegirArchivo = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -66,7 +70,7 @@ export function Composer({
     const botonIcono = 'min-w-10 min-h-10 p-2.5 rounded-2xl transition-all shadow-sm inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600';
 
     return (
-        <div className={`${compacto ? 'p-3' : 'p-4'} bg-white/90 dark:bg-stone-900/90 backdrop-blur-2xl border-t border-stone-200 dark:border-white/10 shrink-0`}>
+        <div className={`${compacto ? 'p-3' : 'p-4 max-lg:px-1.5 max-lg:pt-1.5 max-lg:pb-[max(0.375rem,env(safe-area-inset-bottom))] max-lg:bg-[#efeae2] max-lg:dark:bg-[#0b141a] max-lg:border-0 max-lg:backdrop-blur-none'} bg-white/90 dark:bg-stone-900/90 backdrop-blur-2xl border-t border-stone-200 dark:border-white/10 shrink-0`}>
             {verRapidas && (
                 <QuickRepliesPanel
                     onElegirTexto={t => { setVerRapidas(false); onTexto(t); }}
@@ -96,17 +100,23 @@ export function Composer({
                 </div>
             )}
 
-            <div className="flex items-end gap-3 max-w-[1200px] mx-auto relative">
+            <div className={`flex items-end ${compacto ? 'gap-3' : 'gap-3 max-lg:gap-1.5'} max-w-[1200px] mx-auto relative`}>
                 {verEmojis && (
-                    <div className="absolute bottom-[80px] left-0 z-50 drop-shadow-2xl">
+                    <div className={`absolute bottom-[80px] left-0 z-50 drop-shadow-2xl ${compacto ? '' : 'max-lg:bottom-[60px] max-lg:right-0'}`}>
                         <EmojiPicker
+                            width="100%"
                             onEmojiClick={emojiData => onTexto(texto + emojiData.emoji)}
                             autoFocusSearch={false}
                         />
                     </div>
                 )}
 
-                <div className="flex bg-stone-100 dark:bg-stone-800 rounded-3xl p-1.5 shadow-inner">
+                {/* En el celular, como en WhatsApp: una sola píldora con emojis a
+                    la izquierda, el texto en el medio y adjuntar/respuestas a la
+                    derecha. En la compu la píldora se disuelve (`lg:contents`)
+                    y queda el armado de siempre. */}
+                <div className={compacto ? 'contents' : 'lg:contents max-lg:flex-1 max-lg:min-w-0 max-lg:flex max-lg:items-end max-lg:bg-white max-lg:dark:bg-[#2a3942] max-lg:rounded-3xl max-lg:shadow-sm max-lg:px-1'}>
+                <div className={`flex bg-stone-100 dark:bg-stone-800 rounded-3xl p-1.5 shadow-inner ${compacto ? '' : 'max-lg:contents'}`}>
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -120,7 +130,7 @@ export function Composer({
                         aria-label="Emojis"
                         aria-pressed={verEmojis}
                         title="Emojis"
-                        className={`${botonIcono} ${verEmojis ? 'bg-white text-emerald-700' : 'text-stone-700 dark:text-stone-300 hover:bg-white hover:text-stone-900'}`}
+                        className={`${botonIcono} ${compacto ? '' : 'max-lg:order-1 max-lg:shadow-none max-lg:mb-0.5'} ${verEmojis ? 'bg-white text-emerald-700' : 'text-stone-700 dark:text-stone-300 hover:bg-white hover:text-stone-900'}`}
                     >
                         <Smile className="w-5 h-5" />
                     </button>
@@ -129,7 +139,7 @@ export function Composer({
                         onClick={() => fileInputRef.current?.click()}
                         aria-label="Adjuntar archivo"
                         title="Adjuntar archivo"
-                        className={`${botonIcono} text-stone-700 dark:text-stone-300 hover:bg-white hover:text-stone-900`}
+                        className={`${botonIcono} ${compacto ? '' : 'max-lg:order-3 max-lg:shadow-none max-lg:mb-0.5 max-lg:min-w-9 max-lg:px-1.5'} text-stone-700 dark:text-stone-300 hover:bg-white hover:text-stone-900`}
                     >
                         <Paperclip className="w-5 h-5 -rotate-45" />
                     </button>
@@ -139,16 +149,18 @@ export function Composer({
                         aria-label="Respuestas rápidas"
                         aria-pressed={verRapidas}
                         title="Respuestas rápidas"
-                        className={`${botonIcono} ${verRapidas ? 'bg-indigo-100 text-indigo-800' : 'text-stone-700 dark:text-stone-300 hover:bg-white hover:text-indigo-800'}`}
+                        className={`${botonIcono} ${compacto ? '' : 'max-lg:order-4 max-lg:shadow-none max-lg:mb-0.5 max-lg:min-w-9 max-lg:px-1.5'} ${verRapidas ? 'bg-indigo-100 text-indigo-800' : 'text-stone-700 dark:text-stone-300 hover:bg-white hover:text-indigo-800'}`}
                     >
                         <Bot className="w-5 h-5" />
                     </button>
                 </div>
 
                 {grabando ? (
-                    <BarraGrabacion segundos={segundos} onCancelar={cancelar} />
+                    <div className={compacto ? 'contents' : 'contents max-lg:block max-lg:order-2 max-lg:flex-1 max-lg:min-w-0'}>
+                        <BarraGrabacion segundos={segundos} onCancelar={cancelar} />
+                    </div>
                 ) : (
-                    <div className="flex-1 bg-white dark:bg-stone-800 border-[3px] border-stone-200 dark:border-stone-700 rounded-[2rem] flex items-end px-6 shadow-sm focus-within:border-emerald-600 transition-colors">
+                    <div className={`flex-1 bg-white dark:bg-stone-800 border-[3px] border-stone-200 dark:border-stone-700 rounded-[2rem] flex items-end px-6 shadow-sm focus-within:border-emerald-600 transition-colors ${compacto ? '' : 'max-lg:order-2 max-lg:min-w-0 max-lg:px-1 max-lg:border-0 max-lg:shadow-none max-lg:bg-transparent max-lg:dark:bg-transparent'}`}>
                         <textarea
                             aria-label="Escribir un mensaje"
                             value={texto}
@@ -157,8 +169,11 @@ export function Composer({
                                 e.target.style.height = 'auto';
                                 e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
                             }}
+                            enterKeyHint={esTactil ? 'enter' : 'send'}
                             onKeyDown={e => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
+                                // En el celular Enter es salto de línea, como en
+                                // WhatsApp: se envía con el botón verde.
+                                if (e.key === 'Enter' && !e.shiftKey && !esTactil) {
                                     e.preventDefault();
                                     onEnviar();
                                     setTimeout(() => {
@@ -169,11 +184,12 @@ export function Composer({
                             onFocus={() => setVerEmojis(false)}
                             placeholder="Escribí un mensaje..."
                             rows={1}
-                            className="w-full py-4 bg-transparent outline-none text-[15px] font-medium text-stone-900 dark:text-white placeholder:text-stone-500 resize-none overflow-y-auto custom-scrollbar-smooth"
-                            style={{ minHeight: compacto ? '48px' : '56px', maxHeight: '150px' }}
+                            className="w-full py-4 max-lg:py-2.5 bg-transparent outline-none text-[15px] max-lg:text-base max-lg:font-normal font-medium text-stone-900 dark:text-white placeholder:text-stone-500 resize-none overflow-y-auto custom-scrollbar-smooth"
+                            style={{ minHeight: compacto ? '48px' : (esTactil ? '44px' : '56px'), maxHeight: esTactil ? '120px' : '150px' }}
                         />
                     </div>
                 )}
+                </div>
 
                 {!hayContenido && !grabando ? (
                     <button
@@ -181,7 +197,7 @@ export function Composer({
                         onClick={empezar}
                         aria-label="Grabar un audio"
                         title="Grabar un audio"
-                        className="h-14 w-14 bg-emerald-700 hover:bg-emerald-800 text-white rounded-[2rem] flex items-center justify-center shadow-xl transition-all active:scale-95 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-700"
+                        className="h-14 w-14 max-lg:h-12 max-lg:w-12 max-lg:rounded-full max-lg:bg-[#00a884] max-lg:shadow-md bg-emerald-700 hover:bg-emerald-800 text-white rounded-[2rem] flex items-center justify-center shadow-xl transition-all active:scale-95 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-700"
                     >
                         <Mic className="w-6 h-6" />
                     </button>
@@ -192,7 +208,7 @@ export function Composer({
                         disabled={enviando}
                         aria-label={grabando ? 'Enviar el audio grabado' : 'Enviar mensaje'}
                         title={grabando ? 'Enviar el audio' : 'Enviar'}
-                        className="h-14 w-14 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white rounded-[2rem] flex items-center justify-center shadow-xl transition-all active:scale-95 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-700"
+                        className="h-14 w-14 max-lg:h-12 max-lg:w-12 max-lg:rounded-full max-lg:bg-[#00a884] max-lg:shadow-md bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white rounded-[2rem] flex items-center justify-center shadow-xl transition-all active:scale-95 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-700"
                     >
                         <Send className="w-6 h-6 ml-1" />
                     </button>

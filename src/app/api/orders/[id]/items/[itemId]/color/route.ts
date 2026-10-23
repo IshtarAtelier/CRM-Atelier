@@ -26,19 +26,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         });
         if (!order) return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
 
-        // Una venta enviada a fábrica no se toca por ningún camino: el cristal
-        // ya se está fabricando con ese color.
-        if (order.isLocked && order.orderType === 'SALE') {
-            return NextResponse.json({
-                error: 'Venta enviada a fábrica: el color del cristal no se puede modificar. Para corregirlo, un admin debe reabrir el pedido (el cambio queda registrado).',
-            }, { status: 409 });
-        }
-
         // La línea tiene que ser de ESTE pedido: sin esta comprobación, un id de
         // item de otro pedido se escribiría igual.
         const item = await prisma.orderItem.findFirst({
             where: { id: itemId, orderId: id },
-            select: { id: true, productNameSnapshot: true },
+            select: { id: true, productNameSnapshot: true, crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true },
         });
         if (!item) return NextResponse.json({ error: 'La línea no pertenece a este pedido' }, { status: 404 });
 
@@ -51,6 +43,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
                 ? null
                 : parseInt(String(body.framePosition), 10),
         };
+
+        // Una venta enviada a fábrica no se toca: el cristal ya se fabrica con ese color.
+        // Única excepción: COMPLETAR a qué par va un cristal que no lo tiene (sin eso el robot
+        // del laboratorio no puede cargarlo, y antes no había dónde elegirlo — Ishtar, 22/10/2026).
+        // Cambiar un par ya puesto, o el color, sigue pidiendo reabrir el pedido.
+        if (order.isLocked && order.orderType === 'SALE') {
+            const soloCompletaElPar = item.framePosition == null
+                && Number.isInteger(datos.framePosition) && (datos.framePosition as number) > 0
+                && datos.crystalColor === texto(item.crystalColor)
+                && datos.crystalColorType === texto(item.crystalColorType)
+                && datos.crystalColorNote === texto(item.crystalColorNote);
+            if (!soloCompletaElPar) {
+                return NextResponse.json({
+                    error: 'Venta enviada a fábrica: el color del cristal no se puede modificar. Para corregirlo, un admin debe reabrir el pedido (el cambio queda registrado).',
+                }, { status: 409 });
+            }
+        }
 
         const guardado = await prisma.orderItem.update({
             where: { id: itemId },

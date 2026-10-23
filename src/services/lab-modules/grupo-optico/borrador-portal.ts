@@ -1,11 +1,10 @@
 import { mismoJson } from '../../../lib/json-canonico';
 import { prisma } from '../../../lib/db';
-import { uploadFile } from '../../../lib/storage';
 import { logAudit } from '../../../lib/audit';
 import type { Actor } from '../../../lib/actor';
 import { Borradores, type RastroPortal } from '../carga/borrador';
 import { aplicarEstadoEnVenta } from '../estados';
-import { conTurno } from '../portal/turno';
+import { AdopcionNoVerificadaError, AprobacionInvalidaError, enElPortal as enElPortalDe, ESPERA_TRAS_ENVIO_INCIERTO_MS, guardarArchivoDelPortal, textoDeFallaDeConfirmacion, YaCargadoError } from '../carga/robot-comun';
 import { conSesionSmartLab, LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO, ROBOT_GRUPO_OPTICO } from './portal';
 import { payloadCreateUpdate, planDeCarga, type OpcionesCarga, type PlanDeCarga, type ResueltoEnPortal } from './carga';
 import { bajarPdfDelPedido, buscarPedidoYaCreado, crearPedidoEnPortal, diferenciasConLoAprobado, leerPedido, PedidoAmbiguoError, PedidoRechazadoError, pruebaDeQueNoSeCreo, puedeCrearPedidosReales, resolverEnPortal, type Etiquetas } from './robot';
@@ -14,7 +13,7 @@ import { ADOPTAR_DEL_PORTAL, capturarPedidoCreado, capturarVistaEnPortal, difere
 import { esNumeroSmartLab, pedidoExistenteDelPar } from './existentes';
 import { numerosDeLaVenta, numerosDeOtrosPares as numerosAjenosAlPar } from '../carga/numeros';
 import { numeroDelParConCargo } from './origen';
-import { decidirConAprobado } from './decision';
+import { decidirConAprobado } from '../carga/decision';
 import { codigoCortoDeVenta } from '../../../lib/laboratorios/identidad';
 import { registrarExtraNoCobrado } from '../carga/extras-no-cobrados';
 import { rolesDel2x1 } from './carga';
@@ -68,17 +67,8 @@ export interface RastroGO extends RastroPortal {
     etapa?: string;
 }
 
-const ESPERA_TURNO_MS = 4 * 60_000;
-/** Tras un POST sin respuesta, cuánto esperar antes de volver a crear (el portal puede guardarlo tarde). */
-const ESPERA_TRAS_ENVIO_INCIERTO_MS = 15 * 60_000;
-
-async function enElPortal<T>(tarea: () => Promise<T>): Promise<T> {
-    const r = await conTurno(LAB_GRUPO_OPTICO, 'robot', tarea, { esperar: true, esperaMaxMs: ESPERA_TURNO_MS, obligatorio: true });
-    if (r && typeof r === 'object' && 'skipped' in (r as any) && (r as any).skipped) {
-        throw new Error(`El portal de ${NOMBRE_GRUPO_OPTICO} está ocupado por otra pasada; volvé a intentar en unos minutos.`);
-    }
-    return r as T;
-}
+// El turno obligatorio y los errores del confirmar son comunes a todo robot (carga/robot-comun.ts).
+const enElPortal = <T,>(tarea: () => Promise<T>) => enElPortalDe(LAB_GRUPO_OPTICO, NOMBRE_GRUPO_OPTICO, tarea);
 
 /** Anota en el rastro del borrador, atómico en la base (Borradores.anotarRastro). */
 async function mezclar(id: string, datos: RastroGO) {
@@ -175,28 +165,8 @@ export async function prepararEnPortal(borradorId: string) {
     }, { enEstado: ['PREPARADO'] });
 }
 
-async function guardarCaptura(borradorId: string, sufijo: string, png: Buffer): Promise<string> {
-    // Receta y datos del cliente: clave que /api/storage/view trata como sensible (exige sesión).
-    const key = await uploadFile(png, `lab-modulos/grupo-optico/${borradorId}-${sufijo}-${Date.now()}.png`, 'image/png');
-    return `/api/storage/view?key=${encodeURIComponent(key)}`;
-}
-
-async function guardarPdf(borradorId: string, numero: string, pdf: Buffer): Promise<string> {
-    // Receta y datos del cliente: clave que /api/storage/view trata como sensible (exige sesión).
-    const key = await uploadFile(pdf, `lab-modulos/grupo-optico/${borradorId}-pedido-${numero}.pdf`, 'application/pdf');
-    return `/api/storage/view?key=${encodeURIComponent(key)}`;
-}
-
-/** La aprobación ya no vale y en el portal NO hay pedido: se invalida (ERROR) sin mandar nada. */
-class AdopcionNoVerificadaError extends Error { constructor(m: string) { super(m); this.name = 'AdopcionNoVerificadaError'; } }
-class AprobacionInvalidaError extends Error {
-    constructor(motivo: string) { super(motivo); this.name = 'AprobacionInvalidaError'; }
-}
-
-/** Ya estaba CARGADO cuando el robot entró (otro intento lo terminó): no se hace nada. */
-class YaCargadoError extends Error {
-    constructor() { super('ya cargado'); this.name = 'YaCargadoError'; }
-}
+const guardarCaptura = (borradorId: string, sufijo: string, png: Buffer) => guardarArchivoDelPortal('grupo-optico', borradorId, sufijo, png, 'image/png');
+const guardarPdf = (borradorId: string, numero: string, pdf: Buffer) => guardarArchivoDelPortal('grupo-optico', borradorId, `pedido-${numero}`, pdf, 'application/pdf');
 
 /** Los nº de pedido que ya son de OTRO par de esta venta (para no adoptarlos como de este): el lector único de números. */
 async function numerosDeOtrosPares(orderId: string, pair: number): Promise<Set<string>> {
@@ -389,7 +359,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 .catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador GO rechazado (queda APROBADO):', e));
             throw err;
         }
-        const motivo = (err?.message || String(err)).replace(/\.+$/, '');
+        const motivo = err?.message || String(err);
         const rastroAhora = await prisma.labOrderDraft.findUnique({ where: { id: b.id }, select: { resumenPortal: true } }).then(x => (x?.resumenPortal || {}) as RastroGO).catch(() => ({} as RastroGO));
         if ((err instanceof AprobacionInvalidaError || err instanceof PedidoAmbiguoError) && !rastroAhora.envioIniciadoEl && !rastroAhora.numeroCreado) {
             // No se creó nada (y ningún envío quedó sin respuesta): la aprobación ya
@@ -399,15 +369,7 @@ export async function confirmarBorradorAprobado(borradorId: string, opts: { robo
                 .catch(e => console.error('[lab-modulos] no se pudo invalidar el borrador GO (queda APROBADO):', e));
             throw err;
         }
-        // Si el pedido YA existe (falló lo de después: anotar la venta, el PDF), decirlo
-        // con todas las letras: "no se pudo cargar" invitaba a cargarlo a mano = duplicado.
-        const texto = err instanceof AdopcionNoVerificadaError
-            ? `${motivo}.`
-            : rastroAhora.numeroCreado
-            ? `El pedido YA está creado en el laboratorio con el nº ${rastroAhora.numeroCreado}; falta anotarlo en la venta (${motivo}). Reintentar desde la ficha: NO se crea otro, solo se termina de anotar. No lo cargues a mano.`
-            : rastroAhora.envioIniciadoEl
-                ? `El envío al portal quedó sin respuesta (${motivo}). Reintentar desde la ficha en unos minutos: el robot busca el pedido en el portal antes de crear otro. No lo cargues a mano.`
-                : `No se pudo cargar en el portal: ${motivo}. Reintentar desde la ficha (nunca se duplica: el robot busca el pedido antes de crearlo).`;
+        const texto = textoDeFallaDeConfirmacion({ motivo, numeroCreado: rastroAhora.numeroCreado, envioIncierto: !!rastroAhora.envioIniciadoEl, adopcionNoVerificada: err instanceof AdopcionNoVerificadaError, nombrePortal: 'SmartLab' });
         // Solo si sigue APROBADO y este sigue siendo SU robot: un error después de
         // cargar no puede pisar el CARGADO, ni un robot viejo al que lo reemplazó.
         await Borradores.anotarFalla(b.id, texto, { soloSi: 'APROBADO', robot })

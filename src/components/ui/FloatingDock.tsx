@@ -57,7 +57,7 @@ export function FloatingDock() {
     const enCotizador = pathname === '/admin/cotizador';
 
     const contenedorClase = isWhatsApp
-        ? 'fixed top-[160px] right-4 z-[40] flex items-center gap-1 p-1 bg-white/60 dark:bg-stone-900/60 backdrop-blur-xl border border-stone-200/50 dark:border-stone-800/50 rounded-full shadow-lg hover:shadow-xl hover:border-stone-300/80 dark:hover:border-stone-700/80 transition-all duration-300'
+        ? 'hidden lg:flex fixed top-[160px] right-4 z-[40] items-center gap-1 p-1 bg-white/60 dark:bg-stone-900/60 backdrop-blur-xl border border-stone-200/50 dark:border-stone-800/50 rounded-full shadow-lg hover:shadow-xl hover:border-stone-300/80 dark:hover:border-stone-700/80 transition-all duration-300'
         : `fixed ${enCotizador ? 'bottom-20 lg:bottom-5' : 'bottom-4 md:bottom-5'} left-1/2 -translate-x-1/2 z-[40] flex items-center gap-1 p-1.5 bg-white/75 dark:bg-stone-900/75 backdrop-blur-xl border border-stone-200/60 dark:border-stone-800/60 rounded-full shadow-2xl transition-all duration-300`;
 
     // Escondido: queda la manija, pegada al borde de abajo y casi sin tapar nada.

@@ -11,8 +11,10 @@ import {
     AVISO_TENIDO_2X1
 } from '@/lib/promo-utils';
 import { descuentoSegundoParHoya } from '@/lib/promo-segundo-par-hoya';
-import { asignarParAlArmazon, autoasignarArmazones } from '@/lib/armazon-por-par';
+import { asignarParAlArmazon, asignarParAlCristal, autoasignarArmazones } from '@/lib/armazon-por-par';
+import { esCristalDePar } from '@/lib/laboratorios/identidad';
 import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
+import { recetaPermiteCerca, usoPorDefecto } from '@/lib/receta/graduacion-del-item';
 import { cantidadDeArmazones } from '@/lib/order-frames';
 import { aplicarCambioDeLinea } from '@/lib/tenido-sync';
 import { calculateQuoteTotals } from '@/services/PricingService';
@@ -276,6 +278,9 @@ export default function CotizadorCart({
         setFullSearch('');
     };
 
+    // La receta elegida, para ofrecer Lejos/Cerca por cristal monofocal (solo si tiene cerca o adición).
+    const rxElegida = prescriptionId ? prescriptions.find(r => r.id === prescriptionId) ?? null : null;
+
     return (
         <div className={isCard 
             ? "bg-white dark:bg-stone-800 border border-primary/20 rounded-[2rem] p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-300"
@@ -304,13 +309,25 @@ export default function CotizadorCart({
                 onUpdateItemColor={(idx, color, colorType) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColor: color, crystalColorType: colorType }))}
                 onUpdateItemStyle={(idx, style) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorType: style }))}
                 onUpdateItemNote={(idx, note) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorNote: note }))}
+                recetaPermiteCerca={recetaPermiteCerca(rxElegida)}
+                usoPorDefecto={usoPorDefecto(rxElegida)}
+                onUpdateItemUso={(idx, uso) => setItems(prev => {
+                    // Lejos/Cerca es del PAR: el otro ojo del mismo cristal (y del mismo armazón) toma la misma elección.
+                    const base = prev[idx];
+                    const companero = (it: any, i: number) => i !== idx && !!base?.eye && !!it.eye && it.eye !== base.eye
+                        && (it.productId ?? it.product?.id) === (base.productId ?? base.product?.id) && (it.framePosition ?? null) === (base.framePosition ?? null);
+                    return prev.map((item, i) => i === idx || companero(item, i) ? { ...item, lensUse: uso } : item);
+                })}
                 onUpdateItemFrame={(idx, framePosition) => setItems(prev => {
                     // La línea elegida pasa por aplicarCambioDeLinea (sincroniza
                     // el teñido partido en OD/OI); el resto de los cambios —otro
                     // armazón que suelta el par, el último que se autocompleta—
                     // los decide asignarParAlArmazon.
                     let next = aplicarCambioDeLinea(prev, idx, { framePosition });
-                    for (const c of asignarParAlArmazon(prev, idx, framePosition, cantidadDeArmazones({ items: prev }))) {
+                    // Un cristal arrastra a su compañero del otro ojo (y autocompleta el par que queda): asignarParAlCristal.
+                    const total = cantidadDeArmazones({ items: prev });
+                    const cambios = esCristalDePar(prev[idx]) ? asignarParAlCristal(prev, idx, framePosition, total) : asignarParAlArmazon(prev, idx, framePosition, total);
+                    for (const c of cambios) {
                         if (c.idx !== idx) next = next.map((it, i) => i === c.idx ? { ...it, framePosition: c.framePosition } : it);
                     }
                     return next;

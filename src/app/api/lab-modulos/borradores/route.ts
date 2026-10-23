@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getActor } from '@/lib/actor';
-import { accionesDe, Borradores } from '@/services/lab-modules/carga/borrador';
+import { accionesDe, Borradores, etapaParaLaFicha } from '@/services/lab-modules/carga/borrador';
 import { httpDeError } from '@/services/lab-modules/carga/errores';
 import { pedidosEnEspejo } from '@/services/lab-modules/espejo';
 import { cargaDe } from '@/services/lab-modules/carga/registro';
+import { moduloPorClave } from '@/services/lab-modules/registro';
 import { puedeCargarEnLaboratorio } from '@/lib/lab-carga-acceso';
 
 export const dynamic = 'force-dynamic';
@@ -45,12 +46,16 @@ export async function GET(request: Request) {
         borradores: borradores.map(b => {
             // Un borrador viejo con otra forma de payload no puede tirar abajo la ficha entera.
             const acciones = accionesDe(b, { conBorradorEnPortal: !!carga.cancelarEnPortal, puedeReleer: !!carga.releerPortal }, new Date(), { bloqueadoPorExistente: !!analisis.pares.find(p => p.pair === b.pair)?.yaCargado });
-            try { return { ...b, vista: carga.vistaDeBorrador(b), acciones }; } catch (err) {
+            // `ahora`: lo que el robot está haciendo (la ficha lo muestra mientras prepara o carga, para que se entienda la espera).
+            const ahora = etapaParaLaFicha((b.resumenPortal as any)?.etapa);
+            try { return { ...b, vista: carga.vistaDeBorrador(b), acciones, ahora }; } catch (err) {
                 console.error('[lab-modulos/borradores] vista del borrador', b.id, err);
-                return { ...b, vista: { textoRevision: '', filas: [], avisos: [] }, acciones };
+                return { ...b, vista: { textoRevision: '', filas: [], avisos: [] }, acciones, ahora };
             }
         }),
         espejo, pares: analisis.pares,
+        // Sin seguimiento (Optovisión) el espejo siempre está vacío: "el portal no muestra ningún pedido" sería falso.
+        conSeguimiento: moduloPorClave(carga.lab)?.capacidades.seguimiento ?? true,
         puedeCancelarEnPortal: !!carga.cancelarEnPortal,
         // El botón "abrir el portal para cargarlo a mano": siempre, en cualquier estado.
         portal: carga.portal,

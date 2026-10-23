@@ -78,9 +78,9 @@ function Interruptor({ rotulo, activo, textoActivo, textoInactivo, color, onTogg
         : 'text-sky-700 dark:text-sky-400';
 
     return (
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <div className="flex flex-col items-end leading-tight">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-stone-600 dark:text-stone-400">{rotulo}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide max-sm:tracking-normal text-stone-600 dark:text-stone-400">{rotulo}</span>
                 <span className={`text-[11px] font-bold ${activo ? textoOn : 'text-stone-600 dark:text-stone-400'}`}>
                     {activo ? textoActivo : textoInactivo}
                 </span>
@@ -94,7 +94,7 @@ function Interruptor({ rotulo, activo, textoActivo, textoInactivo, color, onTogg
                 onClick={onToggle}
                 className={`w-11 h-6 rounded-full transition-colors relative shadow-inner focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-stone-500 ${activo ? encendido : 'bg-stone-400 dark:bg-stone-700'}`}
             >
-                <span className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${activo ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
+                <span className={`w-5 h-5 rounded-full bg-white shadow-sm absolute left-0 top-0.5 transition-transform ${activo ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
             </button>
         </div>
     );
@@ -127,9 +127,9 @@ export default function InboxHeader({
     const itemMenu = 'flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-left';
 
     return (
-        <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-stone-200/70 dark:border-white/5 bg-white/70 dark:bg-black/30 backdrop-blur-2xl flex-shrink-0 z-20">
+        <header className="flex flex-wrap items-center justify-between gap-3 lg:gap-4 px-4 py-3 lg:px-6 lg:py-4 border-b border-stone-200/70 dark:border-white/5 bg-white/70 dark:bg-black/30 backdrop-blur-2xl flex-shrink-0 z-20">
             {/* ── 1. Estado ─────────────────────────────────────────────── */}
-            <div className="min-w-0">
+            <div className="min-w-0 max-sm:flex-1">
                 <h1 className="text-lg font-black text-stone-900 dark:text-white tracking-tight leading-none">Comunicaciones</h1>
                 <p className="text-[11px] font-bold text-stone-600 dark:text-stone-400 flex items-center gap-1.5 mt-1.5 truncate">
                     <span
@@ -142,12 +142,15 @@ export default function InboxHeader({
                 </p>
             </div>
 
-            <div className="flex items-center gap-4 flex-shrink-0">
+            {/* En el celular este grupo se disuelve (`contents`): los botones
+                quedan al lado del título y los interruptores bajan a su propia
+                fila de ancho completo. En una sola fila no entraban. */}
+            <div className="max-sm:contents flex items-center gap-2 lg:gap-4 flex-shrink-0">
                 {/* ── 2. Lo que cambia el comportamiento ───────────────────
                     SIEMPRE visible, con cualquier transporte: es el botón de
                     apagado del bot. Ver el comentario de `esApiOficial`. */}
-                <div className="flex items-center gap-5 bg-white/80 dark:bg-stone-900/70 px-4 py-2 rounded-2xl border border-stone-300/70 dark:border-stone-800 shadow-sm">
-                    <div className="flex flex-col items-end gap-1">
+                <div className="max-sm:order-last max-sm:basis-full flex items-center justify-between gap-2 sm:gap-3 lg:gap-5 bg-white/80 dark:bg-stone-900/70 px-2.5 sm:px-3 lg:px-4 py-2 rounded-2xl border border-stone-300/70 dark:border-stone-800 shadow-sm">
+                    <div className="flex flex-col items-end gap-1 min-w-0">
                         <Interruptor
                             rotulo="Asistente IA"
                             activo={asistenteActivo}
@@ -162,19 +165,19 @@ export default function InboxHeader({
                             de noche y fin de semana: un vigilante lo prende
                             solo fuera de horario a menos que esto esté tildado. */}
                         <label
-                            className="flex items-center gap-1.5 text-[10px] font-semibold text-stone-500 dark:text-stone-400 cursor-pointer select-none"
+                            className="flex items-center gap-1.5 max-sm:max-w-[8.5rem] text-[10px] leading-tight font-semibold text-stone-500 dark:text-stone-400 cursor-pointer select-none"
                             title='Fuera de horario comercial el bot se prende solo. Tildar esto para que un apagado quede firme también de noche y fin de semana.'
                         >
                             <input
                                 type="checkbox"
                                 checked={mantenerApagadoFueraHorario}
                                 onChange={e => onToggleMantenerApagadoFueraHorario(e.target.checked)}
-                                className="w-3 h-3 accent-stone-600 dark:accent-stone-400"
+                                className="w-3 h-3 shrink-0 accent-stone-600 dark:accent-stone-400"
                             />
                             Mantener apagado fuera de horario
                         </label>
                     </div>
-                    <span aria-hidden className="w-px h-8 bg-stone-300 dark:bg-stone-700" />
+                    <span aria-hidden className="max-sm:hidden w-px h-8 bg-stone-300 dark:bg-stone-700" />
                     {/* El rótulo cambia con el transporte porque cambia lo que
                         el interruptor realmente hace. Con WhatsApp Web frenaba
                         los seguimientos automáticos diarios (los 5 sistemas del
@@ -211,7 +214,7 @@ export default function InboxHeader({
                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-sm bg-stone-900 dark:bg-white text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-stone-500"
                     >
                         <RefreshCw className={`w-4 h-4 ${sincronizando ? 'animate-spin' : ''}`} />
-                        {sincronizando ? 'Sincronizando…' : 'Sincronizar'}
+                        <span className="sr-only sm:not-sr-only">{sincronizando ? 'Sincronizando…' : 'Sincronizar'}</span>
                     </button>
                 )}
 
@@ -229,7 +232,7 @@ export default function InboxHeader({
                                 : 'bg-white/90 dark:bg-stone-800/90 text-stone-700 dark:text-stone-200 border-stone-300/70 dark:border-white/10 hover:bg-white dark:hover:bg-stone-800'
                         }`}
                     >
-                        <MoreHorizontal className="w-4 h-4" /> Más
+                        <MoreHorizontal className="w-4 h-4" /> <span className="sr-only sm:not-sr-only">Más</span>
                     </button>
 
                     {menuAbierto && (

@@ -4,6 +4,7 @@ import { cantidadDeArmazones, cristalesPorArmazon, framesDeLaOrden, mensajeDeArm
 import { codigoCortoDeVenta, esCristalDeLab } from '../../../lib/laboratorios/identidad';
 import { cristalVitolenPorNombre, type CristalVitolen } from '../../../lib/laboratorios/vitolen-catalogo';
 import { disenoDelPortal, materialDelPortal } from './materiales';
+import { avisoCilindroPuro, esfericoDeLaReceta } from '../../../lib/receta/cilindro-puro';
 
 /**
  * ARMADO DEL PEDIDO DE VITOLEN A PARTIR DE LA VENTA (la parte pura de la carga
@@ -241,9 +242,12 @@ export function armarFormulario(
         const enPortal = materialDelPortal(cristal, { variante: opts.variante, color: item.crystalColor });
         if (!enPortal.opcion) faltantes.push(`material ${lado} en el portal: ${enPortal.motivo}`);
 
-        const esferico = num(item.sphereVal) ?? num(lado === 'OD' ? rx?.sphereOD : rx?.sphereOI);
-        if (esferico === null) faltantes.push(`esférico ${lado}`);
         const cilindrico = num(item.cylinderVal) ?? num(lado === 'OD' ? rx?.cylinderOD : rx?.cylinderOI);
+        // Cilindro puro: esférico vacío con cilindro = plano (lib/receta/cilindro-puro.ts).
+        const esf = esfericoDeLaReceta(num(item.sphereVal) ?? num(lado === 'OD' ? rx?.sphereOD : rx?.sphereOI), cilindrico);
+        const esferico = esf.esferico;
+        if (esf.plano) avisos.push(avisoCilindroPuro(lado));
+        if (esferico === null) faltantes.push(`esférico ${lado}`);
         const eje = num(item.axisVal) ?? num(lado === 'OD' ? rx?.axisOD : rx?.axisOI);
         if (cilindrico && eje === null) faltantes.push(`eje ${lado} (hay cilindro sin eje)`);
         const adicion = num(item.additionVal) ?? num(lado === 'OD' ? rx?.additionOD : rx?.additionOI) ?? num(rx?.addition);

@@ -8,6 +8,8 @@ import { formatLensRange } from '@/lib/lens-range';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 import { needsColorSelection } from '@/lib/crystal-color-utils';
 import { INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
+import { esMonofocal, ETIQUETA_USO, USOS_DEL_CRISTAL, type UsoDelCristal } from '@/lib/receta/graduacion-del-item';
+import { esCristalDePar } from '@/lib/laboratorios/identidad';
 import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
 import { cantidadDeArmazones, framesDeLaOrden, etiquetaArmazon } from '@/lib/order-frames';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
@@ -33,6 +35,14 @@ interface CartLineItemsProps {
     onUpdateItemNote?: (idx: number, note: string) => void;
     /** A qué armazón pertenece la línea (1..N), en pedidos de varios anteojos. */
     onUpdateItemFrame?: (idx: number, framePosition: number) => void;
+    /**
+     * Lejos / Cerca por cristal MONOFOCAL (lib/receta/graduacion-del-item.ts). Solo se
+     * ofrece si la receta elegida tiene cerca o adición; `usoPorDefecto` es lo que se
+     * asume cuando la línea no eligió (CERCA si la receta es solo de cerca).
+     */
+    recetaPermiteCerca?: boolean;
+    usoPorDefecto?: UsoDelCristal;
+    onUpdateItemUso?: (idx: number, uso: UsoDelCristal) => void;
     /** El pedido YA GUARDADO que se está editando: habilita cargar foto y
      *  medidas del armazón acá mismo (el editor guarda contra este id). */
     orderId?: string | null;
@@ -63,6 +73,9 @@ export default function CartLineItems({
     promoFrameDiscount,
     promoLensUids,
     crystalColors = [],
+    recetaPermiteCerca = false,
+    usoPorDefecto = 'LEJOS',
+    onUpdateItemUso,
     tintStylePrices: _tintStylePrices = {}
 }: CartLineItemsProps) {
     const [expandedColorIdx, setExpandedColorIdx] = React.useState<number | null>(null);
@@ -141,6 +154,21 @@ export default function CartLineItems({
                     <div key={idx} className="space-y-0">
                         {/* Main item row */}
                         <div className={`flex items-center gap-3 bg-stone-50 dark:bg-stone-900 p-3 sm:p-4 ${showColorSelector && isColorExpanded ? 'rounded-t-2xl border-b-0' : 'rounded-2xl'} border border-stone-200/60 dark:border-stone-800 group hover:border-primary/30 transition-all`}>
+                            {item.eye && recetaPermiteCerca && esMonofocal(item.product, item.productTypeSnapshot) && (
+                                /* Para qué se usa este cristal: la graduación que va al laboratorio sale de acá (lejos, o cerca = cerca escrita / lejos + adición). */
+                                <div role="radiogroup" aria-label="Uso del cristal" className="flex flex-col gap-0.5 shrink-0">
+                                    {USOS_DEL_CRISTAL.map(u => {
+                                        const activo = (item.lensUse || usoPorDefecto || 'LEJOS') === u;
+                                        return (
+                                            <button key={u} type="button" role="radio" aria-checked={activo} title={u === 'CERCA' ? 'Graduación de cerca (la escrita en la receta, o lejos + adición)' : 'Graduación de lejos'}
+                                                onClick={() => onUpdateItemUso?.(idx, u)}
+                                                className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${activo ? (u === 'CERCA' ? 'bg-sky-600 text-white' : 'bg-stone-800 text-white') : 'bg-stone-100 text-stone-400 hover:text-stone-700'}`}>
+                                                {ETIQUETA_USO[u]}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                             {item.eye && (
                                 <span className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-bold uppercase shrink-0 ${item.eye === 'OD' ? 'bg-stone-900 text-white dark:bg-stone-750' : 'bg-stone-200 text-stone-600 dark:bg-stone-805'}`}>
                                     {item.eye}
@@ -194,10 +222,22 @@ export default function CartLineItems({
                                     {/* A qué armazón va, en la línea plegada. El dato se
                                         guardaba bien, pero solo se veía con el selector
                                         abierto: cerrarlo parecía haberlo perdido. */}
-                                    {item.framePosition && totalArmazones > 1 && (
+                                    {item.framePosition && totalArmazones > 1 && !esCristalDePar(item) && (
                                         <span className="inline-flex items-center gap-1 bg-violet-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                                             <Glasses className="w-3 h-3" />
                                             {item.framePosition}º armazón
+                                        </span>
+                                    )}
+                                    {/* Cristal con dos pares: a qué par va, elegido acá (obligatorio para convertir y enviar a fábrica). */}
+                                    {totalArmazones > 1 && esCristalDePar(item) && (
+                                        <span className="inline-flex items-center gap-1">
+                                            {Array.from({ length: totalArmazones }, (_, i) => i + 1).map(pos => (
+                                                <button key={pos} type="button" onClick={() => onUpdateItemFrame?.(idx, pos)}
+                                                    className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${item.framePosition === pos ? 'bg-amber-500 text-white border-amber-600' : 'bg-white dark:bg-stone-800 text-stone-500 border-stone-200 dark:border-stone-700 hover:border-amber-300'}`}>
+                                                    {pos}º par
+                                                </button>
+                                            ))}
+                                            {!item.framePosition && <span className="text-[9px] font-bold text-rose-600">← elegí uno</span>}
                                         </span>
                                     )}
                                     {item.uid !== undefined && promoLensUids?.has(item.uid) && (

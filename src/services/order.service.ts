@@ -34,6 +34,7 @@ import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { OptovisionAuditService } from '@/services/optovision-audit.service';
 import { mapOrderPostSale } from '@/types/orders';
+import { esMonofocal, graduacionDelItem, usoEfectivo } from '@/lib/receta/graduacion-del-item';
 
 /**
  * A3 (auditoría 20/8): el precio de ítems no-cristal llega del cliente
@@ -92,6 +93,8 @@ const OrderItemSchema = z.object({
     crystalColorType: z.string().nullable().optional(),
     crystalColorNote: z.string().nullable().optional(),
     framePosition: z.number().int().nullable().optional(),
+    /** 'LEJOS' | 'CERCA' (monofocales); null = el default de la receta. */
+    lensUse: z.enum(['LEJOS', 'CERCA']).nullable().optional(),
     productBrandSnapshot: z.string().nullable().optional(),
     productNameSnapshot: z.string().nullable().optional(),
     productCategorySnapshot: z.string().nullable().optional(),
@@ -1028,10 +1031,17 @@ export class OrderService {
                         quantity: item.quantity,
                         price: item.price,
                         eye: item.eye || null,
-                        sphereVal: isCrystal && rxDetails ? (isOD ? rxDetails.sphereOD : rxDetails.sphereOI) : (item.sphereVal ?? null),
-                        cylinderVal: isCrystal && rxDetails ? (isOD ? rxDetails.cylinderOD : rxDetails.cylinderOI) : (item.cylinderVal ?? null),
-                        axisVal: isCrystal && rxDetails ? (isOD ? rxDetails.axisOD : rxDetails.axisOI) : (item.axisVal ?? null),
-                        additionVal: isCrystal && rxDetails ? (isOD ? (rxDetails.additionOD ?? rxDetails.addition) : (rxDetails.additionOI ?? rxDetails.addition)) : (item.additionVal ?? null),
+                        // La graduación del cristal según su USO (lejos/cerca): una sola regla (lib/receta/graduacion-del-item.ts).
+                        ...(isCrystal && rxDetails
+                            ? (() => {
+                                // CERCA solo en un MONOFOCAL que lo eligió (o receta solo de cerca); todo lo demás, LEJOS como siempre.
+                                const uso = usoEfectivo(item.lensUse, rxDetails, esMonofocal(null, snap.productTypeSnapshot));
+                                const g = graduacionDelItem(rxDetails, isOD ? 'OD' : 'OI', uso);
+                                // La DNP medida solo se pisa con la DNP de cerca ESCRITA en la receta.
+                                return { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal, ...(uso === 'CERCA' && g.dnpCerca !== null ? { pdVal: g.dnpCerca } : {}) };
+                            })()
+                            : { sphereVal: item.sphereVal ?? null, cylinderVal: item.cylinderVal ?? null, axisVal: item.axisVal ?? null, additionVal: item.additionVal ?? null }),
+                        lensUse: item.lensUse ?? null,
                         ...snap,
                         crystalColor: item.crystalColor || null,
                         crystalColorType: item.crystalColorType || null,
@@ -2242,7 +2252,7 @@ export class OrderService {
                                     // select ÚNICO; lo de acá es lo que además necesita
                                     // esta rama para stock y precios.
                                     ...SELECT_ITEMS_REPASO,
-                                    sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, pdVal: true, heightVal: true, prismVal: true,
+                                    sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, lensUse: true, pdVal: true, heightVal: true, prismVal: true,
                                     product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true, is2x1: true, eligible2x1: true, imagenesCatalogo: true } },
                                 }
                             },
@@ -2278,14 +2288,13 @@ export class OrderService {
                             const isOD = item.eye === 'OD';
                             const isOI = item.eye === 'OI';
                             if (!isOD && !isOI) continue;
+                            // Según el USO del cristal (lejos/cerca): la misma regla que al editar la venta.
+                            // CERCA solo en un MONOFOCAL que lo eligió (o receta solo de cerca); todo lo demás, LEJOS como siempre.
+                            const uso = usoEfectivo((item as any).lensUse, rx, esMonofocal(item.product, (item as any).productTypeSnapshot));
+                            const g = graduacionDelItem(rx, isOD ? 'OD' : 'OI', uso);
                             await tx.orderItem.update({
                                 where: { id: item.id },
-                                data: {
-                                    sphereVal: isOD ? rx.sphereOD : rx.sphereOI,
-                                    cylinderVal: isOD ? rx.cylinderOD : rx.cylinderOI,
-                                    axisVal: isOD ? rx.axisOD : rx.axisOI,
-                                    additionVal: isOD ? (rx.additionOD ?? rx.addition) : (rx.additionOI ?? rx.addition),
-                                },
+                                data: { sphereVal: g.sphereVal, cylinderVal: g.cylinderVal, axisVal: g.axisVal, additionVal: g.additionVal, ...(uso === 'CERCA' && g.dnpCerca !== null ? { pdVal: g.dnpCerca } : {}) },
                             });
                         }
                     }
@@ -2530,7 +2539,7 @@ export class OrderService {
                 items: {
                     select: {
                         id: true, price: true, quantity: true, eye: true,
-                        sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                        sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, lensUse: true,
                         product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true, is2x1: true, eligible2x1: true } }
                     }
                 },

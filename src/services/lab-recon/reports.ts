@@ -432,7 +432,8 @@ export async function weeklyReport(from: Date, to: Date) {
         // Lo último que vio cada módulo de laboratorio (src/services/lab-modules):
         // ventas enviadas sin pedido en su portal y pedidos atrasados. Van acá
         // y no en un mail propio (de laboratorio salen dos mails y nada más).
-        modulos: await Promise.all(REGISTRO_MODULOS.map(async m => ({ lab: m.clave, nombre: m.nombre, hallazgos: await leerHallazgos(m.clave) }))),
+        // Solo los que SIGUEN pedidos en el portal: Optovisión es solo carga asistida y diría siempre "el robot todavía no corrió".
+        modulos: await Promise.all(REGISTRO_MODULOS.filter(m => m.capacidades.seguimiento).map(async m => ({ lab: m.clave, nombre: m.nombre, hallazgos: await leerHallazgos(m.clave) }))),
     };
 }
 

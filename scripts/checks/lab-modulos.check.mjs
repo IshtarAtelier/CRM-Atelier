@@ -603,8 +603,11 @@ ok('los laboratorios con carga asistida que conoce el navegador son exactamente 
     assert.deepEqual([...LABS_CON_CARGA_ASISTIDA].sort(), CARGAS.map(c => c.lab).sort());
     // Todo lab con carga asistida deja SIEMPRE un botón para abrir su portal y terminar a mano (Ishtar, 19/10/2026).
     for (const c of CARGAS) {
-        assert.match(c.portal?.url || '', /^https:\/\/.+\/new$/, `${c.lab}: la URL de alta del portal`);
-        assert.match(c.portal?.etiqueta || '', /a mano/i, `${c.lab}: la etiqueta del botón`);
+        // OVES (Optovisión) es una app de una sola pantalla, solo http y sin URL de alta (21/10/2026): se abre su portada.
+        const urlEsperada = { OPTOVISION: /^http:\/\/www\.optovision\.com\.ar\/oves\/lab\/$/ }[c.lab] ?? /^https:\/\/.+\/new$/;
+        assert.match(c.portal?.url || '', urlEsperada, `${c.lab}: la URL de alta del portal`);
+        // Corta e igual en los tres (Ishtar, 22/10/2026): "...para cargarlo a mano" se leía como el botón principal.
+        assert.equal(c.portal?.etiqueta, 'Abrir portal', `${c.lab}: la etiqueta del botón`);
     }
     for (const lab of LABS_CON_CARGA_ASISTIDA) assert.ok(NOMBRE_DE_LAB[lab], `falta el nombre de ${lab}`);
 });

@@ -255,12 +255,16 @@ console.log('\n— Postventa con receta distinta —');
 ok('la receta de la postventa (DIFFERENT) pisa a la de la venta, par por par', () => {
     const v = venta2x1();
     v.postSaleOrderOption = 'DIFFERENT';
-    v.postSaleRxData = JSON.stringify({ rx1: { sphereOD: '-2.00', axisOD: '90' }, rx2: { sphereOD: '', additionOD: '2.50', material: 'Alto Índice' } });
+    v.postSaleRxData = JSON.stringify({ rx1: { sphereOD: '-2.00', axisOD: '90' }, rx2: { sphereOD: '', cylinderOD: '', additionOD: '2.50', material: 'Alto Índice' } });
     const p1 = armarPedidoSmartLab(v, 1).payload;
     assert.deepEqual([p1.od_esfera, p1.od_eje, p1.oi_esfera], ['-2.00', '90', '-0.75']);
     const r2 = armarPedidoSmartLab(v, 2);
-    assert.equal(r2.ok, false, 'la postventa dejó el esférico OD vacío: falta');
+    assert.equal(r2.ok, false, 'la postventa dejó el esférico OD vacío y sin cilindro: falta');
     assert.ok(r2.faltantes.some(f => /esférico OD del par 2/.test(f)), r2.faltantes.join(' | '));
+    // Con cilindro, un esférico vacío es cilindro puro: plano 0,00, con aviso (22/10/2026).
+    v.postSaleRxData = JSON.stringify({ rx2: { sphereOD: '', cylinderOD: '-3.50', axisOD: '5', additionOD: '2.50', material: 'Alto Índice' } });
+    const cp = armarPedidoSmartLab(v, 2);
+    assert.equal(cp.payload.od_esfera, '+0.00'); assert.ok(cp.avisos.some(a => /cilindro puro/.test(a)), cp.avisos.join(' | '));
     v.postSaleRxData = JSON.stringify({ rx2: { sphereOD: '-3.25', additionOD: '2.50', material: 'Alto Índice' } });
     const p2 = armarPedidoSmartLab(v, 2).payload;
     assert.deepEqual([p2.od_esfera, p2.od_adicion, p2.oi_adicion, p2.material], ['-3.25', '+2.50', '+2.00', 'Alto Índice']);

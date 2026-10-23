@@ -106,6 +106,7 @@ interface QuoteItem {
     crystalColorNote?: string;
     /** A qué armazón (1º/2º) corresponde este ítem — teñidos Y armazones. */
     framePosition?: number | null;
+    lensUse?: string | null;
     productBrandSnapshot?: string | null;
     productNameSnapshot?: string | null;
     productCategorySnapshot?: string | null;
@@ -273,6 +274,7 @@ function CotizadorPageContent() {
                             crystalColorType: it.crystalColorType,
                             crystalColorNote: it.crystalColorNote,
                             framePosition: it.framePosition ?? null,
+                            lensUse: it.lensUse ?? null, // Lejos / Cerca del cristal monofocal (lib/receta/graduacion-del-item.ts)
                             uid: Date.now() + idx,
                             productNameSnapshot: it.productNameSnapshot,
                             productBrandSnapshot: it.productBrandSnapshot,
@@ -697,6 +699,7 @@ function CotizadorPageContent() {
                         crystalColorType: it.crystalColorType || null,
                         crystalColorNote: it.crystalColorNote || null,
                         framePosition: it.framePosition ?? null,
+                        lensUse: it.lensUse ?? null, // Lejos / Cerca del cristal monofocal (lib/receta/graduacion-del-item.ts)
                         productBrandSnapshot: it.productBrandSnapshot || it.product?.brand || null,
                         productNameSnapshot: it.productNameSnapshot || it.product?.name || it.product?.model || null,
                         productCategorySnapshot: it.productCategorySnapshot || it.product?.category || null,
@@ -893,6 +896,7 @@ function CotizadorPageContent() {
             crystalColorType: it.crystalColorType,
             crystalColorNote: it.crystalColorNote,
             framePosition: it.framePosition ?? null,
+            lensUse: it.lensUse ?? null, // Lejos / Cerca del cristal monofocal (lib/receta/graduacion-del-item.ts)
             uid: Date.now() + idx,
             productBrandSnapshot: it.productBrandSnapshot,
             productNameSnapshot: it.productNameSnapshot,

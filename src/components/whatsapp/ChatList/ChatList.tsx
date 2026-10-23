@@ -48,7 +48,7 @@ export function ChatList({
         <div
             role="list"
             aria-label="Conversaciones"
-            className="flex-1 overflow-y-auto px-3 py-3 space-y-1 custom-scrollbar"
+            className="flex-1 overflow-y-auto px-3 py-3 space-y-1 max-lg:px-0 max-lg:py-0 max-lg:space-y-0 custom-scrollbar"
         >
             {chats.map(chat => (
                 <div role="listitem" key={chat.id}>

@@ -60,8 +60,12 @@ export async function pedidoExistenteDelPar(lab: string, orderId: string, pair: 
     });
 }
 
-export function mensajeExistente(e: PedidoExistente, pair: number): string {
+/** El remedio para un nº ambiguo cuando el portal tiene seguimiento y código interno (Grupo Óptico, Vitolen). */
+export const REMEDIO_AMBIGUO_CON_SEGUIMIENTO = 'Para aclararlo: en el portal, agregale al código interno de ese pedido "1°par" o "2°par" (Actualizar pedido) y esperá el seguimiento (media hora), o tipeá en la venta solo el nº del par que ya está cargado.';
+
+/** `remedio`: qué hacer con un nº ambiguo, según lo que ese laboratorio permite (sin seguimiento ni código interno, el remedio del portal no existe). */
+export function mensajeExistente(e: PedidoExistente, pair: number, remedio: string = REMEDIO_AMBIGUO_CON_SEGUIMIENTO): string {
     return e.ambiguo
-        ? `La venta tiene el nº ${e.numero} y no se sabe de qué armazón es (¿se cargó a mano?): no se carga ningún par hasta aclararlo. Para aclararlo: en el portal, agregale al código interno de ese pedido "1°par" o "2°par" (Actualizar pedido) y esperá el seguimiento (media hora), o tipeá en la venta solo el nº del par que ya está cargado.`
+        ? `La venta tiene el nº ${e.numero} y no se sabe de qué armazón es (¿se cargó a mano?): no se carga ningún par hasta aclararlo. ${remedio}`
         : `El par ${pair} ya tiene pedido en el laboratorio (nº ${e.numero}): no se carga otro.`;
 }

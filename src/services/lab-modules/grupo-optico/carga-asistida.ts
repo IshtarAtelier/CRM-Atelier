@@ -1,5 +1,5 @@
 import { cantidadDeArmazones, cristalesPorArmazon } from '../../../lib/order-frames';
-import { Borradores } from '../carga/borrador';
+import { Borradores, elegidoDe } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { planDeCarga, rolesDel2x1, type OpcionesCarga, type TipoArmazon, type TipoAro } from './carga';
 import { numeroDelParConCargo } from './origen';
@@ -57,7 +57,7 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
     lab: LAB_GRUPO_OPTICO,
     nombre: NOMBRE_GRUPO_OPTICO,
     robot: ROBOT_ACTOR_GRUPO_OPTICO,
-    portal: { url: `${PORTAL_BASE}/smartlab/laboratory/new`, etiqueta: 'Abrir SmartLab para cargarlo a mano' },
+    portal: { url: `${PORTAL_BASE}/smartlab/laboratory/new`, etiqueta: 'Abrir portal' },
 
     async analizar(orderId) {
         const venta = await leerVentaParaCargaGO(orderId);
@@ -135,6 +135,7 @@ export const CARGA_GRUPO_OPTICO: CargaAsistida = {
                 texto: 'Cuando quede cargado, su nº de operación es el que va en la observación del par sin cargo. Asegurate de que ese nº quede en la venta (el robot lo anota solo al terminar) antes de preparar el otro par: sin él, el laboratorio no hace el descuento.',
             } : null,
             enlacePortal: null,
+            elegido: elegidoDe(((b.payload || {}) as PayloadBorradorGO).opciones),
             documento: r.pdfUrl ? { url: String(r.pdfUrl), etiqueta: 'Ver el pedido del laboratorio (PDF)' } : null,
             pendienteEnPortal: null,
         };

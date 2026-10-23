@@ -40,6 +40,8 @@ export const CRM_ORIGIN = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-ateli
 // inversión en publicidad ni reportes de campañas — eso va a
 // PRIVATE_ADMIN_EMAILS. Single source of truth: no hardcodear estos correos.
 export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
+/** La casilla del LOCAL, la que leen los vendedores: solo avisos operativos (nada de costos ni pauta). */
+export const CASILLA_DEL_LOCAL = 'atelier.optica.cerro@gmail.com';
 
 // Destinatarios de lo que SOLO ve la dueña: costos de laboratorio y su
 // conciliación, costos de productos, inversión en Meta y Google, reportes de

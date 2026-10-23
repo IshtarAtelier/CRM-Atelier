@@ -32,7 +32,8 @@ export interface CampoDePreparacion {
     /** La clave con la que viaja en el body de preparar. */
     clave: string;
     etiqueta: string;
-    tipo: 'select' | 'numero' | 'extra';
+    /** `texto`: un dato corto que tipea quien prepara (el cupón de la promo de Optovisión). */
+    tipo: 'select' | 'numero' | 'extra' | 'texto';
     /** Solo `extra`: lo que lee quien lo agrega antes de confirmar. */
     advertencia?: string;
     /** `imagen`: la ficha muestra la opción con su dibujo (las formas de armazón del portal de Vitolen) en vez de un desplegable. */
@@ -42,6 +43,11 @@ export interface CampoDePreparacion {
     ayuda?: string;
     min?: number;
     max?: number;
+    /** Solo `texto`: largo máximo y qué forma tiene que tener (se valida también en el server). */
+    maxLength?: number;
+    patron?: string;
+    /** Solo `texto`: lo que se lee en el cajón vacío (la ayuda va en el tooltip; esto se ve siempre). */
+    placeholder?: string;
 }
 
 /** Un par de la venta que se carga en este laboratorio, como lo ve la ficha. */
@@ -90,6 +96,13 @@ export interface VistaDeBorrador {
      * de operación del otro par, que es lo que hace el descuento).
      */
     confirmarAntesDeAprobar?: { titulo: string; texto: string } | null;
+    /**
+     * Lo que se eligió al preparar (clave del campo → valor), para "Corregir y
+     * volver a preparar" sin empezar de cero: la ficha rechaza este borrador y
+     * reabre el formulario con estos valores puestos (regla de Ishtar,
+     * 21/10/2026: en TODOS los laboratorios se puede corregir sin arrancar de cero).
+     */
+    elegido?: Record<string, string> | null;
 }
 
 export interface BorradorParaVista {

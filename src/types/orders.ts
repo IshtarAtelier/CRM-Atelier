@@ -21,6 +21,8 @@ export interface OrderItem {
     quantity: number;
     price: number;
     eye?: string | null;
+    /** 'LEJOS' | 'CERCA' (monofocales); null = el default de la receta. */
+    lensUse?: string | null;
     sphereVal?: number | null;
     cylinderVal?: number | null;
     axisVal?: number | null;

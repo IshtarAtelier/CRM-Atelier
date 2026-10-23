@@ -40,7 +40,7 @@ export const ChatSearchBar = forwardRef<HTMLInputElement, ChatSearchBarProps>(fu
                         if (e.key === 'Escape') { e.preventDefault(); onCerrar(); }
                     }}
                     placeholder="Buscar en esta conversación..."
-                    className="flex-1 min-h-10 bg-transparent outline-none text-sm font-medium text-stone-900 dark:text-white placeholder:text-stone-500"
+                    className="flex-1 min-h-10 bg-transparent outline-none text-sm max-lg:text-base font-medium text-stone-900 dark:text-white placeholder:text-stone-500"
                 />
                 {hayTexto && (
                     <span

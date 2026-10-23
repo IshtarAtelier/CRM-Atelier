@@ -375,14 +375,24 @@ export async function buscarCobrosAprobados(desde: Date, maxPaginas = 10): Promi
   const cuenta = String(yo?.id ?? '');
   const resultados: any[] = traidos.filter((p: any) => cuenta && String(p.collector_id ?? '') === cuenta);
   return resultados.map((p) => {
-    const comision = (p.fee_details || []).reduce((s: number, f: any) => s + Number(f.amount || 0), 0);
+    // Solo lo que paga la cuenta: fee_details también trae el interés de las
+    // cuotas que paga el COMPRADOR (fee_payer 'payer'), que no sale de lo
+    // cobrado. Sumarlo dio "MP se queda $65.557" en un cobro de $175.000 en 6
+    // cuotas que dejó $165.688 (22/10/2026). Con el neto a mano, manda la resta.
+    const bruto = Number(p.transaction_amount || 0);
+    const netoMp = p.transaction_details?.net_received_amount;
+    const comision = netoMp != null
+      ? Math.max(0, Math.round((bruto - Number(netoMp)) * 100) / 100)
+      : (p.fee_details || [])
+          .filter((f: any) => f.fee_payer !== 'payer')
+          .reduce((s: number, f: any) => s + Number(f.amount || 0), 0);
     const nombre = [p.payer?.first_name, p.payer?.last_name].filter(Boolean).join(' ').trim();
     return {
       id: String(p.id),
       aprobado: p.date_approved,
-      bruto: Number(p.transaction_amount || 0),
+      bruto,
       comision,
-      neto: Number(p.transaction_details?.net_received_amount ?? Number(p.transaction_amount || 0) - comision),
+      neto: netoMp != null ? Number(netoMp) : bruto - comision,
       cuotas: Number(p.installments || 1),
       medio: String(p.payment_type_id || ''),
       tipoOperacion: String(p.operation_type || ''),

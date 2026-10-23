@@ -44,7 +44,7 @@ export function ChatListItem({
     // deshabilitado no emite click y dejaba un agujero de 48 px en la fila —
     // tocabas la foto y no se abría el chat.
     const AvatarTag = onFijar ? 'button' : 'span';
-    const avatarClases = `${compacto ? 'w-10 h-10 text-base' : 'w-12 h-12 text-lg'} rounded-2xl flex items-center justify-center font-black shrink-0 transition-all duration-200 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
+    const avatarClases = `${compacto ? 'w-10 h-10 text-base' : 'w-12 h-12 text-lg max-lg:rounded-full'} rounded-2xl flex items-center justify-center font-black shrink-0 transition-all duration-200 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
         fijado
             ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
             : seleccionado
@@ -66,7 +66,7 @@ export function ChatListItem({
                     onSeleccionar(chat);
                 }
             }}
-            className={`w-full text-left p-3 rounded-2xl transition-all relative border group/card cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 ${
+            className={`w-full text-left p-3 rounded-2xl ${compacto ? '' : 'max-lg:rounded-none max-lg:px-4 max-lg:border-b max-lg:border-b-stone-100 max-lg:dark:border-b-white/5 max-lg:active:bg-stone-100 max-lg:dark:active:bg-stone-800'} transition-all relative border group/card cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 ${
                 seleccionado
                     ? 'bg-white dark:bg-stone-800 border-transparent shadow-lg shadow-black/5 ring-1 ring-stone-900/10 dark:ring-white/10 z-10'
                     : 'hover:bg-white/60 dark:hover:bg-stone-800/50 border-transparent text-stone-800 dark:text-stone-200'
@@ -78,7 +78,13 @@ export function ChatListItem({
                         {...(onFijar
                             ? {
                                 type: 'button' as const,
-                                onClick: (e: React.MouseEvent) => { e.stopPropagation(); onFijar(chat); },
+                                onClick: (e: React.MouseEvent) => {
+                                    // En el celular tocar la foto abre el chat, como en
+                                    // WhatsApp: no hay mouse para "pasar por encima" y
+                                    // ver el corazón, así que se marcaban favoritos sin querer.
+                                    if (!compacto && window.matchMedia('(max-width: 1023px)').matches) return;
+                                    e.stopPropagation(); onFijar(chat);
+                                },
                                 'aria-label': fijado ? `Quitar a ${nombre} de favoritos` : `Marcar a ${nombre} como favorito`,
                                 title: fijado ? 'Quitar de favoritos' : 'Marcar como favorito',
                             }
@@ -108,7 +114,7 @@ export function ChatListItem({
 
                 <div className="flex-1 min-w-0 pr-1">
                     <div className="flex items-center justify-between gap-2">
-                        <span className={`text-[13px] font-black truncate flex items-center gap-1.5 ${seleccionado ? 'text-stone-900 dark:text-white' : ''}`}>
+                        <span className={`text-[13px] ${compacto ? '' : 'max-lg:text-base max-lg:font-bold'} font-black truncate flex items-center gap-1.5 ${seleccionado ? 'text-stone-900 dark:text-white' : ''}`}>
                             {!compacto && onFijar && (
                                 <button
                                     type="button"
@@ -118,7 +124,7 @@ export function ChatListItem({
                                     className={`transition-all duration-200 shrink-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
                                         etiquetas.includes('Fijado')
                                             ? 'text-amber-600 opacity-100'
-                                            : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100'
+                                            : 'max-lg:hidden text-stone-500 dark:text-stone-400 hover:text-stone-800 opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100'
                                     }`}
                                 >
                                     <Pin className={`w-3.5 h-3.5 ${etiquetas.includes('Fijado') ? 'fill-current' : 'rotate-45'}`} />
@@ -133,7 +139,7 @@ export function ChatListItem({
                                     className={`transition-all duration-200 shrink-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
                                         chat.archived
                                             ? 'text-stone-600 dark:text-stone-300 opacity-100'
-                                            : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100'
+                                            : 'max-lg:hidden text-stone-500 dark:text-stone-400 hover:text-stone-800 opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100'
                                     }`}
                                 >
                                     {chat.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
@@ -156,7 +162,7 @@ export function ChatListItem({
                         )}
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-1">
-                        <p className={`text-[12px] truncate max-w-[80%] ${chat.unreadCount > 0 ? 'font-black text-stone-900 dark:text-white' : 'text-stone-600 dark:text-stone-400 font-medium'}`}>
+                        <p className={`text-[12px] ${compacto ? '' : 'max-lg:text-sm'} truncate max-w-[80%] ${chat.unreadCount > 0 ? 'font-black text-stone-900 dark:text-white' : 'text-stone-600 dark:text-stone-400 font-medium'}`}>
                             {ultimo ? (
                                 <>
                                     {ultimo.direction === 'OUTBOUND' && <span className="opacity-70 mr-1">Tú:</span>}

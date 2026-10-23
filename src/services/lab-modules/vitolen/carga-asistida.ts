@@ -1,4 +1,4 @@
-import { Borradores } from '../carga/borrador';
+import { Borradores, elegidoDe } from '../carga/borrador';
 import type { BorradorParaVista, CampoDePreparacion, CargaAsistida, VistaDeBorrador } from '../carga/contrato';
 import { armarFormulario, cristalesPorPar, esSegundoParDePromo, leerVentaParaCarga, TIPOS_ARMAZON } from './carga';
 import { lineasDeCambios } from './cambios-a-mano';
@@ -35,7 +35,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
     lab: LAB_VITOLEN,
     nombre: NOMBRE_VITOLEN,
     robot: ROBOT_ACTOR_VITOLEN,
-    portal: { url: `${BASE_VITOLEN}/ventas/pedidos_laboratorio/new`, etiqueta: 'Abrir el portal de Vitolen para cargarlo a mano' },
+    portal: { url: `${BASE_VITOLEN}/ventas/pedidos_laboratorio/new`, etiqueta: 'Abrir portal' },
 
     async analizar(orderId) {
         const venta = await leerVentaParaCarga(orderId);
@@ -112,6 +112,7 @@ export const CARGA_VITOLEN: CargaAsistida = {
                 texto: 'Cuando quede confirmado, su nº de trabajo es el "pedido origen" del 2º par. Asegurate de que ese nº quede en la venta (el robot lo anota solo al terminar) antes de preparar el otro par: sin él, el 2º par no entra en la promo.',
             } : null,
             enlacePortal: r.url ?? null,
+            elegido: elegidoDe({ forma: p.forma, ejeDiagonal: p.ejeDiagonal, tipoArmazon: p.tipoArmazon, variante: p.variante }),
             documento: null,
             pendienteEnPortal: r.portalDraftId && !r.canceladoEl && !r.confirmadoAManoEl && (b.status === 'RECHAZADO' || b.status === 'ERROR') ? { id: String(r.portalDraftId), url: r.url ?? null } : null,
         };

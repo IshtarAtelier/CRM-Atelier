@@ -20,16 +20,18 @@ import { formatDate } from '@/lib/format-date';
  * aprueba a ciegas.
  */
 
-interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number }
+interface Campo { clave: string; etiqueta: string; tipo: 'select' | 'numero' | 'extra' | 'texto'; advertencia?: string; opciones?: { value: string; label: string; imagen?: string }[]; obligatorio: boolean; porDefecto?: string; ayuda?: string; min?: number; max?: number; maxLength?: number; patron?: string; placeholder?: string }
 interface Par { pair: number; titulo: string | null; faltantes: string[]; avisos: string[]; campos: Campo[]; espera?: string | null; yaCargado?: string | null; aMano?: string | null; rol?: { tipo: 'CON_CARGO' | 'SIN_CARGO'; etiqueta: string } | null }
 interface Acciones { aprobar: boolean; rechazar: boolean; reintentar: boolean; anular: boolean; retirarAprobacion: boolean; releer: boolean; cancelarPortal: boolean; robotEnCurso: boolean }
-interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null }
+interface Vista { textoRevision: string; filas: { titulo: string; valor: string; fuerte?: boolean }[]; avisos: string[]; tituloAvisos?: string; enlacePortal?: string | null; documento?: { url: string; etiqueta: string } | null; pendienteEnPortal?: { id: string; url: string | null } | null; confirmarAntesDeAprobar?: { titulo: string; texto: string } | null; cambiosAMano?: { lineas: string[]; costoExtra: number; aConfirmar: boolean; motivo: string | null } | null; elegido?: Record<string, string> | null }
 interface Borrador {
     id: string; pair: number; status: string; screenshotUrl: string | null; screenshotFinalUrl: string | null; portalNumber: string | null;
     preparedBy: string | null; approvedBy: string | null; approvedAt: string | null; loadedAt: string | null; error: string | null; vista: Vista; acciones?: Acciones;
+    /** Lo que el robot está haciendo en este momento (mientras prepara o carga). */
+    ahora?: string | null;
 }
 interface PedidoEspejo { portalNumber: string; status: string; statusRaw: string | null; estimatedAt: string | null; lastSeenAt: string }
-interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean; portal?: { url: string; etiqueta: string } | null }
+interface Datos { lab: string; nombre: string; borradores: Borrador[]; espejo: PedidoEspejo[]; pares: Par[]; puedeCancelarEnPortal: boolean; conSeguimiento?: boolean; portal?: { url: string; etiqueta: string } | null }
 
 const ESTADO: Record<string, { texto: string; clase: string }> = {
     PREPARADO: { texto: 'El robot está armando el pedido', clase: 'bg-stone-100 text-stone-600' },
@@ -47,6 +49,8 @@ const esImagen = (url: string | null | undefined) => { if (!url) return false; t
 const TEMA: Record<string, { caja: string; titulo: string; boton: string; borde: string; anillo: string; seleccion: string }> = {
     VITOLEN: { caja: 'from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-100 dark:border-red-900/40', titulo: 'text-red-600', boton: 'bg-red-600', borde: 'border-red-100 dark:border-red-900/30', anillo: 'hover:ring-red-400', seleccion: 'border-red-600 ring-red-300' },
     GRUPO_OPTICO: { caja: 'from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-indigo-100 dark:border-indigo-900/50', titulo: 'text-indigo-600 dark:text-indigo-400', boton: 'bg-indigo-600', borde: 'border-indigo-100 dark:border-indigo-900/40', anillo: 'hover:ring-indigo-400', seleccion: 'border-indigo-600 ring-indigo-300' },
+    // Optovisión con colores propios: con los de Grupo Óptico, Milena no distinguía de qué laboratorio era la caja (auditoría del 21/10/2026).
+    OPTOVISION: { caja: 'from-teal-50 to-cyan-50 dark:from-teal-950/30 dark:to-cyan-950/30 border-teal-100 dark:border-teal-900/50', titulo: 'text-teal-700 dark:text-teal-400', boton: 'bg-teal-700', borde: 'border-teal-100 dark:border-teal-900/40', anillo: 'hover:ring-teal-400', seleccion: 'border-teal-700 ring-teal-300' },
 };
 
 /**
@@ -189,6 +193,13 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
 
     /** Aprobar / Rechazar: los mismos botones debajo de la captura y dentro de la vista ampliada. */
     // Función y no componente: un componente definido acá se remontaría en cada tecla del motivo.
+    /** Rechaza el borrador y deja el formulario del par con lo que se había elegido, para cambiar una cosa y preparar de nuevo. */
+    const corregir = async (b: Borrador) => {
+        const elegido = b.vista.elegido || {};
+        setValores(v => ({ ...v, ...Object.fromEntries(Object.entries(elegido).map(([k, val]) => [`${b.pair}:${k}`, val])) }));
+        await decidir(b.id, 'rechazar', { motivo: 'Corrección: se vuelve a preparar con cambios' });
+    };
+
     // `sinPantalla`: la captura del portal no está o no se pudo mostrar → solo se puede rechazar.
     const decision = (b: Borrador, claro = false, sinPantalla = false) => {
         const bloqueo = bloqueoDe(b);
@@ -204,6 +215,13 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                     <button type="button" disabled={ocupado !== null || !(motivo[b.id] || '').trim()} onClick={() => decidir(b.id, 'rechazar')} className={`${boton} bg-rose-600`}>
                         <X className="w-3.5 h-3.5" /> Rechazar
                     </button>
+                    {/* Corregir SIN empezar de cero (regla de Ishtar, 21/10/2026, para todos los laboratorios): se rechaza este
+                        borrador y el formulario de preparar reaparece con lo que ya se había elegido, para cambiar una sola cosa. */}
+                    {b.vista.elegido && Object.keys(b.vista.elegido).length > 0 && (
+                        <button type="button" disabled={ocupado !== null} title="Rechaza este borrador y vuelve al formulario con lo ya elegido" onClick={() => corregir(b)} className={`${boton} bg-amber-600`}>
+                            <Pencil className="w-3.5 h-3.5" /> Corregir y volver a preparar
+                        </button>
+                    )}
                 </div>
                 {/* Corregir a mano ANTES de aprobar (Vitolen): se abre el borrador real en el portal
                     ("Modificar"), y "Releer el portal" trae la pantalla como quedó. Botones, no un
@@ -244,7 +262,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                 </div>
             </div>
 
-            {datos.espejo.length === 0 && <p className="text-[11px] text-stone-500 mb-3">El portal de {nombre} todavía no muestra ningún pedido de esta venta.</p>}
+            {datos.espejo.length === 0 && datos.conSeguimiento !== false && <p className="text-[11px] text-stone-500 mb-3">El portal de {nombre} todavía no muestra ningún pedido de esta venta.</p>}
             {datos.espejo.length > 0 && (
                 <ul className="space-y-1 mb-4">
                     {datos.espejo.map(p => (
@@ -262,7 +280,10 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                 const cerrados = datos.borradores.filter(x => x.pair === par.pair && !VIVOS.includes(x.status));
                 const cargado = cerrados.find(x => x.status === 'CARGADO');
                 const ultimo = cerrados[0];
-                const mostrado = b || cargado || ultimo;
+                // Un rechazo limpio (sin error ni pedido colgado en el portal) ya terminó: el par vuelve a "para preparar"
+                // sin un cartel rojo de "Rechazado" arriba del formulario.
+                const rechazoLimpio = ultimo?.status === 'RECHAZADO' && !ultimo.error && !ultimo.vista?.pendienteEnPortal;
+                const mostrado = b || cargado || (rechazoLimpio ? null : ultimo);
                 const faltaElegir = par.campos.some(c => c.obligatorio && !valorDe(par.pair, c));
                 return (
                     <div key={par.pair} className={`border-t ${tema.borde} pt-3 mt-3 space-y-2`}>
@@ -292,6 +313,12 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                     </a>
                                 )}
                                 {cargado.error && <p className="text-amber-800 dark:text-amber-400 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {cargado.error}</p>}
+                                {/* Lo que el laboratorio quiere que se sepa del pedido ya cargado (Optovisión: los pasos de la promo — cupón, pares, mail). */}
+                                {cargado.vista.avisos.length > 0 && (
+                                    <ul className="text-stone-700 dark:text-stone-300 bg-white/70 dark:bg-black/20 rounded-lg px-3 py-2 space-y-0.5">
+                                        {cargado.vista.avisos.map(a => <li key={a}>{a}</li>)}
+                                    </ul>
+                                )}
                             </div>
                         )}
 
@@ -325,6 +352,13 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                     <ul className="list-disc pl-4">{par.faltantes.map(f => <li key={f}>{f}</li>)}</ul>
                                 </div>
                             ) : (
+                              <div className="space-y-2">
+                                {/* Lo que el laboratorio quiere que se sepa ANTES de preparar (Optovisión: qué le falta a la ficha para el cupón, quién es el 1er par de la promo). */}
+                                {par.avisos.length > 0 && (
+                                    <ul className="text-[11px] text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2 space-y-0.5">
+                                        {[...new Set(par.avisos)].map(a => <li key={a}>{a}</li>)}
+                                    </ul>
+                                )}
                                 <div className="flex flex-wrap items-end gap-2">
                                     {par.campos.map(c => c.tipo === 'extra' ? (
                                         valorDe(par.pair, c) ? (
@@ -358,6 +392,8 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                                     {!c.porDefecto && <option value="">{c.obligatorio ? 'Elegir…' : '—'}</option>}
                                                     {(c.opciones || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                                 </select>
+                                            ) : c.tipo === 'texto' ? (
+                                                <input type="text" maxLength={c.maxLength} pattern={c.patron} placeholder={c.placeholder} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-44`} />
                                             ) : (
                                                 <input type="number" min={c.min} max={c.max} step={1} value={valorDe(par.pair, c)} onChange={e => setValores(v => ({ ...v, [`${par.pair}:${c.clave}`]: e.target.value }))} className={`${input} w-24`} />
                                             )}
@@ -367,12 +403,14 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                                         {ocupado === `preparar-${par.pair}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bot className="w-3 h-3" />} Preparar en {nombre}
                                     </button>
                                 </div>
+                              </div>
                             )
                         )}
 
                         {b?.status === 'PREPARADO' && (
                             <div className="text-xs text-stone-500 space-y-1">
-                                <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está armando el pedido en el portal; en unos segundos trae la pantalla para revisar. Preparado por {b.preparedBy}.</p>
+                                <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> El robot está armando el pedido en el portal; en breve trae la pantalla para revisar. Preparado por {b.preparedBy}.</p>
+                                {b.ahora && <p className="pl-4 font-bold text-stone-600 dark:text-stone-300">Ahora: {b.ahora}…</p>}
                                 {b.acciones?.anular && (
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span className="text-amber-800">Lleva demasiado sin novedades (¿se reinició el servidor?). Si el robot llegó a dejar un borrador en el portal, al anular la ficha ofrece cancelarlo.</span>
@@ -385,6 +423,7 @@ export default function CargaLaboratorio({ lab, orderId, onChanged, arrancar = 0
                         {b?.status === 'APROBADO' && !b.error && (
                             <div className="text-xs text-stone-500 space-y-1">
                                 <p className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Aprobado por {b.approvedBy}. El robot está cargando el pedido en el laboratorio.</p>
+                                {b.ahora && <p className="pl-4 font-bold text-stone-600 dark:text-stone-300">Ahora: {b.ahora}…</p>}
                                 {/* Si el servidor se reinició a mitad de la carga, nadie anota el error: pasados unos minutos se ofrece reintentar (nunca duplica). */}
                                 {b.acciones?.reintentar && (
                                     <button type="button" disabled={ocupado !== null} onClick={() => decidir(b.id, 'reintentar')} className={`${boton} bg-emerald-600`}>
