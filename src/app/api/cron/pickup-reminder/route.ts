@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { pasaPorLaboratorio } from '@/lib/pedido-sin-laboratorio';
 import { prisma } from '@/lib/db';
 import { BotService } from '@/services/bot.service';
 import { REGISTRO_MODULOS } from '@/services/lab-modules/registro';
@@ -90,6 +91,15 @@ export async function GET(request: Request) {
             // (Vitolen: todavía no se sabe cuánto tarda en llegar al local). La
             // notificación queda PENDING en la campanita y el vendedor avisa al
             // marcar "Listo p/ Retirar" a mano.
+            // Sin cristales no hay retiro que avisar (anteojo de sol).
+            if (!pasaPorLaboratorio(order.items as any[])) {
+                await prisma.notification.update({
+                    where: { id: notif.id },
+                    data: { status: 'RESOLVED', resolvedBy: 'Cron Pickup - Sin laboratorio' }
+                });
+                continue;
+            }
+
             const retiro = retiroAutomaticoPermitido(order.items as any[], REGISTRO_MODULOS);
             if (!retiro.permitido) {
                 results.push({ orderId: order.id, status: `Sin aviso automático (${retiro.modulo}): lo avisa el vendedor` });

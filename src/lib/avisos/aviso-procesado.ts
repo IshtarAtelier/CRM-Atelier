@@ -8,6 +8,7 @@
 // falla. Acá se arma y se manda una sola vez, y los dos lo usan.
 // ────────────────────────────────────────────────────────────────────────────
 
+import { pasaPorLaboratorio } from '@/lib/pedido-sin-laboratorio';
 import { format } from 'date-fns';
 import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
 import { PricingService } from '@/services/PricingService';
@@ -63,6 +64,9 @@ export async function enviarAvisoProcesado(
             entityId: String(order?.id || ''),
             details: { tipo: 'aviso_procesado', ok, motivo: motivo || null, estimatedDate },
         }).catch(err => console.error('[Aviso procesado] audit:', err));
+
+    // Sin cristales no hay proceso: silencio, y no es una falla que avisar.
+    if (!pasaPorLaboratorio(order?.items)) return { ok: true, estimatedDate };
 
     const phone = (order?.client?.phone || '').replace(/\D/g, '');
     if (phone.length < 10) {

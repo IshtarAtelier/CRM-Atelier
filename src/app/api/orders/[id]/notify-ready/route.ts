@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { pasaPorLaboratorio } from '@/lib/pedido-sin-laboratorio';
 import { prisma } from '@/lib/db';
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
@@ -23,11 +24,15 @@ export async function POST(
         // 1. Obtener la orden con cliente
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            include: { client: true, payments: { select: { amount: true, method: true } } }
+            include: { client: true, payments: { select: { amount: true, method: true } }, items: { select: { productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { category: true, type: true } } } } }
         });
 
         if (!order) {
             return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+        }
+
+        if (!pasaPorLaboratorio(order.items)) {
+            return NextResponse.json({ error: 'Esta venta no lleva cristales: no se le avisan estados al cliente' }, { status: 409 });
         }
 
         // Sin teléfono ya no es un corte: si la ficha tiene mail, el aviso sale

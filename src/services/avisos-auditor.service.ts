@@ -29,6 +29,7 @@ import { logAudit } from '@/lib/audit';
 import { avisarAlEquipo } from '@/lib/avisos/aviso-al-equipo';
 import { MARCA_NOTA } from '@/lib/sale-confirmation';
 import { MARCA_AVISO_PROCESADO } from '@/lib/avisos/aviso-procesado';
+import { pasaPorLaboratorio } from '@/lib/pedido-sin-laboratorio';
 
 export type TipoAviso = 'confirmacion_compra' | 'procesado' | 'listo_para_retirar';
 
@@ -161,6 +162,7 @@ export async function auditarAvisos(opts: { dias?: number; modo?: 'seco' | 'real
             id: true, createdAt: true, updatedAt: true, labSentAt: true, labStatus: true,
             clientId: true,
             client: { select: { id: true, name: true, phone: true, email: true } },
+            items: { select: { productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { category: true, type: true } } } },
         },
         orderBy: { createdAt: 'asc' },
     });
@@ -223,6 +225,8 @@ export async function auditarAvisos(opts: { dias?: number; modo?: 'seco' | 'real
     const faltantes: AvisoFaltante[] = [];
 
     for (const v of ventas) {
+        // Sin cristales no le corresponde ningún aviso (anteojo de sol).
+        if (!pasaPorLaboratorio(v.items)) continue;
         const nro = nroDe(v.id).slice(1);
         const mensajes = [
             ...(porLlave.get(v.clientId || '') || []),

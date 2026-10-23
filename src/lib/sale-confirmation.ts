@@ -42,6 +42,7 @@ import { isTeñidoAddon, esLineaDeTenido } from '@/lib/promo-utils';
 import { armazonesPorPar, tituloDePar, tipoDeItem, esArmazonItem } from '@/lib/armazon-por-par';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { HORAS_PARA_CONFIRMACION_TACITA } from '@/lib/confirmacion-cliente';
+import { pasaPorLaboratorio } from '@/lib/pedido-sin-laboratorio';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
 /**
@@ -742,6 +743,8 @@ export async function sendSaleConfirmation(
     try {
         const order: any = await prisma.order.findUnique({ where: { id: orderId }, select: SELECT_CONFIRMACION });
         if (!order || !order.client) return resultado;
+        // Sin cristales no hay nada que fabricar ni que confirmar (anteojo de sol).
+        if (!pasaPorLaboratorio(order.items)) return { ...resultado, omitida: true };
 
         // Idempotencia: una confirmación por versión del pedido. Sin esto, dos
         // guardados seguidos le mandan el mismo repaso dos veces al cliente.

@@ -176,6 +176,12 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
 - **`Order.paid` NO prueba que se haya cobrado.** La venta real se mide por filas
   de `Payment` o por `labStatus`. Hay filas con `paid` y cero pagos.
 - **Vendedor de una venta = quien la envió a fábrica** (`labSentBy`).
+- **Una venta sin cristales no le avisa nada al cliente** (Ishtar, 22/10/2026):
+  anteojo de sol, armazón solo o lentes de contacto no pasan por laboratorio, así
+  que no hay confirmación de compra, ni "procesado", ni "listo para retirar", ni
+  recordatorio de retiro. La única regla es `pasaPorLaboratorio()`
+  (`src/lib/pedido-sin-laboratorio.ts`): basta un ítem cristal (teñido incluido).
+  El aviso de despacho por correo SÍ sigue saliendo.
 - **Nombres de la tienda = estelar + color.** La marca (ej. Cápsula Escarlata) va
   en el campo marca, nunca en el nombre.
 - **La casilla del local (`atelier.optica.cerro@`) NO recibe costos ni

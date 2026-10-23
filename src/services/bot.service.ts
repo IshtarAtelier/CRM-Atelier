@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { pasaPorLaboratorio } from '@/lib/pedido-sin-laboratorio';
 import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
@@ -167,6 +168,8 @@ export class BotService {
             // teléfono, así que un cliente con mail cargado y número inválido
             // nunca se enteraba de que su pedido estaba listo.
             if (!clientPhone && !clientEmail) return false;
+            // Sin cristales no hay "pedido listo" que avisar (anteojo de sol).
+            if (!pasaPorLaboratorio(order.items)) return false;
 
             const financials = PricingService.calculateOrderFinancials(order);
 
