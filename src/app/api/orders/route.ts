@@ -11,6 +11,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { descuentoNegativo, excedeTopeVendedor, FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { mapOrderPostSale } from '@/types/orders';
+import { ventaParaElRol } from '@/lib/costos-solo-admin';
 
 // POST /api/orders — Create order from inline cotizador
 export async function POST(request: Request) {
@@ -612,7 +613,7 @@ export async function GET(request: Request) {
 
             const ordersWithBalance = allMatchingOrders.map((o: any) => {
                 const financials = PricingService.calculateOrderFinancials(o);
-                return { ...mapOrderPostSale(o), financials };
+                return { ...ventaParaElRol(mapOrderPostSale(o), isAdmin), financials };
             }).filter((o: any) => o.financials.hasBalance);
 
             if (paginate) {
@@ -648,7 +649,7 @@ export async function GET(request: Request) {
             ]);
 
             return NextResponse.json({
-                orders: orders.map(mapOrderPostSale),
+                orders: orders.map(o => ventaParaElRol(mapOrderPostSale(o), isAdmin)),
                 totalRevenue: isAdmin ? (aggregate._sum.total || 0) : 0,
                 pagination: {
                     total,
@@ -665,7 +666,7 @@ export async function GET(request: Request) {
                 orderBy,
                 take: 100, // Safety limit to avoid 502/timeouts
             });
-            return NextResponse.json(orders.map(mapOrderPostSale));
+            return NextResponse.json(orders.map(o => ventaParaElRol(mapOrderPostSale(o), isAdmin)));
         }
     } catch (error: any) {
         console.error('Error fetching orders:', error);

@@ -44,7 +44,8 @@ export default function ComprobanteLab({ orderId, labOrderNumber, entries, isAdm
     const refs = (entries || []).flatMap(e =>
         (Array.isArray(e.invoiceRefs) ? e.invoiceRefs : []).map(r => ({ ...r, entry: e }))
     );
-    const sinRefsConImporte = (entries || []).filter(e => !(Array.isArray(e.invoiceRefs) && e.invoiceRefs.length) && (e.billedTotal ?? e.billedNet) != null);
+    // El importe facturado es costo: solo lo ve Ishtar (lib/costos-solo-admin; el servidor ya no lo manda al resto).
+    const sinRefsConImporte = isAdmin ? (entries || []).filter(e => !(Array.isArray(e.invoiceRefs) && e.invoiceRefs.length) && (e.billedTotal ?? e.billedNet) != null) : [];
 
     const guardar = async () => {
         setError('');
@@ -83,7 +84,7 @@ export default function ComprobanteLab({ orderId, labOrderNumber, entries, isAdm
                             ) : (
                                 <span className="font-bold">{r.comprobante}</span>
                             )}
-                            {r.importe != null && <span>${formatearPrecio(r.importe)}</span>}
+                            {isAdmin && r.importe != null && <span>${formatearPrecio(r.importe)}</span>}
                             {r.entry.invoiceDate && <span className="text-stone-400">{formatDate(r.entry.invoiceDate)}</span>}
                         </li>
                     ))}
